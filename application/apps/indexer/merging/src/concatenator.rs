@@ -9,9 +9,10 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use indexer_base::chunks::ChunkResults;
+use crossbeam_channel as cc;
 use failure::err_msg;
 use indexer_base::chunks::ChunkFactory;
+use indexer_base::chunks::ChunkResults;
 use indexer_base::progress::IndexingProgress;
 use indexer_base::utils;
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,6 @@ use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::iter::Iterator;
 use std::path::PathBuf;
-use crossbeam_channel as cc;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatItemOptions {
@@ -114,17 +114,10 @@ pub fn concat_files(
     })?;
     let mut progress_percentage = 0usize;
     for input in concat_inputs {
-        if let Some(rx) = shutdown_rx.as_ref() {
-            match rx.try_recv() {
-                Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                    info!("shutdown received in concatenator",);
-                    update_channel.send(Ok(IndexingProgress::Stopped))?;
-                    return Ok(());
-                }
-                // No shutdown command, continue
-                _ => (),
-            }
-        };
+        if utils::check_if_stop_was_requested(&shutdown_rx, "concatenator") {
+            update_channel.send(Ok(IndexingProgress::Stopped))?;
+            return Ok(());
+        }
         let f: fs::File = fs::File::open(input.path)?;
         let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
         let mut buf = vec![];
@@ -138,7 +131,7 @@ pub fn concat_files(
             let s = unsafe { std::str::from_utf8_unchecked(&buf) };
             let trimmed_line = s.trim_matches(utils::is_newline);
 
-            let additional_bytes = utils::create_tagged_line(
+            let additional_bytes = utils::write_tagged_line(
                 &input.tag[..],
                 &mut buf_writer,
                 trimmed_line,

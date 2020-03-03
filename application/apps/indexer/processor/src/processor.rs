@@ -12,6 +12,7 @@
 
 use crate::parse;
 use crossbeam_channel as cc;
+use encoding_rs_io::*;
 use failure::{err_msg, Error};
 use indexer_base::chunks::ChunkFactory;
 use indexer_base::chunks::ChunkResults;
@@ -20,13 +21,16 @@ use indexer_base::progress::*;
 use indexer_base::utils;
 use indexer_base::utils::restore_line;
 use parse::detect_timestamp_in_string;
+use std::cell::RefCell;
 use std::fs;
+use std::io::Read;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 use std::time::Instant;
 
 pub fn create_index_and_mapping(
     config: IndexingConfig,
+    source_file_size: usize,
     parse_timestamps: bool,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
@@ -46,32 +50,13 @@ pub fn create_index_and_mapping(
             return Err(err_msg(c));
         }
     };
-    index_file(
-        config,
-        initial_line_nr,
-        parse_timestamps,
-        update_channel,
-        shutdown_receiver,
-        // report,
-    )
-}
-
-pub fn index_file(
-    config: IndexingConfig,
-    initial_line_nr: usize,
-    timestamps: bool,
-    update_channel: cc::Sender<ChunkResults>,
-    shutdown_receiver: Option<cc::Receiver<()>>,
-) -> Result<(), Error> {
-    trace!("called index_file for file: {:?}", config.in_file);
-    let start = Instant::now();
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
 
-    let f = match fs::File::open(&config.in_file) {
+    let in_file = match fs::File::open(&config.in_file) {
         Ok(file) => file,
         Err(e) => {
-            eprint!("could not open {:?}", config.in_file);
+            warn!("could not open {:?}", config.in_file);
             let _ = update_channel.try_send(Err(Notification {
                 severity: Severity::WARNING,
                 content: format!("could not open file ({})", e),
@@ -80,22 +65,56 @@ pub fn index_file(
             return Err(err_msg(format!("could not open file ({})", e)));
         }
     };
-    let source_file_size: Option<usize> = fs::metadata(&config.in_file)
-        .ok()
-        .map(|md| md.len() as usize);
+    let mut decode_builder = DecodeReaderBytesBuilder::new();
+    decode_builder
+        .utf8_passthru(true)
+        .strip_bom(true)
+        .bom_override(true)
+        .bom_sniffing(true);
+    let decode_buffer_inst = RefCell::new(vec![0; 8 * (1 << 10)]);
+    let mut decode_buffer = decode_buffer_inst.borrow_mut();
+    let read_from = decode_builder.build_with_buffer(in_file, &mut *decode_buffer)?;
+    index_file(
+        read_from,
+        config.tag,
+        out_file,
+        current_out_file_size,
+        config.chunk_size,
+        source_file_size,
+        initial_line_nr,
+        parse_timestamps,
+        update_channel,
+        shutdown_receiver,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn index_file<T: Read>(
+    read_from: T,
+    tag: &str,
+    out_file: fs::File,
+    current_out_file_size: usize,
+    chunk_size: usize,
+    source_file_size: usize,
+    initial_line_nr: usize,
+    timestamps: bool,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_receiver: Option<cc::Receiver<()>>,
+) -> Result<(), Error> {
+    let start = Instant::now();
 
     let mut chunk_count = 0usize;
     let mut last_byte_index = 0usize;
-    let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
+    let mut chunk_factory = ChunkFactory::new(chunk_size, current_out_file_size);
 
-    let mut reader = BufReader::new(f);
+    let mut reader = BufReader::new(read_from);
     let mut line_nr = initial_line_nr;
-    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, &out_file);
 
     let mut buf = vec![];
-    let mut processed_bytes = 0usize;
-    let mut progress_percentage = 0usize;
     let mut stopped = false;
+
+    let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
     while let Ok(len) = reader.read_until(b'\n', &mut buf) {
         if stopped {
             info!("we where stopped in indexer",);
@@ -105,53 +124,25 @@ pub fn index_file(
         let trimmed_line = s.trim_matches(utils::is_newline);
         let trimmed_len = trimmed_line.len();
         let had_newline = trimmed_len != len;
-        processed_bytes += len;
         if len == 0 {
             // no more content
             break;
         };
-        // only use non-empty lines, others will be dropped
-        // if trimmed_len != 0 {
-        let additional_bytes: usize = if timestamps {
-            let ts = match detect_timestamp_in_string(trimmed_line, None) {
-                Ok((time, _, _)) => time,
-                Err(_) => 0,
-            };
-            utils::create_tagged_line(
-                config.tag,
-                &mut buf_writer,
-                trimmed_line,
-                line_nr,
-                had_newline,
-                Some(ts),
-            )?
+        let ts = if timestamps {
+            match detect_timestamp_in_string(trimmed_line, None) {
+                Ok((time, _, _)) => Some(time),
+                Err(_) => Some(0),
+            }
         } else {
-            utils::create_tagged_line(
-                config.tag,
-                &mut buf_writer,
-                trimmed_line,
-                line_nr,
-                had_newline,
-                None,
-            )?
+            None
         };
+        let additional_bytes: usize =
+            utils::write_tagged_line(tag, &mut buf_writer, trimmed_line, line_nr, had_newline, ts)?;
         line_nr += 1;
 
         match chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {
             Some(chunk) => {
-                // check if stop was requested
-                if let Some(rx) = shutdown_receiver.as_ref() {
-                    match rx.try_recv() {
-                        // Shutdown if we have received a command or if there is
-                        // nothing to send it.
-                        Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                            info!("shutdown received in indexer",);
-                            stopped = true // stop
-                        }
-                        // No shutdown command, continue
-                        Err(cc::TryRecvError::Empty) => (),
-                    }
-                };
+                stopped = utils::check_if_stop_was_requested(&shutdown_receiver, "indexer");
                 chunk_count += 1;
                 last_byte_index = chunk.b.1;
                 update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
@@ -161,17 +152,7 @@ pub fn index_file(
             None => false,
         };
 
-        if let Some(file_size) = source_file_size {
-            let new_progress_percentage: usize =
-                (processed_bytes as f64 / file_size as f64 * 100.0).round() as usize;
-            if new_progress_percentage != progress_percentage {
-                progress_percentage = new_progress_percentage;
-                update_channel.send(Ok(IndexingProgress::Progress {
-                    ticks: (processed_bytes, file_size),
-                }))?;
-            }
-        }
-        // }
+        progress_reporter.make_progress(len);
         buf = vec![];
     }
     if stopped {
@@ -187,8 +168,7 @@ pub fn index_file(
             chunk_count += 1;
         }
         if chunk_count > 0 {
-            let last_expected_byte_index =
-                fs::metadata(config.out_path).map(|md| md.len() as usize)?;
+            let last_expected_byte_index = out_file.metadata().map(|md| md.len() as usize)?;
             if last_expected_byte_index != last_byte_index {
                 return Err(err_msg(format!(
                     "error in computation! last byte in chunks is {} but should be {}",
@@ -196,11 +176,10 @@ pub fn index_file(
                 )));
             }
         }
-        let elapsed = start.elapsed();
-        let ms = elapsed.as_millis();
         info!(
             "done, created {} chunks in {} ms, sending Finished",
-            chunk_count, ms
+            chunk_count,
+            start.elapsed().as_millis()
         );
         update_channel.send(Ok(IndexingProgress::Finished))?;
         Ok(())

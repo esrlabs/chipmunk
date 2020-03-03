@@ -325,7 +325,7 @@ pub fn create_index_and_mapping_dlt_from_pcap<'a>(
     shutdown_receiver: async_std::sync::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), Error> {
-    trace!("create_index_and_mapping_dlt");
+    trace!("create_index_and_mapping_dlt_from_pcap");
     match utils::next_line_nr(config.out_path) {
         Ok(initial_line_nr) => {
             let filter_config: Option<filtering::ProcessedDltFilterConfig> =

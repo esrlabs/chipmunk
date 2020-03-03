@@ -9,12 +9,12 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crossbeam_channel as cc;
 use failure::{err_msg, Error};
 use std::char;
 use std::fmt::Display;
 use std::fs;
-use std::io::Write;
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::io::{self, BufReader, Read, Seek, SeekFrom, Write};
 use std::path;
 use std::str;
 
@@ -46,11 +46,11 @@ pub fn restore_line(line: &str) -> &str {
 #[inline]
 pub fn create_tagged_line_d<T: Display>(
     tag: &str,
-    out_buffer: &mut std::io::BufWriter<std::fs::File>,
+    out_buffer: &mut io::BufWriter<std::fs::File>,
     trimmed_line: T,
     line_nr: usize,
     with_newline: bool,
-) -> std::io::Result<usize> {
+) -> io::Result<usize> {
     let bytes_buffered = out_buffer.buffer().len();
     if let Err(e) = out_buffer.write_fmt(format_args!(
         "{}{}{}{}{}{}{}{}",
@@ -70,16 +70,22 @@ pub fn create_tagged_line_d<T: Display>(
 }
 
 #[inline]
-pub fn create_tagged_line(
+pub fn write_tagged_line(
     tag: &str,
-    out_buffer: &mut dyn std::io::Write,
+    out_buffer: &mut dyn io::Write,
     trimmed_line: &str,
     line_nr: usize,
     with_newline: bool,
     timestamp: Option<i64>,
-) -> std::io::Result<usize> {
+) -> io::Result<usize> {
     match timestamp {
         Some(ts) => {
+            let line_len_with_timestamp_no_nl = trimmed_line.len()
+                + 5 * SENTINAL_LENGTH
+                + tag.len()
+                + number_string_len(line_nr)
+                + number_string_len(ts as usize);
+
             if with_newline {
                 writeln!(
                     out_buffer,
@@ -97,12 +103,7 @@ pub fn create_tagged_line(
                         ROW_NUMBER_SENTINAL,
                     ),
                 )?;
-                Ok(trimmed_line.len()
-                    + 5 * SENTINAL_LENGTH
-                    + tag.len()
-                    + number_string_len(line_nr)
-                    + number_string_len(ts as usize)
-                    + 1)
+                Ok(line_len_with_timestamp_no_nl + 1)
             } else {
                 write!(
                     out_buffer,
@@ -120,14 +121,12 @@ pub fn create_tagged_line(
                         ROW_NUMBER_SENTINAL,
                     ),
                 )?;
-                Ok(trimmed_line.len()
-                    + 5 * SENTINAL_LENGTH
-                    + tag.len()
-                    + number_string_len(line_nr)
-                    + number_string_len(ts as usize))
+                Ok(line_len_with_timestamp_no_nl)
             }
         }
         None => {
+            let line_len_no_timestamp_no_nl =
+                trimmed_line.len() + 4 * SENTINAL_LENGTH + tag.len() + number_string_len(line_nr);
             if with_newline {
                 writeln!(
                     out_buffer,
@@ -143,11 +142,7 @@ pub fn create_tagged_line(
                         ROW_NUMBER_SENTINAL,
                     ),
                 )?;
-                Ok(trimmed_line.len()
-                    + 4 * SENTINAL_LENGTH
-                    + tag.len()
-                    + number_string_len(line_nr)
-                    + 1)
+                Ok(line_len_no_timestamp_no_nl + 1)
             } else {
                 write!(
                     out_buffer,
@@ -163,10 +158,7 @@ pub fn create_tagged_line(
                         ROW_NUMBER_SENTINAL,
                     ),
                 )?;
-                Ok(trimmed_line.len()
-                    + 4 * SENTINAL_LENGTH
-                    + tag.len()
-                    + number_string_len(line_nr))
+                Ok(line_len_no_timestamp_no_nl)
             }
         }
     }
@@ -246,5 +238,24 @@ pub fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
         }
     } else {
         0
+    }
+}
+
+pub fn check_if_stop_was_requested(
+    shutdown_receiver: &Option<cc::Receiver<()>>,
+    component: &str,
+) -> bool {
+    match shutdown_receiver.as_ref() {
+        Some(rx) => match rx.try_recv() {
+            // Shutdown if we have received a command or if there is
+            // nothing to send it.
+            Ok(_) | Err(cc::TryRecvError::Disconnected) => {
+                info!("shutdown received in {}", component);
+                true // stop
+            }
+            // No shutdown command, continue
+            Err(cc::TryRecvError::Empty) => false,
+        },
+        None => false,
     }
 }

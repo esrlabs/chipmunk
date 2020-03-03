@@ -25,6 +25,9 @@ mod tests {
         let test_file_path = tmp_dir.path().join("tmpTestFile.txt");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
         fs::write(&test_file_path, test_content).expect("testfile could not be written");
+        let source_file_size = fs::metadata(&test_file_path)
+            .expect("metadata not found")
+            .len() as usize;
 
         // call our function
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
@@ -36,6 +39,7 @@ mod tests {
                 out_path: &out_file_path,
                 append: tmp_file_name.is_some(),
             },
+            source_file_size,
             false,
             tx,
             None,
@@ -108,6 +112,10 @@ mod tests {
         fs::write(&empty_file_path, "").expect("testfile could not be written");
         let out_path = tmp_dir.path().join("test_append_to_empty_output.log.out");
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+
+        let source_file_size = fs::metadata(&empty_file_path)
+            .expect("metadata not found")
+            .len() as usize;
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -116,6 +124,7 @@ mod tests {
                 out_path: &out_path,
                 append: false,
             },
+            source_file_size,
             false,
             tx,
             None,
@@ -166,6 +175,10 @@ mod tests {
         let nonempty_file_path = tmp_dir.path().join("not_empty.log");
         fs::write(&nonempty_file_path, "A").unwrap();
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+
+        let source_file_size = fs::metadata(&nonempty_file_path)
+            .expect("metadata not found")
+            .len() as usize;
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -174,6 +187,7 @@ mod tests {
                 out_path: &out_path,
                 append: true,
             },
+            source_file_size,
             false,
             tx,
             None,
@@ -312,6 +326,7 @@ mod tests {
                 out_path: &out_file_path,
                 append: append_use_case,
             },
+            fs::metadata(&in_path).expect("metadata not found").len() as usize,
             false,
             tx,
             None,

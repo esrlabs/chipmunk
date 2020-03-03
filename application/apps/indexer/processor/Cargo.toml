@@ -16,6 +16,7 @@ lazy_static = "1.3.0"
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 crossbeam-channel = "0.4"
+encoding_rs_io = "0.1.7"
 indexer_base = { path = "../indexer_base" }
 
 [dev-dependencies]

@@ -126,7 +126,7 @@ impl FileMessageProducer {
         let f = match fs::File::open(&in_path) {
             Ok(file) => file,
             Err(e) => {
-                eprint!("could not open {:?}", in_path);
+                warn!("could not open {:?}", in_path);
                 let _ = update_channel.try_send(Err(Notification {
                     severity: Severity::WARNING,
                     content: format!("could not open file ({})", e),
@@ -318,19 +318,7 @@ pub fn index_dlt_content(
                 if let Some(chunk) =
                     chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
                 {
-                    // check if stop was requested
-                    if let Some(rx) = shutdown_receiver.as_ref() {
-                        match rx.try_recv() {
-                            // Shutdown if we have received a command or if there is
-                            // nothing to send it.
-                            Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                                info!("shutdown received in indexer",);
-                                stopped = true // stop
-                            }
-                            // No shutdown command, continue
-                            Err(cc::TryRecvError::Empty) => (),
-                        }
-                    };
+                    stopped = utils::check_if_stop_was_requested(&shutdown_receiver, "dlt indexer");
                     chunk_count += 1;
                     last_byte_index = chunk.b.1;
                     trace!("1 send chunk {:?}", chunk);

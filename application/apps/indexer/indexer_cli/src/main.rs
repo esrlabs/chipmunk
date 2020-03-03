@@ -499,16 +499,12 @@ fn main() {
                 path::PathBuf::from(file.to_string() + ".map.json");
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
 
-            let source_file_size = if status_updates {
-                Some(match fs::metadata(file) {
-                    Ok(file_meta) => file_meta.len() as usize,
-                    Err(_) => {
-                        report_error("could not find out size of source file");
-                        std::process::exit(2);
-                    }
-                })
-            } else {
-                None
+            let source_file_size = match fs::metadata(file) {
+                Ok(file_meta) => file_meta.len() as usize,
+                Err(_) => {
+                    report_error("could not find out size of source file");
+                    std::process::exit(2);
+                }
             };
             let append: bool = matches.is_present("append");
             let timestamps: bool = matches.is_present("timestamp");
@@ -526,6 +522,7 @@ fn main() {
                         out_path: &out_path,
                         append,
                     },
+                    source_file_size,
                     timestamps,
                     tx,
                     None,
@@ -543,16 +540,14 @@ fn main() {
                     Ok(Ok(IndexingProgress::Finished)) => {
                         trace!("finished...");
                         let _ = serialize_chunks(&chunks, &mapping_out_path);
-                        if let Some(original_file_size) = source_file_size {
-                            let file_size_in_mb = original_file_size as f64 / 1024.0 / 1024.0;
-                            if status_updates {
-                                duration_report_throughput(
-                                    start,
-                                    format!("processing ~{} MB", file_size_in_mb.round()),
-                                    file_size_in_mb,
-                                    "MB".to_string(),
-                                )
-                            }
+                        let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                        if status_updates {
+                            duration_report_throughput(
+                                start,
+                                format!("processing ~{} MB", file_size_in_mb.round()),
+                                file_size_in_mb,
+                                "MB".to_string(),
+                            )
                         }
                         progress_bar.finish_and_clear();
                         break;

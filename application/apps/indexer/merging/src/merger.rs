@@ -9,6 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crossbeam_channel as cc;
 use failure::err_msg;
 use indexer_base::chunks::ChunkFactory;
 use indexer_base::chunks::ChunkResults;
@@ -24,7 +25,6 @@ use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::iter::{Iterator, Peekable};
 use std::path::PathBuf;
-use crossbeam_channel as cc;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MergeItemOptions {
@@ -235,7 +235,7 @@ pub fn merge_and_sort_files(
     }
     let sorted = heap.into_sorted_vec();
     for t in sorted {
-        let additional_bytes = utils::create_tagged_line(
+        let additional_bytes = utils::write_tagged_line(
             &t.tag[..],
             &mut buf_writer,
             &t.content[..],
@@ -353,7 +353,7 @@ pub fn merge_files_iter(
                 processed_bytes += line.original_length;
                 let trimmed_len = line.content.len();
                 if trimmed_len > 0 {
-                    let additional_bytes = utils::create_tagged_line(
+                    let additional_bytes = utils::write_tagged_line(
                         &line.tag,
                         &mut buf_writer,
                         &line.content,
@@ -366,19 +366,7 @@ pub fn merge_files_iter(
                         line_nr, // TODO avoid passing in this line...error prone
                         additional_bytes,
                     ) {
-                        // check if stop was requested
-                        if let Some(rx) = shutdown_rx.as_ref() {
-                            match rx.try_recv() {
-                                // Shutdown if we have received a command or if there is
-                                // nothing to send it.
-                                Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                                    info!("shutdown received in indexer",);
-                                    stopped = true // stop
-                                }
-                                // No shutdown command, continue
-                                Err(cc::TryRecvError::Empty) => (),
-                            }
-                        };
+                        stopped = utils::check_if_stop_was_requested(&shutdown_rx, "merger");
                         chunk_count += 1;
                         buf_writer.flush()?;
                         update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;

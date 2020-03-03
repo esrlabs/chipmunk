@@ -12,9 +12,7 @@
 use crate::dlt::*;
 use crate::filtering;
 use crossbeam_channel as cc;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::error_reporter::*;
-use indexer_base::progress::*;
+use indexer_base::{chunks::ChunkResults, error_reporter::*, progress::*, utils};
 use serde::Serialize;
 
 use buf_redux::policy::MinBuffered;
@@ -1300,20 +1298,10 @@ pub fn get_dlt_file_info(
         }
         index += 1;
         if index % STOP_CHECK_LINE_THRESHOLD == 0 {
-            // check if stop was requested
-            if let Some(rx) = shutdown_receiver.as_ref() {
-                match rx.try_recv() {
-                    // Shutdown if we have received a command or if there is
-                    // nothing to send it.
-                    Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                        info!("shutdown received in dlt stats producer, sending stopped");
-                        update_channel.send(Ok(IndexingProgress::Stopped))?;
-                        break;
-                    }
-                    // No shutdown command, continue
-                    Err(cc::TryRecvError::Empty) => (),
-                }
-            };
+            if utils::check_if_stop_was_requested(&shutdown_receiver, "dlt stats producer") {
+                update_channel.send(Ok(IndexingProgress::Stopped))?;
+                break;
+            }
             update_channel.send(Ok(IndexingProgress::Progress {
                 ticks: (processed_bytes, source_file_size),
             }))?;

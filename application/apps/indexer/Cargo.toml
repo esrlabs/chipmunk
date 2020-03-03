@@ -7,3 +7,6 @@ members = [
     "indexer_base",
     "merging",
 ]
+
+[profile.release]
+debug = true

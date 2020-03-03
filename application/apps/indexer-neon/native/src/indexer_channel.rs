@@ -50,8 +50,21 @@ fn index_file_with_progress(
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("index_file_with_progress");
+    let source_file_size = match config.in_file.metadata() {
+        Ok(file_meta) => file_meta.len() as usize,
+        Err(_) => {
+            error!("could not find out size of source file");
+            let _ = tx.try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: "could not find out size of source file".to_string(),
+                line: None,
+            }));
+            0
+        }
+    };
     match processor::processor::create_index_and_mapping(
         config,
+        source_file_size,
         timestamps,
         tx.clone(),
         shutdown_receiver,
