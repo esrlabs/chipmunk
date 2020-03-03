@@ -1,5 +1,16 @@
 # Changelog
 
+### [1.39.0] - 03/03/2020
+* [#646](feat) update general styles
+* [#695](feat) support exporting everything in DLT file
+* [#687](feat) also: export sections from dlt file
+* [#695](feat) support exporting everything in text files
+  empty lines are no longer discarded so we can reproduce the input file
+* [#695](feat) general support for saving text based files
+* [#573](feat) support search based on text selection
+* [](feat) remove source's name column from views
+* [](fix) fix colors for DLT row render
+
 ### [1.38.1] - 02/17/2020
 
 * [#563](feat) some corrections for saving dlt traces
