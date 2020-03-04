@@ -19,8 +19,8 @@ const CSettings: {
     repo: string,
     registerListFile: string,
 } = {
-    user: 'DmitryAstafyev',
-    repo: 'chipmunk.plugins.store',
+    user: 'esrlabs',
+    repo: 'chipmunk-plugins-store',
     registerListFile: 'releases-{platform}.json',
 };
 
