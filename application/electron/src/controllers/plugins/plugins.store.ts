@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import Logger from '../../tools/env.logger';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
-import ServicePackage from '../../services/service.package';
+import ServicePackage, { IDependencies } from '../../services/service.package';
 
 import GitHubClient, { IReleaseAsset, IReleaseData, GitHubAsset } from '../../tools/env.github.client';
 
@@ -29,8 +29,10 @@ export interface IPluginReleaseInfo {
     url: string;
     version: string;
     hash: string;
+    phash: string;
     default: boolean;
     signed: boolean;
+    dependencies: IDependencies;
     file: string;
 }
 

@@ -14,18 +14,20 @@ import ControllerPluginProcess, { TConnectionFactory } from './plugin.controller
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
-import ServicePackage from '../../services/service.package';
+import ServicePackage, { IDependencies } from '../../services/service.package';
 
 export { IPackageJson, TConnectionFactory };
 
 export type TPluginName = string;
 
 export interface IInstalledPluginInfo {
-    name: string;           // Included into "info.json"
-    ulr: string;            // Included into "info.json"
-    file: string;           // Included into "info.json"
-    version: string;        // Included into "info.json"
-    hash: string;           // Included into "info.json"
+    name: string;                   // Included into "info.json"
+    ulr: string;                    // Included into "info.json"
+    file: string;                   // Included into "info.json"
+    version: string;                // Included into "info.json"
+    hash: string;                   // Included into "info.json"
+    phash: string;                  // Included into "info.json"
+    dependencies: IDependencies;    // Included into "info.json"
     displayName: string;    // Has been taken from package.json (default = "name" of info.json)
     package: {
         render: ControllerPluginPackage | undefined;
@@ -90,7 +92,7 @@ export default class ControllerPluginInstalled {
                         this._logger.warn(`Fail parse info-file due error: ${e.message}`);
                         return reject(e);
                     }
-                    if (this._info?.hash !== ServicePackage.getHash()) {
+                    if (this._info?.phash !== ServicePackage.getHash(this._info?.dependencies)) {
                         this._logger.warn(`Plugin could not be used, because hash dismatch.\n\t- plugin hash: ${this._info?.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
                         return reject(new Error(`Version-hash dismatch`));
                     }
@@ -198,11 +200,11 @@ export default class ControllerPluginInstalled {
                 this._logger.warn(`Plugin will not be update, because there are no such plugin in store`);
                 return resolve();
             }
-            if (ServicePackage.getHash() !== available.hash) {
-                this._logger.warn(`Plugin will not be updated, because hash dismatch.\n\t- plugin hash: ${available.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
+            if (ServicePackage.getHash(available.dependencies) !== available.phash) {
+                this._logger.warn(`Plugin will not be updated, because hash dismatch.\n\t- plugin hash: ${available.phash}\n\t- chipmunk hash: ${ServicePackage.getHash(available.dependencies)}`);
                 return resolve();
             }
-            if (semver.compare(this._info.hash, available.hash) !== -1 && semver.compare(this._info.version, available.version) !== -1) {
+            if (this._info.phash === available.phash && this._info.version === available.version) {
                 this._logger.debug(`Update of plugin isn't required.`);
                 return resolve();
             }

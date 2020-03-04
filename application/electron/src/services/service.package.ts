@@ -15,6 +15,18 @@ export interface IVersions {
     "chipmunk-client-material": string;
     "angular-core": string;
     "angular-material": string;
+    "force": string;
+}
+
+export interface IDependencies {
+    "electron": boolean;
+    "electron-rebuild": boolean;
+    "chipmunk.client.toolkit": boolean;
+    "chipmunk.plugin.ipc": boolean;
+    "chipmunk-client-material": boolean;
+    "angular-core": boolean;
+    "angular-material": boolean;
+    "force": boolean;
 }
 
 export interface IPackageFile {
@@ -22,6 +34,17 @@ export interface IPackageFile {
     chipmunk: {
         versions: IVersions;
     };
+}
+
+const CDefaultDependencies: IDependencies = {
+    "electron": true,
+    "electron-rebuild": true,
+    "chipmunk.client.toolkit": true,
+    "chipmunk.plugin.ipc": true,
+    "chipmunk-client-material": true,
+    "angular-core": true,
+    "angular-material": true,
+    "force": true,
 }
 
 /**
@@ -70,20 +93,24 @@ export class ServicePackage implements IService {
         return Objects.copy(this._package);
     }
 
-    public getHash(): string {
+    public getHash(dependencies: IDependencies = CDefaultDependencies): string {
+        if (typeof dependencies !== 'object' || dependencies === null) {
+            dependencies = CDefaultDependencies;
+        }
         const vers: IVersions = (this._package as IPackageFile).chipmunk.versions;
         const p: { [key: number]: string[] } = {};
-        p[1] = vers.electron.split('.');
-        p[2] = vers["electron-rebuild"].split('.');
-        p[3] = vers["chipmunk.client.toolkit"].split('.');
-        p[4] = vers["chipmunk.plugin.ipc"].split('.');
-        p[5] = vers["chipmunk-client-material"].split('.');
-        p[6] = vers["angular-core"].split('.');
-        p[7] = vers["angular-material"].split('.');
+        p[1] = dependencies.electron ? vers.electron.split('.') : ['', '', ''];
+        p[2] = dependencies["electron-rebuild"] ? vers["electron-rebuild"].split('.') : ['', '', ''];
+        p[3] = dependencies["chipmunk.client.toolkit"] ? vers["chipmunk.client.toolkit"].split('.') : ['', '', ''];
+        p[4] = dependencies["chipmunk.plugin.ipc"] ? vers["chipmunk.plugin.ipc"].split('.') : ['', '', ''];
+        p[5] = dependencies["chipmunk-client-material"] ? vers["chipmunk-client-material"].split('.') : ['', '', ''];
+        p[6] = dependencies["angular-core"] ? vers["angular-core"].split('.') : ['', '', ''];
+        p[7] = dependencies["angular-material"] ? vers["angular-material"].split('.') : ['', '', ''];
+        p[8] = dependencies.force ? vers.force.split('.') : ['', '', ''];
         let hash: string = '';
         for (let a = 0; a <= 2; a += 1) {
             let part: string = hash === '' ? '' : '.';
-            for (let b = 1; b <= 7; b += 1) {
+            for (let b = 1; b <= 8; b += 1) {
                 part += p[b][a];
             }
             hash += part;
@@ -131,7 +158,8 @@ export class ServicePackage implements IService {
         "chipmunk.plugin.ipc",
         "chipmunk-client-material",
         "angular-core",
-        "angular-material"].forEach((key: string) => {
+        "angular-material",
+        "force"].forEach((key: string) => {
             if (typeof (json.chipmunk.versions as any)[key] !== 'string') {
                 error = new Error(`Fail to find version of "${key}" in "chipmunk.versions".`);
             }
