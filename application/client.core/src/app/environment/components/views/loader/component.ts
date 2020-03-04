@@ -9,7 +9,7 @@ import ServiceElectronIpc, { IPCMessages, Subscription } from '../../../services
 
 export class ViewLoaderComponent implements OnDestroy {
 
-    @Input() public comment: string = 'Welcome to logviewer';
+    @Input() public comment: string = 'Welcome to Chipmunk';
 
     private _subscription: Subscription;
 

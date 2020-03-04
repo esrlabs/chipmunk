@@ -210,7 +210,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 modules,
                 require
             );
-            (window as any).logviewer = gate;
+            (window as any).chipmunk = gate;
+            (window as any).logviewer = gate; // Back-compatibility
             // Step 3. Execute code of plugin to initialize
             try {
                 // tslint:disable-next-line:no-eval
