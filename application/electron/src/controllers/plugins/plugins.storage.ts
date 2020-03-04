@@ -57,8 +57,15 @@ export default class ControllerPluginsStorage {
     public bindWithSession(session: string, connectionFactory: TConnectionFactory): Promise<void> {
         return new Promise((resolve, reject) => {
             return Promise.all(Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
-                return plugin.bindWithSession(session, connectionFactory).catch((bindErr: Error) => {
+                return plugin.bindWithSession(session, connectionFactory).then((error: Error | undefined) => {
+                    if (error instanceof Error) {
+                        this._logger.debug(`Plugin "${plugin.getName()}" wouldn't be attached because: ${error.message}`);
+                    }
+                    return Promise.resolve();
+                }).catch((bindErr: Error) => {
                     this._logger.warn(`Fail bind plugin ${plugin.getName()} with session "${session}" due error: ${bindErr.message}`);
+                    this._logger.warn(`Plugin ${plugin.getName()} will be excluded.`);
+                    this._exclude(plugin);
                     return Promise.resolve();
                 });
             })).then(() => {
