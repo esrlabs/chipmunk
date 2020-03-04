@@ -302,21 +302,25 @@ export default class ControllerPluginInstalled {
         return this._info.controller.process.runAsSingle();
     }
 
-    public bindWithSession(session: string, connectionFactory: TConnectionFactory): Promise<void> {
+    public bindWithSession(session: string, connectionFactory: TConnectionFactory): Promise<Error | undefined> {
         return new Promise((resolve, reject) => {
             if (this._info === undefined) {
-                return reject(new Error(`Plugin isn't inited`));
+                return resolve(new Error(`Plugin isn't inited`));
             }
             if (this._info.controller === undefined) {
-                return reject(new Error(`Plugin's controllers arn't inited`));
+                return resolve(new Error(`Plugin's controllers arn't inited`));
             }
             if (this._info.controller.process === undefined) {
-                return reject(new Error(`Plugin doesn't have process part`));
+                return resolve(new Error(`Plugin doesn't have process part`));
             }
             if (this._info.controller.process.isSingleProcess()) {
-                this._info.controller.process.bindSinglePlugin(session, connectionFactory).then(resolve).catch(reject);
+                this._info.controller.process.bindSinglePlugin(session, connectionFactory).then(() => {
+                    resolve(undefined);
+                }).catch(reject);
             } else if (this._info.controller.process.isMultipleProcess()) {
-                this._info.controller.process.bindMultiplePlugin(session, connectionFactory).then(resolve).catch(reject);
+                this._info.controller.process.bindMultiplePlugin(session, connectionFactory).then(() => {
+                    resolve(undefined);
+                }).catch(reject);
             }
         });
     }
