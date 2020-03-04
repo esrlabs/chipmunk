@@ -45,7 +45,7 @@ const CDefaultDependencies: IDependencies = {
     "angular-core": true,
     "angular-material": true,
     "force": true,
-}
+};
 
 /**
  * @class ServicePackage

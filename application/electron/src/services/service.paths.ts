@@ -43,7 +43,7 @@ class ServicePaths implements IService {
     private _downloads: string = '';
     private _apps: string = '';
     private _rg: string = '';
-    private _defaultPlugins: string = '';
+    private _includedPlugins: string = '';
 
     /**
      * Initialization function
@@ -73,7 +73,7 @@ class ServicePaths implements IService {
                 return reject(exec);
             }
             this._exec = exec;
-            this._defaultPlugins = Path.resolve(this._root, 'plugins');
+            this._includedPlugins = Path.resolve(this._root, 'plugins');
             this._appModules = Path.resolve(this._root, '../../node_modules');
             this._rg = Path.resolve(this._root, `apps/${OS.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
             this._plugins = this._getPluginsPath(root);
@@ -81,7 +81,7 @@ class ServicePaths implements IService {
                 Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._apps, this._pluginsCfgFolder].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
-                    this._logger.debug(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tplugins settings ${this._pluginsCfgFolder}\n\tdefault plugins ${this._defaultPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
+                    this._logger.debug(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tplugins settings ${this._pluginsCfgFolder}\n\tincluded plugins ${this._includedPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to initialize paths due error: ${error.message}`);
@@ -121,8 +121,8 @@ class ServicePaths implements IService {
      * Returns path to default plugins folder
      * @returns string
      */
-    public getDefaultPlugins(): string {
-        return this._defaultPlugins;
+    public getIncludedPlugins(): string {
+        return this._includedPlugins;
     }
 
     /**
