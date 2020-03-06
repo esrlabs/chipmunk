@@ -381,21 +381,6 @@ task install: [:folders,
                :add_package_json]
 
 namespace :dev do
-  task :serial_render do
-    install_plugin_angular('serial')
-  end
-
-  task :processes_render do
-    install_plugin_angular('processes')
-  end
-
-  task :dltrender_render do
-    install_plugin_angular('dlt-render')
-  end
-
-  task :xterminal_render do
-    install_plugin_angular('xterminal')
-  end
 
   desc 'Developer task: update and delivery indexer-neon'
   task neon: %i[build_embedded_indexer delivery_embedded_into_local_runtime]
@@ -442,7 +427,7 @@ end
 def collect_ts_lint_scripts
   lint_scripts = []
   FileList['**/package.json']
-    .reject { |f| f =~ /node_modules/ || f =~ /dist\/compiled/ || f =~ /sandbox\/row\.parser\.ascii/ }
+    .reject { |f| f =~ /node_modules/ || f =~ /dist\/compiled/ }
     .each do |f|
     package = JSON.parse(File.read(f))
     scripts = package['scripts']
