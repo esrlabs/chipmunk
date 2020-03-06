@@ -7,6 +7,7 @@ require 'pathname'
 require 'uri'
 require 'rake/clean'
 require './rake-extensions'
+require './rake-plugins'
 
 NPM_RUN = 'npm run --quiet'
 
@@ -587,6 +588,12 @@ def packaged_neon_dest
   end
 end
 
+# delivery defaults plugins into release
+task :delivery_defaults_plugins do
+  @plugins = DefaultsPlugins.new
+  @plugins.delivery(INCLUDED_PLUGINS_FOLDER)
+end
+
 # put the neon library in place
 task :delivery_embedded_into_local_runtime do
   copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
@@ -777,6 +784,7 @@ task full_pipeline: %i[check_environment
                        setup_environment
                        install
                        ripgrepdelivery
+                       delivery_defaults_plugins
                        build_and_package_electron
                        create_release_file_list
                        prepare_to_deploy]
