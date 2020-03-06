@@ -12,7 +12,6 @@ export enum EProcessPluginType {
 export interface IChipmunk {
     version: string;
     type: EProcessPluginType;
-    displayName: string;
 }
 
 export interface IPackageJson {
@@ -99,11 +98,9 @@ export default class ControllerPluginPackage {
             packageJson.chipmunk = {
                 version: '',
                 type: EProcessPluginType.multiple,
-                displayName: this._name,
             };
         }
         packageJson.chipmunk.type = packageJson.chipmunk.type === undefined ? EProcessPluginType.multiple : packageJson.chipmunk.type;
-        packageJson.chipmunk.displayName = packageJson.chipmunk.displayName === undefined ? this._name : packageJson.chipmunk.displayName;
         return packageJson;
     }
 

@@ -33,6 +33,9 @@ export interface IPluginReleaseInfo {
     default: boolean;
     signed: boolean;
     dependencies: IDependencies;
+    display_name: string;
+    description: string;
+    readme: string;
     file: string;
 }
 
