@@ -28,7 +28,9 @@ export interface IInstalledPluginInfo {
     hash: string;                   // Included into "info.json"
     phash: string;                  // Included into "info.json"
     dependencies: IDependencies;    // Included into "info.json"
-    displayName: string;    // Has been taken from package.json (default = "name" of info.json)
+    display_name: string;           // Included into "info.json"
+    description: string;            // Included into "info.json"
+    readme: string;                 // Included into "info.json"
     package: {
         render: ControllerPluginPackage | undefined;
         process: ControllerPluginPackage | undefined;
@@ -102,11 +104,6 @@ export default class ControllerPluginInstalled {
                             this._info = undefined;
                             return reject(new Error(this._logger.warn(`Plugin doesn't have valid [render] and [process]. Plugin will not be used.`)));
                         }
-                        if (this._info.package.process !== undefined) {
-                            this._info.displayName = this._info.package.process.getPackageJson().chipmunk.displayName;
-                        } else if (this._info.package.render !== undefined) {
-                            this._info.displayName = this._info.package.render.getPackageJson().chipmunk.displayName;
-                        }
                         ServiceElectronService.logStateToRender(`Creating controllers for "${path.basename(this._path)}"`);
                         this._addControllers().then(() => {
                             this._logPluginState();
@@ -146,9 +143,9 @@ export default class ControllerPluginInstalled {
 
     public getDisplayName(): string {
         if (this._info === undefined) {
-            this._logger.error(`Attempt to get displayName of plugin, which isn't read or not valid.`);
+            this._logger.error(`Attempt to get display_name of plugin, which isn't read or not valid.`);
         }
-        return this._info?.displayName as string;
+        return this._info?.display_name as string;
     }
 
     public getPath(): string {
