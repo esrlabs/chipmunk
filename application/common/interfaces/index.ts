@@ -1,7 +1,8 @@
 import * as DLT from './interface.dlt';
 import * as NodeGlobal from './interface.node.global';
+import * as Plugins from './interface.plugins';
 
-export { DLT, NodeGlobal };
+export { DLT, NodeGlobal, Plugins };
 
 // describes a section of a file by indicies
 // to identify lines 10-12 (inclusively) => first_line = 10, last_line = 12

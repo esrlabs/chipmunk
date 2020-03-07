@@ -81,6 +81,12 @@ export default class Logger {
         return this._log(this._getMessage(...args), ELogLevels.ENV);
     }
 
+    public save(key: string, ...args: any[]) {
+        const msg: string = this._getMessage(...args);
+        LogsService.store(key, msg);
+        return this._log(msg, ELogLevels.DEBUG);
+    }
+
     /**
      * Publish WTF logs.
      * The thing is, if we get at least one WTF log, only WTF logs will be

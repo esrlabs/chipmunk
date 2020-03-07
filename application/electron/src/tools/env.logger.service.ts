@@ -70,6 +70,7 @@ class Service {
     private _introduced: boolean = false;
     private _lasttimestamp: number = 0;
     private _blackbox: LogsBlackbox = new LogsBlackbox();
+    private _stored: Map<string, string> = new Map();
 
     public introduce() {
         if (this._introduced) {
@@ -166,6 +167,14 @@ class Service {
                 resolve();
             });
         });
+    }
+
+    public store(key: string, msg: string) {
+        if (typeof key !== 'string' || key.trim() === '' || typeof msg !== 'string' || msg.trim() === '') {
+            return;
+        }
+        const stored: string | undefined = this._stored.get(key);
+        this._stored.set(key, (stored !== undefined ? stored : '') + msg);
     }
 }
 
