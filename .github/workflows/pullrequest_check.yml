@@ -51,6 +51,8 @@ jobs:
         uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.x'
+      - name: install octokit
+        run: gem install octokit
       - name: install node
         uses: actions/setup-node@master
         with:
@@ -70,6 +72,8 @@ jobs:
         uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.x'
+      - name: install octokit
+        run: gem install octokit
       - name: install rust
         uses: hecrj/setup-rust-action@v1
         with:
@@ -87,6 +91,8 @@ jobs:
         uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.x'
+      - name: install octokit
+        run: gem install octokit
       - name: install rust
         uses: hecrj/setup-rust-action@v1
         with:
