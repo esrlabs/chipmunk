@@ -298,7 +298,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
      */
     private _onSTDOut(chunk: Buffer): void {
         const str: string = chunk.toString();
-        this._logger.debug(str);
+        this._logger.save(str);
         this.emit(ControllerPluginProcessSingle.Events.output);
     }
 
@@ -308,7 +308,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
      */
     private _onSTDErr(chunk: Buffer): void {
         const str: string = chunk.toString();
-        this._logger.debug(str);
+        this._logger.save(str);
         this._stderr += str;
     }
 
