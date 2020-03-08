@@ -4,13 +4,14 @@ import * as FS from '../../tools/fs';
 import Logger from '../../tools/env.logger';
 import ServicePaths from '../../services/service.paths';
 import ControllerPluginRender from './plugin.controller.render';
-
-import InstalledPlugin, { TConnectionFactory } from './plugin.installed';
-import ControllerPluginStore, { IPluginReleaseInfo } from './plugins.store';
 import ServiceElectronService from '../../services/service.electron.state';
 import ServiceEnv from '../../services/service.env';
 
+import InstalledPlugin, { TConnectionFactory, IInstalledPluginInfo } from './plugin.installed';
+import ControllerPluginStore, { IPluginReleaseInfo } from './plugins.store';
+
 import { IPCMessages } from '../../services/service.electron';
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export { InstalledPlugin, TConnectionFactory };
 
@@ -245,6 +246,26 @@ export default class ControllerPluginsStorage {
                 reject(error);
             });
         });
+    }
+
+    public getPluginsInfo(): CommonInterfaces.Plugins.IPlugin[] {
+        return Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
+            const info: IInstalledPluginInfo | undefined = plugin.getInfo();
+            if (info === undefined) {
+                return null;
+            }
+            return {
+                name: info.name,
+                ulr: info.ulr,
+                file: info.file,
+                version: info.version,
+                display_name: info.display_name,
+                description: info.description,
+                readme: info.readme,
+            }
+        }).filter((data: CommonInterfaces.Plugins.IPlugin | null) => {
+            return data !== null;
+        }) as CommonInterfaces.Plugins.IPlugin[];
     }
 
     public logState() {

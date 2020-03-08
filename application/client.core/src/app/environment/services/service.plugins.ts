@@ -17,15 +17,17 @@ import * as hammerjs from 'hammerjs';
 
 import { Subscription  } from 'rxjs';
 import { Compiler, Injector } from '@angular/core';
-import ElectronIpcService from './service.electron.ipc';
 import { IPCMessages } from './service.electron.ipc';
+import { IService } from '../interfaces/interface.service';
+import { ControllerPluginGate } from '../controller/controller.plugin.gate';
+import { IAPI } from 'chipmunk.client.toolkit';
+import { CommonInterfaces } from '../interfaces/interface.common';
+
+import ElectronIpcService from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import OutputParsersService from './standalone/service.output.parsers';
 import SelectionParsersService from './standalone/service.selection.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
-import { IService } from '../interfaces/interface.service';
-import { ControllerPluginGate } from '../controller/controller.plugin.gate';
-import { IAPI } from 'chipmunk.client.toolkit';
 
 export type TRowParser = (str: string) => string;
 
@@ -152,6 +154,16 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     public getAvailablePlugins(): IPluginData[] {
         return Array.from(this._plugins.values());
+    }
+
+    public getInstalledPluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.PluginsInstalledRequest(), IPCMessages.PluginsInstalledResponse).then((message: IPCMessages.PluginsInstalledResponse) => {
+                resolve(message.plugins instanceof Array ? message.plugins : []);
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail request list of installed plugins due error: ${error.message}`);
+            });
+        });
     }
 
     private _fire(event: string, ...args: any) {

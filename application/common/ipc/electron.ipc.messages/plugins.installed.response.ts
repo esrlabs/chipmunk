@@ -2,16 +2,16 @@
 import * as Common from '../../interfaces/index';
 
 export interface IPluginsInstalledResponse {
-    plugins: Array<Common.Plugins.IPlugin>;
+    plugins: Common.Plugins.IPlugin[];
 }
 
 export class PluginsInstalledResponse {
     public static signature: string = 'PluginsInstalledResponse';
     public signature: string = PluginsInstalledResponse.signature;
 
-    public plugins: Array<Common.Plugins.IPlugin> = [];
+    public plugins: Common.Plugins.IPlugin[] = [];
 
-    constructor(params: PluginsInstalledResponse) {
+    constructor(params: IPluginsInstalledResponse) {
         if (typeof params !== 'object' || params === null) {
             throw new Error(`Incorrect parameters for Plugin message`);
         }
