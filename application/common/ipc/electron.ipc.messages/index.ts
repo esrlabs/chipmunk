@@ -16,6 +16,12 @@ export { IRenderMountPlugin, RenderMountPlugin, IRenderMountPluginInfo };
 import { IRenderState, RenderState, ERenderState } from './render.state';
 export { IRenderState, RenderState, ERenderState };
 
+import { PluginsInstalledRequest } from './plugins.installed.request';
+export { PluginsInstalledRequest };
+
+import { IPluginsInstalledResponse, PluginsInstalledResponse } from './plugins.installed.response';
+export { IPluginsInstalledResponse, PluginsInstalledResponse };
+
 import { IPluginInternalMessage, PluginInternalMessage } from './plugin.internal.message';
 export { IPluginInternalMessage, PluginInternalMessage };
 
@@ -316,6 +322,8 @@ export type TMessage =  HostState |
                         RenderState |
                         PluginInternalMessage |
                         PluginError |
+                        PluginsInstalledRequest |
+                        PluginsInstalledResponse |
                         StreamSetActive |
                         StreamAddRequest |
                         StreamAddResponse |
@@ -425,6 +433,8 @@ export const Map = {
 
     [PluginInternalMessage.signature        ]: PluginInternalMessage,
     [PluginError.signature                  ]: PluginError,
+    [PluginsInstalledRequest.signature      ]: PluginsInstalledRequest,
+    [PluginsInstalledResponse.signature     ]: PluginsInstalledResponse,
 
     [StreamSetActive.signature              ]: StreamSetActive,
     [StreamAddRequest.signature             ]: StreamAddRequest,

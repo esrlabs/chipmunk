@@ -30,34 +30,14 @@ export class ServicePlugins implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Read store information
-            this._store.read().then(() => {
-                this._logger.debug(`Plugins store data is load`);
-            }).catch((storeErr: Error) => {
-                this._logger.warn(`Fail load plugins store data due error: ${storeErr.message}`);
-            }).finally(() => {
-                // Read storage information
-                this._storage.read().then(() => {
-                    this._logger.debug(`Plugins storage data is load`);
-                    // Update installed plugins
-                    this._storage.update().catch((updateErr: Error) => {
-                        this._logger.warn(`Update of plugins is failed with: ${updateErr.message}`);
-                    }).finally(() => {
-                        // Delivery default plugins
-                        this._storage.defaults().then(() => {
-                            this._storage.logState();
-                            // Start single process plugins
-                            this._storage.runAllSingleProcess().catch((singleProcessRunErr: Error) => {
-                                this._logger.warn(`Fail to start single process plugins due error: ${singleProcessRunErr.message}`);
-                            });
-                            this._sendRenderPluginsData();
-                            resolve();
-                        });
-                    });
-                }).catch((storageErr: Error) => {
-                    this._logger.warn(`Fail load plugins storage data due error: ${storageErr.message}`);
-                    resolve();
-                });
+            Promise.all([
+                this._init(),
+                this._subscribe(),
+            ]).then(() => {
+                resolve();
+            }).catch((error: Error) => {
+                this._logger.error(`Fail initialize service due error: ${error.message}`);
+                reject(error);
             });
         });
     }
@@ -122,11 +102,54 @@ export class ServicePlugins implements IService {
         return this._storage.unbindWithSession(session);
     }
 
-    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *   Common
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     public getSessionPluginsNames(): string[] {
         return this._storage.getNamesOfInstalled();
+    }
+
+    private _init(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Read store information
+            this._store.read().then(() => {
+                this._logger.debug(`Plugins store data is load`);
+            }).catch((storeErr: Error) => {
+                this._logger.warn(`Fail load plugins store data due error: ${storeErr.message}`);
+            }).finally(() => {
+                // Read storage information
+                this._storage.read().then(() => {
+                    this._logger.debug(`Plugins storage data is load`);
+                    // Update installed plugins
+                    this._storage.update().catch((updateErr: Error) => {
+                        this._logger.warn(`Update of plugins is failed with: ${updateErr.message}`);
+                    }).finally(() => {
+                        // Delivery default plugins
+                        this._storage.defaults().then(() => {
+                            this._storage.logState();
+                            // Start single process plugins
+                            this._storage.runAllSingleProcess().catch((singleProcessRunErr: Error) => {
+                                this._logger.warn(`Fail to start single process plugins due error: ${singleProcessRunErr.message}`);
+                            });
+                            this._sendRenderPluginsData();
+                            resolve();
+                        });
+                    });
+                }).catch((storageErr: Error) => {
+                    this._logger.warn(`Fail load plugins storage data due error: ${storageErr.message}`);
+                    resolve();
+                });
+            });
+        });
+    }
+
+    private _subscribe(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Promise.all([
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginsInstalledRequest, this._ipc_PluginsInstalledRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginsInstalledRequest = subscription;
+                }),
+            ]).then(() => {
+                resolve();
+            }).catch(reject);
+        });
     }
 
     private _onRenderReady() {
@@ -151,6 +174,14 @@ export class ServicePlugins implements IService {
         }).catch((sendingError: Error) => {
             ServiceElectronService.logStateToRender(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
             this._logger.error(`Fail to send information to render about plugin "${names}" due error: ${sendingError.message}`);
+        });
+    }
+
+    private _ipc_PluginsInstalledRequest(message: IPCMessages.PluginsInstalledRequest, response: (instance: any) => any) {
+        response(new IPCMessages.PluginsInstalledResponse({
+            plugins: this._storage.getPluginsInfo(),
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail to send response on PluginsInstalledRequest due error: ${error.message}`);
         });
     }
 
