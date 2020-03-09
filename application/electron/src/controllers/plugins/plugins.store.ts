@@ -54,6 +54,8 @@ export default class ControllerPluginStore {
         return new Promise((resolve, reject) => {
             this._setRegister().then(() => {
                 resolve();
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to get plugin's register due error: ${error.message}`);
             });
         });
     }
@@ -172,7 +174,32 @@ export default class ControllerPluginStore {
                 });
             }).catch((error: Error) => {
                 this._logger.warn(`Fail get latest release due error: ${error.message}`);
-                reject(error);
+                // Try to read register from included
+                const local: string = path.resolve(ServicePaths.getIncludedPlugins(), this._getRegisterFileName());
+                FS.exist(local).then((exist: boolean) => {
+                    if (!exist) {
+                        return reject(new Error(`Fail to find local register "${local}"`));
+                    }
+                    FS.readTextFile(local).then((json: string) => {
+                        try {
+                            const list: IPluginReleaseInfo[] = JSON.parse(json);
+                            if (!(list instanceof Array)) {
+                                return reject(new Error(this._logger.warn(`Incorrect format of asseets`)));
+                            }
+                            list.forEach((plugin: IPluginReleaseInfo) => {
+                                this._plugins.set(plugin.name, plugin);
+                            });
+                            ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
+                            resolve();
+                        } catch (e) {
+                            return reject(new Error(this._logger.warn(`Fail parse asset to JSON due error: ${e.message}`)));
+                        }
+                    }).catch((readErr: Error) => {
+                        reject(readErr);
+                    });
+                }).catch((exErr: Error) => {
+                    reject(exErr);
+                });
             });
         });
     }
