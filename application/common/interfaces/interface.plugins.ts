@@ -1,6 +1,6 @@
 export interface IPlugin {
     name: string;                   
-    ulr: string;                    
+    url: string;                    
     file: string;                   
     version: string;                
     display_name: string;           

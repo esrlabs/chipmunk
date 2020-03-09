@@ -1,1 +1,11 @@
-<p>Plugin</p>
+<div class="icon">
+
+</div>
+<div class="description">
+    <p class="t-normal color-scheme-0 name">{{plugin.display_name}}</p>
+    <p class="t-small color-scheme-2 description">{{plugin.description}}</p>
+    <p class="t-small color-scheme-2 version">{{plugin.name}}@{{plugin.version}}</p>
+</div>
+<div class="info">
+    <p [attr.class]="'t-small state' + (plugin.installed ? ' installed ' : '')"><span>{{plugin.installed ? 'installed' : 'not installed'}}</span></p>
+</div>

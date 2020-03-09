@@ -248,7 +248,7 @@ export default class ControllerPluginsStorage {
         });
     }
 
-    public getPluginsInfo(): CommonInterfaces.Plugins.IPlugin[] {
+    public getInstalled(): CommonInterfaces.Plugins.IPlugin[] {
         return Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
             const info: IInstalledPluginInfo | undefined = plugin.getInfo();
             if (info === undefined) {
@@ -256,13 +256,13 @@ export default class ControllerPluginsStorage {
             }
             return {
                 name: info.name,
-                ulr: info.ulr,
+                url: info.url,
                 file: info.file,
                 version: info.version,
                 display_name: info.display_name,
                 description: info.description,
                 readme: info.readme,
-            }
+            };
         }).filter((data: CommonInterfaces.Plugins.IPlugin | null) => {
             return data !== null;
         }) as CommonInterfaces.Plugins.IPlugin[];

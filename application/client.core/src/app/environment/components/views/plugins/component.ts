@@ -56,11 +56,11 @@ export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterCont
                 private _notifications: NotificationsService) {
     }
 
-    ngAfterViewInit() {
+    public ngAfterViewInit() {
 
     }
 
-    ngAfterContentInit() {
+    public ngAfterContentInit() {
 
     }
 
@@ -70,6 +70,10 @@ export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterCont
         });
         this._destroyed = true;
     }
+
+    public _ng_getViewDelimiterPosition() {
+        return '50%';
+    }
 
     private _forceUpdate() {
         if (this._destroyed) {

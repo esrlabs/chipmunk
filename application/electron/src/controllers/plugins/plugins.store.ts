@@ -13,6 +13,7 @@ import ServicePackage, { IDependencies } from '../../services/service.package';
 import GitHubClient, { IReleaseAsset, IReleaseData, GitHubAsset } from '../../tools/env.github.client';
 
 import { getPlatform, EPlatforms } from '../../tools/env.os';
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 const CSettings: {
     user: string,
@@ -102,6 +103,20 @@ export default class ControllerPluginStore {
             return true;
         }).filter((plugin: IPluginReleaseInfo) => {
             return exclude.indexOf(plugin.name) === -1 && plugin.default;
+        });
+    }
+
+    public getAvailable(): CommonInterfaces.Plugins.IPlugin[] {
+        return Array.from(this._plugins.values()).map((plugin: IPluginReleaseInfo) => {
+            return {
+                name: plugin.name,
+                url: plugin.url,
+                file: plugin.file,
+                version: plugin.version,
+                display_name: plugin.display_name,
+                description: plugin.description,
+                readme: plugin.readme,
+            };
         });
     }
 

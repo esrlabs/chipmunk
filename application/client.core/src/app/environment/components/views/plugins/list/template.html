@@ -1,1 +1,3 @@
-<p>List is here</p>    
+<cdk-virtual-scroll-viewport itemSize="50">
+    <app-views-plugin [plugin]="plugin" *cdkVirtualFor="let plugin of _ng_plugins" class="example-item"></app-views-plugin>
+</cdk-virtual-scroll-viewport>
