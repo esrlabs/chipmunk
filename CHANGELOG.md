@@ -1,5 +1,11 @@
 # Changelog
 
+### [1.40.0] - 03/09/2020
+
+* [#673](fix) do not bail when fibex contains unsupported signal ids
+* [#709](fix) added support for UTF-16 encoded content
+  also simplified processor code
+
 ### [1.39.0] - 03/03/2020
 * [#646](feat) update general styles
 * [#695](feat) support exporting everything in DLT file
