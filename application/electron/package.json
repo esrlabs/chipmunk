@@ -10,7 +10,7 @@
             "chipmunk-client-material": "0.0.1",
             "angular-core": "8.2.12",
             "angular-material": "8.2.3",
-            "force": "0.0.4"
+            "force": "0.0.6"
         }
     },
     "description": "LogViewer",
