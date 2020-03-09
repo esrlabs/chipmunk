@@ -22,7 +22,7 @@ export type TPluginName = string;
 
 export interface IInstalledPluginInfo {
     name: string;                   // Included into "info.json"
-    ulr: string;                    // Included into "info.json"
+    url: string;                    // Included into "info.json"
     file: string;                   // Included into "info.json"
     version: string;                // Included into "info.json"
     hash: string;                   // Included into "info.json"

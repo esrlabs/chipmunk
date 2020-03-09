@@ -15,6 +15,12 @@
   </div>
 </div>
 <div class="views">
-  <app-views-plugins-list></app-views-plugins-list>
+  <div class="left" [ngStyle]="{'right': _ng_getViewDelimiterPosition()}">
+    <app-views-plugins-list></app-views-plugins-list>
+  </div>
+  <div class="delimiter" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}"></div>
+  <div class="right" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}">
+
+  </div>
   
 </div>

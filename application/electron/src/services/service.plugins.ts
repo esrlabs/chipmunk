@@ -146,6 +146,9 @@ export class ServicePlugins implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsInstalledRequest, this._ipc_PluginsInstalledRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsInstalledRequest = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginsStoreAvailableRequest, this._ipc_PluginsStoreAvailableRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginsStoreAvailableRequest = subscription;
+                }),
             ]).then(() => {
                 resolve();
             }).catch(reject);
@@ -179,9 +182,17 @@ export class ServicePlugins implements IService {
 
     private _ipc_PluginsInstalledRequest(message: IPCMessages.PluginsInstalledRequest, response: (instance: any) => any) {
         response(new IPCMessages.PluginsInstalledResponse({
-            plugins: this._storage.getPluginsInfo(),
+            plugins: this._storage.getInstalled(),
         })).catch((error: Error) => {
             this._logger.warn(`Fail to send response on PluginsInstalledRequest due error: ${error.message}`);
+        });
+    }
+
+    private _ipc_PluginsStoreAvailableRequest(message: IPCMessages.PluginsStoreAvailableRequest, response: (instance: any) => any) {
+        response(new IPCMessages.PluginsStoreAvailableResponse({
+            plugins: this._store.getAvailable(),
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail to send response on PluginsStoreAvailableResponse due error: ${error.message}`);
         });
     }
 

@@ -1,38 +1,70 @@
 @import '../../../../../theme/variables.less';
 
 :host {
-    & ul {
-        position: relative;
-        padding: 0;
-        margin: 0;
-        list-style: none;
+    position: relative;
+    width: 100%;
+    height: 54px;
+    display: block;
+    cursor: default;
+    &:hover{
+        background: @scheme-color-4;
+    }
+    & div.icon{
+        position: absolute;
         height: 100%;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        text-align: right;
-        white-space: nowrap;
-        justify-content: flex-end;
-        & li {
+        width: 54px;
+        left:0;
+        top: 0;
+        overflow: hidden;
+    }
+    & div.description {
+        position: absolute;
+        height: 100%;
+        left: 54px;
+        right: 100px;
+        top: 0;
+        overflow: hidden;
+        & p.name,
+        & p.description,
+        & p.version {
+            white-space: nowrap;
+            overflow: hidden;
+            width: 100%;
+            text-overflow: ellipsis;
+        }
+    }
+    & div.info {
+        position: absolute;
+        height: 100%;
+        right: 0;
+        width: 100px;
+        top: 0;
+        overflow: hidden;
+        & p.state{
             position: relative;
-            display: inline-block;
-            height: 100%;
-            width: 1.5rem;
-            padding: 0;
-            margin: 0;
-            list-style: none;
+            display: block;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
             text-align: center;
-            & span{
+            margin-top: 2px;
+            & > span{
                 position: relative;
                 display: inline-block;
-                width: 1.5rem;
-                padding: 0;
+                border-radius: 3px;
+                padding: 0px 8px 2px 8px;
+                font-weight: 500;
+                border-radius: 3px;
+                color: @scheme-color-3;
+                white-space: nowrap;
+                overflow: hidden;
             }
-            &:hover{
-                & span {
-                    color: @scheme-color-3;
+            &.installed{
+                & > span{
+                    background: @scheme-color-accent;
+                    color: @scheme-color-0;
                 }
             }
-        }
+        }        
     }
 }

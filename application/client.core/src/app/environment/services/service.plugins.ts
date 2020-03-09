@@ -166,6 +166,16 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         });
     }
 
+    public getAvailablePluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.PluginsStoreAvailableRequest(), IPCMessages.PluginsStoreAvailableResponse).then((message: IPCMessages.PluginsStoreAvailableResponse) => {
+                resolve(message.plugins instanceof Array ? message.plugins : []);
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail request list of installed plugins due error: ${error.message}`);
+            });
+        });
+    }
+
     private _fire(event: string, ...args: any) {
         this._plugins.forEach((plugin: IPluginData) => {
             const emitter = plugin.controllers.sessions.emit();

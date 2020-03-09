@@ -22,6 +22,12 @@ export { PluginsInstalledRequest };
 import { IPluginsInstalledResponse, PluginsInstalledResponse } from './plugins.installed.response';
 export { IPluginsInstalledResponse, PluginsInstalledResponse };
 
+import { PluginsStoreAvailableRequest } from './plugins.store.available.request';
+export { PluginsStoreAvailableRequest };
+
+import { IPluginsStoreAvailableResponse, PluginsStoreAvailableResponse } from './plugins.store.available.response';
+export { IPluginsStoreAvailableResponse, PluginsStoreAvailableResponse };
+
 import { IPluginInternalMessage, PluginInternalMessage } from './plugin.internal.message';
 export { IPluginInternalMessage, PluginInternalMessage };
 
@@ -324,6 +330,8 @@ export type TMessage =  HostState |
                         PluginError |
                         PluginsInstalledRequest |
                         PluginsInstalledResponse |
+                        PluginsStoreAvailableRequest |
+                        PluginsStoreAvailableResponse |
                         StreamSetActive |
                         StreamAddRequest |
                         StreamAddResponse |
@@ -435,6 +443,8 @@ export const Map = {
     [PluginError.signature                  ]: PluginError,
     [PluginsInstalledRequest.signature      ]: PluginsInstalledRequest,
     [PluginsInstalledResponse.signature     ]: PluginsInstalledResponse,
+    [PluginsStoreAvailableRequest.signature ]: PluginsStoreAvailableRequest,
+    [PluginsStoreAvailableResponse.signature]: PluginsStoreAvailableResponse,
 
     [StreamSetActive.signature              ]: StreamSetActive,
     [StreamAddRequest.signature             ]: StreamAddRequest,
