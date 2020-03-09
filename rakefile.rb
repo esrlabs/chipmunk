@@ -592,6 +592,7 @@ end
 task :delivery_defaults_plugins do
   @plugins = DefaultsPlugins.new
   @plugins.delivery(INCLUDED_PLUGINS_FOLDER)
+  @plugins.delivery_registry(INCLUDED_PLUGINS_FOLDER)
 end
 
 # put the neon library in place

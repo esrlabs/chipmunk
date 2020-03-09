@@ -5,7 +5,11 @@ require 'open-uri'
 
 REPO = 'esrlabs/chipmunk-plugins-store'
 RELEASES_FILE_NAME = 'releases'
-
+REGISTERS = [
+  'releases-darwin.json',
+  'releases-linux.json',
+  'releases-win32.json'
+]
 def get_nodejs_platform
   if OS.windows?
     'win32'
@@ -34,8 +38,12 @@ class Github
     puts 'Getting assets latest release'
     assets = @client.release_assets(release.url, {})
     release_file_asset = nil
+    @registers = {};
     assets.each do |a|
       release_file_asset = a if a.name == self.class.get_name
+      if REGISTERS.include?(a.name)
+        @registers[a.name] = a
+      end
     end
     if release_file_asset.nil?
       raise "Fail to find latest release file on repo #{REPO}"
@@ -45,6 +53,10 @@ class Github
     release_file_asset_contents = open(release_file_asset.browser_download_url, &:read)
     releases = JSON.parse(release_file_asset_contents)
     releases
+  end
+
+  def get_release_registers
+    @registers
   end
 
   def self.get_name
@@ -58,6 +70,7 @@ class DefaultsPlugins
   def initialize
     @github = Github.new
     @releases = @github.get_releases_list
+    @registers = @github.get_release_registers
     @defaults = []
     @releases.each do |p|
       if p['default']
@@ -73,5 +86,13 @@ class DefaultsPlugins
       File.write "#{dest}/#{p['file']}", open(p['url']).read
     end
   end
+
+  def delivery_registry(dest)
+    @registers.each do |file_name, r|
+      puts "Downloading \"#{r['name']}\" from \"#{r['browser_download_url']}\""
+      File.write "#{dest}/#{file_name}", open(r['browser_download_url']).read
+    end
+  end
+  
 
 end
