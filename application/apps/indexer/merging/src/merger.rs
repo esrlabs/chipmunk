@@ -51,8 +51,8 @@ pub struct MergerInput {
     pub format: String,
     pub tag: String,
 }
-pub struct TimedLineIter<'a> {
-    reader: BufReader<fs::File>,
+pub struct TimedLineIter<'a, T: Read> {
+    reader: BufReader<T>,
     tag: &'a str,
     regex: Regex,
     year: Option<i32>,
@@ -61,17 +61,20 @@ pub struct TimedLineIter<'a> {
     pub current_line_nr: usize,
     reporter: Reporter,
 }
-impl<'a> TimedLineIter<'a> {
+impl<'a, T> TimedLineIter<'a, T>
+where
+    T: Read,
+{
     pub fn new(
-        fh: fs::File,
+        read_from: T,
         tag: &'a str,
         regex: Regex,
         year: Option<i32>,
         time_offset: Option<i64>,
         current_line_nr: usize,
-    ) -> TimedLineIter<'a> {
+    ) -> TimedLineIter<'a, T> {
         TimedLineIter {
-            reader: BufReader::new(fh),
+            reader: BufReader::new(read_from),
             tag,
             regex,
             year,
@@ -82,7 +85,10 @@ impl<'a> TimedLineIter<'a> {
         }
     }
 }
-impl<'a> Iterator for TimedLineIter<'a> {
+impl<'a, T> Iterator for TimedLineIter<'a, T>
+where
+    T: Read,
+{
     type Item = TimedLine;
     fn next(&mut self) -> Option<TimedLine> {
         let mut buf = vec![];
@@ -289,7 +295,7 @@ pub fn merge_files_iter(
 
     let mut progress_percentage = 0usize;
     // create a peekable iterator for all file inputs
-    let mut readers: Vec<Peekable<TimedLineIter>> = merger_inputs
+    let mut readers: Vec<Peekable<TimedLineIter<fs::File>>> = merger_inputs
         .iter()
         .map(|input| {
             fs::File::open(&input.path)

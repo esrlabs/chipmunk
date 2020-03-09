@@ -23,8 +23,7 @@ use indexer_base::utils::restore_line;
 use parse::detect_timestamp_in_string;
 use std::cell::RefCell;
 use std::fs;
-use std::io::Read;
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 use std::time::Instant;
 
