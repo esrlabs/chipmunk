@@ -1,6 +1,6 @@
+use crate::dlt::*;
 use byteorder::{BigEndian, LittleEndian};
 use proptest::prelude::*;
-use crate::dlt::*;
 
 prop_compose! {
     fn ecu_id_strategy()(id in "[a-zA-Z]{2,5}") /*"*/-> Option<String> {

@@ -8,5 +8,6 @@ members = [
     "merging",
 ]
 
-[profile.release]
-debug = true
+# only uncomment when profiling
+# [profile.release]
+# debug = true

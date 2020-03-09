@@ -1,19 +1,19 @@
-use failure::{Error, format_err, bail};
-use std::{
-    io::{BufRead, BufReader},
-    path::{PathBuf, Path},
-    mem,
-    fs::File,
-    rc::Rc,
-};
+use crate::dlt::{FloatWidth, StringCoding, TypeInfo, TypeInfoKind, TypeLength};
+use derive_more::{Deref, Display};
+use failure::{bail, format_err, Error};
 use quick_xml::{
-    events::{BytesStart, attributes::Attributes, Event as XmlEvent},
+    events::{attributes::Attributes, BytesStart, Event as XmlEvent},
     Reader as XmlReader,
 };
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use derive_more::{Deref, Display};
-use crate::dlt::{TypeInfo, TypeInfoKind, TypeLength, StringCoding, FloatWidth};
+use std::collections::HashMap;
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    mem,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 type Result<T = ()> = std::result::Result<T, Error>;
 
@@ -46,94 +46,100 @@ pub struct ContextId(pub String);
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Deref, Display)]
 pub struct ApplicationId(pub String);
 
-fn type_info_for_signal_ref(signal_ref: String) -> TypeInfo {
+fn type_info_for_signal_ref(signal_ref: String) -> Option<TypeInfo> {
     match signal_ref.as_ref() {
-        "S_BOOL" => TypeInfo {
+        "S_BOOL" => Some(TypeInfo {
             kind: TypeInfoKind::Bool,
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_SINT8" => TypeInfo {
+        }),
+        "S_SINT8" => Some(TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength8),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_UINT8" => TypeInfo {
+        }),
+        "S_UINT8" => Some(TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength8),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_SINT16" => TypeInfo {
+        }),
+        "S_SINT16" => Some(TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength16),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_UINT16" => TypeInfo {
+        }),
+        "S_UINT16" => Some(TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength16),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_SINT32" => TypeInfo {
+        }),
+        "S_SINT32" => Some(TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength32),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_UINT32" => TypeInfo {
+        }),
+        "S_UINT32" => Some(TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_SINT64" => TypeInfo {
+        }),
+        "S_SINT64" => Some(TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength64),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_UINT64" => TypeInfo {
+        }),
+        "S_UINT64" => Some(TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength64),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_FLOA16" => unimplemented!("16-bit float not supported"),
-        "S_FLOA32" => TypeInfo {
+        }),
+        "S_FLOA16" => {
+            warn!("16-bit float not supported");
+            None
+        }
+        "S_FLOA32" => Some(TypeInfo {
             kind: TypeInfoKind::Float(FloatWidth::Width32),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_FLOA64" => TypeInfo {
+        }),
+        "S_FLOA64" => Some(TypeInfo {
             kind: TypeInfoKind::Float(FloatWidth::Width64),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_STRG_ASCII" => TypeInfo {
+        }),
+        "S_STRG_ASCII" => Some(TypeInfo {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_STRG_UTF8" => TypeInfo {
+        }),
+        "S_STRG_UTF8" => Some(TypeInfo {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::UTF8,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        "S_RAWD" | "S_RAW" => TypeInfo {
+        }),
+        "S_RAWD" | "S_RAW" => Some(TypeInfo {
             kind: TypeInfoKind::Raw,
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        },
-        s => unimplemented!("{}", s),
+        }),
+        s => {
+            warn!("type_info_for_signal_ref not supported for {}", s);
+            None
+        }
     }
 }
 
@@ -143,6 +149,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
     let mut frame_map = HashMap::new();
     let mut pdu_by_id = HashMap::new();
     for f in files {
+        trace!("read_fibexe from {:?}", f);
         let mut reader = Reader::from_file(f)?;
         loop {
             match reader.read_event()? {
@@ -156,6 +163,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
                                 signal_types: signal_refs
                                     .into_iter()
                                     .map(type_info_for_signal_ref)
+                                    .flatten()
                                     .collect(),
                             }));
                         }
@@ -165,7 +173,9 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
                     frames.push((FrameId(id), read_frame(&mut reader)?));
                 }
                 Event::Eof => break,
-                _ => {}
+                x => {
+                    trace!("read_fibexe some other event: {:?}", x);
+                }
             }
         }
     }
@@ -219,6 +229,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
             }
         }
     }
+    trace!("parsed fibex data OK");
     Ok(FibexMetadata {
         frame_map_with_key,
         frame_map,

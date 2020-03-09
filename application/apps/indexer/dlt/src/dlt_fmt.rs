@@ -1,13 +1,13 @@
-use crate::fibex::*;
 use crate::dlt::*;
+use crate::dlt_parse::{dlt_fint, dlt_fixed_point, dlt_sint, dlt_uint};
+use crate::fibex::*;
 use crate::service_id::*;
-use std::fmt::{self, Formatter};
-use chrono::{NaiveDateTime};
-use chrono::prelude::{Utc, DateTime};
-use std::str;
 use byteorder::{BigEndian, LittleEndian};
 use bytes::ByteOrder;
-use crate::dlt_parse::{dlt_fixed_point, dlt_uint, dlt_sint, dlt_fint};
+use chrono::prelude::{DateTime, Utc};
+use chrono::NaiveDateTime;
+use std::fmt::{self, Formatter};
+use std::str;
 
 lazy_static! {
     static ref DLT_NEWLINE_SENTINAL_STR: &'static str =
@@ -317,17 +317,15 @@ impl Message {
                                     if data.len() < offset + length {
                                         return fmt::Result::Err(fmt::Error);
                                     }
-                                    let v = match signal_type.kind {
-                                        TypeInfoKind::StringType => Value::StringVal(
+                                    let v = if signal_type.kind == TypeInfoKind::StringType {
+                                        Value::StringVal(
                                             String::from_utf8(
                                                 data[offset..offset + length].to_vec(),
                                             )
                                             .map_err(|_| fmt::Error)?,
-                                        ),
-                                        TypeInfoKind::Raw => {
-                                            Value::Raw(Vec::from(&data[offset..offset + length]))
-                                        }
-                                        _ => unreachable!(),
+                                        )
+                                    } else {
+                                        Value::Raw(Vec::from(&data[offset..offset + length]))
                                     };
                                     offset += length;
                                     v
