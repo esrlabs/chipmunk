@@ -5,46 +5,11 @@ import { IService } from '../interfaces/interface.service';
 import PluginsService, { IPluginData } from './service.plugins';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
-import { ViewSearchComponent } from '../components/views/search/component';
-import { SidebarAppNotificationsComponent } from '../components/views/notifications/component';
-import { SidebarAppNotificationsCounterComponent } from '../components/views/notifications/counter/component';
-import { ViewChartComponent } from '../components/views/chart/component';
 import HotkeysService from './service.hotkeys';
 import LayoutStateService from './standalone/service.layout.state';
+import { DefaultViews, CDefaultTabsGuids, IDefaultTabsGuids } from '../states/state.default.toolbar.apps';
 
-export interface IDefaultTabsGuids {
-    search: string;
-    charts: string;
-    notification: string;
-}
-
-export const CDefaultTabsGuids: IDefaultTabsGuids = {
-    search: Toolkit.guid(),
-    charts: Toolkit.guid(),
-    notification: Toolkit.guid(),
-};
-
-const DefaultViews = [
-    {
-        name: 'Charts',
-        guid: CDefaultTabsGuids.charts,
-        factory: ViewChartComponent,
-        inputs: { }
-    },
-    {
-        name: 'Notifications',
-        guid: CDefaultTabsGuids.notification,
-        factory: SidebarAppNotificationsComponent,
-        tabCaptionInjection: SidebarAppNotificationsCounterComponent,
-        inputs: { }
-    },
-    {
-        name: 'Search',
-        guid: CDefaultTabsGuids.search,
-        factory: ViewSearchComponent,
-        inputs: { }
-    },
-];
+export { CDefaultTabsGuids, IDefaultTabsGuids };
 
 export interface ISidebarPluginInfo {
     id: number;
