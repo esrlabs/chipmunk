@@ -60,6 +60,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
         unbind: new Map(),
     };
     private _stderr: string = '';
+    private _logKey: string = Tools.guid();
     private _rejector?: (error: Error) => void;
     private _resolver?: () => void;
 
@@ -298,7 +299,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
      */
     private _onSTDOut(chunk: Buffer): void {
         const str: string = chunk.toString();
-        this._logger.save(str);
+        this._logger.save(this._logKey, str);
         this.emit(ControllerPluginProcessSingle.Events.output);
     }
 
@@ -308,7 +309,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
      */
     private _onSTDErr(chunk: Buffer): void {
         const str: string = chunk.toString();
-        this._logger.save(str);
+        this._logger.save(this._logKey, str);
         this._stderr += str;
     }
 
