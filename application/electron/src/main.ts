@@ -1,5 +1,5 @@
 // Libs
-import { app as electronApp, dialog, MessageBoxReturnValue } from 'electron';
+import { dialog, MessageBoxReturnValue, app, Event } from 'electron';
 import { CommonInterfaces } from './interfaces/interface.common';
 
 import * as FS from './tools/fs';
@@ -99,14 +99,14 @@ class Application {
                         switch (response.response) {
                             case 0:
                                 FS.rmdir(getHomeFolder()).then(() => {
-                                    electronApp.quit();
+                                    app.quit();
                                 }).catch((errorRmdir: Error) => {
                                     this.logger.error(`Fail to drop settings due error: ${errorRmdir.message}`);
-                                    electronApp.quit();
+                                    app.quit();
                                 });
                                 break;
                             case 1:
-                                electronApp.quit();
+                                app.quit();
                                 break;
                         }
                     });
@@ -119,6 +119,7 @@ class Application {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
+            ServiceElectron.lock();
             this._destroy(InitializeStages.length - 1, (error?: Error) => {
                 if (error instanceof Error) {
                     return reject(error);
@@ -188,8 +189,13 @@ class Application {
     }
 
     private _bindProcessEvents() {
-        process.once('exit', this._process_onExit.bind(this));
-        process.once('SIGINT', this._process_onExit.bind(this));
+        process.once('exit', this._close.bind(this));
+        process.once('SIGINT', this._close.bind(this));
+        process.once('SIGTERM', this._close.bind(this));
+        app.once('will-quit', (event: Event) => {
+            event.preventDefault();
+            this._close();
+        });
         process.on('uncaughtException', this._onUncaughtException.bind(this));
         process.on('unhandledRejection', this._onUnhandledRejection.bind(this));
     }
@@ -206,11 +212,12 @@ class Application {
         this.logger.error(`[BAD] UncaughtException: ${error.message}`);
     }
 
-    private _process_onExit() {
-        this.logger.debug(`Application would be closed.`);
+    private _close() {
         // Remove existing handlers
-        // process.removeAllListeners();
-        // Prevent closing application
+        ['exit', 'SIGINT', 'SIGTERM'].forEach((e: string) => {
+            process.removeAllListeners(e);
+        });
+        this.logger.debug(`Application would be closed.`);
         process.stdin.resume();
         // Destroy services
         this.destroy().then(() => {

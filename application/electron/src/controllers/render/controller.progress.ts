@@ -27,7 +27,6 @@ export default class ProgressState {
     public destroy() {
         clearTimeout(this._timer);
         this._tracks.clear();
-        this._send();
     }
 
     public add(id: string, name: string) {
@@ -76,7 +75,9 @@ export default class ProgressState {
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
             streamId: this._streamId,
             tracks: Array.from(this._tracks.values()),
-        }));
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail to send StreamProgressState due error: ${error.message}`);
+        });
     }
 
     private _notify() {

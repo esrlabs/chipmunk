@@ -3,6 +3,8 @@
 
 import * as uuid from 'uuid';
 import { app, BrowserWindow } from 'electron';
+import { Lock } from '../tools/env.lock';
+import { inspect } from 'util';
 import { Subscription } from '../tools/index';
 import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
@@ -40,6 +42,7 @@ class ServiceElectron implements IService {
     private _controllerElectronMenu: ControllerElectronMenu | undefined;
     private _onReadyResolve: THandler | null = null;
     private _ipc: ControllerElectronIpc | undefined;
+    private _ipcLock: Lock = new Lock(false);
     private _ready: {
         electron: boolean;
         service: boolean;
@@ -76,6 +79,10 @@ class ServiceElectron implements IService {
             this._logger.debug(`Destroing browser window`);
             this._controllerBrowserWindow.destroy();
             this._controllerBrowserWindow = undefined;
+            if (this._ipc !== undefined) {
+                this._ipc.destroy();
+                this._ipc = undefined;
+            }
             resolve();
         });
     }
@@ -122,11 +129,18 @@ class ServiceElectron implements IService {
         }
         return this._controllerBrowserWindow.getBrowserWindow();
     }
+
+    public lock() {
+        this._ipcLock.lock();
+    }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Electron IPC
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _subscribe(event: Function, handler: (event: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) => any): Promise<Subscription> {
         return new Promise((resolve, reject) => {
+            if (this._ipcLock.isLocked()) {
+                return reject(new Error(`IPC is locked.`));
+            }
             if (this._ipc === undefined) {
                 return reject(new Error(`IPC isn't inited yet, cannot delivery IPC controller.`));
             }
@@ -134,33 +148,39 @@ class ServiceElectron implements IService {
                 resolve(subscription);
             }).catch((subscribeError: Error) => {
                 this._logger.warn(`Fail to subscribe due error: ${subscribeError.message}`);
-                return reject(subscribeError);
+                reject(subscribeError);
             });
         });
     }
 
     private _send(instance: IPCMessages.TMessage): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (this._ipcLock.isLocked()) {
+                return reject(new Error(`IPC is locked.`));
+            }
             if (this._ipc === undefined) {
                 return reject(new Error(`IPC controller isn't inited yet, cannot delivery IPC controller.`));
             }
             this._ipc.send(instance).then(() => {
                 resolve();
             }).catch((sendingError: Error) => {
-                return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));
+                reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}. Message: ${inspect(instance)}`)));
             });
         });
     }
 
     private _request(instance: IPCMessages.TMessage, expected?: IPCMessages.TMessage): Promise<any> {
         return new Promise((resolve, reject) => {
+            if (this._ipcLock.isLocked()) {
+                return reject(new Error(`IPC is locked.`));
+            }
             if (this._ipc === undefined) {
                 return reject(new Error(`IPC controller isn't inited yet, cannot delivery IPC controller.`));
             }
             this._ipc.request(instance, expected).then((response: any) => {
                 resolve(response);
             }).catch((sendingError: Error) => {
-                return reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}`)));
+                reject(new Error(this._logger.warn(`Fail to send message via IPC due error: ${sendingError.message}. Message: ${inspect(instance)}`)));
             });
         });
     }
