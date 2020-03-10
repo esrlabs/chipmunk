@@ -247,8 +247,8 @@ class Application {
 
 }
 
-(new Application()).init().then((app: Application) => {
-    app.logger.debug(`Application is ready.`);
+(new Application()).init().then((application: Application) => {
+    application.logger.debug(`Application is ready.`);
     ServiceElectronState.setStateAsReady();
 }).catch((error: Error) => {
     // tslint:disable-next-line:no-console
