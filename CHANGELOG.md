@@ -1,5 +1,8 @@
 # Changelog
 
+### [1.40.1] - 03/10/2020
+* [](fix) fail build if upload failed
+
 ### [1.40.0] - 03/09/2020
 
 * [#673](fix) do not bail when fibex contains unsupported signal ids
