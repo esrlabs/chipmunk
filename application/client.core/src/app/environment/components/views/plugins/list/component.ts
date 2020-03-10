@@ -1,7 +1,9 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, HostListener } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { CommonInterfaces } from '../../../../interfaces/interface.common';
 import { IPlugin } from './plugin/component';
+import { FormControl } from '@angular/forms';
+import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material';
 
 import PluginsService from '../../../../services/service.plugins';
 
@@ -11,11 +13,13 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     selector: 'app-views-plugins-list',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None
 })
 
 export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
     public _ng_plugins: IPlugin[] = [];
+    public _ng_searchInputCtrl = new FormControl();
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _destroyed: boolean = false;

@@ -1,26 +1,9 @@
-<div class="search">
-  <div class="comstyle-input-holder search-input-wrapper">
-    <div>
-      <mat-form-field class="recent-requests outline regular" appearance="outline">
-        <input  type="text" 
-                placeholder="Type a Search Request"
-                aria-label="Filter"
-                matInput
-                [formControl]="_ng_searchInputCtrl">
-      </mat-form-field>
-      <div class="spinner" *ngIf="false">
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      </div>
-    </div>
-  </div>
+<div class="left" [ngStyle]="{'right': _ng_getViewDelimiterPosition()}">
+  <app-views-plugins-list></app-views-plugins-list>
 </div>
-<div class="views">
-  <div class="left" [ngStyle]="{'right': _ng_getViewDelimiterPosition()}">
-    <app-views-plugins-list></app-views-plugins-list>
-  </div>
-  <div class="delimiter" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}"></div>
-  <div class="right" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}">
 
-  </div>
-  
+<div class="delimiter" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}"></div>
+
+<div class="right" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}">
+
 </div>

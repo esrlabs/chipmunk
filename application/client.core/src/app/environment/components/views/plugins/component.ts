@@ -8,8 +8,6 @@ import { ChartsStorage, ChartRequest } from '../../../controller/controller.sess
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { rankedNumberAsString } from '../../../controller/helpers/ranks';
 import { map, startWith } from 'rxjs/operators';
-import { FormControl } from '@angular/forms';
-import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -36,7 +34,6 @@ export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterCont
     @Input() public getDefaultsTabGuids: () => { charts: string };
     @Input() public onTitleContextMenu: Observable<MouseEvent>;
 
-    public _ng_searchInputCtrl = new FormControl();
     public _ng_recent: Observable<string[]>;
     public _ng_flags: {
         casesensitive: boolean,
