@@ -41,6 +41,8 @@ jobs:
           rust-version: ${{ matrix.rust }}
       - name: build release
         run: rake full_pipeline --trace
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ls
   lint_js:
     runs-on: ubuntu-latest
