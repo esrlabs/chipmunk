@@ -244,5 +244,6 @@ class Application {
     app.logger.debug(`Application is ready.`);
     ServiceElectronState.setStateAsReady();
 }).catch((error: Error) => {
+    // tslint:disable-next-line:no-console
     console.log(error);
 });

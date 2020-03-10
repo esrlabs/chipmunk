@@ -27,10 +27,7 @@
     ],
     "interface-over-type-literal": true,
     "label-position": true,
-    "max-line-length": [
-      true,
-      140
-    ],
+    "max-line-length": false,
     "member-access": false,
     "member-ordering": [
       true,
@@ -59,10 +56,7 @@
     "no-empty": false,
     "no-empty-interface": true,
     "no-eval": true,
-    "no-inferrable-types": [
-      true,
-      "ignore-params"
-    ],
+    "no-inferrable-types": false,
     "no-misused-new": true,
     "no-non-null-assertion": true,
     "no-redundant-jsdoc": true,
