@@ -11,8 +11,6 @@ require './rake-plugins'
 
 NPM_RUN = 'npm run --quiet'
 
-ELECTRON_VERSION = '7.1.1'
-ELECTRON_REBUILD_VERSION = '1.8.6'
 RIPGREP_VERSION = '11.0.2'
 NEON_CLI_NPM_VERSION = '0.3.1'
 TYPESCRIPT_NPM_VERSION = '3.5.1'
@@ -57,6 +55,7 @@ end
 task clean: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
+                  '**/package-lock.json',
                   '**/dist',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
