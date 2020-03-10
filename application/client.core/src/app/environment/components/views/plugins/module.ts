@@ -5,6 +5,7 @@ import { ScrollingModule                        } from '@angular/cdk/scrolling';
 import { ViewPluginsComponent                   } from './component';
 import { ViewPluginsListComponent               } from './list/component';
 import { ViewPluginsPluginComponent             } from './list/plugin/component';
+import { ViewPluginsDetailsComponent            } from './details/component';
 
 import {
     ComplexModule,
@@ -24,8 +25,8 @@ import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent, MatFormField, MatAutocomplete ];
-const components = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent ];
+const entryComponents = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent, ViewPluginsDetailsComponent, MatFormField, MatAutocomplete ];
+const components = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent, ViewPluginsDetailsComponent ];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],

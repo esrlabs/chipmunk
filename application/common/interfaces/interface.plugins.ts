@@ -5,5 +5,6 @@ export interface IPlugin {
     version: string;                
     display_name: string;           
     description: string;            
-    readme: string;                 
+    readme: string;
+    icon: string;           
 }

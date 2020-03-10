@@ -262,6 +262,7 @@ export default class ControllerPluginsStorage {
                 display_name: info.display_name,
                 description: info.description,
                 readme: info.readme,
+                icon: info.icon,
             };
         }).filter((data: CommonInterfaces.Plugins.IPlugin | null) => {
             return data !== null;
