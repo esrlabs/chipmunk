@@ -31,6 +31,7 @@ export interface IInstalledPluginInfo {
     display_name: string;           // Included into "info.json"
     description: string;            // Included into "info.json"
     readme: string;                 // Included into "info.json"
+    icon: string;                   // Included into "info.json"
     package: {
         render: ControllerPluginPackage | undefined;
         process: ControllerPluginPackage | undefined;

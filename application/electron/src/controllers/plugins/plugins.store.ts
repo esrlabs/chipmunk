@@ -37,6 +37,7 @@ export interface IPluginReleaseInfo {
     display_name: string;
     description: string;
     readme: string;
+    icon: string;
     file: string;
 }
 
@@ -118,6 +119,7 @@ export default class ControllerPluginStore {
                 display_name: plugin.display_name,
                 description: plugin.description,
                 readme: plugin.readme,
+                icon: plugin.icon,
             };
         });
     }
