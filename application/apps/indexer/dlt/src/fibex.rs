@@ -46,7 +46,119 @@ pub struct ContextId(pub String);
 #[derive(Hash, PartialEq, Eq, Clone, Debug, Deref, Display)]
 pub struct ApplicationId(pub String);
 
-fn type_info_for_signal_ref(signal_ref: String) -> Option<TypeInfo> {
+fn type_info_for_signal_ref(
+    signal_ref: String,
+    signals: &HashMap<String, String>,
+    codings: &HashMap<String, String>,
+) -> Option<TypeInfo> {
+    fn sint8() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength8),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn uint8() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength8),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn sint16() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength16),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn uint16() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength16),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn sint32() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn uint32() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn sint64() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Signed(TypeLength::BitLength64),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn uint64() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Unsigned(TypeLength::BitLength64),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn float32() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Float(FloatWidth::Width32),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn float64() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::Float(FloatWidth::Width64),
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn ascii_str() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::StringType,
+            coding: StringCoding::ASCII,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
+    fn utf8_str() -> Option<TypeInfo> {
+        Some(TypeInfo {
+            kind: TypeInfoKind::StringType,
+            coding: StringCoding::UTF8,
+            has_variable_info: false,
+            has_trace_info: false,
+        })
+    }
+
     match signal_ref.as_ref() {
         "S_BOOL" => Some(TypeInfo {
             kind: TypeInfoKind::Bool,
@@ -54,92 +166,52 @@ fn type_info_for_signal_ref(signal_ref: String) -> Option<TypeInfo> {
             has_variable_info: false,
             has_trace_info: false,
         }),
-        "S_SINT8" => Some(TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength8),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_UINT8" => Some(TypeInfo {
-            kind: TypeInfoKind::Unsigned(TypeLength::BitLength8),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_SINT16" => Some(TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength16),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_UINT16" => Some(TypeInfo {
-            kind: TypeInfoKind::Unsigned(TypeLength::BitLength16),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_SINT32" => Some(TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength32),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_UINT32" => Some(TypeInfo {
-            kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_SINT64" => Some(TypeInfo {
-            kind: TypeInfoKind::Signed(TypeLength::BitLength64),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_UINT64" => Some(TypeInfo {
-            kind: TypeInfoKind::Unsigned(TypeLength::BitLength64),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
+        "S_SINT8" => sint8(),
+        "S_UINT8" => uint8(),
+        "S_SINT16" => sint16(),
+        "S_UINT16" => uint16(),
+        "S_SINT32" => sint32(),
+        "S_UINT32" => uint32(),
+        "S_SINT64" => sint64(),
+        "S_UINT64" => uint64(),
         "S_FLOA16" => {
             warn!("16-bit float not supported");
             None
         }
-        "S_FLOA32" => Some(TypeInfo {
-            kind: TypeInfoKind::Float(FloatWidth::Width32),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_FLOA64" => Some(TypeInfo {
-            kind: TypeInfoKind::Float(FloatWidth::Width64),
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_STRG_ASCII" => Some(TypeInfo {
-            kind: TypeInfoKind::StringType,
-            coding: StringCoding::ASCII,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
-        "S_STRG_UTF8" => Some(TypeInfo {
-            kind: TypeInfoKind::StringType,
-            coding: StringCoding::UTF8,
-            has_variable_info: false,
-            has_trace_info: false,
-        }),
+        "S_FLOA32" => float32(),
+        "S_FLOA64" => float64(),
+        "S_STRG_ASCII" => ascii_str(),
+        "S_STRG_UTF8" => utf8_str(),
         "S_RAWD" | "S_RAW" => Some(TypeInfo {
             kind: TypeInfoKind::Raw,
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
         }),
-        s => {
-            warn!("type_info_for_signal_ref not supported for {}", s);
-            None
-        }
+        s => match signals.get(s).and_then(|s| codings.get(s)) {
+            Some(base_type) => match base_type.as_ref() {
+                "A_UINT8" => uint8(),
+                "A_INT8" | "A_SINT8" => sint8(),
+                "A_UINT16" => uint16(),
+                "A_INT16" | "A_SINT16" => sint16(),
+                "A_UINT32" => uint32(),
+                "A_INT32" | "A_SINT32" => sint32(),
+                "A_UINT64" => uint64(),
+                "A_INT64" | "A_SINT64" => sint64(),
+                "A_FLOAT32" => float32(),
+                "A_FLOAT64" => float64(),
+                "A_ASCIISTRING" => ascii_str(),
+                "A_UNICODE2STRING" => utf8_str(),
+                s => {
+                    warn!("type_info_for_signal_ref not supported base type {}", s);
+                    None
+                }
+            },
+            None => {
+                warn!("type_info_for_signal_ref not supported for {}", s);
+                None
+            }
+        },
     }
 }
 
@@ -148,34 +220,47 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
     let mut frame_map_with_key = HashMap::new();
     let mut frame_map = HashMap::new();
     let mut pdu_by_id = HashMap::new();
+    let mut signals_map = HashMap::new();
+    let mut codings_map = HashMap::new();
+    let mut pdus = vec![];
     for f in files {
         trace!("read_fibexe from {:?}", f);
         let mut reader = Reader::from_file(f)?;
         loop {
             match reader.read_event()? {
                 Event::PduStart { id } => {
-                    let (description, signal_refs) = read_pdu(&mut reader)?;
-                    match pdu_by_id.entry(id.clone()) {
-                        Entry::Occupied(_) => warn!("duplicate PDU ID {} found in fibexes", id),
-                        Entry::Vacant(v) => {
-                            v.insert(Rc::new(PduMetadata {
-                                description,
-                                signal_types: signal_refs
-                                    .into_iter()
-                                    .map(type_info_for_signal_ref)
-                                    .flatten()
-                                    .collect(),
-                            }));
-                        }
-                    }
+                    pdus.push((id, read_pdu(&mut reader)?));
                 }
                 Event::FrameStart { id } => {
                     frames.push((FrameId(id), read_frame(&mut reader)?));
                 }
                 Event::Eof => break,
-                x => {
-                    trace!("read_fibexe some other event: {:?}", x);
+                Event::Signal { id, coding_ref } => {
+                    signals_map.insert(id, coding_ref);
                 }
+                Event::Coding { id, base_data_type } => {
+                    codings_map.insert(id, base_data_type);
+                }
+                x => {
+                    trace!("read_fibex some other event: {:?}", x);
+                }
+            }
+        }
+    }
+    for (id, (description, signal_refs)) in pdus {
+        match pdu_by_id.entry(id.clone()) {
+            Entry::Occupied(_) => warn!("duplicate PDU ID {} found in fibexes", id),
+            Entry::Vacant(v) => {
+                v.insert(Rc::new(PduMetadata {
+                    description,
+                    signal_types: signal_refs
+                        .into_iter()
+                        .map(|type_ref| {
+                            type_info_for_signal_ref(type_ref, &signals_map, &codings_map)
+                        })
+                        .flatten()
+                        .collect(),
+                }));
             }
         }
     }
@@ -328,6 +413,11 @@ const B_MESSAGE_TYPE: &[u8] = b"MESSAGE_TYPE";
 const B_MESSAGE_INFO: &[u8] = b"MESSAGE_INFO";
 const B_APPLICATION_ID: &[u8] = b"APPLICATION_ID";
 const B_CONTEXT_ID: &[u8] = b"CONTEXT_ID";
+const B_CODING: &[u8] = b"CODING";
+const B_SIGNAL: &[u8] = b"SIGNAL";
+const B_CODING_REF: &[u8] = b"CODING-REF";
+const B_BASE_DATA_TYPE: &[u8] = b"BASE-DATA-TYPE";
+const B_CODED_TYPE: &[u8] = b"CODED-TYPE";
 
 #[derive(Debug)]
 pub enum Event {
@@ -361,6 +451,14 @@ pub enum Event {
         id: String,
         pdu_ref: String,
         sequence_number: usize,
+    },
+    Signal {
+        id: String,
+        coding_ref: String,
+    },
+    Coding {
+        id: String,
+        base_data_type: String,
     },
     Eof,
 }
@@ -465,6 +563,7 @@ pub struct Reader<B: BufRead> {
     context_id: Option<String>,
     message_type: Option<String>,
     message_info: Option<String>,
+    base_data_type: Option<String>,
 }
 impl Reader<BufReader<File>> {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
@@ -486,6 +585,7 @@ impl Reader<BufReader<File>> {
             context_id: None,
             message_type: None,
             message_info: None,
+            base_data_type: None,
         })
     }
 }
@@ -571,6 +671,18 @@ impl<B: BufRead> Reader<B> {
                         self.description =
                             Some(self.xml_reader.read_text(e.name(), &mut self.buf2)?);
                     }
+                    B_CODING => {
+                        self.id = Some(self.xml_reader.id_attr(e, B_CODING)?);
+                        self.base_data_type = None;
+                    }
+                    B_SIGNAL => {
+                        self.id = Some(self.xml_reader.id_attr(e, B_SIGNAL)?);
+                        self.r#ref = None;
+                    }
+                    B_CODED_TYPE => {
+                        self.base_data_type =
+                            self.xml_reader.attr(e, B_BASE_DATA_TYPE, B_CODED_TYPE).ok();
+                    }
                     _ => {}
                 },
                 XmlEvent::Empty(ref e) => match e.local_name() {
@@ -578,6 +690,9 @@ impl<B: BufRead> Reader<B> {
                         self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_SIGNAL_REF)?)
                     }
                     B_PDU_REF => self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_PDU_REF)?),
+                    B_CODING_REF => {
+                        self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_SIGNAL_REF)?);
+                    }
                     _ => {}
                 },
                 XmlEvent::End(ref e) => match e.local_name() {
@@ -676,6 +791,35 @@ impl<B: BufRead> Reader<B> {
                             context_id: mem::replace(&mut self.context_id, None),
                             message_type: mem::replace(&mut self.message_type, None),
                             message_info: mem::replace(&mut self.message_info, None),
+                        })
+                    }
+                    B_SIGNAL => {
+                        return Ok(Event::Signal {
+                            id: mem::replace(&mut self.id, None).ok_or_else(|| {
+                                missing_attr_err(B_ID, B_SIGNAL, self.xml_reader.line_and_column())
+                            })?,
+                            coding_ref: mem::replace(&mut self.r#ref, None).ok_or_else(|| {
+                                missing_tag_err(
+                                    B_CODING_REF,
+                                    B_SIGNAL,
+                                    self.xml_reader.line_and_column(),
+                                )
+                            })?,
+                        })
+                    }
+                    B_CODING => {
+                        return Ok(Event::Coding {
+                            id: mem::replace(&mut self.id, None).ok_or_else(|| {
+                                missing_attr_err(B_ID, B_CODING, self.xml_reader.line_and_column())
+                            })?,
+                            base_data_type: mem::replace(&mut self.base_data_type, None)
+                                .ok_or_else(|| {
+                                    missing_attr_err(
+                                        B_BASE_DATA_TYPE,
+                                        B_CODED_TYPE,
+                                        self.xml_reader.line_and_column(),
+                                    )
+                                })?,
                         })
                     }
                     _ => {}
