@@ -55,7 +55,6 @@ end
 task clean: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
-                  '**/package-lock.json',
                   '**/dist',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
