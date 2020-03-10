@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'octokit'
 require 'open-uri'
 
 REPO = 'esrlabs/chipmunk-plugins-store'
@@ -22,6 +21,7 @@ end
 
 class Github
   def initialize
+    require 'octokit'
     if !ENV['GITHUB_LOGIN'].nil? && !ENV['GITHUB_PASW'].nil? &&
        ENV['GITHUB_LOGIN'] != '' && ENV['GITHUB_PASW'] != ''
       puts 'Login to Github using login/password'
