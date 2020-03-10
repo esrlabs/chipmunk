@@ -8,6 +8,7 @@ require 'uri'
 require 'rake/clean'
 require './rake-extensions'
 require './rake-plugins'
+require './rake-package-json'
 
 NPM_RUN = 'npm run --quiet'
 
@@ -408,6 +409,7 @@ end
 
 task :add_package_json do
   cp_r(APP_PACKAGE_JSON, "#{ELECTRON_COMPILED_DIR}/package.json")
+  delivery_versions_into_package_json
 end
 
 desc 'run all tests'
@@ -421,6 +423,11 @@ task :test do
       end
     end
   end
+end
+
+def delivery_versions_into_package_json
+  @pkgjson = PackageJson.new
+  @pkgjson.delivery
 end
 
 def collect_ts_lint_scripts
