@@ -3,14 +3,14 @@
     "version": "1.40.1",
     "chipmunk": {
         "versions": {
-            "electron": "7.1.1",
-            "electron-rebuild": "1.8.6",
+            "electron": "8.1.0",
+            "electron-rebuild": "1.10.0",
             "chipmunk.client.toolkit": "1.0.2",
             "chipmunk.plugin.ipc": "0.0.42",
             "chipmunk-client-material": "0.0.1",
             "angular-core": "8.2.12",
             "angular-material": "8.2.3",
-            "force": "0.0.6"
+            "force": "0.0.8"
         }
     },
     "description": "LogViewer",
@@ -109,8 +109,8 @@
         "@types/node": "^10.14.1",
         "@types/uuid": "^3.4.4",
         "dmg-builder": "^6.0.0",
-        "electron": "7.1.1",
-        "electron-builder": "22.1.0",
+        "electron": "8.1.0",
+        "electron-builder": "22.3.6",
         "electron-notarize": "^0.2.0",
         "tslint": "^5.11.0",
         "typescript": "^3.7.3"
