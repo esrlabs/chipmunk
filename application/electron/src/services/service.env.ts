@@ -2,6 +2,8 @@ import Logger from '../tools/env.logger';
 import { getEnvVar } from 'chipmunk.shell.env';
 
 import { IService } from '../interfaces/interface.service';
+// TODO:
+// add addition env var to avoid DevTools in browser
 
 export enum EChipmunkEnvVars {
     /**
