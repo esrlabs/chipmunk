@@ -51,7 +51,7 @@ export default class ControllerStreamProcessor {
         pipeFinished: new Map(),
     };
     private _memUsage: Map<number, IStreamStateInfo> = new Map();
-    private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string ]: Subscription } = { };
     private _state: State;
     private _events: EventsHub;
     private _writer: FileWriter;
@@ -81,7 +81,7 @@ export default class ControllerStreamProcessor {
             this._export.destroy();
             // Unsubscribe IPC messages / events
             Object.keys(this._subscriptions).forEach((key: string) => {
-                (this._subscriptions as any)[key].destroy();
+                this._subscriptions[key].destroy();
             });
             this._writer.destroy().then(resolve).catch((error: Error) => {
                 this._logger.error(`Fail to correctly destroy writer due error: ${error.message}`);

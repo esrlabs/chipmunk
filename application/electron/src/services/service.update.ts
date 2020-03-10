@@ -150,7 +150,9 @@ class ServiceUpdate implements IService {
                     caption: 'Update',
                 },
             ],
-        }));
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail send Notification due error: ${error.message}`);
+        });
     }
 
     private _getAssetFileName(version: string): string[] | Error {

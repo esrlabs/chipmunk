@@ -23,10 +23,10 @@ export default class State {
     }
 
     public destroy() {
+        this.progress.destroy();
         this.reader.destroy();
         this.postman.destroy();
         this.map.destroy();
-        this.progress.destroy();
     }
 
 }

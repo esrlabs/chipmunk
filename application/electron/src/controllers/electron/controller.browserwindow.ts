@@ -46,6 +46,9 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 this._ipc.destroy();
             }
             this._ipc = undefined;
+            if (this._window !== undefined) {
+                this._window.destroy();
+            }
             this._window = undefined;
             this._logger.debug(`BrowserWindow guid "${this._guid}" is destroyed.`);
             resolve();

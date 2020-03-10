@@ -119,23 +119,27 @@ class ServiceStreams implements IService  {
                 (this._subscriptions as any)[key].destroy();
             });
             // Destroy all connections / servers to UNIX sockets
-            this._streams.forEach((stream: IStreamInfo, guid: TGuid) => {
-                stream.processor.destroy().then(() => {
-                    stream.connections = [];
+            Promise.all(Array.from(this._streams.values()).map((stream: IStreamInfo) => {
+                return stream.processor.destroy().then(() => {
                     stream.server.unref();
                     stream.connections.forEach((connection: Net.Socket) => {
                         connection.unref();
                         connection.destroy();
                         connection.removeAllListeners();
                     });
+                    stream.connections = [];
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail destroy stream "${stream.guid}" due error: ${error.message}`);
+                    return Promise.resolve();
                 });
-            });
-            // Remove all UNIX socket's files
-            this._cleanUp().then(() => {
-                resolve();
-            }).catch((clearError: Error) => {
-                this._logger.warn(`Fail to cleanup sockets folder due error: ${clearError.message}`);
-                resolve();
+            })).then(() => {
+                // Remove all UNIX socket's files
+                this._cleanUp().then(() => {
+                    resolve();
+                }).catch((clearError: Error) => {
+                    this._logger.warn(`Fail to cleanup sockets folder due error: ${clearError.message}`);
+                    resolve();
+                });
             });
         });
     }
