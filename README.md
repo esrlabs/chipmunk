@@ -11,7 +11,7 @@ fast search and is supposed to be a useful tool for developers who have to analy
 
 The latest release can be downloaded [here](https://github.com/esrlabs/chipmunk/releases).
 
-We support **MacOS**, **Linux** and **Windows**. 
+We support **MacOS**, **Linux** and **Windows**.
 (Releases on Windows and MacOS are signed.)
 No installation is necessary, just download, unpack and execute.
 
@@ -30,4 +30,4 @@ We have a guide for using chipmunk [here](https://esrlabs.github.io/chipmunk-doc
 * developer friendly keyboard shortcuts
 * extensible via plugin system
 
-![](https://esrlabs.github.io/chipmunk-docs/images/overview.png)
+![](https://esrlabs.github.io/chipmunk-docs/images/overview_frontpage.png)
