@@ -12,11 +12,11 @@
                     <APPLICATIONS>
                         <APPLICATION>
                             <APPLICATION_ID>DR</APPLICATION_ID>
-                            <APPLICATION_DESCRIPTION>DataRouter</APPLICATION_DESCRIPTION>
+                            <APPLICATION_DESCRIPTION>XYZ</APPLICATION_DESCRIPTION>
                             <CONTEXTS>
                                 <CONTEXT>
                                     <CONTEXT_ID>TIME</CONTEXT_ID>
-                                    <CONTEXT_DESCRIPTION>ExecTime</CONTEXT_DESCRIPTION>
+                                    <CONTEXT_DESCRIPTION>Description</CONTEXT_DESCRIPTION>
                                 </CONTEXT>
                             </CONTEXTS>
                         </APPLICATION>
@@ -28,7 +28,7 @@
         <fx:PDUS>
             <fx:PDU ID="ID_4000">
                 <ho:SHORT-NAME>ID_4000</ho:SHORT-NAME>
-                <ho:DESC>manufacturer::tracing::TimeTrace: </ho:DESC>
+                <ho:DESC>timeing: </ho:DESC>
                 <fx:BYTE-LENGTH>0</fx:BYTE-LENGTH>
                 <fx:PDU-TYPE>OTHER</fx:PDU-TYPE>
             </fx:PDU>
@@ -130,7 +130,7 @@
 
             <fx:PDU ID="ID_4011">
                 <ho:SHORT-NAME>ID_4011</ho:SHORT-NAME>
-                <ho:DESC>adp::common_types::directionVector_t: </ho:DESC>
+                <ho:DESC>direction</ho:DESC>
                 <fx:BYTE-LENGTH>0</fx:BYTE-LENGTH>
                 <fx:PDU-TYPE>OTHER</fx:PDU-TYPE>
             </fx:PDU>
@@ -177,7 +177,7 @@
 
         <fx:FRAMES>
             <fx:FRAME ID="ID_65">
-                <ho:SHORT-NAME>manufacturer::tracing::TimeTrace</ho:SHORT-NAME>
+                <ho:SHORT-NAME>timeing: </ho:SHORT-NAME>
                 <fx:BYTE-LENGTH>24</fx:BYTE-LENGTH>
                 <fx:FRAME-TYPE>OTHER</fx:FRAME-TYPE>
                 <fx:PDU-INSTANCES>
@@ -242,13 +242,13 @@
                     <MESSAGE_INFO>DLT_LOG_WARN</MESSAGE_INFO>
                     <APPLICATION_ID>DR</APPLICATION_ID>
                     <CONTEXT_ID>CTX1</CONTEXT_ID>
-                    <MESSAGE_SOURCE_FILE>/home/user/workspace/git/dlt-daemon/examples/example3/example3.c</MESSAGE_SOURCE_FILE>
+                    <MESSAGE_SOURCE_FILE>/some/path/example3.c</MESSAGE_SOURCE_FILE>
                     <MESSAGE_LINE_NUMBER>66</MESSAGE_LINE_NUMBER>
                 </fx:MANUFACTURER-EXTENSION>
             </fx:FRAME>
 
             <fx:FRAME ID="ID_64">
-                <ho:SHORT-NAME>adp::common_types::directionVector_t</ho:SHORT-NAME>
+                <ho:SHORT-NAME>direction</ho:SHORT-NAME>
                 <fx:BYTE-LENGTH>16</fx:BYTE-LENGTH>
                 <fx:FRAME-TYPE>OTHER</fx:FRAME-TYPE>
                 <fx:PDU-INSTANCES>
@@ -283,7 +283,7 @@
                     <MESSAGE_INFO>DLT_LOG_WARN</MESSAGE_INFO>
                     <APPLICATION_ID>DR</APPLICATION_ID>
                     <CONTEXT_ID>CTX1</CONTEXT_ID>
-                    <MESSAGE_SOURCE_FILE>/home/user/workspace/git/dlt-daemon/examples/example3/example3.c</MESSAGE_SOURCE_FILE>
+                    <MESSAGE_SOURCE_FILE>/some/path/example3.c</MESSAGE_SOURCE_FILE>
                     <MESSAGE_LINE_NUMBER>66</MESSAGE_LINE_NUMBER>
                 </fx:MANUFACTURER-EXTENSION>
             </fx:FRAME>
