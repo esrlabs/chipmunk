@@ -49,20 +49,35 @@ export interface IPluginReleaseInfo {
 export default class ControllerPluginStore {
 
     private _logger: Logger = new Logger(`ControllerPluginStore ("${CSettings.user}/${CSettings.repo}")`);
-    private _plugins: Map<string, IPluginReleaseInfo> = new Map();
+    private _remote: Map<string, IPluginReleaseInfo> | undefined = undefined;
+    private _local: Map<string, IPluginReleaseInfo> = new Map();
 
-    public read(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._setRegister().then(() => {
+    public local(): Promise<void> {
+        return new Promise((resolve) => {
+            this._getLocal().then((plugins: Map<string, IPluginReleaseInfo>) => {
+                this._local = plugins;
                 resolve();
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to get plugin's register due error: ${error.message}`);
+                resolve();
+            });
+        });
+    }
+
+    public remote(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._getRemote().then((plugins: Map<string, IPluginReleaseInfo>) => {
+                this._remote = plugins;
+                resolve();
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to get plugin's register due error: ${error.message}`);
+                resolve();
             });
         });
     }
 
     public getInfo(name: string): IPluginReleaseInfo | undefined {
-        return this._plugins.get(name);
+        return this._remote === undefined ? this._local.get(name) : this._remote.get(name);
     }
 
     public download(name: string): Promise<string> {
@@ -98,7 +113,7 @@ export default class ControllerPluginStore {
     }
 
     public getDefaults(exclude: string[]): IPluginReleaseInfo[] {
-        return Array.from(this._plugins.values()).filter((plugin: IPluginReleaseInfo) => {
+        return Array.from(this.getRegister().values()).filter((plugin: IPluginReleaseInfo) => {
             if (plugin.hash !== ServicePackage.getHash()) {
                 this._logger.warn(`Default plugin "${plugin.name}" could not be installed, because hash dismatch.\n\t- plugin hash: ${plugin.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
                 return false;
@@ -110,7 +125,7 @@ export default class ControllerPluginStore {
     }
 
     public getAvailable(): CommonInterfaces.Plugins.IPlugin[] {
-        return Array.from(this._plugins.values()).map((plugin: IPluginReleaseInfo) => {
+        return Array.from(this.getRegister().values()).map((plugin: IPluginReleaseInfo) => {
             return {
                 name: plugin.name,
                 url: plugin.url,
@@ -122,6 +137,10 @@ export default class ControllerPluginStore {
                 icon: plugin.icon,
             };
         });
+    }
+
+    public getRegister(): Map<string, IPluginReleaseInfo> {
+        return this._remote === undefined ? this._local : this._remote;
     }
 
     private _getFromIncluded(plugin: IPluginReleaseInfo): Promise<string> {
@@ -144,7 +163,7 @@ export default class ControllerPluginStore {
         });
     }
 
-    private _setRegister(): Promise<void> {
+    private _getRemote(): Promise<Map<string, IPluginReleaseInfo>> {
         return new Promise((resolve, reject) => {
             ServiceElectronService.logStateToRender(`Getting plugin's store state.`);
             GitHubClient.getLatestRelease({ user: CSettings.user, repo: CSettings.repo }).then((release: IReleaseData) => {
@@ -162,46 +181,52 @@ export default class ControllerPluginStore {
                         if (!(list instanceof Array)) {
                             return reject(new Error(this._logger.warn(`Incorrect format of asseets`)));
                         }
+                        const plugins: Map<string, IPluginReleaseInfo> = new Map();
                         list.forEach((plugin: IPluginReleaseInfo) => {
-                            this._plugins.set(plugin.name, plugin);
+                            plugins.set(plugin.name, plugin);
                         });
                         ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
+                        resolve(plugins);
                     } catch (e) {
                         return reject(new Error(this._logger.warn(`Fail parse asset to JSON due error: ${e.message}`)));
                     }
-                    resolve();
                 }).catch((assetErr: Error) => {
                     this._logger.warn(`Fail get asset due error: ${assetErr.message}`);
                     reject(assetErr);
                 });
             }).catch((error: Error) => {
-                this._logger.warn(`Fail get latest release due error: ${error.message}`);
-                // Try to read register from included
-                const local: string = path.resolve(ServicePaths.getIncludedPlugins(), this._getRegisterFileName());
-                FS.exist(local).then((exist: boolean) => {
-                    if (!exist) {
-                        return reject(new Error(`Fail to find local register "${local}"`));
-                    }
-                    FS.readTextFile(local).then((json: string) => {
-                        try {
-                            const list: IPluginReleaseInfo[] = JSON.parse(json);
-                            if (!(list instanceof Array)) {
-                                return reject(new Error(this._logger.warn(`Incorrect format of asseets`)));
-                            }
-                            list.forEach((plugin: IPluginReleaseInfo) => {
-                                this._plugins.set(plugin.name, plugin);
-                            });
-                            ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
-                            resolve();
-                        } catch (e) {
-                            return reject(new Error(this._logger.warn(`Fail parse asset to JSON due error: ${e.message}`)));
+                reject(new Error(this._logger.warn(`Fail get latest release due error: ${error.message}`)));
+            });
+        });
+    }
+
+    private _getLocal(): Promise<Map<string, IPluginReleaseInfo>> {
+        return new Promise((resolve, reject) => {
+            const local: string = path.resolve(ServicePaths.getIncludedPlugins(), this._getRegisterFileName());
+            FS.exist(local).then((exist: boolean) => {
+                if (!exist) {
+                    return reject(new Error(`Fail to find local register "${local}"`));
+                }
+                FS.readTextFile(local).then((json: string) => {
+                    try {
+                        const list: IPluginReleaseInfo[] = JSON.parse(json);
+                        if (!(list instanceof Array)) {
+                            return reject(new Error(this._logger.warn(`Incorrect format of asseets`)));
                         }
-                    }).catch((readErr: Error) => {
-                        reject(readErr);
-                    });
-                }).catch((exErr: Error) => {
-                    reject(exErr);
+                        const plugins: Map<string, IPluginReleaseInfo> = new Map();
+                        list.forEach((plugin: IPluginReleaseInfo) => {
+                            plugins.set(plugin.name, plugin);
+                        });
+                        ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
+                        resolve(plugins);
+                    } catch (e) {
+                        return reject(new Error(this._logger.warn(`Fail parse asset to JSON due error: ${e.message}`)));
+                    }
+                }).catch((readErr: Error) => {
+                    reject(readErr);
                 });
+            }).catch((exErr: Error) => {
+                reject(exErr);
             });
         });
     }

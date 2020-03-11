@@ -79,12 +79,16 @@ class ServiceElectronState implements IService {
         if (typeof message === 'string' && message.trim() !== '') {
             this._history.push(message);
         }
-        ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.HostState({
-            message: message,
-            state: this._isReadyState ? ServiceElectron.IPCMessages.HostState.States.ready : ServiceElectron.IPCMessages.HostState.States.working,
-        })).catch((error: Error) => {
-            this._logger.warn(`Fait to send IPC message "HostState" to render due: ${error.message}`);
-        });
+        if (!ServiceElectron.IPC.available()) {
+            this._logger.debug(message);
+        } else {
+            ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.HostState({
+                message: message,
+                state: this._isReadyState ? ServiceElectron.IPCMessages.HostState.States.ready : ServiceElectron.IPCMessages.HostState.States.working,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fait to send IPC message "HostState" to render due: ${error.message}`);
+            });
+        }
     }
 
     /**

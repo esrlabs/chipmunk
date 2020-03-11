@@ -37,7 +37,7 @@ export class SidebarAppNotificationsCounterComponent implements OnDestroy, After
     }
 
     public ngAfterViewInit() {
-
+        this._ng_count = this._notifications.getNotReadCount(this._ng_session);
     }
 
     public ngOnDestroy() {

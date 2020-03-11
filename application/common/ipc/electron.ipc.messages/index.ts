@@ -34,6 +34,9 @@ export { IPluginInternalMessage, PluginInternalMessage };
 import { IPluginError, PluginError } from './plugin.error';
 export { IPluginError, PluginError };
 
+import { PluginsUpdate } from './plugins.update';
+export { PluginsUpdate };
+
 import { IStreamAddRequest, StreamAddRequest } from './stream.add.request';
 export { IStreamAddRequest, StreamAddRequest };
 
@@ -328,6 +331,7 @@ export type TMessage =  HostState |
                         RenderState |
                         PluginInternalMessage |
                         PluginError |
+                        PluginsUpdate |
                         PluginsInstalledRequest |
                         PluginsInstalledResponse |
                         PluginsStoreAvailableRequest |
@@ -440,6 +444,7 @@ export const Map = {
     [RenderState.signature                  ]: RenderState,
 
     [PluginInternalMessage.signature        ]: PluginInternalMessage,
+    [PluginsUpdate.signature                ]: PluginsUpdate,
     [PluginError.signature                  ]: PluginError,
     [PluginsInstalledRequest.signature      ]: PluginsInstalledRequest,
     [PluginsInstalledResponse.signature     ]: PluginsInstalledResponse,

@@ -8,6 +8,7 @@ import ControllerPluginStorage, { InstalledPlugin, TConnectionFactory } from '..
 
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
+import { IApplication } from '../interfaces/interface.app';
 
 /**
  * @class ServicePluginNode
@@ -19,6 +20,7 @@ export class ServicePlugins implements IService {
     private _subscriptions: { [key: string ]: Subscription } = { };
     private _storage: ControllerPluginStorage;
     private _store: ControllerPluginStore;
+    private _app: IApplication | undefined;
 
     constructor() {
         this._store = new ControllerPluginStore();
@@ -28,8 +30,9 @@ export class ServicePlugins implements IService {
      * Initialization function
      * @returns { Promise<void> }
      */
-    public init(): Promise<void> {
+    public init(app: IApplication): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._app = app;
             Promise.all([
                 this._init(),
                 this._subscribe(),
@@ -48,6 +51,16 @@ export class ServicePlugins implements IService {
                 (this._subscriptions as any)[key].destroy();
             });
             this._storage.destroy().catch((error: Error) => {
+                this._logger.warn(`Error during destroy plugin's process: ${error.message}`);
+            }).finally(() => {
+                resolve();
+            });
+        });
+    }
+
+    public shutdown(): Promise<void> {
+        return new Promise((resolve) => {
+            this._storage.shutdown().catch((error: Error) => {
                 this._logger.warn(`Error during destroy plugin's process: ${error.message}`);
             }).finally(() => {
                 resolve();
@@ -77,9 +90,6 @@ export class ServicePlugins implements IService {
         return plugin.getSessionIPC(session);
     }
 
-    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *   Redirection of messages
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     public redirectIPCMessageToPluginHost(message: IPCMessages.PluginInternalMessage, sequence?: string) {
         const ipc: ControllerIPCPlugin | undefined = this.getPluginIPC(message.stream, message.token);
         if (ipc === undefined) {
@@ -89,10 +99,6 @@ export class ServicePlugins implements IService {
             this._logger.error(`Fail redirect message by token ${message.token} due error: ${sendingError.message}`);
         });
     }
-
-    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *   Streams
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     public addStream(session: string, connectionFactory: TConnectionFactory): Promise<void> {
         return this._storage.bindWithSession(session, connectionFactory);
@@ -106,32 +112,77 @@ export class ServicePlugins implements IService {
         return this._storage.getNamesOfInstalled();
     }
 
+    public revision() {
+        this._store.remote().then(() => {
+            this._logger.env(`Plugin's state is updated from remote store`);
+        }).catch((error: Error) => {
+            this._logger.env(`Fail to update plugin's state from remote store due error: ${error.message}`);
+        }).finally(() => {
+            if (!this._storage.hasToBeUpdatedOrInstalled()) {
+                this._logger.debug(`No need to update or install plugins`);
+                return;
+            }
+            this._logger.debug(`Same plugins has to be updated or installed`);
+            ServiceRenderState.do('ServicePlugins: NotifyRenderPluginsUpdate', () => {
+                ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
+                    caption: `Plugins`,
+                    message: `Some plugins should be updated or installed. It requares restarting of chipmunk.`,
+                    type: ServiceElectron.IPCMessages.Notification.Types.info,
+                    session: '*',
+                    actions: [
+                        {
+                            type: ServiceElectron.IPCMessages.ENotificationActionType.ipc,
+                            value: 'PluginsUpdate',
+                            caption: 'Restart Now',
+                        },
+                    ],
+                })).catch((error: Error) => {
+                    this._logger.warn(`Fail send Notification due error: ${error.message}`);
+                });
+            });
+        });
+    }
+
+    public update(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (!this._storage.hasToBeUpdatedOrInstalled()) {
+                this._logger.debug(`No need to update or install plugins`);
+                return resolve();
+            }
+            this._storage.defaults().then(() => {
+                this._logger.debug(`Defaults plugins are checked`);
+            }).catch((defErr: Error) => {
+                this._logger.warn(`Fail to check default plugins due error: ${defErr.message}`);
+            }).finally(() => {
+                this._storage.update().then(() => {
+                    this._logger.debug(`Updating of plugins is done`);
+                }).catch((updErr: Error) => {
+                    this._logger.warn(`Fail to update plugins due error: ${updErr.message}`);
+                }).finally(() => {
+                    resolve();
+                });
+            });
+        });
+    }
+
     private _init(): Promise<void> {
         return new Promise((resolve, reject) => {
             // Read store information
-            this._store.read().then(() => {
+            this._store.local().then(() => {
                 this._logger.debug(`Plugins store data is load`);
             }).catch((storeErr: Error) => {
                 this._logger.warn(`Fail load plugins store data due error: ${storeErr.message}`);
             }).finally(() => {
                 // Read storage information
-                this._storage.read().then(() => {
+                this._storage.load().then(() => {
                     this._logger.debug(`Plugins storage data is load`);
-                    // Update installed plugins
-                    this._storage.update().catch((updateErr: Error) => {
-                        this._logger.warn(`Update of plugins is failed with: ${updateErr.message}`);
-                    }).finally(() => {
-                        // Delivery default plugins
-                        this._storage.defaults().then(() => {
-                            this._storage.logState();
-                            // Start single process plugins
-                            this._storage.runAllSingleProcess().catch((singleProcessRunErr: Error) => {
-                                this._logger.warn(`Fail to start single process plugins due error: ${singleProcessRunErr.message}`);
-                            });
-                            this._sendRenderPluginsData();
-                            resolve();
-                        });
+                    this._storage.logState();
+                    // Start single process plugins
+                    this._storage.runAllSingleProcess().catch((singleProcessRunErr: Error) => {
+                        this._logger.warn(`Fail to start single process plugins due error: ${singleProcessRunErr.message}`);
                     });
+                    ServiceRenderState.do('ServicePlugins: SendRenderPluginsData', this._sendRenderPluginsData.bind(this));
+                    resolve();
                 }).catch((storageErr: Error) => {
                     this._logger.warn(`Fail load plugins storage data due error: ${storageErr.message}`);
                     resolve();
@@ -149,22 +200,16 @@ export class ServicePlugins implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsStoreAvailableRequest, this._ipc_PluginsStoreAvailableRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsStoreAvailableRequest = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginsUpdate, this._ipc_PluginsUpdate.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginsUpdate = subscription;
+                }),
             ]).then(() => {
                 resolve();
             }).catch(reject);
         });
     }
 
-    private _onRenderReady() {
-        // Send infomation about verified plugins
-        this._sendRenderPluginsData();
-    }
-
     private _sendRenderPluginsData() {
-        if (!ServiceRenderState.ready()) {
-            this._subscriptions.onRenderReady = ServiceRenderState.getSubjects().onRenderReady.subscribe(this._onRenderReady.bind(this));
-            return;
-        }
         const plugins: IPCMessages.IRenderMountPluginInfo[] = this._storage.getPluginRendersInfo();
         const names: string = plugins.map((info: IPCMessages.IRenderMountPluginInfo) => {
             return info.name;
@@ -194,6 +239,11 @@ export class ServicePlugins implements IService {
         })).catch((error: Error) => {
             this._logger.warn(`Fail to send response on PluginsStoreAvailableResponse due error: ${error.message}`);
         });
+    }
+
+    private _ipc_PluginsUpdate(message: IPCMessages.PluginsUpdate) {
+        this._logger.debug(`Forsing quit of application`);
+        this._app?.destroy();
     }
 
 }

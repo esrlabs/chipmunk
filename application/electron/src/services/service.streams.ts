@@ -118,28 +118,10 @@ class ServiceStreams implements IService  {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 (this._subscriptions as any)[key].destroy();
             });
-            // Destroy all connections / servers to UNIX sockets
-            Promise.all(Array.from(this._streams.values()).map((stream: IStreamInfo) => {
-                return stream.processor.destroy().then(() => {
-                    stream.server.unref();
-                    stream.connections.forEach((connection: Net.Socket) => {
-                        connection.unref();
-                        connection.destroy();
-                        connection.removeAllListeners();
-                    });
-                    stream.connections = [];
-                }).catch((error: Error) => {
-                    this._logger.error(`Fail destroy stream "${stream.guid}" due error: ${error.message}`);
-                    return Promise.resolve();
-                });
-            })).then(() => {
-                // Remove all UNIX socket's files
-                this._cleanUp().then(() => {
-                    resolve();
-                }).catch((clearError: Error) => {
-                    this._logger.warn(`Fail to cleanup sockets folder due error: ${clearError.message}`);
-                    resolve();
-                });
+            this.closeAll().catch((error: Error) => {
+                this._logger.warn(`Fail to close all session due error: ${error.message}`);
+            }).finally(() => {
+                resolve();
             });
         });
     }
@@ -267,6 +249,35 @@ class ServiceStreams implements IService  {
             return this._logger.warn(`Fail to push stream file map for stream "${streamId}" because stream doesn't exist.`);
         }
         stream.processor.pushToStreamFileMap(map);
+    }
+
+    public closeAll(): Promise<void> {
+        return new Promise((resolve) => {
+            // Destroy all connections / servers to UNIX sockets
+            Promise.all(Array.from(this._streams.values()).map((stream: IStreamInfo) => {
+                return stream.processor.destroy().then(() => {
+                    stream.server.unref();
+                    stream.connections.forEach((connection: Net.Socket) => {
+                        connection.unref();
+                        connection.destroy();
+                        connection.removeAllListeners();
+                    });
+                    stream.connections = [];
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail destroy stream "${stream.guid}" due error: ${error.message}`);
+                    return Promise.resolve();
+                });
+            })).then(() => {
+                this._streams.clear();
+                // Remove all UNIX socket's files
+                this._cleanUp().then(() => {
+                    resolve();
+                }).catch((clearError: Error) => {
+                    this._logger.warn(`Fail to cleanup sockets folder due error: ${clearError.message}`);
+                    resolve();
+                });
+            });
+        });
     }
 
     /**

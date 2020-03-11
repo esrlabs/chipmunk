@@ -15,6 +15,7 @@ export class ServiceRenderState implements IService {
     private _logger: Logger = new Logger('ServiceRenderState');
     private _subscriptions: { [key: string ]: Subscription } = { };
     private _ready: boolean = false;
+    private _pending: Map<string, () => void> = new Map();
     private _subjects: {
         onRenderReady: Tools.Subject<void>,
     } = {
@@ -60,6 +61,25 @@ export class ServiceRenderState implements IService {
         return this._ready;
     }
 
+    public do(id: string, task: () => void) {
+        if (!this.ready()) {
+            if (this._pending.has(id)) {
+                return;
+            }
+            this._pending.set(id, task);
+            return;
+        }
+        this._execute(id, task);
+    }
+
+    private _execute(id: string, task: () => void) {
+        try {
+            task();
+        } catch (e) {
+            this._logger.warn(`Fail start task id "${id}" due error: ${e.message}`);
+        }
+    }
+
     /**
      * Handler render's state
      * @returns void
@@ -76,6 +96,10 @@ export class ServiceRenderState implements IService {
         }
         this._ready = true;
         this._subjects.onRenderReady.emit();
+        this._pending.forEach((task: () => void, id: string) => {
+            this._execute(id, task);
+        });
+        this._pending.clear();
     }
 
 }
