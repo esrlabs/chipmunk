@@ -7,39 +7,36 @@ refresh_rate: 30 seconds
 appenders:
 
   indexer-root:
-
-    # All appenders must specify a "kind", which will be used to look up the
-    # logic to construct the appender in the `Deserializers` passed to the
-    # deserialization function.
-    # kind: console
-
     kind: file
     path: "$HOME_DIR/.chipmunk/chipmunk.indexer.log"
-
-    # The remainder of the configuration is passed along to the appender's
-    # builder, and will vary based on the kind of appender.
-    # Appenders will commonly be associated with an encoder.
     encoder:
-
-      # Like appenders, encoders are identified by their "kind".
-      #
-      # Default: pattern
       kind: pattern
-
-      # The remainder of the configuration is passed along to the
-      # encoder's builder, and will vary based on the kind of encoder.
       pattern: "{d} - {l}:: {m}\n"
 
-# The root logger is configured by the "root" map.
-root:
-  # The maximum log level for the root logger.
-  #
-  # possible levels:
-  # off / error / warn / info / debug / trace
-  level: warn
+  startup-appender:
+    kind: file
+    path: "$HOME_DIR/.chipmunk/chipmunk.indexer.log"
+    encoder:
+      kind: pattern
+      pattern: "{d} - {l}:: {m}\n"
 
-  # The list of appenders attached to the root logger.
-  #
-  # Default: empty list
+root:
+  # level: off
+  # level: error
+  level: warn
+  # level: info
+  # level: debug
+  # level: trace
+
   appenders:
     - indexer-root
+
+loggers:
+
+  # Route log events sent to the "app::requests" logger to the "requests" appender,
+  # and *not* the normal appenders installed at the root
+  launcher:
+    level: trace
+    appenders:
+      - startup-appender
+    additive: false

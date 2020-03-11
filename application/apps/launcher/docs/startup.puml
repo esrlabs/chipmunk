@@ -1,0 +1,63 @@
+@startuml Chipmunk Update Process
+
+user -> launcher: start chipmunk
+activate launcher
+launcher -> electron: start
+activate electron
+
+electron -> electron: check for updates
+activate electron
+return update available
+
+electron -> electron: download update
+activate electron
+return downloaded
+
+electron -> user: update available
+user -> electron: execute update
+return terminates with exit code 131
+
+launcher -> updater: start
+deactivate launcher
+activate updater
+
+updater -> updater: replace old app with new app
+updater -> launcher: restart new version
+deactivate updater
+activate launcher
+launcher -> electron: start
+activate electron
+
+electron -> electron: check for updates
+activate electron
+return no update available
+
+user -> launcher: shutdown
+launcher -> electron: shutdown
+return terminates with exit code 0
+
+@endum
+
+
+'// app.exe == electron APPLICATION
+'// chipmunk.exe == launcher
+'// launcher start electron
+'// electron checks for updates
+'// if update
+'    // electron will download updated release
+'    // if user triggers update
+'        // copy old version of updater
+'        // electron will shutdown and send 131 to launcher
+'        // launcher will check for the updater app
+'        // launcher will start updater with path to old and new version of application
+'        // launcher will terminate
+'    // end
+'// else
+'    // launcher will terminate
+'// end
+'
+'
+'// updater
+'// remove old electron app and old launcher from application dir
+'// unpack new version into application dir
+

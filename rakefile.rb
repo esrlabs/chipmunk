@@ -521,9 +521,8 @@ def build_and_deploy_rust_app(name)
   end
   rust_exec = rust_exec_in_build_dir(name)
   deployed_app = deployed_rust_exec(name)
-  puts "Check old version of app: #{deployed_app}"
+  puts "Updating #{deployed_app} with newly built #{rust_exec}"
   rm(deployed_app, force: true)
-  puts "Updating app from: #{rust_exec}"
   cp(rust_exec, deployed_app)
 end
 

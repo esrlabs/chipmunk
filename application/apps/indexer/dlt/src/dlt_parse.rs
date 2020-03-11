@@ -984,7 +984,6 @@ pub fn dlt_statistic_row_info<'a, T>(
     input: &'a [u8],
     index: Option<usize>,
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
-    // ) -> IResult<&'a [u8], StatisticRowInfo> {
 ) -> Result<(&'a [u8], StatisticRowInfo), DltParseError> {
     let update_channel_ref = update_channel;
     let (after_storage_header, _) = skip_till_after_next_storage_header(input)?;

@@ -6,13 +6,14 @@ extern crate tar;
 extern crate log;
 extern crate log4rs;
 
+use anyhow::anyhow;
+use anyhow::Result;
 use flate2::read::GzDecoder;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use std::fs::File;
-use std::io::{Error, ErrorKind, Result};
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Child, Command};
@@ -21,32 +22,46 @@ use tar::Archive;
 
 const RELEASE_FILE_NAME: &str = ".release";
 
-fn init_logging() {
+fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let log_path = home_dir.join(".chipmunk").join("chipmunk.updater.log");
-    let appender_name = "updater-root";
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
-        .build(log_path)
-        .expect("could not build logfile builder");
+    let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
+    let initialized = if log_config_path.exists() {
+        match log4rs::init_file(log_config_path, Default::default()) {
+            Ok(()) => true,
+            _ => false,
+        }
+    } else {
+        false
+    };
+    if !initialized {
+        let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
+        let appender_name = "startup-appender";
+        let logfile = FileAppender::builder()
+            .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
+            .build(log_path)?;
 
-    let config = Config::builder()
-        .appender(Appender::builder().build(appender_name, Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender(appender_name)
-                .build(LevelFilter::Trace),
-        )
-        .expect("could not build config for logging");
+        let config = Config::builder()
+            .appender(Appender::builder().build(appender_name, Box::new(logfile)))
+            .build(
+                Root::builder()
+                    .appender(appender_name)
+                    .build(LevelFilter::Trace),
+            )
+            .expect("log4rs config could not be created");
 
-    log4rs::init_config(config).expect("could not config logging");
+        log4rs::init_config(config).expect("logging could not be initialized");
+    }
+    Ok(())
 }
 
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
-    Command::new(exe).args(args).spawn()
+    Command::new(exe)
+        .args(args)
+        .spawn()
+        .map_err(|e| anyhow!("could not spawn {} as a process ({})", exe, e))
 }
 
-fn extract_args() -> Result<(String, String)> {
+fn extract_args() -> Result<(PathBuf, PathBuf)> {
     let mut args = Vec::new();
 
     trace!("Parsing arguments");
@@ -56,9 +71,12 @@ fn extract_args() -> Result<(String, String)> {
 
     trace!("Next arguments are parsered {:?}", args);
     if args.len() != 2 {
-        Err(Error::new(ErrorKind::Other, "Expecting 2 arguments"))
+        Err(anyhow!("Expecting 2 arguments"))
     } else {
-        Ok((args[0].to_string(), args[1].to_string()))
+        Ok((
+            PathBuf::from(args[0].to_string()),
+            PathBuf::from(args[1].to_string()),
+        ))
     }
 }
 
@@ -82,44 +100,28 @@ fn remove_entity(entity: &Path) -> Result<()> {
         return Ok(());
     }
     if entity.is_dir() {
-        if let Err(err) = std::fs::remove_dir_all(&entity) {
-            error!("Unable to delete directory {:?}: {}", entity, err);
-            return Err(err);
-        } else {
-            debug!("Successfuly removed folder: {:?}", entity);
-        }
+        std::fs::remove_dir_all(&entity)?;
     } else if entity.is_file() {
-        if let Err(err) = std::fs::remove_file(&entity) {
-            error!("Unable to delete file {:?}: {}", entity, err);
-            return Err(err);
-        } else {
-            debug!("Successfuly removed file: {:?}", entity);
-        }
+        std::fs::remove_file(&entity)?;
     }
     Ok(())
 }
 
-fn remove_application_folder(app: &Path) -> Result<PathBuf> {
+fn remove_old_application(app: &Path) -> Result<PathBuf> {
     let app_folder = if cfg!(target_os = "macos") {
-        app
+        app // is equals to chipmunk.app
     } else {
         app.parent()
-            .unwrap_or_else(|| panic!("could not get parent of {:?}", app))
+            .ok_or_else(|| anyhow!("could not get parent of {:?}", app))?
     };
 
-    debug!("This folder will be clean: {:?}", app_folder);
+    debug!("This folder will be cleaned: {:?}", app_folder);
     if cfg!(target_os = "macos") {
         // Mac doesn't requere any specific actions, because all are in self-compressed folder "chipmunk.app"
-        if let Err(err) = std::fs::remove_dir_all(&app_folder) {
-            error!(
-                "Cannot continue updating. Unable to delete directory {:?}: {}",
-                app_folder, err
-            );
-            std::process::exit(1);
-        }
+        std::fs::remove_dir_all(&app_folder)?;
         let dest = app_folder
             .parent()
-            .ok_or_else(|| Error::new(ErrorKind::Other, "parent folder not found"))?;
+            .ok_or_else(|| anyhow!("parent folder not found"))?;
         Ok(PathBuf::from(dest))
     } else {
         // Try to read release-file
@@ -144,10 +146,7 @@ fn remove_application_folder(app: &Path) -> Result<PathBuf> {
                 for entity in entries.iter() {
                     let path = app_folder.join(entity);
                     if path.exists() {
-                        if let Err(err) = remove_entity(&path) {
-                            error!("Unable to delete entry {:?}: {}. Cannot continue updating. Process is stopped.", path, err);
-                            std::process::exit(1);
-                        }
+                        remove_entity(&path)?;
                     } else {
                         warn!("Fail to find file: {:?}.", path);
                     }
@@ -162,28 +161,12 @@ fn unpack(tgz: &Path, dest: &PathBuf) -> Result<()> {
     // Unpack
     info!("File {:?} will be unpacked into {:?}", tgz, dest);
 
-    let tar_gz = match File::open(&tgz) {
-        Err(e) => {
-            error!("Fail to open file due error: {}", e);
-            std::process::exit(1);
-        }
-        Ok(file) => file,
-    };
+    let tar_gz = File::open(&tgz)?;
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
-    match archive.unpack(&dest) {
-        Err(e) => {
-            error!("Fail to unpack file due error: {}", e);
-            std::process::exit(1);
-        }
-        Ok(file) => file,
-    };
+    archive.unpack(&dest)?;
 
-    info!(
-        "File {} is unpacked into {}",
-        tgz.to_string_lossy(),
-        dest.to_string_lossy()
-    );
+    info!("File {:?} was unpacked into {:?}", tgz, dest);
     Ok(())
 }
 
@@ -195,22 +178,12 @@ fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
     };
 
     if !to_be_started.exists() {
-        error!(
-            "Failed to find executable file {}",
-            to_be_started.to_string_lossy()
-        );
-        Err(Error::new(
-            ErrorKind::Other,
-            "Failed to restart, couldn't find executable file",
-        ))
+        error!("Failed to find executable file {:?}", to_be_started);
+        Err(anyhow!("Failed to restart, couldn't find executable file"))
     } else {
         debug!("Remove tgz: {:?}", tgz);
         if let Err(err) = std::fs::remove_file(&tgz) {
-            warn!(
-                "Fail to remove file {} due error {}",
-                tgz.to_string_lossy(),
-                err
-            );
+            warn!("Fail to remove file {:?} due error {}", tgz, err);
         }
         info!("Starting: {:?}", &to_be_started);
         let child = spawn(
@@ -234,43 +207,41 @@ fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
             }
             Err(e) => {
                 error!("Fail to start app due error: {}", e);
-                Err(Error::new(
-                    ErrorKind::Other,
-                    format!("Fail to start app due error: {}", e),
-                ))
+                Err(anyhow!("Fail to start app due error: {}", e))
             }
         }
     }
 }
 fn main() {
-    init_logging();
+    match init_logging() {
+        Ok(()) => trace!("Updater started logging"),
+        Err(e) => eprintln!("couldn't initialize logging: {}", e),
+    }
     debug!("Started");
 
-    let (app_arg, tgz_arg) = match extract_args() {
+    let (current_app_path, compressed_update_path) = match extract_args() {
         Ok(res) => res,
         Err(e) => {
             error!("Argument error: {:?}", e);
             std::process::exit(1);
         }
     };
-    let app = Path::new(app_arg.as_str());
-    let tgz = Path::new(tgz_arg.as_str());
 
     // Check paths
-    if !app.exists() {
-        error!("File {:?} doesn't exist", app);
+    if !current_app_path.exists() {
+        error!("File {:?} doesn't exist", current_app_path);
         std::process::exit(1);
     }
 
-    if !tgz.exists() {
-        error!("File {:?} doesn't exist", tgz);
+    if !compressed_update_path.exists() {
+        error!("File {:?} doesn't exist", compressed_update_path);
         std::process::exit(1);
     }
 
     // Sleep a little bit to give possibility chipmunk to be closed
     thread::sleep(time::Duration::from_millis(2000));
 
-    let dest = match remove_application_folder(&app) {
+    let dest = match remove_old_application(&current_app_path) {
         Ok(res) => res,
         Err(e) => {
             error!("removing application folder failed: {:?}", e);
@@ -278,13 +249,13 @@ fn main() {
         }
     };
 
-    if let Err(e) = unpack(&tgz, &dest) {
+    if let Err(e) = unpack(&compressed_update_path, &dest) {
         error!("unpacking failed: {}", e);
         // TODO implement rollback
         std::process::exit(1);
     }
 
-    match restart_app(&app, &tgz) {
+    match restart_app(&current_app_path, &compressed_update_path) {
         Err(e) => error!("restart failed: {}", e),
         Ok(()) => info!("restarted successfully"),
     }
@@ -302,7 +273,11 @@ mod tests {
             Ok(exe_path) => {
                 let relative_path: &str = "application/apps/updater";
                 println!("App is running with {}", exe_path.display());
-                let parts: Vec<&str> = exe_path.to_str().unwrap().split(relative_path).collect();
+                let parts: Vec<&str> = exe_path
+                    .to_str()
+                    .expect("exe path invalid")
+                    .split(relative_path)
+                    .collect();
                 assert_eq!(parts.len(), 2);
                 let test_folder = Path::new(&parts[0]).join(format!("{}/tests", relative_path));
                 println!("Parent folder of path is {}", test_folder.display());
@@ -327,7 +302,11 @@ mod tests {
             Ok(exe_path) => {
                 let relative_path: &str = "application/apps/updater";
                 println!("App is running with {}", exe_path.display());
-                let parts: Vec<&str> = exe_path.to_str().unwrap().split(relative_path).collect();
+                let parts: Vec<&str> = exe_path
+                    .to_str()
+                    .expect("exe path invalid")
+                    .split(relative_path)
+                    .collect();
                 assert_eq!(parts.len(), 2);
                 let test_folder = Path::new(&parts[0]).join(format!("{}/tests", relative_path));
                 println!("Parent folder of path is {}", test_folder.display());

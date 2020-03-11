@@ -227,7 +227,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
     let mut codings_map = HashMap::new();
     let mut pdus = vec![];
     for f in files {
-        trace!("read_fibexe from {:?}", f);
+        debug!("read_fibexe from {:?}", f);
         let mut reader = Reader::from_file(f)?;
         loop {
             match reader.read_event()? {
@@ -246,7 +246,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
                     codings_map.insert(id, base_data_type);
                 }
                 x => {
-                    trace!("read_fibex some other event: {:?}", x);
+                    debug!("read_fibex some other event: {:?}", x);
                 }
             }
         }
@@ -318,7 +318,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
             }
         }
     }
-    trace!("parsed fibex data OK");
+    debug!("parsed fibex data OK");
     Ok(FibexMetadata {
         frame_map_with_key,
         frame_map,
@@ -804,7 +804,6 @@ impl<B: BufRead> Reader<B> {
                         });
                     }
                     B_SIGNAL => {
-                        trace!("B_SIGNAL XmlEvent::End");
                         return Ok(Event::Signal {
                             id: mem::replace(&mut self.id, None).ok_or_else(|| {
                                 missing_attr_err(B_ID, B_SIGNAL, self.xml_reader.line_and_column())

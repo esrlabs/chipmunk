@@ -119,6 +119,7 @@ export class GitHubClient {
                 if (release.assets instanceof Array) {
                     release.map = new Map();
                     release.assets.forEach((asset: IReleaseAsset) => {
+                        this._logger.debug(`Found asset for release: ${asset.name}`);
                         release.map?.set(asset.name, new GitHubAsset(asset, this._getGithubClient.bind(this, opt)));
                     });
                 }

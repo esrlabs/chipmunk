@@ -96,40 +96,43 @@ class ServiceUpdate implements IService {
                 this._logger.debug(`Current version "${current}" is newest, no update needed.`);
                 return;
             }
-            this._logger.debug(`New version is released: ${info.name}`);
+            this._logger.debug(`New version is released...: ${info.name}`);
             const targets: string[] | Error = this._getAssetFileName(latest);
+            this._logger.debug(`Asset file names:...: ${info.name}`);
             if (targets instanceof Error) {
                 return this._logger.warn(`Fail to get targets due error: ${targets.message}`);
             }
-            let tgzfile: string | undefined;
+            let compressedFile: string | undefined;
             info.assets.forEach((asset: IReleaseAsset) => {
                 if (targets.indexOf(asset.name) !== -1) {
-                    tgzfile = asset.name;
+                    compressedFile = asset.name;
+                    this._logger.debug(`package to download:...: ${compressedFile}`);
                 }
             });
-            if (tgzfile === undefined) {
-                return this._logger.warn(`Fail to find tgz file with release for current platform.`);
+            if (compressedFile === undefined) {
+                return this._logger.warn(`Fail to find archive-file with release for current platform.`);
             }
             this._target = latest;
-            const file: string = path.resolve(ServicePaths.getDownloads(), tgzfile);
+            const file: string = path.resolve(ServicePaths.getDownloads(), compressedFile);
             if (fs.existsSync(file)) {
                 // File was already downloaded
+                this._logger.debug(`File was already downloaded "${file}". latest: ${latest}.`);
                 this._tgzfile = file;
                 this._notify(latest);
             } else {
-                this._logger.debug(`Found new version "${latest}". Starting downloading: ${tgzfile}.`);
+                this._logger.debug(`Found new version "${latest}". Starting downloading: ${compressedFile}.`);
                 GitHubClient.download({
                     repo: CSettings.repo,
                 }, {
                     version: latest,
-                    name: tgzfile,
+                    name: compressedFile,
                     dest: ServicePaths.getDownloads(),
                 }).then((_tgzfile: string) => {
                     this._tgzfile = _tgzfile;
                     this._notify(latest);
-                    this._logger.debug(`File ${tgzfile} is downloaded into: ${_tgzfile}.`);
+                    this._logger.debug(`File ${compressedFile} is downloaded into: ${_tgzfile}.`);
                 }).catch((downloadError: Error) => {
-                    this._logger.error(`Fail to download "${tgzfile}" due error: ${downloadError.message}`);
+                    this._logger.error(`Fail to download "${compressedFile}" due error: ${downloadError.message}`);
                 });
             }
         }).catch((gettingReleasesError: Error) => {

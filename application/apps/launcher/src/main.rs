@@ -10,42 +10,59 @@ extern crate log4rs;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
+use anyhow::{anyhow, Result};
 use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::config::{Appender, Config, Root};
-use log4rs::encode::pattern::PatternEncoder;
+use log4rs::{
+    append::file::FileAppender,
+    config::{Appender, Config, Root},
+    encode::pattern::PatternEncoder,
+};
 use regex::Regex;
-use std::io::{Error, ErrorKind, Result};
-use std::path::Path;
-use std::process::Child;
-use std::process::Command;
-use std::time::SystemTime;
+use std::{
+    path::Path,
+    path::PathBuf,
+    process::{Child, Command},
+    time::SystemTime,
+};
 
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let log_path = home_dir.join(".chipmunk").join("chipmunk.launcher.log");
-    let appender_name = "launcher-root";
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
-        .build(log_path)?;
+    let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
+    let initialized = if log_config_path.exists() {
+        match log4rs::init_file(log_config_path, Default::default()) {
+            Ok(()) => true,
+            _ => false,
+        }
+    } else {
+        false
+    };
+    if !initialized {
+        let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
+        let appender_name = "startup-appender";
+        let logfile = FileAppender::builder()
+            .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
+            .build(log_path)?;
 
-    let config = Config::builder()
-        .appender(Appender::builder().build(appender_name, Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender(appender_name)
-                .build(LevelFilter::Trace),
-        )
-        .unwrap();
+        let config = Config::builder()
+            .appender(Appender::builder().build(appender_name, Box::new(logfile)))
+            .build(
+                Root::builder()
+                    .appender(appender_name)
+                    .build(LevelFilter::Trace),
+            )
+            .expect("log4rs config could not be created");
 
-    log4rs::init_config(config).unwrap();
-
+        log4rs::init_config(config).expect("logging could not be initialized");
+    }
     Ok(())
 }
 
 #[cfg(not(target_os = "windows"))]
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
-    Command::new(exe).args(args).spawn()
+    Command::new(exe)
+        .args(args)
+        .spawn()
+        .map_err(|e| anyhow!("{}", e))
 }
 
 #[cfg(target_os = "windows")]
@@ -58,28 +75,28 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
         .spawn()
 }
 
-/// get the path of the
-fn get_app_path_str() -> Result<String> {
+/// on macos it will result in /xyz/chipmunk.app
+fn electron_app_path() -> Result<String> {
     let launcher = std::env::current_exe()?;
-    let launcher_str = launcher
-        .to_str()
-        .ok_or_else(|| Error::new(ErrorKind::Other, "could not convert path to string"))?;
-    let launcher_path = Path::new(&launcher);
+    // /xyz/chipmunk.app/Contents/MacOS/app
     if cfg!(target_os = "macos") {
         let re = Regex::new(r"chipmunk\.app.*").unwrap();
+        let launcher_str = launcher
+            .to_str()
+            .ok_or_else(|| anyhow!("could not convert path to string"))?;
         let cropped = re.replace_all(launcher_str, "chipmunk.app").to_string();
+        // cropped = /xyz/chipmunk.app
         trace!("cropped: {}", cropped);
-        let cropped_path = Path::new(&cropped);
-        if !cropped_path.exists() {
-            error!("Fail to find application by next path: {:?}", cropped_path);
+        if !Path::new(&cropped).exists() {
+            error!("Fail to find application by next path: {:?}", cropped);
             trace!("Closing launcher");
             std::process::exit(1);
         }
         Ok(cropped)
     } else {
-        let parrent_path = launcher_path
+        let parrent_path = launcher
             .parent()
-            .ok_or_else(|| Error::new(ErrorKind::Other, "no parent found"))?
+            .ok_or_else(|| anyhow!("no parent found"))?
             .to_string_lossy();
         if cfg!(target_os = "windows") {
             Ok(format!("{}\\app.exe", parrent_path))
@@ -89,11 +106,12 @@ fn get_app_path_str() -> Result<String> {
     }
 }
 
-fn get_exe_path() -> Result<String> {
+/// on macos it looks like /xyz/chipmunk.app/Contents/MacOS/app
+fn find_electron_app() -> Result<String> {
     let root = std::env::current_exe()?;
     let root_path = Path::new(&root)
         .parent()
-        .ok_or_else(|| Error::new(ErrorKind::Other, "no parent found"))?;
+        .ok_or_else(|| anyhow!("no parent found"))?;
     let app = if cfg!(target_os = "windows") {
         format!("{}\\{}", root_path.display(), "app.exe")
     } else {
@@ -102,20 +120,20 @@ fn get_exe_path() -> Result<String> {
     Ok(app)
 }
 
-fn get_updater_path() -> String {
+fn get_updater_path() -> PathBuf {
     let home_dir = dirs::home_dir();
     let updater = format!(
         "{}/.chipmunk/apps/updater",
         home_dir.unwrap().as_path().to_str().unwrap()
     );
-    if cfg!(target_os = "windows") {
+    PathBuf::from(if cfg!(target_os = "windows") {
         format!("{}.exe", updater)
     } else {
         updater
-    }
+    })
 }
 
-fn get_app_updating_tgz_path_str() -> String {
+fn update_package_path() -> String {
     let home_dir = dirs::home_dir();
     let downloads = format!(
         "{}/.chipmunk/downloads",
@@ -145,7 +163,7 @@ fn get_app_updating_tgz_path_str() -> String {
                             target = path_str.to_string();
                         }
                     } else {
-                        println!("Not supported on this platform");
+                        warn!("Not supported on this platform");
                     }
                 }
             }
@@ -155,32 +173,28 @@ fn get_app_updating_tgz_path_str() -> String {
 }
 
 fn update() -> Result<bool> {
-    let updater = get_updater_path();
-    let updater_path = Path::new(&updater);
+    let updater_path = get_updater_path();
 
     if !updater_path.exists() {
-        error!(
-            "File of updater {} doesn't exist",
-            updater_path.to_string_lossy()
-        );
+        error!("File of updater {:?} doesn't exist", updater_path);
         return Ok(false);
     }
 
-    trace!("Starting updater: {}", updater);
-    let app = get_app_path_str()?;
-    let tgz = get_app_updating_tgz_path_str();
-    if app == "" || tgz == "" {
+    trace!("Starting updater: {:?}", updater_path);
+    let app = electron_app_path()?;
+    let update_package = update_package_path();
+    if app == "" || update_package == "" {
         error!(
             "Fail to start update because some path isn't detected. app: {}, tgz: {}",
-            app, tgz
+            app, update_package
         );
         std::process::exit(0);
     }
-    trace!("Detected\n\t-\tapp: {};\n\t-\ttgz: {}", app, tgz);
-    let child = spawn(&updater_path.to_string_lossy(), &[&app, &tgz]);
+    trace!("Detected\n\t-\tapp: {};\n\t-\ttgz: {}", app, update_package);
+    let child = spawn(&updater_path.to_string_lossy(), &[&app, &update_package]);
     match child {
         Ok(_child) => {
-            debug!("Updater is started ({})", updater_path.to_string_lossy());
+            debug!("Updater is started ({:?})", updater_path);
             trace!("Close launcher");
             std::process::exit(0);
         }
@@ -193,11 +207,11 @@ fn update() -> Result<bool> {
 
 fn main() {
     match init_logging() {
-        Ok(()) => trace!("Started logging"),
+        Ok(()) => trace!("Launcher started logging"),
         Err(e) => eprintln!("couldn't initialize logging: {}", e),
     }
 
-    let node_app = match get_exe_path() {
+    let electron_app = match find_electron_app() {
         Ok(app) => app,
         Err(e) => {
             error!("path to executable not found: {}", e);
@@ -205,31 +219,31 @@ fn main() {
         }
     };
 
-    trace!("Target application: {}", node_app);
+    trace!("Target application: {}", electron_app);
 
-    let app_path = Path::new(&node_app);
+    let electron_app_path = Path::new(&electron_app);
 
-    if !app_path.exists() {
-        error!("File {} doesn't exist", app_path.to_str().unwrap());
+    if !electron_app_path.exists() {
+        error!("electron app not found! {:?}", electron_app_path);
         std::process::exit(1);
     }
 
-    debug!("Starting application: {}", node_app);
+    debug!("Starting application: {}", electron_app);
 
-    let child = spawn(&node_app, &[]);
+    let child = spawn(&electron_app, &[]);
     match child {
         Ok(mut child) => {
-            debug!("Application is started ({})", app_path.to_str().unwrap());
+            info!("Electron application is started ({:?})", electron_app_path);
             match child.wait() {
                 Ok(result) => {
                     let code = result.code().unwrap();
                     trace!("App is finished with code: {}", code);
                     if code == 0 {
                         // node app was closed
-                        trace!("Everything looks good.");
+                        info!("No update required, exiting");
                     } else if code == 131 {
                         // node app was closed and update requested
-                        debug!("Update is required");
+                        info!("Update is required");
                         match update() {
                             Ok(res) => {
                                 debug!("updated finished {} OK", if res { "" } else { "not" })
