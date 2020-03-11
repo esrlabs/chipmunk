@@ -71,8 +71,31 @@ export default class ControllerPluginInstalled {
             if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
                 return resolve();
             }
-            return this._info.controller.process.destroy().catch((error: Error) => {
+            return this._info.controller.process.destroy().then(() => {
+                if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
+                    return;
+                }
+                this._info.controller.process = undefined;
+            }).catch((error: Error) => {
                 this._logger.warn(`Error during destroy plugin's process: ${error.message}`);
+            }).finally(() => {
+                resolve();
+            });
+        });
+    }
+
+    public shutdown(): Promise<void> {
+        return new Promise((resolve) => {
+            if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
+                return resolve();
+            }
+            return this._info.controller.process.destroy().then(() => {
+                if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
+                    return;
+                }
+                this._info.controller.process = undefined;
+            }).catch((error: Error) => {
+                this._logger.warn(`Error during shutdown plugin's process: ${error.message}`);
             }).finally(() => {
                 resolve();
             });
@@ -186,6 +209,23 @@ export default class ControllerPluginInstalled {
                 reject(error);
             });
         });
+    }
+
+    public isUpdateRequired(): boolean {
+        if (this._info === undefined) {
+            return false;
+        }
+        const available: IPluginReleaseInfo | undefined = this._store.getInfo(this._name);
+        if (available === undefined) {
+            return false;
+        }
+        if (ServicePackage.getHash(available.dependencies) !== available.phash) {
+            return false;
+        }
+        if (this._info.phash === available.phash && this._info.version === available.version) {
+            return false;
+        }
+        return true;
     }
 
     public update(): Promise<void> {

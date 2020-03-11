@@ -30,6 +30,62 @@ export default class ControllerPluginsStorage {
         this._store = store;
     }
 
+    public load(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ServiceElectronService.logStateToRender(`Reading installed plugins...`);
+            const pluginStorageFolder: string = ServicePaths.getPlugins();
+            // Get all sub folders from plugins folder. Expecting: there are plugins folders
+            FS.readFolders(pluginStorageFolder).then((folders: string[]) => {
+                if (folders.length === 0) {
+                    // No any plugins
+                    this._logger.debug(`No any plugins were found. Target folder: ${pluginStorageFolder}`);
+                    return resolve();
+                }
+                const toBeRemoved: InstalledPlugin[] = [];
+                // Check each plugin folder and read package.json of render and process apps
+                Promise.all(folders.map((folder: string) => {
+                    const plugin: InstalledPlugin = new InstalledPlugin(folder, path.resolve(pluginStorageFolder, folder), this._store);
+                    return plugin.read().then(() => {
+                        this._plugins.set(plugin.getName(), plugin);
+                    }).catch((pluginErr: Error) => {
+                        this._logger.warn(`Fail to read plugin data in "${folder}". Plugin will be ignored. Error: ${pluginErr.message}`);
+                        toBeRemoved.push(plugin);
+                        return Promise.resolve();
+                    });
+                })).catch((readErr: Error) => {
+                    this._logger.warn(`Error during reading plugins: ${readErr.message}`);
+                }).finally(() => {
+                    ServiceElectronService.logStateToRender(`Removing invalid plugins...`);
+                    if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID) {
+                        if (toBeRemoved.length > 0) {
+                            this._logger.debug(`Found ${toBeRemoved.length} not valid plugins to be removed. But because CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID=true, plugins will not be removed. Not valid plugins:\n${toBeRemoved.map((plugin: InstalledPlugin) => {
+                                return `\t - ${plugin.getPath()}`;
+                            }).join('\n')}`);
+                        }
+                        return resolve();
+                    } else {
+                        Promise.all(toBeRemoved.map((plugin: InstalledPlugin) => {
+                            return plugin.remove().then(() => {
+                                ServiceElectronService.logStateToRender(`Plugin "${plugin.getPath()}" has been removed.`);
+                                this._logger.debug(`Plugin "${plugin.getPath()}" is removed.`);
+                            }).catch((removeErr: Error) => {
+                                this._logger.warn(`Fail remove plugin "${plugin.getPath()}" due error: ${removeErr.message}`);
+                                return Promise.resolve();
+                            });
+                        })).catch((removeErr: Error) => {
+                            this._logger.warn(`Error during removing plugins: ${removeErr.message}`);
+                        }).finally(() => {
+                            resolve();
+                        });
+                    }
+                });
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to read plugins folder (${pluginStorageFolder}) due error: ${error.message}.`);
+                resolve();
+            });
+        });
+    }
+
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
             Promise.all(Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
@@ -38,6 +94,18 @@ export default class ControllerPluginsStorage {
                 this._logger.warn(`Error on destroy of plugin's storage: ${error.message}`);
             }).finally(() => {
                 this._plugins.clear();
+                resolve();
+            });
+        });
+    }
+
+    public shutdown(): Promise<void> {
+        return new Promise((resolve) => {
+            Promise.all(Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
+                return plugin.shutdown();
+            })).catch((error: Error) => {
+                this._logger.warn(`Error on shutdown of plugin's storage: ${error.message}`);
+            }).finally(() => {
                 resolve();
             });
         });
@@ -116,60 +184,21 @@ export default class ControllerPluginsStorage {
         return plugins;
     }
 
-    public read(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            ServiceElectronService.logStateToRender(`Reading installed plugins...`);
-            const pluginStorageFolder: string = ServicePaths.getPlugins();
-            // Get all sub folders from plugins folder. Expecting: there are plugins folders
-            FS.readFolders(pluginStorageFolder).then((folders: string[]) => {
-                if (folders.length === 0) {
-                    // No any plugins
-                    this._logger.debug(`No any plugins were found. Target folder: ${pluginStorageFolder}`);
-                    return resolve();
-                }
-                const toBeRemoved: InstalledPlugin[] = [];
-                // Check each plugin folder and read package.json of render and process apps
-                Promise.all(folders.map((folder: string) => {
-                    const plugin: InstalledPlugin = new InstalledPlugin(folder, path.resolve(pluginStorageFolder, folder), this._store);
-                    return plugin.read().then(() => {
-                        this._plugins.set(plugin.getName(), plugin);
-                    }).catch((pluginErr: Error) => {
-                        this._logger.warn(`Fail to read plugin data in "${folder}". Plugin will be ignored. Error: ${pluginErr.message}`);
-                        toBeRemoved.push(plugin);
-                        return Promise.resolve();
-                    });
-                })).catch((readErr: Error) => {
-                    this._logger.warn(`Error during reading plugins: ${readErr.message}`);
-                }).finally(() => {
-                    ServiceElectronService.logStateToRender(`Removing invalid plugins...`);
-                    if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID) {
-                        if (toBeRemoved.length > 0) {
-                            this._logger.debug(`Found ${toBeRemoved.length} not valid plugins to be removed. But because CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID=true, plugins will not be removed. Not valid plugins:\n${toBeRemoved.map((plugin: InstalledPlugin) => {
-                                return `\t - ${plugin.getPath()}`;
-                            }).join('\n')}`);
-                        }
-                        return resolve();
-                    } else {
-                        Promise.all(toBeRemoved.map((plugin: InstalledPlugin) => {
-                            return plugin.remove().then(() => {
-                                ServiceElectronService.logStateToRender(`Plugin "${plugin.getPath()}" has been removed.`);
-                                this._logger.debug(`Plugin "${plugin.getPath()}" is removed.`);
-                            }).catch((removeErr: Error) => {
-                                this._logger.warn(`Fail remove plugin "${plugin.getPath()}" due error: ${removeErr.message}`);
-                                return Promise.resolve();
-                            });
-                        })).catch((removeErr: Error) => {
-                            this._logger.warn(`Error during removing plugins: ${removeErr.message}`);
-                        }).finally(() => {
-                            resolve();
-                        });
-                    }
-                });
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to read plugins folder (${pluginStorageFolder}) due error: ${error.message}.`);
-                resolve();
-            });
+    public hasToBeUpdatedOrInstalled(): boolean {
+        // Step 1. Check is all defaults plugins are installed or not
+        const required: IPluginReleaseInfo[] = this._getRequiredDefaults();
+        if (required.length > 0) {
+            return true;
+        }
+        // Step 2. Should some plugins be updated or not
+        let update: boolean = false;
+        Array.from(this._plugins.values()).forEach((plugin: InstalledPlugin) => {
+            if (update) {
+                return;
+            }
+            update = plugin.isUpdateRequired();
         });
+        return update;
     }
 
     public update(): Promise<void> {
@@ -203,17 +232,12 @@ export default class ControllerPluginsStorage {
                 return resolve();
             }
             const pluginStorageFolder: string = ServicePaths.getPlugins();
-            const installed: string[] = Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
-                return plugin.getName();
-            }).filter((name: string | undefined) => {
-                return name !== undefined;
-            });
-            const plugins: IPluginReleaseInfo[] = this._store.getDefaults(installed);
-            if (plugins.length === 0) {
+            const required: IPluginReleaseInfo[] = this._getRequiredDefaults();
+            if (required.length === 0) {
                 return resolve();
             }
-            ServiceElectronService.logStateToRender(`Installing default plugins`);
-            Promise.all(plugins.map((info: IPluginReleaseInfo) => {
+            this._logger.debug(`Installing default plugins`);
+            Promise.all(required.map((info: IPluginReleaseInfo) => {
                 const plugin: InstalledPlugin = new InstalledPlugin(info.name, path.resolve(pluginStorageFolder, info.name), this._store);
                 return plugin.install().then(() => {
                     this._plugins.set(info.name, plugin);
@@ -282,6 +306,15 @@ export default class ControllerPluginsStorage {
             this._logger.debug(`Fail to correctly exclude plugin "${plugin.getName()}" due error: ${error.message}`);
         });
         this._plugins.delete(plugin.getName());
+    }
+
+    private _getRequiredDefaults(): IPluginReleaseInfo[] {
+        const installed: string[] = Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
+            return plugin.getName();
+        }).filter((name: string | undefined) => {
+            return name !== undefined;
+        });
+        return this._store.getDefaults(installed);
     }
 
 }

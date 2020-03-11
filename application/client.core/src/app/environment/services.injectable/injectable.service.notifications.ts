@@ -33,6 +33,7 @@ export class NotificationsService {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _onceHashes: Map<string, boolean> = new Map();
     private _storage: Map<TSession, INotification[]> = new Map();
+    private _common: INotification[] = [];
     private _logger: Toolkit.Logger = new Toolkit.Logger('NotificationsService');
 
     constructor() {
@@ -76,16 +77,18 @@ export class NotificationsService {
 
     public get(session: TSession): INotification[] {
         const storage: INotification[] | undefined = this._storage.get(session);
-        return storage === undefined ? [] : storage;
+        return storage === undefined ? [].concat(this._common, []) : [].concat(this._common, storage);
     }
 
     public getNotReadCount(session: TSession): number {
-        const storage: INotification[] | undefined = this._storage.get(session);
-        if (storage === undefined) {
-            return -1;
-        }
         let count: number = 0;
-        storage.forEach((notification: INotification) => {
+        const storage: INotification[] | undefined = this._storage.get(session);
+        if (storage !== undefined) {
+            storage.forEach((notification: INotification) => {
+                count += (notification.read !== true ? 1 : 0);
+            });
+        }
+        this._common.forEach((notification: INotification) => {
             count += (notification.read !== true ? 1 : 0);
         });
         return count;
@@ -94,14 +97,20 @@ export class NotificationsService {
     public setAsRead(session: TSession, id: string) {
         const storage: INotification[] | undefined = this._storage.get(session);
         if (storage === undefined) {
-            return;
+            this._common = this._common.map((notification: INotification) => {
+                if (notification.id === id) {
+                    notification.read = true;
+                }
+                return notification;
+            });
+        } else {
+            this._storage.set(session, storage.map((notification: INotification) => {
+                if (notification.id === id) {
+                    notification.read = true;
+                }
+                return notification;
+            }));
         }
-        this._storage.set(session, storage.map((notification: INotification) => {
-            if (notification.id === id) {
-                notification.read = true;
-            }
-            return notification;
-        }));
         this.subjects.updated.next(session);
     }
 
@@ -128,10 +137,10 @@ export class NotificationsService {
 
     private _validate(notification: INotification): INotification | Error {
         const active: ControllerSessionTab | undefined = TabsSessionsService.getActive();
-        if (notification.session === undefined && active === undefined) {
+        if (notification.session !== undefined && active === undefined) {
             return new Error(`No any session.`);
         }
-        notification.session = notification.session === undefined ? active.getGuid() : notification.session;
+        notification.session = notification.session === undefined ? (active === undefined ? undefined : active.getGuid()) : notification.session;
         if (notification.options === undefined) {
             notification.options = {};
         }
@@ -169,10 +178,7 @@ export class NotificationsService {
             return;
         }
         if (notification.session === undefined) {
-            this._storage.forEach((storage: INotification[], session: TSession) => {
-                storage.push(notification);
-                this._storage.set(session, storage);
-            });
+            this._common.push(notification);
         } else {
             let stored: INotification[] | undefined = this._storage.get(notification.session);
             if (stored === undefined) {

@@ -1,0 +1,73 @@
+@import '../../../theme/variables.less';
+
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left:0.5rem;
+    top:0.5rem;
+    overflow: hidden;
+    & * {
+        color: @scheme-color-0;
+    }
+    & div.caption {
+        position: absolute;
+        width: 100%;
+        height: 1.25rem;
+        left: 0;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        color: @scheme-color-2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    & div.selection{
+        position: absolute;
+        height: 100%;
+        width: ~"calc(50% - 4px)";
+        left:0;
+        top:1.25rem;
+        &::after{
+            position: absolute;
+            content: '';
+            width: 1px;
+            height: 100%;
+            right: -3px;
+            top:0;
+            border-right: 1px dashed @scheme-color-4;
+        }
+        & div.content{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            overflow: auto;
+            bottom: 0;
+        }
+        &.only{
+            width: 100%;
+        }
+    }
+    & div.parsed {
+        position: absolute;
+        height: 100%;
+        width: ~"calc(50% - 4px)";
+        left:~"calc(50% + 4px)";
+        top:1.25rem;
+        & div.content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            overflow: auto;
+            bottom: 0;
+            & span{
+                font-family: 'console', monospace!important;
+            }
+        }
+    }
+}

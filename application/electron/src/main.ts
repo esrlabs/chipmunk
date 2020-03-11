@@ -1,6 +1,7 @@
 // Libs
 import { dialog, MessageBoxReturnValue, app, Event } from 'electron';
 import { CommonInterfaces } from './interfaces/interface.common';
+import { IApplication } from './interfaces/interface.app';
 
 import * as FS from './tools/fs';
 
@@ -38,6 +39,12 @@ import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon'
 import ServiceOutputExport from './services/output/service.output.export';
 import ServiceRenderState from './services/service.render.state';
 
+enum EAppState {
+    initing = 'initing',
+    working = 'working',
+    destroying = 'destroying',
+}
+
 const InitializeStages = [
     // Apply patches ("before")
     [   ServicePatchesBefore ],
@@ -72,10 +79,10 @@ const InitializeStages = [
     [   ServiceUpdate ],
 ];
 
-class Application {
+class Application implements IApplication {
 
-    public logger: Logger = new Logger('Application');
-
+    private _logger: Logger = new Logger('Application');
+    private _state: EAppState = EAppState.initing;
     /**
      * Initialization of application
      * Will start application in case of success of initialization
@@ -95,13 +102,13 @@ class Application {
                         detail: `Error: ${error.message}`,
                     };
                     dialog.showMessageBox(dialogOpts).then((response: MessageBoxReturnValue) => {
-                        this.logger.debug(`Selected option: ${response}`);
+                        this._logger.debug(`Selected option: ${response}`);
                         switch (response.response) {
                             case 0:
                                 FS.rmdir(getHomeFolder()).then(() => {
                                     app.quit();
                                 }).catch((errorRmdir: Error) => {
-                                    this.logger.error(`Fail to drop settings due error: ${errorRmdir.message}`);
+                                    this._logger.error(`Fail to drop settings due error: ${errorRmdir.message}`);
                                     app.quit();
                                 });
                                 break;
@@ -117,32 +124,83 @@ class Application {
         });
     }
 
+    public close(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._state === EAppState.destroying) {
+                // Destroy method was already called.
+                return;
+            }
+            this._state = EAppState.destroying;
+            // Lock IPC
+            ServiceElectron.lock();
+            // Close window
+            ServiceElectron.closeWindow().then(() => {
+                this._logger.debug(`Browser window is closed`);
+            }).catch((closeWinErr: Error) => {
+                this._logger.warn(`Fail to close browser window before close due error: ${closeWinErr.message}`);
+            }).finally(() => {
+                // Close all active sessions
+                ServiceStreams.closeAll().then(() => {
+                    this._logger.debug(`All streams are closed`);
+                }).catch((closeErr: Error) => {
+                    this._logger.warn(`Fail to close all session before close due error: ${closeErr.message}`);
+                }).finally(() => {
+                    // Shutdown all plugins
+                    ServicePlugins.shutdown().then(() => {
+                        this._logger.debug(`All plugins are down`);
+                    }).catch((shutdownErr: Error) => {
+                        this._logger.warn(`Fail to shutdown all plugins before close due error: ${shutdownErr.message}`);
+                    }).finally(() => {
+                        // Update plugins
+                        ServicePlugins.update().then(() => {
+                            this._logger.debug(`Plugins update workflow is done`);
+                        }).catch((updateErr: Error) => {
+                            this._logger.warn(`Fail to shutdown all plugins before close due error: ${updateErr.message}`);
+                        }).finally(() => {
+                            // Shutdown application
+                            this._destroy(InitializeStages.length - 1, (error?: Error) => {
+                                if (error instanceof Error) {
+                                    return reject(error);
+                                }
+                                resolve();
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }
+
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectron.lock();
-            this._destroy(InitializeStages.length - 1, (error?: Error) => {
-                if (error instanceof Error) {
-                    return reject(error);
-                }
+            this.close().catch((error: Error) => {
+                this._logger.warn(`Fail correctly close app due error: ${error.message}`);
+            }).finally(() => {
+                this._quit();
                 resolve();
             });
         });
     }
 
+    public getLogger(): Logger {
+        return this._logger;
+    }
+
     private _init(stage: number = 0, callback: (error?: Error) => any): void {
         if (InitializeStages.length <= stage) {
-            this.logger.debug(`Application is initialized`);
+            this._logger.debug(`Application is initialized`);
+            this._state = EAppState.working;
             if (typeof callback === 'function') {
                 callback();
             }
             return;
         }
-        this.logger.debug(`Application initialization: stage #${stage + 1}: starting...`);
+        this._logger.debug(`Application initialization: stage #${stage + 1}: starting...`);
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
-            this.logger.debug(`Init: ${ref.getName()}`);
+            this._logger.debug(`Init: ${ref.getName()}`);
             return ref.init(this).catch((err: Error) => {
-                this.logger.error(`${ref.getName()}: ${err.message}`);
+                this._logger.error(`${ref.getName()}: ${err.message}`);
                 return Promise.reject(err);
             });
         });
@@ -150,51 +208,51 @@ class Application {
             return this._init(stage + 1, callback);
         }
         Promise.all(tasks).then(() => {
-            this.logger.debug(`Application initialization: stage #${stage + 1}: OK`);
+            this._logger.debug(`Application initialization: stage #${stage + 1}: OK`);
             this._init(stage + 1, callback);
         }).catch((error: Error) => {
-            this.logger.debug(`Fail to initialize application dure error: ${error.message}`);
+            this._logger.debug(`Fail to initialize application dure error: ${error.message}`);
             callback(error);
         });
     }
 
     private _destroy(stage: number = 0, callback: (error?: Error) => any): void {
         if (stage < 0) {
-            this.logger.debug(`Application is destroyed`);
+            this._logger.debug(`Application is destroyed`);
             if (typeof callback === 'function') {
                 callback();
             }
             return;
         }
-        this.logger.debug(`Application destroy: stage #${stage + 1}: starting...`);
+        this._logger.debug(`Application destroy: stage #${stage + 1}: starting...`);
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
-            this.logger.debug(`Destroy: ${ref.getName()}: started...`);
+            this._logger.debug(`Destroy: ${ref.getName()}: started...`);
             return ref.destroy().then(() => {
-                this.logger.debug(`Destroy: ${ref.getName()}: DONE`);
+                this._logger.debug(`Destroy: ${ref.getName()}: DONE`);
             }).catch((err: Error) => {
-                this.logger.error(`Destroy: ${ref.getName()}: FAILED due: ${err.message}`);
+                this._logger.error(`Destroy: ${ref.getName()}: FAILED due: ${err.message}`);
             });
         });
         if (tasks.length === 0) {
             return this._destroy(stage - 1, callback);
         }
         Promise.all(tasks).then(() => {
-            this.logger.debug(`Application destroyed: stage #${stage + 1}: OK`);
+            this._logger.debug(`Application destroyed: stage #${stage + 1}: OK`);
             this._destroy(stage - 1, callback);
         }).catch((error: Error) => {
-            this.logger.debug(`Fail to destroy application dure error: ${error.message}`);
+            this._logger.debug(`Fail to destroy application dure error: ${error.message}`);
             callback(error);
         });
     }
 
     private _bindProcessEvents() {
-        process.once('exit', this._close.bind(this));
-        process.once('SIGINT', this._close.bind(this));
-        process.once('SIGTERM', this._close.bind(this));
+        process.once('exit', this._onClose.bind(this));
+        process.once('SIGINT', this._onClose.bind(this));
+        process.once('SIGTERM', this._onClose.bind(this));
         app.once('will-quit', (event: Event) => {
             event.preventDefault();
-            this._close();
+            this._onClose();
         });
         process.on('uncaughtException', this._onUncaughtException.bind(this));
         process.on('unhandledRejection', this._onUnhandledRejection.bind(this));
@@ -202,30 +260,34 @@ class Application {
 
     private _onUnhandledRejection(reason: Error | any, promise: Promise<any>) {
         if (reason instanceof Error) {
-            this.logger.error(`[BAD] UnhandledRejection: ${reason.message}`);
+            this._logger.error(`[BAD] UnhandledRejection: ${reason.message}`);
         } else {
-            this.logger.error(`[BAD] UnhandledRejection happened. No reason as error was provided.`);
+            this._logger.error(`[BAD] UnhandledRejection happened. No reason as error was provided.`);
         }
     }
 
     private _onUncaughtException(error: Error) {
-        this.logger.error(`[BAD] UncaughtException: ${error.message}`);
+        this._logger.error(`[BAD] UncaughtException: ${error.message}`);
     }
 
-    private _close() {
+    private _onClose() {
         // Remove existing handlers
         ['exit', 'SIGINT', 'SIGTERM'].forEach((e: string) => {
             process.removeAllListeners(e);
         });
-        this.logger.debug(`Application would be closed.`);
+        this._logger.debug(`Application would be closed.`);
         process.stdin.resume();
         // Destroy services
-        this.destroy().then(() => {
-            this.logger.debug(`Application are ready to be closed.`);
-            this.logger.debug(`LogsService will be shutdown.`);
-            LogsService.shutdown().then(() => {
-                process.exit(0);
-            });
+        this.close().then(() => {
+            this._quit();
+        });
+    }
+
+    private _quit() {
+        this._logger.debug(`Application are ready to be closed.`);
+        this._logger.debug(`LogsService will be shutdown.`);
+        LogsService.shutdown().then(() => {
+            process.exit(0);
         });
     }
 
@@ -248,8 +310,9 @@ class Application {
 }
 
 (new Application()).init().then((application: Application) => {
-    application.logger.debug(`Application is ready.`);
+    application.getLogger().debug(`Application is ready.`);
     ServiceElectronState.setStateAsReady();
+    ServicePlugins.revision();
 }).catch((error: Error) => {
     // tslint:disable-next-line:no-console
     console.log(error);

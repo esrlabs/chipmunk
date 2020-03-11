@@ -31,10 +31,12 @@ class ServiceElectron implements IService {
         send: (instance: IPCMessages.TMessage) => Promise<void>,
         request: (instance: IPCMessages.TMessage, expected?: IPCMessages.TMessage) => Promise<any>,
         subscribe: (event: Function, handler: (event: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) => any) => Promise<Subscription>,
+        available: () => boolean,
     } = {
         send: this._send.bind(this),
         request: this._request.bind(this),
         subscribe: this._subscribe.bind(this),
+        available: this.available.bind(this),
     };
 
     private _logger: Logger = new Logger('ServiceElectron');
@@ -130,8 +132,25 @@ class ServiceElectron implements IService {
         return this._controllerBrowserWindow.getBrowserWindow();
     }
 
-    public lock() {
+    public lock(): void {
         this._ipcLock.lock();
+    }
+
+    public available(): boolean {
+        return this._ipc === undefined ? false : !this._ipcLock.isLocked();
+    }
+
+    public closeWindow(): Promise<void> {
+        return new Promise((resolve) => {
+            if (this._controllerBrowserWindow === undefined) {
+                return resolve();
+            }
+            this._controllerBrowserWindow.close().catch((error: Error) => {
+                this._logger.warn(`Fail to destroy ControllerBrowserWindow due error: ${error.message}`);
+            }).finally(() => {
+                resolve();
+            });
+        });
     }
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Electron IPC

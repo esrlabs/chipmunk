@@ -1,0 +1,33 @@
+<mat-expansion-panel
+    [disabled]="true"
+    [hideToggle]="true"
+    [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Search
+        </mat-panel-title>
+    </mat-expansion-panel-header>
+    <mat-form-field class="recent-requests outline regular" appearance="outline">
+        <input  type="text" 
+                placeholder="Type a Plugin Name"
+                aria-label="Search"
+                matInput
+                [formControl]="_ng_searchInputCtrl">
+      </mat-form-field>
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<mat-expansion-panel
+    [disabled]="true"
+    [hideToggle]="true"
+    [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Installed
+        </mat-panel-title>
+        <mat-panel-description>{{_ng_installed.length}} installed</mat-panel-description>
+    </mat-expansion-panel-header>
+    
+    <p class="t-small" *ngIf="_ng_installed.length === 0">No plugins installed</p>
+</mat-expansion-panel>

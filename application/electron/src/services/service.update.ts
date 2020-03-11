@@ -9,7 +9,7 @@ import ServicePackage from './service.package';
 import ServiceElectron, { Subscription, IPCMessages } from './service.electron';
 import ServiceProduction from './service.production';
 import GitHubClient, { IReleaseAsset, IReleaseData } from '../tools/env.github.client';
-import { IMainApp } from '../interfaces/interface.main';
+import { IApplication } from '../interfaces/interface.app';
 
 const CHooks = {
     alias: '<alias>',
@@ -35,18 +35,18 @@ class ServiceUpdate implements IService {
     private _target: string | undefined;
     private _tgzfile: string | undefined;
     private _subscription: { [key: string]: Subscription } = {};
-    private _main: IMainApp | undefined;
+    private _app: IApplication | undefined;
 
     /**
      * Initialization function
      * @returns Promise<void>
      */
-    public init(main?: IMainApp): Promise<void> {
+    public init(app: IApplication): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (main === undefined) {
+            if (app === undefined) {
                 return reject(new Error(`Instance of main process is required.`));
             }
-            this._main = main;
+            this._app = app;
             Promise.all([
                 ServiceElectron.IPC.subscribe(ServiceElectron.IPCMessages.RenderState, this._onRenderState.bind(this)).then((subscription: Subscription) => {
                     this._subscription.RenderState = subscription;
@@ -240,22 +240,14 @@ class ServiceUpdate implements IService {
     }
 
     private _update(updater: string) {
-        if (this._tgzfile === undefined || this._main === undefined) {
+        if (this._tgzfile === undefined || this._app === undefined) {
             return;
         }
         const exec: string = ServicePaths.getExec();
         this._logger.debug(`Prepare app to be closed`);
-        this._main.destroy().then(() => {
+        this._app?.close().then(() => {
             const exitCode: number = 131;
             this._logger.debug(`Application is ready to be closed`);
-            /*
-            this._logger.debug(`Starting updater:\n\t- ${updater} ${exec} ${this._tgzfile}`);
-            const child: ChildProcess = spawn(updater, [exec, this._tgzfile as string], {
-                detached: true,
-                stdio: 'ignore',
-            });
-            child.unref();
-            */
             this._logger.debug(`Force closing of app with code ${exitCode}`);
             ServiceElectron.quit(exitCode);
         }).catch((destroyErr: Error) => {
