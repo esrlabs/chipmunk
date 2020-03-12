@@ -58,11 +58,12 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 this._ipc.destroy();
                 this._logger.debug(`BrowserWindow IPC guid "${this._guid}" was destroyed.`);
             }
-            if (getPlatform() === EPlatforms.darwin) {
+            this._window.hide();
+            /*if (getPlatform() === EPlatforms.darwin) {
                 this._window.hide();
             } else {
                 this._window.close();
-            }
+            }*/
             resolve();
         });
     }
