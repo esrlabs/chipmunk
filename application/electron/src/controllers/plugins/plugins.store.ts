@@ -2,7 +2,6 @@
 
 import * as path from 'path';
 import * as FS from '../../tools/fs';
-import * as request from 'request';
 import * as fs from 'fs';
 
 import Logger from '../../tools/env.logger';
@@ -13,6 +12,7 @@ import ServicePackage, { IDependencies } from '../../services/service.package';
 import GitHubClient, { IReleaseAsset, IReleaseData, GitHubAsset } from '../../tools/env.github.client';
 
 import { getPlatform, EPlatforms } from '../../tools/env.os';
+import { download } from '../../tools/env.net';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 
 const CSettings: {
@@ -97,14 +97,40 @@ export default class ControllerPluginStore {
                 // Download plugin
                 const target: string = path.resolve(ServicePaths.getPlugins(), plugin.file);
                 FS.unlink(target).then(() => {
-                    const writer = fs.createWriteStream(target);
-                    request(plugin.url).pipe(writer).on('finish', () => {
-                        ServiceElectronService.logStateToRender(`Plugin "${name}" is downloaded`);
+                    download(plugin.url, target).then(() => {
+                        fs.stat(target, (statErr: NodeJS.ErrnoException | null, stat: fs.Stats) => {
+                            if (statErr) {
+                                return reject(new Error(this._logger.warn(`Fail download file "${target}" due error: ${statErr.message}`)));
+                            }
+                            ServiceElectronService.logStateToRender(`Plugin "${name}" is downloaded`);
+                            this._logger.env(`Plugin "${name}" is downloaded:\n\t- file: ${target}\n\t- size: ${stat.size} bytes`);
+                        });
                         resolve(target);
-                    }).on('error', (error) => {
-                        ServiceElectronService.logStateToRender(`Fail download plugin "${name}"`);
-                        reject(error);
+                    }).catch((downloadErr: Error) => {
+                        reject(new Error(this._logger.warn(`Fail to remove file "${target}" due error: ${downloadErr.message}`)));
                     });
+                    /*
+                    const writer = fs.createWriteStream(target);
+                    const request = https.get(plugin.url, (response) => {
+                        response.pipe(writer);
+                        writer.on('finish', () => {
+                            fs.stat(target, (statErr: NodeJS.ErrnoException | null, stat: fs.Stats) => {
+                                if (statErr) {
+                                    return reject(new Error(this._logger.warn(`Fail download file "${target}" due error: ${statErr.message}`)));
+                                }
+                                ServiceElectronService.logStateToRender(`Plugin "${name}" is downloaded`);
+                                this._logger.env(`Plugin "${name}" is downloaded:\n\t- file: ${target}\n\t- size: ${stat.size} bytes`);
+                            });
+                            resolve(target);
+                        });
+                    }).on('error', (error) => { // Handle errors
+                        FS.unlink(target).catch((unlinkErr: Error) => {
+                            reject(new Error(this._logger.warn(`Fail to remove file "${target}" due error: ${unlinkErr.message}`)));
+                        }).finally(() => {
+                            ServiceElectronService.logStateToRender(`Fail download plugin "${name}"`);
+                            reject(error);
+                        });
+                    });*/
                 }).catch((unlinkErr: Error) => {
                     reject(new Error(this._logger.warn(`Fail to remove file "${target}" due error: ${unlinkErr.message}`)));
                 });
