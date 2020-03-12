@@ -400,13 +400,20 @@ export default class ControllerPluginInstalled {
         this._logger.env(msg);
     }
 
-    private _unpack(tgzfile: string): Promise<string> {
+    private _unpack(tgzfile: string, removetgz: boolean = true): Promise<string> {
         return new Promise((resolve, reject) => {
             tar.x({
                 file: tgzfile,
                 cwd: ServicePaths.getPlugins(),
             }).then(() => {
-                resolve(ServicePaths.getPlugins());
+                if (!removetgz) {
+                    return resolve(ServicePaths.getPlugins());
+                }
+                FS.unlink(tgzfile).catch((removeErr: Error) => {
+                    this._logger.warn(`Fail to remove ${tgzfile} due error: ${removeErr.message}`);
+                }).finally(() => {
+                    resolve(ServicePaths.getPlugins());
+                });
             }).catch(reject);
         });
     }
