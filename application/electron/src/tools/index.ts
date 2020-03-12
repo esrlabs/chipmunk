@@ -13,5 +13,6 @@ import { THandler } from './subscription';
 
 export * from './env.os';
 export * from './env.github.client';
+export * from './env.net';
 
 export { Emitter, THandler, Subscription, Subject, objectValidate, Objects, Types, guid, sequence, sequences, getSequence, CancelablePromise };
