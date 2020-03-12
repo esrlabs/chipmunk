@@ -16,16 +16,16 @@ export function download(uri: string, filename: string): Promise<string> {
         };
         (transport as any)[protocol].get(uri, (response: http.IncomingMessage) => {
             if (response.statusCode !== undefined && response.statusCode >= 200 && response.statusCode < 300) {
-                var fileStream = fs.createWriteStream(filename);
-                fileStream.on('error', (saveErr: NodeJS.ErrnoException) => {
+                const writer = fs.createWriteStream(filename);
+                writer.on('error', (saveErr: NodeJS.ErrnoException) => {
                     fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
                         reject(saveErr);
                     });
                 });
-                fileStream.on('close', () => {
+                writer.on('close', () => {
                     resolve(filename);
                 });
-                response.pipe(fileStream);
+                response.pipe(writer);
             } else if (response.headers.location) {
                 download(response.headers.location, filename).then(resolve).catch(reject);
             } else {
