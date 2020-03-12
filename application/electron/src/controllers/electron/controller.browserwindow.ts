@@ -1,12 +1,11 @@
 import * as Url from 'url';
 
-import { BrowserWindow, BrowserWindowConstructorOptions } from 'electron';
-
-import Logger from '../../tools/env.logger';
+import { BrowserWindow, BrowserWindowConstructorOptions, Event } from 'electron';
+import { IWindowState } from '../../services/service.window.state.scheme';
+import { getPlatform, EPlatforms } from '../../tools/env.os';
 
 import EventEmitter from '../../tools/emitter';
-import { IWindowState } from '../../services/service.window.state.scheme';
-
+import Logger from '../../tools/env.logger';
 import ServicePackage from '../../services/service.package';
 import ServicePath from '../../services/service.paths';
 import ServiceSettings from '../../services/service.settings';
@@ -14,12 +13,6 @@ import ServiceWindowState from '../../services/service.window.state';
 import ControllerElectronIpc from './controller.electron.ipc';
 
 export default class ControllerBrowserWindow extends EventEmitter {
-
-    public static Events = {
-        closed: Symbol(),
-        created: Symbol(),
-        ready: Symbol(),
-    };
 
     private _window: BrowserWindow | undefined;
     private _guid: string;
@@ -61,7 +54,15 @@ export default class ControllerBrowserWindow extends EventEmitter {
             if (this._window === undefined) {
                 return resolve();
             }
-            this._window.close();
+            if (this._ipc !== undefined) {
+                this._ipc.destroy();
+                this._logger.debug(`BrowserWindow IPC guid "${this._guid}" was destroyed.`);
+            }
+            if (getPlatform() === EPlatforms.darwin) {
+                this._window.hide();
+            } else {
+                this._window.close();
+            }
             resolve();
         });
     }
@@ -114,7 +115,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
             }
             this._ipc = new ControllerElectronIpc(this._guid, this._window.webContents);
             this._bind();
-            this.emit(ControllerBrowserWindow.Events.created);
+            resolve();
         });
     }
 
@@ -144,11 +145,9 @@ export default class ControllerBrowserWindow extends EventEmitter {
 
     private _onReady() {
         this._logger.info('Event "ready-to-show" is emitted');
-        this.emit(ControllerBrowserWindow.Events.ready);
     }
 
-    private _onClosed() {
+    private _onClosed(event: Event) {
         this._logger.info('Event "close" is emitted');
-        this.emit(ControllerBrowserWindow.Events.closed);
     }
 }

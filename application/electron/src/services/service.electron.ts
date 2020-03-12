@@ -2,13 +2,14 @@
 // tslint:disable:ban-types
 
 import * as uuid from 'uuid';
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Event } from 'electron';
 import { Lock } from '../tools/env.lock';
 import { inspect } from 'util';
 import { Subscription } from '../tools/index';
 import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages } from '../controllers/electron/controller.electron.ipc';
+import { IApplication } from '../interfaces/interface.app';
 import ControllerElectronIpc from '../controllers/electron/controller.electron.ipc';
 import ServiceProduction from './service.production';
 import ControllerBrowserWindow from '../controllers/electron/controller.browserwindow';
@@ -52,11 +53,9 @@ class ServiceElectron implements IService {
         electron: false,
         service: false,
     };
+    private _app: IApplication | undefined;
 
     constructor() {
-        this._onReady = this._onReady.bind(this);
-        this._onClosed = this._onClosed.bind(this);
-        this._onActivate = this._onActivate.bind(this);
         this._configure();
         this._bind();
     }
@@ -65,8 +64,9 @@ class ServiceElectron implements IService {
      * Initialization function
      * @returns Promise<void>
      */
-    public init(): Promise<void> {
+    public init(application: IApplication): Promise<void> {
         return new Promise((resolve) => {
+            this._app = application;
             this._onReadyResolve = resolve;
             this._ready.service = true;
             this._init();
@@ -208,9 +208,8 @@ class ServiceElectron implements IService {
      * Internal
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _bind() {
-        app.on('ready', this._onReady);
-        app.on('activate', this._onActivate);
-        app.on('window-all-closed', this._onClosed);
+        app.once('ready', this._onReady.bind(this));
+        app.once('activate', this._onActivate.bind(this));
     }
 
     private _configure() {
@@ -264,18 +263,6 @@ class ServiceElectron implements IService {
     private _onActivate() {
         // Create client if it's needed
         this._createBrowserWindow();
-    }
-
-    private _onClosed() {
-        this._logger.debug(`Event "window-all-closed" is emited. Quit will be forced.`);
-        return app.quit();
-        /*
-        if (process.platform !== 'darwin') {
-            this._logger.debug(`Quit application`);
-            return app.quit();
-        }
-        this._logger.debug(`Darwin platform is detected. Application is deactivated.`);
-        */
     }
 
 }
