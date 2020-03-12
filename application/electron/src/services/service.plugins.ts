@@ -149,18 +149,12 @@ export class ServicePlugins implements IService {
                 this._logger.debug(`No need to update or install plugins`);
                 return resolve();
             }
-            this._storage.defaults().then(() => {
-                this._logger.debug(`Defaults plugins are checked`);
-            }).catch((defErr: Error) => {
-                this._logger.warn(`Fail to check default plugins due error: ${defErr.message}`);
+            this._storage.update().then(() => {
+                this._logger.debug(`Updating of plugins is done`);
+            }).catch((updErr: Error) => {
+                this._logger.warn(`Fail to update plugins due error: ${updErr.message}`);
             }).finally(() => {
-                this._storage.update().then(() => {
-                    this._logger.debug(`Updating of plugins is done`);
-                }).catch((updErr: Error) => {
-                    this._logger.warn(`Fail to update plugins due error: ${updErr.message}`);
-                }).finally(() => {
-                    resolve();
-                });
+                resolve();
             });
         });
     }
@@ -176,13 +170,19 @@ export class ServicePlugins implements IService {
                 // Read storage information
                 this._storage.load().then(() => {
                     this._logger.debug(`Plugins storage data is load`);
-                    this._storage.logState();
-                    // Start single process plugins
-                    this._storage.runAllSingleProcess().catch((singleProcessRunErr: Error) => {
-                        this._logger.warn(`Fail to start single process plugins due error: ${singleProcessRunErr.message}`);
+                    this._storage.defaults().then(() => {
+                        this._logger.debug(`Defaults plugins are checked`);
+                    }).catch((defErr: Error) => {
+                        this._logger.warn(`Fail to check default plugins due error: ${defErr.message}`);
+                    }).finally(() => {
+                        this._storage.logState();
+                        // Start single process plugins
+                        this._storage.runAllSingleProcess().catch((singleProcessRunErr: Error) => {
+                            this._logger.warn(`Fail to start single process plugins due error: ${singleProcessRunErr.message}`);
+                        });
+                        ServiceRenderState.do('ServicePlugins: SendRenderPluginsData', this._sendRenderPluginsData.bind(this));
+                        resolve();
                     });
-                    ServiceRenderState.do('ServicePlugins: SendRenderPluginsData', this._sendRenderPluginsData.bind(this));
-                    resolve();
                 }).catch((storageErr: Error) => {
                     this._logger.warn(`Fail load plugins storage data due error: ${storageErr.message}`);
                     resolve();
