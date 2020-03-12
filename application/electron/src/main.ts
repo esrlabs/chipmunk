@@ -126,9 +126,10 @@ class Application implements IApplication {
 
     public close(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._unbindProcessEvents();
             if (this._state === EAppState.destroying) {
                 // Destroy method was already called.
-                return;
+                return reject(new Error(`Close process is already running`));
             }
             this._state = EAppState.destroying;
             // Lock IPC
@@ -258,6 +259,13 @@ class Application implements IApplication {
         process.on('unhandledRejection', this._onUnhandledRejection.bind(this));
     }
 
+    private _unbindProcessEvents() {
+        ['exit', 'SIGINT', 'SIGTERM'].forEach((e: string) => {
+            process.removeAllListeners(e);
+        });
+        app.removeAllListeners('will-quit');
+    }
+
     private _onUnhandledRejection(reason: Error | any, promise: Promise<any>) {
         if (reason instanceof Error) {
             this._logger.error(`[BAD] UnhandledRejection: ${reason.message}`);
@@ -271,14 +279,13 @@ class Application implements IApplication {
     }
 
     private _onClose() {
-        // Remove existing handlers
-        ['exit', 'SIGINT', 'SIGTERM'].forEach((e: string) => {
-            process.removeAllListeners(e);
-        });
+        this._unbindProcessEvents();
         this._logger.debug(`Application would be closed.`);
         process.stdin.resume();
         // Destroy services
-        this.close().then(() => {
+        this.close().catch((error: Error) => {
+            this._logger.warn(`Fail correctly close app due error: ${error.message}`);
+        }).then(() => {
             this._quit();
         });
     }
