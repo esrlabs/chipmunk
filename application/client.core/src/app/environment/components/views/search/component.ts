@@ -219,6 +219,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._selectedTextOnInputClick = false;
     }
 
+    public _ng_onAutocompletePanelOpen() {
+        if (this._ng_autoComRef === undefined || this._ng_autoComRef === null) {
+            return;
+        }
+        this._ng_autoComRef.updatePosition();
+    }
+
     public _ng_onDropRequest(focus: boolean = false): Promise<string | void> {
         // Drop results
         this._ng_searchRequestId = Toolkit.guid();
