@@ -19,6 +19,7 @@
                 [matAutocomplete]="auto">
         <mat-autocomplete #auto="matAutocomplete" class="regular"
             (optionSelected)="_ng_onRecentSelected($event)"
+            (opened)="_ng_onAutocompletePanelOpen()"
             [classList]="'recent-requests'"
             [disableRipple]="true">
             <mat-option *ngFor="let recent of _ng_recent | async" [value]="recent" [attr.title]="recent" class="recent-requests small t-console t-small">
