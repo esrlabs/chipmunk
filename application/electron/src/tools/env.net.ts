@@ -14,27 +14,35 @@ export function download(uri: string, filename: string): Promise<string> {
             http: http,
             https: https,
         };
-        (transport as any)[protocol].get(uri, (response: http.IncomingMessage) => {
-            if (response.statusCode !== undefined && response.statusCode >= 200 && response.statusCode < 300) {
-                const writer = fs.createWriteStream(filename);
-                writer.on('error', (saveErr: NodeJS.ErrnoException) => {
-                    fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
-                        reject(saveErr);
+        (transport as any)[protocol]
+            .get(uri, (response: http.IncomingMessage) => {
+                if (
+                    response.statusCode !== undefined &&
+                    response.statusCode >= 200 &&
+                    response.statusCode < 300
+                ) {
+                    const writer = fs.createWriteStream(filename);
+                    writer.on('error', (saveErr: NodeJS.ErrnoException) => {
+                        fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
+                            reject(saveErr);
+                        });
                     });
+                    writer.on('close', () => {
+                        resolve(filename);
+                    });
+                    response.pipe(writer);
+                } else if (response.headers.location) {
+                    download(response.headers.location, filename)
+                        .then(resolve)
+                        .catch(reject);
+                } else {
+                    reject(new Error(response.statusCode + ' ' + response.statusMessage));
+                }
+            })
+            .on('error', (requestErr: NodeJS.ErrnoException) => {
+                fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
+                    reject(requestErr);
                 });
-                writer.on('close', () => {
-                    resolve(filename);
-                });
-                response.pipe(writer);
-            } else if (response.headers.location) {
-                download(response.headers.location, filename).then(resolve).catch(reject);
-            } else {
-                reject(new Error(response.statusCode + ' ' + response.statusMessage));
-            }
-        }).on('error', (requestErr: NodeJS.ErrnoException) => {
-            fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
-                reject(requestErr);
             });
-        });
     });
-};
+}
