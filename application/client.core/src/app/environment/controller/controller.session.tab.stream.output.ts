@@ -4,7 +4,7 @@ import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.st
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
 
-import OutputRedirectionsService from '../services/standalone/service.output.redirections';
+import OutputRedirectionsService, { ISelectionAccessor } from '../services/standalone/service.output.redirections';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -106,7 +106,7 @@ export class ControllerSessionTabStreamOutput {
         this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
-        this._subscriptions.onBookmarkRowSelected = this._bookmarks.getObservable().onSelected.subscribe(this._onRowSelected.bind(this, 'bookmark'));
+        this._subscriptions.onBookmarkRowSelected = this._bookmarks.getObservable().onSelected.subscribe(this._onRowSelected.bind(this, 'bookmark', {}));
     }
 
     public destroy() {
@@ -310,7 +310,7 @@ export class ControllerSessionTabStreamOutput {
         return this._rows.slice(from - offset, to - offset);
     }
 
-    private _onRowSelected(sender: string, selection: number[], clicked: number) {
+    private _onRowSelected(sender: string, selection: ISelectionAccessor, clicked: number) {
         if (sender === 'stream') {
             return;
         }
