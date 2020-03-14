@@ -17,7 +17,6 @@ use log4rs::{
     config::{Appender, Config, Root},
     encode::pattern::PatternEncoder,
 };
-use regex::Regex;
 use std::{
     path::Path,
     path::PathBuf,
@@ -81,19 +80,12 @@ fn electron_app_path() -> Result<String> {
     let launcher = std::env::current_exe()?;
     // /xyz/chipmunk.app/Contents/MacOS/app
     if cfg!(target_os = "macos") {
-        let re = Regex::new(r"chipmunk\.app.*").unwrap();
-        let launcher_str = launcher
-            .to_str()
-            .ok_or_else(|| anyhow!("could not convert path to string"))?;
-        let cropped = re.replace_all(launcher_str, "chipmunk.app").to_string();
-        // cropped = /xyz/chipmunk.app
-        trace!("cropped: {}", cropped);
-        if !Path::new(&cropped).exists() {
-            error!("Fail to find application by next path: {:?}", cropped);
-            trace!("Closing launcher");
-            std::process::exit(1);
-        }
-        Ok(cropped)
+        let cropped = launcher
+            .parent()
+            .and_then(Path::parent)
+            .and_then(Path::parent)
+            .ok_or_else(|| anyhow!("could not get parent of {:?}", launcher))?;
+        Ok(cropped.to_string_lossy().into())
     } else {
         let parrent_path = launcher
             .parent()

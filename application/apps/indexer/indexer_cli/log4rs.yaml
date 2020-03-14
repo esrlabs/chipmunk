@@ -1,6 +1,3 @@
-# If set, log4rs will scan the file at the specified rate for changes and
-# automatically reconfigure the logger. The input string is parsed by the
-# humantime crate.
 refresh_rate: 30 seconds
 
 # The "appenders" map contains the set of appenders, indexed by their names.
@@ -15,10 +12,10 @@ appenders:
 
   startup-appender:
     kind: file
-    path: "$HOME_DIR/.chipmunk/chipmunk.indexer.log"
+    path: "$HOME_DIR/.chipmunk/chipmunk.launcher.log"
     encoder:
       kind: pattern
-      pattern: "{d} - {l}:: {m}\n"
+      pattern: "{d} [{M}] {l}:: {m}\n"
 
 root:
   # level: off
@@ -32,9 +29,6 @@ root:
     - indexer-root
 
 loggers:
-
-  # Route log events sent to the "app::requests" logger to the "requests" appender,
-  # and *not* the normal appenders installed at the root
   launcher:
     level: trace
     appenders:

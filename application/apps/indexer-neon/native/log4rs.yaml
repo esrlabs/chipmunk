@@ -1,45 +1,36 @@
-# If set, log4rs will scan the file at the specified rate for changes and
-# automatically reconfigure the logger. The input string is parsed by the
-# humantime crate.
 refresh_rate: 30 seconds
 
 # The "appenders" map contains the set of appenders, indexed by their names.
 appenders:
 
   indexer-root:
-
-    # All appenders must specify a "kind", which will be used to look up the
-    # logic to construct the appender in the `Deserializers` passed to the
-    # deserialization function.
-    # kind: console
-
     kind: file
-    path: $LOG_FILE_PATH
-
-    # The remainder of the configuration is passed along to the appender's
-    # builder, and will vary based on the kind of appender.
-    # Appenders will commonly be associated with an encoder.
+    path: "$HOME_DIR/.chipmunk/chipmunk.indexer.log"
     encoder:
-
-      # Like appenders, encoders are identified by their "kind".
-      #
-      # Default: pattern
       kind: pattern
-
-      # The remainder of the configuration is passed along to the
-      # encoder's builder, and will vary based on the kind of encoder.
       pattern: "{d} - {l}:: {m}\n"
 
-# The root logger is configured by the "root" map.
-root:
-  # The maximum log level for the root logger.
-  #
-  # possible levels:
-  # off / error / warn / info / debug / trace
-  level: warn
+  startup-appender:
+    kind: file
+    path: "$HOME_DIR/.chipmunk/chipmunk.launcher.log"
+    encoder:
+      kind: pattern
+      pattern: "{d} [{M}] {l}:: {m}\n"
 
-  # The list of appenders attached to the root logger.
-  #
-  # Default: empty list
+root:
+  # level: off
+  # level: error
+  level: warn
+  # level: info
+  # level: debug
+  # level: trace
+
   appenders:
     - indexer-root
+
+loggers:
+  launcher:
+    level: trace
+    appenders:
+      - startup-appender
+    additive: false
