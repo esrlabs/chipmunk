@@ -775,7 +775,7 @@ task :prepare_to_deploy do
       end
     else
       release_name += '.zip'
-      legacy_release_name += '.tgz'
+      legacy_release_name = "#{release_name}.tgz"
       cd "#{target_platform_alias}-unpacked" do
         sh "tar -czf ../#{legacy_release_name} ./* --force-local"
         sh "powershell -command \"Compress-Archive * ..\\#{release_name}\""
