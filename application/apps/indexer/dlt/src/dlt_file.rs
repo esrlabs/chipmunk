@@ -154,14 +154,8 @@ impl FileMessageProducer {
     fn produce_next_message(&mut self) -> (usize, Result<ParsedMessage, DltParseError>) {
         #[allow(clippy::never_loop)]
         let consume_and_parse_result = loop {
-            trace!(
-                "[parsed:{}/problems:{}] produce_next_message: enter next loop",
-                self.stats.parsed,
-                self.stats.no_parse
-            );
             match self.reader.fill_buf() {
                 Ok(content) => {
-                    trace!("Ok(content (len {}))", content.len());
                     if content.is_empty() {
                         trace!("0, Ok(ParsedMessage::Invalid)");
                         return (0, Ok(ParsedMessage::Invalid));
@@ -181,7 +175,6 @@ impl FileMessageProducer {
                         Ok((rest, maybe_msg)) => {
                             let consumed = available - rest.len();
                             self.stats.parsed += 1;
-                            trace!("parse ok, consumed: {}", consumed);
                             break (consumed, Ok(maybe_msg));
                         }
                         Err(DltParseError::IncompleteParse { needed }) => {
@@ -312,7 +305,6 @@ pub fn index_dlt_content(
                 trace!("[line:{}] next was Ok(ParsedMessage::Item(msg))", line_nr);
                 let written_bytes_len =
                     utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
-                trace!("written_bytes_len: {}", written_bytes_len);
                 // tmp_writer.write_all(&msg.as_bytes())?;
                 line_nr += 1;
                 if let Some(chunk) =
@@ -321,11 +313,9 @@ pub fn index_dlt_content(
                     stopped = utils::check_if_stop_was_requested(&shutdown_receiver, "dlt indexer");
                     chunk_count += 1;
                     last_byte_index = chunk.b.1;
-                    trace!("1 send chunk {:?}", chunk);
                     update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
                     buf_writer.flush()?;
                 }
-                trace!("end foobar");
             }
             Ok(ParsedMessage::Invalid) => {
                 trace!("next was Ok(ParsedMessage::Invalid)");

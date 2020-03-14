@@ -203,7 +203,10 @@ fn type_info_for_signal_ref(
                 "A_ASCIISTRING" => ascii_str(),
                 "A_UNICODE2STRING" => utf8_str(),
                 s => {
-                    warn!("type_info_for_signal_ref not supported base type {}", s);
+                    warn!(
+                        "type_info_for_signal_ref: Signal found but base_type not known:{}",
+                        s
+                    );
                     None
                 }
             },
@@ -236,6 +239,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
                 }
                 Event::Eof => break,
                 Event::Signal { id, coding_ref } => {
+                    trace!("found signal {} (coding_ref={})", id, coding_ref);
                     signals_map.insert(id, coding_ref);
                 }
                 Event::Coding { id, base_data_type } => {
@@ -644,7 +648,9 @@ impl<B: BufRead> Reader<B> {
                         self.r#ref = None;
                         self.sequence_number = None;
                     }
-                    B_PDU_REF => self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_PDU_REF)?),
+                    B_PDU_REF => {
+                        self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_PDU_REF)?);
+                    }
                     B_MANUFACTURER_EXTENSION => {
                         self.application_id = None;
                         self.context_id = None;
@@ -683,7 +689,9 @@ impl<B: BufRead> Reader<B> {
                         self.base_data_type =
                             self.xml_reader.attr(e, B_BASE_DATA_TYPE, B_CODED_TYPE).ok();
                     }
-                    _ => {}
+                    _x => {
+                        // trace!("read_event (unknown: {:?})", _x);
+                    }
                 },
                 XmlEvent::Empty(ref e) => match e.local_name() {
                     B_SIGNAL_REF => {
@@ -693,7 +701,9 @@ impl<B: BufRead> Reader<B> {
                     B_CODING_REF => {
                         self.r#ref = Some(self.xml_reader.id_ref_attr(e, B_SIGNAL_REF)?);
                     }
-                    _ => {}
+                    x => {
+                        trace!("XmlEvent::Empty (unknown: {:?})", x);
+                    }
                 },
                 XmlEvent::End(ref e) => match e.local_name() {
                     B_PDU => {
@@ -709,7 +719,7 @@ impl<B: BufRead> Reader<B> {
                                     )
                                 },
                             )?,
-                        })
+                        });
                     }
                     B_SIGNAL_INSTANCE => {
                         return Ok(Event::SignalInstance {
@@ -735,7 +745,7 @@ impl<B: BufRead> Reader<B> {
                                     self.xml_reader.line_and_column(),
                                 )
                             })?,
-                        })
+                        });
                     }
                     B_FRAME => {
                         return Ok(Event::FrameEnd {
@@ -757,7 +767,7 @@ impl<B: BufRead> Reader<B> {
                                     )
                                 },
                             )?,
-                        })
+                        });
                     }
                     B_PDU_INSTANCE => {
                         return Ok(Event::PduInstance {
@@ -783,7 +793,7 @@ impl<B: BufRead> Reader<B> {
                                     self.xml_reader.line_and_column(),
                                 )
                             })?,
-                        })
+                        });
                     }
                     B_MANUFACTURER_EXTENSION => {
                         return Ok(Event::ManufacturerExtension {
@@ -791,9 +801,10 @@ impl<B: BufRead> Reader<B> {
                             context_id: mem::replace(&mut self.context_id, None),
                             message_type: mem::replace(&mut self.message_type, None),
                             message_info: mem::replace(&mut self.message_info, None),
-                        })
+                        });
                     }
                     B_SIGNAL => {
+                        trace!("B_SIGNAL XmlEvent::End");
                         return Ok(Event::Signal {
                             id: mem::replace(&mut self.id, None).ok_or_else(|| {
                                 missing_attr_err(B_ID, B_SIGNAL, self.xml_reader.line_and_column())
@@ -805,7 +816,7 @@ impl<B: BufRead> Reader<B> {
                                     self.xml_reader.line_and_column(),
                                 )
                             })?,
-                        })
+                        });
                     }
                     B_CODING => {
                         return Ok(Event::Coding {
@@ -820,12 +831,14 @@ impl<B: BufRead> Reader<B> {
                                         self.xml_reader.line_and_column(),
                                     )
                                 })?,
-                        })
+                        });
                     }
-                    _ => {}
+                    x => {}
                 },
                 XmlEvent::Eof => return Ok(Event::Eof),
-                _ => {}
+                _x => {
+                    // trace!("XmlEvent::* unknown ({:?})", _x);
+                }
             }
             self.buf.clear();
             self.buf2.clear();
