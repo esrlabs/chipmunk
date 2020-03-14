@@ -10,12 +10,14 @@ import { EnvironmentComplexModule               } from './complex/module';
 import { EnvironmentViewsModule                 } from './views/module';
 import { EnvironmentSidebarAppsModule           } from './sidebar/module';
 import { EnvironmentDialogsModule               } from './dialogs/module';
+import { EnvironmentTabsModule                  } from './tabs/module';
 
 const modules = [
     EnvironmentComplexModule,
     EnvironmentViewsModule,
     EnvironmentSidebarAppsModule,
     EnvironmentDialogsModule,
+    EnvironmentTabsModule,
     ComplexModule,
     PrimitiveModule,
     ContainersModule

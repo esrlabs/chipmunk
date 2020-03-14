@@ -483,7 +483,10 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         return index;
     }
 
-    private _onSessionChange(session: ControllerSessionTab) {
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
+            return;
+        }
         // Save previos
         this._saveState();
         // Drop state before

@@ -8,6 +8,7 @@ import TabsSessionsService from './service.sessions.tabs';
 import HotkeysService from './service.hotkeys';
 import LayoutStateService from './standalone/service.layout.state';
 import { DefaultViews, CDefaultTabsGuids, IDefaultTabsGuids } from '../states/state.default.toolbar.apps';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
 
 export { CDefaultTabsGuids, IDefaultTabsGuids };
 
@@ -179,8 +180,8 @@ export class ToolbarSessionsService implements IService {
         this._removeDefaultTabs();
     }
 
-    private _onSessionChange(session: string) {
-        if (TabsSessionsService.getActive() === undefined) {
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
             // No any active sessions
             return;
         }

@@ -45,7 +45,7 @@ export class AppsStatusBarSelectionStateComponent implements OnDestroy, AfterVie
         return this._ranges.join('; ');
     }
 
-    private _onSessionChange(controller: ControllerSessionTab) {
+    private _onSessionChange(controller: ControllerSessionTab | undefined) {
         if (controller === undefined) {
             return;
         }

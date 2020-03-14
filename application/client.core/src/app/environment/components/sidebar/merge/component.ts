@@ -302,7 +302,10 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         return `${SidebarAppMergeFilesComponent.StateKey}:${this._ng_session.getGuid()}`;
     }
 
-    private _onSessionChange(session: ControllerSessionTab) {
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
+            return;
+        }
         // Save previos
         this._saveState();
         // Drop state before

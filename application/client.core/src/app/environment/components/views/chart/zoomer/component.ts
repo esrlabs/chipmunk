@@ -6,6 +6,7 @@ import ViewsEventsService from '../../../../services/standalone/service.views.ev
 import { ServiceData, IResults, IChartsResults } from '../service.data';
 import { ServicePosition } from '../service.position';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 
 @Component({
     selector: 'app-views-chart-zoomer-canvas',
@@ -281,7 +282,10 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._resize(false);
     }
 
-    private _onSessionChange() {
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
+            return;
+        }
         if (this._filters !== undefined) {
             this._filters.destroy();
             this._filters = undefined;

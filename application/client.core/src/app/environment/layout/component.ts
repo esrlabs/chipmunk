@@ -1,12 +1,12 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { AreaState } from './state';
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subscription} from 'rxjs';
+
 import ViewsEventsService from '../services/standalone/service.views.events';
-import * as ThemeParams from '../theme/sizes';
 import LayoutStateService from '../services/standalone/service.layout.state';
 import HotkeysService from '../services/service.hotkeys';
-import SidebarSessionsService from '../services/service.sessions.sidebar';
-import { IComponentDesc } from 'chipmunk-client-material';
+
+import * as ThemeParams from '../theme/sizes';
 
 enum EResizeType {
     nothing = 'nothing',
@@ -71,6 +71,12 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         this._subscriptions.onToolbarMin = LayoutStateService.getObservable().onToolbarMin.subscribe(this._onToolbarServiceMin.bind(this));
         this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
         this._subscriptions.onSidebarToggle = HotkeysService.getObservable().sidebarToggle.subscribe(this._onSidebarToggle.bind(this));
+        LayoutStateService.setSideBarStateGetter(() => {
+            return this.funcBarState.minimized;
+        });
+        LayoutStateService.setToolBarStateGetter(() => {
+            return this.secAreaState.minimized;
+        });
     }
 
     ngOnDestroy() {
