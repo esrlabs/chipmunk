@@ -73,6 +73,7 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
         .args(args)
         .creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
         .spawn()
+        .map_err(|e| anyhow!("{}", e))
 }
 
 /// on macos it will result in /xyz/chipmunk.app
