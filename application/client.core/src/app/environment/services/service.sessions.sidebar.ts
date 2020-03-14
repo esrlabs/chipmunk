@@ -320,7 +320,7 @@ export class SidebarSessionsService implements IService {
         return tabs;
     }
 
-    private _onSessionChange(controller: ControllerSessionTab) {
+    private _onSessionChange(controller: ControllerSessionTab | undefined) {
         if (controller === undefined) {
             return;
         }

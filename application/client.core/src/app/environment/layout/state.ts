@@ -1,5 +1,6 @@
 import { Observable, Subject } from 'rxjs';
 import ViewsEventsService from '../services/standalone/service.views.events';
+import LayoutStateService from '../services/standalone/service.layout.state';
 
 export class AreaState {
 
@@ -21,6 +22,9 @@ export class AreaState {
     }
 
     public minimize() {
+        if (LayoutStateService.locked()) {
+            return;
+        }
         this.minimized = true;
         this._subjects.minimized.next(this.minimized);
         this._subjects.updated.next(this);
@@ -28,6 +32,9 @@ export class AreaState {
     }
 
     public maximize() {
+        if (LayoutStateService.locked()) {
+            return;
+        }
         this.minimized = false;
         this._subjects.minimized.next(this.minimized);
         this._subjects.updated.next(this);

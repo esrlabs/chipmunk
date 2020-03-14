@@ -8,6 +8,7 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 
 const CSettings = {
     rebuildDelay: 250,
@@ -435,7 +436,10 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         this._resize();
     }
 
-    private _onSessionChange() {
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
+            return;
+        }
         if (this._ng_filters !== undefined) {
             this._ng_filters.destroy();
             this._ng_filters = undefined;

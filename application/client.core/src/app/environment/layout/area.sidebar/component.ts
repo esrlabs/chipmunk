@@ -64,7 +64,10 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
         this._cdRef.detectChanges();
     }
 
-    private _onSessionChange(session: ControllerSessionTab) {
+    private _onSessionChange(session: ControllerSessionTab | undefined) {
+        if (session === undefined) {
+            return;
+        }
         // Drop old service
         this._ng_tabsService = undefined;
         this._cdRef.detectChanges();

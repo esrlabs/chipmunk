@@ -126,7 +126,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         this._switch();
     }
 
-    private _onSessionChange(controller: ControllerSessionTab) {
+    private _onSessionChange(controller: ControllerSessionTab | undefined) {
         if (controller === undefined) {
             return;
         }

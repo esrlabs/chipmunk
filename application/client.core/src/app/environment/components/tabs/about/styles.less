@@ -1,0 +1,35 @@
+@import '../../../theme/variables.less';
+
+
+app-views-plugins {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    & div.left,
+    & div.right {
+        position: absolute;
+        top: 0;
+        height: 100%;
+    }
+    & div.left {
+        left: 0;
+    }
+    & div.right{
+        right: 0;
+    }
+    & div.delimiter{
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        margin-left: -4px;
+        width: 8px;
+        cursor: ew-resize;
+    }
+
+}

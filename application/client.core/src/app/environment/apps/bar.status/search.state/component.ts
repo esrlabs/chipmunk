@@ -78,7 +78,7 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
         }
     }
 
-    private _onSessionChange(controller: ControllerSessionTab) {
+    private _onSessionChange(controller: ControllerSessionTab | undefined) {
         if (controller === undefined) {
             return;
         }
