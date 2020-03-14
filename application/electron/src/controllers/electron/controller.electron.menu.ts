@@ -1,10 +1,15 @@
 import { app, Menu } from 'electron';
 import { FileParsers } from '../files.parsers/index';
-import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
-import ServiceStorage, { IStorageScheme } from '../../services/service.storage';
+import { IStorageScheme } from '../../services/service.storage';
+
+import ServiceStorage from '../../services/service.storage';
 import ServiceFileOpener from '../../services/files/service.file.opener';
-import * as os from 'os';
+import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
+import HandlerItemAbout from './menu.functions/handler.item.about';
+
 import Logger from '../../tools/env.logger';
+
+import * as os from 'os';
 
 const MAX_NUMBER_OF_RECENT_FILES = 20;
 
@@ -100,7 +105,10 @@ export default class ControllerElectronMenu {
             template.unshift({
                 label: app.getName(),
                 submenu: [
-                    { role: 'about' },
+                    {
+                        label: 'About',
+                        click: HandlerItemAbout,
+                    },
                     { type: 'separator' },
                     { role: 'services' },
                     { type: 'separator' },
@@ -111,17 +119,6 @@ export default class ControllerElectronMenu {
                     { role: 'quit' },
                 ],
             });
-            // Edit menu
-            template[2].submenu.push(
-                { type: 'separator' },
-                {
-                    label: 'Speech',
-                    submenu: [
-                        { role: 'startspeaking' },
-                        { role: 'stopspeaking' },
-                    ],
-                },
-            );
             // Window menu
             template[4].submenu = [
                 { role: 'close' },
@@ -130,6 +127,12 @@ export default class ControllerElectronMenu {
                 { type: 'separator' },
                 { role: 'front' },
             ];
+        } else {
+            template[0].submenu.push({ type: 'separator' });
+            template[0].submenu.push({
+                label: 'About',
+                click: HandlerItemAbout,
+            });
         }
         this._menu = Menu.buildFromTemplate(template);
         Menu.setApplicationMenu(this._menu);

@@ -116,6 +116,9 @@ export class TabsSessionsService implements IService {
     public add(custom?: ICustomTab): Promise<ControllerSessionTab | ICustomTab> {
         return new Promise((resolve, reject) => {
             const guid: string = custom !== undefined ? custom.id : Toolkit.guid();
+            if (this._sessions.has(guid)) {
+                return reject(new Error(`Tab guid "${guid}" already exist`));
+            }
             const tabTitleContentService: TabTitleContentService = new TabTitleContentService(guid);
             if (custom === undefined) {
                 const session = new ControllerSessionTab({
