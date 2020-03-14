@@ -11,9 +11,25 @@ fast search and is supposed to be a useful tool for developers who have to analy
 
 The latest release can be downloaded [here](https://github.com/esrlabs/chipmunk/releases).
 
+Plugins are now hosted [in a separate github project](https://github.com/esrlabs/chipmunk-plugins-store).
+
 We support **MacOS**, **Linux** and **Windows**.
 (Releases on Windows and MacOS are signed.)
+
 No installation is necessary, just download, unpack and execute.
+
+### Mac OS
+
+Move `chipmunk.app` to your application folder.
+
+### Windows
+
+Unpack chipmunk to a folder of your choosing. Use the `chipmunk.exe` to start chipmunk.
+
+### Linux
+
+Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to start chipmunk.
+
 
 ## Documentation
 

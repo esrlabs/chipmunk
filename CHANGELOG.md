@@ -1,5 +1,37 @@
 # Changelog
 
+### [2.0.0] - 03/14/2020
+
+* Update to new repository structure: all plugins have been moved to
+  https://github.com/esrlabs/chipmunk-plugins-store
+* [#702](feat): zip artifact for windows build
+* [#702](refactor): refactor launcher and updater
+  add some logging to update
+* DLT: Add support for enums
+* [](fix) fix bookmarks navigation via hotkeys
+* [](fix) fix issue with position of autocomplete panel
+* [](feat) remove downloaded plugin after unpack
+* [](fix) load default plugins on start
+* [](fix) darwin close app issue fix
+* [](feat) update/install plugins on close
+* [](fix) fix close application issue
+* [](feat) support of icon in plugins view
+* [](feat) electron version up to 8.1.0
+* [](feat) support default plugins in offline
+* [](feat) update versions for plugins dependencies
+* [](feat) basic plugins view
+* [#643](feat) update bookmarks style
+* [](feat) update typescript version
+* [](feat) include default plugins into release package
+* [](feat) exclude single-process plugin on fail
+* [](refact) change alias "logviewer" to "chipmunk" (plugin's package.json)
+* [](refact) remove depricated folder from repo
+* [](feat) remove plugin's stuff from rakefile
+* [](feat) remove plugins sources from repo
+* [](feat) remove sandbox
+* [](feat) change plugins init-workflow
+* [#680](feat) get rid of predefined lists of plugins
+
 ### [1.40.1] - 03/10/2020
 * [](fix) fail build if upload failed
 

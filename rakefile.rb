@@ -29,7 +29,7 @@ RIPGREP_URL = "https://github.com/BurntSushi/ripgrep/releases/download/#{RIPGREP
 RIPGREP_LOCAL_TMP = File.join(Dir.home, 'tmp/ripgrep_download')
 
 DESTS_CLIENT_NPM_LIBS = [
-  "#{CLIENT_CORE_DIR}/node_modules",
+  "#{CLIENT_CORE_DIR}/node_modules"
 ].freeze
 
 directory ELECTRON_COMPILED_DIR
@@ -53,7 +53,7 @@ task :rust_clean do
   end
 end
 
-task clean: :rust_clean
+task clobber: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
                   '**/dist',
