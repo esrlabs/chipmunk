@@ -1,1 +1,23 @@
-<p>Hello World!</p>
+<div class="header">
+    <div class="icon" [ngStyle]="{'backgroundImage': 'url(\'assets/chipmunk.png\')'}"></div>
+    <div class="info">
+        <p class="t-small color-scheme-1">{{_ng_version}}</p>
+        <p class="t-medium color-scheme-0">Chipmunk is open source developed at 
+            <button mat-stroked-button color="primary" (click)="_ng_onGitHubOpen()">GitHub</button> 
+        </p>
+        <p class="t-medium color-scheme-0">Report issues via
+            <button mat-stroked-button color="primary" (click)="_ng_onGitHubIssuesOpen()">GitHub Issues</button> 
+        </p>        
+    </div>
+</div>
+<div class="summury">
+    <table>
+        <tr *ngFor="let dependency of _ng_dependencies">
+            <td>
+                <p class="t-medium color-scheme-0">{{dependency.name}}</p>
+                <p class="t-small color-scheme-3">{{dependency.description}}</p>
+            </td>
+            <td class="t-medium color-scheme-0">{{dependency.version}}</td>
+        </tr>
+    </table>
+</div>

@@ -1,35 +1,49 @@
 @import '../../../theme/variables.less';
 
 
-app-views-plugins {
+:host {
     position: absolute;
     display: block;
     padding: 0;
     margin: 0;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-    & div.left,
-    & div.right {
-        position: absolute;
-        top: 0;
-        height: 100%;
+    top: 1rem;
+    left:1rem;
+    bottom: 1rem;
+    right: 1rem;
+    overflow: auto;
+    & .header{
+        position: relative;
+        display: block;
+        min-height: 5rem;
+        margin-bottom: 1rem;
+        & .icon{
+            position: absolute;
+            left:0;
+            top: 0;
+            width: 5rem;
+            height: 5rem;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            overflow: hidden;
+        }
+        & .info{
+            position: relative;
+            margin: 0 0 0 6rem;
+        }
     }
-    & div.left {
-        left: 0;
+    & .summury{
+        position: relative;
+        & table {
+            position: relative;
+            border-collapse: collapse;
+            border: none;
+            & tr {
+                padding: 4px 0;
+                & td {
+                    padding: 0 8px;
+                }
+            }
+        }
     }
-    & div.right{
-        right: 0;
-    }
-    & div.delimiter{
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        margin-left: -4px;
-        width: 8px;
-        cursor: ew-resize;
-    }
-
 }

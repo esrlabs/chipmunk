@@ -8,21 +8,17 @@ import {
     ComplexModule,
     PrimitiveModule,
     ContainersModule                            } from 'chipmunk-client-material';
-import { AppDirectiviesModule                   } from '../../../directives/module';
 
 import {
     MatFormField,
-    MatAutocomplete,
     MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatOptionModule,
+    MatButtonModule,
     MatProgressBarModule } from '@angular/material';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [ TabAboutComponent, MatFormField, MatAutocomplete ];
+const entryComponents = [ TabAboutComponent, MatFormField ];
 const components = [ TabAboutComponent ];
 
 @NgModule({
@@ -36,10 +32,7 @@ const components = [ TabAboutComponent ];
         FormsModule,
         ReactiveFormsModule,
         MatFormFieldModule,
-        MatInputModule,
-        MatAutocompleteModule,
-        MatOptionModule,
-        AppDirectiviesModule,
+        MatButtonModule,
         MatProgressBarModule
     ],
     declarations    : [ ...components ],
