@@ -173,11 +173,12 @@ export class TabsSessionsService implements IService {
                     });
                 });
             } else {
+                let tabAPI: ITabAPI | undefined;
                 custom.component.inputs.getTabAPI = (): ITabAPI => {
                     return tabAPI;
                 };
                 this._sessions.set(guid, custom);
-                const tabAPI: ITabAPI | undefined = this._tabsService.add({
+                tabAPI = this._tabsService.add({
                     guid: guid,
                     name: custom.title,
                     active: true,
