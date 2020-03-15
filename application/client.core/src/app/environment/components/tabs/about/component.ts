@@ -26,9 +26,9 @@ interface IDependency {
 const CDependencies = {
     'electron': { name: 'Electron', description: 'Electron framework' },
     'electron-rebuild': { name: 'Electron Rebuild', description: 'Electron rebuild library' },
-    'chipmunk.client.toolkit': { name: 'ToolKit', description: 'Chipmunk toolkit library for render (frontend)' },
-    'chipmunk.plugin.ipc': { name: 'IPC', description: 'Chipmunk IPC library for process (backend)' },
-    'chipmunk-client-material': { name: 'Chipmunk Material', description: 'Chipmunk material library for render (frontend)' },
+    'chipmunk.client.toolkit': { name: 'ToolKit', description: 'Rendering library' },
+    'chipmunk.plugin.ipc': { name: 'IPC', description: 'Chipmunk IPC  communication library' },
+    'chipmunk-client-material': { name: 'Chipmunk Material', description: 'Chipmunk UI library' },
     'angular-core': { name: 'Angular', description: 'Angular Core' },
     'angular-material': { name: 'Angular Material', description: 'Angular Material Library' },
 };
