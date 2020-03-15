@@ -31,7 +31,7 @@ export class LayoutSessionSidebarControlsComponent implements AfterContentInit, 
 
     public _ng_onAdd(event: MouseEvent) {
         const tabs: ITab[] | undefined = SidebarSessionsService.getAvailableTabs();
-        if (tabs.length === 0) {
+        if (tabs === undefined || tabs.length === 0) {
             return;
         }
         const items: IMenuItem[] = tabs.map((tab: ITab) => {

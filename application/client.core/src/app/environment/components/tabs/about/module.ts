@@ -13,6 +13,8 @@ import {
     MatFormField,
     MatFormFieldModule,
     MatButtonModule,
+    MatIconModule,
+    MatExpansionModule,
     MatProgressBarModule } from '@angular/material';
 import {
     FormsModule,
@@ -33,6 +35,8 @@ const components = [ TabAboutComponent ];
         ReactiveFormsModule,
         MatFormFieldModule,
         MatButtonModule,
+        MatIconModule,
+        MatExpansionModule,
         MatProgressBarModule
     ],
     declarations    : [ ...components ],
