@@ -2,7 +2,8 @@ declare var Electron: any;
 
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPCMessages } from '../../../services/service.electron.ipc';
+import { copyTextToClipboard } from '../../../controller/helpers/clipboard';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -83,6 +84,17 @@ export class TabAboutComponent implements OnDestroy, AfterContentInit {
 
     public _ng_onGitHubIssuesOpen() {
         Electron.shell.openExternal(CUrls.issues);
+    }
+
+    public _ng_onCopyToClipboard() {
+        let text = `Version: ${this.data.version}\n`;
+        Object.keys(CDependencies).forEach((key: string) => {
+            if (this.data.dependencies[key] === undefined) {
+                return;
+            }
+            text += `${CDependencies[key].name}: ${this.data.dependencies[key]}\n`;
+        });
+        copyTextToClipboard(text);
     }
 
     private _forceUpdate() {
