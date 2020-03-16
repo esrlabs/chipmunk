@@ -74,7 +74,6 @@ class ServiceHotkeys implements IService {
                 }),
             ]).then(() => {
                 app.on('browser-window-blur', this._unbind.bind(this, false));
-                app.on('window-all-closed', this._unbind.bind(this, false));
                 app.on('browser-window-focus', this._bind.bind(this));
                 this._bind();
                 resolve();

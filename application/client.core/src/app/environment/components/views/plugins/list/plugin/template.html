@@ -7,5 +7,12 @@
     <p class="t-small color-scheme-2 version">{{plugin.name}}@{{plugin.version}}</p>
 </div>
 <div class="info">
-    <p [attr.class]="'t-small state' + (plugin.installed ? ' installed ' : '')"><span>{{plugin.installed ? 'installed' : 'not installed'}}</span></p>
+    <p *ngIf="plugin.default || plugin.installed" [attr.class]="'t-small state' + (plugin.installed ? ' installed ' : '')"><span>{{plugin.installed ? 'installed' : 'not installed'}}</span></p>
+    <p *ngIf="!plugin.default && !plugin.installed" class="t-small state">
+        <button *ngIf="_ng_state === 'pending'" mat-stroked-button color="primary" (click)="_ng_onInstallPlugin()">install</button>
+        <button *ngIf="_ng_state === 'download'" mat-stroked-button color="primary" (click)="_ng_onRestartPlugin()">
+            <mat-spinner [diameter]="32" mode="indeterminate">downloading</mat-spinner>
+        </button>
+        <button *ngIf="_ng_state === 'restart'" mat-stroked-button color="primary" (click)="_ng_onRestartPlugin()">restart</button>
+    </p>
 </div>

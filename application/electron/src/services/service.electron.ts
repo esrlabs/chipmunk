@@ -235,8 +235,8 @@ class ServiceElectron implements IService {
         // Finish initialization
         if (this._onReadyResolve !== null) {
             this._onReadyResolve();
+            this._onReadyResolve = null;
         }
-        this._onReadyResolve = null;
     }
 
     private _createBrowserWindow() {

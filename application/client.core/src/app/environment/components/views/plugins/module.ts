@@ -20,6 +20,8 @@ import {
     MatInputModule,
     MatAutocompleteModule,
     MatOptionModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
     MatProgressBarModule } from '@angular/material';
 import {
     FormsModule,
@@ -42,7 +44,9 @@ const components = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPlugins
         MatInputModule,
         MatAutocompleteModule,
         MatOptionModule,
+        MatButtonModule,
         AppDirectiviesModule,
+        MatProgressSpinnerModule,
         MatProgressBarModule
     ],
     declarations    : [ ...components ],
