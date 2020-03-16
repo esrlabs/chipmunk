@@ -34,6 +34,13 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                         description: 'Show this dialog',                category: EHotkeyCategory.Other },
 };
 
+const CLocalHotkeyMap = {
+    [IPCMessages.EHotkeyActionRef.focusSearchInput]:        '/',
+    [IPCMessages.EHotkeyActionRef.selectNextRow]:           'j',
+    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           'k',
+    [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    '?',
+};
+
 export interface IHotkeyEvent {
     unixtime: number;
     session: string;
@@ -46,6 +53,7 @@ export class HotkeysService implements IService {
     private _dialogGuid: string = Toolkit.guid();
     private _paused: boolean = false;
     private _input: boolean = false;
+    private _localKeys: string[] = [];
 
     private _subjects = {
         newTab: new Subject<IHotkeyEvent>(),
@@ -65,6 +73,10 @@ export class HotkeysService implements IService {
     };
 
     constructor() {
+        window.addEventListener('keyup', this._onKeyUp.bind(this));
+        Object.keys(CLocalHotkeyMap).forEach((key: string) => {
+            this._localKeys.push(CLocalHotkeyMap[key]);
+        });
     }
 
     public init(): Promise<void> {
@@ -211,6 +223,31 @@ export class HotkeysService implements IService {
                 this.inputOut();
             }
         }, 150);
+    }
+
+    private _getRefByKey(key: string): IPCMessages.EHotkeyActionRef | undefined {
+        let result: IPCMessages.EHotkeyActionRef | undefined;
+        Object.keys(CLocalHotkeyMap).forEach((ref: IPCMessages.EHotkeyActionRef) => {
+            if (key === CLocalHotkeyMap[ref]) {
+                result = ref;
+            }
+        });
+        return result;
+    }
+
+    private _onKeyUp(event: KeyboardEvent) {
+        if (this._localKeys.indexOf(event.key) === -1 || event.shiftKey || event.ctrlKey || event.metaKey) {
+            return;
+        }
+        const ref: IPCMessages.EHotkeyActionRef | undefined = this._getRefByKey(event.key);
+        if (ref === undefined) {
+            return;
+        }
+        ElectronIpcService.send(new IPCMessages.HotkeyLocalCall({
+            shortcut: event.key,
+            action: ref,
+            unixtime: Date.now(),
+        }));
     }
 
 }
