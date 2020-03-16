@@ -11,7 +11,44 @@
         <div class="icon" [ngStyle]="{'backgroundImage': 'url(\'assets/chipmunk.png\')'}"></div>
         <div class="info">
             <p class="t-medium color-scheme-0">@{{_ng_version}}</p>
-            <p class="t-normal color-scheme-1"><b>Chipmunk</b> is a fast logfile viewer that can deal with huge logfiles (>10 GB). It powers a super fast search and is supposed to be a useful tool for developers who have to analyze logfiles.</p>
+            <table>
+                <tr>
+                    <td>
+                        <div class="summury">
+                            <table>
+                                <tr *ngFor="let dependency of _ng_dependencies.slice(0,4)">
+                                    <td>
+                                        <p class="t-small color-scheme-1">{{dependency.name}}</p>
+                                        <p class="t-small color-scheme-3">{{dependency.description}}</p>
+                                    </td>
+                                    <td class="t-small color-scheme-1">{{dependency.version}}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="summury">
+                            <table>
+                                <tr *ngFor="let dependency of _ng_dependencies.slice(4,7)">
+                                    <td>
+                                        <p class="t-small color-scheme-1">{{dependency.name}}</p>
+                                        <p class="t-small color-scheme-3">{{dependency.description}}</p>
+                                    </td>
+                                    <td class="t-small color-scheme-1">{{dependency.version}}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="padding">
+                        <button mat-stroked-button color="primary" (click)="_ng_onCopyToClipboard()">
+                            <mat-icon>file_copy</mat-icon>
+                            Copy
+                        </button> 
+                    </td>
+                </tr>
+            </table>
         </div>
     </div>
 </mat-expansion-panel>
@@ -26,11 +63,12 @@
             Home
         </mat-panel-title>
     </mat-expansion-panel-header>
-    <p class="t-medium color-scheme-2">Chipmunk is open source developed at&nbsp;&nbsp;
+    <p class="t-medium color-scheme-2">
         <button mat-stroked-button color="primary" (click)="_ng_onGitHubOpen()">
             <mat-icon>star</mat-icon>
             Star
         </button>
+        &nbsp;&nbsp;Chipmunk is open source developed at github
     </p>
 </mat-expansion-panel>
 
@@ -44,47 +82,18 @@
             Issues, bugs and feature requests
         </mat-panel-title>
     </mat-expansion-panel-header>
-    <p class="t-medium color-scheme-2">Report issues&nbsp;&nbsp;
+    <p class="t-medium color-scheme-2">
         <button mat-stroked-button color="primary" (click)="_ng_onGitHubIssuesOpen()">
-            <mat-icon>info</mat-icon>
+            <mat-icon>error_outline</mat-icon>
             Issues
         </button> 
+        &nbsp;&nbsp;Report issues
     </p>
 
 </mat-expansion-panel>
 
 <span class="slitter"></span>
 
-<mat-expansion-panel
-    [expanded]="true"
-    [expanded]="false">
-    <mat-expansion-panel-header>
-        <mat-panel-title>
-            Versions
-        </mat-panel-title>
-    </mat-expansion-panel-header>
-    <div class="summury">
-        <table>
-            <tr *ngFor="let dependency of _ng_dependencies">
-                <td>
-                    <p class="t-medium color-scheme-0">{{dependency.name}}</p>
-                    <p class="t-small color-scheme-3">{{dependency.description}}</p>
-                </td>
-                <td class="t-medium color-scheme-0">{{dependency.version}}</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="right">
-                    <button mat-stroked-button color="primary" (click)="_ng_onCopyToClipboard()">
-                        <mat-icon>file_copy</mat-icon>
-                        Copy
-                    </button> 
-                </td>
-            </tr>
-        </table>
-    </div>
-</mat-expansion-panel>
-
-<span class="slitter"></span>
 
 
 
