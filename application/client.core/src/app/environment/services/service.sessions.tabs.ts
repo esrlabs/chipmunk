@@ -254,6 +254,20 @@ export class TabsSessionsService implements IService {
         return !(controller instanceof ControllerSessionTab) ? undefined : controller;
     }
 
+    public getEmpty(): ControllerSessionTab | undefined {
+        let target: ControllerSessionTab | ICustomTab | undefined = this._sessions.get(this._currentSessionGuid);
+        if (target instanceof ControllerSessionTab) {
+            return target;
+        }
+        target = undefined;
+        this._sessions.forEach((controller: ControllerSessionTab | ICustomTab) => {
+            if (controller instanceof ControllerSessionTab && controller.getSessionStream().getOutputStream().getRowsCount() === 0) {
+                target = controller;
+            }
+        });
+        return target as ControllerSessionTab;
+    }
+
     public getSessionEventsHub(): Toolkit.ControllerSessionsEvents {
         return this._sessionsEventsHub;
     }
