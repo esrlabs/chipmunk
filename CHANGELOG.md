@@ -1,5 +1,14 @@
 # Changelog
 
+### [2.0.1] - 03/16/2020
+
+* [](fix) build correct windows update package
+* [](refactor) add support for dlt statistics for live stream
+* [](fix) prevent direct access to active session
+* [](fix) fix opening file issue with active custom tab
+* [](feat) add "about" tab
+* [](feat) support of custom tabs (not bound to session)
+
 ### [2.0.0] - 03/14/2020
 
 * Update to new repository structure: all plugins have been moved to
