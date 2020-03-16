@@ -86,12 +86,13 @@ export class FileOpenerService implements IService, IFileOpenerService {
         if (files.length === 0) {
             return;
         }
-        this._setSessionForFile().then(() => {
+        this._setSessionForFile().then((session: ControllerSessionTab) => {
+            TabsSessionsService.setActive(session.getGuid());
             if (files.length === 1) {
                 // Single file
                 ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                     file: files[0].path,
-                    session: TabsSessionsService.getActive().getGuid(),
+                    session: session.getGuid(),
                 }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
                     if (response.error !== undefined) {
                         this._logger.error(`Fail open file "${files[0].path}" due error: ${response.error}`);
@@ -130,9 +131,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
     public openFileByName(file: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this._setSessionForFile().then((session: ControllerSessionTab) => {
+                TabsSessionsService.setActive(session.getGuid());
                 ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                     file: file,
-                    session: TabsSessionsService.getActive().getGuid(),
+                    session: session.getGuid(),
                 }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileOpenResponse) => {
                     if (response.error !== undefined) {
                         this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
@@ -233,7 +235,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
     private _setSessionForFile(): Promise<ControllerSessionTab> {
         return new Promise((resolve, reject) => {
             // Check active session before
-            const active: ControllerSessionTab = TabsSessionsService.getActive();
+            const active: ControllerSessionTab = TabsSessionsService.getEmpty();
             if (active !== undefined && active.getSessionStream().getOutputStream().getRowsCount() === 0) {
                 // Active session is empty, we can use it
                 return resolve(active);
