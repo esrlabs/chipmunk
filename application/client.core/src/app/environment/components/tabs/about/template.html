@@ -19,6 +19,7 @@
 <span class="slitter"></span>
 
 <mat-expansion-panel
+    [expanded]="true"
     [expanded]="false">
     <mat-expansion-panel-header>
         <mat-panel-title>
@@ -36,6 +37,7 @@
 <span class="slitter"></span>
 
 <mat-expansion-panel
+    [expanded]="true"
     [expanded]="false">
     <mat-expansion-panel-header>
         <mat-panel-title>
@@ -44,7 +46,7 @@
     </mat-expansion-panel-header>
     <p class="t-medium color-scheme-2">Report issues&nbsp;&nbsp;
         <button mat-stroked-button color="primary" (click)="_ng_onGitHubIssuesOpen()">
-            <mat-icon>bug_report</mat-icon>
+            <mat-icon>info</mat-icon>
             Issues
         </button> 
     </p>
@@ -54,10 +56,11 @@
 <span class="slitter"></span>
 
 <mat-expansion-panel
+    [expanded]="true"
     [expanded]="false">
     <mat-expansion-panel-header>
         <mat-panel-title>
-            Dependencies
+            Versions
         </mat-panel-title>
     </mat-expansion-panel-header>
     <div class="summury">
@@ -68,6 +71,14 @@
                     <p class="t-small color-scheme-3">{{dependency.description}}</p>
                 </td>
                 <td class="t-medium color-scheme-0">{{dependency.version}}</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="right">
+                    <button mat-stroked-button color="primary" (click)="_ng_onCopyToClipboard()">
+                        <mat-icon>file_copy</mat-icon>
+                        Copy
+                    </button> 
+                </td>
             </tr>
         </table>
     </div>

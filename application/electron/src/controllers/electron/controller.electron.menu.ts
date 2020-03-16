@@ -106,7 +106,7 @@ export default class ControllerElectronMenu {
                 label: app.getName(),
                 submenu: [
                     {
-                        label: 'About',
+                        label: 'About Chipmunk',
                         click: HandlerItemAbout,
                     },
                     { type: 'separator' },
@@ -130,7 +130,7 @@ export default class ControllerElectronMenu {
         } else {
             template[0].submenu.push({ type: 'separator' });
             template[0].submenu.push({
-                label: 'About',
+                label: 'About Chipmunk',
                 click: HandlerItemAbout,
             });
         }
