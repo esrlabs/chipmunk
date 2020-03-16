@@ -8,6 +8,7 @@ import { Subject } from 'rxjs';
 import { DialogsFileOptionsDltStatsComponent, IStatRow, IForceSortData } from './stats/component';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -263,7 +264,11 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     private _initAsNewOpen() {
-        const session: string = TabsSessionsService.getActive().getGuid();
+        const controller: ControllerSessionTab = TabsSessionsService.getEmpty();
+        if (!(controller instanceof ControllerSessionTab)) {
+            return;
+        }
+        const session: string = controller.getGuid();
         this._requestId = Toolkit.guid();
         ElectronIpcService.request(new IPCMessages.DLTStatsRequest({
             file: this.fullFileName,
