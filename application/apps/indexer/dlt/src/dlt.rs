@@ -608,7 +608,7 @@ impl TryFrom<u32> for TypeInfo {
             0x01 => (StringCoding::UTF8),
             v => {
                 trace!("Unknown coding in TypeInfo, assume UTF8");
-                (StringCoding::Reserved(v as u8))
+                StringCoding::Reserved(v as u8)
             }
         };
         Ok(TypeInfo {

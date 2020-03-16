@@ -983,10 +983,16 @@ pub(crate) fn skip_storage_header(input: &[u8]) -> Result<(&[u8], usize), DltPar
 pub fn dlt_statistic_row_info<'a, T>(
     input: &'a [u8],
     index: Option<usize>,
+    with_storage_header: bool,
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> Result<(&'a [u8], StatisticRowInfo), DltParseError> {
     let update_channel_ref = update_channel;
-    let (after_storage_header, _) = skip_till_after_next_storage_header(input)?;
+    // let (after_storage_header, _) = skip_till_after_next_storage_header(input)?;
+    let (after_storage_header, _) = if with_storage_header {
+        skip_till_after_next_storage_header(input)?
+    } else {
+        (input, 0)
+    };
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
 
     let payload_length = match validated_payload_length(&header, index, update_channel_ref) {
@@ -1212,7 +1218,7 @@ pub fn get_dlt_file_info(
     let mut processed_bytes = 0usize;
     let mut contained_non_verbose = false;
     loop {
-        match read_one_dlt_message_info(&mut reader, Some(index), Some(update_channel)) {
+        match read_one_dlt_message_info(&mut reader, Some(index), true, Some(update_channel)) {
             Ok(Some((
                 consumed,
                 StatisticRowInfo {
@@ -1334,6 +1340,7 @@ pub struct StatisticRowInfo {
 fn read_one_dlt_message_info<T: Read>(
     reader: &mut ReduxReader<T, MinBuffered>,
     index: Option<usize>,
+    with_storage_header: bool,
     update_channel: Option<&cc::Sender<StatisticsResults>>,
 ) -> Result<Option<(usize, StatisticRowInfo)>, DltParseError> {
     match reader.fill_buf() {
@@ -1342,7 +1349,7 @@ fn read_one_dlt_message_info<T: Read>(
                 return Ok(None);
             }
             let available = content.len();
-            let r = dlt_statistic_row_info(content, index, update_channel)?;
+            let r = dlt_statistic_row_info(content, index, with_storage_header, update_channel)?;
             let consumed = available - r.0.len();
             Ok(Some((consumed, r.1)))
         }

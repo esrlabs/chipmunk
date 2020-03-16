@@ -832,7 +832,7 @@ impl<B: BufRead> Reader<B> {
                                 })?,
                         });
                     }
-                    x => {}
+                    _x => {}
                 },
                 XmlEvent::Eof => return Ok(Event::Eof),
                 _x => {

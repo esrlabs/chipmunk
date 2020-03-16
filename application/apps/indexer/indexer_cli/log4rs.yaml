@@ -1,3 +1,4 @@
+# chipmunk_logconf_version: 1.0
 refresh_rate: 30 seconds
 
 # The "appenders" map contains the set of appenders, indexed by their names.
