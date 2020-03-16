@@ -10,10 +10,10 @@ const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.newTab]:                  { darwin: ['Cmd+T'],            other: ['Ctrl+T'] },
     [IPCMessages.EHotkeyActionRef.closeTab]:                { darwin: ['Cmd+W'],            other: ['Ctrl+w'] },
     [IPCMessages.EHotkeyActionRef.openLocalFile]:           { darwin: ['Cmd+O'],            other: ['Ctrl+O'] },
-    [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { darwin: ['Cmd+F', '/'],       other: ['Ctrl+F', '/'] },
+    [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { darwin: ['Cmd+F'],            other: ['Ctrl+F'] },
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { darwin: ['Shift+Cmd+F'],      other: ['Shift+Ctrl+F'] },
-    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { darwin: ['Cmd+[', 'j'],       other: ['Ctrl+[', 'j'] },
-    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { darwin: ['Cmd+]', 'k'],       other: ['Ctrl+]', 'k'] },
+    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { darwin: ['Cmd+['],            other: ['Ctrl+['] },
+    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { darwin: ['Cmd+]'],            other: ['Ctrl+]'] },
     [IPCMessages.EHotkeyActionRef.focusMainView]:           { darwin: ['Cmd+1'],            other: ['Ctrl+1'] },
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { darwin: ['Cmd+2'],            other: ['Ctrl+2'] },
     [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { darwin: ['Cmd+B'],            other: ['Ctrl+B'] },
@@ -69,6 +69,9 @@ class ServiceHotkeys implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.HotkeyInputIn, this._onHotkeyPause.bind(this, true)).then((subscription: Subscription) => {
                     this._subscriptions.onHotkeyInputIn = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.HotkeyLocalCall, this._onHotkeyLocalCall.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.onHotkeyLocalCall = subscription;
+                }),
             ]).then(() => {
                 app.on('browser-window-blur', this._unbind.bind(this, false));
                 app.on('browser-window-focus', this._bind.bind(this));
@@ -117,6 +120,9 @@ class ServiceHotkeys implements IService {
             this._locked = true;
         } else {
             CInputRelatedHotkeys.forEach((shortcut: string) => {
+                if (!globalShortcut.isRegistered(shortcut)) {
+                    return;
+                }
                 globalShortcut.unregister(shortcut);
             });
         }
@@ -131,6 +137,14 @@ class ServiceHotkeys implements IService {
 
     private _onHotkeyPause(input: boolean = false) {
         this._unbind(input);
+    }
+
+    private _onHotkeyLocalCall(message: IPCMessages.TMessage) {
+        const msg: IPCMessages.HotkeyLocalCall = message as IPCMessages.HotkeyLocalCall;
+        if (this._locked) {
+            return;
+        }
+        this._send(msg.action, msg.shortcut);
     }
 
     private _send(action: string, shortcut: string) {

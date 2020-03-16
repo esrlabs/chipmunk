@@ -238,6 +238,9 @@ export { HotkeyInputIn };
 import { HotkeyInputOut } from './hotkey.input.out';
 export { HotkeyInputOut };
 
+import { HotkeyLocalCall, IHotkeyLocalCall } from './hotkey.local';
+export { HotkeyLocalCall, IHotkeyLocalCall };
+
 import { DLTDeamonSaveRequest, IDLTDeamonSaveRequest } from './dlt.deamon.save.request';
 export { DLTDeamonSaveRequest, IDLTDeamonSaveRequest };
 
@@ -404,6 +407,7 @@ export type TMessage =  HostState |
                         HotkeyInputIn |
                         HotkeyInputOut |
                         HotkeyResume |
+                        HotkeyLocalCall |
                         DLTDeamonSaveRequest |
                         DLTDeamonSaveResponse |
                         DLTDeamonRecentDropRequest |
@@ -529,6 +533,7 @@ export const Map = {
     [HotkeyResume.signature                     ]: HotkeyResume,
     [HotkeyInputIn.signature                    ]: HotkeyInputIn,
     [HotkeyInputOut.signature                   ]: HotkeyInputOut,
+    [HotkeyLocalCall.signature                  ]: HotkeyLocalCall,
 
     [DLTDeamonSaveRequest.signature             ]: DLTDeamonSaveRequest,
     [DLTDeamonSaveResponse.signature            ]: DLTDeamonSaveResponse,
