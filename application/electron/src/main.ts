@@ -147,24 +147,17 @@ class Application implements IApplication {
                     this._logger.warn(`Fail to close all session before close due error: ${closeErr.message}`);
                 }).finally(() => {
                     // Shutdown all plugins
-                    ServicePlugins.shutdown().then(() => {
-                        this._logger.debug(`All plugins are down`);
+                    ServicePlugins.accomplish().then(() => {
+                        this._logger.debug(`All plugins actions are accomplish`);
                     }).catch((shutdownErr: Error) => {
-                        this._logger.warn(`Fail to shutdown all plugins before close due error: ${shutdownErr.message}`);
+                        this._logger.warn(`Fail to accomplish plugins actions due error: ${shutdownErr.message}`);
                     }).finally(() => {
-                        // Update plugins
-                        ServicePlugins.update().then(() => {
-                            this._logger.debug(`Plugins update workflow is done`);
-                        }).catch((updateErr: Error) => {
-                            this._logger.warn(`Fail to shutdown all plugins before close due error: ${updateErr.message}`);
-                        }).finally(() => {
-                            // Shutdown application
-                            this._destroy(InitializeStages.length - 1, (error?: Error) => {
-                                if (error instanceof Error) {
-                                    return reject(error);
-                                }
-                                resolve();
-                            });
+                        // Shutdown application
+                        this._destroy(InitializeStages.length - 1, (error?: Error) => {
+                            if (error instanceof Error) {
+                                return reject(error);
+                            }
+                            resolve();
                         });
                     });
                 });

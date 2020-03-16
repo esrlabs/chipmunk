@@ -228,6 +228,17 @@ export default class ControllerPluginInstalled {
         return true;
     }
 
+    public predownload() {
+        if (!this.isUpdateRequired()) {
+            return;
+        }
+        this._store.delivery(this._name).then((filename: string) => {
+            this._logger.env(`Updated version of plugins is deliveried to "${filename}"`);
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to delivery plugin due error: ${error.message}`);
+        });
+    }
+
     public update(): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._info === undefined) {
@@ -291,16 +302,12 @@ export default class ControllerPluginInstalled {
                 this._unpack(filename).then(() => {
                     ServiceElectronService.logStateToRender(`Plugin "${path.basename(this._path)}" has been unpacked`);
                     this._logger.debug(`Plugin is unpacked`);
-                    FS.unlink(filename).catch((unlinkErr: Error) => {
-                        this._logger.warn(`Fail to remove file "${filename}" due error: ${unlinkErr.message}`);
-                    }).finally(() => {
-                        // Read plugin info once again
-                        this.read().then(() => {
-                            this._logger.debug(`Plugin is successfully installed`);
-                            resolve();
-                        }).catch((readErr: Error) => {
-                            reject(new Error(this._logger.warn(`Fail to install plugin due error: ${readErr.message}`)));
-                        });
+                    // Read plugin info once again
+                    this.read().then(() => {
+                        this._logger.debug(`Plugin is successfully installed`);
+                        resolve();
+                    }).catch((readErr: Error) => {
+                        reject(new Error(this._logger.warn(`Fail to install plugin due error: ${readErr.message}`)));
                     });
                 }).catch((unpackErr: Error) => {
                     reject(new Error(this._logger.warn(`Fail to unpack plugin due error: ${unpackErr.message}`)));

@@ -1,3 +1,9 @@
+import { AppRestartRequest } from './app.restart.request';
+export { AppRestartRequest };
+
+import { AppRestartResponse, IAppRestartResponse } from './app.restart.response';
+export { AppRestartResponse, IAppRestartResponse };
+
 import { HostState, EHostState, IHostState } from './host.state';
 export { HostState, EHostState, IHostState };
 
@@ -36,6 +42,18 @@ export { IPluginError, PluginError };
 
 import { PluginsUpdate } from './plugins.update';
 export { PluginsUpdate };
+
+import { IPluginsInstallRequest, PluginsInstallRequest } from './plugins.install.request';
+export { IPluginsInstallRequest, PluginsInstallRequest };
+
+import { IPluginsInstallResponse, PluginsInstallResponse } from './plugins.install.response';
+export { IPluginsInstallResponse, PluginsInstallResponse };
+
+import { IPluginsUninstallRequest, PluginsUninstallRequest } from './plugins.uninstall.request';
+export { IPluginsUninstallRequest, PluginsUninstallRequest };
+
+import { IPluginsUninstallResponse, PluginsUninstallResponse } from './plugins.uninstall.response';
+export { IPluginsUninstallResponse, PluginsUninstallResponse };
 
 import { IStreamAddRequest, StreamAddRequest } from './stream.add.request';
 export { IStreamAddRequest, StreamAddRequest };
@@ -329,7 +347,9 @@ import { IApplicationVersions, ITabCustomAbout, TabCustomAbout } from './tab.cus
 export { IApplicationVersions, ITabCustomAbout, TabCustomAbout };
 
 // Common type for expected message implementation
-export type TMessage =  HostState |
+export type TMessage =  AppRestartRequest |
+                        AppRestartResponse |
+                        HostState |
                         HostStateHistory |
                         HostTask |
                         HostTaskHistory |
@@ -342,6 +362,10 @@ export type TMessage =  HostState |
                         PluginsInstalledResponse |
                         PluginsStoreAvailableRequest |
                         PluginsStoreAvailableResponse |
+                        PluginsInstallRequest |
+                        PluginsInstallResponse |
+                        PluginsUninstallRequest |
+                        PluginsUninstallResponse |
                         StreamSetActive |
                         StreamAddRequest |
                         StreamAddResponse |
@@ -443,6 +467,9 @@ export type TMessage =  HostState |
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
 export const Map = {
 
+    [AppRestartRequest.signature                ]: AppRestartRequest,
+    [AppRestartResponse.signature               ]: AppRestartResponse,
+
     [HostState.signature                        ]: HostState,
     [HostStateHistory.signature                 ]: HostStateHistory,
     [HostTask.signature                         ]: HostTask,
@@ -458,6 +485,10 @@ export const Map = {
     [PluginsInstalledResponse.signature         ]: PluginsInstalledResponse,
     [PluginsStoreAvailableRequest.signature     ]: PluginsStoreAvailableRequest,
     [PluginsStoreAvailableResponse.signature    ]: PluginsStoreAvailableResponse,
+    [PluginsInstallRequest.signature            ]: PluginsInstallRequest,
+    [PluginsInstallResponse.signature           ]: PluginsInstallResponse,
+    [PluginsUninstallRequest.signature          ]: PluginsUninstallRequest,
+    [PluginsUninstallResponse.signature         ]: PluginsUninstallResponse,
 
     [StreamSetActive.signature                  ]: StreamSetActive,
     [StreamAddRequest.signature                 ]: StreamAddRequest,

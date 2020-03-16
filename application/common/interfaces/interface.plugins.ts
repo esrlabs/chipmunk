@@ -6,5 +6,6 @@ export interface IPlugin {
     display_name: string;           
     description: string;            
     readme: string;
-    icon: string;           
+    icon: string;
+    default: boolean;        
 }

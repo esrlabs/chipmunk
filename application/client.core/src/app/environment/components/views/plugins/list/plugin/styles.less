@@ -7,7 +7,7 @@
     display: block;
     cursor: default;
     &:hover{
-        background: @scheme-color-4;
+        background: @scheme-color-5;
     }
     & div.icon{
         position: absolute;
@@ -51,6 +51,14 @@
         width: 100px;
         top: 0;
         overflow: hidden;
+        & button {
+            height: 34px;
+            width: 82px;
+        }
+        & mat-spinner{
+            margin-left: 8px;
+            margin-top: 1px;
+        }
         & p.state{
             position: relative;
             display: block;

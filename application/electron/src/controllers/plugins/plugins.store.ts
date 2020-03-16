@@ -3,6 +3,7 @@
 import * as path from 'path';
 import * as FS from '../../tools/fs';
 import * as fs from 'fs';
+import * as Tools from '../../tools/index';
 
 import Logger from '../../tools/env.logger';
 import ServicePaths from '../../services/service.paths';
@@ -51,6 +52,7 @@ export default class ControllerPluginStore {
     private _logger: Logger = new Logger(`ControllerPluginStore ("${CSettings.user}/${CSettings.repo}")`);
     private _remote: Map<string, IPluginReleaseInfo> | undefined = undefined;
     private _local: Map<string, IPluginReleaseInfo> = new Map();
+    private _downloads: Map<string, boolean> = new Map();
 
     public local(): Promise<void> {
         return new Promise((resolve) => {
@@ -88,52 +90,10 @@ export default class ControllerPluginStore {
             if (plugin === undefined) {
                 return reject(new Error(this._logger.warn(`Plugin "${name}" isn't found.`)));
             }
-            // Check plugin in default folder (before download)
-            this._getFromIncluded(plugin).then((filename: string) => {
-                this._logger.debug(`Plugin "${name}" was taken from included plugins in ${ServicePaths.getIncludedPlugins()}`);
+            this.delivery(plugin.name).then((filename: string) => {
                 resolve(filename);
-            }).catch((inclErr: Error) => {
-                this._logger.warn(`Fail to get plugin package from included (${ServicePaths.getIncludedPlugins()}) due error: ${inclErr.message}`);
-                // Download plugin
-                const target: string = path.resolve(ServicePaths.getPlugins(), plugin.file);
-                FS.unlink(target).then(() => {
-                    download(plugin.url, target).then(() => {
-                        fs.stat(target, (statErr: NodeJS.ErrnoException | null, stat: fs.Stats) => {
-                            if (statErr) {
-                                return reject(new Error(this._logger.warn(`Fail download file "${target}" due error: ${statErr.message}`)));
-                            }
-                            ServiceElectronService.logStateToRender(`Plugin "${name}" is downloaded`);
-                            this._logger.env(`Plugin "${name}" is downloaded:\n\t- file: ${target}\n\t- size: ${stat.size} bytes`);
-                        });
-                        resolve(target);
-                    }).catch((downloadErr: Error) => {
-                        reject(new Error(this._logger.warn(`Fail to remove file "${target}" due error: ${downloadErr.message}`)));
-                    });
-                    /*
-                    const writer = fs.createWriteStream(target);
-                    const request = https.get(plugin.url, (response) => {
-                        response.pipe(writer);
-                        writer.on('finish', () => {
-                            fs.stat(target, (statErr: NodeJS.ErrnoException | null, stat: fs.Stats) => {
-                                if (statErr) {
-                                    return reject(new Error(this._logger.warn(`Fail download file "${target}" due error: ${statErr.message}`)));
-                                }
-                                ServiceElectronService.logStateToRender(`Plugin "${name}" is downloaded`);
-                                this._logger.env(`Plugin "${name}" is downloaded:\n\t- file: ${target}\n\t- size: ${stat.size} bytes`);
-                            });
-                            resolve(target);
-                        });
-                    }).on('error', (error) => { // Handle errors
-                        FS.unlink(target).catch((unlinkErr: Error) => {
-                            reject(new Error(this._logger.warn(`Fail to remove file "${target}" due error: ${unlinkErr.message}`)));
-                        }).finally(() => {
-                            ServiceElectronService.logStateToRender(`Fail download plugin "${name}"`);
-                            reject(error);
-                        });
-                    });*/
-                }).catch((unlinkErr: Error) => {
-                    reject(new Error(this._logger.warn(`Fail to remove file "${target}" due error: ${unlinkErr.message}`)));
-                });
+            }).catch((deliveryErr: Error) => {
+                reject(new Error(this._logger.warn(`Fail to delivery plugin "${plugin.name}" due error: ${deliveryErr.message}`)));
             });
         });
     }
@@ -150,6 +110,19 @@ export default class ControllerPluginStore {
         });
     }
 
+    public isDefault(name: string): boolean {
+        let defaults: boolean = false;
+        Array.from(this.getRegister().values()).filter((plugin: IPluginReleaseInfo) => {
+            if (defaults) {
+                return;
+            }
+            if (plugin.name === name) {
+                defaults = plugin.default;
+            }
+        });
+        return defaults;
+    }
+
     public getAvailable(): CommonInterfaces.Plugins.IPlugin[] {
         return Array.from(this.getRegister().values()).map((plugin: IPluginReleaseInfo) => {
             return {
@@ -161,6 +134,7 @@ export default class ControllerPluginStore {
                 description: plugin.description,
                 readme: plugin.readme,
                 icon: plugin.icon,
+                default: plugin.default,
             };
         });
     }
@@ -169,20 +143,71 @@ export default class ControllerPluginStore {
         return this._remote === undefined ? this._local : this._remote;
     }
 
-    private _getFromIncluded(plugin: IPluginReleaseInfo): Promise<string> {
+    public delivery(name: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            const filename: string = path.resolve(ServicePaths.getIncludedPlugins(), plugin.file);
+            const plugin: IPluginReleaseInfo | undefined = this.getRegister().get(name);
+            if (plugin === undefined) {
+                return reject(new Error(`Fail to find plugin in register`));
+            }
+            this._findLocally(plugin).then((filename: string) => {
+                resolve(filename);
+            }).catch((error: Error) => {
+                const target: string = path.resolve(ServicePaths.getDownloads(), plugin.file);
+                if (this._downloads.has(target)) {
+                    return reject(new Error(`Plugin "${plugin.name}" (${target}) is already downloading.`));
+                }
+                this._downloads.set(target, true);
+                this._logger.env(`Plugin "${plugin.name}" isn't found and will be downloaded: ${error.message}`);
+                const temp: string = path.resolve(ServicePaths.getDownloads(), Tools.guid());
+                FS.unlink(target).then(() => {
+                    download(plugin.url, temp).then(() => {
+                        fs.stat(temp, (statErr: NodeJS.ErrnoException | null, stat: fs.Stats) => {
+                            if (statErr) {
+                                return reject(new Error(this._logger.warn(`Fail download file "${temp}" due error: ${statErr.message}`)));
+                            }
+                            this._logger.env(`Plugin "${name}" is downloaded:\n\t- file: ${temp} (${target}) \n\t- size: ${stat.size} bytes`);
+                            fs.rename(temp, target, (renameErr: NodeJS.ErrnoException | null) => {
+                                if (renameErr) {
+                                    return reject(new Error(this._logger.warn(`Fail rename file "${temp}" to "${target}" due error: ${renameErr.message}`)));
+                                }
+                                resolve(target);
+                            });
+                        });
+                    }).catch((downloadErr: Error) => {
+                        reject(new Error(this._logger.warn(`Fail to download file "${target}" due error: ${downloadErr.message}`)));
+                    });
+                }).catch((unlinkErr: Error) => {
+                    reject(new Error(this._logger.warn(`Fail to remove file "${target}" due error: ${unlinkErr.message}`)));
+                });
+            });
+        });
+    }
+
+    private _findLocally(plugin: IPluginReleaseInfo): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this._findIn(plugin, 'includes').then((filename: string) => {
+                resolve(filename);
+            }).catch((inclErr: Error) => {
+                this._logger.env(`Fail to find a plugin "${plugin.name}" in included due error: ${inclErr.message}`);
+                this._findIn(plugin, 'downloads').then((filename: string) => {
+                    resolve(filename);
+                }).catch((downloadsErr: Error) => {
+                    this._logger.env(`Fail to find a plugin "${plugin.name}" in downloads due error: ${downloadsErr.message}`);
+                    reject(new Error(`Plugin "${plugin.name}" isn't found.`));
+                });
+            });
+        });
+    }
+
+    private _findIn(plugin: IPluginReleaseInfo, source: 'includes' | 'downloads'): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const folder: string = source === 'includes' ? ServicePaths.getIncludedPlugins() : ServicePaths.getDownloads();
+            const filename: string = path.resolve(folder, plugin.file);
             FS.exist(filename).then((exist: boolean) => {
                 if (!exist) {
                     return reject(new Error(`Plugin "${filename}" isn't found.`));
                 }
-                const dest: string = path.resolve(ServicePaths.getPlugins(), plugin.file);
-                fs.copyFile(filename, dest, (err: NodeJS.ErrnoException | null) => {
-                    if (err) {
-                        return reject(filename);
-                    }
-                    resolve(dest);
-                });
+                resolve(filename);
             }).catch((error: Error) => {
                 reject(error);
             });

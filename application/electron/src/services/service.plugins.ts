@@ -122,6 +122,7 @@ export class ServicePlugins implements IService {
                 this._logger.debug(`No need to update or install plugins`);
                 return;
             }
+            this._storage.predownload();
             this._logger.debug(`Same plugins has to be updated or installed`);
             ServiceRenderState.do('ServicePlugins: NotifyRenderPluginsUpdate', () => {
                 ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
@@ -159,6 +160,36 @@ export class ServicePlugins implements IService {
         });
     }
 
+    public accomplish(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Shutdown all plugins
+            this.shutdown().then(() => {
+                this._logger.debug(`All plugins are down`);
+            }).catch((shutdownErr: Error) => {
+                this._logger.warn(`Fail to shutdown all plugins before close due error: ${shutdownErr.message}`);
+            }).finally(() => {
+                // Update plugins
+                this.update().then(() => {
+                    this._logger.debug(`Plugins update workflow is done`);
+                }).catch((updateErr: Error) => {
+                    this._logger.warn(`Fail to shutdown all plugins before close due error: ${updateErr.message}`);
+                }).finally(() => {
+                    Promise.all([
+                        this._storage.installPending().catch((error: Error) => {
+                            this._logger.error(`Fail to install pending plugins due: ${error.message}`);
+                            return Promise.resolve();
+                        }),
+                        this._storage.uninstallPending().catch((error: Error) => {
+                            this._logger.error(`Fail to unnstall pending plugins due: ${error.message}`);
+                            return Promise.resolve();
+                        }),
+                    ]).then(() => {
+                        resolve();
+                    });
+                });
+            });
+        });
+    }
     private _init(): Promise<void> {
         return new Promise((resolve, reject) => {
             // Read store information
@@ -203,6 +234,12 @@ export class ServicePlugins implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsUpdate, this._ipc_PluginsUpdate.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsUpdate = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginsInstallRequest, this._ipc_PluginsInstallRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginsInstallRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginsUninstallRequest, this._ipc_PluginsUninstallRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginsUninstallRequest = subscription;
+                }),
             ]).then(() => {
                 resolve();
             }).catch(reject);
@@ -244,6 +281,38 @@ export class ServicePlugins implements IService {
     private _ipc_PluginsUpdate(message: IPCMessages.PluginsUpdate) {
         this._logger.debug(`Forsing quit of application`);
         this._app?.destroy();
+    }
+
+    private _ipc_PluginsInstallRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
+        const msg: IPCMessages.PluginsInstallRequest = message as IPCMessages.PluginsInstallRequest;
+        this._storage.add(msg.name).then(() => {
+            response(new IPCMessages.PluginsInstallResponse({})).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on PluginsInstallResponse due error: ${error.message}`);
+            });
+        }).catch((addErr: Error) => {
+            this._logger.warn(`Fail to delivery requested plugin "${msg.name}" due error: ${addErr.message}`);
+            response(new IPCMessages.PluginsInstallResponse({
+                error: addErr.message,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on PluginsInstallResponse due error: ${error.message}`);
+            });
+        });
+    }
+
+    private _ipc_PluginsUninstallRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
+        const msg: IPCMessages.PluginsUninstallRequest = message as IPCMessages.PluginsUninstallRequest;
+        this._storage.uninstall(msg.name).then(() => {
+            response(new IPCMessages.PluginsUninstallResponse({})).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on PluginsUninstallResponse due error: ${error.message}`);
+            });
+        }).catch((removeErr: Error) => {
+            this._logger.warn(`Fail to prepare for remove plugin "${msg.name}" due error: ${removeErr.message}`);
+            response(new IPCMessages.PluginsUninstallResponse({
+                error: removeErr.message,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on PluginsUninstallResponse due error: ${error.message}`);
+            });
+        });
     }
 
 }
