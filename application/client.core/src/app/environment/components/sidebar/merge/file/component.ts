@@ -42,9 +42,9 @@ enum EDataTimeAliases {
 
 export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
-    @ViewChild('yearinput', {static: false}) _yearComRef: InputStandardComponent;
-    @ViewChild('formatinput', {static: false}) _formatComRef: InputStandardComponent;
-    @ViewChild('offsetinput', {static: false}) _offsetComRef: InputStandardComponent;
+    @ViewChild('yearinput') _yearComRef: InputStandardComponent;
+    @ViewChild('formatinput') _formatComRef: InputStandardComponent;
+    @ViewChild('offsetinput') _offsetComRef: InputStandardComponent;
 
     @Input() public file: string = '';
     @Input() public name: string = '';

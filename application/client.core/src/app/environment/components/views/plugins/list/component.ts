@@ -3,7 +3,8 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { CommonInterfaces } from '../../../../interfaces/interface.common';
 import { IPlugin } from './plugin/component';
 import { FormControl } from '@angular/forms';
-import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material';
+import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatInput } from '@angular/material/input';
 
 import PluginsService from '../../../../services/service.plugins';
 

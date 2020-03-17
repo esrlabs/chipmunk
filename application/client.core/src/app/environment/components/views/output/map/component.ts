@@ -15,7 +15,7 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
 
 export class ViewContentMapComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
-    @ViewChild('canvas', {static: false}) _ng_canvas: ElementRef;
+    @ViewChild('canvas') _ng_canvas: ElementRef;
 
     @Input() service: ControllerSessionTabMap;
 

@@ -12,13 +12,12 @@ import {
     CompilerFactory,
     Compiler,
     NgModule } from '@angular/core';
-import {
-    MatSliderModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatOptionModule,
-    MatProgressBarModule } from '@angular/material';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatOptionModule } from '@angular/material/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSliderModule } from '@angular/material/slider';
 
 export function createCompiler(fn: CompilerFactory): Compiler {
     return fn.createCompiler();

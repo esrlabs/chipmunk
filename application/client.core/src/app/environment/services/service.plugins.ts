@@ -1,19 +1,6 @@
-// List of modules to shate with plugin
-declare var Electron: any;
 
 import * as AngularCore from '@angular/core';
-import * as AngularCommon from '@angular/common';
-import * as AngularForms from '@angular/forms';
-import * as AngularPlatformBrowser from '@angular/platform-browser';
-import * as AngularMaterial from '@angular/material';
-import * as AngularCDK from '@angular/cdk';
-import * as RXJS from 'rxjs';
-import * as LogviewerClientMaterial from 'chipmunk-client-material';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import * as XTerm from 'xterm';
-import * as XTermAddonFit from 'xterm-addon-fit';
-import * as ChartJS from 'chart.js';
-import * as hammerjs from 'hammerjs';
 
 import { Subscription  } from 'rxjs';
 import { Compiler, Injector } from '@angular/core';
@@ -22,6 +9,7 @@ import { IService } from '../interfaces/interface.service';
 import { ControllerPluginGate } from '../controller/controller.plugin.gate';
 import { IAPI } from 'chipmunk.client.toolkit';
 import { CommonInterfaces } from '../interfaces/interface.common';
+import { getAvailablePluginModules } from '../controller/controller.plugin.deps';
 
 import ElectronIpcService from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
@@ -224,7 +212,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         return new Promise((resolve, reject) => {
             // Step 2. Prepare environment for plugin initialization
             this._logger.env(`Sources of plugin "${name}" was fetch correctly.`);
-            const modules: any = this._getAvailablePluginModules();
+            const modules: any = getAvailablePluginModules();
             const require = (module) => modules[module]; // shim 'require'
             let exports: Toolkit.IPluginExports = {};
             // Create gate in global scope
@@ -372,25 +360,6 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             }
         });
         return service;
-    }
-
-    private _getAvailablePluginModules(): { [key: string]: any } {
-        return {
-            '@angular/core': AngularCore,
-            '@angular/common': AngularCommon,
-            '@angular/forms': AngularForms,
-            '@angular/platform-browser': AngularPlatformBrowser,
-            '@angular/material': AngularMaterial,
-            '@angular/cdk': AngularCDK,
-            'rxjs': RXJS,
-            'chipmunk-client-material': LogviewerClientMaterial,
-            'chipmunk.client.toolkit': Toolkit,
-            'xterm': XTerm,
-            'xterm-addon-fit': XTermAddonFit,
-            'chart.js': ChartJS,
-            'electron': Electron,
-            'hammerjs': hammerjs,
-        };
     }
 
     private _inspectComponentsOfPlugins() {

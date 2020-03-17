@@ -13,24 +13,16 @@ import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material
 import { AppDirectiviesModule                   } from '../../directives/module';
 import { DragDropModule                         } from '@angular/cdk/drag-drop';
 
-import {
-    MatFormField,
-    MatAutocomplete,
-    MatProgressBar,
-    MatCheckbox,
-    MatButton,
-    MatSelect,
-    MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatOptionModule,
-    MatSortModule,
-    MatTable,
-    MatProgressBarModule,
-    MatCheckboxModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatTableModule } from '@angular/material';
+import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatButton, MatButtonModule } from '@angular/material/button';
+import { MatCheckbox, MatCheckboxModule } from '@angular/material/checkbox';
+import { MatOptionModule } from '@angular/material/core';
+import { MatFormField, MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBar, MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelect, MatSelectModule } from '@angular/material/select';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTable, MatTableModule } from '@angular/material/table';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';

@@ -33,8 +33,8 @@ export const CRowLengthLimit = 10000;
 
 export class ViewOutputRowComponent implements AfterContentInit, AfterContentChecked, OnDestroy, AfterViewInit {
 
-    @ViewChild('rendercomp', {static: false}) rendercomp: AOutputRenderComponent;
-    @ViewChild('numbernode', {static: false}) numbernode: ElementRef;
+    @ViewChild('rendercomp') rendercomp: AOutputRenderComponent;
+    @ViewChild('numbernode') numbernode: ElementRef;
 
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;

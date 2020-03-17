@@ -10,7 +10,8 @@ import { NotificationsService } from '../../../services.injectable/injectable.se
 import { rankedNumberAsString } from '../../../controller/helpers/ranks';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { MatInput, MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material';
+import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatInput } from '@angular/material/input';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -54,10 +55,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     @Input() public getDefaultsTabGuids: () => { charts: string };
     @Input() public onTitleContextMenu: Observable<MouseEvent>;
 
-    @ViewChild('output', { static: false }) _ng_outputComponent: ViewSearchOutputComponent;
-    @ViewChild(MatInput, { static: false }) _ng_inputComRef: MatInput;
-    @ViewChild('requestinput', { static: false }) _ng_requestInputComRef: ElementRef;
-    @ViewChild(MatAutocompleteTrigger, {static: false}) _ng_autoComRef: MatAutocompleteTrigger;
+    @ViewChild('output') _ng_outputComponent: ViewSearchOutputComponent;
+    @ViewChild(MatInput) _ng_inputComRef: MatInput;
+    @ViewChild('requestinput') _ng_requestInputComRef: ElementRef;
+    @ViewChild(MatAutocompleteTrigger) _ng_autoComRef: MatAutocompleteTrigger;
 
     public _ng_session: ControllerSessionTab | undefined;
     public _ng_searchRequestId: string | undefined;

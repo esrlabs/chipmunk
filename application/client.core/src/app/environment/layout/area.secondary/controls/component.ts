@@ -23,17 +23,17 @@ export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, O
 
     }
 
-    ngAfterContentInit() {
+    public ngAfterContentInit() {
         this._subscriptions.onInjection = this.injection.subscribe(this._onInjecton.bind(this));
     }
 
-    ngOnDestroy() {
+    public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
     }
 
-    private _ng_onStateToggle(event: MouseEvent) {
+    public _ng_onStateToggle(event: MouseEvent) {
         if (this.state.minimized) {
             this.state.maximize();
         } else {

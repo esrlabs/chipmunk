@@ -1,6 +1,6 @@
 import { Directive, ChangeDetectorRef } from '@angular/core';
 import { Host, Self, Optional, Input, OnInit } from '@angular/core';
-import { MatAutocompleteTrigger, AUTOCOMPLETE_OPTION_HEIGHT, AUTOCOMPLETE_PANEL_HEIGHT } from '@angular/material';
+import { MatAutocompleteTrigger, AUTOCOMPLETE_OPTION_HEIGHT, AUTOCOMPLETE_PANEL_HEIGHT } from '@angular/material/autocomplete';
 import {
     _countGroupLabelsBeforeOption,
     _getOptionScrollPosition

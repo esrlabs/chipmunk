@@ -1,5 +1,5 @@
-<app-layout *ngIf="_ready"></app-layout>
-<app-views-loader *ngIf="!_ready"></app-views-loader>
-<div class="spinner" *ngIf="!_ready">
+<app-layout *ngIf="_ng_ready"></app-layout>
+<app-views-loader *ngIf="!_ng_ready"></app-views-loader>
+<div class="spinner" *ngIf="!_ng_ready">
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 </div>

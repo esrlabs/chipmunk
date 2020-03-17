@@ -29,7 +29,7 @@ type TParentButtonsGetter = () => IButton[];
 
 export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
-    @ViewChild(ComplexScrollBoxComponent, {static: false}) _scrollBoxCom: ComplexScrollBoxComponent;
+    @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
 
     @Input() public session: ControllerSessionTab | undefined;
     @Input() public onSessionChanged: Subject<ControllerSessionTab> | undefined;

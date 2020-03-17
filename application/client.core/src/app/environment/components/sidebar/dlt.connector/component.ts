@@ -1,5 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
-import { ErrorStateMatcher, MatAutocompleteSelectedEvent } from '@angular/material';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
@@ -44,11 +45,11 @@ interface IDLTDeamonSettings {
 }
 
 interface IDLTDeamonSettingsErrorStateMatcher {
-    ecu: ErrorStateMatcher;
-    bindingAddress: ErrorStateMatcher;
-    bindingPort: ErrorStateMatcher;
-    multicastAddress: ErrorStateMatcher;
-    multicastInterface: ErrorStateMatcher;
+    ecu: DLTDeamonSettingsErrorStateMatcher;
+    bindingAddress: DLTDeamonSettingsErrorStateMatcher;
+    bindingPort: DLTDeamonSettingsErrorStateMatcher;
+    multicastAddress: DLTDeamonSettingsErrorStateMatcher;
+    multicastInterface: DLTDeamonSettingsErrorStateMatcher;
 }
 
 enum EDLTSettingsFieldAlias {
@@ -187,11 +188,11 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         multicastAddress: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastAddress),
         multicastInterface: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastInterface),
     };
+    public _ng_allowSaveAs: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppDLTConnectorComponent');
     private _destroyed: boolean = false;
-    private _ng_allowSaveAs: boolean = false;
     private _recent: IPCMessages.IDLTDeamonConnectionOptions[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef,

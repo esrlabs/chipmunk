@@ -15,8 +15,9 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class AppComponent implements AfterViewInit {
 
+    public _ng_ready: boolean = false;
+
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppComponent');
-    private _ready: boolean = false;
 
     constructor(
         private _cdRef: ChangeDetectorRef,
@@ -31,7 +32,7 @@ export class AppComponent implements AfterViewInit {
             // Subscribe to plugins load event
             PluginsService.subscribe(PluginsService.Events.pluginsLoaded, () => {
                 PluginsService.unsubscribeAll();
-                this._ready = true;
+                this._ng_ready = true;
                 this._cdRef.detectChanges();
             });
             // Send notification to host
