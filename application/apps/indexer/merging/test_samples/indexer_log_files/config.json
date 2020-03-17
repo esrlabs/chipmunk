@@ -1,0 +1,14 @@
+[
+	{
+		"name": "a.log",
+		"offset": 0,
+		"format": "YYYY-MM-DDThh:mm:ss.s TZD",
+		"tag": "A-TAG"
+	},
+	{
+		"name": "b.log",
+		"offset": 0,
+		"tag": "B-TAG",
+		"format": "YYYY-MM-DDThh:mm:ss.s TZD"
+	}
+]

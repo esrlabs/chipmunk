@@ -627,7 +627,7 @@ pub fn extract_posix_timestamp(
         },
         None => Ok(0),
     }?;
-    let (hour, minutes, seconds, millis): (u32, u32, u32, u32) = (
+    let (hour, minutes, seconds, second_fractions): (u32, u32, u32, u32) = (
         hour_capt
             .as_str()
             .parse()
@@ -635,10 +635,16 @@ pub fn extract_posix_timestamp(
         min_capt.as_str().parse()?,
         sec_capt.as_str().parse()?,
         match caps.name(FRACTION_GROUP) {
-            Some(m) => m.as_str().parse()?,
+            Some(m) => {
+                let s = m.as_str();
+                let cut = &s[..std::cmp::min(3, s.len())];
+                cut.parse()?
+            }
             None => 0,
         },
     );
+    let millis = second_fractions;
+    // let millis = (second_fractions as f64 / 1000.0) as u32;
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
     if time_offset.is_none() && timezone_n.is_none() {
@@ -651,6 +657,7 @@ pub fn extract_posix_timestamp(
     } else {
         time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in (line {})"))
     };
+
     // for the year first try YYYY, then yy, then fallback on the supplied year
     // if even this is not here, use the current year
     let the_year: Option<i32> = match caps.name(YEAR_GROUP) {
@@ -664,6 +671,7 @@ pub fn extract_posix_timestamp(
             None => year.or_else(|| Some(Utc::now().year())),
         },
     };
+
     match (the_year, offset_result) {
         (Some(y), Ok(offset)) => {
             let date_time: Option<NaiveDateTime> = NaiveDate::from_ymd_opt(y, month, day)
@@ -840,7 +848,6 @@ pub fn detect_timeformat_in_string(
     }
     for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
-        // println!("check with regex: {}", regex.to_string());
         if regex.is_match(trimmed) {
             return Ok((*format).to_string());
         }
