@@ -82,7 +82,11 @@ class DefaultsPlugins
   def delivery(dest)
     @defaults.each do |p|
       puts "Downloading \"#{p['name']}\" from \"#{p['url']}\""
-      File.write "#{dest}/#{p['file']}", open(p['url']).read
+      File.open("#{dest}/#{p['file']}", "wb") do |saved_file|
+        open(p['url'], "rb") do |read_file|
+          saved_file.write(read_file.read)
+        end
+      end
     end
   end
 
@@ -95,3 +99,5 @@ class DefaultsPlugins
   
 
 end
+require 'open-uri'
+File.write "test.tgz", URI.open('https://github.com/esrlabs/chipmunk-plugins-store/releases/download/0.0.11/chipmunk-asciicolors-plugin@81100880.110000220.0024211238-1.0.0-win32.tgz', 'rb').read
