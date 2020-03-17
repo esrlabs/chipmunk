@@ -204,6 +204,9 @@ task :check_environment do
                 ". Note, to avoid potential conflicts, it's better to use a suggested version.")
   check_program('gem list -i dotenv', 'Dotenv is required. Please install it globally using "gem install dotenv".')
 end
+task :check_octokit do
+  check_program('gem list -i octokit', 'octocit is required. Please install it globally using "gem install dotenv".')
+end
 
 desc 'setup build environment'
 task :setup_environment do
@@ -594,6 +597,7 @@ end
 
 # delivery defaults plugins into release
 task :delivery_defaults_plugins do
+  require 'octokit'
   @plugins = DefaultsPlugins.new
   @plugins.delivery(INCLUDED_PLUGINS_FOLDER)
   @plugins.delivery_registry(INCLUDED_PLUGINS_FOLDER)
@@ -793,6 +797,7 @@ task dev: %i[install
 
 desc 'Build the full build pipeline for a given platform'
 task full_pipeline: %i[check_environment
+                       check_octokit
                        setup_environment
                        install
                        ripgrepdelivery
