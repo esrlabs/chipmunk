@@ -4,9 +4,9 @@ mod tests {
     use crate::parse::*;
 
     use pretty_assertions::assert_eq;
+    use proptest::prelude::*;
     use std::fs;
     use std::path::PathBuf;
-    use proptest::prelude::*;
 
     static VALID_TIMESTAMP_FORMAT: &str = "[+-]{1}[0-9]{2}[0-5]{1}[0-9]{1}";
 
@@ -329,6 +329,10 @@ mod tests {
         derive_format_and_check!("23/Jan/2019:23:58:13", "DD/MMM/YYYY:hh:mm:ss");
         derive_format_and_check!("1997-07-16T19:20:59 +01:00", "YYYY-MM-DDThh:mm:ss TZD");
         derive_format_and_check!("1997-07-16T19:20:30.45+01:00", "YYYY-MM-DDThh:mm:ss.s TZD");
+        derive_format_and_check!(
+            "2020-03-12T12:31:17.316631+01:00",
+            "YYYY-MM-DDThh:mm:ss.s TZD"
+        );
     }
 
     #[test]
@@ -372,10 +376,19 @@ mod tests {
             Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
             Err(e) => panic!(format!("error happened in detection: {}", e)),
         }
+        match detect_timestamp_in_string("2019-07-30T11:08:02.555+01:00", None) {
+            Ok((timestamp, _, _)) => {
+                use chrono::{NaiveDate, NaiveDateTime};
+                let date_time: NaiveDateTime = NaiveDate::from_ymd(2019, 7, 30).and_hms(10, 8, 2);
+                let ts_in_ms = date_time.timestamp() * 1000 + 555;
+                assert_eq!(ts_in_ms, timestamp)
+            }
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
     }
     #[test]
     fn test_detect_timestamp_in_string_no_year() {
-        use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
+        use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
         let year = Utc::now().date().year();
         match detect_timestamp_in_string("07-30 10:08:02.555", Some(0)) {
             Ok((timestamp, _, _)) => {
@@ -396,7 +409,7 @@ mod tests {
     }
     #[test]
     fn test_detect_timestamp_in_string_no_year_with_t() {
-        use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike};
+        use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
         let year = Utc::now().date().year();
         match detect_timestamp_in_string("07-30T10:08:02.555", Some(0)) {
             Ok((timestamp, _, _)) => {
