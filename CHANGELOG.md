@@ -1,5 +1,11 @@
 # Changelog
 
+### [2.0.2] - 03/17/2020
+
+* [](fix) recognize timestamp with greater then millisecond accuracy
+* [](feat) update plugins install/uninstall workflow
+* [](feat) update "about" tab
+
 ### [2.0.1] - 03/16/2020
 
 * [](fix) build correct windows update package
