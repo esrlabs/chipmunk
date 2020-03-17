@@ -9,29 +9,29 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use indexer_base::timedline::TimedLine;
+use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, Utc};
+use crossbeam_channel as cc;
 use indexer_base::error_reporter::*;
 use indexer_base::progress::Severity;
-use chrono::{NaiveDate, NaiveDateTime, Utc, Datelike, DateTime};
 use indexer_base::progress::*;
-use crossbeam_channel as cc;
+use indexer_base::timedline::TimedLine;
 
 use nom::bytes::complete::tag;
+use nom::bytes::complete::take;
 use nom::character::complete::{char, digit1};
 use nom::combinator::{map, map_res, opt};
 use nom::multi::{fold_many0, many1};
-use nom::bytes::complete::take;
 use nom::IResult;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::Seek;
-use std::borrow::Cow;
 use std::io::{BufRead, BufReader, Read};
-use std::path::{Path, PathBuf, self};
+use std::path::{self, Path, PathBuf};
 
 const MAX_LINES_TO_INSPECT: usize = 1_000_000;
 const LINE_DETECTION_THRESHOLD: usize = 5;
@@ -808,10 +808,11 @@ pub fn detect_timestamp_in_string(
     for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
-            if let Ok((timestamp, year_missing)) =
-                extract_posix_timestamp(trimmed, regex, None, offset)
-            {
-                return Ok((timestamp, year_missing, (*format).to_string()));
+            match extract_posix_timestamp(trimmed, regex, None, offset) {
+                Ok((timestamp, year_missing)) => {
+                    return Ok((timestamp, year_missing, (*format).to_string()))
+                }
+                Err(e) => debug!("error trying to extract timestamp: {}", e),
             }
         }
     }

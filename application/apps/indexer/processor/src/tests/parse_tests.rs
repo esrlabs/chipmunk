@@ -214,7 +214,16 @@ mod tests {
         assert_eq!(1_491_299_570_000, timestamp);
     }
 
-    // match detect_timestamp_in_string("109.169.248.247 - - [30/Jul/2019:10:08:02 +0200] xyz") {
+    #[test]
+    fn test_parse_date_problem_case() {
+        let input = "[2019-07-30T10:08:02.555][DEBUG][indexing]: xyz";
+        let regex = lookup_regex_for_format_str("YYYY-MM-DDThh:mm:ss.s")
+            .expect("format string should produce regex");
+        let (timestamp, _) =
+            extract_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+        assert_eq!(1_564_474_082_555, timestamp);
+    }
+
     #[test]
     fn test_parse_date_line_only_millis() {
         let input = "1559831467577 some logging here...";
@@ -333,6 +342,7 @@ mod tests {
             "2020-03-12T12:31:17.316631+01:00",
             "YYYY-MM-DDThh:mm:ss.s TZD"
         );
+        derive_format_and_check!("2019-07-30T09:38:02.555Z", "YYYY-MM-DDThh:mm:ss.s");
     }
 
     #[test]
@@ -366,6 +376,15 @@ mod tests {
             Err(e) => panic!(format!("error happened in detection: {}", e)),
         }
     }
+    #[test]
+    fn test_detect_timestamp_with_timezone_indicated_but_missing() {
+        match detect_timestamp_in_string("[2019-07-30T10:08:02.555][DEBUG][indexing]: xyz", Some(0))
+        {
+            Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
+            Err(e) => panic!(format!("error happened in detection: {}", e)),
+        }
+    }
+
     #[test]
     fn test_detect_timestamp_in_string_with_t() {
         match detect_timestamp_in_string("2019-07-30T10:08:02.555", Some(0)) {
