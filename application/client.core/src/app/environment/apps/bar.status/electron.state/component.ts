@@ -56,7 +56,7 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         ServiceElectronIpc.send(new IPCMessages.HostStateHistory({}));
     }
 
-    private _ng_onToggleHistory() {
+    public _ng_onToggleHistory() {
         if (this._history.length === 0) {
             this.ng_showHistory = false;
         } else {

@@ -13,16 +13,13 @@ import {
     ContainersModule                            } from 'chipmunk-client-material';
 import { AppDirectiviesModule                   } from '../../../directives/module';
 
-import {
-    MatFormField,
-    MatAutocomplete,
-    MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatOptionModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatProgressBarModule } from '@angular/material';
+import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatButtonModule } from '@angular/material/button';
+import { MatOptionModule } from '@angular/material/core';
+import { MatFormField, MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';

@@ -1,6 +1,6 @@
 import { Directive, ChangeDetectorRef, OnInit, OnDestroy, Input, HostBinding, HostListener, Host, Self, Optional, NgZone, ViewContainerRef } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { MatInput } from '@angular/material';
+import { MatInput } from '@angular/material/input';
 
 @Directive({
     selector: '[appSidebarSearchManagerItem]',

@@ -1,20 +1,20 @@
 <div [attr.class]="'wrapper ' + (funcBarState.minimized ? 'fb-minimized' : 'fb-maximized') + ' ' + funcLocation">
     <div class="output">
         <div class="primary" [ngStyle]="{ 
-            'right': ((funcLocation === 'func-right' ? _sizes.func.current : 0) + 'px'),  
-            'left': ((funcLocation === 'func-left' ? _sizes.func.current : 0) + 'px'), 
-            'bottom': (_sizes.sec.current + 'px') }">
+            'right': ((funcLocation === 'func-right' ? _ng_sizes.func.current : 0) + 'px'),  
+            'left': ((funcLocation === 'func-left' ? _ng_sizes.func.current : 0) + 'px'), 
+            'bottom': (_ng_sizes.sec.current + 'px') }">
             <app-layout-area-primary></app-layout-area-primary>
         </div>
         <div class="secondary" [ngStyle]="{ 
-            'right': ((funcLocation === 'func-right' ? _sizes.func.current : 0) + 'px'),  
-            'left': ((funcLocation === 'func-left' ? _sizes.func.current : 0) + 'px'), 
-            'height': (_sizes.sec.current + 'px') }">
+            'right': ((funcLocation === 'func-right' ? _ng_sizes.func.current : 0) + 'px'),  
+            'left': ((funcLocation === 'func-left' ? _ng_sizes.func.current : 0) + 'px'), 
+            'height': (_ng_sizes.sec.current + 'px') }">
             <app-layout-area-secondary [state]="secAreaState"></app-layout-area-secondary>
         </div>
         <div *ngIf="!secAreaState.minimized" class="resizer-sec" (mousedown)="_ng_onResizeFuncTrigger($event)" [ngStyle]="{ 
-            'margin-bottom': (_sizes.sec.current + 'px') }" (mousedown)="_ng_onResizeSecAreaTrigger($event)"></div>
-        <div class="funcs" [ngStyle]="{'width': (_sizes.func.current + 'px')}">
+            'margin-bottom': (_ng_sizes.sec.current + 'px') }" (mousedown)="_ng_onResizeSecAreaTrigger($event)"></div>
+        <div class="funcs" [ngStyle]="{'width': (_ng_sizes.func.current + 'px')}">
             <div class="funcs-caption">
                 <div class="injections">
                     <app-layout-sidebar-caption></app-layout-sidebar-caption>

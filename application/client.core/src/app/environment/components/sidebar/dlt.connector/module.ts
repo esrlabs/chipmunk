@@ -10,14 +10,12 @@ import { AppDirectiviesModule                   } from '../../../directives/modu
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
-import {
-    MatExpansionModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressBarModule,
-    MatCheckboxModule,
-    MatAutocompleteModule,
-} from '@angular/material';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 const entryComponents = [ SidebarAppDLTConnectorComponent ];
 const components = [ ...entryComponents ];

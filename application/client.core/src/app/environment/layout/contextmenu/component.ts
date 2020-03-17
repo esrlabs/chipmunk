@@ -12,7 +12,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
 
-    @ViewChild('menu', {static: false}) _ng_menu: ElementRef;
+    @ViewChild('menu') _ng_menu: ElementRef;
 
     public _ng_component: IComponentDesc | undefined;
     public _ng_items: IMenuItem[] | undefined;

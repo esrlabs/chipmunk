@@ -3,7 +3,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { MatInput, MatAutocompleteTrigger } from '@angular/material';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatInput } from '@angular/material/input';
 import { Observable } from 'rxjs';
 import { sortFiles, ISortedFile } from '../../../thirdparty/code/engine';
 
@@ -19,8 +20,8 @@ import ElectronIpcService, { IPCMessages } from '../../../services/service.elect
 
 export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewInit, OnDestroy {
 
-    @ViewChild(MatInput, {static: false}) _inputComRef: MatInput;
-    @ViewChild(MatAutocompleteTrigger, {static: false}) _autoComRef: MatAutocompleteTrigger;
+    @ViewChild(MatInput) _inputComRef: MatInput;
+    @ViewChild(MatAutocompleteTrigger) _autoComRef: MatAutocompleteTrigger;
 
     public _ng_files: Observable<ISortedFile[]>;
     public _files: Array<ISortedFile> = [];

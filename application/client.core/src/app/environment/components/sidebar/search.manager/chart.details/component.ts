@@ -2,10 +2,10 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, Event
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
 import ChartControllers, { AChart, IOption, EOptionType, EChartType } from '../../../views/chart/charts/charts';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { MatSlider, MatSliderChange } from '@angular/material';
+import { MatSlider, MatSliderChange } from '@angular/material/slider';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CColors } from '../../../../conts/colors';
-import { MatSelectChange, MatSelect } from '@angular/material';
+import { MatSelectChange, MatSelect } from '@angular/material/select';
 
 interface IOptionComponent {
     component: IComponentDesc;
@@ -37,7 +37,7 @@ const CComponentsInputs = {
 
 export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, AfterContentInit, OnChanges {
 
-    @ViewChild(MatSelect, { static: false }) _refSelect: MatSelect;
+    @ViewChild(MatSelect) _refSelect: MatSelect;
 
     @Input() request: ChartRequest;
 

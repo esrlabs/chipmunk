@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, NgZone, ViewChild, OnChanges, SimpleChanges } from '@angular/core';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
-import { MatSelectChange, MatSelect } from '@angular/material';
+import { MatSelectChange, MatSelect } from '@angular/material/select';
 
 import { CColors } from '../../../../conts/colors';
 import { getContrastColor } from '../../../../theme/colors';
@@ -20,7 +20,7 @@ interface IColorOption {
 
 export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy, AfterContentInit, OnChanges {
 
-    @ViewChild(MatSelect, { static: false }) _refSelect: MatSelect;
+    @ViewChild(MatSelect) _refSelect: MatSelect;
 
     @Input() request: FilterRequest;
 

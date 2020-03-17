@@ -55,9 +55,9 @@
         </mat-error>
     </mat-form-field>
     <span class="slitter"></span>
-    <mat-checkbox [(ngModel)]="_ng_settings.multicast" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">UDP muliticast</mat-checkbox>
+    <mat-checkbox [(ngModel)]="_ng_settings.multicast" (change)="_ng_onMuliticastingStateChange()" [disabled]="_ng_state === 'disconnected' ? null : true">UDP muliticast</mat-checkbox>
     <span class="slitter"></span>
-    <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange($event)" [disabled]="_ng_state === 'disconnected' ? null : true">Add fibex data</mat-checkbox>
+    <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange()" [disabled]="_ng_state === 'disconnected' ? null : true">Add fibex data</mat-checkbox>
 </mat-expansion-panel>
 
 <span class="slitter"></span>

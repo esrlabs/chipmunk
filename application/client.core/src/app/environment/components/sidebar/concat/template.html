@@ -1,5 +1,5 @@
 <p class="caption t-normal">Select files to be concatenated.</p>
-<div class="files" (contextmenu)="_ng_onContexMenu($event)">
+<div class="files" (contextmenu)="_ng_onContexMenu($event, undefined)">
     <table *ngIf="_ng_files.length > 0" cdkDropList class="files-table" (cdkDropListDropped)="_ng_onResorted($event)">
         <tr class="app-sidebar-app-concat-files-file-row">
             <th [attr.class]="'t-small color-scheme-0'" (click)="_ng_sortBy('name')" colspan="2"><span [attr.class]="'sorted fas fa-caret-down ' + (_ng_sorting.abc ? 'revert' : '')" *ngIf="_ng_sorting.prop === 'name'"></span>Name</th>

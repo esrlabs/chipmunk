@@ -1,6 +1,7 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild } from '@angular/core';
 import { FilterRequest, IFlags } from '../../../../controller/controller.session.tab.search.filters.request';
-import { MatCheckboxChange, MatInput } from '@angular/material';
+import { MatCheckboxChange } from '@angular/material/checkbox';
+import { MatInput } from '@angular/material/input';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../directives/item.directive';
 
@@ -23,7 +24,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         return !FilterRequest.isValid(this._ng_request);
     }
 
-    @ViewChild(MatInput, { static: false }) _inputRefCom: MatInput;
+    @ViewChild(MatInput) _inputRefCom: MatInput;
 
     @Input() request: FilterRequest;
 

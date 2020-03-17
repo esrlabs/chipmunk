@@ -30,10 +30,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     public funcBarState: AreaState = new AreaState();
     public secAreaState: AreaState = new AreaState();
     public funcLocation: EFuncLocation = EFuncLocation.right;
-
-    private _subscriptions: { [key: string]: Subscription } = {};
-
-    private _sizes: {
+    public _ng_sizes: {
         sec: {
             current: number,
             last: number
@@ -52,6 +49,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
             last: ThemeParams.tabs_list_height * 13
         },
     };
+
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     private _movement: {
         x: number,
@@ -108,10 +107,10 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
 
     private _onFuncMinimized(minimized: boolean) {
         if (minimized) {
-            this._sizes.func.last = this._sizes.func.current;
-            this._sizes.func.current = ThemeParams.tabs_list_height;
+            this._ng_sizes.func.last = this._ng_sizes.func.current;
+            this._ng_sizes.func.current = ThemeParams.tabs_list_height;
         } else {
-            this._sizes.func.current = this._sizes.func.last;
+            this._ng_sizes.func.current = this._ng_sizes.func.last;
         }
     }
 
@@ -137,13 +136,13 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         switch (this._movement.type) {
             case EResizeType.func:
                 if (this.funcLocation === EFuncLocation.right) {
-                    this._sizes.func.current -= dX;
+                    this._ng_sizes.func.current -= dX;
                 } else {
-                    this._sizes.func.current += dX;
+                    this._ng_sizes.func.current += dX;
                 }
                 break;
             case EResizeType.sec:
-                this._sizes.sec.current -= dY;
+                this._ng_sizes.sec.current -= dY;
                 break;
         }
         this._movement.x = event.x;
@@ -184,10 +183,10 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
 
     private _onSecAreaMinimized(minimized: boolean) {
         if (minimized) {
-            this._sizes.sec.last = this._sizes.sec.current;
-            this._sizes.sec.current = ThemeParams.tabs_list_height;
+            this._ng_sizes.sec.last = this._ng_sizes.sec.current;
+            this._ng_sizes.sec.current = ThemeParams.tabs_list_height;
         } else {
-            this._sizes.sec.current = this._sizes.sec.last;
+            this._ng_sizes.sec.current = this._ng_sizes.sec.last;
         }
         this._cdRef.detectChanges();
         ViewsEventsService.fire().onResize();

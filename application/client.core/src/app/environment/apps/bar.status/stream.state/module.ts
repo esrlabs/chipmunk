@@ -1,6 +1,6 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
-import { MatProgressBarModule                   } from '@angular/material';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppsStatusBarStreamStateComponent      } from './component';
 import { EnvironmentComponentsModule            } from '../../../components/module';

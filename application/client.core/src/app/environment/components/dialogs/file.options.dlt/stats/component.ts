@@ -1,7 +1,8 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, NgZone } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as ThemeColors from '../../../../theme/colors';
-import { MatTableDataSource, MatSort, Sort } from '@angular/material';
+import { MatSort, Sort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
 import { Subscription, Observable, Subject } from 'rxjs';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 

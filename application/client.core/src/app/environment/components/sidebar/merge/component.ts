@@ -36,7 +36,7 @@ enum EMergeButtonTitle {
 interface IState {
     _ng_busy: boolean;
     _ng_mergeButtonTitle: EMergeButtonTitle;
-    _files: IFileItem[];
+    _ng_files: IFileItem[];
     _zones: string[];
 }
 
@@ -61,8 +61,8 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     public _ng_extendSub: Subject<string> = new Subject<string>();
     public _ng_extendObs: Observable<string> = this._ng_extendSub.asObservable();
     public _ng_session: ControllerSessionTab | undefined;
+    public _ng_files: IFileItem[] = [];
 
-    private _files: IFileItem[] = [];
     private _zones: string[] = [];
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -99,7 +99,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     public _ng_onFileRemove(file: string) {
         let index: number = -1;
-        this._files.forEach((item, i) => {
+        this._ng_files.forEach((item, i) => {
             if (item.file === file) {
                 index = i;
             }
@@ -107,7 +107,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         if (index === -1) {
             return;
         }
-        this._files.splice(index, 1);
+        this._ng_files.splice(index, 1);
         delete this._errors[file];
         delete this._warnings[file];
         this._dropWarnings();
@@ -167,7 +167,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 this._disable(false);
                 return this._forceUpdate();
             }
-            this._files = [];
+            this._ng_files = [];
             this._notifications.add({ caption: 'Merging', message: `Files were merged. Written ${(response.written / 1024 / 1024).toFixed(2)} Mb`, options: { type: ENotificationType.info }});
             this.close();
         }).catch((testError: Error) => {
@@ -227,14 +227,14 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     public _ng_onDetect() {
-        if (this._files.length === 0) {
+        if (this._ng_files.length === 0) {
             return;
         }
         this._ng_busy = true;
         this._disable(true);
         this._forceUpdate();
         ElectronIpcService.request(new IPCMessages.MergeFilesDiscoverRequest({
-            files: this._files.map((file: IFileItem) => {
+            files: this._ng_files.map((file: IFileItem) => {
                 return file.file;
             }),
             id: Toolkit.guid(),
@@ -272,7 +272,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         if (this._ng_session === undefined) {
             return;
         }
-        this._files = this._files.map((file: IFileItem) => {
+        this._ng_files = this._ng_files.map((file: IFileItem) => {
             const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(file.file);
             const format: string | undefined = comp === undefined ? undefined : comp.getFormat();
             if (format !== undefined) {
@@ -285,7 +285,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             {
                 _ng_busy: this._ng_busy,
                 _ng_mergeButtonTitle: this._ng_mergeButtonTitle,
-                _files: this._files,
+                _ng_files: this._ng_files,
                 _zones: this._zones
             }
         );
@@ -294,7 +294,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     private _dropState(): void {
         this._ng_busy = false;
         this._ng_mergeButtonTitle = EMergeButtonTitle.merge;
-        this._files = [];
+        this._ng_files = [];
         this._zones = [];
     }
 
@@ -361,13 +361,13 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             }
             this._getFileStats(path).then((stats: IPCMessages.FileInfoResponse) => {
                 this._getFileContent(path).then((preview: IFilePreview) => {
-                    this._files.push({
+                    this._ng_files.push({
                         file: stats.path,
                         name: stats.name,
                         parser: stats.parser,
                         size: stats.size,
                         preview: preview.preview,
-                        defaultFormat: this._files.length === 0 ? undefined : this._getDefaultFormat()
+                        defaultFormat: this._ng_files.length === 0 ? undefined : this._getDefaultFormat()
                     });
                     resolve();
                 }).catch((previewError: Error) => {
@@ -380,10 +380,10 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _getDefaultFormat(): string | undefined {
-        if (this._files.length === 0) {
+        if (this._ng_files.length === 0) {
             return undefined;
         }
-        const component: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(this._files[this._files.length - 1].file);
+        const component: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(this._ng_files[this._ng_files.length - 1].file);
         if (component === undefined) {
             return undefined;
         }
@@ -436,7 +436,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     private _doesExist(file: string): boolean {
         let result: boolean = false;
-        this._files.forEach((item) => {
+        this._ng_files.forEach((item) => {
             if (item.file === file) {
                 result = true;
             }
@@ -469,7 +469,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _dropTestResults() {
-        this._files.forEach((item) => {
+        this._ng_files.forEach((item) => {
             const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(item.file);
             if (comp === undefined) {
                 return;
@@ -479,7 +479,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     }
 
     private _disable(disabled: boolean) {
-        this._files.forEach((item) => {
+        this._ng_files.forEach((item) => {
             const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(item.file);
             if (comp === undefined) {
                 return;
