@@ -397,7 +397,7 @@ namespace :dev do
   desc 'Developer task: build launcher and delivery into package.'
   task build_delivery_apps: %i[build_launcher build_updater] do
     node_app_original = app_path_in_electron_dist('chipmunk')
-    rm(node_app_original)
+    rm(node_app_original, :force => true)
     cp(rust_exec_in_build_dir('launcher'), node_app_original)
   end
 

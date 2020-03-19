@@ -96,8 +96,6 @@ class DefaultsPlugins
       File.write "#{dest}/#{file_name}", open(r['browser_download_url']).read
     end
   end
-  
+
 
 end
-require 'open-uri'
-File.write "test.tgz", URI.open('https://github.com/esrlabs/chipmunk-plugins-store/releases/download/0.0.11/chipmunk-asciicolors-plugin@81100880.110000220.0024211238-1.0.0-win32.tgz', 'rb').read

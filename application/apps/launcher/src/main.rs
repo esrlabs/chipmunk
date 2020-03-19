@@ -24,6 +24,12 @@ use std::{
     time::SystemTime,
 };
 
+enum ElectronExitCode {
+    NormalExit = 0,
+    UpdateRequired = 131,
+    RestartRequired = 132,
+}
+
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
@@ -221,37 +227,57 @@ fn main() {
         std::process::exit(1);
     }
 
-    debug!("Starting application: {}", electron_app);
+    let mut start_required = true;
+    while start_required {
+        start_required = false;
+        debug!("Starting application: {}", electron_app);
 
-    let child = spawn(&electron_app, &[]);
-    match child {
-        Ok(mut child) => {
-            info!("Electron application is started ({:?})", electron_app_path);
-            match child.wait() {
-                Ok(result) => {
-                    let code = result.code().unwrap();
-                    trace!("App is finished with code: {}", code);
-                    if code == 0 {
-                        // node app was closed
-                        info!("No update required, exiting");
-                    } else if code == 131 {
-                        // node app was closed and update requested
-                        info!("Update is required");
-                        match update() {
-                            Ok(res) => {
-                                debug!("updated finished {} OK", if res { "" } else { "not" })
-                            }
-                            Err(e) => error!("update failed: {}", e),
-                        }
+        let child = spawn(&electron_app, &[]);
+        match child {
+            Ok(mut child) => {
+                info!("Electron application is started ({:?})", electron_app_path);
+                match child.wait() {
+                    Ok(result) => {
+                        let exit_code = result.code().unwrap();
+                        start_required = handle_exit_code(exit_code)
+                    }
+                    Err(e) => {
+                        error!("Error during running app: {}", e);
                     }
                 }
-                Err(e) => {
-                    error!("Error during running app: {}", e);
-                }
+            }
+            Err(e) => {
+                error!("Fail to start app due error: {}", e);
+            }
+        };
+        debug!("start is required: {}", start_required);
+    }
+    debug!("exiting...start is required: {}", start_required);
+}
+
+fn handle_exit_code(exit_code: i32) -> bool {
+    trace!("App is finished with code: {}", exit_code);
+    match exit_code {
+        code if code == ElectronExitCode::NormalExit as i32 => {
+            // node app was closed
+            info!("No update required, exiting");
+        }
+        code if code == ElectronExitCode::UpdateRequired as i32 => {
+            // node app was closed and update requested
+            info!("Update is required");
+            match update() {
+                Ok(res) => debug!("updated finished {} OK", if res { "" } else { "not" }),
+                Err(e) => error!("update failed: {}", e),
             }
         }
-        Err(e) => {
-            error!("Fail to start app due error: {}", e);
+        code if code == ElectronExitCode::RestartRequired as i32 => {
+            // node app was closed and but needs a restart
+            info!("Restart is required");
+            return true;
         }
-    };
+        code => {
+            warn!("received unknown exit code {}! exiting...", code);
+        }
+    }
+    false
 }
