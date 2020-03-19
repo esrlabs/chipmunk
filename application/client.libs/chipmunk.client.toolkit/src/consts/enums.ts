@@ -37,6 +37,29 @@ export enum EViewsTypes {
 }
 
 /**
+ * Types of views / injections
+ */
+export const CViewsTypes: {
+    view:               string,
+    outputBottom:       string,
+    outputTop:          string,
+    outputLeft:         string,
+    outputRight:        string,
+    tasksBar:           string,
+    sidebarHorizontal:  string,
+    sidebarVertical:    string,
+} = {
+    view                :'lib-view',
+    outputBottom        :'lib-output-bottom',
+    outputTop           :'lib-output-top',
+    outputLeft          :'lib-output-left',
+    outputRight         :'lib-output-right',
+    tasksBar            :'lib-task-bar',
+    sidebarHorizontal   :'lib-sidebar-hor',
+    sidebarVertical     :'lib-sidebar-ver',
+}
+
+/**
  * List of supported custom row's renders
  */
 export enum ETypedRowRenders {
