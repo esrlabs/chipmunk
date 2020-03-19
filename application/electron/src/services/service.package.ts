@@ -6,46 +6,14 @@ import Logger from '../tools/env.logger';
 import ServicePaths from './service.paths';
 
 import { IService } from '../interfaces/interface.service';
-
-export interface IVersions {
-    "electron": string;
-    "electron-rebuild": string;
-    "chipmunk.client.toolkit": string;
-    "chipmunk.plugin.ipc": string;
-    "chipmunk-client-material": string;
-    "angular-core": string;
-    "angular-material": string;
-    "force": string;
-}
-
-export interface IDependencies {
-    "electron": boolean;
-    "electron-rebuild": boolean;
-    "chipmunk.client.toolkit": boolean;
-    "chipmunk.plugin.ipc": boolean;
-    "chipmunk-client-material": boolean;
-    "angular-core": boolean;
-    "angular-material": boolean;
-    "force": boolean;
-}
+import { CommonInterfaces } from '../interfaces/interface.common';
 
 export interface IPackageFile {
     version: string;
     chipmunk: {
-        versions: IVersions;
+        versions: CommonInterfaces.Versions.IVersions;
     };
 }
-
-const CDefaultDependencies: IDependencies = {
-    "electron": true,
-    "electron-rebuild": true,
-    "chipmunk.client.toolkit": true,
-    "chipmunk.plugin.ipc": true,
-    "chipmunk-client-material": true,
-    "angular-core": true,
-    "angular-material": true,
-    "force": true,
-};
 
 /**
  * @class ServicePackage
@@ -93,11 +61,11 @@ export class ServicePackage implements IService {
         return Objects.copy(this._package);
     }
 
-    public getHash(dependencies: IDependencies = CDefaultDependencies): string {
+    public getHash(dependencies: CommonInterfaces.Versions.IDependencies = CommonInterfaces.Versions.CDefaultDependencies): string {
         if (typeof dependencies !== 'object' || dependencies === null) {
-            dependencies = CDefaultDependencies;
+            dependencies = CommonInterfaces.Versions.CDefaultDependencies;
         }
-        const vers: IVersions = (this._package as IPackageFile).chipmunk.versions;
+        const vers: CommonInterfaces.Versions.IVersions = (this._package as IPackageFile).chipmunk.versions;
         const p: { [key: number]: string[] } = {};
         p[1] = dependencies.electron ? vers.electron.split('.') : ['', '', ''];
         p[2] = dependencies["electron-rebuild"] ? vers["electron-rebuild"].split('.') : ['', '', ''];

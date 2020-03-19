@@ -1,4 +1,24 @@
-<!--
-<markdown *ngIf="plugin !== undefined && plugin.readme !== ''" [src]="plugin.readme" (load)="_ng_onLoad($event)" (error)="_ng_onError($event)"></markdown>
--->
+
+
+<mat-tab-group *ngIf="_ng_plugin !== undefined">
+    <mat-tab label="Description">
+        <p class="t-medium color-scheme-0">{{_ng_plugin.name}}@{{_ng_plugin.version}}</p>
+        <markdown [src]="_ng_plugin.readme" (load)="_ng_onLoad($event)" (error)="_ng_onError($event)"></markdown>
+        <div *ngIf="_ng_state === 'pending'" class="pending">
+            <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
+        </div>
+        <p *ngIf="_ng_state === 'error'" class="t-medium color-scheme-error">Fail to load description data due error: {{_ng_error}}</p>
+    </mat-tab>
+    <mat-tab label="Versions">
+        <p class="t-medium color-scheme-1">{{_ng_plugin.name}}@{{_ng_plugin.version}}</p>
+        <table>
+            <tr *ngFor="let dependency of _ng_dependencies">
+                <td class="t-small color-scheme-1">{{dependency.name}}</td>
+                <td class="t-small color-scheme-2">{{dependency.description}}</td>
+                <td class="t-small color-scheme-1">{{dependency.depended ? 'true' : '-'}}</td>
+            </tr>
+        </table>
+    </mat-tab>
+    <mat-tab label="Logs"> logs here </mat-tab>
+</mat-tab-group>
 

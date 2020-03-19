@@ -8,7 +8,7 @@ import * as Tools from '../../tools/index';
 import Logger from '../../tools/env.logger';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
-import ServicePackage, { IDependencies } from '../../services/service.package';
+import ServicePackage from '../../services/service.package';
 
 import GitHubClient, { IReleaseAsset, IReleaseData, GitHubAsset } from '../../tools/env.github.client';
 
@@ -34,7 +34,7 @@ export interface IPluginReleaseInfo {
     phash: string;
     default: boolean;
     signed: boolean;
-    dependencies: IDependencies;
+    dependencies: CommonInterfaces.Versions.IDependencies;
     display_name: string;
     description: string;
     readme: string;
@@ -135,6 +135,7 @@ export default class ControllerPluginStore {
                 readme: plugin.readme,
                 icon: plugin.icon,
                 default: plugin.default,
+                dependencies: plugin.dependencies,
             };
         });
     }

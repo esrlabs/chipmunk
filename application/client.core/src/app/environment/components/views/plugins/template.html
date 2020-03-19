@@ -1,9 +1,9 @@
 <div class="left" [ngStyle]="{'right': _ng_getViewDelimiterPosition()}">
-  <app-views-plugins-list></app-views-plugins-list>
+  <app-views-plugins-list [selected]="_ng_selected"></app-views-plugins-list>
 </div>
 
 <div class="delimiter" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}"></div>
 
 <div class="right" [ngStyle]="{'left': _ng_getViewDelimiterPosition()}">
-
+  <app-views-plugins-details [selected]="_ng_selected"></app-views-plugins-details>
 </div>

@@ -4,35 +4,10 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Inpu
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../../../services/service.electron.ipc';
 import { copyTextToClipboard } from '../../../controller/helpers/clipboard';
-
+import { IDependencyVersion, CDependencies, getDependenciesVersions } from '../../../controller/helpers/versions';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export interface IApplicationVersions {
-    'electron': string;
-    'electron-rebuild': string;
-    'chipmunk.client.toolkit': string;
-    'chipmunk.plugin.ipc': string;
-    'chipmunk-client-material': string;
-    'angular-core': string;
-    'angular-material': string;
-    'force': string;
-}
 
-interface IDependency {
-    name: string;
-    version: string;
-    description: string;
-}
-
-const CDependencies = {
-    'electron': { name: 'Electron', description: 'Electron framework' },
-    'electron-rebuild': { name: 'Electron Rebuild', description: 'Electron rebuild library' },
-    'chipmunk.client.toolkit': { name: 'ToolKit', description: 'Rendering library' },
-    'chipmunk.plugin.ipc': { name: 'IPC', description: 'Chipmunk IPC  communication library' },
-    'chipmunk-client-material': { name: 'Chipmunk Material', description: 'Chipmunk UI library' },
-    'angular-core': { name: 'Angular', description: 'Angular Core' },
-    'angular-material': { name: 'Angular Material', description: 'Angular Material Library' },
-};
 
 const CUrls = {
     repo: 'https://github.com/esrlabs/chipmunk',
@@ -49,7 +24,7 @@ export class TabAboutComponent implements OnDestroy, AfterContentInit {
 
     @Input() public data: IPCMessages.TabCustomAbout;
     public _ng_version: string = '';
-    public _ng_dependencies: IDependency[] = [];
+    public _ng_dependencies: IDependencyVersion[] = [];
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _destroyed: boolean = false;
@@ -59,16 +34,7 @@ export class TabAboutComponent implements OnDestroy, AfterContentInit {
 
     public ngAfterContentInit() {
         this._ng_version = this.data.version;
-        Object.keys(CDependencies).forEach((key: string) => {
-            if (this.data.dependencies[key] === undefined) {
-                return;
-            }
-            this._ng_dependencies.push({
-                name: CDependencies[key].name,
-                description: CDependencies[key].description,
-                version: this.data.dependencies[key],
-            });
-        });
+        this._ng_dependencies = getDependenciesVersions(this.data.dependencies);
     }
 
     public ngOnDestroy() {

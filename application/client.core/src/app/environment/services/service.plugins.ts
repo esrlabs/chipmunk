@@ -16,6 +16,7 @@ import PluginsIPCService from './service.plugins.ipc';
 import OutputParsersService from './standalone/service.output.parsers';
 import SelectionParsersService from './standalone/service.selection.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
+import ControllerPluginsManager from '../controller/controller.plugins.manager';
 
 export type TRowParser = (str: string) => string;
 
@@ -56,9 +57,11 @@ export class PluginsService extends Toolkit.Emitter implements IService {
     private _idsCache: { [key: number]: IPluginData } = {};
     private _factories: AngularCore.ComponentFactory<any>[] = [];
     private _getPluginAPIByID?: (pluginId: number) => IAPI;
+    private _manager: ControllerPluginsManager;
 
     constructor() {
         super();
+        this._manager = new ControllerPluginsManager();
         this._subscriptions.mountPlugin = ElectronIpcService.subscribe(IPCMessages.RenderMountPlugin, this._ipc_onRenderMountPlugin.bind(this));
     }
 
@@ -81,6 +84,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        this._manager.destroy();
     }
 
     public getPlugin(name: string): IPluginData | undefined {
@@ -144,24 +148,8 @@ export class PluginsService extends Toolkit.Emitter implements IService {
         return Array.from(this._plugins.values());
     }
 
-    public getInstalledPluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
-        return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.PluginsInstalledRequest(), IPCMessages.PluginsInstalledResponse).then((message: IPCMessages.PluginsInstalledResponse) => {
-                resolve(message.plugins instanceof Array ? message.plugins : []);
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail request list of installed plugins due error: ${error.message}`);
-            });
-        });
-    }
-
-    public getAvailablePluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
-        return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.PluginsStoreAvailableRequest(), IPCMessages.PluginsStoreAvailableResponse).then((message: IPCMessages.PluginsStoreAvailableResponse) => {
-                resolve(message.plugins instanceof Array ? message.plugins : []);
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail request list of installed plugins due error: ${error.message}`);
-            });
-        });
+    public getManager(): ControllerPluginsManager {
+        return this._manager;
     }
 
     private _fire(event: string, ...args: any) {

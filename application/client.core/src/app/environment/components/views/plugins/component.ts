@@ -1,21 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
-import { FiltersStorage, FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
-import { ChartsStorage, ChartRequest } from '../../../controller/controller.session.tab.search.charts.storage';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
-import { rankedNumberAsString } from '../../../controller/helpers/ranks';
-import { map, startWith } from 'rxjs/operators';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
-
-import TabsSessionsService from '../../../services/service.sessions.tabs';
-import HotkeysService from '../../../services/service.hotkeys';
-import SidebarSessionsService from '../../../services/service.sessions.sidebar';
-import LayoutStateService from '../../../services/standalone/service.layout.state';
-
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPlugin } from '../../../controller/controller.plugins.manager';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -34,6 +21,7 @@ export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterCont
     @Input() public getDefaultsTabGuids: () => { charts: string };
     @Input() public onTitleContextMenu: Observable<MouseEvent>;
 
+    public _ng_selected: Subject<IPlugin> = new Subject<IPlugin>();
     public _ng_recent: Observable<string[]>;
     public _ng_flags: {
         casesensitive: boolean,

@@ -1,10 +1,10 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { CommonInterfaces } from '../../../../interfaces/interface.common';
-import { IPlugin } from './plugin/component';
 import { FormControl } from '@angular/forms';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
+import { EManagerState, IPlugin } from '../../../../controller/controller.plugins.manager';
 
 import PluginsService from '../../../../services/service.plugins';
 
@@ -19,46 +19,27 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
+    @Input() public selected: Subject<IPlugin> = new Subject();
+
     public _ng_plugins: IPlugin[] = [];
     public _ng_searchInputCtrl = new FormControl();
+    public _ng_state: EManagerState = EManagerState.pending;
+    public _ng_selected: string | undefined;
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewPluginsListComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+    constructor(private _cdRef: ChangeDetectorRef) {
 
     }
 
     ngAfterViewInit() {
-        Promise.all([
-            PluginsService.getInstalledPluginsInfo().catch((error: Error) => {
-                this._logger.warn(`Fail get list of installed plugins due error: ${error.message}`);
-                return Promise.resolve([]);
-            }),
-            PluginsService.getAvailablePluginsInfo().catch((error: Error) => {
-                this._logger.warn(`Fail get list of available plugins due error: ${error.message}`);
-                return Promise.resolve([]);
-            }),
-        ]).then((results: Array<CommonInterfaces.Plugins.IPlugin[]>) => {
-            const installed: CommonInterfaces.Plugins.IPlugin[] = results[0];
-            const available: CommonInterfaces.Plugins.IPlugin[] = results[1];
-            this._ng_plugins = available.map((p: CommonInterfaces.Plugins.IPlugin) => {
-                (p as IPlugin).installed = false;
-                installed.forEach((plugin: CommonInterfaces.Plugins.IPlugin) => {
-                    if (p.name === plugin.name) {
-                        p = plugin;
-                        (p as IPlugin).installed = true;
-                    }
-                });
-                return p as IPlugin;
-            });
-            this._ng_plugins.sort((a) => {
-                return a.installed ? -1 : 1;
-            });
-            this._forceUpdate();
-        });
+        if (PluginsService.getManager().getState() === EManagerState.pending) {
+            this._subscriptions.onPluginsManagerReady = PluginsService.getManager().getObservable().ready.subscribe(this._getPluginsList.bind(this));
+        } else {
+            this._getPluginsList();
+        }
     }
 
     ngAfterContentInit() {
@@ -71,6 +52,18 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
             this._subscriptions[key].unsubscribe();
         });
     }
+
+    public _ng_onClick(plugin: IPlugin) {
+        this._ng_selected = plugin.name;
+        this.selected.next(plugin);
+        this._forceUpdate();
+    }
+
+    private _getPluginsList() {
+        this._ng_plugins = PluginsService.getManager().getPlugins();
+        this._ng_state = EManagerState.ready;
+        this._forceUpdate();
+    }
 
     private _forceUpdate() {
         if (this._destroyed) {
