@@ -1,3 +1,5 @@
+import { IDependencies } from './interface.versions';
+
 export interface IPlugin {
     name: string;                   
     url: string;                    
@@ -7,5 +9,6 @@ export interface IPlugin {
     description: string;            
     readme: string;
     icon: string;
-    default: boolean;        
+    default: boolean;
+    dependencies: IDependencies;
 }

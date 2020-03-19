@@ -357,6 +357,7 @@ export default class ControllerPluginsStorage {
                 readme: info.readme,
                 icon: info.icon,
                 default: this._store.isDefault(info.name),
+                dependencies: info.dependencies,
             };
         }).filter((data: CommonInterfaces.Plugins.IPlugin | null) => {
             return data !== null;

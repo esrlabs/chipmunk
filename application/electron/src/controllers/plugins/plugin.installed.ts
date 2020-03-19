@@ -14,24 +14,26 @@ import ControllerPluginProcess, { TConnectionFactory } from './plugin.controller
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
-import ServicePackage, { IDependencies } from '../../services/service.package';
+import ServicePackage from '../../services/service.package';
+
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export { IPackageJson, TConnectionFactory };
 
 export type TPluginName = string;
 
 export interface IInstalledPluginInfo {
-    name: string;                   // Included into "info.json"
-    url: string;                    // Included into "info.json"
-    file: string;                   // Included into "info.json"
-    version: string;                // Included into "info.json"
-    hash: string;                   // Included into "info.json"
-    phash: string;                  // Included into "info.json"
-    dependencies: IDependencies;    // Included into "info.json"
-    display_name: string;           // Included into "info.json"
-    description: string;            // Included into "info.json"
-    readme: string;                 // Included into "info.json"
-    icon: string;                   // Included into "info.json"
+    name: string;                                               // Included into "info.json"
+    url: string;                                                // Included into "info.json"
+    file: string;                                               // Included into "info.json"
+    version: string;                                            // Included into "info.json"
+    hash: string;                                               // Included into "info.json"
+    phash: string;                                              // Included into "info.json"
+    dependencies: CommonInterfaces.Versions.IDependencies;      // Included into "info.json"
+    display_name: string;                                       // Included into "info.json"
+    description: string;                                        // Included into "info.json"
+    readme: string;                                             // Included into "info.json"
+    icon: string;                                               // Included into "info.json"
     package: {
         render: ControllerPluginPackage | undefined;
         process: ControllerPluginPackage | undefined;

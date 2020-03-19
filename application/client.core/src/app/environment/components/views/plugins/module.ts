@@ -1,6 +1,7 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 import { ScrollingModule                        } from '@angular/cdk/scrolling';
+import { HttpClientModule, HttpClient           } from '@angular/common/http';
 
 import { ViewPluginsComponent                   } from './component';
 import { ViewPluginsListComponent               } from './list/component';
@@ -20,9 +21,12 @@ import { MatFormField, MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTabsModule } from '@angular/material/tabs';
+
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
+import { MarkdownModule } from 'ngx-markdown';
 
 const entryComponents = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent, ViewPluginsDetailsComponent, MatFormField, MatAutocomplete ];
 const components = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent, ViewPluginsDetailsComponent ];
@@ -44,7 +48,9 @@ const components = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPlugins
         MatButtonModule,
         AppDirectiviesModule,
         MatProgressSpinnerModule,
-        MatProgressBarModule
+        MatProgressBarModule,
+        MatTabsModule,
+        MarkdownModule.forRoot({ loader: HttpClient }),
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]

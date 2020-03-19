@@ -4,6 +4,7 @@ import { AppComponent                           } from './app.component';
 import { EnvironmentModule                      } from './environment/module';
 import { BrowserAnimationsModule                } from '@angular/platform-browser/animations';
 import { MatNativeDateModule                    } from '@angular/material/core';
+import { HttpClientModule, HttpClient           } from '@angular/common/http';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
@@ -18,6 +19,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSliderModule } from '@angular/material/slider';
+import { MarkdownModule } from 'ngx-markdown';
 
 export function createCompiler(fn: CompilerFactory): Compiler {
     return fn.createCompiler();
@@ -40,6 +42,8 @@ export function createCompiler(fn: CompilerFactory): Compiler {
         MatOptionModule,
         MatProgressBarModule,
         BrowserAnimationsModule,
+        HttpClientModule,
+        MarkdownModule.forRoot({ loader: HttpClient }),
     ],
     providers: [
         {

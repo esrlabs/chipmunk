@@ -1,4 +1,4 @@
-<div class="search">
+<div *ngIf="_ng_state === 'ready'" class="search">
     <div class="comstyle-input-holder search-input-wrapper">
       <div>
         <mat-form-field class="recent-requests outline regular" appearance="outline">
@@ -14,8 +14,12 @@
       </div>
     </div>
 </div>
-<div class="list">
+<div *ngIf="_ng_state === 'ready'" class="list">
     <cdk-virtual-scroll-viewport itemSize="50">
-        <app-views-plugin [plugin]="plugin" *cdkVirtualFor="let plugin of _ng_plugins" class="example-item"></app-views-plugin>
+        <app-views-plugin [plugin]="plugin" [selected]="_ng_selected === plugin.name" (click)="_ng_onClick(plugin)" *cdkVirtualFor="let plugin of _ng_plugins" class="example-item"></app-views-plugin>
     </cdk-virtual-scroll-viewport>
+</div>
+
+<div *ngIf="_ng_state === 'pending'" class="pending">
+  <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
 </div>

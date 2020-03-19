@@ -118,27 +118,33 @@ export class ServicePlugins implements IService {
         }).catch((error: Error) => {
             this._logger.env(`Fail to update plugin's state from remote store due error: ${error.message}`);
         }).finally(() => {
-            if (!this._storage.hasToBeUpdatedOrInstalled()) {
-                this._logger.debug(`No need to update or install plugins`);
-                return;
-            }
-            this._storage.predownload();
-            this._logger.debug(`Same plugins has to be updated or installed`);
-            ServiceRenderState.do('ServicePlugins: NotifyRenderPluginsUpdate', () => {
-                ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
-                    caption: `Plugins`,
-                    message: `Some plugins should be updated or installed. It requares restarting of chipmunk.`,
-                    type: ServiceElectron.IPCMessages.Notification.Types.info,
-                    session: '*',
-                    actions: [
-                        {
-                            type: ServiceElectron.IPCMessages.ENotificationActionType.ipc,
-                            value: 'PluginsUpdate',
-                            caption: 'Restart Now',
-                        },
-                    ],
-                })).catch((error: Error) => {
-                    this._logger.warn(`Fail send Notification due error: ${error.message}`);
+            ServiceElectron.IPC.send(new IPCMessages.PluginsDataReady()).then(() => {
+                this._logger.env(`Notification about plugins data state was sent to render`);
+            }).catch((notifyErr: Error) => {
+                this._logger.warn(`Fail to notify render about plugins data state due error: ${notifyErr.message}`);
+            }).finally(() => {
+                if (!this._storage.hasToBeUpdatedOrInstalled()) {
+                    this._logger.debug(`No need to update or install plugins`);
+                    return;
+                }
+                this._storage.predownload();
+                this._logger.debug(`Same plugins has to be updated or installed`);
+                ServiceRenderState.do('ServicePlugins: NotifyRenderPluginsUpdate', () => {
+                    ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.Notification({
+                        caption: `Plugins`,
+                        message: `Some plugins should be updated or installed. It requares restarting of chipmunk.`,
+                        type: ServiceElectron.IPCMessages.Notification.Types.info,
+                        session: '*',
+                        actions: [
+                            {
+                                type: ServiceElectron.IPCMessages.ENotificationActionType.ipc,
+                                value: 'PluginsUpdate',
+                                caption: 'Restart Now',
+                            },
+                        ],
+                    })).catch((error: Error) => {
+                        this._logger.warn(`Fail send Notification due error: ${error.message}`);
+                    });
                 });
             });
         });
