@@ -7,6 +7,8 @@ import * as semver from 'semver';
 import * as Tools from '../../tools/index';
 
 import Logger from '../../tools/env.logger';
+import LogsService from '../../tools/env.logger.service';
+
 import ControllerPluginPackage, { IPackageJson } from './plugin.package';
 import ControllerPluginStore, { IPluginReleaseInfo } from './plugins.store';
 import ControllerPluginRender from './plugin.controller.render';
@@ -15,7 +17,9 @@ import ControllerIPCPlugin from './plugin.process.ipc';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
 import ServicePackage from '../../services/service.package';
+import ServiceElectron from '../../services/service.electron';
 
+import { IPCMessages } from '../../services/service.electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export { IPackageJson, TConnectionFactory };
@@ -60,16 +64,25 @@ export default class ControllerPluginInstalled {
     private _store: ControllerPluginStore;
     private _token: string = Tools.guid();
     private _id: number = Tools.sequence();
+    private _subscriptions: { [key: string]: Tools.Subscription } = {};
 
     constructor(_name: string, _path: string, store: ControllerPluginStore) {
         this._name = _name;
         this._path = _path;
         this._store = store;
         this._logger = new Logger(`ControllerPluginInstalled (${this._path})`);
+        ServiceElectron.IPC.subscribe(IPCMessages.PluginsLogsRequest, this._ipc_PluginsLogsRequest.bind(this)).then((subscription: Tools.Subscription) => {
+            this._subscriptions.PluginsLogsRequest = subscription;
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to subscribe on PluginsLogsRequest`);
+        });
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
+            });
             if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
                 return resolve();
             }
@@ -499,6 +512,18 @@ export default class ControllerPluginInstalled {
             }).catch((initErr: Error) => {
                 reject(initErr);
             });
+        });
+    }
+
+    private _ipc_PluginsLogsRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const msg: IPCMessages.PluginsLogsRequest = request as IPCMessages.PluginsLogsRequest;
+        if (msg.name !== this._name) {
+            return;
+        }
+        response(new IPCMessages.PluginsLogsResponse({
+            logs: LogsService.getStored(this._token),
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail delivery log for plugin due error: ${error.message}`);
         });
     }
 

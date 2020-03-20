@@ -96,6 +96,5 @@ class DefaultsPlugins
       File.write "#{dest}/#{file_name}", open(r['browser_download_url']).read
     end
   end
-
-
+  
 end

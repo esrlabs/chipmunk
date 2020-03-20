@@ -176,6 +176,11 @@ class Service {
         const stored: string | undefined = this._stored.get(key);
         this._stored.set(key, (stored !== undefined ? stored : '') + msg);
     }
+
+    public getStored(key: string): string {
+        const stored: string | undefined = this._stored.get(key);
+        return stored === undefined ? '' : stored;
+    }
 }
 
 export default new Service();
