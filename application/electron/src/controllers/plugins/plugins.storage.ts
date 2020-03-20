@@ -8,7 +8,7 @@ import ServiceElectronService from '../../services/service.electron.state';
 import ServiceEnv from '../../services/service.env';
 
 import InstalledPlugin, { TConnectionFactory, IInstalledPluginInfo } from './plugin.installed';
-import ControllerPluginStore, { IPluginReleaseInfo } from './plugins.store';
+import ControllerPluginStore from './plugins.store';
 
 import { IPCMessages } from '../../services/service.electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
@@ -209,7 +209,7 @@ export default class ControllerPluginsStorage {
 
     public hasToBeUpdatedOrInstalled(): boolean {
         // Step 1. Check is all defaults plugins are installed or not
-        const required: IPluginReleaseInfo[] = this._getRequiredDefaults();
+        const required: CommonInterfaces.Plugins.IPlugin[] = this._getRequiredDefaults();
         if (required.length > 0) {
             return true;
         }
@@ -260,7 +260,7 @@ export default class ControllerPluginsStorage {
                 this._logger.debug(`Checking defaults plugins is skipped because envvar CHIPMUNK_PLUGINS_NO_DEFAULTS is true`);
                 return resolve();
             }
-            const required: IPluginReleaseInfo[] = this._getRequiredDefaults();
+            const required: CommonInterfaces.Plugins.IPlugin[] = this._getRequiredDefaults();
             if (required.length === 0) {
                 return resolve();
             }
@@ -278,9 +278,9 @@ export default class ControllerPluginsStorage {
             if (this._installing.size === 0) {
                 resolve();
             }
-            const pedning: IPluginReleaseInfo[] = [];
+            const pedning: CommonInterfaces.Plugins.IPlugin[] = [];
             this._installing.forEach((name: string) => {
-                const plugin: IPluginReleaseInfo | undefined = this._store.getInfo(name);
+                const plugin: CommonInterfaces.Plugins.IPlugin | undefined = this._store.getInfo(name);
                 if (plugin === undefined) {
                     this._logger.warn(`Fail find info for plugin "${name}" in store`);
                 } else {
@@ -343,24 +343,9 @@ export default class ControllerPluginsStorage {
 
     public getInstalled(): CommonInterfaces.Plugins.IPlugin[] {
         return Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
-            const info: IInstalledPluginInfo | undefined = plugin.getInfo();
-            if (info === undefined) {
-                return null;
-            }
-            return {
-                name: info.name,
-                url: info.url,
-                file: info.file,
-                version: info.version,
-                display_name: info.display_name,
-                description: info.description,
-                readme: info.readme,
-                icon: info.icon,
-                default: this._store.isDefault(info.name),
-                dependencies: info.dependencies,
-            };
-        }).filter((data: CommonInterfaces.Plugins.IPlugin | null) => {
-            return data !== null;
+            return plugin.getInfo();
+        }).filter((data: CommonInterfaces.Plugins.IPlugin | undefined) => {
+            return data !== undefined;
         }) as CommonInterfaces.Plugins.IPlugin[];
     }
 
@@ -370,9 +355,9 @@ export default class ControllerPluginsStorage {
         }).join('\n')}`);
     }
 
-    private _install(plugins: IPluginReleaseInfo[]): Promise<void> {
+    private _install(plugins: CommonInterfaces.Plugins.IPlugin[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            Promise.all(plugins.map((info: IPluginReleaseInfo) => {
+            Promise.all(plugins.map((info: CommonInterfaces.Plugins.IPlugin) => {
                 const plugin: InstalledPlugin = new InstalledPlugin(info.name, path.resolve(ServicePaths.getPlugins(), info.name), this._store);
                 return plugin.install().then(() => {
                     this._plugins.set(info.name, plugin);
@@ -408,7 +393,7 @@ export default class ControllerPluginsStorage {
         this._plugins.delete(plugin.getName());
     }
 
-    private _getRequiredDefaults(): IPluginReleaseInfo[] {
+    private _getRequiredDefaults(): CommonInterfaces.Plugins.IPlugin[] {
         const installed: string[] = Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
             return plugin.getName();
         }).filter((name: string | undefined) => {
