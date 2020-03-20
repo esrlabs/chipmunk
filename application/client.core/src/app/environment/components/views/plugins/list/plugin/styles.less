@@ -7,7 +7,15 @@
     display: block;
     cursor: default;
     &.selected{
-        background: @scheme-color-6;
+        &:after {
+            position: absolute;
+            content: '';
+            left:0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: @scheme-color-accent;
+        }
     }
     &:hover{
         background: @scheme-color-4;

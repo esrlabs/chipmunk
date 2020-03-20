@@ -89,6 +89,27 @@ export default class ControllerPluginsManager {
         });
     }
 
+    public getLogs(name: string): Promise<string[]> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.PluginsLogsRequest({
+                name: name
+            }), IPCMessages.PluginsLogsResponse).then((response: IPCMessages.PluginsLogsResponse) => {
+                if (typeof response.error === 'string') {
+                    this._logger.error(`Fail to get plugin's logs due error: ${response.error}`);
+                    return reject(new Error(response.error));
+                }
+                if (response.logs.trim() === '') {
+                    resolve([]);
+                } else {
+                    resolve(response.logs.split(/[\n\r]/gi));
+                }
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to request logs of plugin due error: ${error.message}`);
+                reject(error);
+            });
+        });
+    }
+
     public restart(): Promise<void> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.AppRestartRequest(), IPCMessages.AppRestartResponse).then((response: IPCMessages.AppRestartResponse) => {

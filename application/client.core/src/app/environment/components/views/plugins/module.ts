@@ -7,6 +7,7 @@ import { ViewPluginsComponent                   } from './component';
 import { ViewPluginsListComponent               } from './list/component';
 import { ViewPluginsPluginComponent             } from './list/plugin/component';
 import { ViewPluginsDetailsComponent            } from './details/component';
+import { ViewPluginsDetailsLogsComponent        } from './details/logs/component';
 
 import {
     ComplexModule,
@@ -22,14 +23,29 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatExpansionModule } from '@angular/material/expansion';
 
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
 
-const entryComponents = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent, ViewPluginsDetailsComponent, MatFormField, MatAutocomplete ];
-const components = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPluginsPluginComponent, ViewPluginsDetailsComponent ];
+const entryComponents = [
+    ViewPluginsComponent,
+    ViewPluginsListComponent,
+    ViewPluginsPluginComponent,
+    ViewPluginsDetailsComponent,
+    ViewPluginsDetailsLogsComponent,
+    MatFormField,
+    MatAutocomplete
+];
+const components = [
+    ViewPluginsComponent,
+    ViewPluginsListComponent,
+    ViewPluginsPluginComponent,
+    ViewPluginsDetailsComponent,
+    ViewPluginsDetailsLogsComponent
+];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],
@@ -50,6 +66,7 @@ const components = [ ViewPluginsComponent, ViewPluginsListComponent, ViewPlugins
         MatProgressSpinnerModule,
         MatProgressBarModule,
         MatTabsModule,
+        MatExpansionModule,
         MarkdownModule.forRoot({ loader: HttpClient }),
     ],
     declarations    : [ ...components ],

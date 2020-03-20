@@ -58,6 +58,12 @@ export { IPluginsUninstallResponse, PluginsUninstallResponse };
 import { PluginsDataReady } from './plugins.data.ready';
 export { PluginsDataReady };
 
+import { IPluginsLogsRequest, PluginsLogsRequest } from './plugins.logs.request';
+export { IPluginsLogsRequest, PluginsLogsRequest };
+
+import { IPluginsLogsResponse, PluginsLogsResponse } from './plugins.logs.response';
+export { IPluginsLogsResponse, PluginsLogsResponse };
+
 import { IStreamAddRequest, StreamAddRequest } from './stream.add.request';
 export { IStreamAddRequest, StreamAddRequest };
 
@@ -370,6 +376,8 @@ export type TMessage =  AppRestartRequest |
                         PluginsUninstallRequest |
                         PluginsUninstallResponse |
                         PluginsDataReady |
+                        PluginsLogsRequest |
+                        PluginsLogsResponse |
                         StreamSetActive |
                         StreamAddRequest |
                         StreamAddResponse |
@@ -494,6 +502,8 @@ export const Map = {
     [PluginsUninstallRequest.signature          ]: PluginsUninstallRequest,
     [PluginsUninstallResponse.signature         ]: PluginsUninstallResponse,
     [PluginsDataReady.signature                 ]: PluginsDataReady,
+    [PluginsLogsRequest.signature               ]: PluginsLogsRequest,
+    [PluginsLogsResponse.signature              ]: PluginsLogsResponse,
 
     [StreamSetActive.signature                  ]: StreamSetActive,
     [StreamAddRequest.signature                 ]: StreamAddRequest,

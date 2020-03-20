@@ -2,23 +2,50 @@
 
 <mat-tab-group *ngIf="_ng_plugin !== undefined">
     <mat-tab label="Description">
-        <p class="t-medium color-scheme-0">{{_ng_plugin.name}}@{{_ng_plugin.version}}</p>
+        <div class="controlls">
+            <div class="name">
+                <p class="t-medium color-scheme-1">{{_ng_plugin.name}}@{{_ng_plugin.version}}</p>
+            </div>
+            <div class="buttons">
+                <button *ngIf="_ng_state.plugin === 'working'" mat-stroked-button color="primary" (click)="_ng_onRestartPlugin()">
+                    <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
+                </button>
+                <button *ngIf="_ng_state.plugin === 'restart'" mat-stroked-button color="primary" (click)="_ng_onRestartPlugin()">restart</button>
+                <button *ngIf="_ng_state.plugin === 'installed'" mat-stroked-button color="primary" (click)="_ng_onInstallPlugin()">Uninstall</button>             
+                <button *ngIf="_ng_state.plugin === 'notinstalled'" mat-stroked-button color="primary" (click)="_ng_onUninstallPlugin()">Install</button>
+            </div>
+        </div>
+        <mat-expansion-panel *ngIf="_ng_error !== undefined" [expanded]="false">
+            <mat-expansion-panel-header>
+                <mat-panel-title>
+                    <span class="color-scheme-warning">Error</span>
+                </mat-panel-title>
+            </mat-expansion-panel-header>
+            <p class="t-medium">{{_ng_error}}</p>
+        </mat-expansion-panel>
         <markdown [src]="_ng_plugin.readme" (load)="_ng_onLoad($event)" (error)="_ng_onError($event)"></markdown>
-        <div *ngIf="_ng_state === 'pending'" class="pending">
+        <div *ngIf="_ng_state.readme === 'pending'" class="pending">
             <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
         </div>
-        <p *ngIf="_ng_state === 'error'" class="t-medium color-scheme-error">Fail to load description data due error: {{_ng_error}}</p>
     </mat-tab>
-    <mat-tab label="Versions">
-        <p class="t-medium color-scheme-1">{{_ng_plugin.name}}@{{_ng_plugin.version}}</p>
-        <table>
-            <tr *ngFor="let dependency of _ng_dependencies">
-                <td class="t-small color-scheme-1">{{dependency.name}}</td>
-                <td class="t-small color-scheme-2">{{dependency.description}}</td>
-                <td class="t-small color-scheme-1">{{dependency.depended ? 'true' : '-'}}</td>
-            </tr>
-        </table>
+    <mat-tab label="Dependencies">
+        <div class="align">
+            <span class="splitter"></span>
+            <p class="t-medium color-scheme-1">{{_ng_plugin.name}}@{{_ng_plugin.version}}</p>
+            <span class="splitter"></span>
+            <p class="t-small color-scheme-2">The next list reflected a list of dependencies of the plugin. If plugin depends on not many libraries/modules it will be able to work on many versions of a chipmunk.</p>
+            <span class="splitter"></span>
+            <table>
+                <tr *ngFor="let dependency of _ng_dependencies">
+                    <td class="t-small color-scheme-1">{{dependency.name}}</td>
+                    <td class="t-small color-scheme-2">{{dependency.description}}</td>
+                    <td class="t-small color-scheme-1">{{dependency.depended ? 'true' : '-'}}</td>
+                </tr>
+            </table>
+        </div>
     </mat-tab>
-    <mat-tab label="Logs"> logs here </mat-tab>
+    <mat-tab *ngIf="_ng_state.plugin === 'installed'" label="Logs">
+        <app-views-plugins-details-logs [plugin]="_ng_plugin"></app-views-plugins-details-logs>
+    </mat-tab>
 </mat-tab-group>
 

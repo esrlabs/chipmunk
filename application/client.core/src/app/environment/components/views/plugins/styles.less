@@ -30,6 +30,32 @@ app-views-plugins {
         margin-left: -4px;
         width: 8px;
         cursor: ew-resize;
+        &:after{
+            position: absolute;
+            display: none;
+            content: '';
+            width: 2px;
+            left: 3px;
+            top: 0; 
+            bottom: 0;
+            background: repeating-linear-gradient(
+                 45deg,
+                 @scheme-color-3,
+                 @scheme-color-3 2px,
+                 @scheme-color-4 2px,
+                 @scheme-color-4 4px
+             );
+        }
+        &:hover{
+            &:after{
+                display: block;
+            }
+        }
+        &.dragging{
+            &:after{
+                display: block;
+            }
+        }
     }
 
 }

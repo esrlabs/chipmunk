@@ -46,7 +46,6 @@ export default class ControllerPluginProcessMultiple extends Emitter {
     private _ipc: ControllerIPCPlugin | undefined;
     private _connection: IConnection | undefined;
     private _stderr: string = '';
-    private _logKey: string = Tools.guid();
     private _rejector?: (error: Error) => void;
     private _resolver?: () => void;
 
@@ -225,7 +224,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
      */
     private _onSTDOut(chunk: Buffer): void {
         const str: string = chunk.toString();
-        this._logger.save(this._logKey, str);
+        this._logger.save(this._opt.token, str);
         this.emit(ControllerPluginProcessMultiple.Events.output);
     }
 
@@ -235,7 +234,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
      */
     private _onSTDErr(chunk: Buffer): void {
         const str: string = chunk.toString();
-        this._logger.save(this._logKey, str);
+        this._logger.save(this._opt.token, str);
         this._stderr += str;
     }
 
