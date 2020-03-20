@@ -15,6 +15,7 @@ import GitHubClient, { IReleaseAsset, IReleaseData, GitHubAsset } from '../../to
 import { getPlatform, EPlatforms } from '../../tools/env.os';
 import { download } from '../../tools/env.net';
 import { CommonInterfaces } from '../../interfaces/interface.common';
+import { getValidPluginReleaseInfo } from './plugins.validator';
 
 const CSettings: {
     user: string,
@@ -26,22 +27,6 @@ const CSettings: {
     registerListFile: 'releases-{platform}.json',
 };
 
-export interface IPluginReleaseInfo {
-    name: string;
-    url: string;
-    version: string;
-    hash: string;
-    phash: string;
-    default: boolean;
-    signed: boolean;
-    dependencies: CommonInterfaces.Versions.IDependencies;
-    display_name: string;
-    description: string;
-    readme: string;
-    icon: string;
-    file: string;
-}
-
 /**
  * @class ControllerPluginStore
  * @description Delivery default plugins into logviewer folder
@@ -50,13 +35,13 @@ export interface IPluginReleaseInfo {
 export default class ControllerPluginStore {
 
     private _logger: Logger = new Logger(`ControllerPluginStore ("${CSettings.user}/${CSettings.repo}")`);
-    private _remote: Map<string, IPluginReleaseInfo> | undefined = undefined;
-    private _local: Map<string, IPluginReleaseInfo> = new Map();
+    private _remote: Map<string, CommonInterfaces.Plugins.IPlugin> | undefined = undefined;
+    private _local: Map<string, CommonInterfaces.Plugins.IPlugin> = new Map();
     private _downloads: Map<string, boolean> = new Map();
 
     public local(): Promise<void> {
         return new Promise((resolve) => {
-            this._getLocal().then((plugins: Map<string, IPluginReleaseInfo>) => {
+            this._setupLocalReleaseNotes().then((plugins: Map<string, CommonInterfaces.Plugins.IPlugin>) => {
                 this._local = plugins;
                 resolve();
             }).catch((error: Error) => {
@@ -68,7 +53,7 @@ export default class ControllerPluginStore {
 
     public remote(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._getRemote().then((plugins: Map<string, IPluginReleaseInfo>) => {
+            this._setupRemoteReleaseNotes().then((plugins: Map<string, CommonInterfaces.Plugins.IPlugin>) => {
                 this._remote = plugins;
                 resolve();
             }).catch((error: Error) => {
@@ -78,7 +63,7 @@ export default class ControllerPluginStore {
         });
     }
 
-    public getInfo(name: string): IPluginReleaseInfo | undefined {
+    public getInfo(name: string): CommonInterfaces.Plugins.IPlugin | undefined {
         return this._remote === undefined ? this._local.get(name) : this._remote.get(name);
     }
 
@@ -86,7 +71,7 @@ export default class ControllerPluginStore {
         return new Promise((resolve, reject) => {
             ServiceElectronService.logStateToRender(`Downloading plugin "${name}"...`);
             // Check plugin info
-            const plugin: IPluginReleaseInfo | undefined = this.getInfo(name);
+            const plugin: CommonInterfaces.Plugins.IPlugin | undefined = this.getInfo(name);
             if (plugin === undefined) {
                 return reject(new Error(this._logger.warn(`Plugin "${name}" isn't found.`)));
             }
@@ -98,21 +83,21 @@ export default class ControllerPluginStore {
         });
     }
 
-    public getDefaults(exclude: string[]): IPluginReleaseInfo[] {
-        return Array.from(this.getRegister().values()).filter((plugin: IPluginReleaseInfo) => {
+    public getDefaults(exclude: string[]): CommonInterfaces.Plugins.IPlugin[] {
+        return Array.from(this.getRegister().values()).filter((plugin: CommonInterfaces.Plugins.IPlugin) => {
             if (plugin.hash !== ServicePackage.getHash()) {
                 this._logger.warn(`Default plugin "${plugin.name}" could not be installed, because hash dismatch.\n\t- plugin hash: ${plugin.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
                 return false;
             }
             return true;
-        }).filter((plugin: IPluginReleaseInfo) => {
+        }).filter((plugin: CommonInterfaces.Plugins.IPlugin) => {
             return exclude.indexOf(plugin.name) === -1 && plugin.default;
         });
     }
 
     public isDefault(name: string): boolean {
         let defaults: boolean = false;
-        Array.from(this.getRegister().values()).filter((plugin: IPluginReleaseInfo) => {
+        Array.from(this.getRegister().values()).filter((plugin: CommonInterfaces.Plugins.IPlugin) => {
             if (defaults) {
                 return;
             }
@@ -124,29 +109,26 @@ export default class ControllerPluginStore {
     }
 
     public getAvailable(): CommonInterfaces.Plugins.IPlugin[] {
-        return Array.from(this.getRegister().values()).map((plugin: IPluginReleaseInfo) => {
-            return {
-                name: plugin.name,
-                url: plugin.url,
-                file: plugin.file,
-                version: plugin.version,
-                display_name: plugin.display_name,
-                description: plugin.description,
-                readme: plugin.readme,
-                icon: plugin.icon,
-                default: plugin.default,
-                dependencies: plugin.dependencies,
-            };
+        return Array.from(this.getRegister().values()).map((plugin: CommonInterfaces.Plugins.IPlugin) => {
+            return Object.assign({}, plugin);
         });
     }
 
-    public getRegister(): Map<string, IPluginReleaseInfo> {
+    public getSuitableVersions(name: string): CommonInterfaces.Plugins.IHistory[] {
+        const plugin: CommonInterfaces.Plugins.IPlugin | undefined = this.getPluginReleaseInfo(name);
+        if (plugin === undefined) {
+            return [];
+        }
+        return [];
+    }
+
+    public getRegister(): Map<string, CommonInterfaces.Plugins.IPlugin> {
         return this._remote === undefined ? this._local : this._remote;
     }
 
     public delivery(name: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            const plugin: IPluginReleaseInfo | undefined = this.getRegister().get(name);
+            const plugin: CommonInterfaces.Plugins.IPlugin | undefined = this.getRegister().get(name);
             if (plugin === undefined) {
                 return reject(new Error(`Fail to find plugin in register`));
             }
@@ -184,7 +166,12 @@ export default class ControllerPluginStore {
         });
     }
 
-    private _findLocally(plugin: IPluginReleaseInfo): Promise<string> {
+    public getPluginReleaseInfo(name: string): CommonInterfaces.Plugins.IPlugin | undefined {
+        const register: Map<string, CommonInterfaces.Plugins.IPlugin> = this.getRegister();
+        return register.get(name);
+    }
+
+    private _findLocally(plugin: CommonInterfaces.Plugins.IPlugin): Promise<string> {
         return new Promise((resolve, reject) => {
             this._findIn(plugin, 'includes').then((filename: string) => {
                 resolve(filename);
@@ -200,7 +187,7 @@ export default class ControllerPluginStore {
         });
     }
 
-    private _findIn(plugin: IPluginReleaseInfo, source: 'includes' | 'downloads'): Promise<string> {
+    private _findIn(plugin: CommonInterfaces.Plugins.IPlugin, source: 'includes' | 'downloads'): Promise<string> {
         return new Promise((resolve, reject) => {
             const folder: string = source === 'includes' ? ServicePaths.getIncludedPlugins() : ServicePaths.getDownloads();
             const filename: string = path.resolve(folder, plugin.file);
@@ -215,7 +202,7 @@ export default class ControllerPluginStore {
         });
     }
 
-    private _getRemote(): Promise<Map<string, IPluginReleaseInfo>> {
+    private _setupRemoteReleaseNotes(): Promise<Map<string, CommonInterfaces.Plugins.IPlugin>> {
         return new Promise((resolve, reject) => {
             ServiceElectronService.logStateToRender(`Getting plugin's store state.`);
             GitHubClient.getLatestRelease({ user: CSettings.user, repo: CSettings.repo }).then((release: IReleaseData) => {
@@ -229,13 +216,18 @@ export default class ControllerPluginStore {
                 }
                 asset.get().then((buf: Buffer) => {
                     try {
-                        const list: IPluginReleaseInfo[] = JSON.parse(buf.toString());
+                        const list: CommonInterfaces.Plugins.IPlugin[] = JSON.parse(buf.toString());
                         if (!(list instanceof Array)) {
                             return reject(new Error(this._logger.warn(`Incorrect format of asseets`)));
                         }
-                        const plugins: Map<string, IPluginReleaseInfo> = new Map();
-                        list.forEach((plugin: IPluginReleaseInfo) => {
-                            plugins.set(plugin.name, plugin);
+                        const plugins: Map<string, CommonInterfaces.Plugins.IPlugin> = new Map();
+                        list.forEach((plugin: CommonInterfaces.Plugins.IPlugin) => {
+                            const valid: CommonInterfaces.Plugins.IPlugin | Error = getValidPluginReleaseInfo(plugin);
+                            if (valid instanceof Error) {
+                                this._logger.warn(`Fail to validate plugin: ${JSON.stringify(plugin)}`);
+                            } else {
+                                plugins.set(valid.name, valid);
+                            }
                         });
                         ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
                         resolve(plugins);
@@ -252,7 +244,7 @@ export default class ControllerPluginStore {
         });
     }
 
-    private _getLocal(): Promise<Map<string, IPluginReleaseInfo>> {
+    private _setupLocalReleaseNotes(): Promise<Map<string, CommonInterfaces.Plugins.IPlugin>> {
         return new Promise((resolve, reject) => {
             const local: string = path.resolve(ServicePaths.getIncludedPlugins(), this._getRegisterFileName());
             FS.exist(local).then((exist: boolean) => {
@@ -261,13 +253,18 @@ export default class ControllerPluginStore {
                 }
                 FS.readTextFile(local).then((json: string) => {
                     try {
-                        const list: IPluginReleaseInfo[] = JSON.parse(json);
+                        const list: CommonInterfaces.Plugins.IPlugin[] = JSON.parse(json);
                         if (!(list instanceof Array)) {
                             return reject(new Error(this._logger.warn(`Incorrect format of asseets`)));
                         }
-                        const plugins: Map<string, IPluginReleaseInfo> = new Map();
-                        list.forEach((plugin: IPluginReleaseInfo) => {
-                            plugins.set(plugin.name, plugin);
+                        const plugins: Map<string, CommonInterfaces.Plugins.IPlugin> = new Map();
+                        list.forEach((plugin: CommonInterfaces.Plugins.IPlugin) => {
+                            const valid: CommonInterfaces.Plugins.IPlugin | Error = getValidPluginReleaseInfo(plugin);
+                            if (valid instanceof Error) {
+                                this._logger.warn(`Fail to validate plugin: ${JSON.stringify(plugin)}`);
+                            } else {
+                                plugins.set(valid.name, valid);
+                            }
                         });
                         ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
                         resolve(plugins);

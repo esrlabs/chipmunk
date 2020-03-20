@@ -10,7 +10,7 @@ import Logger from '../../tools/env.logger';
 import LogsService from '../../tools/env.logger.service';
 
 import ControllerPluginPackage, { IPackageJson } from './plugin.package';
-import ControllerPluginStore, { IPluginReleaseInfo } from './plugins.store';
+import ControllerPluginStore from './plugins.store';
 import ControllerPluginRender from './plugin.controller.render';
 import ControllerPluginProcess, { TConnectionFactory } from './plugin.controller.process';
 import ControllerIPCPlugin from './plugin.process.ipc';
@@ -21,23 +21,13 @@ import ServiceElectron from '../../services/service.electron';
 
 import { IPCMessages } from '../../services/service.electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
+import { getPluginReleaseInfoFromStr } from './plugins.validator';
 
 export { IPackageJson, TConnectionFactory };
 
 export type TPluginName = string;
 
-export interface IInstalledPluginInfo {
-    name: string;                                               // Included into "info.json"
-    url: string;                                                // Included into "info.json"
-    file: string;                                               // Included into "info.json"
-    version: string;                                            // Included into "info.json"
-    hash: string;                                               // Included into "info.json"
-    phash: string;                                              // Included into "info.json"
-    dependencies: CommonInterfaces.Versions.IDependencies;      // Included into "info.json"
-    display_name: string;                                       // Included into "info.json"
-    description: string;                                        // Included into "info.json"
-    readme: string;                                             // Included into "info.json"
-    icon: string;                                               // Included into "info.json"
+export interface IInstalledPluginInfo extends CommonInterfaces.Plugins.IPlugin {
     package: {
         render: ControllerPluginPackage | undefined;
         process: ControllerPluginPackage | undefined;
@@ -60,7 +50,21 @@ export default class ControllerPluginInstalled {
     private _logger: Logger;
     private _path: string;
     private _name: string;
-    private _info: IInstalledPluginInfo | undefined;
+    private _info: CommonInterfaces.Plugins.IPlugin | undefined;
+    private _packages: {
+        render: ControllerPluginPackage | undefined;
+        process: ControllerPluginPackage | undefined;
+    } = {
+        render: undefined,
+        process: undefined,
+    };
+    private _controllers: {
+        render: ControllerPluginRender | undefined;
+        process: ControllerPluginProcess | undefined;
+    } = {
+        render: undefined,
+        process: undefined,
+    };
     private _store: ControllerPluginStore;
     private _token: string = Tools.guid();
     private _id: number = Tools.sequence();
@@ -83,14 +87,11 @@ export default class ControllerPluginInstalled {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].destroy();
             });
-            if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
+            if (this._controllers.process === undefined) {
                 return resolve();
             }
-            return this._info.controller.process.destroy().then(() => {
-                if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
-                    return;
-                }
-                this._info.controller.process = undefined;
+            return this._controllers.process.destroy().then(() => {
+                this._controllers.process = undefined;
             }).catch((error: Error) => {
                 this._logger.warn(`Error during destroy plugin's process: ${error.message}`);
             }).finally(() => {
@@ -101,14 +102,11 @@ export default class ControllerPluginInstalled {
 
     public shutdown(): Promise<void> {
         return new Promise((resolve) => {
-            if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
+            if (this._controllers.process === undefined) {
                 return resolve();
             }
-            return this._info.controller.process.destroy().then(() => {
-                if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
-                    return;
-                }
-                this._info.controller.process = undefined;
+            return this._controllers.process.destroy().then(() => {
+                this._controllers.process = undefined;
             }).catch((error: Error) => {
                 this._logger.warn(`Error during shutdown plugin's process: ${error.message}`);
             }).finally(() => {
@@ -126,20 +124,18 @@ export default class ControllerPluginInstalled {
                     return reject(new Error(this._logger.warn(`Not valid plugin. Info-file "${filename}" doesn't exist`)));
                 }
                 FS.readTextFile(filename).then((content: string) => {
-                    try {
-                        this._info = JSON.parse(content);
-                    } catch (e) {
-                        this._info = undefined;
-                        this._logger.warn(`Fail parse info-file due error: ${e.message}`);
-                        return reject(e);
+                    const plugin: CommonInterfaces.Plugins.IPlugin | Error = getPluginReleaseInfoFromStr(content);
+                    if (plugin instanceof Error) {
+                        return reject(plugin);
                     }
+                    this._info = plugin;
                     if (this._info?.phash !== ServicePackage.getHash(this._info?.dependencies)) {
                         this._logger.warn(`Plugin could not be used, because hash dismatch.\n\t- plugin hash: ${this._info?.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
                         return reject(new Error(`Version-hash dismatch`));
                     }
                     ServiceElectronService.logStateToRender(`Reading plugin package "${path.basename(this._path)}"`);
                     this._readPackages().then(() => {
-                        if (this._info?.package.render === undefined && this._info?.package.process === undefined) {
+                        if (this._packages.render === undefined && this._packages.process === undefined) {
                             this._info = undefined;
                             return reject(new Error(this._logger.warn(`Plugin doesn't have valid [render] and [process]. Plugin will not be used.`)));
                         }
@@ -169,8 +165,11 @@ export default class ControllerPluginInstalled {
         return this._info !== undefined;
     }
 
-    public getInfo(): IInstalledPluginInfo | undefined {
-        return this._info;
+    public getInfo(): CommonInterfaces.Plugins.IPlugin | undefined {
+        if (this._info === undefined) {
+            return undefined;
+        }
+        return Object.assign({}, this._info);
     }
 
     public getName(): string {
@@ -200,17 +199,17 @@ export default class ControllerPluginInstalled {
     }
 
     public getSessionIPC(session: string): ControllerIPCPlugin | undefined {
-        if (this._info === undefined || this._info.controller === undefined || this._info.controller.process === undefined) {
+        if (this._controllers.process === undefined) {
             return undefined;
         }
-        return this._info.controller.process.getSessionIPC(session);
+        return this._controllers.process.getSessionIPC(session);
     }
 
     public getRenderController(): ControllerPluginRender | undefined {
-        if (this._info === undefined || this._info.controller === undefined || this._info.controller.render === undefined) {
+        if (this._controllers.render === undefined) {
             return undefined;
         }
-        return this._info.controller.render;
+        return this._controllers.render;
     }
 
     public remove(): Promise<void> {
@@ -230,7 +229,7 @@ export default class ControllerPluginInstalled {
         if (this._info === undefined) {
             return false;
         }
-        const available: IPluginReleaseInfo | undefined = this._store.getInfo(this._name);
+        const available: CommonInterfaces.Plugins.IPlugin | undefined = this._store.getInfo(this._name);
         if (available === undefined) {
             return false;
         }
@@ -259,7 +258,7 @@ export default class ControllerPluginInstalled {
             if (this._info === undefined) {
                 return reject(new Error(this._logger.warn(`Cannot update plugin, because it isn't initialized.`)));
             }
-            const available: IPluginReleaseInfo | undefined = this._store.getInfo(this._name);
+            const available: CommonInterfaces.Plugins.IPlugin | undefined = this._store.getInfo(this._name);
             if (available === undefined) {
                 this._logger.warn(`Plugin will not be update, because there are no such plugin in store`);
                 return resolve();
@@ -305,7 +304,7 @@ export default class ControllerPluginInstalled {
 
     public install(): Promise<void> {
         return new Promise((resolve, reject) => {
-            const available: IPluginReleaseInfo | undefined = this._store.getInfo(this._name);
+            const available: CommonInterfaces.Plugins.IPlugin | undefined = this._store.getInfo(this._name);
             if (available === undefined) {
                 return reject(new Error(this._logger.warn(`Plugin will not be installed, because there are no such plugin in store`)));
             }
@@ -337,29 +336,23 @@ export default class ControllerPluginInstalled {
         if (this._info === undefined) {
             return false;
         }
-        if (this._info.controller === undefined) {
+        if (this._controllers.process === undefined) {
             return false;
         }
-        if (this._info.controller.process === undefined) {
-            return false;
-        }
-        return this._info.controller.process.isSingleProcess();
+        return this._controllers.process.isSingleProcess();
     }
 
     public runAsSingle(): Promise<void> | Error {
         if (this._info === undefined) {
             return new Error(`Plugin isn't inited`);
         }
-        if (this._info.controller === undefined) {
-            return new Error(`Plugin's controllers arn't inited`);
-        }
-        if (this._info.controller.process === undefined) {
+        if (this._controllers.process === undefined) {
             return new Error(`Plugin doesn't have process part`);
         }
-        if (!this._info.controller.process.isSingleProcess()) {
+        if (!this._controllers.process.isSingleProcess()) {
             return new Error(`Plugin isn't single process`);
         }
-        return this._info.controller.process.runAsSingle();
+        return this._controllers.process.runAsSingle();
     }
 
     public bindWithSession(session: string, connectionFactory: TConnectionFactory): Promise<Error | undefined> {
@@ -367,18 +360,15 @@ export default class ControllerPluginInstalled {
             if (this._info === undefined) {
                 return resolve(new Error(`Plugin isn't inited`));
             }
-            if (this._info.controller === undefined) {
-                return resolve(new Error(`Plugin's controllers arn't inited`));
-            }
-            if (this._info.controller.process === undefined) {
+            if (this._controllers.process === undefined) {
                 return resolve(new Error(`Plugin doesn't have process part`));
             }
-            if (this._info.controller.process.isSingleProcess()) {
-                this._info.controller.process.bindSinglePlugin(session, connectionFactory).then(() => {
+            if (this._controllers.process.isSingleProcess()) {
+                this._controllers.process.bindSinglePlugin(session, connectionFactory).then(() => {
                     resolve(undefined);
                 }).catch(reject);
-            } else if (this._info.controller.process.isMultipleProcess()) {
-                this._info.controller.process.bindMultiplePlugin(session, connectionFactory).then(() => {
+            } else if (this._controllers.process.isMultipleProcess()) {
+                this._controllers.process.bindMultiplePlugin(session, connectionFactory).then(() => {
                     resolve(undefined);
                 }).catch(reject);
             }
@@ -390,34 +380,25 @@ export default class ControllerPluginInstalled {
             if (this._info === undefined) {
                 return reject(new Error(`Plugin isn't inited`));
             }
-            if (this._info.controller === undefined) {
-                return reject(new Error(`Plugin's controllers arn't inited`));
-            }
-            if (this._info.controller.process === undefined) {
+            if (this._controllers.process === undefined) {
                 return reject(new Error(`Plugin doesn't have process part`));
             }
-            if (this._info.controller.process.isSingleProcess()) {
-                this._info.controller.process.unbindSingle(session).then(resolve).catch(reject);
-            } else if (this._info.controller.process.isMultipleProcess()) {
-                this._info.controller.process.unbindMuliple(session).then(resolve).catch(reject);
+            if (this._controllers.process.isSingleProcess()) {
+                this._controllers.process.unbindSingle(session).then(resolve).catch(reject);
+            } else if (this._controllers.process.isMultipleProcess()) {
+                this._controllers.process.unbindMuliple(session).then(resolve).catch(reject);
             }
         });
     }
+
     private _logPluginState() {
         let msg = `Plugin state:\n`;
         if (this._info === undefined) {
             msg += `\tNOT READY`;
         } else {
-            if (this._info.package === undefined) {
-                msg += `\tpackages: NOT READ\n`;
-            } else {
-                msg += `\tpackage render:\t\t${this._info.package.render !== undefined ? 'OK' : '-'}\n\tpackage process:\t${this._info.package.process !== undefined ? 'OK' : '-'}\n`;
-            }
-            if (this._info.controller === undefined) {
-                msg += `\tcontrollers:\tNOT INIT`;
-            } else {
-                msg += `\tcontroller render:\t${this._info.controller.render !== undefined ? 'OK' : '-'}\n\tcontroller process:\t${this._info.controller.process !== undefined ? 'OK' : '-'}`;
-            }
+            msg += `\tpackage render:\t\t${this._packages.render !== undefined ? 'OK' : '-'}\n\tpackage process:\t${this._packages.process !== undefined ? 'OK' : '-'}\n`;
+            msg += `\tcontroller render:\t${this._controllers.render !== undefined ? 'OK' : '-'}\n\tcontroller process:\t${this._controllers.process !== undefined ? 'OK' : '-'}`;
+
         }
         this._logger.env(msg);
     }
@@ -445,20 +426,16 @@ export default class ControllerPluginInstalled {
             if (this._info === undefined) {
                 return reject(`Basic info hadn't been read`);
             }
-            this._info.package = {
-                render: undefined,
-                process: undefined,
-            };
             const render = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.render), this._name);
             const process = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.process), this._name);
             Promise.all([
                 render.read().then(() => {
-                    (this._info as IInstalledPluginInfo).package.render = render;
+                    this._packages.render = render;
                 }).catch(() => {
                     return Promise.resolve();
                 }),
                 process.read().then(() => {
-                    (this._info as IInstalledPluginInfo).package.process = process;
+                    this._packages.process = process;
                 }).catch(() => {
                     return Promise.resolve();
                 }),
@@ -475,36 +452,32 @@ export default class ControllerPluginInstalled {
             if (this._info === undefined) {
                 return reject(`Basic info hadn't been read`);
             }
-            if (this._info.package === undefined) {
+            if (this._packages.process === undefined && this._packages.render === undefined) {
                 return reject(`Packages hadn't been read`);
             }
             const tasks = [];
-            this._info.controller = {
-                render: undefined,
-                process: undefined,
-            };
-            if (this._info.package.render !== undefined) {
-                const render = new ControllerPluginRender(this._name, this._info.package.render);
+            if (this._packages.render !== undefined) {
+                const render = new ControllerPluginRender(this._name, this._packages.render);
                 tasks.push(render.init().then(() => {
-                    (this._info as IInstalledPluginInfo).controller.render = render;
+                    this._controllers.render = render;
                 }).catch((error: Error) => {
                     this._logger.warn(`Fail to init render controller due error: ${error.message}`);
                     if (this._info === undefined) {
                         return;
                     }
-                    this._info.controller.render = undefined;
+                    this._controllers.render = undefined;
                 }));
             }
-            if (this._info.package.process !== undefined) {
-                const process = new ControllerPluginProcess(this._name, this._token, this._id, this._info.package.process);
+            if (this._packages.process !== undefined) {
+                const process = new ControllerPluginProcess(this._name, this._token, this._id, this._packages.process);
                 tasks.push(process.init().then(() => {
-                    (this._info as IInstalledPluginInfo).controller.process = process;
+                    this._controllers.process = process;
                 }).catch((error: Error) => {
                     this._logger.warn(`Fail to init process controller due error: ${error.message}`);
                     if (this._info === undefined) {
                         return;
                     }
-                    this._info.controller.process = undefined;
+                    this._controllers.process = undefined;
                 }));
             }
             Promise.all(tasks).then(() => {
