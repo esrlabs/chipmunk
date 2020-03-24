@@ -7,5 +7,15 @@
     <p class="t-small color-scheme-2 version">{{plugin.name}}@{{plugin.version}}</p>
 </div>
 <div class="info">
-    <p *ngIf="plugin.default || plugin.installed" [attr.class]="'t-small state' + (plugin.installed ? ' installed ' : '')"><span>{{plugin.installed ? 'installed' : 'not installed'}}</span></p>
+    <p [attr.class]="'t-small state ' + _ng_getState()">
+        <span class="wrapper">
+            <mat-icon *ngIf="_ng_getState() === 'update'">update</mat-icon>
+            <mat-icon *ngIf="_ng_getState() === 'upgrade'">arrow_upward</mat-icon>
+            <mat-icon *ngIf="_ng_getState() === 'installed'">done</mat-icon>
+            <mat-icon *ngIf="_ng_getState() === 'notavailable'">block</mat-icon>
+            <mat-icon *ngIf="_ng_getState() === 'restart'">refresh</mat-icon>
+            <mat-spinner *ngIf="_ng_getState() === 'working'" [diameter]="18" mode="indeterminate"></mat-spinner>
+            <span>{{_ng_getStateLabel()}}</span>
+        </span>
+    </p>
 </div>

@@ -49,6 +49,18 @@ export { IPluginsInstallRequest, PluginsInstallRequest };
 import { IPluginsInstallResponse, PluginsInstallResponse } from './plugins.install.response';
 export { IPluginsInstallResponse, PluginsInstallResponse };
 
+import { IPluginsUpdateRequest, PluginsUpdateRequest } from './plugins.update.request';
+export { IPluginsUpdateRequest, PluginsUpdateRequest };
+
+import { IPluginsUpdateResponse, PluginsUpdateResponse } from './plugins.update.response';
+export { IPluginsUpdateResponse, PluginsUpdateResponse };
+
+import { IPluginsUpgradeRequest, PluginsUpgradeRequest } from './plugins.upgrade.request';
+export { IPluginsUpgradeRequest, PluginsUpgradeRequest };
+
+import { IPluginsUpgradeResponse, PluginsUpgradeResponse } from './plugins.upgrade.response';
+export { IPluginsUpgradeResponse, PluginsUpgradeResponse };
+
 import { IPluginsUninstallRequest, PluginsUninstallRequest } from './plugins.uninstall.request';
 export { IPluginsUninstallRequest, PluginsUninstallRequest };
 
@@ -63,6 +75,12 @@ export { IPluginsLogsRequest, PluginsLogsRequest };
 
 import { IPluginsLogsResponse, PluginsLogsResponse } from './plugins.logs.response';
 export { IPluginsLogsResponse, PluginsLogsResponse };
+
+import { IPluginsNotificationUpgrade, PluginsNotificationUpgrade } from './plugins.notification.upgrade';
+export { IPluginsNotificationUpgrade, PluginsNotificationUpgrade };
+
+import { IPluginsNotificationUpdate, PluginsNotificationUpdate } from './plugins.notification.update';
+export { IPluginsNotificationUpdate, PluginsNotificationUpdate };
 
 import { IStreamAddRequest, StreamAddRequest } from './stream.add.request';
 export { IStreamAddRequest, StreamAddRequest };
@@ -369,6 +387,10 @@ export type TMessage =  AppRestartRequest |
                         PluginsUpdate |
                         PluginsInstalledRequest |
                         PluginsInstalledResponse |
+                        PluginsUpdateRequest |
+                        PluginsUpdateResponse |
+                        PluginsUpgradeRequest |
+                        PluginsUpgradeResponse |
                         PluginsStoreAvailableRequest |
                         PluginsStoreAvailableResponse |
                         PluginsInstallRequest |
@@ -378,6 +400,8 @@ export type TMessage =  AppRestartRequest |
                         PluginsDataReady |
                         PluginsLogsRequest |
                         PluginsLogsResponse |
+                        PluginsNotificationUpgrade |
+                        PluginsNotificationUpdate |
                         StreamSetActive |
                         StreamAddRequest |
                         StreamAddResponse |
@@ -499,11 +523,17 @@ export const Map = {
     [PluginsStoreAvailableResponse.signature    ]: PluginsStoreAvailableResponse,
     [PluginsInstallRequest.signature            ]: PluginsInstallRequest,
     [PluginsInstallResponse.signature           ]: PluginsInstallResponse,
+    [PluginsUpdateRequest.signature             ]: PluginsUpdateRequest,
+    [PluginsUpdateResponse.signature            ]: PluginsUpdateResponse,
+    [PluginsUpgradeRequest.signature            ]: PluginsUpgradeRequest,
+    [PluginsUpgradeResponse.signature           ]: PluginsUpgradeResponse,
     [PluginsUninstallRequest.signature          ]: PluginsUninstallRequest,
     [PluginsUninstallResponse.signature         ]: PluginsUninstallResponse,
     [PluginsDataReady.signature                 ]: PluginsDataReady,
     [PluginsLogsRequest.signature               ]: PluginsLogsRequest,
     [PluginsLogsResponse.signature              ]: PluginsLogsResponse,
+    [PluginsNotificationUpgrade.signature       ]: PluginsNotificationUpgrade,
+    [PluginsNotificationUpdate.signature        ]: PluginsNotificationUpdate,
 
     [StreamSetActive.signature                  ]: StreamSetActive,
     [StreamAddRequest.signature                 ]: StreamAddRequest,

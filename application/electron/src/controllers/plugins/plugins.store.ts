@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as FS from '../../tools/fs';
 import * as fs from 'fs';
 import * as Tools from '../../tools/index';
+import * as semver from 'semver';
 
 import Logger from '../../tools/env.logger';
 import ServicePaths from '../../services/service.paths';
@@ -22,10 +23,19 @@ const CSettings: {
     repo: string,
     registerListFile: string,
 } = {
+
+    user: 'DmitryAstafyev',
+    repo: 'chipmunk.plugins.store',
+    registerListFile: 'releases-{platform}.json',
+/*
     user: 'esrlabs',
     repo: 'chipmunk-plugins-store',
-    registerListFile: 'releases-{platform}.json',
+    registerListFile: 'releases-{platform}.json'
+*/
 };
+
+const CFileNamePattern = /[\w\d-_\.]*@\d*\.\d*\.\d*-\d*\.\d*.\d*-\w*\.tgz$/gi;
+//chipmunk-serial-plugin@81100880.110000220.0024211238-1.0.1-linux.tgz
 
 /**
  * @class ControllerPluginStore
@@ -38,6 +48,12 @@ export default class ControllerPluginStore {
     private _remote: Map<string, CommonInterfaces.Plugins.IPlugin> | undefined = undefined;
     private _local: Map<string, CommonInterfaces.Plugins.IPlugin> = new Map();
     private _downloads: Map<string, boolean> = new Map();
+
+    public destroy(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
+    }
 
     public local(): Promise<void> {
         return new Promise((resolve) => {
@@ -63,11 +79,7 @@ export default class ControllerPluginStore {
         });
     }
 
-    public getInfo(name: string): CommonInterfaces.Plugins.IPlugin | undefined {
-        return this._remote === undefined ? this._local.get(name) : this._remote.get(name);
-    }
-
-    public download(name: string): Promise<string> {
+    public download(name: string, version: string): Promise<string> {
         return new Promise((resolve, reject) => {
             ServiceElectronService.logStateToRender(`Downloading plugin "${name}"...`);
             // Check plugin info
@@ -75,7 +87,7 @@ export default class ControllerPluginStore {
             if (plugin === undefined) {
                 return reject(new Error(this._logger.warn(`Plugin "${name}" isn't found.`)));
             }
-            this.delivery(plugin.name).then((filename: string) => {
+            this.delivery(plugin.name, version).then((filename: string) => {
                 resolve(filename);
             }).catch((deliveryErr: Error) => {
                 reject(new Error(this._logger.warn(`Fail to delivery plugin "${plugin.name}" due error: ${deliveryErr.message}`)));
@@ -83,15 +95,11 @@ export default class ControllerPluginStore {
         });
     }
 
-    public getDefaults(exclude: string[]): CommonInterfaces.Plugins.IPlugin[] {
+    public getDefaults(exclude: string[]): string[] {
         return Array.from(this.getRegister().values()).filter((plugin: CommonInterfaces.Plugins.IPlugin) => {
-            if (plugin.hash !== ServicePackage.getHash()) {
-                this._logger.warn(`Default plugin "${plugin.name}" could not be installed, because hash dismatch.\n\t- plugin hash: ${plugin.hash}\n\t- chipmunk hash: ${ServicePackage.getHash()}`);
-                return false;
-            }
-            return true;
-        }).filter((plugin: CommonInterfaces.Plugins.IPlugin) => {
             return exclude.indexOf(plugin.name) === -1 && plugin.default;
+        }).map((plugin: CommonInterfaces.Plugins.IPlugin) => {
+            return plugin.name;
         });
     }
 
@@ -119,23 +127,54 @@ export default class ControllerPluginStore {
         if (plugin === undefined) {
             return [];
         }
-        return [];
+        const history: CommonInterfaces.Plugins.IHistory[] = plugin.history.filter((record: CommonInterfaces.Plugins.IHistory) => {
+            if (!semver.valid(record.version)) {
+                this._logger.warn(`Plugin "name" has bad record in history. Version "${record.version}" is invalid.`);
+                return false;
+            }
+            return record.hash === ServicePackage.getHash();
+        }).map((record: CommonInterfaces.Plugins.IHistory | undefined) => {
+            return Object.assign({}, record);
+        });
+        if (history.length === 0 && plugin.hash === ServicePackage.getHash()) {
+            history.push({
+                hash: plugin.hash,
+                phash: plugin.phash,
+                version: plugin.version,
+                url: plugin.url,
+            });
+        }
+        return history;
+    }
+
+    public getLatestVersion(name: string): CommonInterfaces.Plugins.IHistory | undefined {
+        const versions: CommonInterfaces.Plugins.IHistory[] = this.getSuitableVersions(name);
+        if (versions.length === 0) {
+            return undefined;
+        }
+        return versions[0];
     }
 
     public getRegister(): Map<string, CommonInterfaces.Plugins.IPlugin> {
         return this._remote === undefined ? this._local : this._remote;
     }
 
-    public delivery(name: string): Promise<string> {
+    public delivery(name: string, version: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const plugin: CommonInterfaces.Plugins.IPlugin | undefined = this.getRegister().get(name);
             if (plugin === undefined) {
                 return reject(new Error(`Fail to find plugin in register`));
             }
-            this._findLocally(plugin).then((filename: string) => {
-                resolve(filename);
+            const url: string | undefined = this._getUrl(plugin.name, version);
+            if (url === undefined) {
+                return reject(new Error(`Fail to find plugin's url for "${plugin.name}@${version}"`));
+            }
+            const urlfilename: string | Error = this._getFileNameFromURL(url);
+            const filename: string = urlfilename instanceof Error ? plugin.file : urlfilename;
+            const target: string = path.resolve(ServicePaths.getDownloads(), filename);
+            this._findLocally(filename).then((file: string) => {
+                resolve(file);
             }).catch((error: Error) => {
-                const target: string = path.resolve(ServicePaths.getDownloads(), plugin.file);
                 if (this._downloads.has(target)) {
                     return reject(new Error(`Plugin "${plugin.name}" (${target}) is already downloading.`));
                 }
@@ -143,7 +182,7 @@ export default class ControllerPluginStore {
                 this._logger.env(`Plugin "${plugin.name}" isn't found and will be downloaded: ${error.message}`);
                 const temp: string = path.resolve(ServicePaths.getDownloads(), Tools.guid());
                 FS.unlink(target).then(() => {
-                    download(plugin.url, temp).then(() => {
+                    download(url, temp).then(() => {
                         fs.stat(temp, (statErr: NodeJS.ErrnoException | null, stat: fs.Stats) => {
                             if (statErr) {
                                 return reject(new Error(this._logger.warn(`Fail download file "${temp}" due error: ${statErr.message}`)));
@@ -171,31 +210,60 @@ export default class ControllerPluginStore {
         return register.get(name);
     }
 
-    private _findLocally(plugin: CommonInterfaces.Plugins.IPlugin): Promise<string> {
+    public getInfo(name: string): CommonInterfaces.Plugins.IPlugin | undefined {
+        return this._remote === undefined ? this._local.get(name) : this._remote.get(name);
+    }
+
+    private _getUrl(name: string, version: string): string | undefined {
+        const info: CommonInterfaces.Plugins.IPlugin | undefined = this.getInfo(name);
+        if (info === undefined) {
+            return undefined;
+        }
+        if (info.version === version && info.hash === ServicePackage.getHash()) {
+            return info.url;
+        }
+        let url: string | undefined;
+        info.history.forEach((record: CommonInterfaces.Plugins.IHistory) => {
+            if (record.version === version && record.hash === ServicePackage.getHash()) {
+                url = record.url;
+            }
+        });
+        return url;
+    }
+
+    private _getFileNameFromURL(url: string): string | Error {
+        const match: RegExpMatchArray | null = url.match(CFileNamePattern);
+        if (match === null || match.length !== 1) {
+            return new Error(`Fail to extract filename from url: ${url}`);
+        }
+        return match[0];
+    }
+
+    private _findLocally(filename: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            this._findIn(plugin, 'includes').then((filename: string) => {
-                resolve(filename);
+            this._findIn(filename, 'includes').then((file: string) => {
+                resolve(file);
             }).catch((inclErr: Error) => {
-                this._logger.env(`Fail to find a plugin "${plugin.name}" in included due error: ${inclErr.message}`);
-                this._findIn(plugin, 'downloads').then((filename: string) => {
-                    resolve(filename);
+                this._logger.env(`Fail to find a plugin "${filename}" in included due error: ${inclErr.message}`);
+                this._findIn(filename, 'downloads').then((file: string) => {
+                    resolve(file);
                 }).catch((downloadsErr: Error) => {
-                    this._logger.env(`Fail to find a plugin "${plugin.name}" in downloads due error: ${downloadsErr.message}`);
-                    reject(new Error(`Plugin "${plugin.name}" isn't found.`));
+                    this._logger.env(`Fail to find a plugin "${filename}" in downloads due error: ${downloadsErr.message}`);
+                    reject(new Error(`Plugin "${filename}" isn't found.`));
                 });
             });
         });
     }
 
-    private _findIn(plugin: CommonInterfaces.Plugins.IPlugin, source: 'includes' | 'downloads'): Promise<string> {
+    private _findIn(filename: string, source: 'includes' | 'downloads'): Promise<string> {
         return new Promise((resolve, reject) => {
             const folder: string = source === 'includes' ? ServicePaths.getIncludedPlugins() : ServicePaths.getDownloads();
-            const filename: string = path.resolve(folder, plugin.file);
-            FS.exist(filename).then((exist: boolean) => {
+            const fullname: string = path.resolve(folder, filename);
+            FS.exist(fullname).then((exist: boolean) => {
                 if (!exist) {
-                    return reject(new Error(`Plugin "${filename}" isn't found.`));
+                    return reject(new Error(`Plugin "${fullname}" isn't found.`));
                 }
-                resolve(filename);
+                resolve(fullname);
             }).catch((error: Error) => {
                 reject(error);
             });

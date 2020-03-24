@@ -53,10 +53,38 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         });
     }
 
-    public _ng_onClick(plugin: IPlugin) {
+    public _ng_onPluginClick(plugin: IPlugin) {
         this._ng_selected = plugin.name;
         this.selected.next(plugin);
         this._forceUpdate();
+    }
+
+    public _ng_onDoAllClick() {
+
+    }
+
+    public _ng_onAddCustom() {
+        
+    }
+
+    public _ng_showDoAllButton() {
+        return PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded() > 0;
+    }
+
+    public _ng_getBadgeCount(): number {
+        return PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded();
+    }
+
+    public _ng_getUpdateButtonCaption(): string {
+        if (PluginsService.getManager().getCountToBeUpdated() > 0 && PluginsService.getManager().getCountToBeUpgraded() > 0) {
+            return 'Upgrade & Update All';
+        } else if (PluginsService.getManager().getCountToBeUpdated() > 0) {
+            return 'Update All';
+        } else if (PluginsService.getManager().getCountToBeUpgraded() > 0) {
+            return 'Upgrade All';
+        } else {
+            return '';
+        }
     }
 
     private _getPluginsList() {

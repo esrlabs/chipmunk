@@ -22,4 +22,5 @@ export interface IPlugin {
     icon: string;
     file: string;
     history: IHistory[];
+    suitable?: string[]; //Suitable versions for plugin. This field used only for PluginsInstalledResponse and PluginsInstalledResponse and PluginsStoreAvailableResponse
 }
