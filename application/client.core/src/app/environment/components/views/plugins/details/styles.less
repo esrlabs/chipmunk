@@ -61,6 +61,9 @@ app-views-plugins-details {
         flex-direction: row;
         margin: 8px 0 16px 0;
         padding: 0 8px;
+        &.with-version {
+            margin-top: 16px;
+        }
         & div.name{
             position: relative;
             flex: auto 1;
@@ -72,6 +75,11 @@ app-views-plugins-details {
             position: relative;
             flex: 0;
             margin-right: 16px;
+            white-space: nowrap;
+            & mat-form-field{
+                width: 100px;
+                margin: -14px 16px 0 0px;
+            }
         }
     }
     & div.align{

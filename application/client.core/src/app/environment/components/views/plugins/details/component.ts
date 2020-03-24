@@ -1,6 +1,6 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
-import { IPlugin } from '../../../../controller/controller.plugins.manager';
+import { IPlugin, EPluginState, IUpdateUpgradeEvent, IStateChangeEvent } from '../../../../controller/controller.plugins.manager';
 import { IDependencyState, getDependenciesStates } from '../../../../controller/helpers/versions';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 
@@ -11,14 +11,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 enum EReadmeState {
     ready = 'ready',
     pending = 'pending',
-    error = 'error',
-}
-
-enum EPluginState {
-    installed = 'installed',
-    notinstalled = 'notinstalled',
-    working = 'working',
-    restart = 'restart',
     error = 'error',
 }
 
@@ -36,20 +28,21 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
     public _ng_plugin: IPlugin | undefined;
     public _ng_state: {
         readme: EReadmeState,
-        plugin: EPluginState,
     } = {
         readme: EReadmeState.pending,
-        plugin: EPluginState.installed,
     };
     public _ng_error: string | undefined;
     public _ng_dependencies: IDependencyState[] = [];
+    public _ng_version: string;
+    public _ng_versions: string[] = [];
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewPluginsPluginComponent');
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
-        private _notifications: NotificationsService) {
+                private _notifications: NotificationsService) {
+ 
     }
 
     public ngOnDestroy() {
@@ -60,7 +53,10 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.selected = this.selected.asObservable().subscribe(this._onPluginSelected.bind(this));
+        this._subscriptions.selected = this.selected.asObservable().subscribe(this._setCurrentPlugin.bind(this));
+        this._subscriptions.update = PluginsService.getManager().getObservable().update.subscribe(this._onUpdatePlugin.bind(this));
+        this._subscriptions.upgrade = PluginsService.getManager().getObservable().upgrade.subscribe(this._onUpdatePlugin.bind(this));
+        this._subscriptions.state = PluginsService.getManager().getObservable().state.subscribe(this._onUpdatePlugin.bind(this));
         if (this._ng_plugin !== undefined && (this._ng_plugin.readme === undefined || this._ng_plugin.readme.trim() === '')) {
             this._ng_state.readme = EReadmeState.ready;
         }
@@ -77,13 +73,33 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
     }
 
     public _ng_onInstallPlugin() {
-        this._ng_state.plugin = EPluginState.working;
-        PluginsService.getManager().install(this._ng_plugin.name).then(() => {
-            this._ng_state.plugin = EPluginState.restart;
-        }).catch((error: Error) => {
-            this._logger.error(`Fail to request downloading of plugin due error: ${error.message}`);
+        PluginsService.getManager().install(this._ng_plugin.name, this._ng_version).catch((error: Error) => {
+            this._logger.error(`Fail to request install of plugin due error: ${error.message}`);
             this._ng_error = error.message;
-            this._ng_state.plugin = EPluginState.error;
+        }).finally(() => {
+            this._forceUpdate();
+        });
+    }
+
+    public _ng_onUpdatePlugin() {
+        if (this._ng_version === this._ng_plugin.version) {
+            // Uninstall
+            this._ng_onUninstallPlugin();
+        } else {
+            // Update
+            PluginsService.getManager().update(this._ng_plugin.name, this._ng_version === undefined ? 'latest' : this._ng_version).catch((error: Error) => {
+                this._logger.error(`Fail to request update of plugin due error: ${error.message}`);
+                this._ng_error = error.message;
+            }).finally(() => {
+                this._forceUpdate();
+            });
+        }
+    }
+
+    public _ng_onUpgradePlugin() {
+        PluginsService.getManager().upgrade(this._ng_plugin.name, this._ng_version === undefined ? 'latest' : this._ng_version).catch((error: Error) => {
+            this._logger.error(`Fail to request upgrade of plugin due error: ${error.message}`);
+            this._ng_error = error.message;
         }).finally(() => {
             this._forceUpdate();
         });
@@ -98,19 +114,67 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
     }
 
     public _ng_onUninstallPlugin() {
-        this._ng_state.plugin = EPluginState.working;
-        PluginsService.getManager().uninstall(this._ng_plugin.name).then(() => {
-            this._ng_state.plugin = EPluginState.restart;
-        }).catch((error: Error) => {
-            this._logger.error(`Fail to request uninstall of plugin due error: ${error.message}`);
-            this._ng_error = error.message;
-            this._ng_state.plugin = EPluginState.error;
-        }).finally(() => {
-            this._forceUpdate();
-        });
+        if (this._ng_version === this._ng_plugin.version) {
+            // Uninstall
+            PluginsService.getManager().uninstall(this._ng_plugin.name).catch((error: Error) => {
+                this._logger.error(`Fail to request uninstall of plugin due error: ${error.message}`);
+                this._ng_error = error.message;
+            }).finally(() => {
+                this._forceUpdate();
+            });
+        } else {
+            // Reinstall
+        }
     }
 
-    private _onPluginSelected(plugin: IPlugin) {
+    public _ng_showVersion(): boolean {
+        if ((this._ng_plugin.state === EPluginState.installed && this._ng_versions.length > 1) ||
+            this._ng_plugin.state === EPluginState.notinstalled ||
+            this._ng_plugin.state === EPluginState.update ||
+            this._ng_plugin.state === EPluginState.upgrade) {
+            return true;
+        }
+        return false;
+    }
+
+    public _ng_getUninstallLabel(): string {
+        if (this._ng_version === this._ng_plugin.version) {
+            return 'Uninstall';
+        } else {
+            return 'Apply';
+        }
+    }
+
+    public _ng_getUpdateLabel(): string {
+        if (this._ng_version === this._ng_plugin.version) {
+            return 'Uninstall';
+        } else {
+            return 'Update';
+        }
+    }
+
+    public _ng_getErrorLabel(): string {
+        if (!(this._ng_plugin.suitable instanceof Array) || this._ng_plugin.suitable.length === 0) {
+            return 'Compatibility';
+        }
+        return 'Error';
+    }
+
+    private _onUpdatePlugin(event: IUpdateUpgradeEvent |IStateChangeEvent) {
+        if (this._ng_plugin === undefined) {
+            return;
+        }
+        if (event.name !== this._ng_plugin.name) {
+            return;
+        }
+        const plugin: IPlugin | undefined = PluginsService.getManager().getByName(this._ng_plugin.name);
+        if (plugin === undefined) {
+            return;
+        }
+        this._setCurrentPlugin(plugin);
+    }
+
+    private _setCurrentPlugin(plugin: IPlugin) {
         if ((this._ng_plugin !== undefined && this._ng_plugin.readme === plugin.readme) ||
             (this._ng_plugin !== undefined && (this._ng_plugin.readme === undefined || this._ng_plugin.readme.trim() === ''))) {
             this._ng_state.readme = EReadmeState.ready;
@@ -118,7 +182,30 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
             this._ng_state.readme = EReadmeState.pending;
         }
         this._ng_plugin = plugin;
-        this._ng_state.plugin = this._ng_plugin.installed ? EPluginState.installed : EPluginState.notinstalled;
+        this._ng_error = undefined;
+        switch (this._ng_plugin.state) {
+            case EPluginState.update:
+                this._ng_version = this._ng_plugin.update[0];
+                this._ng_versions = this._ng_plugin.update;
+                break;
+            case EPluginState.upgrade:
+                this._ng_version = this._ng_plugin.upgrade[0];
+                this._ng_versions = this._ng_plugin.upgrade;
+                break;
+            case EPluginState.installed:
+                this._ng_version = plugin.version;
+                this._ng_versions = plugin.suitable;
+                break;
+            case EPluginState.notinstalled:
+                this._ng_version = plugin.suitable[0];
+                this._ng_versions = plugin.suitable;
+                break;
+            case EPluginState.notavailable:
+                this._ng_version = undefined;
+                this._ng_versions = [];
+                this._ng_error = `This plugin cannot be installed/updated becaues it isn't compatible to current version of chipmunk. You have two options: wait while developer of plugin will update plugin; update (or downgrade) your chipmunk version.`;
+                break;
+        }
         this._ng_dependencies = getDependenciesStates(plugin.dependencies);
         this._forceUpdate();
     }

@@ -25,6 +25,7 @@ export class ServicePackage implements IService {
     private _logger: Logger = new Logger('ServicePackage');
     private _file: string = '';
     private _package: IPackageFile | undefined;
+    private _hash: Map<string, string> = new Map();
 
     /**
      * Initialization function
@@ -65,6 +66,11 @@ export class ServicePackage implements IService {
         if (typeof dependencies !== 'object' || dependencies === null) {
             dependencies = CommonInterfaces.Versions.CDefaultDependencies;
         }
+        const key: string = this._getHashKey(dependencies);
+        const cache: string | undefined = this._hash.get(key);
+        if (cache !== undefined) {
+            return cache;
+        }
         const vers: CommonInterfaces.Versions.IVersions = (this._package as IPackageFile).chipmunk.versions;
         const p: { [key: number]: string[] } = {};
         p[1] = dependencies.electron ? vers.electron.split('.') : ['', '', ''];
@@ -83,6 +89,7 @@ export class ServicePackage implements IService {
             }
             hash += part;
         }
+        this._hash.set(key, hash);
         return hash;
     }
 
@@ -133,6 +140,14 @@ export class ServicePackage implements IService {
             }
         });
         return error;
+    }
+
+    private _getHashKey(dependencies: CommonInterfaces.Versions.IDependencies): string {
+        return Object.keys(dependencies).filter((prop: string) => {
+            return (dependencies as any)[prop] === true;
+        }).map((prop: string) => {
+            return prop;
+        }).join('::');
     }
 
 }

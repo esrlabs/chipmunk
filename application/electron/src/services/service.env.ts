@@ -36,6 +36,11 @@ export enum EChipmunkEnvVars {
     CHIPMUNK_PLUGINS_NO_DEFAULTS = 'CHIPMUNK_PLUGINS_NO_DEFAULTS',
 
     /**
+     * TRUE (true, ON, on) - prevent upgrade plugins
+     */
+    CHIPMUNK_PLUGINS_NO_UPGRADE = 'CHIPMUNK_PLUGINS_NO_UPGRADE',
+
+    /**
      * TRUE (true, ON, on) - prevent update plugins workflow
      */
     CHIPMUNK_PLUGINS_NO_UPDATES = 'CHIPMUNK_PLUGINS_NO_UPDATES',
@@ -52,6 +57,7 @@ export const CChipmunkEnvVars: string[] = [
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPGRADE,
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID,
 ];
 
@@ -61,6 +67,7 @@ export interface IChipmunkEnvVars {
     CHIPMUNK_PLUGINS_SANDBOX: string | undefined;
     CHIPMUNK_PLUGINS_NO_DEFAULTS: boolean | undefined;
     CHIPMUNK_PLUGINS_NO_UPDATES: boolean | undefined;
+    CHIPMUNK_PLUGINS_NO_UPGRADE: boolean | undefined;
     CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID: boolean | undefined;
 }
 
@@ -75,6 +82,15 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
         return false;
     },
     [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES]: (smth: any): boolean => {
+        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+            return true;
+        }
+        if (typeof smth === 'number' && smth === 1) {
+            return true;
+        }
+        return false;
+    },
+    [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPGRADE]: (smth: any): boolean => {
         if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
             return true;
         }
@@ -108,6 +124,7 @@ class ServiceEnv implements IService {
         CHIPMUNK_PLUGINS_SANDBOX: undefined,
         CHIPMUNK_PLUGINS_NO_DEFAULTS: undefined,
         CHIPMUNK_PLUGINS_NO_UPDATES: undefined,
+        CHIPMUNK_PLUGINS_NO_UPGRADE: undefined,
         CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID: undefined,
     };
 

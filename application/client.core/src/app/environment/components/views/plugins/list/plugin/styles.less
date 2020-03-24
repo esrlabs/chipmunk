@@ -43,7 +43,7 @@
         position: absolute;
         height: 100%;
         left: 54px;
-        right: 100px;
+        right: 128px;
         top: 0;
         overflow: hidden;
         & p.name,
@@ -59,7 +59,7 @@
         position: absolute;
         height: 100%;
         right: 0;
-        width: 100px;
+        width: 128px;
         top: 0;
         overflow: hidden;
         & button {
@@ -78,7 +78,7 @@
             overflow: hidden;
             text-align: center;
             margin-top: 2px;
-            & > span{
+            & > span.wrapper {
                 position: relative;
                 display: inline-block;
                 border-radius: 3px;
@@ -88,11 +88,49 @@
                 color: @scheme-color-3;
                 white-space: nowrap;
                 overflow: hidden;
+                & > mat-icon{
+                    display: inline-block;
+                    color: @scheme-color-0;
+                    width: 18px;
+                    height: 18px;
+                    font-size: 18px;
+                    vertical-align: middle;
+                    margin-right: 8px;
+                }
+                & > mat-spinner {
+                    display: inline-block;
+                    vertical-align: middle;
+                    margin-right: 8px;
+                }
+                & > span {
+                    display: inline-block;
+                    vertical-align: middle;
+                }
             }
             &.installed{
-                & > span{
+                & > span.wrapper{
                     background: @scheme-color-accent;
                     color: @scheme-color-0;
+                    & > mat-icon{
+                        color: @scheme-color-0;
+                    }
+                }
+            }
+            &.notavailable{
+                & > span.wrapper{
+                    color: @scheme-color-3;
+                    & > mat-icon{
+                        color: @scheme-color-3;
+                    }
+                }
+            }
+            &.update,
+            &.upgrade{
+                & > span.wrapper{
+                    color: @scheme-color-accent;
+                    & > mat-icon{
+                        color: @scheme-color-accent;
+                    }
                 }
             }
         }        

@@ -39,7 +39,7 @@ export function getValidPluginReleaseInfo(smth: any): CommonInterfaces.Plugins.I
         let valid: boolean = true;
         if (CPluginInfoValidators[prop].type === 'array' && !((smth as any)[prop] instanceof Array)) {
             valid = false;
-        } else if (typeof (smth as any)[prop] !== CPluginInfoValidators[prop].type) {
+        } else if (CPluginInfoValidators[prop].type !== 'array' && typeof (smth as any)[prop] !== CPluginInfoValidators[prop].type) {
             valid = false;
         }
         if (!valid && CPluginInfoValidators[prop].defaults === undefined) {

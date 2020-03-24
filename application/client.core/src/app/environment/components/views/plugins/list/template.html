@@ -14,10 +14,23 @@
       </div>
     </div>
 </div>
-<div *ngIf="_ng_state === 'ready'" class="list">
+<div *ngIf="_ng_state === 'ready'" [attr.class]="'list controlls_after'">
     <cdk-virtual-scroll-viewport itemSize="50">
-        <app-views-plugin [plugin]="plugin" [selected]="_ng_selected === plugin.name" (click)="_ng_onClick(plugin)" *cdkVirtualFor="let plugin of _ng_plugins" class="example-item"></app-views-plugin>
+        <app-views-plugin [plugin]="plugin" [selected]="_ng_selected === plugin.name" (click)="_ng_onPluginClick(plugin)" *cdkVirtualFor="let plugin of _ng_plugins" class="example-item"></app-views-plugin>
     </cdk-virtual-scroll-viewport>
+</div>
+<div class="controlls">
+    <button mat-stroked-button
+            color="primary" 
+            (click)="_ng_onAddCustom()">Add Plugin</button>
+    <button *ngIf="_ng_showDoAllButton()" 
+            mat-stroked-button
+            color="primary" 
+            (click)="_ng_onDoAllClick()"
+            [matBadge]="_ng_getBadgeCount()"
+            matSize="small"
+            matBadgePosition="before"
+            matBadgeColor="accent">{{_ng_getUpdateButtonCaption()}}</button>
 </div>
 
 <div *ngIf="_ng_state === 'pending'" class="pending">

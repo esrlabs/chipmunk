@@ -1,19 +1,19 @@
 
-export interface IPluginsInstallRequest {
+export interface IPluginsUpdateRequest {
     name: string;
     version?: string;
 }
 
-export class PluginsInstallRequest {
-    public static signature: string = 'PluginsInstallRequest';
-    public signature: string = PluginsInstallRequest.signature;
+export class PluginsUpdateRequest {
+    public static signature: string = 'PluginsUpdateRequest';
+    public signature: string = PluginsUpdateRequest.signature;
 
     public name: string;
     public version?: string;
 
-    constructor(params: IPluginsInstallRequest) {
+    constructor(params: IPluginsUpdateRequest) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for Plugin message`);
+            throw new Error(`Incorrect parameters for PluginsUpdateRequest message`);
         }
         if (typeof params.name !== 'string' || params.name.trim() === '') {
             throw new Error(`Field "name" should be string`);
