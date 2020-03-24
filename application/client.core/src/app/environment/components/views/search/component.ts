@@ -23,9 +23,7 @@ import ElectronIpcService, { IPCMessages } from '../../../services/service.elect
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { EChartType } from '../chart/charts/charts';
-/*
-TODO: numbers from x xxx xxx to xK or xM -> to safe space in status bar (summury <P>)
-*/
+
 interface IViewState {
     searchRequestId: string | undefined;
     isRequestValid: boolean;

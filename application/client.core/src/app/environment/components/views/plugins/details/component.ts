@@ -1,8 +1,9 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewEncapsulation } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, AfterViewInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
-import { IPlugin, EPluginState, IUpdateUpgradeEvent, IStateChangeEvent } from '../../../../controller/controller.plugins.manager';
+import { IPlugin, EPluginState, IUpdateUpgradeEvent, IStateChangeEvent, IViewState } from '../../../../controller/controller.plugins.manager';
 import { IDependencyState, getDependenciesStates } from '../../../../controller/helpers/versions';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
+import { Storage } from '../../../../controller/helpers/virtualstorage';
 
 import PluginsService from '../../../../services/service.plugins';
 
@@ -21,7 +22,7 @@ enum EReadmeState {
     encapsulation: ViewEncapsulation.None
 })
 
-export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy {
+export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewInit, OnDestroy {
 
     @Input() public selected: Subject<IPlugin> = new Subject();
 
@@ -60,6 +61,10 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
         if (this._ng_plugin !== undefined && (this._ng_plugin.readme === undefined || this._ng_plugin.readme.trim() === '')) {
             this._ng_state.readme = EReadmeState.ready;
         }
+    }
+
+    public ngAfterViewInit() {
+        this._loadState();
     }
 
     public _ng_onLoad() {
@@ -124,6 +129,7 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
             });
         } else {
             // Reinstall
+            this._ng_onInstallPlugin();
         }
     }
 
@@ -158,6 +164,15 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, OnDestroy 
             return 'Compatibility';
         }
         return 'Error';
+    }
+
+    private _loadState() {
+        const view: Storage<IViewState> = PluginsService.getManager().getStorage();
+        const plugin: IPlugin | undefined = PluginsService.getManager().getByName(view.get().selected);
+        if (plugin === undefined) {
+            return;
+        }
+        this._setCurrentPlugin(plugin);
     }
 
     private _onUpdatePlugin(event: IUpdateUpgradeEvent |IStateChangeEvent) {

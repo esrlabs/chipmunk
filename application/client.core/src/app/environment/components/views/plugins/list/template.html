@@ -23,14 +23,18 @@
     <button mat-stroked-button
             color="primary" 
             (click)="_ng_onAddCustom()">Add Plugin</button>
-    <button *ngIf="_ng_showDoAllButton()" 
+    <button *ngIf="_ng_showDoAllButton()"
+            [disabled]="_ng_getUpdaterState() === 'working'" 
             mat-stroked-button
             color="primary" 
             (click)="_ng_onDoAllClick()"
             [matBadge]="_ng_getBadgeCount()"
             matSize="small"
             matBadgePosition="before"
-            matBadgeColor="accent">{{_ng_getUpdateButtonCaption()}}</button>
+            matBadgeColor="accent">
+              <mat-spinner *ngIf="_ng_getUpdaterState() === 'working'" [diameter]="32" mode="indeterminate"></mat-spinner>
+              {{_ng_getUpdateButtonCaption()}}
+            </button>
 </div>
 
 <div *ngIf="_ng_state === 'pending'" class="pending">

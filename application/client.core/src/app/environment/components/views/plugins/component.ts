@@ -1,8 +1,10 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewContainerRef, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
-import { IPlugin } from '../../../controller/controller.plugins.manager';
+import { IPlugin, IViewState } from '../../../controller/controller.plugins.manager';
+import { Storage } from '../../../controller/helpers/virtualstorage';
+
+import PluginsService from '../../../services/service.plugins';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -52,7 +54,8 @@ export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterCont
     }
 
     public ngAfterViewInit() {
-
+        this._loadState();
+        this._forceUpdate();
     }
 
     public ngAfterContentInit() {
@@ -65,6 +68,7 @@ export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterCont
         });
         window.removeEventListener('mousemove', this._winMouseMove);
         window.removeEventListener('mouseup', this._winMouseUp);
+        this._saveState();
         this._destroyed = true;
     }
 
@@ -79,6 +83,16 @@ export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterCont
     public _ng_onResizeStart(event: MouseEvent) {
         this._resize.x = event.x;
         this._resize.r = (this._viewRef.element.nativeElement as HTMLElement).getBoundingClientRect().width / 100;
+    }
+
+    private _saveState() {
+        const view: Storage<IViewState> = PluginsService.getManager().getStorage();
+        view.set({ selected: view.get().selected, width: this._resize.p });
+    }
+
+    private _loadState() {
+        const view: Storage<IViewState> = PluginsService.getManager().getStorage();
+        this._resize.p = view.get().width;
     }
 
     private _winMouseMove(event: MouseEvent) {
