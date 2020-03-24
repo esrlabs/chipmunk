@@ -284,7 +284,7 @@ class Application implements IApplication {
     }
 
     private _quit(code: EExitCodes = EExitCodes.normal) {
-        this._logger.debug(`Application are ready to be closed.`);
+        this._logger.debug(`Application are ready to be closed with code "${code}".`);
         this._logger.debug(`LogsService will be shutdown.`);
         LogsService.shutdown().then(() => {
             process.exit(code);
