@@ -10,6 +10,7 @@ import { Storage } from '../../../../controller/helpers/virtualstorage';
 import PluginsService from '../../../../services/service.plugins';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { IPCMessages } from 'src/app/environment/interfaces/interface.ipc';
 
 @Component({
     selector: 'app-views-plugins-list',
@@ -57,8 +58,12 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     }
 
     public _ng_onPluginClick(plugin: IPlugin) {
-        this._ng_selected = plugin.name;
-        this.selected.next(plugin);
+        const selected: IPlugin | undefined = PluginsService.getManager().getByName(plugin.name);
+        if (selected === undefined){
+            return;
+        }
+        this._ng_selected = selected.name;
+        this.selected.next(selected);
         this._forceUpdate();
     }
 
