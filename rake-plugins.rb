@@ -83,7 +83,7 @@ class DefaultsPlugins
     @defaults.each do |p|
       puts "Downloading \"#{p['name']}\" from \"#{p['url']}\""
       File.open("#{dest}/#{p['file']}", "wb") do |saved_file|
-        open(p['url'], "rb") do |read_file|
+        URI.open(p['url'], "rb") do |read_file|
           saved_file.write(read_file.read)
         end
       end
