@@ -1,6 +1,7 @@
 import { IService } from '../interfaces/interface.service';
 import { Subscription } from 'rxjs';
 import { TabAboutComponent } from '../components/tabs/about/component';
+import { TabPluginsComponent } from '../components/tabs/plugins/component';
 
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
@@ -18,6 +19,7 @@ export class TabsCustomService implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._subscriptions.TabCustomAbout = ElectronIpcService.subscribe(IPCMessages.TabCustomAbout, this._onTabCustomAbout.bind(this));
+            this._subscriptions.TabCustomPlugins = ElectronIpcService.subscribe(IPCMessages.TabCustomPlugins, this._onTabCustomPlugins.bind(this));
             resolve();
         });
     }
@@ -44,6 +46,20 @@ export class TabsCustomService implements IService {
             }
         }).catch((error: Error) => {
             this._logger.warn(`Fail add about tab due error: ${error.message}`);
+        });
+    }
+
+    private _onTabCustomPlugins(message: IPCMessages.TabCustomPlugins) {
+        TabsSessionsService.add({
+            id: 'plugins',
+            title: 'Plugins',
+            component: {
+                factory: TabPluginsComponent,
+                inputs: {
+                }
+            }
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail add plugins tab due error: ${error.message}`);
         });
     }
 

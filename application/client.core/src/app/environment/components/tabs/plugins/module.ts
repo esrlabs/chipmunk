@@ -3,7 +3,7 @@ import { CommonModule                           } from '@angular/common';
 import { ScrollingModule                        } from '@angular/cdk/scrolling';
 import { HttpClientModule, HttpClient           } from '@angular/common/http';
 
-import { ViewPluginsComponent                   } from './component';
+import { TabPluginsComponent                    } from './component';
 import { ViewPluginsListComponent               } from './list/component';
 import { ViewPluginsPluginComponent             } from './list/plugin/component';
 import { ViewPluginsDetailsComponent            } from './details/component';
@@ -35,7 +35,7 @@ import {
 import { MarkdownModule } from 'ngx-markdown';
 
 const entryComponents = [
-    ViewPluginsComponent,
+    TabPluginsComponent,
     ViewPluginsListComponent,
     ViewPluginsPluginComponent,
     ViewPluginsDetailsComponent,
@@ -44,7 +44,7 @@ const entryComponents = [
     MatAutocomplete
 ];
 const components = [
-    ViewPluginsComponent,
+    TabPluginsComponent,
     ViewPluginsListComponent,
     ViewPluginsPluginComponent,
     ViewPluginsDetailsComponent,
@@ -80,7 +80,7 @@ const components = [
     exports         : [ ...components ]
 })
 
-export class ViewPluginsModule {
+export class TabPluginsModule {
     constructor() {
     }
 }
