@@ -4,7 +4,8 @@ import { CommonInterfaces } from '../../../../interfaces/interface.common';
 import { FormControl } from '@angular/forms';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
-import { EManagerState, IPlugin } from '../../../../controller/controller.plugins.manager';
+import { EManagerState, IPlugin, EUpdateState, IViewState } from '../../../../controller/controller.plugins.manager';
+import { Storage } from '../../../../controller/helpers/virtualstorage';
 
 import PluginsService from '../../../../services/service.plugins';
 
@@ -35,18 +36,20 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     }
 
     ngAfterViewInit() {
-        if (PluginsService.getManager().getState() === EManagerState.pending) {
-            this._subscriptions.onPluginsManagerReady = PluginsService.getManager().getObservable().ready.subscribe(this._getPluginsList.bind(this));
+        if (PluginsService.getManager().getManagerState() === EManagerState.pending) {
+            this._subscriptions.ready = PluginsService.getManager().getObservable().ready.subscribe(this._getPluginsList.bind(this));
         } else {
             this._getPluginsList();
         }
+        this._subscriptions.updater = PluginsService.getManager().getObservable().updater.subscribe(this._getUpdaterState.bind(this));
     }
 
     ngAfterContentInit() {
-
+        this._loadState();
     }
 
     public ngOnDestroy() {
+        this._saveState();
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
@@ -60,11 +63,17 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     }
 
     public _ng_onDoAllClick() {
-
+        if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
+            // Do restart
+        } else {
+            PluginsService.getManager().updateAndUpgradeAll().catch((error: Error) => {
+                this._logger.warn(`Fail to update/upgrade all due error: ${error.message}`);
+            });
+        }
     }
 
     public _ng_onAddCustom() {
-        
+        // TODO
     }
 
     public _ng_showDoAllButton() {
@@ -72,24 +81,52 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     }
 
     public _ng_getBadgeCount(): number {
-        return PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded();
+        if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
+            return 0;
+        } else {
+            return PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded();
+        }
+    }
+
+    public _ng_getUpdaterState(): EUpdateState {
+        return PluginsService.getManager().getUpdateState();
     }
 
     public _ng_getUpdateButtonCaption(): string {
-        if (PluginsService.getManager().getCountToBeUpdated() > 0 && PluginsService.getManager().getCountToBeUpgraded() > 0) {
-            return 'Upgrade & Update All';
-        } else if (PluginsService.getManager().getCountToBeUpdated() > 0) {
-            return 'Update All';
-        } else if (PluginsService.getManager().getCountToBeUpgraded() > 0) {
-            return 'Upgrade All';
+        if (PluginsService.getManager().getUpdateState() === EUpdateState.working) {
+            return 'Working';
+        } else if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
+            return 'Restart';
         } else {
-            return '';
+            if (PluginsService.getManager().getCountToBeUpdated() > 0 && PluginsService.getManager().getCountToBeUpgraded() > 0) {
+                return 'Upgrade & Update All';
+            } else if (PluginsService.getManager().getCountToBeUpdated() > 0) {
+                return 'Update All';
+            } else if (PluginsService.getManager().getCountToBeUpgraded() > 0) {
+                return 'Upgrade All';
+            } else {
+                return '';
+            }
         }
+    }
+
+    private _saveState() {
+        const view: Storage<IViewState> = PluginsService.getManager().getStorage();
+        view.set({ selected: this._ng_selected, width: view.get().width });
+    }
+
+    private _loadState() {
+        const view: Storage<IViewState> = PluginsService.getManager().getStorage();
+        this._ng_selected = view.get().selected;
     }
 
     private _getPluginsList() {
         this._ng_plugins = PluginsService.getManager().getPlugins();
         this._ng_state = EManagerState.ready;
+        this._forceUpdate();
+    }
+
+    private _getUpdaterState() {
         this._forceUpdate();
     }
 
