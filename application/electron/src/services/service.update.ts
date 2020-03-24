@@ -9,7 +9,7 @@ import ServicePackage from './service.package';
 import ServiceElectron, { Subscription, IPCMessages } from './service.electron';
 import ServiceProduction from './service.production';
 import GitHubClient, { IReleaseAsset, IReleaseData } from '../tools/env.github.client';
-import { IApplication } from '../interfaces/interface.app';
+import { IApplication, EExitCodes } from '../interfaces/interface.app';
 
 const CHooks = {
     alias: '<alias>',
@@ -249,10 +249,9 @@ class ServiceUpdate implements IService {
         const exec: string = ServicePaths.getExec();
         this._logger.debug(`Prepare app to be closed`);
         this._app?.close().then(() => {
-            const exitCode: number = 131;
             this._logger.debug(`Application is ready to be closed`);
-            this._logger.debug(`Force closing of app with code ${exitCode}`);
-            ServiceElectron.quit(exitCode);
+            this._logger.debug(`Force closing of app with code ${EExitCodes.update}`);
+            ServiceElectron.quit(EExitCodes.update);
         }).catch((destroyErr: Error) => {
             this._logger.error(`Fail to prepare app to be closed due error: ${destroyErr.message}`);
         });

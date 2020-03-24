@@ -63,9 +63,6 @@ export default class ControllerPluginsManager {
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsStoreAvailableRequest, this._ipc_PluginsStoreAvailableRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsStoreAvailableRequest = subscription;
                 }),
-                ServiceElectron.IPC.subscribe(IPCMessages.PluginsUpdate, this._ipc_PluginsUpdate.bind(this)).then((subscription: Subscription) => {
-                    this._subscriptions.PluginsUpdate = subscription;
-                }),
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsInstallRequest, this._ipc_PluginsInstallRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsInstallRequest = subscription;
                 }),
@@ -428,11 +425,6 @@ export default class ControllerPluginsManager {
         })).catch((error: Error) => {
             this._logger.warn(`Fail to send response on PluginsStoreAvailableResponse due error: ${error.message}`);
         });
-    }
-
-    private _ipc_PluginsUpdate(message: IPCMessages.PluginsUpdate) {
-        this._logger.debug(`Forsing quit of application`);
-        // this._app?.destroy();
     }
 
     private _ipc_PluginsInstallRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {

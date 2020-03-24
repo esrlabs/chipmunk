@@ -40,9 +40,6 @@ export { IPluginInternalMessage, PluginInternalMessage };
 import { IPluginError, PluginError } from './plugin.error';
 export { IPluginError, PluginError };
 
-import { PluginsUpdate } from './plugins.update';
-export { PluginsUpdate };
-
 import { IPluginsInstallRequest, PluginsInstallRequest } from './plugins.install.request';
 export { IPluginsInstallRequest, PluginsInstallRequest };
 
@@ -387,7 +384,6 @@ export type TMessage =  AppRestartRequest |
                         RenderState |
                         PluginInternalMessage |
                         PluginError |
-                        PluginsUpdate |
                         PluginsInstalledRequest |
                         PluginsInstalledResponse |
                         PluginsUpdateRequest |
@@ -519,7 +515,6 @@ export const Map = {
     [RenderState.signature                      ]: RenderState,
 
     [PluginInternalMessage.signature            ]: PluginInternalMessage,
-    [PluginsUpdate.signature                    ]: PluginsUpdate,
     [PluginError.signature                      ]: PluginError,
     [PluginsInstalledRequest.signature          ]: PluginsInstalledRequest,
     [PluginsInstalledResponse.signature         ]: PluginsInstalledResponse,

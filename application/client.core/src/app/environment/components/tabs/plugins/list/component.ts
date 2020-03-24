@@ -69,7 +69,11 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
 
     public _ng_onDoAllClick() {
         if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
-            // Do restart
+            PluginsService.getManager().restart().then(() => {
+                this._logger.debug(`Application will be restarted`);
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to request restart of application due error: ${error.message}`);
+            });
         } else {
             PluginsService.getManager().updateAndUpgradeAll().catch((error: Error) => {
                 this._logger.warn(`Fail to update/upgrade all due error: ${error.message}`);

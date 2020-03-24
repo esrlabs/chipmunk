@@ -9,7 +9,7 @@ import { Subscription } from '../tools/index';
 import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages } from '../controllers/electron/controller.electron.ipc';
-import { IApplication } from '../interfaces/interface.app';
+import { IApplication, EExitCodes } from '../interfaces/interface.app';
 import ControllerElectronIpc from '../controllers/electron/controller.electron.ipc';
 import ServiceProduction from './service.production';
 import ControllerBrowserWindow from '../controllers/electron/controller.browserwindow';
@@ -119,7 +119,7 @@ class ServiceElectron implements IService {
         this._controllerElectronMenu.rebuild();
     }
 
-    public quit(code = 0) {
+    public quit(code: EExitCodes = EExitCodes.normal) {
         this._logger.debug(`Closing app with code: ${code}`);
         app.exit(code);
         process.exit(code);
