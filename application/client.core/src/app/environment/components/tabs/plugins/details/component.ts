@@ -198,6 +198,8 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
         }
         this._ng_plugin = plugin;
         this._ng_error = undefined;
+        this._ng_version = undefined;
+        this._ng_versions = [];
         switch (this._ng_plugin.state) {
             case EPluginState.update:
                 this._ng_version = this._ng_plugin.update[0];
@@ -216,8 +218,6 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
                 this._ng_versions = plugin.suitable;
                 break;
             case EPluginState.notavailable:
-                this._ng_version = undefined;
-                this._ng_versions = [];
                 this._ng_error = `This plugin cannot be installed/updated becaues it isn't compatible to current version of chipmunk. You have two options: wait while developer of plugin will update plugin; update (or downgrade) your chipmunk version.`;
                 break;
         }
