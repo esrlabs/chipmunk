@@ -1,7 +1,7 @@
 // Libs
 import { dialog, MessageBoxReturnValue, app, Event } from 'electron';
 import { CommonInterfaces } from './interfaces/interface.common';
-import { IApplication } from './interfaces/interface.app';
+import { IApplication, EExitCodes } from './interfaces/interface.app';
 
 import * as FS from './tools/fs';
 
@@ -165,12 +165,12 @@ class Application implements IApplication {
         });
     }
 
-    public destroy(): Promise<void> {
+    public destroy(code: EExitCodes = EExitCodes.normal): Promise<void> {
         return new Promise((resolve, reject) => {
             this.close().catch((error: Error) => {
                 this._logger.warn(`Fail correctly close app due error: ${error.message}`);
             }).finally(() => {
-                this._quit();
+                this._quit(code);
                 resolve();
             });
         });
@@ -283,11 +283,11 @@ class Application implements IApplication {
         });
     }
 
-    private _quit() {
+    private _quit(code: EExitCodes = EExitCodes.normal) {
         this._logger.debug(`Application are ready to be closed.`);
         this._logger.debug(`LogsService will be shutdown.`);
         LogsService.shutdown().then(() => {
-            process.exit(0);
+            process.exit(code);
         });
     }
 

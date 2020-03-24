@@ -3,7 +3,7 @@ import ServiceProduction from './service.production';
 import ServiceElectron from './service.electron';
 
 import { IService } from '../interfaces/interface.service';
-import { IApplication } from '../interfaces/interface.app';
+import { IApplication, EExitCodes } from '../interfaces/interface.app';
 import { IPCMessages, Subscription } from './service.electron';
 
 const CSettings = {
@@ -82,7 +82,7 @@ class ServiceAppState implements IService {
     }
 
     private _ipc_AppRestartRequest() {
-        this._app?.destroy();
+        this._app?.destroy(EExitCodes.restart);
     }
 
 }
