@@ -59,6 +59,10 @@ lazy_static! {
         add_twice!("YYYY-MM-DD hh:mm:ss.s", &mut arr, &mut v);
         add_twice!("YYYY-MM-DDThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("YYYY-MM-DDThh:mm:ss", &mut arr, &mut v);
+        add_twice!("YYYY MM DD hh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("YYYY MM DDThh:mm:ss.s", &mut arr, &mut v);
+        add_twice!("YYYY MM DD hh:mm:ss", &mut arr, &mut v);
+        add_twice!("YYYY MM DDThh:mm:ss", &mut arr, &mut v);
         add_twice!("MM-DDThh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD hh:mm:ss.s", &mut arr, &mut v);
         add_twice!("MM-DD-YYYYThh:mm:ss.s", &mut arr, &mut v);

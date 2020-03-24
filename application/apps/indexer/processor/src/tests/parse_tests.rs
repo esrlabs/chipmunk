@@ -311,6 +311,14 @@ mod tests {
         derive_format_and_check!("2019-07-30T10:08:02.555", "YYYY-MM-DDThh:mm:ss.s");
         derive_format_and_check!("2019-07-30 10:08:02.555 +0200", "YYYY-MM-DD hh:mm:ss.s TZD");
         derive_format_and_check!("2019-07-30T10:08:02.555 +0200", "YYYY-MM-DDThh:mm:ss.s TZD");
+        derive_format_and_check!("2020 03 17 12:15:03 +01:00", "YYYY MM DD hh:mm:ss TZD");
+        derive_format_and_check!(
+            "2020 03 17 12:15:03.555 +01:00",
+            "YYYY MM DD hh:mm:ss.s TZD"
+        );
+        derive_format_and_check!("2020 03 17 12:15:03.555", "YYYY MM DD hh:mm:ss.s");
+        derive_format_and_check!("2020 03 17T12:15:03.555", "YYYY MM DDThh:mm:ss.s");
+        derive_format_and_check!("2020 03 17T12:15:03", "YYYY MM DDThh:mm:ss");
         // 	04/23/17 04:34:22 +0000
         // MM/dd/yyyy HH:mm:ss ZZZZ 	10/03/2017 07:29:46 -0700
 
