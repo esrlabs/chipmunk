@@ -1,6 +1,7 @@
 import { NgModule                               } from '@angular/core';
 import { CommonModule                           } from '@angular/common';
 import { TabAboutModule                         } from './about/module';
+import { TabPluginsModule                         } from './plugins/module';
 
 const components = [  ];
 
@@ -8,7 +9,7 @@ const components = [  ];
     entryComponents : [ ...components ],
     imports         : [ CommonModule ],
     declarations    : [ ...components ],
-    exports         : [ TabAboutModule, ...components ]
+    exports         : [ TabAboutModule, TabPluginsModule, ...components ]
 })
 
 export class EnvironmentTabsModule {

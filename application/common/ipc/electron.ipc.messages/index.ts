@@ -373,6 +373,9 @@ export { IOutputExportFeatureCallResponse, OutputExportFeatureCallResponse };
 import { IApplicationVersions, ITabCustomAbout, TabCustomAbout } from './tab.custom.about';
 export { IApplicationVersions, ITabCustomAbout, TabCustomAbout };
 
+import { TabCustomPlugins } from './tab.custom.plugins';
+export { TabCustomPlugins };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -496,7 +499,8 @@ export type TMessage =  AppRestartRequest |
                         OutputExportFeaturesResponse |
                         OutputExportFeatureCallRequest |
                         OutputExportFeatureCallResponse |
-                        TabCustomAbout;
+                        TabCustomAbout |
+                        TabCustomPlugins;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -645,4 +649,5 @@ export const Map = {
     [OutputExportFeatureCallResponse.signature  ]: OutputExportFeatureCallResponse,
 
     [TabCustomAbout.signature                   ]: TabCustomAbout,
+    [TabCustomPlugins.signature                 ]: TabCustomPlugins,
 };

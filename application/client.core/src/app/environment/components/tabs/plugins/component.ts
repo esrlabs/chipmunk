@@ -15,7 +15,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     encapsulation: ViewEncapsulation.None
 })
 
-export class ViewPluginsComponent implements OnDestroy, AfterViewInit, AfterContentInit {
+export class TabPluginsComponent implements OnDestroy, AfterViewInit, AfterContentInit {
 
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
     @Input() public onBeforeTabRemove: Subject<void>;

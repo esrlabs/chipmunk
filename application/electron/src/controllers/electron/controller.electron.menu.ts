@@ -6,6 +6,7 @@ import ServiceStorage from '../../services/service.storage';
 import ServiceFileOpener from '../../services/files/service.file.opener';
 import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
 import HandlerItemAbout from './menu.functions/handler.item.about';
+import HandlerItemPlugins from './menu.functions/handler.item.plugins';
 
 import Logger from '../../tools/env.logger';
 
@@ -100,6 +101,11 @@ export default class ControllerElectronMenu {
             });
 
         }
+        template[0].submenu.push({ type: 'separator' });
+        template[0].submenu.push({
+            label: 'Plugins',
+            click: HandlerItemPlugins,
+        });
         // Add platform related items
         if (process.platform === 'darwin') {
             template.unshift({
