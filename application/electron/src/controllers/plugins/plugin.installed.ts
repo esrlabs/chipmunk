@@ -5,6 +5,7 @@ import * as FS from '../../tools/fs';
 import * as tar from 'tar';
 import * as semver from 'semver';
 import * as Tools from '../../tools/index';
+import * as ncp from 'ncp';
 
 import Logger from '../../tools/env.logger';
 import LogsService from '../../tools/env.logger.service';
@@ -319,6 +320,56 @@ export default class ControllerPluginInstalled {
         });
     }
 
+    public import(tgz: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            FS.exist(tgz).then((exist: boolean) => {
+                if (!exist) {
+                    return reject(new Error(`File "${tgz}" doesn't exist.`));
+                }
+                const dest: string = path.resolve(ServicePaths.getTmp(), Tools.guid());
+                FS.mkdir(dest).then(() => {
+                    this._unpack(tgz, false, dest).then((cwd: string) => {
+                        FS.readFolder(dest, FS.EReadingFolderTarget.folders).then((folders: string[]) => {
+                            if (folders.length !== 1) {
+                                return reject(new Error(this._logger.warn(`Expecting only one compressed folder, but found in "${tgz}":\n\t-${folders.join('\n\t-\t')}`)));
+                            }
+                            this._name = folders[0];
+                            this._path = path.resolve(dest, folders[0]);
+                            this._logger.debug(`Plugin "${folders[0]}" is unpacked into: ${dest}`);
+                            resolve();
+                        }).catch((fldReadErr: Error) => {
+                            reject(new Error(this._logger.warn(`Fail to read dest folder "${dest}" due error: ${fldReadErr.message}`)));
+                        });
+                    }).catch((unpackErr: Error) => {
+                        reject(new Error(this._logger.warn(`Fail to unpack plugin due error: ${unpackErr.message}`)));
+                    });
+                }).catch((mkdirErr: Error) => {
+                    reject(new Error(this._logger.warn(`Fail to create temp-folder due error: ${mkdirErr.message}`)));
+                });
+            }).catch((existErr: Error) => {
+                reject(new Error(this._logger.warn(`Fail to find file "${tgz}" due error: ${existErr.message}`)));
+            });
+        });
+    }
+
+    public delivery(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const dest: string = path.resolve(ServicePaths.getPlugins(), this._name);
+            ncp(this._path, dest, (err: Error[] | null) => {
+                if (err !== null) {
+                    return reject(new Error(this._logger.warn(`Fail delivery plugin from "${this._path}" to "${dest}":\n\t- ${err.map(e => e.message).join('\n\t- ')}`)));
+                }
+                const tmp: string = path.resolve(this._path, '..');
+                FS.rmdir(tmp).catch((rmErr: Error) => {
+                    this._logger.warn(`Fail remove tmp plugin folder ${tmp} due error: ${rmErr.message}`);
+                }).finally(() => {
+                    this._path = path.resolve(ServicePaths.getPlugins(), this._name);
+                    resolve();
+                });
+            });
+        });
+    }
+
     public getSuitableUpdates(): CommonInterfaces.Plugins.IHistory[] | Error {
         if (this._info === undefined) {
             return new Error(`Fail to check plugin, because it isn't loaded`);
@@ -407,19 +458,19 @@ export default class ControllerPluginInstalled {
         this._logger.env(msg);
     }
 
-    private _unpack(tgzfile: string, removetgz: boolean = true): Promise<string> {
+    private _unpack(tgzfile: string, removetgz: boolean = true, cwd?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             tar.x({
                 file: tgzfile,
-                cwd: ServicePaths.getPlugins(),
+                cwd: cwd === undefined ? ServicePaths.getPlugins() : cwd,
             }).then(() => {
                 if (!removetgz) {
-                    return resolve(ServicePaths.getPlugins());
+                    return resolve(cwd);
                 }
                 FS.unlink(tgzfile).catch((removeErr: Error) => {
                     this._logger.warn(`Fail to remove ${tgzfile} due error: ${removeErr.message}`);
                 }).finally(() => {
-                    resolve(ServicePaths.getPlugins());
+                    resolve(cwd);
                 });
             }).catch(reject);
         });

@@ -1,16 +1,15 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { CommonInterfaces } from '../../../../interfaces/interface.common';
 import { FormControl } from '@angular/forms';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
 import { EManagerState, IPlugin, EUpdateState, IViewState } from '../../../../controller/controller.plugins.manager';
 import { Storage } from '../../../../controller/helpers/virtualstorage';
+import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 
 import PluginsService from '../../../../services/service.plugins';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { IPCMessages } from 'src/app/environment/interfaces/interface.ipc';
 
 @Component({
     selector: 'app-views-plugins-list',
@@ -32,7 +31,8 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewPluginsListComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef,
+                private _notifications: NotificationsService) {
 
     }
 
@@ -42,7 +42,8 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         } else {
             this._getPluginsList();
         }
-        this._subscriptions.updater = PluginsService.getManager().getObservable().updater.subscribe(this._getUpdaterState.bind(this));
+        this._subscriptions.updater = PluginsService.getManager().getObservable().updater.subscribe(this._forceUpdate.bind(this));
+        this._subscriptions.custom = PluginsService.getManager().getObservable().custom.subscribe(this._forceUpdate.bind(this));
     }
 
     ngAfterContentInit() {
@@ -82,7 +83,20 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     }
 
     public _ng_onAddCustom() {
-        // TODO
+        if (PluginsService.getManager().getCustomState() === EUpdateState.restart) {
+            PluginsService.getManager().restart().then(() => {
+                this._logger.debug(`Application will be restarted`);
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to request restart of application due error: ${error.message}`);
+            });
+        } else {
+            PluginsService.getManager().custom().catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Plugin Error',
+                    message: `Fail install custom plugin due error: ${error.message}`
+                });
+            });
+            }
     }
 
     public _ng_showDoAllButton() {
@@ -99,6 +113,10 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
 
     public _ng_getUpdaterState(): EUpdateState {
         return PluginsService.getManager().getUpdateState();
+    }
+
+    public _ng_getCustomState(): EUpdateState {
+        return PluginsService.getManager().getCustomState();
     }
 
     public _ng_getUpdateButtonCaption(): string {
@@ -119,6 +137,16 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         }
     }
 
+    public _ng_getAddCustomCaption(): string {
+        if (PluginsService.getManager().getCustomState() === EUpdateState.working) {
+            return 'Working';
+        } else if (PluginsService.getManager().getCustomState() === EUpdateState.restart) {
+            return 'Restart';
+        } else {
+            return 'Add Local Plugin';
+        }
+    }
+
     private _saveState() {
         const view: Storage<IViewState> = PluginsService.getManager().getStorage();
         view.set({ selected: this._ng_selected, width: view.get().width });
@@ -132,10 +160,6 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     private _getPluginsList() {
         this._ng_plugins = PluginsService.getManager().getPlugins();
         this._ng_state = EManagerState.ready;
-        this._forceUpdate();
-    }
-
-    private _getUpdaterState() {
         this._forceUpdate();
     }
 

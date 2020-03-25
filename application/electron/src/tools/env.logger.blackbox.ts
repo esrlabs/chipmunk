@@ -29,6 +29,7 @@ export class LogsBlackbox {
         }
         if ((typeof msg !== "string" || msg.trim() === "") && this._buffer.length === 0) {
             // Nothing to write
+            this._shutdown();
             return;
         }
         if (typeof msg === "string" && msg.trim() !== "" && this._state !== EState.ready) {
@@ -41,6 +42,7 @@ export class LogsBlackbox {
         }
         if (this._buffer.length === 0) {
             // Nothing to write
+            this._shutdown();
             return;
         }
         this._state = EState.writing;
@@ -54,17 +56,17 @@ export class LogsBlackbox {
                 this._state = EState.ready;
                 if (error) {
                     // tslint:disable-next-line:no-console
-                    console.error(`Fail to write logs into file due error: ${error.message}`);
+                    console.log(`Fail to write logs into file due error: ${error.message}`);
+                    this._shutdown();
                 } else {
                     this.write();
                 }
-                this._shutdown();
             },
         );
     }
 
     public shutdown(): Promise<void> {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             this._shutdownHandler = resolve;
             if (this._buffer.length > 0 && this._state !== EState.ready) {
                 this.write(`LogsBlackbox:: Some logs still aren't written. Will wait...`);
@@ -80,6 +82,7 @@ export class LogsBlackbox {
         if (this._buffer.length === 0 && this._state === EState.ready) {
             this._state = EState.shutdown;
             this._shutdownHandler();
+            this._shutdownHandler = undefined;
         }
     }
 

@@ -15,6 +15,7 @@ const PLUGINS_CONFIG_FOLDER = 'plugins.cfg';
 const SOCKETS_FOLDER = 'sockets';
 const STREAMS_FOLDER = 'streams';
 const DOWNLOADS_FOLDER = 'downloads';
+const TMP_FOLDER = 'tmp';
 const APPS_FOLDER = 'apps';
 const DEFAULT_PLUGINS_SANDBOX_PATH = '../../../sandbox';
 
@@ -41,6 +42,7 @@ class ServicePaths implements IService {
     private _sockets: string = '';
     private _streams: string = '';
     private _downloads: string = '';
+    private _tmp: string = '';
     private _apps: string = '';
     private _rg: string = '';
     private _includedPlugins: string = '';
@@ -55,6 +57,7 @@ class ServicePaths implements IService {
             this._sockets = Path.resolve(this._home, SOCKETS_FOLDER);
             this._streams = Path.resolve(this._home, STREAMS_FOLDER);
             this._downloads = Path.resolve(this._home, DOWNLOADS_FOLDER);
+            this._tmp = Path.resolve(this._home, TMP_FOLDER);
             this._apps = Path.resolve(this._home, APPS_FOLDER);
             this._pluginsCfgFolder = Path.resolve(this._home, PLUGINS_CONFIG_FOLDER);
             const resources: Error | string = this._getResourcePath();
@@ -78,7 +81,7 @@ class ServicePaths implements IService {
             this._rg = Path.resolve(this._root, `apps/${OS.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
             this._plugins = this._getPluginsPath(root);
             this._createHomeFolder().then(() => {
-                Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._apps, this._pluginsCfgFolder].map((folder: string) => {
+                Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._tmp, this._apps, this._pluginsCfgFolder].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
                     this._logger.debug(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tplugins settings ${this._pluginsCfgFolder}\n\tincluded plugins ${this._includedPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
@@ -163,6 +166,14 @@ class ServicePaths implements IService {
      */
     public getStreams(): string {
         return this._streams;
+    }
+
+    /**
+     * Returns path to tmp folder
+     * @returns string
+     */
+    public getTmp(): string {
+        return this._tmp;
     }
 
     /**

@@ -79,6 +79,12 @@ export { IPluginsNotificationUpgrade, PluginsNotificationUpgrade };
 import { IPluginsNotificationUpdate, PluginsNotificationUpdate } from './plugins.notification.update';
 export { IPluginsNotificationUpdate, PluginsNotificationUpdate };
 
+import { PluginAddRequest } from './plugin.add.request';
+export { PluginAddRequest };
+
+import { IPluginAddResponse, PluginAddResponse } from './plugin.add.response';
+export { IPluginAddResponse, PluginAddResponse };
+
 import { IStreamAddRequest, StreamAddRequest } from './stream.add.request';
 export { IStreamAddRequest, StreamAddRequest };
 
@@ -401,6 +407,8 @@ export type TMessage =  AppRestartRequest |
                         PluginsLogsResponse |
                         PluginsNotificationUpgrade |
                         PluginsNotificationUpdate |
+                        PluginAddRequest |
+                        PluginAddResponse |
                         StreamSetActive |
                         StreamAddRequest |
                         StreamAddResponse |
@@ -533,6 +541,8 @@ export const Map = {
     [PluginsLogsResponse.signature              ]: PluginsLogsResponse,
     [PluginsNotificationUpgrade.signature       ]: PluginsNotificationUpgrade,
     [PluginsNotificationUpdate.signature        ]: PluginsNotificationUpdate,
+    [PluginAddRequest.signature                 ]: PluginAddRequest,
+    [PluginAddResponse.signature                ]: PluginAddResponse,
 
     [StreamSetActive.signature                  ]: StreamSetActive,
     [StreamAddRequest.signature                 ]: StreamAddRequest,
