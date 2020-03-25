@@ -8,6 +8,7 @@ import { ViewPluginsListComponent               } from './list/component';
 import { ViewPluginsPluginComponent             } from './list/plugin/component';
 import { ViewPluginsDetailsComponent            } from './details/component';
 import { ViewPluginsDetailsLogsComponent        } from './details/logs/component';
+import { TabPluginsCounterComponent             } from './counter/component';
 
 import {
     ComplexModule,
@@ -40,6 +41,7 @@ const entryComponents = [
     ViewPluginsPluginComponent,
     ViewPluginsDetailsComponent,
     ViewPluginsDetailsLogsComponent,
+    TabPluginsCounterComponent,
     MatFormField,
     MatAutocomplete
 ];
@@ -48,7 +50,8 @@ const components = [
     ViewPluginsListComponent,
     ViewPluginsPluginComponent,
     ViewPluginsDetailsComponent,
-    ViewPluginsDetailsLogsComponent
+    ViewPluginsDetailsLogsComponent,
+    TabPluginsCounterComponent
 ];
 
 @NgModule({

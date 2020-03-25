@@ -8,7 +8,6 @@ import { IPCMessages } from './service.electron.ipc';
 import { IService } from '../interfaces/interface.service';
 import { ControllerPluginGate } from '../controller/controller.plugin.gate';
 import { IAPI } from 'chipmunk.client.toolkit';
-import { CommonInterfaces } from '../interfaces/interface.common';
 import { getAvailablePluginModules } from '../controller/controller.plugin.deps';
 
 import ElectronIpcService from './service.electron.ipc';
