@@ -386,6 +386,17 @@ export default class ControllerPluginsManager {
         });
     }
 
+    private _getIncompatiblesPluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.PluginsIncompatiblesRequest(), IPCMessages.PluginsIncompatiblesResponse).then((message: IPCMessages.PluginsIncompatiblesResponse) => {
+                resolve(message.plugins instanceof Array ? message.plugins : []);
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail request list of incompatible plugins due error: ${error.message}`);
+                reject(error);
+            });
+        });
+    }
+
     private _getAvailablePluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.PluginsStoreAvailableRequest(), IPCMessages.PluginsStoreAvailableResponse).then((message: IPCMessages.PluginsStoreAvailableResponse) => {
@@ -463,9 +474,14 @@ export default class ControllerPluginsManager {
                     this._logger.warn(`Fail get list of available plugins due error: ${error.message}`);
                     return Promise.resolve([]);
                 }),
+                this._getIncompatiblesPluginsInfo().catch((error: Error) => {
+                    this._logger.warn(`Fail get list of incompatible plugins due error: ${error.message}`);
+                    return Promise.resolve([]);
+                }),
             ]).then((results: Array<CommonInterfaces.Plugins.IPlugin[]>) => {
                 const installed: CommonInterfaces.Plugins.IPlugin[] = results[0];
                 const available: CommonInterfaces.Plugins.IPlugin[] = results[1];
+                const incompatible: CommonInterfaces.Plugins.IPlugin[] = results[2];
                 const plugins: Map<string, IPlugin> = new Map();
                 available.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
                     (p as IPlugin).installed = false;
@@ -483,6 +499,13 @@ export default class ControllerPluginsManager {
                         return;
                     }
                     (p as IPlugin).installed = true;
+                    p = this._setDefaults(p);
+                    plugins.set(p.name, p as IPlugin);
+                });
+                incompatible.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
+                    if (plugins.has(p.name)) {
+                        return;
+                    }
                     p = this._setDefaults(p);
                     plugins.set(p.name, p as IPlugin);
                 });
