@@ -43,7 +43,6 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
- 
     }
 
     public ngOnDestroy() {

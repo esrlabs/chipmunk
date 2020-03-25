@@ -1,6 +1,6 @@
 import { CommonInterfaces } from '../../interfaces/interface.common';
 
-const CPluginInfoValidators: { [key: string] : { type: 'string' | 'boolean' | 'array' | 'object', defaults?: any } } = {
+const CPluginInfoValidators: { [key: string]: { type: 'string' | 'boolean' | 'array' | 'object', defaults?: any } } = {
     name:           { type: 'string' },
     url:            { type: 'string' },
     version:        { type: 'string' },

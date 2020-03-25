@@ -34,7 +34,7 @@ const CSettings: {
 };
 
 const CFileNamePattern = /[\w\d-_\.]*@\d*\.\d*\.\d*-\d*\.\d*.\d*-\w*\.tgz$/gi;
-//chipmunk-serial-plugin@81100880.110000220.0024211238-1.0.1-linux.tgz
+// chipmunk-serial-plugin@81100880.110000220.0024211238-1.0.1-linux.tgz
 
 /**
  * @class ControllerPluginStore

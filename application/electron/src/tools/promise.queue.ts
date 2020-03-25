@@ -24,7 +24,7 @@ export class PromisesQueue {
 
     public do(callback: () => any) {
         if (this._tasks.size > 0) {
-            this._logger.debug(`Cannot start callback because still have a tasks in queue (count - ${this._tasks.size});`)
+            this._logger.debug(`Cannot start callback because still have a tasks in queue (count - ${this._tasks.size});`);
             this._pending.push(callback);
         } else {
             callback();
