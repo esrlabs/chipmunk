@@ -23,15 +23,14 @@ const CSettings: {
     repo: string,
     registerListFile: string,
 } = {
-
+/*
     user: 'DmitryAstafyev',
     repo: 'chipmunk.plugins.store',
     registerListFile: 'releases-{platform}.json',
-/*
+*/
     user: 'esrlabs',
     repo: 'chipmunk-plugins-store',
     registerListFile: 'releases-{platform}.json'
-*/
 };
 
 const CFileNamePattern = /[\w\d-_\.]*@\d*\.\d*\.\d*-\d*\.\d*.\d*-\w*\.tgz$/gi;
