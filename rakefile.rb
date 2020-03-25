@@ -205,7 +205,7 @@ task :check_environment do
   check_program('gem list -i dotenv', 'Dotenv is required. Please install it globally using "gem install dotenv".')
 end
 task :check_octokit do
-  check_program('gem list -i octokit', 'octocit is required. Please install it globally using "gem install dotenv".')
+  check_program('gem list -i octokit', 'octokit is required. Please install it globally using "gem install octokit".')
 end
 
 desc 'setup build environment'
