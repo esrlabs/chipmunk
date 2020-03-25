@@ -21,8 +21,12 @@
 </div>
 <div class="controlls">
     <button mat-stroked-button
+            [disabled]="_ng_getCustomState() === 'working'" 
             color="primary" 
-            (click)="_ng_onAddCustom()">Add Plugin</button>
+            (click)="_ng_onAddCustom()">
+      <mat-spinner *ngIf="_ng_getCustomState() === 'working'" [diameter]="32" mode="indeterminate"></mat-spinner>
+      {{_ng_getAddCustomCaption()}}
+    </button>
     <button *ngIf="_ng_showDoAllButton()"
             [disabled]="_ng_getUpdaterState() === 'working'" 
             mat-stroked-button
@@ -33,8 +37,8 @@
             matBadgePosition="before"
             matBadgeColor="accent">
               <mat-spinner *ngIf="_ng_getUpdaterState() === 'working'" [diameter]="32" mode="indeterminate"></mat-spinner>
-              {{_ng_getUpdateButtonCaption()}}
-            </button>
+      {{_ng_getUpdateButtonCaption()}}
+    </button>
 </div>
 
 <div *ngIf="_ng_state === 'pending'" class="pending">

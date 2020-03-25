@@ -64,19 +64,23 @@ export default class ControllerPluginsManager {
         upgrade: Subject<IUpdateUpgradeEvent>,
         state: Subject<IStateChangeEvent>,
         updater: Subject<EUpdateState>,
+        custom: Subject<EUpdateState>,
     } = {
         ready: new Subject<void>(),
         update: new Subject<IUpdateUpgradeEvent>(),
         upgrade: new Subject<IUpdateUpgradeEvent>(),
         state: new Subject<IStateChangeEvent>(),
         updater: new Subject<EUpdateState>(),
+        custom: new Subject<EUpdateState>(),
     };
     private _states: {
         manager: EManagerState,
         updater: EUpdateState,
+        custom: EUpdateState,
     } = {
         manager: EManagerState.pending,
         updater: EUpdateState.pending,
+        custom: EUpdateState.pending,
     };
     private _queue: Queue = new Queue();
     private _storage: Storage<IViewState> = new Storage<IViewState>({
@@ -102,6 +106,7 @@ export default class ControllerPluginsManager {
         upgrade: Observable<IUpdateUpgradeEvent>,
         state: Observable<IStateChangeEvent>,
         updater: Observable<EUpdateState>,
+        custom: Observable<EUpdateState>,
     } {
         return {
             ready: this._subjects.ready.asObservable(),
@@ -109,6 +114,7 @@ export default class ControllerPluginsManager {
             upgrade: this._subjects.upgrade.asObservable(),
             state: this._subjects.state.asObservable(),
             updater: this._subjects.updater.asObservable(),
+            custom: this._subjects.custom.asObservable(),
         };
     }
 
@@ -118,6 +124,10 @@ export default class ControllerPluginsManager {
 
     public getUpdateState(): EUpdateState {
         return this._states.updater;
+    }
+
+    public getCustomState(): EUpdateState {
+        return this._states.custom;
     }
 
     public getByName(name: string): IPlugin | undefined {
@@ -249,6 +259,30 @@ export default class ControllerPluginsManager {
         });
     }
 
+    public custom(): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            this.setCustomState(EUpdateState.working);
+            ElectronIpcService.request(new IPCMessages.PluginAddRequest(), IPCMessages.PluginAddResponse).then((response: IPCMessages.PluginAddResponse) => {
+                if (typeof response.error === 'string') {
+                    this._logger.error(`Fail to install custom plugin due error: ${response.error}`);
+                    this.setCustomState(EUpdateState.error);
+                    reject(new Error(response.error));
+                } else {
+                    if (typeof response.name === 'string' && response.name.trim() !== '') {
+                        this.setCustomState(EUpdateState.restart);
+                    } else {
+                        this.setCustomState(EUpdateState.pending);
+                    }
+                    resolve(response.name);
+                }
+            }).catch((error: Error) => {
+                this._logger.error(`Fail to request installation of custom plugin due error: ${error.message}`);
+                this.setCustomState(EUpdateState.error);
+                reject(error);
+            });
+        });
+    }
+
     public getLogs(name: string): Promise<string[]> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.PluginsLogsRequest({
@@ -329,6 +363,11 @@ export default class ControllerPluginsManager {
     public setUpdaterState(state: EUpdateState) {
         this._states.updater = state;
         this._subjects.updater.next(state);
+    }
+
+    public setCustomState(state: EUpdateState) {
+        this._states.custom = state;
+        this._subjects.custom.next(state);
     }
 
     public getStorage(): Storage<IViewState> {
@@ -424,7 +463,7 @@ export default class ControllerPluginsManager {
                 const installed: CommonInterfaces.Plugins.IPlugin[] = results[0];
                 const available: CommonInterfaces.Plugins.IPlugin[] = results[1];
                 const plugins: Map<string, IPlugin> = new Map();
-                available.map((p: CommonInterfaces.Plugins.IPlugin) => {
+                available.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
                     (p as IPlugin).installed = false;
                     installed.forEach((plugin: CommonInterfaces.Plugins.IPlugin) => {
                         if (p.name === plugin.name) {
@@ -432,21 +471,15 @@ export default class ControllerPluginsManager {
                             (p as IPlugin).installed = true;
                         }
                     });
-                    (p as IPlugin).update = [];
-                    (p as IPlugin).upgrade = [];
-                    if ((p as IPlugin).installed) {
-                        (p as IPlugin).state = EPluginState.installed;
-                    } else if (p.suitable instanceof Array && p.suitable.length > 0) {
-                        if (this.getVersionsToBeUpdated(p.name) !== undefined) {
-                            (p as IPlugin).state = EPluginState.update;
-                        } else if (this.getVersionsToBeUpgraded(p.name) !== undefined) {
-                            (p as IPlugin).state = EPluginState.upgrade;
-                        } else {
-                            (p as IPlugin).state = EPluginState.notinstalled;
-                        }
-                    } else if (!(p.suitable instanceof Array) || p.suitable.length === 0) {
-                        (p as IPlugin).state = EPluginState.notavailable;
+                    p = this._setDefaults(p);
+                    plugins.set(p.name, p as IPlugin);
+                });
+                installed.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
+                    if (plugins.has(p.name)) {
+                        return;
                     }
+                    (p as IPlugin).installed = true;
+                    p = this._setDefaults(p);
                     plugins.set(p.name, p as IPlugin);
                 });
                 resolve(plugins);
@@ -455,5 +488,24 @@ export default class ControllerPluginsManager {
                 resolve(new Map());
             });
         });
+    }
+
+    private _setDefaults(p: CommonInterfaces.Plugins.IPlugin): IPlugin {
+        (p as IPlugin).update = [];
+        (p as IPlugin).upgrade = [];
+        if ((p as IPlugin).installed) {
+            (p as IPlugin).state = EPluginState.installed;
+        } else if (p.suitable instanceof Array && p.suitable.length > 0) {
+            if (this.getVersionsToBeUpdated(p.name) !== undefined) {
+                (p as IPlugin).state = EPluginState.update;
+            } else if (this.getVersionsToBeUpgraded(p.name) !== undefined) {
+                (p as IPlugin).state = EPluginState.upgrade;
+            } else {
+                (p as IPlugin).state = EPluginState.notinstalled;
+            }
+        } else if (!(p.suitable instanceof Array) || p.suitable.length === 0) {
+            (p as IPlugin).state = EPluginState.notavailable;
+        }
+        return (p as IPlugin);
     }
 }

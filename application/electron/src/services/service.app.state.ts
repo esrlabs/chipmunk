@@ -82,7 +82,9 @@ class ServiceAppState implements IService {
     }
 
     private _ipc_AppRestartRequest() {
-        this._app?.destroy(EExitCodes.restart);
+        this._app?.destroy(EExitCodes.restart).catch((error: Error) => {
+            this._logger.warn(`Fail destroy app due error: ${error.message}`);
+        });
     }
 
 }

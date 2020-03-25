@@ -17,6 +17,7 @@ import { IPCMessages, Subscription } from '../../services/service.electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { ErrorCompatibility } from './plugin.installed';
 import { PromisesQueue } from '../../tools/promise.queue';
+import { dialog, OpenDialogReturnValue } from 'electron';
 
 interface IQueueTask {
     name: string;
@@ -74,6 +75,9 @@ export default class ControllerPluginsManager {
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsUninstallRequest, this._ipc_PluginsUninstallRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsUninstallRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginAddRequest, this._ipc_PluginAddRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginAddRequest = subscription;
                 }),
             ]).then(() => {
                 this._logger.debug(`All subscriptions are done`);
@@ -521,6 +525,64 @@ export default class ControllerPluginsManager {
             })).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on PluginsUninstallResponse due error: ${error.message}`);
             });
+        });
+    }
+
+    private _ipc_PluginAddRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
+        const msg: IPCMessages.PluginAddRequest = message as IPCMessages.PluginAddRequest;
+        const win = ServiceElectron.getBrowserWindow();
+        if (win === undefined) {
+            return response(new IPCMessages.PluginAddResponse({
+                error: `Fail to find active browser window`,
+            }));
+        }
+        dialog.showOpenDialog(win, {
+            properties: ['openFile', 'showHiddenFiles'],
+            filters: [
+                {
+                    name: 'Plugins',
+                    extensions: ['tgz'],
+                },
+            ],
+        }).then((returnValue: OpenDialogReturnValue) => {
+            if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
+                return response(new IPCMessages.PluginAddResponse({}));
+            }
+            const filename: string = returnValue.filePaths[0];
+            const plugin: InstalledPlugin = new InstalledPlugin(filename, filename, this._store);
+            plugin.import(filename).then(() => {
+                plugin.read().then(() => {
+                    plugin.delivery().then(() => {
+                        response(new IPCMessages.PluginAddResponse({
+                            name: plugin.getName(),
+                        }));
+                    }).catch((deliveryErr: Error) => {
+                        response(new IPCMessages.PluginAddResponse({
+                            error: this._logger.error(`Fail to delivery plugin due error: ${deliveryErr.message}`)
+                        }));
+                    });
+                }).catch((pluginErr: Error | ErrorCompatibility) => {
+                    if (pluginErr instanceof ErrorCompatibility) {
+                        this._logger.warn(`Plugin "${plugin.getName()}" could not be used because compability: ${pluginErr.message}`);
+                        response(new IPCMessages.PluginAddResponse({
+                            error: this._logger.error(`Compability error: ${pluginErr.message}`)
+                        }));
+                    } else {
+                        response(new IPCMessages.PluginAddResponse({
+                            error: this._logger.warn(`Fail to read plugin data in "${plugin.getPath()}". Error: ${pluginErr.message}`)
+                        }));
+                    }
+                });
+
+            }).catch((impErr: Error) => {
+                response(new IPCMessages.PluginAddResponse({
+                    error: this._logger.error(`Error while importing plugin: ${impErr.message}`)
+                }));
+            });
+        }).catch((error: Error) => {
+            response(new IPCMessages.PluginAddResponse({
+                error: this._logger.error(`Fail open file due error: ${error.message}`)
+            }));
         });
     }
 
