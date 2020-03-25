@@ -126,7 +126,6 @@ class Application implements IApplication {
 
     public close(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._unbindProcessEvents();
             if (this._state === EAppState.destroying) {
                 // Destroy method was already called.
                 return reject(new Error(`Close process is already running`));
@@ -170,8 +169,12 @@ class Application implements IApplication {
             this.close().catch((error: Error) => {
                 this._logger.warn(`Fail correctly close app due error: ${error.message}`);
             }).finally(() => {
-                this._quit(code);
-                resolve();
+                this._quit(code).catch((error: Error) => {
+                    // tslint:disable-next-line: no-console
+                    console.log(`Fail quit due error: ${error.message}`);
+                }).finally(() => {
+                    resolve();
+                });
             });
         });
     }
@@ -252,13 +255,6 @@ class Application implements IApplication {
         process.on('unhandledRejection', this._onUnhandledRejection.bind(this));
     }
 
-    private _unbindProcessEvents() {
-        ['exit', 'SIGINT', 'SIGTERM'].forEach((e: string) => {
-            process.removeAllListeners(e);
-        });
-        app.removeAllListeners('will-quit');
-    }
-
     private _onUnhandledRejection(reason: Error | any, promise: Promise<any>) {
         if (reason instanceof Error) {
             this._logger.error(`[BAD] UnhandledRejection: ${reason.message}`);
@@ -272,22 +268,32 @@ class Application implements IApplication {
     }
 
     private _onClose() {
-        this._unbindProcessEvents();
         this._logger.debug(`Application would be closed.`);
         process.stdin.resume();
         // Destroy services
         this.close().catch((error: Error) => {
             this._logger.warn(`Fail correctly close app due error: ${error.message}`);
         }).then(() => {
-            this._quit();
+            this._quit().catch((error: Error) => {
+                // tslint:disable-next-line: no-console
+                console.log(`Fail quit due error: ${error.message}`);
+            });
         });
     }
 
-    private _quit(code: EExitCodes = EExitCodes.normal) {
-        this._logger.debug(`Application are ready to be closed with code "${code}".`);
-        this._logger.debug(`LogsService will be shutdown.`);
-        LogsService.shutdown().then(() => {
-            process.exit(code);
+    private _quit(code: EExitCodes = EExitCodes.normal): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._logger.debug(`Application are ready to be closed with code "${code}".`);
+            this._logger.debug(`LogsService will be shutdown.`);
+            LogsService.shutdown().then(() => {
+                resolve();
+                process.exit(code);
+            }).catch((error: Error) => {
+                // tslint:disable-next-line: no-console
+                console.log(`Fail shutdown logservice due error: ${error.message}`);
+                reject(error);
+                process.exit(code);
+            });
         });
     }
 
