@@ -30,34 +30,56 @@ enum ElectronExitCode {
     RestartRequired = 132,
 }
 
+fn setup_fallback_logging(home_dir: &Path) -> Result<()> {
+    let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
+    let appender_name = "startup-appender";
+    let logfile = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
+        .build(log_path)?;
+
+    let config = Config::builder()
+        .appender(Appender::builder().build(appender_name, Box::new(logfile)))
+        .build(
+            Root::builder()
+                .appender(appender_name)
+                .build(LevelFilter::Trace),
+        )
+        .expect("log4rs config could not be created");
+
+    log4rs::init_config(config).expect("logging could not be initialized");
+    Ok(())
+}
+
+fn initialize_from_fresh_yml(home_dir: &Path, log_config_path: &Path) -> Result<()> {
+    let indexer_log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
+    let launcher_log_path = home_dir.join(".chipmunk").join("chipmunk.launcher.log");
+    let log_config_content = std::include_str!("../log4rs.yaml")
+        .replace("$INDEXER_LOG_PATH", &indexer_log_path.to_string_lossy())
+        .replace("$LAUNCHER_LOG_PATH", &launcher_log_path.to_string_lossy());
+    std::fs::write(&log_config_path, log_config_content)?;
+    log4rs::init_file(&log_config_path, Default::default())?;
+    Ok(())
+}
+
 fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
-    let initialized = if log_config_path.exists() {
-        match log4rs::init_file(log_config_path, Default::default()) {
+    let logging_correctly_initialized = if log_config_path.exists() {
+        // log4rs.yaml exists, try to parse it
+        match log4rs::init_file(&log_config_path, Default::default()) {
             Ok(()) => true,
-            _ => false,
+            Err(e) => {
+                eprintln!("problems with existing log config ({}), write fresh", e);
+                // log4rs.yaml exists, could not parse it
+                initialize_from_fresh_yml(&home_dir, &log_config_path).is_ok()
+            }
         }
     } else {
-        false
+        // log4rs.yaml did not exists
+        initialize_from_fresh_yml(&home_dir, &log_config_path).is_ok()
     };
-    if !initialized {
-        let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
-        let appender_name = "startup-appender";
-        let logfile = FileAppender::builder()
-            .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
-            .build(log_path)?;
-
-        let config = Config::builder()
-            .appender(Appender::builder().build(appender_name, Box::new(logfile)))
-            .build(
-                Root::builder()
-                    .appender(appender_name)
-                    .build(LevelFilter::Trace),
-            )
-            .expect("log4rs config could not be created");
-
-        log4rs::init_config(config).expect("logging could not be initialized");
+    if !logging_correctly_initialized {
+        setup_fallback_logging(&home_dir)?;
     }
     Ok(())
 }
