@@ -1,0 +1,27 @@
+name: Handle new issues
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  set-labels:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Add label 'new'
+      run: |
+        curl \
+          -s \
+          -u admin:${{ secrets.GITHUB_TOKEN }} \
+          -d '{"labels": ["new"]}' \
+          ${{ github.event.issue.url }}/labels
+
+    - name: Set assignee
+      run: |
+        curl \
+          -s \
+          -X PATCH \
+          -u admin:${{ secrets.GITHUB_TOKEN }} \
+          -d '{"assignees": ["marcmo"]}' \
+          ${{ github.event.issue.url }}
