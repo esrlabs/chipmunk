@@ -12,6 +12,7 @@ import ServiceEnv from '../../services/service.env';
 import InstalledPlugin from './plugin.installed';
 import ControllerPluginStore from './plugins.store';
 import ControllerPluginsStorage from './plugins.storage';
+import ControllerPluginsIncompatiblesStorage from './plugins.incompatibles';
 
 import { IPCMessages, Subscription } from '../../services/service.electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
@@ -47,12 +48,14 @@ export default class ControllerPluginsManager {
     };
     private _store: ControllerPluginStore;
     private _storage: ControllerPluginsStorage;
+    private _incompatibles: ControllerPluginsIncompatiblesStorage;
     private _downloads: PromisesQueue = new PromisesQueue('Downloads plugins queue');
     private _subscriptions: { [key: string ]: Subscription } = { };
 
     constructor(store: ControllerPluginStore, storage: ControllerPluginsStorage) {
         this._store = store;
         this._storage = storage;
+        this._incompatibles = new ControllerPluginsIncompatiblesStorage();
     }
 
     public init(): Promise<void> {
@@ -60,6 +63,9 @@ export default class ControllerPluginsManager {
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsInstalledRequest, this._ipc_PluginsInstalledRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsInstalledRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginsIncompatiblesRequest, this._ipc_PluginsIncompatiblesRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginsIncompatiblesRequest = subscription;
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginsStoreAvailableRequest, this._ipc_PluginsStoreAvailableRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginsStoreAvailableRequest = subscription;
@@ -123,14 +129,7 @@ export default class ControllerPluginsManager {
                                 name: plugin.getName(),
                                 version: version === undefined ? 'latest' : version,
                             });
-                            /*
-                            // TODO: We should not make user to upgrade plugin, he should choose version by himself
-                            const version: string | undefined = this._store.getLatestVersion(plugin.getName())?.version;
-                            this._queue.upgrade.set(plugin.getName(), {
-                                name: plugin.getName(),
-                                version: version === undefined ? 'latest' : version,
-                            });
-                            */
+                            this._incompatibles.add(plugin);
                         } else {
                             this._logger.warn(`Fail to read plugin data in "${folder}". Plugin will be ignored. Error: ${pluginErr.message}`);
                             toBeRemoved.push(plugin);
@@ -293,6 +292,15 @@ export default class ControllerPluginsManager {
         }) as CommonInterfaces.Plugins.IPlugin[];
     }
 
+    public getIncompatibles(): CommonInterfaces.Plugins.IPlugin[] {
+        const incompatibles: InstalledPlugin[] = this._incompatibles.get();
+        return incompatibles.map((plugin: InstalledPlugin) => {
+            return plugin.getInfo();
+        }).filter((info: CommonInterfaces.Plugins.IPlugin | undefined) => {
+            return info !== undefined;
+        }) as CommonInterfaces.Plugins.IPlugin[];
+    }
+
     public revision() {
         this._store.remote().then(() => {
             this._logger.env(`Plugin's state is updated from remote store`);
@@ -417,6 +425,17 @@ export default class ControllerPluginsManager {
             }),
         })).catch((error: Error) => {
             this._logger.warn(`Fail to send response on PluginsInstalledRequest due error: ${error.message}`);
+        });
+    }
+
+    private _ipc_PluginsIncompatiblesRequest(message: IPCMessages.PluginsIncompatiblesRequest, response: (instance: any) => any) {
+        response(new IPCMessages.PluginsIncompatiblesResponse({
+            plugins: this.getIncompatibles().map((plugin: CommonInterfaces.Plugins.IPlugin) => {
+                plugin.suitable = [];
+                return plugin;
+            }),
+        })).catch((error: Error) => {
+            this._logger.warn(`Fail to send response on PluginsIncompatiblesRequest due error: ${error.message}`);
         });
     }
 

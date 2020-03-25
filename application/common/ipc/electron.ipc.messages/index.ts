@@ -28,6 +28,12 @@ export { PluginsInstalledRequest };
 import { IPluginsInstalledResponse, PluginsInstalledResponse } from './plugins.installed.response';
 export { IPluginsInstalledResponse, PluginsInstalledResponse };
 
+import { PluginsIncompatiblesRequest } from './plugins.incompatibles.request';
+export { PluginsIncompatiblesRequest };
+
+import { IPluginsIncompatiblesResponse, PluginsIncompatiblesResponse } from './plugins.incompatibles.response';
+export { IPluginsIncompatiblesResponse, PluginsIncompatiblesResponse };
+
 import { PluginsStoreAvailableRequest } from './plugins.store.available.request';
 export { PluginsStoreAvailableRequest };
 
@@ -392,6 +398,8 @@ export type TMessage =  AppRestartRequest |
                         PluginError |
                         PluginsInstalledRequest |
                         PluginsInstalledResponse |
+                        PluginsIncompatiblesRequest |
+                        PluginsIncompatiblesResponse |
                         PluginsUpdateRequest |
                         PluginsUpdateResponse |
                         PluginsUpgradeRequest |
@@ -526,6 +534,8 @@ export const Map = {
     [PluginError.signature                      ]: PluginError,
     [PluginsInstalledRequest.signature          ]: PluginsInstalledRequest,
     [PluginsInstalledResponse.signature         ]: PluginsInstalledResponse,
+    [PluginsIncompatiblesRequest.signature      ]: PluginsIncompatiblesRequest,
+    [PluginsIncompatiblesResponse.signature     ]: PluginsIncompatiblesResponse,
     [PluginsStoreAvailableRequest.signature     ]: PluginsStoreAvailableRequest,
     [PluginsStoreAvailableResponse.signature    ]: PluginsStoreAvailableResponse,
     [PluginsInstallRequest.signature            ]: PluginsInstallRequest,
