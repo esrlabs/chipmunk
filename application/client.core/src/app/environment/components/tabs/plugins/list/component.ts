@@ -1,11 +1,12 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { FormControl } from '@angular/forms';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
 import { EManagerState, IPlugin, EUpdateState, IViewState } from '../../../../controller/controller.plugins.manager';
 import { Storage } from '../../../../controller/helpers/virtualstorage';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
+import { sortPairs, IPair } from '../../../../thirdparty/code/engine';
+import { IPluginData } from './plugin/component';
 
 import PluginsService from '../../../../services/service.plugins';
 
@@ -22,14 +23,15 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
 
     @Input() public selected: Subject<IPlugin> = new Subject();
 
-    public _ng_plugins: IPlugin[] = [];
-    public _ng_searchInputCtrl = new FormControl();
+    public _ng_plugins: IPluginData[] = [];
     public _ng_state: EManagerState = EManagerState.pending;
     public _ng_selected: string | undefined;
+    public _ng_search: string = '';
 
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewPluginsListComponent');
+    private _plugins: IPlugin[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
@@ -60,7 +62,7 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
 
     public _ng_onPluginClick(plugin: IPlugin) {
         const selected: IPlugin | undefined = PluginsService.getManager().getByName(plugin.name);
-        if (selected === undefined){
+        if (selected === undefined) {
             return;
         }
         this._ng_selected = selected.name;
@@ -147,6 +149,10 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         }
     }
 
+    public _ng_onSearchChange(value: string) {
+        this._ng_plugins = this._getSortedPlugins(this._ng_search);
+    }
+
     private _saveState() {
         const view: Storage<IViewState> = PluginsService.getManager().getStorage();
         view.set({ selected: this._ng_selected, width: view.get().width });
@@ -158,9 +164,47 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     }
 
     private _getPluginsList() {
-        this._ng_plugins = PluginsService.getManager().getPlugins();
+        this._plugins = PluginsService.getManager().getPlugins();
+        this._ng_plugins = this._getSortedPlugins('');
         this._ng_state = EManagerState.ready;
         this._forceUpdate();
+    }
+
+    private _getSortedPlugins(search: string): IPluginData[] {
+        if (search === '') {
+            return this._plugins.map((plugin: IPlugin) => {
+                return {
+                    plugin: plugin,
+                    matches: {
+                        name: plugin.display_name,
+                        description: plugin.description,
+                    }
+                };
+            });
+        }
+        const pairs: IPair[] = this._plugins.map((plugin: IPlugin) => {
+            return {
+                id: plugin.name,
+                caption: plugin.display_name,
+                description: plugin.description,
+            };
+        });
+        const scored = sortPairs(pairs, search, search !== '', 'span');
+        const plugins: IPluginData[] = [];
+        scored.forEach((s: IPair) => {
+            const found: IPlugin | undefined = this._plugins.find(p => p.name === s.id);
+            if (found === undefined) {
+                return;
+            }
+            plugins.push({
+                plugin: found,
+                matches: {
+                    name: s.tcaption,
+                    description: s.tdescription,
+                }
+            });
+        });
+        return plugins;
     }
 
     private _forceUpdate() {

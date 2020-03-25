@@ -5,8 +5,9 @@
           <input  type="text" 
                   placeholder="Plugin Name or Description"
                   aria-label="Filter"
-                  matInput
-                  [formControl]="_ng_searchInputCtrl">
+                  [(ngModel)]="_ng_search"
+                  (ngModelChange)="_ng_onSearchChange($event)"
+                  matInput>
         </mat-form-field>
         <div class="spinner" *ngIf="false">
           <mat-progress-bar mode="indeterminate"></mat-progress-bar>
@@ -16,7 +17,7 @@
 </div>
 <div *ngIf="_ng_state === 'ready'" [attr.class]="'list controlls_after'">
     <cdk-virtual-scroll-viewport itemSize="50">
-        <app-views-plugin [plugin]="plugin" [selected]="_ng_selected === plugin.name" (click)="_ng_onPluginClick(plugin)" *cdkVirtualFor="let plugin of _ng_plugins" class="example-item"></app-views-plugin>
+        <app-views-plugin [data]="data" [selected]="_ng_selected === data.plugin.name" (click)="_ng_onPluginClick(data.plugin)" *cdkVirtualFor="let data of _ng_plugins" class="example-item"></app-views-plugin>
     </cdk-virtual-scroll-viewport>
 </div>
 <div class="controlls">
