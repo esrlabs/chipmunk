@@ -1,20 +1,30 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { IPlugin, EPluginState, IUpdateUpgradeEvent, IStateChangeEvent } from '../../../../../controller/controller.plugins.manager';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import PluginsService from '../../../../../services/service.plugins';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export interface IPluginData {
+    plugin: IPlugin;
+    matches: {
+        name: string;
+        description: string;
+    };
+}
+
 @Component({
     selector: 'app-views-plugin',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 
 export class ViewPluginsPluginComponent implements AfterContentInit, OnDestroy {
 
-    @Input() public plugin: IPlugin;
+    @Input() public data: IPluginData;
     @Input() public selected: boolean;
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -25,7 +35,8 @@ export class ViewPluginsPluginComponent implements AfterContentInit, OnDestroy {
         return this.selected;
     }
 
-    constructor(private _cdRef: ChangeDetectorRef ) {
+    constructor(private _cdRef: ChangeDetectorRef,
+                private _sanitizer: DomSanitizer) {
     }
 
     public ngOnDestroy() {
@@ -36,25 +47,25 @@ export class ViewPluginsPluginComponent implements AfterContentInit, OnDestroy {
     }
 
     public ngAfterContentInit() {
-        this._logger = new Toolkit.Logger(`ViewPluginsPluginComponent (${this.plugin.name})`);
+        this._logger = new Toolkit.Logger(`ViewPluginsPluginComponent (${this.data.plugin.name})`);
         this._subscriptions.update = PluginsService.getManager().getObservable().update.subscribe(this._onUpdatePlugin.bind(this));
         this._subscriptions.upgrade = PluginsService.getManager().getObservable().upgrade.subscribe(this._onUpdatePlugin.bind(this));
         this._subscriptions.state = PluginsService.getManager().getObservable().state.subscribe(this._onUpdatePlugin.bind(this));
     }
 
     public _ng_getState(): EPluginState {
-        return this.plugin.state;
+        return this.data.plugin.state;
     }
 
     public _ng_getStateLabel(): string {
-        if (this.plugin === undefined) {
+        if (this.data === undefined) {
             return '';
         }
-        switch (this.plugin.state) {
+        switch (this.data.plugin.state) {
             case EPluginState.update:
-                return this.plugin.update[0];
+                return this.data.plugin.update[0];
             case EPluginState.upgrade:
-                return this.plugin.upgrade[0];
+                return this.data.plugin.upgrade[0];
             case EPluginState.installed:
                 return 'Installed';
             case EPluginState.working:
@@ -64,22 +75,26 @@ export class ViewPluginsPluginComponent implements AfterContentInit, OnDestroy {
             case EPluginState.restart:
                 return 'Needs restart';
             default:
-                return this.plugin.version;
+                return this.data.plugin.version;
         }
     }
 
+    public _ng_getSafeHTML(str: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(str);
+    }
+
     private _onUpdatePlugin(event: IUpdateUpgradeEvent |IStateChangeEvent) {
-        if (this.plugin === undefined) {
+        if (this.data === undefined) {
             return;
         }
-        if (event.name !== this.plugin.name) {
+        if (event.name !== this.data.plugin.name) {
             return;
         }
-        const plugin: IPlugin | undefined = PluginsService.getManager().getByName(this.plugin.name);
+        const plugin: IPlugin | undefined = PluginsService.getManager().getByName(this.data.plugin.name);
         if (plugin === undefined) {
             return;
         }
-        this.plugin = plugin;
+        this.data.plugin = plugin;
         this._forceUpdate();
     }
 
