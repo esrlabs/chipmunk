@@ -105,7 +105,7 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
 
     public _ng_getBadgeCount(): number {
         if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
-            return 0;
+            return undefined;
         } else {
             return PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded();
         }

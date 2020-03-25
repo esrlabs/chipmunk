@@ -558,30 +558,30 @@ export default class ControllerPluginsManager {
                         }));
                     }).catch((deliveryErr: Error) => {
                         response(new IPCMessages.PluginAddResponse({
-                            error: this._logger.error(`Fail to delivery plugin due error: ${deliveryErr.message}`)
+                            error: this._logger.error(`Fail to delivery plugin due error: ${deliveryErr.message}`),
                         }));
                     });
                 }).catch((pluginErr: Error | ErrorCompatibility) => {
                     if (pluginErr instanceof ErrorCompatibility) {
                         this._logger.warn(`Plugin "${plugin.getName()}" could not be used because compability: ${pluginErr.message}`);
                         response(new IPCMessages.PluginAddResponse({
-                            error: this._logger.error(`Compability error: ${pluginErr.message}`)
+                            error: this._logger.error(`Compability error: ${pluginErr.message}`),
                         }));
                     } else {
                         response(new IPCMessages.PluginAddResponse({
-                            error: this._logger.warn(`Fail to read plugin data in "${plugin.getPath()}". Error: ${pluginErr.message}`)
+                            error: this._logger.warn(`Fail to read plugin data in "${plugin.getPath()}". Error: ${pluginErr.message}`),
                         }));
                     }
                 });
 
             }).catch((impErr: Error) => {
                 response(new IPCMessages.PluginAddResponse({
-                    error: this._logger.error(`Error while importing plugin: ${impErr.message}`)
+                    error: this._logger.error(`Error while importing plugin: ${impErr.message}`),
                 }));
             });
         }).catch((error: Error) => {
             response(new IPCMessages.PluginAddResponse({
-                error: this._logger.error(`Fail open file due error: ${error.message}`)
+                error: this._logger.error(`Fail open file due error: ${error.message}`),
             }));
         });
     }

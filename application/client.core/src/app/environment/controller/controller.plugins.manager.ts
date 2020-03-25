@@ -1,12 +1,13 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import { Subscription, Subject, Observable  } from 'rxjs';
+import { Subject, Observable  } from 'rxjs';
 import { CommonInterfaces } from '../interfaces/interface.common';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { Queue } from '../controller/helpers/queue';
 import { Storage } from '../controller/helpers/virtualstorage';
 
 import ElectronIpcService from '../services/service.electron.ipc';
+import CustomTabsEventsService from '../services/standalone/service.customtabs.events';
 
 export enum EPluginState {
     installed = 'installed',
@@ -402,6 +403,9 @@ export default class ControllerPluginsManager {
             this._states.manager = EManagerState.ready;
             this._subjects.ready.next();
             this._queue.unlock();
+            if (this.getCountToBeUpdated() + this.getCountToBeUpgraded() > 0) {
+                CustomTabsEventsService.emit().plugins();
+            }
         }).catch((error: Error) => {
             this._logger.error(`Fail to request plugins data due error: ${error.message}`);
             this._plugins = new Map();

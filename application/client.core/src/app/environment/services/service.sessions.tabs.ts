@@ -18,6 +18,7 @@ import LayoutStateService from './standalone/service.layout.state';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export { ITabAPI };
 export { ControllerSessionTabSearch } from '../controller/controller.session.tab.search';
 
 export type TSessionGuid = string;
@@ -35,6 +36,7 @@ export interface ICustomTab {
     id: string;
     title: string;
     component: IComponentDesc;
+    tabCaptionInjection?: IComponentDesc;
 }
 
 export class TabsSessionsService implements IService {
@@ -150,6 +152,7 @@ export class TabsSessionsService implements IService {
                                             factory: this._defaults.views[0].component,
                                             inputs: {
                                                 session: session,
+                                                tabCaptionService: tabTitleContentService,
                                                 getTabAPI: (): ITabAPI => {
                                                     return tabAPI;
                                                 }
@@ -177,17 +180,18 @@ export class TabsSessionsService implements IService {
                 custom.component.inputs.getTabAPI = (): ITabAPI => {
                     return tabAPI;
                 };
+                custom.component.inputs.tabCaptionService = tabTitleContentService;
                 this._sessions.set(guid, custom);
                 tabAPI = this._tabsService.add({
                     guid: guid,
                     name: custom.title,
                     active: true,
-                    tabCaptionInjection: {
+                    tabCaptionInjection: custom.tabCaptionInjection === undefined ? {
                         factory: LayoutPrimiryAreaTabTitleControlsComponent,
                         inputs: {
                             service: tabTitleContentService
                         },
-                    },
+                    } : custom.tabCaptionInjection,
                     content: custom.component
                 });
                 this.setActive(guid);
