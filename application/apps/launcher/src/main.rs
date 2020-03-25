@@ -11,12 +11,14 @@ extern crate log4rs;
 use std::os::windows::process::CommandExt;
 
 use anyhow::{anyhow, Result};
+use crossbeam_channel::{bounded, select, tick, Receiver};
 use log::LevelFilter;
 use log4rs::{
     append::file::FileAppender,
     config::{Appender, Config, Root},
     encode::pattern::PatternEncoder,
 };
+use std::time::Duration;
 use std::{
     path::Path,
     path::PathBuf,
@@ -94,8 +96,8 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
 
 #[cfg(target_os = "windows")]
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
-    const DETACHED_PROCESS: u32 = 0x00000008;
-    const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
+    const DETACHED_PROCESS: u32 = 0x0000_0008;
+    const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
     Command::new(exe)
         .args(args)
         .creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
@@ -141,26 +143,20 @@ fn find_electron_app() -> Result<String> {
     Ok(app)
 }
 
-fn get_updater_path() -> PathBuf {
-    let home_dir = dirs::home_dir();
-    let updater = format!(
-        "{}/.chipmunk/apps/updater",
-        home_dir.unwrap().as_path().to_str().unwrap()
-    );
-    PathBuf::from(if cfg!(target_os = "windows") {
-        format!("{}.exe", updater)
+fn get_updater_path() -> Result<PathBuf> {
+    let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("error getting homedir"))?;
+
+    let updater_path = home_dir.join(".chipmunk").join("apps");
+    Ok(if cfg!(target_os = "windows") {
+        updater_path.join("updater.exe")
     } else {
-        updater
+        updater_path.join("updater")
     })
 }
 
-fn update_package_path() -> String {
-    let home_dir = dirs::home_dir();
-    let downloads = format!(
-        "{}/.chipmunk/downloads",
-        home_dir.unwrap().as_path().to_str().unwrap()
-    );
-    let downloads_path = Path::new(&downloads);
+fn update_package_path() -> Result<String> {
+    let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("could not get HOME_DIR"))?;
+    let downloads_path = home_dir.join(".chipmunk").join("downloads");
     let mut maxunixts = 0;
     let mut target: String = String::from("");
     for entry in downloads_path
@@ -172,16 +168,18 @@ fn update_package_path() -> String {
             let path = Path::new(&path_buf);
             if let Some(ext) = path.extension() {
                 if path.is_file() && ext == "tgz" {
-                    let metadata = std::fs::metadata(&path).unwrap();
+                    let metadata = std::fs::metadata(&path)?;
                     if let Ok(time) = metadata.modified() {
                         let unixts = time
                             .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
+                            .map_err(|error| {
+                                anyhow::Error::new(error)
+                                    .context("could not get time diff for unix timestamp")
+                            })?
                             .as_secs();
                         if unixts > maxunixts {
                             maxunixts = unixts;
-                            let path_str = path.to_str().unwrap();
-                            target = path_str.to_string();
+                            target = path.to_string_lossy().to_string();
                         }
                     } else {
                         warn!("Not supported on this platform");
@@ -190,11 +188,11 @@ fn update_package_path() -> String {
             }
         }
     }
-    target
+    Ok(target)
 }
 
 fn update() -> Result<bool> {
-    let updater_path = get_updater_path();
+    let updater_path = get_updater_path()?;
 
     if !updater_path.exists() {
         error!("File of updater {:?} doesn't exist", updater_path);
@@ -203,7 +201,7 @@ fn update() -> Result<bool> {
 
     trace!("Starting updater: {:?}", updater_path);
     let app = electron_app_path()?;
-    let update_package = update_package_path();
+    let update_package = update_package_path()?;
     if app == "" || update_package == "" {
         error!(
             "Fail to start update because some path isn't detected. app: {}, tgz: {}",
@@ -226,11 +224,21 @@ fn update() -> Result<bool> {
     Ok(true)
 }
 
-fn main() {
+fn ctrl_channel() -> Result<Receiver<()>, ctrlc::Error> {
+    let (sender, receiver) = bounded(100);
+    ctrlc::set_handler(move || {
+        let _ = sender.send(());
+    })?;
+
+    Ok(receiver)
+}
+fn main() -> Result<()> {
     match init_logging() {
         Ok(()) => trace!("Launcher started logging"),
         Err(e) => eprintln!("couldn't initialize logging: {}", e),
     }
+
+    let ctrl_c_events = ctrl_channel()?;
 
     let electron_app = match find_electron_app() {
         Ok(app) => app,
@@ -252,19 +260,35 @@ fn main() {
     let mut start_required = true;
     while start_required {
         start_required = false;
-        debug!("Starting application: {}", electron_app);
-
-        let child = spawn(&electron_app, &[]);
+        debug!("Starting application");
+        let child: Result<Child> = spawn(&electron_app, &[]);
         match child {
             Ok(mut child) => {
-                info!("Electron application is started ({:?})", electron_app_path);
-                match child.wait() {
-                    Ok(result) => {
-                        let exit_code = result.code().unwrap();
-                        start_required = handle_exit_code(exit_code)
-                    }
-                    Err(e) => {
-                        error!("Error during running app: {}", e);
+                let pid = child.id();
+
+                info!("Electron application is started (pid: {})", pid);
+                let ticks = tick(Duration::from_secs(1));
+
+                loop {
+                    select! {
+                        recv(ticks) -> _ => {
+                            match child.try_wait() {
+                                Ok(Some(result)) => {
+                                    let exit_code = result.code();
+                                    start_required = handle_exit_code(exit_code);
+                                    break;
+                                }
+                                Ok(None) => (),
+                                Err(e) => {
+                                    error!("Error during running app: {}", e);
+                                }
+                            }
+                        }
+                        recv(ctrl_c_events) -> _ => {
+                            warn!("Detected Ctrl-C ...Goodbye!");
+                            child.kill()?;
+                            break;
+                        }
                     }
                 }
             }
@@ -275,16 +299,17 @@ fn main() {
         debug!("start is required: {}", start_required);
     }
     debug!("exiting...start is required: {}", start_required);
+    Ok(())
 }
 
-fn handle_exit_code(exit_code: i32) -> bool {
-    trace!("App is finished with code: {}", exit_code);
+fn handle_exit_code(exit_code: Option<i32>) -> bool {
+    trace!("App is finished with code: {:?}", exit_code);
     match exit_code {
-        code if code == ElectronExitCode::NormalExit as i32 => {
+        Some(code) if code == ElectronExitCode::NormalExit as i32 => {
             // node app was closed
             info!("No update required, exiting");
         }
-        code if code == ElectronExitCode::UpdateRequired as i32 => {
+        Some(code) if code == ElectronExitCode::UpdateRequired as i32 => {
             // node app was closed and update requested
             info!("Update is required");
             match update() {
@@ -292,13 +317,13 @@ fn handle_exit_code(exit_code: i32) -> bool {
                 Err(e) => error!("update failed: {}", e),
             }
         }
-        code if code == ElectronExitCode::RestartRequired as i32 => {
+        Some(code) if code == ElectronExitCode::RestartRequired as i32 => {
             // node app was closed and but needs a restart
             info!("Restart is required");
             return true;
         }
-        code => {
-            warn!("received unknown exit code {}! exiting...", code);
+        other_exit => {
+            warn!("received unknown exit code {:?}! exiting...", other_exit);
         }
     }
     false

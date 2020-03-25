@@ -5,6 +5,8 @@ authors = ["dmitry.astafyev <dmitry.astafyev@esrlabs.com>", "oliver.mueller <oli
 edition = "2018"
 
 [dependencies]
+crossbeam-channel = "0.4.2"
+ctrlc = "3.1.4"
 chrono = "0.4"
 flate2 = "1.0"
 dirs = "2.0"
