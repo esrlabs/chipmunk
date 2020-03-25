@@ -3,6 +3,7 @@
 require 'open-uri'
 
 REPO = 'esrlabs/chipmunk-plugins-store'
+#REPO = 'DmitryAstafyev/chipmunk.plugins.store'
 RELEASES_FILE_NAME = 'releases'
 REGISTERS = [
   'releases-darwin.json',
