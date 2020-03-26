@@ -6,7 +6,7 @@ require 'json'
 require 'pathname'
 require 'uri'
 require 'rake/clean'
-require './rake-extensions'
+require './rake_extensions'
 require './rake-plugins'
 require './rake-package-json'
 
@@ -37,6 +37,7 @@ directory ELECTRON_RELEASE_DIR
 directory INCLUDED_PLUGINS_FOLDER
 directory INCLUDED_APPS_FOLDER
 directory RIPGREP_LOCAL_TMP
+directory CLIENT_CORE_DIR
 
 FOLDERS_TO_CLEAN = [
   ELECTRON_COMPILED_DIR,
@@ -62,11 +63,6 @@ CLOBBER.include([
                   "#{APPS_DIR}/indexer-neon/native/target"
                 ])
 
-task drop: :clobber
-CLOBBER.include([
-                  '**/package-lock.json',
-                ])
-
 task folders: [ELECTRON_COMPILED_DIR,
                ELECTRON_RELEASE_DIR,
                INCLUDED_PLUGINS_FOLDER,
@@ -74,6 +70,9 @@ task folders: [ELECTRON_COMPILED_DIR,
 
 task :clean_electron do
   rm_f "#{ELECTRON_DIR}/dist"
+end
+task :clean_release_dir do
+  rm_f ELECTRON_RELEASE_DIR
 end
 
 task :clean_javascript => :clean_electron do
@@ -175,7 +174,7 @@ def npm_reinstall(package_and_version)
 end
 
 desc 'start'
-task start: :ripgrepdelivery do
+task start: :ripgrep do
   # config_windows_path = File.join(Dir.home, '.chipmunk', 'config.window.json')
   # rm_f config_windows_path
   ENV['CHIPMUNK_DEVELOPING_MODE'] = 'ON'
@@ -277,7 +276,7 @@ file rg_executable => RIPGREP_LOCAL_TMP do
   cp(downloaded_rg, rg_executable)
 end
 
-task ripgrepdelivery: [:folders, rg_executable]
+task ripgrep: [:folders, rg_executable]
 
 namespace :client do
   task :rebuild_core do
@@ -316,7 +315,7 @@ namespace :client do
       puts 'Building client.core'
       sh "#{NPM_RUN} build"
     end
-    puts 'Delivery client.core'
+    puts 'Deliver client.core'
     rm_r(dest_client_path, force: true)
     cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, verbose: false)
   end
@@ -342,8 +341,7 @@ namespace :client do
       npm_install('chipmunk.client.toolkit@latest')
     end
   end
-  task build_core: core_toolkit_installation
-
+  task build_core: [CLIENT_CORE_DIR, core_toolkit_installation]
 end
 # namespace client
 
@@ -390,8 +388,8 @@ task install: [:folders,
 
 namespace :dev do
 
-  desc 'Developer task: update and delivery indexer-neon'
-  task neon: %i[build_embedded_indexer delivery_embedded_into_local_runtime]
+  desc 'Developer task: update and deliver indexer-neon'
+  task neon: %i[build_embedded_indexer deliver_neon_indexer_into_local_runtime]
 
   task update_client: ['client:create_resources']
 
@@ -399,8 +397,8 @@ namespace :dev do
   task fullupdate_client: ['update_client']
 
   # Application should be built already to use this task
-  desc 'Developer task: build launcher and delivery into package.'
-  task build_delivery_apps: %i[build_launcher build_updater] do
+  desc 'Developer task: build launcher and deliver into package.'
+  task deliver_updater_and_launcher: %i[build_launcher build_updater] do
     node_app_original = app_path_in_electron_dist('chipmunk')
     rm(node_app_original, :force => true)
     cp(rust_exec_in_build_dir('launcher'), node_app_original)
@@ -410,14 +408,14 @@ namespace :dev do
   task quick_release: %i[folders
                          compile_electron
                          add_package_json
-                         ripgrepdelivery
+                         ripgrep
                          build_and_package_electron
                          create_release_file_list]
 end
 
 task :add_package_json do
   cp_r(APP_PACKAGE_JSON, "#{ELECTRON_COMPILED_DIR}/package.json")
-  delivery_versions_into_package_json
+  deliver_versions_into_package_json
 end
 
 desc 'run all tests'
@@ -433,7 +431,7 @@ task :test do
   end
 end
 
-def delivery_versions_into_package_json
+def deliver_versions_into_package_json
   @pkgjson = PackageJson.new
   @pkgjson.delivery
 end
@@ -601,7 +599,7 @@ def packaged_neon_dest
 end
 
 # delivery defaults plugins into release
-task :delivery_defaults_plugins do
+task :deliver_defaults_plugins do
   require 'octokit'
   @plugins = DefaultsPlugins.new
   @plugins.delivery(INCLUDED_PLUGINS_FOLDER)
@@ -609,7 +607,7 @@ task :delivery_defaults_plugins do
 end
 
 # put the neon library in place
-task :delivery_embedded_into_local_runtime do
+task :deliver_neon_indexer_into_local_runtime do
   copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
 end
 
@@ -797,7 +795,7 @@ end
 
 desc 'developer job to completely build chipmunk...after that use :start'
 task dev: %i[install
-             ripgrepdelivery
+             ripgrep
              add_package_json]
 
 desc 'Build the full build pipeline for a given platform'
@@ -805,8 +803,8 @@ task full_pipeline: %i[check_environment
                        check_octokit
                        setup_environment
                        install
-                       ripgrepdelivery
-                       delivery_defaults_plugins
+                       ripgrep
+                       deliver_defaults_plugins
                        build_and_package_electron
                        create_release_file_list
                        prepare_to_deploy]
