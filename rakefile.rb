@@ -62,6 +62,11 @@ CLOBBER.include([
                   "#{APPS_DIR}/indexer-neon/native/target"
                 ])
 
+task drop: :clobber
+CLOBBER.include([
+                  '**/package-lock.json',
+                ])
+
 task folders: [ELECTRON_COMPILED_DIR,
                ELECTRON_RELEASE_DIR,
                INCLUDED_PLUGINS_FOLDER,
