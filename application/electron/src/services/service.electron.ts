@@ -119,11 +119,13 @@ class ServiceElectron implements IService {
         this._controllerElectronMenu.rebuild();
     }
 
+    /*
     public quit(code: EExitCodes = EExitCodes.normal) {
         this._logger.debug(`Closing app with code: ${code}`);
         app.exit(code);
         process.exit(code);
     }
+    */
 
     public getBrowserWindow(): BrowserWindow | undefined {
         if (this._controllerBrowserWindow === undefined) {

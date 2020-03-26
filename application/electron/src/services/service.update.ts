@@ -1,14 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+
 import ServicePaths from '../services/service.paths';
 import Logger from '../tools/env.logger';
-import { getPlatform, EPlatforms } from '../tools/env.os';
-import { IService } from '../interfaces/interface.service';
 import ServicePackage from './service.package';
 import ServiceElectron, { Subscription, IPCMessages } from './service.electron';
 import ServiceProduction from './service.production';
-import GitHubClient, { IReleaseAsset, IReleaseData } from '../tools/env.github.client';
+import GitHubClient from '../tools/env.github.client';
+
+import { IReleaseAsset, IReleaseData } from '../tools/env.github.client';
+import { getPlatform, EPlatforms } from '../tools/env.os';
+import { IService } from '../interfaces/interface.service';
+
 import { IApplication, EExitCodes } from '../interfaces/interface.app';
 
 const CHooks = {
@@ -246,14 +250,8 @@ class ServiceUpdate implements IService {
         if (this._tgzfile === undefined || this._app === undefined) {
             return;
         }
-        const exec: string = ServicePaths.getExec();
-        this._logger.debug(`Prepare app to be closed`);
-        this._app?.close().then(() => {
-            this._logger.debug(`Application is ready to be closed`);
-            this._logger.debug(`Force closing of app with code ${EExitCodes.update}`);
-            ServiceElectron.quit(EExitCodes.update);
-        }).catch((destroyErr: Error) => {
-            this._logger.error(`Fail to prepare app to be closed due error: ${destroyErr.message}`);
+        this._app?.destroy(EExitCodes.update).catch((error: Error) => {
+            this._logger.warn(`Fail destroy app due error: ${error.message}`);
         });
     }
 
