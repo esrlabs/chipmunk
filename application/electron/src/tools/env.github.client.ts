@@ -1,9 +1,12 @@
 // tslint:disable:max-classes-per-file
 
-import Logger from '../tools/env.logger';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as util from 'util';
+
+import Logger from '../tools/env.logger';
+import guid from '../tools/tools.guid';
+import ServicePaths from '../services/service.paths';
 
 // tslint:disable-next-line:no-var-requires
 const GitHub: any = require('github-releases');
@@ -153,11 +156,12 @@ export class GitHubClient {
             if (github instanceof Error) {
                 return reject(github);
             }
-            const output = path.join(asset.dest, asset.name);
+            const output = path.resolve(asset.dest, asset.name);
             // Check: does already exist
             if (fs.existsSync(output)) {
                 return resolve(output);
             }
+            const tmp = path.resolve(ServicePaths.getTmp(), guid());
             // Downloading
             github.getReleases({ tag_name: asset.version }, (getReleaseError: Error | null | undefined, releases: any[]) => {
                 if (getReleaseError) {
@@ -175,12 +179,22 @@ export class GitHubClient {
                         return reject(downloadAssetError);
                     }
                     // Create writer stream
-                    const writer: fs.WriteStream = fs.createWriteStream(output);
+                    const writer: fs.WriteStream = fs.createWriteStream(tmp);
                     // Attach listeners
                     reader.on('error', reject);
                     writer.on('error', reject);
                     writer.on('close', () => {
-                        resolve(output);
+                        fs.copyFile(tmp, output, (copyErr: NodeJS.ErrnoException | null) => {
+                            if (copyErr) {
+                                reject(new Error(this._logger.warn(`Fail copy file "${tmp}" to "${output}" due error: ${copyErr.message}`)));
+                            }
+                            fs.unlink(tmp, (rmErr: NodeJS.ErrnoException | null) => {
+                                if (rmErr) {
+                                    this._logger.warn(`Fail remove file "${tmp}" due error: ${rmErr.message}`)
+                                }
+                                resolve(output);
+                            });
+                        });
                     });
                     // Pipe
                     reader.pipe(writer);
