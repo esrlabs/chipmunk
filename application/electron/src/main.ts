@@ -45,6 +45,14 @@ enum EAppState {
     destroying = 'destroying',
 }
 
+export class CloseProcessRunning extends Error {
+
+    constructor() {
+        super();
+    }
+
+}
+
 const InitializeStages = [
     // Apply patches ("before")
     [   ServicePatchesBefore ],
@@ -79,10 +87,12 @@ const InitializeStages = [
     [   ServiceUpdate ],
 ];
 
+// tslint:disable-next-line: max-classes-per-file
 class Application implements IApplication {
 
     private _logger: Logger = new Logger('Application');
     private _state: EAppState = EAppState.initing;
+    private _code: EExitCodes = EExitCodes.normal;
     /**
      * Initialization of application
      * Will start application in case of success of initialization
@@ -124,11 +134,14 @@ class Application implements IApplication {
         });
     }
 
-    public close(): Promise<void> {
+    public destroy(code: EExitCodes = EExitCodes.normal): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (code !== EExitCodes.normal) {
+                this._code = code;
+            }
             if (this._state === EAppState.destroying) {
                 // Destroy method was already called.
-                return reject(new Error(`Close process is already running`));
+                return reject(new CloseProcessRunning());
             }
             this._state = EAppState.destroying;
             // Lock IPC
@@ -152,28 +165,19 @@ class Application implements IApplication {
                         this._logger.warn(`Fail to accomplish plugins actions due error: ${shutdownErr.message}`);
                     }).finally(() => {
                         // Shutdown application
-                        this._destroy(InitializeStages.length - 1, (error?: Error) => {
-                            if (error instanceof Error) {
-                                return reject(error);
+                        this._destroy(InitializeStages.length - 1, (destroyErr?: Error) => {
+                            if (destroyErr instanceof Error) {
+                                // tslint:disable-next-line: no-console
+                                console.log(`Fail destroy due error: ${destroyErr.message}`);
                             }
-                            resolve();
+                            this._quit().catch((quitErr: Error) => {
+                                // tslint:disable-next-line: no-console
+                                console.log(`Fail quit due error: ${quitErr.message}`);
+                            }).finally(() => {
+                                resolve();
+                            });
                         });
                     });
-                });
-            });
-        });
-    }
-
-    public destroy(code: EExitCodes = EExitCodes.normal): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.close().catch((error: Error) => {
-                this._logger.warn(`Fail correctly close app due error: ${error.message}`);
-            }).finally(() => {
-                this._quit(code).catch((error: Error) => {
-                    // tslint:disable-next-line: no-console
-                    console.log(`Fail quit due error: ${error.message}`);
-                }).finally(() => {
-                    resolve();
                 });
             });
         });
@@ -271,28 +275,26 @@ class Application implements IApplication {
         this._logger.debug(`Application would be closed.`);
         process.stdin.resume();
         // Destroy services
-        this.close().catch((error: Error) => {
+        this.destroy().catch((error: Error | CloseProcessRunning) => {
+            if (error instanceof CloseProcessRunning) {
+                return;
+            }
             this._logger.warn(`Fail correctly close app due error: ${error.message}`);
-        }).then(() => {
-            this._quit().catch((error: Error) => {
-                // tslint:disable-next-line: no-console
-                console.log(`Fail quit due error: ${error.message}`);
-            });
         });
     }
 
-    private _quit(code: EExitCodes = EExitCodes.normal): Promise<void> {
+    private _quit(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._logger.debug(`Application are ready to be closed with code "${code}".`);
+            this._logger.debug(`Application are ready to be closed with code "${this._code}".`);
             this._logger.debug(`LogsService will be shutdown.`);
             LogsService.shutdown().then(() => {
                 resolve();
-                process.exit(code);
+                process.exit(this._code);
             }).catch((error: Error) => {
                 // tslint:disable-next-line: no-console
                 console.log(`Fail shutdown logservice due error: ${error.message}`);
                 reject(error);
-                process.exit(code);
+                process.exit(this._code);
             });
         });
     }

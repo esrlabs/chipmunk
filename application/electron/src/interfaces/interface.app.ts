@@ -5,6 +5,5 @@ export enum EExitCodes {
 }
 export interface IApplication {
     init: () => Promise<any>;
-    close: () => Promise<void>;
     destroy: (code: EExitCodes) => Promise<void>;
 }
