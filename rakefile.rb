@@ -47,7 +47,7 @@ FOLDERS_TO_CLEAN = [
 ].freeze
 CLEAN.include(FOLDERS_TO_CLEAN)
 task :rust_clean do
-  %w[launcher updater indexer].each do |rust_app|
+  %w[launch_and_update indexer].each do |rust_app|
     cd Pathname.new(APPS_DIR).join(rust_app), verbose: false do
       sh 'cargo clean'
     end
@@ -83,8 +83,8 @@ task :clean_javascript => :clean_electron do
   end
 end
 
-def rust_exec_in_build_dir(name)
-  app_name = "#{APPS_DIR}/#{name}/target/release/#{name}"
+def rust_exec_in_build_dir(workspace, name)
+  app_name = "#{APPS_DIR}/#{workspace}/target/release/#{name}"
   if OS.windows?
     "#{app_name}.exe"
   else
@@ -401,7 +401,7 @@ namespace :dev do
   task deliver_updater_and_launcher: %i[build_launcher build_updater] do
     node_app_original = app_path_in_electron_dist('chipmunk')
     rm(node_app_original, :force => true)
-    cp(rust_exec_in_build_dir('launcher'), node_app_original)
+    cp(rust_exec_in_build_dir('launch_and_update', 'launcher'), node_app_original)
   end
 
   desc 'quick release'
@@ -512,20 +512,20 @@ end
 
 desc 'build updater'
 task build_updater: :folders do
-  build_and_deploy_rust_app('updater')
+  build_and_deploy_rust_app('launch_and_update', 'updater')
 end
 
 desc 'build launcher'
 task build_launcher: :folders do
-  build_and_deploy_rust_app('launcher')
+  build_and_deploy_rust_app('launch_and_update', 'launcher')
 end
 
-def build_and_deploy_rust_app(name)
-  cd "#{APPS_DIR}/#{name}" do
+def build_and_deploy_rust_app(workspace, name)
+  cd "#{APPS_DIR}/#{workspace}" do
     puts "Build #{name}"
     sh 'cargo build --release'
   end
-  rust_exec = rust_exec_in_build_dir(name)
+  rust_exec = rust_exec_in_build_dir(workspace, name)
   deployed_app = deployed_rust_exec(name)
   puts "Updating #{deployed_app} with newly built #{rust_exec}"
   rm(deployed_app, force: true)

@@ -146,5 +146,8 @@
       }
     }
   },
-  "defaultProject": "logviewer"
+  "defaultProject": "logviewer",
+  "cli": {
+    "analytics": false
+  }
 }

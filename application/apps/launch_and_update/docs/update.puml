@@ -1,0 +1,9 @@
+@startuml Updater Process
+
+user -> updater: old app path + new app package
+updater -> updater: replace old app with new app
+updater -> launcher: restart new version
+deactivate updater
+activate launcher
+
+@endum

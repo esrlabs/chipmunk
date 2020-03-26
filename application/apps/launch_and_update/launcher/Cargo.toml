@@ -14,3 +14,4 @@ log = "0.4.8"
 log4rs = "0.11.0"
 regex = "1"
 anyhow = "1.0"
+base = { path = "../base" }

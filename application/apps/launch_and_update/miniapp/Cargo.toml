@@ -1,0 +1,7 @@
+[package]
+name = "miniapp"
+version = "0.1.0"
+authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
+edition = "2018"
+
+[dependencies]

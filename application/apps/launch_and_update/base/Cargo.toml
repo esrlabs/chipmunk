@@ -1,0 +1,21 @@
+[package]
+name = "base"
+version = "0.1.0"
+authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.8"
+log4rs = "0.11.0"
+dirs = "2.0"
+anyhow = "1.0"
+chrono = "0.4"
+flate2 = "1.0"
+tar = "0.4.26"
+
+[dev-dependencies]
+tempdir = "0.3"
+sha-1 = "0.8"
+ring = "0.16"

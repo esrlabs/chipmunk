@@ -35,3 +35,8 @@ loggers:
     appenders:
       - startup-appender
     additive: false
+  updater:
+    level: trace
+    appenders:
+      - startup-appender
+    additive: false
