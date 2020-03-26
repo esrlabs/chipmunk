@@ -190,7 +190,7 @@ export class GitHubClient {
                             }
                             fs.unlink(tmp, (rmErr: NodeJS.ErrnoException | null) => {
                                 if (rmErr) {
-                                    this._logger.warn(`Fail remove file "${tmp}" due error: ${rmErr.message}`)
+                                    this._logger.warn(`Fail remove file "${tmp}" due error: ${rmErr.message}`);
                                 }
                                 resolve(output);
                             });
