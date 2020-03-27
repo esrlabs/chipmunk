@@ -3,9 +3,10 @@ extern crate log;
 extern crate log4rs;
 
 use anyhow::{anyhow, Result};
+use base::chipmunk_home_dir;
 use base::initialize_from_fresh_yml;
 use base::util::*;
-use std::env::current_dir;
+use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 
@@ -16,7 +17,7 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
         .map_err(|e| anyhow!("could not spawn {} as a process ({})", exe, e))
 }
 
-fn extract_args() -> Result<(PathBuf, PathBuf)> {
+fn extract_validated_paths_from_args() -> Result<(PathBuf, PathBuf)> {
     let mut args = Vec::new();
 
     trace!("Parsing arguments");
@@ -27,17 +28,26 @@ fn extract_args() -> Result<(PathBuf, PathBuf)> {
     if args.len() != 2 {
         Err(anyhow!("Expecting 2 arguments"))
     } else {
-        Ok((
+        let (path1, path2) = (
             PathBuf::from(args[0].to_string()),
             PathBuf::from(args[1].to_string()),
-        ))
+        );
+        // Check paths
+        if !path1.exists() {
+            error!("File {:?} doesn't exist", path1);
+            std::process::exit(1);
+        }
+        if !path2.exists() {
+            error!("File {:?} doesn't exist", path2);
+            std::process::exit(1);
+        }
+        Ok((path1, path2))
     }
 }
 
 /// remove old version of the application but keep a backup
 /// returns the path of the old application folder and the path to the backup tarball
 fn remove_old_application(app_folder: &Path) -> Result<PathBuf> {
-    debug!("This folder will be cleaned: {:?}", app_folder);
     if cfg!(target_os = "macos") {
         // Mac doesn't require any specific actions, because all are in self-compressed folder "chipmunk.app"
         std::fs::remove_dir_all(&app_folder)?;
@@ -78,7 +88,7 @@ fn remove_old_application(app_folder: &Path) -> Result<PathBuf> {
     }
 }
 
-fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
+fn restart_app(app: &Path, tgz: &Path, was_rollback: bool) -> Result<()> {
     let to_be_started: PathBuf = if cfg!(target_os = "macos") {
         app.to_path_buf().join("Contents/MacOS/chipmunk")
     } else {
@@ -90,9 +100,11 @@ fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
         error!("Failed to find executable file {:?}", to_be_started);
         Err(anyhow!("Failed to restart, couldn't find executable file"))
     } else {
-        debug!("Remove tgz: {:?}", tgz);
-        if let Err(err) = std::fs::remove_file(&tgz) {
-            warn!("Fail to remove file {:?} due error {}", tgz, err);
+        if !was_rollback {
+            debug!("Remove old tgz: {:?}", tgz);
+            if let Err(err) = std::fs::remove_file(&tgz) {
+                warn!("Fail to remove file {:?} due error {}", tgz, err);
+            }
         }
         info!("Starting: {:?}", &to_be_started);
         let child = spawn(
@@ -103,7 +115,11 @@ fn restart_app(app: &Path, tgz: &Path) -> Result<()> {
         );
         match child {
             Ok(mut child) => {
-                info!("App is started ({:?})", to_be_started);
+                if was_rollback {
+                    info!("Update failed, restart rollback App ({:?})", to_be_started);
+                } else {
+                    info!("App restarted after update ({:?})", to_be_started);
+                }
                 match child.wait() {
                     Ok(result) => {
                         info!("App is finished: {}", result);
@@ -126,10 +142,10 @@ fn main() {
         Ok(()) => trace!("=======> Updater started logging"),
         Err(e) => eprintln!("couldn't initialize logging: {}", e),
     }
-    debug!("Started");
+    debug!("Started updater");
 
     // on macos the current_app_path will be something like /xyz/chipmunk.app
-    let (current_app_path, compressed_update_path) = match extract_args() {
+    let (current_app_path, compressed_update_path) = match extract_validated_paths_from_args() {
         Ok(res) => res,
         Err(e) => {
             error!(
@@ -139,17 +155,8 @@ fn main() {
             std::process::exit(1);
         }
     };
-
-    // Check paths
-    if !current_app_path.exists() {
-        error!("File {:?} doesn't exist", current_app_path);
-        std::process::exit(1);
-    }
-
-    if !compressed_update_path.exists() {
-        error!("File {:?} doesn't exist", compressed_update_path);
-        std::process::exit(1);
-    }
+    debug!("to replace: {:?}", current_app_path);
+    debug!("new package: {:?}", compressed_update_path);
 
     let app_folder = if cfg!(target_os = "macos") {
         current_app_path.clone() // is equals to chipmunk.app
@@ -162,8 +169,16 @@ fn main() {
     };
 
     info!("create backup for current app folder: {:?}", app_folder);
-    let backup = tarball_app(&app_folder, &current_dir().expect("could not get pwd"))
-        .expect("could not create backup");
+    let tmp_dir_path = chipmunk_home_dir().join("tmp");
+    match create_dir_all(&tmp_dir_path) {
+        Ok(()) => (),
+        Err(e) => {
+            error!("could not create tmp dir: {:?} ({})", tmp_dir_path, e);
+            std::process::exit(1);
+        }
+    }
+
+    let backup = tarball_app(&app_folder, &tmp_dir_path).expect("could not create backup");
 
     info!("removing old application {:?}", app_folder);
     let dest = match remove_old_application(&app_folder) {
@@ -174,34 +189,43 @@ fn main() {
         }
     };
 
-    info!(
-        "unpacking update package{:?} to {:?}",
-        compressed_update_path, dest
-    );
+    let mut was_rollback = false;
     if let Err(e) = unpack(&compressed_update_path, &dest) {
-        error!("unpacking failed: {}", e);
-        match remove_entity(&dest) {
-            Ok(()) => match unpack(&backup, &dest) {
-                Ok(()) => {
-                    info!("rollback was done");
-                    let _ = remove_entity(&backup);
-                }
-                Err(e) => {
-                    error!("rollback was not possible: {}", e);
-                    std::process::exit(1);
-                }
-            },
+        error!(
+            "unpacking {:?} failed ({}), try to rollback",
+            &compressed_update_path, e
+        );
+        was_rollback = true;
+        match do_rollback(&backup, &dest) {
+            Ok(()) => info!("rollback executed successfully"),
             Err(e) => {
-                error!("rollback unsuccessful: {}", e);
+                error!("rollback failed: {}", e);
                 std::process::exit(1);
             }
         }
     }
-    debug!("unpacked update to {:?}", dest);
 
-    match restart_app(&current_app_path, &compressed_update_path) {
+    match restart_app(&current_app_path, &compressed_update_path, was_rollback) {
         Err(e) => error!("restart failed: {}", e),
         Ok(()) => info!("restarted successfully"),
     }
     info!("updater terminated");
+}
+
+fn do_rollback(backup: &Path, dest: &Path) -> Result<()> {
+    match remove_entity(&dest) {
+        Ok(()) => match unpack(&backup, &dest) {
+            Ok(()) => {
+                if remove_entity(&backup).is_err() {
+                    warn!(
+                        "rollback was done but couldn't remove the backup file ({:?})",
+                        backup
+                    );
+                }
+                Ok(())
+            }
+            Err(e) => Err(anyhow!("rollback was not possible: {}", e)),
+        },
+        Err(e) => Err(anyhow!("rollback unsuccessful: {}", e)),
+    }
 }

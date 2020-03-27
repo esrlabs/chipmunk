@@ -22,10 +22,11 @@ pub fn remove_entity(entity: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn tarball_app(app_folder: &Path, dest: &Path) -> Result<PathBuf> {
+pub fn tarball_app(app_folder: &Path, tmp_dir_path: &Path) -> Result<PathBuf> {
     use chrono::{Datelike, Local, Timelike};
+
     let now = Local::now();
-    let backup_path = PathBuf::from(dest).join(format!(
+    let backup_path = tmp_dir_path.join(format!(
         "backup_{}_{}_{}-{}.{}.{}.tar.gz",
         now.year(),
         now.month(),
@@ -35,7 +36,7 @@ pub fn tarball_app(app_folder: &Path, dest: &Path) -> Result<PathBuf> {
         now.second(),
     ));
     let tar_gz = File::create(&backup_path)?;
-    let enc = GzEncoder::new(tar_gz, Compression::default());
+    let enc = GzEncoder::new(tar_gz, Compression::fast());
     let mut tar = tar::Builder::new(enc);
     if cfg!(target_os = "macos") {
         tar.append_dir_all("chipmunk.app", app_folder)?;
@@ -54,7 +55,6 @@ pub fn unpack(tgz: &Path, dest: &Path) -> Result<()> {
     let mut archive = Archive::new(tar);
     archive.unpack(&dest)?;
 
-    info!("File {:?} was unpacked into {:?}", tgz, dest);
     Ok(())
 }
 

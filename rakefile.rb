@@ -273,7 +273,7 @@ file rg_executable => RIPGREP_LOCAL_TMP do
     end
   end
   rm(rg_executable, force: true)
-  cp(downloaded_rg, rg_executable)
+  cp(downloaded_rg, rg_executable, :verbose => true)
 end
 
 task ripgrep: [:folders, rg_executable]
@@ -317,7 +317,7 @@ namespace :client do
     end
     puts 'Deliver client.core'
     rm_r(dest_client_path, force: true)
-    cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, verbose: false)
+    cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, verbose: true)
   end
   task create_resources: build_target_file
 
@@ -379,12 +379,12 @@ task reinstall: [:folders,
                  'client:create_resources',
                  :add_package_json]
 desc 'install'
-task install: [:folders,
-               'client:build_core',
-               'client:install_components',
-               :compile_electron,
-               'client:create_resources',
-               :add_package_json]
+task install_electron_stuff: [:folders,
+                              'client:build_core',
+                              'client:install_components',
+                              :compile_electron,
+                              'client:create_resources',
+                              :add_package_json]
 
 namespace :dev do
 
@@ -396,12 +396,11 @@ namespace :dev do
   desc 'Developer task: update client and libs'
   task fullupdate_client: ['update_client']
 
-  # Application should be built already to use this task
   desc 'Developer task: build launcher and deliver into package.'
   task deliver_updater_and_launcher: %i[build_launcher build_updater] do
     node_app_original = app_path_in_electron_dist('chipmunk')
     rm(node_app_original, :force => true)
-    cp(rust_exec_in_build_dir('launch_and_update', 'launcher'), node_app_original)
+    cp(rust_exec_in_build_dir('launch_and_update', 'launcher'), node_app_original, :verbose => true)
   end
 
   desc 'quick release'
@@ -414,7 +413,7 @@ namespace :dev do
 end
 
 task :add_package_json do
-  cp_r(APP_PACKAGE_JSON, "#{ELECTRON_COMPILED_DIR}/package.json")
+  cp_r(APP_PACKAGE_JSON, "#{ELECTRON_COMPILED_DIR}/package.json", :verbose => true)
   deliver_versions_into_package_json
 end
 
@@ -529,7 +528,7 @@ def build_and_deploy_rust_app(workspace, name)
   deployed_app = deployed_rust_exec(name)
   puts "Updating #{deployed_app} with newly built #{rust_exec}"
   rm(deployed_app, force: true)
-  cp(rust_exec, deployed_app)
+  cp(rust_exec, deployed_app, :verbose => true)
 end
 
 def fresh_folder(dest_folder)
@@ -789,12 +788,12 @@ task :prepare_to_deploy do
       end
     end
   end
-  mv "#{ELECTRON_RELEASE_DIR}/#{release_name}", '.'
-  mv "#{ELECTRON_RELEASE_DIR}/#{legacy_release_name}", '.' if legacy_release_name
+  mv("#{ELECTRON_RELEASE_DIR}/#{release_name}", '.', :verbose => true)
+  mv("#{ELECTRON_RELEASE_DIR}/#{legacy_release_name}", '.', :verbose => true) if legacy_release_name
 end
 
 desc 'developer job to completely build chipmunk...after that use :start'
-task dev: %i[install
+task dev: %i[install_electron_stuff
              ripgrep
              add_package_json]
 
@@ -802,7 +801,8 @@ desc 'Build the full build pipeline for a given platform'
 task full_pipeline: %i[check_environment
                        check_octokit
                        setup_environment
-                       install
+                       clean_release_dir
+                       install_electron_stuff
                        ripgrep
                        deliver_defaults_plugins
                        build_and_package_electron
