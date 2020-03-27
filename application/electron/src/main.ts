@@ -294,7 +294,7 @@ class Application implements IApplication {
                 // tslint:disable-next-line: no-console
                 console.log(`Fail shutdown logservice due error: ${error.message}`);
                 reject(error);
-                process.exit(this._code);
+                app.exit(this._code);
             });
         });
     }
