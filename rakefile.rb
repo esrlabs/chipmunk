@@ -69,16 +69,16 @@ task folders: [ELECTRON_COMPILED_DIR,
                INCLUDED_APPS_FOLDER]
 
 task :clean_electron do
-  rm_f "#{ELECTRON_DIR}/dist"
+  rm_rf "#{ELECTRON_DIR}/dist"
 end
 task :clean_release_dir do
-  rm_f ELECTRON_RELEASE_DIR
+  rm_rf ELECTRON_RELEASE_DIR
 end
 
 task :clean_javascript => :clean_electron do
   Dir.glob('**/dist').each do |d|
     unless d =~ /node_modules/
-      rm_r d if Dir.exist? d
+      rm_rf d if Dir.exist? d
     end
   end
 end
@@ -176,7 +176,7 @@ end
 desc 'start'
 task start: :ripgrep do
   # config_windows_path = File.join(Dir.home, '.chipmunk', 'config.window.json')
-  # rm_f config_windows_path
+  # rm_rf config_windows_path
   ENV['CHIPMUNK_DEVELOPING_MODE'] = 'ON'
   cd ELECTRON_DIR do
     require 'dotenv/load'
@@ -316,7 +316,7 @@ namespace :client do
       sh "#{NPM_RUN} build"
     end
     puts 'Deliver client.core'
-    rm_r(dest_client_path, force: true)
+    rm_rf(dest_client_path, force: true)
     cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, verbose: true)
   end
   task create_resources: build_target_file
@@ -533,7 +533,7 @@ end
 
 def fresh_folder(dest_folder)
   puts "creating folder #{dest_folder}" unless Dir.exist?(dest_folder)
-  rm_r(dest_folder, force: true, verbose: true)
+  rm_rf(dest_folder, force: true, verbose: true)
   mkdir_p(dest_folder, verbose: true)
 end
 
