@@ -272,7 +272,7 @@ file rg_executable => RIPGREP_LOCAL_TMP do
       end
     end
   end
-  rm(rg_executable, force: true)
+  rm_rf(rg_executable)
   cp(downloaded_rg, rg_executable, :verbose => true)
 end
 
@@ -316,7 +316,7 @@ namespace :client do
       sh "#{NPM_RUN} build"
     end
     puts 'Deliver client.core'
-    rm_rf(dest_client_path, force: true)
+    rm_rf(dest_client_path)
     cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, verbose: true)
   end
   task create_resources: build_target_file
@@ -399,7 +399,7 @@ namespace :dev do
   desc 'Developer task: build launcher and deliver into package.'
   task deliver_updater_and_launcher: %i[build_launcher build_updater] do
     node_app_original = app_path_in_electron_dist('chipmunk')
-    rm(node_app_original, :force => true)
+    rm_rf(node_app_original)
     cp(rust_exec_in_build_dir('launch_and_update', 'launcher'), node_app_original, :verbose => true)
   end
 
@@ -419,7 +419,7 @@ end
 
 desc 'run all tests'
 task :test do
-  %w[launcher updater indexer].each do |rust_app|
+  %w[launch_and_update indexer].each do |rust_app|
     cd Pathname.new(APPS_DIR).join(rust_app), verbose: false do
       begin
         sh 'cargo test'
@@ -479,10 +479,19 @@ end
 
 def run_rust_linters
   errors = []
-  %w[launcher updater indexer indexer-neon/native].each do |rust_app|
+  %w[launch_and_update indexer].each do |rust_app|
     cd Pathname.new(APPS_DIR).join(rust_app) do
       begin
         sh 'cargo clippy'
+      rescue StandardError => e
+        errors << e
+      end
+    end
+  end
+  %w[indexer-neon/native].each do |rust_app|
+    cd Pathname.new(APPS_DIR).join(rust_app) do
+      begin
+        sh 'cargo clippy --release'
       rescue StandardError => e
         errors << e
       end
@@ -527,13 +536,13 @@ def build_and_deploy_rust_app(workspace, name)
   rust_exec = rust_exec_in_build_dir(workspace, name)
   deployed_app = deployed_rust_exec(name)
   puts "Updating #{deployed_app} with newly built #{rust_exec}"
-  rm(deployed_app, force: true)
+  rm_rf(deployed_app)
   cp(rust_exec, deployed_app, :verbose => true)
 end
 
 def fresh_folder(dest_folder)
   puts "creating folder #{dest_folder}" unless Dir.exist?(dest_folder)
-  rm_rf(dest_folder, force: true, verbose: true)
+  rm_rf(dest_folder, verbose: true)
   mkdir_p(dest_folder, verbose: true)
 end
 
@@ -626,7 +635,7 @@ task :create_release_file_list do
   end
   abort("No release found at #{path}") unless File.exist?(path)
   destfile = "#{path}/.release"
-  rm(destfile, force: true)
+  rm_rf(destfile)
   lines = ".release\n"
   Dir.foreach(path) do |entry|
     lines = "#{lines}#{entry}\n" if entry != '.' && entry != '..'
