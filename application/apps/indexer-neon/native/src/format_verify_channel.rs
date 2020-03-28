@@ -2,7 +2,7 @@ use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
-use processor::parse::{check_format, FormatCheckResult, FormatCheckFlags};
+use processor::parse::{check_format, FormatCheckFlags, FormatCheckResult};
 use std::{
     sync::{Arc, Mutex},
     thread,
@@ -74,9 +74,9 @@ pub class JsFormatVerificationEmitter for FormatVerifyEmitter {
                 .value();
         }
         let flags: FormatCheckFlags = FormatCheckFlags {
-            miss_day: miss_day,
-            miss_month: miss_month,
-            miss_year: miss_year,
+            miss_day,
+            miss_month,
+            miss_year,
         };
         trace!("{:?}", format_string);
         let chunk_result_channel: (cc::Sender<FormatResult>, cc::Receiver<FormatResult>) = cc::unbounded();

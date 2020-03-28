@@ -656,7 +656,10 @@ pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult 
                         YEAR_FORMAT_TAG, YEAR_SHORT_FORMAT_TAG,
                     ));
                 }
-                if !flags.miss_month && !s.contains(MONTH_GROUP) && !s.contains(MONTH_SHORT_NAME_GROUP) {
+                if !flags.miss_month
+                    && !s.contains(MONTH_GROUP)
+                    && !s.contains(MONTH_SHORT_NAME_GROUP)
+                {
                     return FormatCheckResult::FormatInvalid(format!(
                         "missing numeric or short month ({} or {})",
                         MONTH_FORMAT_TAG, MONTH_FORMAT_SHORT_NAME_TAG,
@@ -703,8 +706,13 @@ pub fn extract_posix_timestamp(
         }
     }
     let day: u32 = match caps.name(DAY_GROUP) {
-        Some(day_str) => day_str.as_str().parse().map_err(|e| anyhow!("fail parse day: {}", e)),
-        None => replacements.day.ok_or(anyhow!("no group for days found in regex")),
+        Some(day_str) => day_str
+            .as_str()
+            .parse()
+            .map_err(|e| anyhow!("fail parse day: {}", e)),
+        None => replacements
+            .day
+            .ok_or(anyhow!("no group for days found in regex")),
     }?;
     let month = match caps.name(MONTH_GROUP) {
         Some(month_capt) => month_capt
@@ -713,7 +721,9 @@ pub fn extract_posix_timestamp(
             .map_err(|e| anyhow!("could not parse month: {}", e)),
         None => match caps.name(MONTH_SHORT_NAME_GROUP) {
             Some(month_short_name) => parse_from_month(month_short_name.as_str()),
-            None => replacements.month.ok_or(anyhow!("no group for month found in regex")),
+            None => replacements
+                .month
+                .ok_or(anyhow!("no group for month found in regex")),
         },
     }?;
     let hour_capt = caps
@@ -762,7 +772,9 @@ pub fn extract_posix_timestamp(
     let offset_result = if replacements.offset.is_none() {
         parse_timezone(&caps[TIMEZONE_GROUP])
     } else {
-        replacements.offset.ok_or_else(|| anyhow!("could not detect timestamp in (line {})"))
+        replacements
+            .offset
+            .ok_or_else(|| anyhow!("could not detect timestamp in (line {})"))
     };
 
     // for the year first try YYYY, then yy, then fallback on the supplied year
@@ -821,13 +833,13 @@ pub fn extract_posix_timestamp_by_format(
     line: &str,
     format_expr: &str,
     replacements: DateTimeReplacements,
-) -> TimestampByFormatResult  {
+) -> TimestampByFormatResult {
     match lookup_regex_for_format_str(format_expr) {
         Err(e) => TimestampByFormatResult::Error(e.to_string()),
         Ok(regex) => match extract_posix_timestamp(line, &regex, replacements) {
             Err(e) => TimestampByFormatResult::Error(e.to_string()),
             Ok((tm, _res)) => TimestampByFormatResult::Timestamp(tm),
-        }
+        },
     }
 }
 

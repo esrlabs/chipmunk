@@ -452,6 +452,26 @@ task :test do
   end
 end
 
+desc 'Check'
+task :check do
+  %w[launch_and_update indexer].each do |rust_app|
+    cd Pathname.new(APPS_DIR).join(rust_app), verbose: false do
+      sh 'cargo +nightly fmt -- --color=always --check'
+      sh "cargo check"
+      sh "cargo clippy"
+    end
+  end
+end
+
+desc 'Format code with nightly cargo fmt'
+task :format do
+  %w[launch_and_update indexer].each do |rust_app|
+    cd Pathname.new(APPS_DIR).join(rust_app), verbose: false do
+      sh 'cargo +nightly fmt'
+    end
+  end
+end
+
 def deliver_versions_into_package_json
   @pkgjson = PackageJson.new
   @pkgjson.delivery
@@ -501,7 +521,7 @@ end
 
 def run_rust_linters
   errors = []
-  %w[launch_and_update indexer].each do |rust_app|
+  %w[launch_and_update indexer indexer-neon/native].each do |rust_app|
     cd Pathname.new(APPS_DIR).join(rust_app) do
       begin
         sh 'cargo clippy'

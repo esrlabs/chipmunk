@@ -27,6 +27,7 @@ mod timestamp_extractor_channel;
 use crate::{
     dlt_pcap_channel::JsDltPcapEventEmitter, format_verify_channel::JsFormatVerificationEmitter,
 };
+use anyhow::Result;
 use concatenator_channel::JsConcatenatorEmitter;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
 use dlt_socket_channel::JsDltSocketEventEmitter;
@@ -43,8 +44,12 @@ use log4rs::{
 use merger_channel::JsMergerEmitter;
 use neon::prelude::*;
 use processor::parse::{self};
+use std::fs;
+use std::io::prelude::*;
 use timestamp_detector_channel::JsTimestampFormatDetectionEmitter;
 use timestamp_extractor_channel::JsTimestampExtractEmitter;
+
+use neon::context::Context;
 
 #[no_mangle]
 pub extern "C" fn __cxa_pure_virtual() {
@@ -52,22 +57,39 @@ pub extern "C" fn __cxa_pure_virtual() {
     loop {}
 }
 
-pub fn init_logging() -> Result<(), std::io::Error> {
+pub fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let log_file_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
     let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
     if !log_config_path.exists() {
         let log_config_content = std::include_str!("../log4rs.yaml")
-            .replace("$LOG_FILE_PATH", &log_file_path.to_string_lossy()[..]);
+            .replace("$LOG_FILE_PATH", &log_file_path.to_string_lossy())
+            .replace("$HOME_DIR", &home_dir.to_string_lossy());
+
         match std::fs::write(&log_config_path, log_config_content) {
             Ok(_) => (),
+            Err(e) => eprintln!("error while trying to write log config file: {}", e),
+        }
+    } else {
+        // make sure the env variables are correctly replaced
+        let mut content = String::new();
+        {
+            let mut log_config_file = fs::File::open(&log_config_path)?;
+            log_config_file.read_to_string(&mut content)?;
+        }
+        let log_config_content = content
+            .replace("$LOG_FILE_PATH", &log_file_path.to_string_lossy())
+            .replace("$HOME_DIR", &home_dir.to_string_lossy());
+
+        match fs::write(&log_config_path, &log_config_content) {
+            Ok(_) => println!("Neon: replaced file with:\n{}", log_config_content),
             Err(e) => eprintln!("error while trying to write log config file: {}", e),
         }
     }
 
     match log4rs::init_file(&log_config_path, Default::default()) {
         Ok(_) => println!(
-            "successfully initialized logging from {:?}",
+            "Successfully initialized logging from {:?}",
             log_config_path
         ),
         Err(e) => {
@@ -86,8 +108,10 @@ pub fn init_logging() -> Result<(), std::io::Error> {
                         .build(LevelFilter::Warn),
                 )
                 .expect("logging config was incorrect");
-            log4rs::init_config(config).expect("logging config could not be applied");
-            println!("initialized logging from fallback config");
+            anyhow::Context::with_context(log4rs::init_config(config), || {
+                "logging config could not be applied"
+            })?;
+            println!("Initialized logging from fallback config");
         }
     }
     Ok(())
