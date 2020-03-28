@@ -15,12 +15,12 @@ use base::{
     chipmunk_home_dir, chipmunk_log_config, initialize_from_fresh_yml, setup_fallback_logging,
 };
 use crossbeam_channel::{bounded, select, tick, Receiver};
-use std::time::Duration;
 use std::{
-    path::Path,
-    path::PathBuf,
+    fs,
+    io::prelude::*,
+    path::{Path, PathBuf},
     process::{Child, Command},
-    time::SystemTime,
+    time::{Duration, SystemTime},
 };
 
 enum ElectronExitCode {
@@ -31,7 +31,21 @@ enum ElectronExitCode {
 
 fn init_logging() -> Result<()> {
     let log_config_path = chipmunk_log_config();
+    let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let logging_correctly_initialized = if log_config_path.exists() {
+        // make sure the env variables are correctly replaced
+        let mut content = String::new();
+        {
+            let mut log_config_file = fs::File::open(&log_config_path)?;
+            log_config_file.read_to_string(&mut content)?;
+        }
+        let log_config_content = content.replace("$HOME_DIR", &home_dir.to_string_lossy());
+
+        match fs::write(&log_config_path, &log_config_content) {
+            Ok(_) => println!("Launcher: replaced file with:\n{}", log_config_content),
+            Err(e) => eprintln!("error while trying to write log config file: {}", e),
+        }
+
         // log4rs.yaml exists, try to parse it
         match log4rs::init_file(&log_config_path, Default::default()) {
             Ok(()) => true,
@@ -52,7 +66,7 @@ fn init_logging() -> Result<()> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
+fn spawn(exe: &Path, args: &[&Path]) -> Result<Child> {
     Command::new(exe)
         .args(args)
         .spawn()
@@ -71,41 +85,41 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
 }
 
 /// on macos it will result in /xyz/chipmunk.app
-fn electron_app_path() -> Result<String> {
+fn electron_app_path() -> Result<PathBuf> {
     let launcher = std::env::current_exe()?;
-    // /xyz/chipmunk.app/Contents/MacOS/app
     if cfg!(target_os = "macos") {
+        // /xyz/chipmunk.app/Contents/MacOS/app
         let cropped = launcher
             .parent()
             .and_then(Path::parent)
             .and_then(Path::parent)
             .ok_or_else(|| anyhow!("could not get parent of {:?}", launcher))?;
-        Ok(cropped.to_string_lossy().into())
+        Ok(PathBuf::from(cropped))
     } else {
-        let parrent_path = launcher
+        let parent_path = launcher
             .parent()
-            .ok_or_else(|| anyhow!("no parent found"))?
-            .to_string_lossy();
-        if cfg!(target_os = "windows") {
-            Ok(format!("{}\\app.exe", parrent_path))
-        } else {
-            Ok(format!("{}/app", parrent_path))
-        }
+            .ok_or_else(|| anyhow!("no parent found"))?;
+        Ok(parent_path.join(app_name()))
     }
 }
 
+fn app_name() -> String {
+    if cfg!(target_os = "windows") {
+        "app.exe"
+    } else {
+        "app"
+    }
+    .to_string()
+}
+
 /// on macos it looks like /xyz/chipmunk.app/Contents/MacOS/app
-fn find_electron_app() -> Result<String> {
+fn find_electron_app() -> Result<PathBuf> {
     let root = std::env::current_exe()?;
     let root_path = Path::new(&root)
         .parent()
         .ok_or_else(|| anyhow!("no parent found"))?;
-    let app = if cfg!(target_os = "windows") {
-        format!("{}\\{}", root_path.display(), "app.exe")
-    } else {
-        format!("{}/{}", root_path.display(), "app")
-    };
-    Ok(app)
+
+    Ok(root_path.join(app_name()))
 }
 
 fn get_updater_path() -> Result<PathBuf> {
@@ -117,20 +131,19 @@ fn get_updater_path() -> Result<PathBuf> {
     })
 }
 
-fn update_package_path() -> Result<String> {
+fn update_package_path() -> Result<Option<PathBuf>> {
     let downloads_path = chipmunk_home_dir().join("downloads");
     let mut maxunixts = 0;
-    let mut target: String = String::from("");
+    let mut target = None;
     for entry in downloads_path
         .read_dir()
         .expect("Fail read downloads folder")
     {
         if let Ok(entry) = entry {
             let path_buf = entry.path();
-            let path = Path::new(&path_buf);
-            if let Some(ext) = path.extension() {
-                if path.is_file() && ext == "tgz" {
-                    let metadata = std::fs::metadata(&path)?;
+            if let Some(ext) = path_buf.extension() {
+                if path_buf.is_file() && ext == "tgz" {
+                    let metadata = std::fs::metadata(&path_buf)?;
                     if let Ok(time) = metadata.modified() {
                         let unixts = time
                             .duration_since(SystemTime::UNIX_EPOCH)
@@ -141,7 +154,7 @@ fn update_package_path() -> Result<String> {
                             .as_secs();
                         if unixts > maxunixts {
                             maxunixts = unixts;
-                            target = path.to_string_lossy().to_string();
+                            target = Some(path_buf);
                         }
                     } else {
                         warn!("Not supported on this platform");
@@ -162,27 +175,31 @@ fn update() -> Result<bool> {
     }
 
     trace!("Starting updater: {:?}", updater_path);
-    let app = electron_app_path()?;
-    let update_package = update_package_path()?;
-    if app == "" || update_package == "" {
-        error!(
-            "Fail to start update because some path isn't detected. app: {}, tgz: {}",
-            app, update_package
-        );
-        std::process::exit(0);
-    }
-    trace!("Detected\n\t-\tapp: {};\n\t-\ttgz: {}", app, update_package);
-    let child = spawn(&updater_path.to_string_lossy(), &[&app, &update_package]);
-    match child {
-        Ok(_child) => {
-            debug!("Updater is started ({:?})", updater_path);
-            trace!("Close launcher");
+    match update_package_path()? {
+        None => {
+            error!("Failed to start update because update package seems to be missing",);
             std::process::exit(0);
         }
-        Err(e) => {
-            error!("Fail to start updater due error: {}", e);
+        Some(update_package) => {
+            let app = electron_app_path()?;
+            trace!(
+                "Detected\n\t-\tapp: {:?};\n\t-\ttgz: {:?}",
+                app,
+                update_package
+            );
+            let child = spawn(&updater_path, &[&app, &update_package]);
+            match child {
+                Ok(_child) => {
+                    debug!("Updater is started ({:?})", updater_path);
+                    trace!("Close launcher");
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    error!("Fail to start updater due error: {}", e);
+                }
+            };
         }
-    };
+    }
     Ok(true)
 }
 
@@ -210,7 +227,7 @@ fn main() -> Result<()> {
         }
     };
 
-    trace!("Target application: {}", electron_app);
+    trace!("Target application: {:?}", electron_app);
 
     let electron_app_path = Path::new(&electron_app);
 

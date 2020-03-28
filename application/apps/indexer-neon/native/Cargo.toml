@@ -19,17 +19,17 @@ neon-build = "0.3.1"
 cc = "1.0"
 
 [dependencies]
-neon = "0.3.1"
-processor = { path = "../../indexer/processor" }
-indexer_base = { path = "../../indexer/indexer_base" }
-merging = { path = "../../indexer/merging" }
+anyhow = "1.0.32"
+async-std = { version = "1.4"}
+crossbeam-channel = "0.4"
+dirs = "2.0"
 dlt = { path = "../../indexer/dlt" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-neon-serde = "0.2"
+indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "0.8"
-dirs = "2.0"
-failure = "0.1.5"
-crossbeam-channel = "0.4"
-async-std = { version = "1.4"}
+merging = { path = "../../indexer/merging" }
+neon = "0.3.1"
+neon-serde = "0.2"
+processor = { path = "../../indexer/processor" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

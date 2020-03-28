@@ -194,9 +194,8 @@ mod tests {
             year: Some(2017),
             offset: Some(TWO_HOURS_IN_MS),
         };
-        let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, replacements)
-                .expect("convert to limed line should work");
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements)
+            .expect("convert to limed line should work");
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
                 .and_hms(9, 52, 50) // UTC
@@ -217,9 +216,8 @@ mod tests {
             year: Some(2017),
             offset: Some(TWO_HOURS_IN_MS),
         };
-        let (timestamp, _) =
-            extract_posix_timestamp(input, &regex_to_use, replacements)
-                .expect("convert to limed line should work");
+        let (timestamp, _) = extract_posix_timestamp(input, &regex_to_use, replacements)
+            .expect("convert to limed line should work");
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
                 .and_hms(9, 52, 50) // UTC
@@ -244,8 +242,7 @@ mod tests {
             year: None,
             offset: Some(TWO_HOURS_IN_MS),
         };
-        let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, replacements).unwrap();
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
                 .and_hms(9, 52, 50) // UTC
@@ -266,8 +263,7 @@ mod tests {
             year: None,
             offset: Some(TWO_HOURS_IN_MS),
         };
-        let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, replacements).unwrap();
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
                 .and_hms(9, 52, 50) // UTC
@@ -288,8 +284,7 @@ mod tests {
             year: None,
             offset: Some(TWO_HOURS_IN_MS),
         };
-        let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, replacements).unwrap();
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
             NaiveDate::from_ymd(2019, 7, 30)
                 .and_hms(8, 8, 2) // UTC
@@ -363,9 +358,9 @@ mod tests {
                         .timestamp()
                         * 1000
                         + 229,
-                        tm
+                    tm
                 );
-            },
+            }
             _ => (),
         }
     }
@@ -387,16 +382,17 @@ mod tests {
                         .and_hms(9, 52, 50) // UTC
                         .timestamp()
                         * 1000,
-                        tm
+                    tm
                 );
-            },
+            }
             _ => (),
         }
     }
 
     #[test]
     fn test_parse_date_line_year_no_timezone_by_format() {
-        let input = "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
+        let input =
+            "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
         let format = "MM-DD-YYYY hh:mm:ss.s";
         let replacements: DateTimeReplacements = DateTimeReplacements {
             day: None,
@@ -412,9 +408,9 @@ mod tests {
                         .timestamp()
                         * 1000
                         + 229,
-                        tm
+                    tm
                 );
-            },
+            }
             _ => (),
         }
     }
@@ -436,9 +432,9 @@ mod tests {
                         .and_hms(9, 52, 50) // UTC
                         .timestamp()
                         * 1000,
-                        tm
+                    tm
                 );
-            },
+            }
             _ => (),
         }
     }
@@ -463,7 +459,7 @@ mod tests {
                         + 555,
                     tm
                 );
-            },
+            }
             _ => (),
         }
     }
@@ -486,9 +482,9 @@ mod tests {
                         .and_hms(16, 14, 0)
                         .timestamp()
                         * 1000,
-                        tm
+                    tm
                 );
-            },
+            }
             _ => (),
         }
     }
@@ -511,9 +507,9 @@ mod tests {
                         .and_hms(16, 14, 57)
                         .timestamp()
                         * 1000,
-                        tm
+                    tm
                 );
-            },
+            }
             _ => (),
         }
     }
@@ -531,7 +527,7 @@ mod tests {
         match extract_posix_timestamp_by_format(input, format, replacements) {
             TimestampByFormatResult::Timestamp(tm) => {
                 assert_eq!(1_559_831_467_577, tm);
-            },
+            }
             _ => (),
         }
     }
@@ -923,16 +919,46 @@ mod tests {
             miss_year: true,
             miss_month: false,
         };
-        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ssTZD", flags.clone())));
-        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ss", flags.clone()))); // OK without timezone
-        assert!(!format_was_ok(check_format("MM-DDThh:mm:ss", flags.clone()))); // no year - false
-        assert!(format_was_ok(check_format("MM-DDThh:mm:ss", flags_miss_year.clone()))); // no year - true
-        assert!(!format_was_ok(check_format("YYYY-DDThh:mm:ss", flags.clone()))); // no month
-        assert!(format_was_ok(check_format("YYYY-DD(MMM)Thh:mm:ss", flags.clone()))); // short month
-        assert!(!format_was_ok(check_format("YYYY-MMThh:mm:ss", flags.clone()))); // no days
-        assert!(!format_was_ok(check_format("YYYY-DD-MMTmm:ss", flags.clone()))); // no hours
-        assert!(!format_was_ok(check_format("YYYY-DD-MMThh:ss", flags.clone()))); // no minutes
-        assert!(format_was_ok(check_format("YYYY-DD-MMThh:mm", flags.clone()))); // no seconds should be ok
+        assert!(format_was_ok(check_format(
+            "YYYY-MM-DDThh:mm:ssTZD",
+            flags.clone()
+        )));
+        assert!(format_was_ok(check_format(
+            "YYYY-MM-DDThh:mm:ss",
+            flags.clone()
+        ))); // OK without timezone
+        assert!(!format_was_ok(check_format(
+            "MM-DDThh:mm:ss",
+            flags.clone()
+        ))); // no year - false
+        assert!(format_was_ok(check_format(
+            "MM-DDThh:mm:ss",
+            flags_miss_year.clone()
+        ))); // no year - true
+        assert!(!format_was_ok(check_format(
+            "YYYY-DDThh:mm:ss",
+            flags.clone()
+        ))); // no month
+        assert!(format_was_ok(check_format(
+            "YYYY-DD(MMM)Thh:mm:ss",
+            flags.clone()
+        ))); // short month
+        assert!(!format_was_ok(check_format(
+            "YYYY-MMThh:mm:ss",
+            flags.clone()
+        ))); // no days
+        assert!(!format_was_ok(check_format(
+            "YYYY-DD-MMTmm:ss",
+            flags.clone()
+        ))); // no hours
+        assert!(!format_was_ok(check_format(
+            "YYYY-DD-MMThh:ss",
+            flags.clone()
+        ))); // no minutes
+        assert!(format_was_ok(check_format(
+            "YYYY-DD-MMThh:mm",
+            flags.clone()
+        ))); // no seconds should be ok
     }
 
     #[test]

@@ -1,7 +1,8 @@
 use crate::channels::EventEmitterTask;
+use anyhow::{Error, *};
 use crossbeam_channel as cc;
-use failure::{err_msg, Error};
 use indexer_base::{chunks::ChunkResults, config::SectionConfig, export::export_file_line_based};
+use neon::context::Context;
 use neon::prelude::*;
 use std::{
     path,
@@ -87,7 +88,7 @@ impl ExporterEventEmitter {
             }));
             Ok(())
         } else {
-            Err(err_msg(format!("unknown source type: {}", source_type)))
+            Err(anyhow!("unknown source type: {}", source_type))
         }
     }
 }

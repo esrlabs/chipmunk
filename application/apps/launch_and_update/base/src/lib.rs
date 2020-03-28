@@ -1,8 +1,7 @@
 pub mod util;
 
 use crate::util::remove_entity;
-use anyhow::Result;
-use dirs;
+use anyhow::{Result, *};
 use log::LevelFilter;
 use log4rs::{
     append::file::FileAppender,
@@ -22,12 +21,14 @@ pub fn chipmunk_log_config() -> PathBuf {
 }
 
 pub fn initialize_from_fresh_yml() -> Result<()> {
+    let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("Could not access home-directory"))?;
     let log_config_path = chipmunk_log_config();
     let indexer_log_path = chipmunk_home_dir().join("chipmunk.indexer.log");
     let launcher_log_path = chipmunk_home_dir().join("chipmunk.launcher.log");
     let log_config_content = std::include_str!("../log4rs.yaml")
         .replace("$INDEXER_LOG_PATH", &indexer_log_path.to_string_lossy())
-        .replace("$LAUNCHER_LOG_PATH", &launcher_log_path.to_string_lossy());
+        .replace("$LAUNCHER_LOG_PATH", &launcher_log_path.to_string_lossy())
+        .replace("$HOME_DIR", &home_dir.to_string_lossy());
     remove_entity(&log_config_path)?;
     std::fs::write(&log_config_path, log_config_content)?;
     log4rs::init_file(&log_config_path, Default::default())?;

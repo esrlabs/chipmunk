@@ -1,3 +1,4 @@
+# chipmunk_logconf_version: 1.0
 refresh_rate: 30 seconds
 
 # The "appenders" map contains the set of appenders, indexed by their names.
@@ -5,14 +6,14 @@ appenders:
 
   indexer-root:
     kind: file
-    path: "$HOME_DIR/.chipmunk/chipmunk.indexer.log"
+    path: $INDEXER_LOG_PATH
     encoder:
       kind: pattern
       pattern: "{d} - {l}:: {m}\n"
 
   startup-appender:
     kind: file
-    path: "$HOME_DIR/.chipmunk/chipmunk.launcher.log"
+    path: $LAUNCHER_LOG_PATH
     encoder:
       kind: pattern
       pattern: "{d} [{M}] {l}:: {m}\n"
@@ -30,6 +31,11 @@ root:
 
 loggers:
   launcher:
+    level: trace
+    appenders:
+      - startup-appender
+    additive: false
+  updater:
     level: trace
     appenders:
       - startup-appender

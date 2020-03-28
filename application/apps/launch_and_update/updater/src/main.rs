@@ -3,12 +3,12 @@ extern crate log;
 extern crate log4rs;
 
 use anyhow::{anyhow, Result};
-use base::chipmunk_home_dir;
-use base::initialize_from_fresh_yml;
-use base::util::*;
-use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
+use base::{chipmunk_home_dir, initialize_from_fresh_yml, util::*};
+use std::{
+    fs::create_dir_all,
+    path::{Path, PathBuf},
+    process::{Child, Command},
+};
 
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
     Command::new(exe)
