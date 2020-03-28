@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.1.1] - 03/28/2020
+* [](chore) fix rakefile problems
+
 ### [2.1.0] - 03/28/2020
 * [](fix) use tmp folder in .chipmunk for backup
   make rollback tarball creation faster
