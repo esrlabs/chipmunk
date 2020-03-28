@@ -1,5 +1,24 @@
 # Changelog
 
+### [2.1.0] - 03/28/2020
+* [](fix) use tmp folder in .chipmunk for backup
+  make rollback tarball creation faster
+* [](fix) fix closing of app on mac
+* [#752](feat) do rollback when update was not successfull
+  move launcher and updater to cargo workspace
+  added miniapp
+* [](feat) safe downloading of updates
+* [](feat) plugins view: search support
+* [](feat) update plugin manager view
+* [](feat) update plugins view
+* [](feat) chipmunk.client.toolkit update to 1.0.3
+* [](feat) angular 8.x --> 9.x
+* [](feat) terminate electron process also for ctrl-c
+* [](fix) provide default config in launcher
+* [#747](feat) support another date format in timestamp recognition
+* [](feat) update versions of dependencies
+* [](chore) provide bug report and feature request templates
+
 ### [2.0.2] - 03/17/2020
 
 * [](fix) recognize timestamp with greater then millisecond accuracy
