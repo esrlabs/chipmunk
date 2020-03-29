@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.1.2] - 03/29/2020
+* [](fix) add better errors for UDP DLT connections
+
 ### [2.1.1] - 03/28/2020
 * [](chore) fix rakefile problems
 
