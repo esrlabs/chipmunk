@@ -62,7 +62,7 @@
 
 <span class="slitter"></span>
 
-<mat-expansion-panel 
+<mat-expansion-panel
     *ngIf="_ng_settings.multicast"
     (click)="_ng_onPanelClick()"
     [expanded]="_ng_panels.multicast"
@@ -77,7 +77,7 @@
         </mat-panel-description>
     </mat-expansion-panel-header>
     <mat-form-field>
-        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.multicastAddress" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.multicastAddress">
+        <input matInput placeholder="Multicast Group Address" [(ngModel)]="_ng_settings.multicastAddress" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.multicastAddress">
         <mat-error *ngIf="_ng_errorStates.multicastAddress.getErrorCode() === 'INVALID'">
             Please enter a valid IPv4 address
         </mat-error>
@@ -86,7 +86,7 @@
         </mat-error>
     </mat-form-field>
     <mat-form-field>
-        <input matInput placeholder="Interface" [(ngModel)]="_ng_settings.multicastInterface" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.multicastInterface">
+        <input matInput placeholder="Network Interface" [(ngModel)]="_ng_settings.multicastInterface" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.multicastInterface">
         <mat-error *ngIf="_ng_errorStates.multicastInterface.getErrorCode() === 'INVALID'">
             Please define valid interface
         </mat-error>
@@ -98,7 +98,7 @@
 
 <span class="slitter"></span>
 
-<mat-expansion-panel 
+<mat-expansion-panel
     *ngIf="_ng_settings.fibex"
     (click)="_ng_onPanelClick()"
     [expanded]="_ng_panels.fibex"
