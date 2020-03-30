@@ -39,7 +39,7 @@ export class TabPluginsCounterComponent implements OnDestroy, AfterViewInit {
     }
 
     private _refresh() {
-        this._ng_count = PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded();
+        this._ng_count = PluginsService.getManager().getCountToBeUpgradedUpdated();
         this._forceUpdate();
     }
 
