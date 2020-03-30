@@ -102,14 +102,14 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     }
 
     public _ng_showDoAllButton() {
-        return PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded() > 0;
+        return PluginsService.getManager().getCountToBeUpgradedUpdated() > 0;
     }
 
     public _ng_getBadgeCount(): number {
         if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
             return undefined;
         } else {
-            return PluginsService.getManager().getCountToBeUpdated() + PluginsService.getManager().getCountToBeUpgraded();
+            return PluginsService.getManager().getCountToBeUpgradedUpdated();
         }
     }
 

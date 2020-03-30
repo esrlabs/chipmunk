@@ -339,7 +339,7 @@ export default class ControllerPluginsManager {
     public getCountToBeUpdated(): number {
         let updates: number = 0;
         this._plugins.forEach((plugin: IPlugin) => {
-            updates += plugin.update.length;
+            updates += plugin.update.length > 0 ? 1 : 0;
         });
         return updates;
     }
@@ -347,9 +347,19 @@ export default class ControllerPluginsManager {
     public getCountToBeUpgraded(): number {
         let upgrades: number = 0;
         this._plugins.forEach((plugin: IPlugin) => {
-            upgrades += plugin.upgrade.length;
+            upgrades += plugin.upgrade.length > 0 ? 1 : 0;
         });
         return upgrades;
+    }
+
+    public getCountToBeUpgradedUpdated(): number {
+        let count: number = 0;
+        this._plugins.forEach((plugin: IPlugin) => {
+            if (plugin.update.length > 0 || plugin.upgrade.length > 0) {
+                count += 1;
+            }
+        });
+        return count;
     }
 
     public setPluginState(name: string, state: EPluginState) {
@@ -414,7 +424,7 @@ export default class ControllerPluginsManager {
             this._states.manager = EManagerState.ready;
             this._subjects.ready.next();
             this._queue.unlock();
-            if (this.getCountToBeUpdated() + this.getCountToBeUpgraded() > 0) {
+            if (this.getCountToBeUpgradedUpdated() > 0) {
                 CustomTabsEventsService.emit().plugins();
             }
         }).catch((error: Error) => {
