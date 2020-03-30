@@ -18,7 +18,7 @@ export default class ConcatFiles {
     private _processedBytes: number = 0;
     private _session: string = "";
     private _files: IFile[];
-    private _absolutePathConfig: Merge.ConcatenatorInput[];
+    private _config: Merge.ConcatenatorInput[];
     private _sourceIds: { [key: string]: number } = {};
     private _onProgress: (ticks: Progress.ITicks) => void;
     private _task: CancelablePromise<void, void, Merge.TConcatFilesEvents, Merge.TConcatFilesEventObject> | undefined;
@@ -28,7 +28,7 @@ export default class ConcatFiles {
         this._session = session === undefined ? ServiceStreams.getActiveStreamId() : session;
         this._onProgress = onProgress;
         this.registerSourceMarkers();
-        this._absolutePathConfig = files.map((file: IFile) => {
+        this._config = files.map((file: IFile) => {
             return {
                 path: file.file,
                 tag: this._sourceIds[file.file].toString(),
@@ -45,7 +45,7 @@ export default class ConcatFiles {
                 return reject(sessionData);
             }
             this._task = indexer.concatFilesAsync(
-                this._absolutePathConfig,
+                this._config,
                 sessionData.file,
                 { append: true, chunk_size: 500 },
             ).then(() => {
