@@ -4,6 +4,7 @@ import { ContainersModule                               } from 'chipmunk-client-
 
 import { LayoutComponent                                } from './component';
 import { LayoutStatusBarComponent                       } from './bar.status/component';
+import { LayoutFocusHolderComponent                     } from './focus.holder/component';
 import { LayoutContextMenuComponent                     } from './contextmenu/component';
 import { LayoutSessionSidebarComponent                  } from './area.sidebar/component';
 import { LayoutSessionSidebarCaptionComponent           } from './area.sidebar.caption/component';
@@ -21,6 +22,7 @@ import { AppsBarStatusModule                            } from '../apps/bar.stat
 
 const entryComponents = [
     LayoutStatusBarComponent,
+    LayoutFocusHolderComponent,
     LayoutContextMenuComponent,
     LayoutSessionSidebarComponent,
     LayoutSessionSidebarCaptionComponent,
