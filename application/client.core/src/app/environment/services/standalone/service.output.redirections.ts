@@ -40,6 +40,7 @@ export class OutputRedirectionsService {
         this._onGlobalKeyUp = this._onGlobalKeyUp.bind(this);
         window.addEventListener('keydown', this._onGlobalKeyDown);
         window.addEventListener('keyup', this._onGlobalKeyUp);
+        window.addEventListener('blur', this._onGlobalKeyUp);
     }
 
     public select(sender: string, sessionId: string, row: number) {
