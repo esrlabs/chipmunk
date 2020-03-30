@@ -11,8 +11,6 @@ import ServiceNotifications, { ENotificationType } from "../../services/service.
 import ServiceStreams from "../../services/service.streams";
 import Logger from "../../tools/env.logger";
 
-const ExtNames = ["txt", "log", "logs", "json", "less", "css", "sass", "ts", "js"];
-
 export default class FileParser extends AFileParser {
 
     private _guid: string | undefined;
@@ -40,11 +38,11 @@ export default class FileParser extends AFileParser {
     }
 
     public getExtnameFilters(): Array<{ name: string; extensions: string[] }> {
-        return [{ name: "Text files", extensions: ExtNames }];
+        return [];
     }
 
     public getExtensions(): string[] {
-        return ExtNames.slice();
+        return [];
     }
 
     public isSupported(file: string): Promise<boolean> {
@@ -66,11 +64,7 @@ export default class FileParser extends AFileParser {
                         }
                         const type: ft.FileTypeResult | undefined = ft(buf);
                         if (type === undefined) {
-                            const extname: string = path
-                                .extname(file)
-                                .toLowerCase()
-                                .replace(".", "");
-                            resolve(ExtNames.indexOf(extname) !== -1);
+                            resolve(false);
                         } else if (
                             type.mime.indexOf("text") !== -1 ||
                             type.mime.indexOf("application") !== -1

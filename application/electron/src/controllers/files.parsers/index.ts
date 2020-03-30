@@ -59,7 +59,7 @@ export function getParserForFile(file: string, predefined?: AFileParser, default
         })).then((results: boolean[]) => {
             const index: number = results.indexOf(true);
             if (index === -1) {
-                resolve(undefined);
+                resolve(getDefaultFileParser());
             }
             resolve(parsers[index]);
         }).catch((error: Error) => {
