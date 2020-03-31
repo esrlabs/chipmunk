@@ -1,5 +1,22 @@
 # Changelog
 
+### [2.2.0] - 04/11/2020
+
+* [#780](feat) support multiple dlt messages in a udp frame
+  closes #780
+* [781](fix) correct tasks queue for charts requests (close #781)
+* [769](fix) store last selection for details view (close #769)
+* [602](feat) add axisY to chart
+* [602](feat) drop selection on tab change (close #602)
+* [723](refact) change default settings for charts
+* [778](fix) show bookmarks with empty search results (close #778)
+* [](fix) fixing security issues (resolution dependencies)
+* [773](fix) update file size on recent dialog (close #733)
+* [](fix) fix search input focus issue (mac)
+* [](fix) use as default file-parser text-parser (for any type of not-supported files)
+* [](fix) correct number of updates/upgrades of plugins
+* [#743](fix) fix key-holder for rows selection
+
 ### [2.1.2] - 03/29/2020
 * [](fix) add better errors for UDP DLT connections
 
