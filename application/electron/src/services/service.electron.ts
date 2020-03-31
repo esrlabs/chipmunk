@@ -2,6 +2,7 @@
 // tslint:disable:ban-types
 
 import * as uuid from 'uuid';
+
 import { app, BrowserWindow, Event } from 'electron';
 import { Lock } from '../tools/env.lock';
 import { inspect } from 'util';
@@ -10,11 +11,12 @@ import { THandler } from '../tools/types.common';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages } from '../controllers/electron/controller.electron.ipc';
 import { IApplication, EExitCodes } from '../interfaces/interface.app';
+
 import ControllerElectronIpc from '../controllers/electron/controller.electron.ipc';
 import ServiceProduction from './service.production';
+import ServiceEnv from './service.env';
 import ControllerBrowserWindow from '../controllers/electron/controller.browserwindow';
 import ControllerElectronMenu from '../controllers/electron/controller.electron.menu';
-
 import Logger from '../tools/env.logger';
 
 export { IPCMessages, Subscription };
@@ -225,7 +227,7 @@ class ServiceElectron implements IService {
         }
         // Create client
         this._createBrowserWindow();
-        if (!ServiceProduction.isProduction()) {
+        if (!ServiceProduction.isProduction() && !ServiceEnv.get().CHIPMUNK_NO_WEBDEVTOOLS) {
             if (this._controllerBrowserWindow !== undefined) {
                 this._controllerBrowserWindow.debug();
             }

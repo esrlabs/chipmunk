@@ -14,6 +14,12 @@ export enum EChipmunkEnvVars {
     CHIPMUNK_DEVELOPING_MODE = 'CHIPMUNK_DEVELOPING_MODE',
 
     /**
+     * ON - activate webtools in developing mode
+     * OFF - deactivate webtools in developing mode
+     */
+    CHIPMUNK_NO_WEBDEVTOOLS = 'CHIPMUNK_NO_WEBDEVTOOLS',
+
+    /**
      * Definition of log level:
      * - INFO (I, IN),
      * - DEBUG (D, DEB),
@@ -63,6 +69,7 @@ export const CChipmunkEnvVars: string[] = [
 
 export interface IChipmunkEnvVars {
     CHIPMUNK_DEVELOPING_MODE: string | undefined;
+    CHIPMUNK_NO_WEBDEVTOOLS: boolean | undefined;
     CHIPMUNK_DEV_LOGLEVEL: string | undefined;
     CHIPMUNK_PLUGINS_SANDBOX: string | undefined;
     CHIPMUNK_PLUGINS_NO_DEFAULTS: boolean | undefined;
@@ -72,6 +79,15 @@ export interface IChipmunkEnvVars {
 }
 
 const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
+    [EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS]: (smth: any): boolean => {
+        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+            return true;
+        }
+        if (typeof smth === 'number' && smth === 1) {
+            return true;
+        }
+        return false;
+    },
     [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS]: (smth: any): boolean => {
         if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
             return true;
@@ -120,6 +136,7 @@ class ServiceEnv implements IService {
     private _logger: Logger = new Logger('ServiceEnv');
     private _env: IChipmunkEnvVars = {
         CHIPMUNK_DEVELOPING_MODE: undefined,
+        CHIPMUNK_NO_WEBDEVTOOLS: undefined,
         CHIPMUNK_DEV_LOGLEVEL: undefined,
         CHIPMUNK_PLUGINS_SANDBOX: undefined,
         CHIPMUNK_PLUGINS_NO_DEFAULTS: undefined,
@@ -136,6 +153,7 @@ class ServiceEnv implements IService {
         return new Promise((resolve, reject) => {
             const list = [
                 EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
+                EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS,
                 EChipmunkEnvVars.CHIPMUNK_DEV_LOGLEVEL,
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
