@@ -101,7 +101,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     ngAfterViewInit() {
         this._loadState();
-        this._focus();
+        this._focus(true);
     }
 
     ngAfterContentInit() {
@@ -238,7 +238,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_read = -1;
             this._forceUpdate();
             if (focus) {
-                this._focus();
+                this._focus(true);
             }
         }).catch((droppingError: Error) => {
             this._ng_searchRequestId = undefined;
@@ -401,7 +401,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_searchRequestId = undefined;
             this._ng_isRequestSaved = this._filtersStorage.has(request);
             if (focus) {
-                this._focus();
+                this._focus(true);
             }
             this._forceUpdate();
         }).catch((searchError: Error) => {
@@ -492,13 +492,16 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._blur();
     }
 
-    private _focus(delay: number = 150) {
+    private _focus(hidePanel: boolean = false, delay: number = 150) {
         setTimeout(() => {
             if (this._ng_inputComRef === undefined || this._ng_inputComRef === null) {
                 return;
             }
             this._ng_inputComRef.focus();
             this._selectTextInInput();
+            if (hidePanel && this._ng_autoComRef !== undefined && this._ng_autoComRef !== null) {
+                this._ng_autoComRef.closePanel();
+            }
         }, delay);
     }
 
