@@ -87,7 +87,8 @@ export class OperationInspecting extends EventEmitter {
                 process.once('close', () => {
                     const added: number[] = transform.getLines();
                     this._matches = this._matches.concat(added);
-                    resolve(this._matches);
+                    // resolve(this._matches);
+                    resolve(added);
                 });
                 // Create cleaner
                 this._cleaners.set(taskId, () => {

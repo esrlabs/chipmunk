@@ -43,6 +43,8 @@ const CSettings = {
     minMarkerHeight: 1,
 };
 
+const CMatchesKey = '$__{matches}__$';
+
 export class ControllerSessionTabMap {
 
     private _guid: string;
@@ -54,7 +56,8 @@ export class ControllerSessionTabMap {
         points: [],
     };
     private _subscriptions: { [key: string]: IPCSubscription | Subscription } = {};
-    private _columns: IColumn[] = [];
+    private _columns: { [key: string]: IColumn } = {};
+    private _indexes: {[key: string]: number } = {};
     private _searchExpanded: boolean = false;
     private _width: number = CSettings.columnNarroweWidth;
     private _search: ControllerSessionTabSearch;
@@ -122,7 +125,7 @@ export class ControllerSessionTabMap {
         if (this._state.points.length === 0) {
             return 0;
         }
-        return this._columns.length;
+        return Object.keys(this._columns).length;
     }
 
     public toggleColumnWidth() {
@@ -140,26 +143,26 @@ export class ControllerSessionTabMap {
     public toggleExpanding() {
         this._searchExpanded = !this._searchExpanded;
         // Remove search colums
-        this._columns = this._columns.filter(c => !c.search);
+        this._cleanColumns();
         // Remap all points
-        const map: { [key: string]: number } = {};
+        this._indexes = {};
         let index: number = 0;
         if (this._searchExpanded) {
             this._state.points = this._state.points.map((point: IMapPoint) => {
                 if (point.reg === undefined) {
                     return point;
                 }
-                if (map[point.reg] === undefined) {
-                    map[point.reg] = index;
-                    this._columns.unshift({
+                if (this._indexes[point.reg] === undefined) {
+                    this._indexes[point.reg] = index;
+                    this._columns[point.reg] = {
                         description: point.reg,
                         index: index,
                         search: true,
                         guid: Toolkit.guid(),
-                    });
+                    };
                     index += 1;
                 }
-                point.column = map[point.reg];
+                point.column = this._indexes[point.reg];
                 return point;
             });
         } else {
@@ -170,21 +173,13 @@ export class ControllerSessionTabMap {
                 point.column = index;
                 return point;
             });
-            this._columns.unshift({
+            this._columns[CMatchesKey] = {
                 description: 'Matches',
                 index: index,
                 search: true,
                 guid: Toolkit.guid(),
-            });
+            };
         }
-        // Update indexes of other columns
-        this._columns = this._columns.map((col: IColumn) => {
-            if (!col.search) {
-                col.index = index;
-                index += 1;
-            }
-            return col;
-        });
         // Trigger event
         this._saveTriggerStateUpdate();
     }
@@ -225,6 +220,14 @@ export class ControllerSessionTabMap {
         return target;
     }
 
+    private _cleanColumns() {
+        Object.keys(this._columns).forEach((key: string) => {
+            if (this._columns[key].search) {
+                delete this._columns[key];
+            }
+        });
+    }
+
     private _onFiltersStyleUpdate(event: IChangeEvent) {
         this._subjects.onRestyle.next(event.request);
     }
@@ -235,7 +238,7 @@ export class ControllerSessionTabMap {
         // Drop points
         this._dropSearchColumns();
         // Remove search colums
-        this._columns = this._columns.filter(c => !c.search);
+        this._cleanColumns();
         // Trigger event
         this._saveTriggerStateUpdate();
     }
@@ -254,7 +257,12 @@ export class ControllerSessionTabMap {
 
     private _dropSearchColumns() {
         // Get columns to be reset
-        const toBeReset: number[] = this._columns.filter(c => c.search).map(c => c.index);
+        const toBeReset: number[] = [];
+        Object.keys(this._columns).forEach((key: string) => {
+            if (this._columns[key].search) {
+                toBeReset.push(this._columns[key].index);
+            }
+        });
         // Reset columns
         this._state.points = this._state.points.filter(p => toBeReset.indexOf(p.column) === -1);
     }
@@ -279,34 +287,40 @@ export class ControllerSessionTabMap {
         if (!message.append) {
             this._dropSearchColumns();
         }
+        if (!message.append || !this._searchExpanded) {
+            this._cleanColumns();
+            this._indexes = {};
+        }
         const map: { [key: string]: FilterRequest } = {};
         this._search.getFiltersAPI().getStorage().get().forEach((request: FilterRequest) => {
             map[request.asDesc().request] = request;
         });
         const data: IPCMessages.ISearchResultMapData = message.getData();
-        // Remove search colums
-        this._columns = this._columns.filter(c => !c.search);
         let index: number = 0;
+        Object.keys(this._indexes).forEach((key: string) => {
+            if (index < this._indexes[key]) {
+                index = this._indexes[key] + 1;
+            }
+        });
         if (this._searchExpanded) {
             // Expanded
-            const columns: {[key: string]: number } = {};
             Object.keys(data.map).forEach((key: number | string) => {
                 const matches: string[] = data.map[key];
                 matches.forEach((match: string) => {
-                    if (columns[match] === undefined) {
-                        columns[match] = index;
-                        this._columns.unshift({
+                    if (this._indexes[match] === undefined) {
+                        this._indexes[match] = index;
+                        this._columns[match] = {
                             description: match,
                             index: index,
                             search: true,
                             guid: Toolkit.guid(),
-                        });
+                        };
                         index += 1;
                     }
                     const point: IMapPoint = {
                         position: typeof key === 'number' ? key : parseInt(key, 10),
                         color: map[match] === undefined ? '' : (map[match].getBackground() !== '' ? map[match].getBackground() : map[match].getColor()),
-                        column: columns[match],
+                        column: this._indexes[match],
                         description: match,
                         reg: match,
                         regs: [match],
@@ -329,22 +343,14 @@ export class ControllerSessionTabMap {
                 };
                 this._state.points.push(point);
             });
-            this._columns.unshift({
+            this._columns[CMatchesKey] = {
                 description: 'Matches',
                 index: index,
                 search: true,
                 guid: Toolkit.guid(),
-            });
+            };
             index += 1;
         }
-        // Update indexes of other columns
-        this._columns = this._columns.map((col: IColumn) => {
-            if (!col.search) {
-                col.index = index;
-                index += 1;
-            }
-            return col;
-        });
         // Trigger event
         this._saveTriggerStateUpdate();
     }
