@@ -237,6 +237,10 @@ export class SearchEngine extends EventEmitter {
         return (this._stock.search.size + this._stock.inspecting.size) > 0;
     }
 
+    public isInspectingAppend(): boolean {
+        return this._operations.inspecting.getReadFrom() > 0;
+    }
+
     private _onMapUpdated(event: IMapChunkEvent) {
         this.emit(SearchEngine.Events.onMapUpdated, event);
     }

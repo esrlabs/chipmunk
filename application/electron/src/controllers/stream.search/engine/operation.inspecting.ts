@@ -137,6 +137,10 @@ export class OperationInspecting extends EventEmitter {
         this._readTo = read;
     }
 
+    public getReadFrom(): number {
+        return this._readFrom;
+    }
+
     private _clear(id: string) {
         const cleaner: THandler | undefined = this._cleaners.get(id);
         this._cleaners.delete(id);

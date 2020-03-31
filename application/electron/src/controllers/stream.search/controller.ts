@@ -177,7 +177,7 @@ export default class ControllerStreamSearch {
             // Notify render
             ServiceElectron.IPC.send(new IPCElectronMessages.SearchResultMap({
                 streamId: this._state.getGuid(),
-                append: false,
+                append: this._searching.isInspectingAppend(),
                 map: data.map,
                 stats: data.stats,
             })).catch((error: Error) => {
