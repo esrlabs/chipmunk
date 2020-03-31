@@ -1,6 +1,6 @@
 {
   "name": "chipmunk-client-material",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "peerDependencies": {
     "@angular/common": "^8.2.14",
     "@angular/core": "^8.2.14"
