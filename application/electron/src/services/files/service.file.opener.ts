@@ -218,7 +218,7 @@ class ServiceFileOpener implements IService {
     }
 
     private _ipc_FilesRecentRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        this._validateRecentFiles().then((files: IStorageScheme.IRecentFile[]) => {
+        this._getRecentFiles().then((files: IStorageScheme.IRecentFile[]) => {
             files.sort((a: IStorageScheme.IRecentFile, b: IStorageScheme.IRecentFile) => {
                 return a.timestamp < b.timestamp ? 1 : -1;
             });
@@ -380,29 +380,30 @@ class ServiceFileOpener implements IService {
         ServiceElectron.updateMenu();
     }
 
-    private _validateRecentFiles(): Promise<IStorageScheme.IRecentFile[]> {
+    private _getRecentFiles(): Promise<IStorageScheme.IRecentFile[]> {
         return new Promise((resolve) => {
             const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-            const files: IStorageScheme.IRecentFile[] = [];
+            const checked: IStorageScheme.IRecentFile[] = [];
             Promise.all(stored.recentFiles.map((file: IStorageScheme.IRecentFile) => {
                 return new Promise((resolveFile) => {
-                    fs.access(file.file, fs.constants.F_OK, (err) => {
+                    fs.stat(file.file, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                         if (err) {
                             return resolveFile();
                         }
-                        files.push(file);
+                        file.size = stats.size;
+                        checked.push(file);
                         resolveFile();
                     });
                 });
             })).then(() => {
-                if (files.length === stored.recentFiles.length) {
-                    return resolve(files);
+                if (checked.length === stored.recentFiles.length) {
+                    return resolve(checked);
                 }
                 ServiceStorage.get().set({
-                    recentFiles: files,
+                    recentFiles: checked,
                 });
                 ServiceElectron.updateMenu();
-                resolve(files);
+                resolve(checked);
             });
         });
     }
