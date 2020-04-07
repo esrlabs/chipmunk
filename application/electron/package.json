@@ -120,5 +120,11 @@
         "package-check": "../node_modules/.bin/npm-check",
         "lint": "./node_modules/.bin/tslint --project .",
         "package-upgrade": "../node_modules/.bin/npm-check -y"
+    },
+    "resolutions": {
+        "serialize-javascript": ">=2.1.2",
+        "minimist": ">=0.2.1",
+        "acorn": ">=6.4.1",
+        "kind-of": ">=6.0.3"
     }
 }
