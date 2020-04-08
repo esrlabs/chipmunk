@@ -1,7 +1,7 @@
 import { Subject, Observable, Subscription } from 'rxjs';
 import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
-import { FilterRequest, IChangeEvent } from './controller.session.tab.search.filters.storage';
+import { FilterRequest, IFilterUpdateEvent } from './controller.session.tab.search.filters.storage';
 import { ControllerSessionTabStream } from './controller.session.tab.stream';
 import { IPositionData } from './controller.session.tab.stream.output';
 import { Lock } from './helpers/lock';
@@ -228,8 +228,11 @@ export class ControllerSessionTabMap {
         });
     }
 
-    private _onFiltersStyleUpdate(event: IChangeEvent) {
-        this._subjects.onRestyle.next(event.request);
+    private _onFiltersStyleUpdate(event: IFilterUpdateEvent) {
+        if (!event.updated.colors) {
+            return;
+        }
+        this._subjects.onRestyle.next(event.filter);
     }
 
     private _onSearchDropped() {

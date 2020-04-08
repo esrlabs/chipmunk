@@ -6,11 +6,8 @@ import { ControllerSessionScope } from './controller.session.tab.scope';
 import {
     FilterRequest,
     IFilterFlags,
-    IFilterDesc,
     IFiltersStorageUpdated,
-    IFiltersChangeEvent,
-    IFilterDescOptional,
-    IFilterDescUpdating,
+    IFilterUpdateEvent,
     FiltersStorage,
 } from './controller.session.tab.search.filters.storage';
 
@@ -209,8 +206,8 @@ export class ControllerSessionTabSearchFilters {
         }
     }
 
-    private _onStorageChanged(event: IFiltersChangeEvent) {
-        if (event.reapply) {
+    private _onStorageChanged(event: IFilterUpdateEvent) {
+        if (event.updated.state || event.updated.request) {
             this._onStorageUpdated(undefined);
         } else {
             OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());
