@@ -371,10 +371,10 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                     });
                     resolve();
                 }).catch((previewError: Error) => {
-                    reject(`Fail read preview of file due error: ${previewError.message}`);
+                    reject(new Error(`Fail read preview of file due error: ${previewError.message}`));
                 });
             }).catch((parserError: Error) => {
-                reject(`Fail detect file parser due error: ${parserError.message}`);
+                reject(new Error(`Fail detect file parser due error: ${parserError.message}`));
             });
         });
     }

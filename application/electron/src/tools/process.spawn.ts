@@ -37,7 +37,7 @@ export default class Spawn extends Emitter {
     public execute(parameters: ISpawnParameters): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this.process !== null) {
-                return reject(`Previous process is still working.`);
+                return reject(new Error(`Previous process is still working.`));
             }
             this.getParameters(parameters).then((validParams: ISpawnParameters) => {
                 const command: string = this.getCommand(validParams.command);

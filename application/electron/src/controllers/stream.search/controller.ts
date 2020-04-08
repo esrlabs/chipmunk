@@ -206,7 +206,7 @@ export default class ControllerStreamSearch {
                     if (err.code === 'ENOENT') {
                         return resolve();
                     }
-                    return reject(this._logger.error(`Unexpected error with file "${this._state.getSearchFile()}": ${err.code}:: ${err.message}`));
+                    return reject(new Error(this._logger.error(`Unexpected error with file "${this._state.getSearchFile()}": ${err.code}:: ${err.message}`)));
                 }
                 fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
                     if (closeFileError) {
@@ -214,7 +214,7 @@ export default class ControllerStreamSearch {
                     }
                     fs.unlink(this._state.getSearchFile(), (error: NodeJS.ErrnoException | null) => {
                         if (error) {
-                            return reject(this._logger.error(`Fail to remove search file due error: ${error.message}`));
+                            return reject(new Error(this._logger.error(`Fail to remove search file due error: ${error.message}`)));
                         }
                         resolve();
                     });
