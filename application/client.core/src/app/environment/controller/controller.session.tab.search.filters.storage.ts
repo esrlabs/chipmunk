@@ -1,6 +1,7 @@
 import { Observable, Subject } from 'rxjs';
 import {
     FilterRequest,
+    IFilterUpdateEvent,
     IFlags as IFilterFlags,
     IDesc as IFilterDesc,
     IDescOptional as IFilterDescOptional,
@@ -16,11 +17,6 @@ export interface IUpdateEvent {
     removed?: FilterRequest;
 }
 
-export interface IChangeEvent {
-    request: FilterRequest;
-    reapply: boolean;
-}
-
 export interface IReorderParams {
     prev: number;
     curt: number;
@@ -29,7 +25,7 @@ export interface IReorderParams {
 export {
     FilterRequest,
     IUpdateEvent as IFiltersStorageUpdated,
-    IChangeEvent as IFiltersChangeEvent,
+    IFilterUpdateEvent,
     IFilterFlags,
     IFilterDesc,
     IFilterDescOptional,
@@ -43,10 +39,10 @@ export class FiltersStorage {
     private _stored: FilterRequest[] = [];
     private _subjects: {
         updated: Subject<IUpdateEvent>,
-        changed: Subject<IChangeEvent>
+        changed: Subject<IFilterUpdateEvent>
     } = {
         updated: new Subject<IUpdateEvent>(),
-        changed: new Subject<IChangeEvent>(),
+        changed: new Subject<IFilterUpdateEvent>(),
     };
 
     constructor(session: string) {
@@ -63,7 +59,7 @@ export class FiltersStorage {
 
     public getObservable(): {
         updated: Observable<IUpdateEvent>,
-        changed: Observable<IChangeEvent>,
+        changed: Observable<IFilterUpdateEvent>,
     } {
         return {
             updated: this._subjects.updated.asObservable(),
@@ -87,8 +83,6 @@ export class FiltersStorage {
             descs.forEach((desc: IFilterDescOptional | FilterRequest) => {
                     // Create search request
                     const srchRqst: FilterRequest = desc instanceof FilterRequest ? desc : new FilterRequest(desc);
-                    // Subscribe on update event
-                    srchRqst.onUpdated(this._onRequestUpdated.bind(this));
                     // Check request
                     if (this.has(srchRqst)) {
                         throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
@@ -96,20 +90,8 @@ export class FiltersStorage {
                     // Add request
                     this._stored.push(srchRqst);
                     added.push(srchRqst);
-                    // Listent request
-                    srchRqst.onChanged((request: FilterRequest) => {
-                        this._subjects.changed.next({
-                            request: request,
-                            reapply: false,
-                        });
-                    });
-                    srchRqst.onUpdated((request: FilterRequest) => {
-                        this._subjects.changed.next({
-                            request: request,
-                            reapply: true,
-                        });
-                    });
-            });
+                    // Subscribe on update event
+                    srchRqst.onUpdated(this._onRequestUpdated.bind(this));            });
         } catch (err) {
             return new Error(`Fail add request(s) due error: ${err.message}`);
         }
@@ -168,8 +150,8 @@ export class FiltersStorage {
         });
     }
 
-    private _onRequestUpdated(request: FilterRequest) {
-        this._subjects.updated.next({ requests: this._stored, updated: request });
+    private _onRequestUpdated(event: IFilterUpdateEvent) {
+        this._subjects.changed.next(event);
     }
 
     private _clear() {

@@ -34,6 +34,15 @@ export interface IDescUpdating {
     active?: boolean;
 }
 
+export interface IFilterUpdateEvent {
+    filter: FilterRequest;
+    updated: {
+        request: boolean;
+        state: boolean;
+        colors: boolean;
+    };
+}
+
 export class FilterRequest {
 
     private _flags: ISearchExpressionFlags;
@@ -46,17 +55,13 @@ export class FilterRequest {
     private _regexp: RegExp;
     private _subscriptions: {
         updated: Subscription[],
-        changed: Subscription[],
     } = {
         updated: [],
-        changed: []
     };
     private _subjects: {
-        updated: Subject<FilterRequest>,
-        changed: Subject<FilterRequest>,
+        updated: Subject<IFilterUpdateEvent>,
     } = {
-        updated: new Subject<FilterRequest>(),
-        changed: new Subject<FilterRequest>(),
+        updated: new Subject<IFilterUpdateEvent>(),
     };
 
     static isValid(request: string): boolean {
@@ -106,12 +111,8 @@ export class FilterRequest {
         });
     }
 
-    public onUpdated(handler: (request: FilterRequest) => void): void {
+    public onUpdated(handler: (event: IFilterUpdateEvent) => void): void {
        this._subscriptions.updated.push(this._subjects.updated.asObservable().subscribe(handler));
-    }
-
-    public onChanged(handler: (request: FilterRequest) => void): void {
-        this._subscriptions.changed.push(this._subjects.changed.asObservable().subscribe(handler));
     }
 
     public getColor(): string {
@@ -145,49 +146,114 @@ export class FilterRequest {
     }
 
     public update(desc: IDescUpdating): boolean {
-        let hasToBeEmitted: boolean = false;
-        if (typeof desc.request     === 'string'    && this.setRequest(desc.request, true)  ) { hasToBeEmitted = true; }
-        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { hasToBeEmitted = true; }
-        if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { hasToBeEmitted = true; }
-        if (typeof desc.color       === 'string') { this.setColor(desc.color); }
-        if (typeof desc.background  === 'string') { this.setBackground(desc.background); }
+        const event: IFilterUpdateEvent = {
+            updated: {
+                request: false,
+                colors: false,
+                state: false,
+            },
+            filter: this,
+        };
+        if (typeof desc.request     === 'string'    && this.setRequest(desc.request, true)  ) { event.updated.request = true; }
+        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { event.updated.request = true; }
+        if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
+        if (typeof desc.color       === 'string'    && this.setColor(desc.color)            ) { event.updated.colors = true;  }
+        if (typeof desc.background  === 'string'    && this.setBackground(desc.background)  ) { event.updated.colors = true;  }
+        const hasToBeEmitted: boolean = event.updated.request || event.updated.state || event.updated.colors;
         if (hasToBeEmitted) {
-            this._subjects.updated.next(this);
+            this._subjects.updated.next(event);
         }
         return hasToBeEmitted;
     }
 
-    public setColor(color: string) {
+    public setColor(color: string, silence: boolean = false): boolean {
+        if (this._color === color) {
+            return false;
+        }
         this._color = color;
-        this._subjects.changed.next(this);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: false,
+                    colors: true,
+                    state: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
-    public setBackground(background: string) {
+    public setBackground(background: string, silence: boolean = false): boolean {
+        if (this._background === background) {
+            return false;
+        }
         this._background = background;
-        this._subjects.changed.next(this);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: false,
+                    colors: true,
+                    state: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public setState(active: boolean, silence: boolean = false): boolean {
-        const prevState: boolean = this._active;
+        if (this._active === active) {
+            return false;
+        }
         this._active = active;
-        this._subjects.changed.next(this);
-        return this._isUpdated(prevState !== this._active, silence);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: false,
+                    colors: false,
+                    state: true,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public setFlags(flags: ISearchExpressionFlags, silence: boolean = false): boolean {
-        const hash: string = this._hash;
+        if (!this._setRegExps()) {
+            return false;
+        }
         this._flags = Object.assign({}, flags);
-        this._setRegExps();
-        this._subjects.changed.next(this);
-        return this._isUpdated(hash, silence);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: true,
+                    colors: false,
+                    state: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public setRequest(request: string, silence: boolean = false): boolean {
-        const hash: string = this._hash;
+        if (!this._setRegExps()) {
+            return false;
+        }
         this._request = request;
-        this._setRegExps();
-        this._subjects.changed.next(this);
-        return this._isUpdated(hash, silence);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: true,
+                    colors: false,
+                    state: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public getHash(): string {
@@ -202,20 +268,11 @@ export class FilterRequest {
         return this._active;
     }
 
-    private _isUpdated(prev: string | boolean, silence: boolean = false): boolean {
-        if (prev === true || this._hash !== prev) {
-            if (!silence) {
-                this._subjects.updated.next(this);
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private _setRegExps() {
+    private _setRegExps(): boolean {
+        const prev: string = this._hash;
         this._regexp = getMarkerRegExp(this._request, this._flags);
         this._hash = this._regexp.source + this._regexp.flags;
+        return prev !== this._hash;
     }
 
 }

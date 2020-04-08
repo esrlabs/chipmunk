@@ -1,16 +1,9 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild } from '@angular/core';
-import { FilterRequest, IFlags } from '../../../../controller/controller.session.tab.search.filters.request';
+import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../controller/controller.session.tab.search.filters.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
-import { Subscription, Observable, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../directives/item.directive';
-
-enum RequestErrorCodes {
-    NO_ERRORS = 'NO_ERRORS',
-    REQUIRED = 'REQUIRED',
-    INVALID = 'INVALID',
-}
-
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-filter',
@@ -55,7 +48,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         }
         this._init();
         this._directive.setGuid(this.request.getGUID());
-        this.request.onChanged(this._onRequestChanged.bind(this));
+        this.request.onUpdated(this._onRequestUpdated.bind(this));
     }
 
     public getInputRef(): MatInput | undefined {
@@ -123,8 +116,8 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         });
     }
 
-    private _onRequestChanged(request: FilterRequest) {
-        this.request = request;
+    private _onRequestUpdated(event: IFilterUpdateEvent) {
+        this.request = event.filter;
         this._init();
         this._forceUpdate();
     }
