@@ -237,7 +237,10 @@ export class ControllerSessionTabSearchOutput {
      */
     public updateStreamState(rowsCount: number): void {
         if (rowsCount === 0) {
+            // Drop
             this.clearStream();
+            // Update bookmarks state
+            this._updateBookmarksData();
         } else {
             // Update count of rows
             this._setTotalStreamCount(rowsCount);
