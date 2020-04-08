@@ -66,12 +66,12 @@ export class ServiceConfig {
                     if (err.code === 'ENOENT') {
                         return resolve(copy(this._defaults) as T);
                     } else {
-                        return reject(`Fail get settings from "${file}" due error: [${err.code}] ${err.message}`);
+                        return reject(new Error(`Fail get settings from "${file}" due error: [${err.code}] ${err.message}`));
                     }
                 }
                 fs.readFile(fd, 'utf8', (error: NodeJS.ErrnoException | null, data: string | Buffer) => {
                     if (error) {
-                        return reject(`Fail read settings file "${file}" due error: [${error.code}] ${error.message}`);
+                        return reject(new Error(`Fail read settings file "${file}" due error: [${error.code}] ${error.message}`));
                     }
                     if (data instanceof Buffer) {
                         data = data.toString();
@@ -80,7 +80,7 @@ export class ServiceConfig {
                     try {
                         settings = JSON.parse(data);
                     } catch (e) {
-                        return reject(`Fail get settings from "${file}" due error: ${e.message}. Settings: "${data}"`);
+                        return reject(new Error(`Fail get settings from "${file}" due error: ${e.message}. Settings: "${data}"`));
                     }
                     if (!isObject(settings)) {
                         settings = {};
@@ -147,12 +147,12 @@ export class ServiceConfig {
                         // File doesn't exist
                         return resolve();
                     } else {
-                        return reject(`Fail drop settings from "${file}" due error: [${err.code}] ${err.message}`);
+                        return reject(new Error(`Fail drop settings from "${file}" due error: [${err.code}] ${err.message}`));
                     }
                 }
                 fs.unlink(file, (unlinkErr: NodeJS.ErrnoException | null) => {
                     if (unlinkErr) {
-                        return reject(`Fail to remove settings file "${file}" due error: [${unlinkErr.code}] ${unlinkErr.message}`);
+                        return reject(new Error(`Fail to remove settings file "${file}" due error: [${unlinkErr.code}] ${unlinkErr.message}`));
                     }
                     resolve();
                 });

@@ -178,7 +178,7 @@ class ServiceEnv implements IService {
                 }).join('\n')}`);
                 resolve();
             }).catch((error: Error) => {
-                reject(this._logger.error(`Fail to detect OS env due error: ${error.message}`));
+                reject(new Error(this._logger.error(`Fail to detect OS env due error: ${error.message}`)));
             });
         });
     }

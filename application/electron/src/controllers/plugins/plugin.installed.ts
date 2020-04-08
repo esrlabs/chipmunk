@@ -479,7 +479,7 @@ export default class ControllerPluginInstalled {
     private _readPackages(): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._info === undefined) {
-                return reject(`Basic info hadn't been read`);
+                return reject(new Error(`Basic info hadn't been read`));
             }
             const render = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.render), this._name);
             const process = new ControllerPluginPackage(path.resolve(this._path, CPluginsFolders.process), this._name);
@@ -505,10 +505,10 @@ export default class ControllerPluginInstalled {
     private _addControllers(): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._info === undefined) {
-                return reject(`Basic info hadn't been read`);
+                return reject(new Error(`Basic info hadn't been read`));
             }
             if (this._packages.process === undefined && this._packages.render === undefined) {
-                return reject(`Packages hadn't been read`);
+                return reject(new Error(`Packages hadn't been read`));
             }
             const tasks = [];
             if (this._packages.render !== undefined) {

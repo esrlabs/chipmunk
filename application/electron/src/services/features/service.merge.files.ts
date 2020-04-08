@@ -178,7 +178,7 @@ class ServiceMergeFiles implements IService {
 
     private _test(file: ITestFileRequest): Promise<ITestFileResponse> {
         return new Promise((resolve, reject) => {
-            reject("no test implementend");
+            reject(new Error("no test implementend"));
             // const controller: MergeTest = new MergeTest({
             //     file: file.file,
             //     format: file.format,
@@ -186,7 +186,7 @@ class ServiceMergeFiles implements IService {
             // });
             // controller.test().then((results: IFileTestResults) => {
             //     if (results.results.readBytes === 0) {
-            //         return reject(`Fail to read file. Was read ${results.results.readBytes} bytes.`);
+            //         return reject(new Error(`Fail to read file. Was read ${results.results.readBytes} bytes.`));
             //     }
             //     resolve({
             //         file: file.file,
