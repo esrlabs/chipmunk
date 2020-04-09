@@ -138,13 +138,13 @@ export default class Chart extends AChart {
             opt = {};
         }
         if (typeof opt.borderWidth !== 'number' || isNaN(opt.borderWidth) || !isFinite(opt.borderWidth)) {
-            opt.borderWidth = 1;
+            opt.borderWidth = 2;
         }
         if (typeof opt.lineTension !== 'number' || isNaN(opt.lineTension) || !isFinite(opt.lineTension)) {
-            opt.lineTension = 0.4;
+            opt.lineTension = 0.1;
         }
         if (typeof opt.pointRadius !== 'number' || isNaN(opt.pointRadius) || !isFinite(opt.pointRadius)) {
-            opt.pointRadius = 2;
+            opt.pointRadius = 1;
         }
         return opt as IChartOptions;
     }
