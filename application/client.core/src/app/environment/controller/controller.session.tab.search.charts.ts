@@ -8,12 +8,8 @@ import { getController, AChart, EChartType, IOptionsObj } from '../components/vi
 import OutputParsersService from '../services/standalone/service.output.parsers';
 import {
     ChartRequest,
-    IChartFlags,
-    IChartDesc,
-    IChartsChangeEvent,
+    IChartUpdateEvent,
     IChartsStorageUpdated,
-    IChartDescOptional,
-    IChartDescUpdating,
     ChartsStorage,
 } from './controller.session.tab.search.charts.storage';
 
@@ -159,8 +155,8 @@ export class ControllerSessionTabSearchCharts {
         this._refresh();
     }
 
-    private _onStorageChanged(request: IChartsChangeEvent) {
-        if (request.reapply) {
+    private _onStorageChanged(event: IChartUpdateEvent) {
+        if (event.updated.state || event.updated.request || event.updated.type) {
             this._refresh();
         } else {
             this._updateRowsViews();

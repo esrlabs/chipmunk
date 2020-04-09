@@ -1,7 +1,10 @@
-import { Observable, Subject, Subscription } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { ISearchExpression, ISearchExpressionFlags } from '../interfaces/interface.ipc';
-import { getMarkerRegExp, getSearchRegExp } from '../../../../../common/functionlity/functions.search.requests';
-import ChartControllers, { AChart, IOption, IOptionsObj, EOptionType, EChartType } from '../components/views/chart/charts/charts';
+import { getMarkerRegExp } from '../../../../../common/functionlity/functions.search.requests';
+import { AChart, IOptionsObj, EChartType } from '../components/views/chart/charts/charts';
+import { isObjSame } from '../controller/helpers/obj';
+
+import ChartControllers from '../components/views/chart/charts/charts';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as ColorScheme from '../theme/colors';
@@ -36,6 +39,16 @@ export interface IDescUpdating {
     type?: EChartType;
 }
 
+export interface IChartUpdateEvent {
+    filter: ChartRequest;
+    updated: {
+        request: boolean;
+        state: boolean;
+        options: boolean;
+        type: boolean;
+    };
+}
+
 export class ChartRequest {
 
     private _flags: ISearchExpressionFlags;
@@ -49,17 +62,13 @@ export class ChartRequest {
     private _regexp: RegExp;
     private _subscriptions: {
         updated: Subscription[],
-        changed: Subscription[],
     } = {
         updated: [],
-        changed: []
     };
     private _subjects: {
-        updated: Subject<ChartRequest>,
-        changed: Subject<ChartRequest>,
+        updated: Subject<IChartUpdateEvent>,
     } = {
-        updated: new Subject<ChartRequest>(),
-        changed: new Subject<ChartRequest>(),
+        updated: new Subject<IChartUpdateEvent>(),
     };
 
     static isValid(request: string): boolean {
@@ -125,12 +134,8 @@ export class ChartRequest {
         });
     }
 
-    public onUpdated(handler: (request: ChartRequest) => void): void {
+    public onUpdated(handler: (event: IChartUpdateEvent) => void): void {
        this._subscriptions.updated.push(this._subjects.updated.asObservable().subscribe(handler));
-    }
-
-    public onChanged(handler: (request: ChartRequest) => void): void {
-        this._subscriptions.changed.push(this._subjects.changed.asObservable().subscribe(handler));
     }
 
     public getColor(): string {
@@ -142,7 +147,7 @@ export class ChartRequest {
     }
 
     public getOptions(): IOptionsObj {
-        return this._options;
+        return Object.assign({}, this._options);
     }
 
     public asDesc(): IDesc {
@@ -169,60 +174,144 @@ export class ChartRequest {
     }
 
     public update(desc: IDescUpdating): boolean {
-        let hasToBeEmitted: boolean = false;
-        if (typeof desc.request     === 'string'    && this.setRequest(desc.request, true)  ) { hasToBeEmitted = true; }
-        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { hasToBeEmitted = true; }
-        if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { hasToBeEmitted = true; }
-        if (typeof desc.options     === 'object') { this.setOptions(desc.options); }
-        if (typeof desc.color       === 'string') { this.setColor(desc.color); }
+        const event: IChartUpdateEvent = {
+            updated: {
+                request: false,
+                type: false,
+                state: false,
+                options: false,
+            },
+            filter: this,
+        };
+        if (typeof desc.request     === 'string'    && this.setRequest(desc.request, true)  ) { event.updated.request = true; }
+        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { event.updated.request = true; }
+        if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
+        if (typeof desc.options     === 'object'    && this.setOptions(desc.options, true)  ) { event.updated.options = true; }
+        if (typeof desc.color       === 'string'    && this.setColor(desc.color, true)      ) { event.updated.options = true; }
+        const hasToBeEmitted: boolean = event.updated.request || event.updated.state || event.updated.options;
         if (hasToBeEmitted) {
-            this._subjects.updated.next(this);
+            this._subjects.updated.next(event);
         }
         return hasToBeEmitted;
     }
 
-    public setColor(color: string) {
+    public setColor(color: string, silence: boolean = false) {
+        if (this._color === color) {
+            return false;
+        }
         this._color = color;
-        this._subjects.changed.next(this);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: false,
+                    options: true,
+                    state: false,
+                    type: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
-    public setOptions(options: IOptionsObj) {
+    public setOptions(options: IOptionsObj, silence: boolean = false) {
+        if (isObjSame(this._options, options)) {
+            return false;
+        }
         this._options = Object.assign({}, options);
-        this._subjects.changed.next(this);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: false,
+                    type: false,
+                    state: false,
+                    options: true,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public setType(type: EChartType, silence: boolean = false): boolean {
+        if (this._type === type) {
+            return false;
+        }
         const controller: AChart | undefined = ChartControllers[type];
         if (controller === undefined) {
             throw new Error(`Fail to find controller for chart type ${type}`);
         }
         this._type = type;
         this._options = controller.getDefaultsOptions(this._options);
-        this._subjects.changed.next(this);
-        return this._isUpdated(true, silence);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: false,
+                    type: true,
+                    state: false,
+                    options: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public setState(active: boolean, silence: boolean = false): boolean {
-        const prevState: boolean = this._active;
+        if (this._active === active) {
+            return false;
+        }
         this._active = active;
-        this._subjects.changed.next(this);
-        return this._isUpdated(prevState !== this._active, silence);
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: false,
+                    type: false,
+                    state: true,
+                    options: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public setFlags(flags: ISearchExpressionFlags, silence: boolean = false): boolean {
-        const hash: string = this._hash;
         this._flags = Object.assign({}, flags);
-        this._setRegExps();
-        this._subjects.changed.next(this);
-        return this._isUpdated(hash, silence);
+        if (!this._setRegExps()) {
+            return false;
+        }
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: true,
+                    type: false,
+                    state: false,
+                    options: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public setRequest(request: string, silence: boolean = false): boolean {
-        const hash: string = this._hash;
         this._request = request;
-        this._setRegExps();
-        this._subjects.changed.next(this);
-        return this._isUpdated(hash, silence);
+        if (!this._setRegExps()) {
+            return false;
+        }
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    request: true,
+                    type: false,
+                    state: false,
+                    options: false,
+                },
+                filter: this,
+            });
+        }
+        return true;
     }
 
     public getHash(): string {
@@ -237,20 +326,11 @@ export class ChartRequest {
         return this._active;
     }
 
-    private _isUpdated(prev: string | boolean, silence: boolean = false): boolean {
-        if (prev === true || this._hash !== prev) {
-            if (!silence) {
-                this._subjects.updated.next(this);
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private _setRegExps() {
+    private _setRegExps(): boolean {
+        const prev: string = this._hash;
         this._regexp = getMarkerRegExp(this._request, this._flags);
         this._hash = this._regexp.source + this._regexp.flags;
+        return prev !== this._hash;
     }
 
 }
