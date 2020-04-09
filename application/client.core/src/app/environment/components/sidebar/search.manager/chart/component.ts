@@ -1,15 +1,9 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild } from '@angular/core';
-import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
+import { ChartRequest, IChartUpdateEvent } from '../../../../controller/controller.session.tab.search.charts.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
-import { Subscription, Observable, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../directives/item.directive';
-
-enum RequestErrorCodes {
-    NO_ERRORS = 'NO_ERRORS',
-    REQUIRED = 'REQUIRED',
-    INVALID = 'INVALID',
-}
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-chart',
@@ -52,7 +46,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         }
         this._init();
         this._directive.setGuid(this.request.getGUID());
-        this.request.onChanged(this._onRequestChanged.bind(this));
+        this.request.onUpdated(this._onRequestChanged.bind(this));
     }
 
     public getInputRef(): MatInput | undefined {
@@ -111,8 +105,8 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         });
     }
 
-    private _onRequestChanged(request: ChartRequest) {
-        this.request = request;
+    private _onRequestChanged(event: IChartUpdateEvent) {
+        this.request = event.filter;
         this._init();
         this._forceUpdate();
     }

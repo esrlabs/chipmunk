@@ -1,6 +1,7 @@
 import { Observable, Subject } from 'rxjs';
 import {
     ChartRequest,
+    IChartUpdateEvent,
     IFlags as IChartFlags,
     IDesc as IChartDesc,
     IDescOptional as IChartDescOptional,
@@ -16,11 +17,6 @@ interface IUpdateEvent {
     removed?: ChartRequest;
 }
 
-interface IChangeEvent {
-    request: ChartRequest;
-    reapply: boolean;
-}
-
 export interface IReorderParams {
     prev: number;
     curt: number;
@@ -28,7 +24,7 @@ export interface IReorderParams {
 
 export {
     ChartRequest,
-    IChangeEvent as IChartsChangeEvent,
+    IChartUpdateEvent,
     IUpdateEvent as IChartsStorageUpdated,
     IChartFlags,
     IChartDesc,
@@ -43,10 +39,10 @@ export class ChartsStorage {
     private _stored: ChartRequest[] = [];
     private _subjects: {
         updated: Subject<IUpdateEvent>,
-        changed: Subject<IChangeEvent>,
+        changed: Subject<IChartUpdateEvent>,
     } = {
         updated: new Subject<IUpdateEvent>(),
-        changed: new Subject<IChangeEvent>(),
+        changed: new Subject<IChartUpdateEvent>(),
     };
 
     constructor(session: string) {
@@ -63,7 +59,7 @@ export class ChartsStorage {
 
     public getObservable(): {
         updated: Observable<IUpdateEvent>,
-        changed: Observable<IChangeEvent>,
+        changed: Observable<IChartUpdateEvent>,
     } {
         return {
             updated: this._subjects.updated.asObservable(),
@@ -87,8 +83,6 @@ export class ChartsStorage {
             descs.forEach((desc: IChartDescOptional | ChartRequest) => {
                     // Create search request
                     const srchRqst: ChartRequest = desc instanceof ChartRequest ? desc : new ChartRequest(desc);
-                    // Subscribe on update event
-                    srchRqst.onUpdated(this._onRequestUpdated.bind(this));
                     // Check request
                     if (this.has(srchRqst)) {
                         throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
@@ -96,19 +90,8 @@ export class ChartsStorage {
                     // Add request
                     this._stored.push(srchRqst);
                     added.push(srchRqst),
-                    // Listent request
-                    srchRqst.onChanged((request: ChartRequest) => {
-                        this._subjects.changed.next({
-                            request: request,
-                            reapply: false,
-                        });
-                    });
-                    srchRqst.onUpdated((request: ChartRequest) => {
-                        this._subjects.changed.next({
-                            request: request,
-                            reapply: true,
-                        });
-                    });
+                    // Subscribe on update event
+                    srchRqst.onUpdated(this._onRequestUpdated.bind(this));
             });
         } catch (err) {
             return new Error(`Fail add request(s) due error: ${err.message}`);
@@ -168,8 +151,8 @@ export class ChartsStorage {
         });
     }
 
-    private _onRequestUpdated(request: ChartRequest) {
-        this._subjects.updated.next({ requests: this._stored, updated: request });
+    private _onRequestUpdated(event: IChartUpdateEvent) {
+        this._subjects.changed.next(event);
     }
 
     private _clear() {

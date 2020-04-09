@@ -221,10 +221,10 @@ export class FilterRequest {
     }
 
     public setFlags(flags: ISearchExpressionFlags, silence: boolean = false): boolean {
+        this._flags = Object.assign({}, flags);
         if (!this._setRegExps()) {
             return false;
         }
-        this._flags = Object.assign({}, flags);
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
@@ -239,10 +239,10 @@ export class FilterRequest {
     }
 
     public setRequest(request: string, silence: boolean = false): boolean {
+        this._request = request;
         if (!this._setRegExps()) {
             return false;
         }
-        this._request = request;
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
