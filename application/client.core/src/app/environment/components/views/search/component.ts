@@ -365,7 +365,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         try {
             return new ChartRequest({
                 request: this._ng_inputCtrl.value,
-                type: EChartType.stepped,
+                type: EChartType.smooth,
             });
         } catch (err) {
             return err;

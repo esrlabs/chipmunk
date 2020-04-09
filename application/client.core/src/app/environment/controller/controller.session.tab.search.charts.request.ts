@@ -112,7 +112,7 @@ export class ChartRequest {
         if (typeof desc.type === 'string') {
             this._type = desc.type;
         } else {
-            this._type = EChartType.stepped;
+            this._type = EChartType.smooth;
         }
     }
 

@@ -250,7 +250,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             this._session.getSessionSearch().getFiltersAPI().getStorage().remove(request);
             this._session.getSessionSearch().getChartsAPI().getStorage().add({
                 request: request.asDesc().request,
-                type: EChartType.stepped,
+                type: EChartType.smooth,
             });
         } else if (request instanceof ChartRequest) {
             // From filter to chart
