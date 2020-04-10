@@ -1,6 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
-import TabsSessionsService from '../../services/service.sessions.tabs';
+
+import EventsSessionService from '../../services/standalone/service.events.session';
 
 @Component({
     selector: 'app-layout-focus-holder',
@@ -15,7 +16,7 @@ export class LayoutFocusHolderComponent implements OnDestroy, AfterViewInit {
     private _subscriptions: { [key: string]: Subscription } = { };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
 
     ngOnDestroy() {

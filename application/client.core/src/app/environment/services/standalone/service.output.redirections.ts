@@ -2,9 +2,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Observable } from 'rxjs';
 import { Selection, ISelectionAccessor, IRange } from '../../controller/helpers/selection';
 
-interface IControllerCroppedInterface {
-    getGuid: () => string;
-}
+import EventsSessionService from './service.events.session';
 
 enum EKey {
     ctrl = 'ctrl',
@@ -29,12 +27,9 @@ export class OutputRedirectionsService {
     private _state: Map<string, IState> = new Map();
     private _keyHolded: EKey | undefined;
 
-    public init(sessionId: string, observels: {
-        onSessionChange: Observable<IControllerCroppedInterface | undefined>,
-        onSessionClosed: Observable<string>
-    }) {
-        this._subscriptions.onSessionChange = observels.onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = observels.onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+    public init(sessionId: string) {
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
         this._sessionId = sessionId;
         this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
         this._onGlobalKeyUp = this._onGlobalKeyUp.bind(this);

@@ -2,10 +2,13 @@ import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@
 import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { AreaState } from '../state';
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subscription } from 'rxjs';
+import { LayoutSessionSidebarControlsComponent } from './controls/component';
+
+import EventsSessionService from '../../services/standalone/service.events.session';
 import TabsSessionsService from '../../services/service.sessions.tabs';
 import SidebarSessionsService from '../../services/service.sessions.sidebar';
-import { LayoutSessionSidebarControlsComponent } from './controls/component';
+
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
@@ -31,7 +34,7 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
             return;
         }
         // Subscribe to change of current session
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Subscribe to state events
         this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
         this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));

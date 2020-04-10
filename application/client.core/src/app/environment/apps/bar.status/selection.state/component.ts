@@ -1,9 +1,13 @@
-import OutputRedirectionsService, { ISelectionAccessor, IRange } from '../../../services/standalone/service.output.redirections';
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { ISelectionAccessor, IRange } from '../../../services/standalone/service.output.redirections';
+
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
+import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-apps-status-bar-selection-state',
@@ -23,8 +27,8 @@ export class AppsStatusBarSelectionStateComponent implements OnDestroy, AfterVie
     }
 
     public ngAfterViewInit() {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
         const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             return;

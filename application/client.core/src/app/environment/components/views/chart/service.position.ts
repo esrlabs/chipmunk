@@ -1,7 +1,9 @@
 import { Observable, Subscription, Subject } from 'rxjs';
 import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../services/standalone/service.events.session';
 
 export interface IPositionChange {
     left: number;
@@ -36,7 +38,7 @@ export class ServicePosition {
     };
 
     constructor() {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._init();
     }
 

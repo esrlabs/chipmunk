@@ -1,9 +1,11 @@
-import ServiceElectronIpc, { IPCMessages } from '../../../services/service.electron.ipc';
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IStorage {
     read: number;
@@ -33,8 +35,8 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
     public ngAfterViewInit() {
         this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));
         this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
         const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             return;

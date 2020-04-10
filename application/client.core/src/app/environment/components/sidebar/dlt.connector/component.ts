@@ -14,6 +14,7 @@ import ElectronIpcService, { IPCMessages } from '../../../services/service.elect
 import SessionsService from '../../../services/service.sessions.tabs';
 import ConnectionsService, { IConnectEvent } from '../../../services/service.connections';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import EventsSessionService from '../../../services/standalone/service.events.session';
 
 interface IState {
     bindingAddress: string;
@@ -198,7 +199,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
         this._ng_session = SessionsService.getActive();
-        this._subscriptions.onSessionChange = SessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
 
     public ngOnDestroy() {

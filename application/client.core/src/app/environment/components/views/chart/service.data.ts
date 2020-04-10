@@ -1,13 +1,16 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { ControllerSessionTab, IStreamState } from '../../../controller/controller.session.tab';
 import { ChartRequest } from '../../../controller/controller.session.tab.search.charts.request';
 import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.request';
 import { IMapState, IMapPoint } from '../../../controller/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
-import ChartsControllers, { AChart } from './charts/charts';
+import { AChart } from './charts/charts';
 import { IPCMessages } from '../../../services/service.electron.ipc';
 import { scheme_color_accent } from '../../../theme/colors';
+
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
+import ChartsControllers from './charts/charts';
 
 export interface IRange {
     begin: number;
@@ -65,7 +68,7 @@ export class ServiceData {
 
     constructor() {
         this._init();
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
         );
     }
