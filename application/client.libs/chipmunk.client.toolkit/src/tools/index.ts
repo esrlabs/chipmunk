@@ -11,6 +11,7 @@ import { hash } from './tools.hash';
 import { basename, dirname } from './tools.path';
 import { copy } from './tools.object';
 import * as Promises from './tools.promises';
+import { CancelablePromise } from './tools.promises';
 
 export {
     guid,
@@ -30,4 +31,5 @@ export {
     setGlobalLogLevel,
     ELogLevels,
     Promises,
+    CancelablePromise,
 };
