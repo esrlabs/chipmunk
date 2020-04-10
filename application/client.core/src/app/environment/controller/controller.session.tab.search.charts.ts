@@ -4,6 +4,7 @@ import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTab } from './controller.session.tab';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { EChartType } from '../components/views/chart/charts/charts';
+import { CancelablePromise } from 'chipmunk.client.toolkit';
 import {
     ChartRequest,
     IChartUpdateEvent,
@@ -57,9 +58,9 @@ export class ControllerSessionTabSearchCharts {
         onChartsResultsUpdated: new Subject<IPCMessages.TChartResults>(),
         onChartSelected: new Subject<ChartRequest | undefined>(),
     };
-    private _activeRequestId: string | undefined;
     private _data: IPCMessages.TChartResults = {};
     private _selected: string | undefined;
+    private _tasks: Map<string, Promise<IPCMessages.TChartResults>> = new Map();
 
     constructor(params: IControllerSessionStreamCharts) {
         this._guid = params.guid;
@@ -77,7 +78,7 @@ export class ControllerSessionTabSearchCharts {
                 this._subscriptions[prop].unsubscribe();
             });
             OutputParsersService.unsetChartsResults(this._guid);
-            this.cancel().catch((error: Error) => {
+            this.cancel(undefined).catch((error: Error) => {
                 this._logger.error(`Fail to cancel a task of chart data extracting due error: ${error.message}`);
             }).finally(resolve);
         });
@@ -117,15 +118,21 @@ export class ControllerSessionTabSearchCharts {
     }
 
     public extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
-        return new Promise((resolve, reject) => {
-            this.cancel().then(() => {
-                if (options.requests.length === 0) {
+        const task: Promise<IPCMessages.TChartResults> = new Promise((resolve, reject) => {
+            this.cancel(options.requestId).then(() => {
+                if (options.requests.length === 0 || !this._tasks.has(options.requestId)) {
+                    this._tasks.delete(options.requestId);
                     this._data = {};
+                    this._subjects.onChartsResultsUpdated.next({});
                     resolve({});
-                    return this._subjects.onChartsResultsUpdated.next({});
+                    return;
                 }
                 this._extract(options).then((res: IPCMessages.TChartResults) => {
-                    this._data = res;
+                    if (!this._tasks.has(options.requestId)) {
+                        this._data = {};
+                    } else {
+                        this._data = res;
+                    }
                     resolve(res);
                 }).catch((err: Error) => {
                     this._logger.error(`Fail to extract charts data due error: ${err.message}. Results will be dropped.`);
@@ -139,25 +146,39 @@ export class ControllerSessionTabSearchCharts {
                 reject(cancelErr);
             });
         });
+        this._tasks.set(options.requestId, task);
+        return task;
     }
 
-    public cancel(): Promise<void> {
+    public cancel(exception: string | undefined): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._activeRequestId === undefined) {
+            const ids: string[] = Array.from(this._tasks.keys()).filter((id: string) => {
+                return id !== exception;
+            });
+            if (ids.length === 0) {
+                // Nothing to cancel
                 return resolve();
             }
-            ServiceElectronIpc.request(new IPCMessages.ChartRequestCancelRequest({
-                streamId: this._guid,
-                requestId: this._activeRequestId,
-            }), IPCMessages.ChartRequestCancelResponse).then((results: IPCMessages.ChartRequestCancelResponse) => {
-                this._activeRequestId = undefined;
-                if (results.error !== undefined) {
-                    this._logger.error(`Chart data extractinng request id ${results.requestId} fail to cancel with error: ${results.error}`);
-                    return reject(new Error(results.error));
-                }
+            Promise.all(ids.map((requestId: string) => {
+                return ServiceElectronIpc.request(new IPCMessages.ChartRequestCancelRequest({
+                    streamId: this._guid,
+                    requestId: requestId,
+                }), IPCMessages.ChartRequestCancelResponse).then((results: IPCMessages.ChartRequestCancelResponse) => {
+                    this._tasks.delete(requestId);
+                    if (results.error !== undefined) {
+                        this._logger.error(`Chart data extractinng request id ${results.requestId} fail to cancel with error: ${results.error}`);
+                        return reject(new Error(results.error));
+                    }
+                    resolve();
+                }).catch((error: Error) => {
+                    this._tasks.delete(requestId);
+                    reject(error);
+                });
+            })).then(() => {
                 resolve();
-            }).catch((error: Error) => {
-                reject(error);
+            }).catch((remoteCancelErr: Error) => {
+                this._logger.error(`Cancelation was failed due error: ${remoteCancelErr.message}`);
+                reject(remoteCancelErr);
             });
         });
     }
@@ -206,18 +227,22 @@ export class ControllerSessionTabSearchCharts {
 
     private _extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
         return new Promise((resolve, reject) => {
-            if (this._activeRequestId !== undefined) {
-                return reject(new Error(`Fail to start extracting chart data, because previous request isn't finished`));
+            if (!this._tasks.has(options.requestId)) {
+                // Task was removed
+                return resolve({});
             }
+            // Trigger start of extracting
             this._subjects.onExtractingStarted.next();
-            // Store request Id
-            this._activeRequestId = options.requestId;
             // Start search
             ServiceElectronIpc.request(new IPCMessages.ChartRequest({
                 requests: options.requests,
                 streamId: this._guid,
                 requestId: options.requestId,
             }), IPCMessages.ChartRequestResults).then((results: IPCMessages.ChartRequestResults) => {
+                if (!this._tasks.has(options.requestId)) {
+                    // Task was removed
+                    return resolve({});
+                }
                 this._logger.env(`Chart data extracting request ${results.requestId} was finished in ${((results.duration) / 1000).toFixed(2)}s.`);
                 if (results.error !== undefined) {
                     // Some error during processing search request
@@ -229,7 +254,7 @@ export class ControllerSessionTabSearchCharts {
                 this._logger.error(`Fail to extract chart data due error: ${error.message}`);
                 reject(error);
             }).finally(() => {
-                this._activeRequestId = undefined;
+                this._tasks.delete(options.requestId);
                 this._subjects.onExtractingFinished.next();
             });
         });
