@@ -10,6 +10,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import HotkeysService from '../../../../services/service.hotkeys';
 import PopupsService from '../../../../services/standalone/service.popups';
+import EventsSessionService from '../../../../services/standalone/service.events.session';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-controls',
@@ -31,7 +32,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     }
 
     ngAfterContentInit() {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._onSessionChange();
     }
 

@@ -8,6 +8,7 @@ import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
 import { LayoutPrimiryAreaTabTitleControlsComponent } from '../layout/area.primary/tab-title-controls/component';
 import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
 
+import EventsSessionService from './standalone/service.events.session';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
 import HotkeysService from './service.hotkeys';
@@ -58,12 +59,6 @@ export class TabsSessionsService implements IService {
         views: [],
     };
 
-    private _subjects: IServiceSubjects = {
-        onSessionChange: new Subject<ControllerSessionTab | undefined>(),
-        onSessionClosed: new Subject<string>(),
-        onSidebarTitleInjection: new Subject<IComponentDesc | undefined>(),
-    };
-
     constructor() {
         this.getPluginAPI = this.getPluginAPI.bind(this);
         // Delivering API getter into Plugin Service here to escape from circular dependencies
@@ -81,10 +76,7 @@ export class TabsSessionsService implements IService {
             this._subscriptions.onNewTab = HotkeysService.getObservable().newTab.subscribe(this._onNewTab.bind(this));
             this._subscriptions.onCloseTab = HotkeysService.getObservable().closeTab.subscribe(this._onCloseTab.bind(this));
             this._subscriptions.RenderSessionAddRequest = ElectronIpcService.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
-            OutputRedirectionsService.init(this._currentSessionGuid, {
-                onSessionChange: this.getObservable().onSessionChange,
-                onSessionClosed: this.getObservable().onSessionClosed,
-            });
+            OutputRedirectionsService.init(this._currentSessionGuid);
             resolve();
         });
     }
@@ -215,18 +207,6 @@ export class TabsSessionsService implements IService {
         return controller;
     }
 
-    public getObservable(): {
-        onSessionChange: Observable<ControllerSessionTab | undefined>,
-        onSessionClosed: Observable<string>,
-        onSidebarTitleInjection: Observable<IComponentDesc | undefined>,
-    } {
-        return {
-            onSessionChange: this._subjects.onSessionChange.asObservable(),
-            onSessionClosed: this._subjects.onSessionClosed.asObservable(),
-            onSidebarTitleInjection: this._subjects.onSidebarTitleInjection.asObservable(),
-        };
-    }
-
     public setActive(guid: string) {
         if (guid === this._currentSessionGuid) {
             return;
@@ -240,14 +220,14 @@ export class TabsSessionsService implements IService {
             LayoutStateService.unlock();
             session.setActive();
             ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
-                this._subjects.onSessionChange.next(session);
+                EventsSessionService.getSubject().onSessionChange.next(session);
                 this._sessionsEventsHub.emit().onSessionChange(guid);
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to send notification about active session due error: ${error.message}`);
             });
         } else {
             LayoutStateService.lock();
-            this._subjects.onSessionChange.next(undefined);
+            EventsSessionService.getSubject().onSessionChange.next(undefined);
             this._sessionsEventsHub.emit().onSessionChange(undefined);
         }
         this._tabsService.setActive(this._currentSessionGuid);
@@ -311,7 +291,7 @@ export class TabsSessionsService implements IService {
                 PopupsService.remove(guid);
             },
             setSidebarTitleInjection: (component: IComponentDesc) => {
-                this._subjects.onSidebarTitleInjection.next(component);
+                EventsSessionService.getSubject().onSidebarTitleInjection.next(component);
             },
             openSidebarApp: (appId: string, silence: boolean) => {
                 if (this._sidebarTabOpener === undefined) {
@@ -383,10 +363,10 @@ export class TabsSessionsService implements IService {
         }
         this._sessions.delete(guid);
         if (this._sessions.size === 0) {
-            this._subjects.onSessionChange.next(undefined);
+            EventsSessionService.getSubject().onSessionChange.next(undefined);
             this._sessionsEventsHub.emit().onSessionChange(undefined);
         }
-        this._subjects.onSessionClosed.next(guid);
+        EventsSessionService.getSubject().onSessionClosed.next(guid);
         this._sessionsEventsHub.emit().onSessionClose(guid);
     }
 

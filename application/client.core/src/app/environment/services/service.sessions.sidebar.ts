@@ -1,13 +1,17 @@
 import { TabsService, IComponentDesc, ITab } from 'chipmunk-client-material';
 import { Subscription, Subject, Observable } from 'rxjs';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
-import ControllerPluginIPC from '../controller/controller.plugin.ipc';
-import TabsSessionsService from './service.sessions.tabs';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import PluginsService, { IPluginData } from '../services/service.plugins';
+import { IPluginData } from '../services/service.plugins';
 import { getSharedServices } from './shared.services.sidebar';
 import { DefaultSidebarApps, IDefaultSidebarApp } from '../states/state.default.sidebar.apps';
+
+import EventsSessionService from './standalone/service.events.session';
+import TabsSessionsService from './service.sessions.tabs';
+import ControllerPluginIPC from '../controller/controller.plugin.ipc';
+import PluginsService from '../services/service.plugins';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export { ITab };
 
@@ -39,9 +43,9 @@ export class SidebarSessionsService implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-            this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-            this._subscriptions.onSidebarTitleInjection = TabsSessionsService.getObservable().onSidebarTitleInjection.subscribe(this._onSidebarTitleInjection.bind(this));
+            this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+            this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+            this._subscriptions.onSidebarTitleInjection = EventsSessionService.getObservable().onSidebarTitleInjection.subscribe(this._onSidebarTitleInjection.bind(this));
             TabsSessionsService.setSidebarTabOpener(this.open.bind(this));
             resolve();
         });

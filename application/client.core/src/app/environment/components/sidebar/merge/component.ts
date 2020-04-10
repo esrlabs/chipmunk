@@ -1,16 +1,20 @@
 import { Component, OnDestroy, Input,  ChangeDetectorRef, ViewChildren, QueryList, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPCMessages } from '../../../services/service.electron.ipc';
 import { SidebarAppMergeFilesItemComponent } from './file/component';
 import { IFile as ITestResponseFile } from '../../../../../../../common/ipc/electron.ipc.messages/merge.files.test.response';
 import { IFile as IRequestFile } from '../../../../../../../common/ipc/electron.ipc.messages/merge.files.request';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import SessionsService from '../../../services/service.sessions.tabs';
-import EventsHubService from '../../../services/standalone/service.eventshub';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices, IFile } from '../../../services/shared.services.sidebar';
+
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import SessionsService from '../../../services/service.sessions.tabs';
+import EventsHubService from '../../../services/standalone/service.eventshub';
+import ElectronIpcService from '../../../services/service.electron.ipc';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 declare var Electron: any;
 
@@ -75,7 +79,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._ng_session = SessionsService.getActive();
-        this._subscriptions.onSessionChange = SessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
 
     public ngOnDestroy() {

@@ -10,6 +10,7 @@ import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -129,7 +130,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
 
     public ngAfterViewInit() {
         window.addEventListener('keyup', this._onGlobalKeyUp);
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._setActiveSession();
     }
 

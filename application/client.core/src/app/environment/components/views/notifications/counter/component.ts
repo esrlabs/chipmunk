@@ -4,7 +4,9 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, After
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { NotificationsService, INotification } from '../../../../services.injectable/injectable.service.notifications';
+
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../../services/standalone/service.events.session';
 
 @Component({
     selector: 'app-sidebar-app-notifications-counter',
@@ -23,7 +25,7 @@ export class SidebarAppNotificationsCounterComponent implements OnDestroy, After
     private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onNewNotification = this._notifications.getObservable().new.subscribe(this._onNewNotification.bind(this));
         this._subscriptions.onNotificationsUpdated = this._notifications.getObservable().updated.subscribe(this._onNotificationsUpdated.bind(this));
     }

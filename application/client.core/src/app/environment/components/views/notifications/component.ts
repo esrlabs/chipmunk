@@ -1,10 +1,13 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription } from 'rxjs';
-import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
 import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
+
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface ILogLevelListItem {
     value: string;
@@ -44,7 +47,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onNewNotification = this._notifications.getObservable().new.subscribe(this._onNewNotification.bind(this));
         this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
         this._ng_onLevelChange = this._ng_onLevelChange.bind(this);

@@ -1,12 +1,15 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, EventEmitter } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import { ServiceData, IResults, IChartsResults, IScaleState, EScaleType } from '../service.data';
 import { ServicePosition } from '../service.position';
-import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+
+import EventsSessionService from '../../../../services/standalone/service.events.session';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import ViewsEventsService from '../../../../services/standalone/service.views.events';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-views-chart-zoomer-canvas',
@@ -44,7 +47,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
         // Listen session events
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Update size of canvas and containers
         this._resize(true);
         // Try to build chart

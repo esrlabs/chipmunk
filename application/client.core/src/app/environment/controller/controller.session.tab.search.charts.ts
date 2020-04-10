@@ -1,6 +1,7 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { ControllerSessionTab } from './controller.session.tab';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { EChartType } from '../components/views/chart/charts/charts';
 import {
@@ -12,6 +13,7 @@ import {
 
 import ServiceElectronIpc from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
+import EventsSessionService from '../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -66,6 +68,7 @@ export class ControllerSessionTabSearchCharts {
         this._subscriptions.ChartResultsUpdated = ServiceElectronIpc.subscribe(IPCMessages.ChartResultsUpdated, this._ipc_ChartResultsUpdated.bind(this));
         this._subscriptions.onStorageUpdated = this._storage.getObservable().updated.subscribe(this._onStorageUpdated.bind(this));
         this._subscriptions.onStorageChanged = this._storage.getObservable().changed.subscribe(this._onStorageChanged.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
 
     public destroy(): Promise<void> {
@@ -181,6 +184,16 @@ export class ControllerSessionTabSearchCharts {
         } else {
             this._updateRowsViews();
         }
+    }
+
+    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+        if (controller === undefined) {
+            return;
+        }
+        if (controller.getGuid() === this._guid) {
+            return;
+        }
+        this.selectBySource(undefined);
     }
 
     private _updateRowsViews() {

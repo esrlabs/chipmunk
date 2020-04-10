@@ -1,16 +1,19 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, HostListener } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
-import { Chart, ChartData } from 'chart.js';
-import * as Toolkit from 'chipmunk.client.toolkit';
+import { Subscription } from 'rxjs';
+import { Chart } from 'chart.js';
 import { ServiceData, IRange, IResults, IChartsResults, EScaleType, IScaleState } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
-import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
-import ViewsEventsService from '../../../../services/standalone/service.views.events';
-import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import TabsSessionsService from '../../../../services/service.sessions.tabs';
-
+import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
+
+import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
+import ViewsEventsService from '../../../../services/standalone/service.views.events';
+import ContextMenuService from '../../../../services/standalone/service.contextmenu';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../../services/standalone/service.events.session';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 const CSettings = {
     rebuildDelay: 250,
@@ -96,7 +99,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
         // Listen session events
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Update size of canvas and containers
         this._resize();
         // Subscribe session events

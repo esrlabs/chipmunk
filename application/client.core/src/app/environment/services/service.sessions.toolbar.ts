@@ -1,14 +1,17 @@
 import { TabsService, IComponentDesc } from 'chipmunk-client-material';
 import { Subscription } from 'rxjs';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { IService } from '../interfaces/interface.service';
+import { DefaultViews, CDefaultTabsGuids, IDefaultTabsGuids } from '../states/state.default.toolbar.apps';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
+
+import EventsSessionService from './standalone/service.events.session';
 import PluginsService, { IPluginData } from './service.plugins';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import HotkeysService from './service.hotkeys';
 import LayoutStateService from './standalone/service.layout.state';
-import { DefaultViews, CDefaultTabsGuids, IDefaultTabsGuids } from '../states/state.default.toolbar.apps';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export { CDefaultTabsGuids, IDefaultTabsGuids };
 
@@ -36,8 +39,8 @@ export class ToolbarSessionsService implements IService {
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
-            this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-            this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+            this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+            this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
             TabsSessionsService.setSidebarTabOpener(this.setActive.bind(this));
             resolve();
         });

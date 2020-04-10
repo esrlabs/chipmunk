@@ -12,17 +12,19 @@ import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { IPCMessages } from '../../../services/service.electron.ipc';
+import { EChartType } from '../chart/charts/charts';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
 import SidebarSessionsService from '../../../services/service.sessions.sidebar';
 import LayoutStateService from '../../../services/standalone/service.layout.state';
-
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
+import ElectronIpcService from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { EChartType } from '../chart/charts/charts';
 
 interface IViewState {
     searchRequestId: string | undefined;
@@ -91,7 +93,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
         this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
         this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));

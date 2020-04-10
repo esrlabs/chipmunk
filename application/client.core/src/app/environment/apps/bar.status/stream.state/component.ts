@@ -3,12 +3,14 @@ import { ControllerSessionTab } from '../../../controller/controller.session.tab
 import { TasksHistoryComponent } from './history/component';
 import { IComponentDesc, IFrameOptions } from 'chipmunk-client-material';
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { IPCMessages } from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import ServiceElectronIpc from '../../../services/service.electron.ipc';
 
-import ServiceElectronIpc, { IPCMessages } from '../../../services/service.electron.ipc';
 
 interface IStorage {
     tasks: IPCMessages.IStreamProgressTrack[];
@@ -47,8 +49,8 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._subscriptions.StreamProgressState = ServiceElectronIpc.subscribe(IPCMessages.StreamProgressState, this._onStreamProgressState.bind(this));
-        this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = TabsSessionsService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
         this._ng_onToggleHistory = this._ng_onToggleHistory.bind(this);
         this._ng_frame_options.onClose = this._ng_onToggleHistory;
         this._ng_component.inputs.updated = this._updated.asObservable();

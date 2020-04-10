@@ -1,16 +1,20 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Subject } from 'rxjs';
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPCMessages } from '../../../services/service.electron.ipc';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import SessionsService from '../../../services/service.sessions.tabs';
-import EventsHubService from '../../../services/standalone/service.eventshub';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import * as moment from 'moment';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { IServices, IFile } from '../../../services/shared.services.sidebar';
+
+import EventsSessionService from '../../../services/standalone/service.events.session';
+import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import SessionsService from '../../../services/service.sessions.tabs';
+import EventsHubService from '../../../services/standalone/service.eventshub';
+import ElectronIpcService from '../../../services/service.electron.ipc';
+
+import * as moment from 'moment';
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 declare var Electron: any;
 
@@ -71,7 +75,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
                 private _vcRef: ViewContainerRef,
                 private _notifications: NotificationsService) {
         this._ng_session = SessionsService.getActive();
-        this._subscriptions.onSessionChange = SessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
         this._ng_onSearchValidate = this._ng_onSearchValidate.bind(this);
