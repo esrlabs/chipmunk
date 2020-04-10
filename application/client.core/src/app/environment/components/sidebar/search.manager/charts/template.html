@@ -9,6 +9,3 @@
         [edit]="_ng_observables.edit"
         *ngFor="let request of requests"></app-sidebar-app-searchmanager-chart>
 </div>
-<div class="controls" *ngIf="requests.length > 1">
-    <mat-checkbox [(ngModel)]="_ng_sameScale" (change)="_ng_onScaleChange($event)">Use scale per chart</mat-checkbox>
-</div>  
