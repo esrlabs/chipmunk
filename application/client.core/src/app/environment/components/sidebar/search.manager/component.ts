@@ -2,12 +2,14 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, Ho
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { IFiltersStorageUpdated, FilterRequest } from 'src/app/environment/controller/controller.session.tab.search.filters.storage';
 import { IChartsStorageUpdated, ChartRequest } from 'src/app/environment/controller/controller.session.tab.search.charts.storage';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../views/chart/charts/charts';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -381,6 +383,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         } else if (this._ng_charts[this._selected - this._ng_filters.length] !== undefined) {
             this._ng_chart = this._ng_charts[this._selected - this._ng_filters.length];
         }
+        if (this._session !== undefined) {
+            this._session.getSessionSearch().getChartsAPI().selectBySource(this._ng_chart === undefined ? undefined : this._ng_chart.asRegExp().source);
+        }
         this._forceUpdate();
         this._focus();
     }
@@ -462,6 +467,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                 this._forceUpdate();
             }
         });
+        if (this._session !== undefined) {
+            this._session.getSessionSearch().getChartsAPI().selectBySource(this._ng_chart === undefined ? undefined : this._ng_chart.asRegExp().source);
+        }
     }
 
     private _onFilenameChanged(filename: string) {

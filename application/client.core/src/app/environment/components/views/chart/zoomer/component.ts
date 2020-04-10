@@ -1,9 +1,9 @@
-import { Component, Input, Output, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, EventEmitter } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
+import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, EventEmitter } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
-import { ServiceData, IResults, IChartsResults } from '../service.data';
+import { ServiceData, IResults, IChartsResults, IScaleState, EScaleType } from '../service.data';
 import { ServicePosition } from '../service.position';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
@@ -40,6 +40,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         // Data events
         this._subscriptions.onData = this.serviceData.getObservable().onData.subscribe(this._onData.bind(this));
         this._subscriptions.onCharts = this.serviceData.getObservable().onCharts.subscribe(this._onChartData.bind(this));
+        this._subscriptions.onChartsScaleType = this.serviceData.getObservable().onChartsScaleType.subscribe(this._onChartsScaleType.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
         // Listen session events
@@ -225,14 +226,14 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                             },
                            display: false
                         }],
-                        yAxes: this._getYAxes(datasets),
+                        yAxes: this._getYAxes(datasets.scale),
                     }
                 }
             });
             this._forceUpdate();
         } else {
             this._charts.data.datasets = datasets.dataset;
-            this._charts.options.scales.yAxes = this._getYAxes(datasets);
+            this._charts.options.scales.yAxes = this._getYAxes(datasets.scale);
             this._charts.options.scales.xAxes[0].ticks.max = this.serviceData.getStreamSize();
             setTimeout(() => {
                 if (this._destroyed) {
@@ -246,19 +247,29 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         }
     }
 
-    private _getYAxes(datasets: IChartsResults) {
-        if (datasets.dataset.length === 0) {
+    private _getYAxes(scale: IScaleState) {
+        if (scale.yAxisIDs.length === 0) {
             return [{
                 display: false,
             }];
         }
-        return datasets.dataset.map((dataset, i: number) => {
-            const min: number = datasets.min[i];
-            const max: number = datasets.max[i];
+        return scale.yAxisIDs.map((yAxisID, i: number) => {
+            let min: number = 0;
+            let max: number = 100;
+            switch (this.serviceData.getScaleType()) {
+                case EScaleType.common:
+                    min = scale.min[i];
+                    max = scale.max[i];
+                    break;
+                case EScaleType.common:
+                    min = Math.min(...scale.min);
+                    max = Math.max(...scale.max);
+                    break;
+            }
             return {
                 display: false,
                 type: 'linear',
-                id: dataset.yAxisID,
+                id: yAxisID,
                 position: 'left',
                 ticks: {
                     min: min === undefined ? undefined : Math.floor(min),
@@ -276,6 +287,22 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     private _onChartData() {
         this._updateCursor();
         this._buildCharts();
+    }
+
+    private _onChartsScaleType(scale: EScaleType) {
+        if (this._charts === undefined) {
+            return;
+        }
+        this._charts.options.scales.yAxes = this._getYAxes(this.serviceData.getScaleState());
+        setTimeout(() => {
+            if (this._destroyed) {
+                return;
+            }
+            if (this._charts === undefined) {
+                return;
+            }
+            this._charts.update();
+        });
     }
 
     private _onViewResize() {

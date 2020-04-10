@@ -2,13 +2,15 @@ import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewCont
 import { Observable, Subscription } from 'rxjs';
 import { Chart, ChartData } from 'chart.js';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { ServiceData, IRange, IResults, IChartsResults } from '../service.data';
+import { ServiceData, IRange, IResults, IChartsResults, EScaleType, IScaleState } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
+
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
 
 const CSettings = {
     rebuildDelay: 250,
@@ -33,6 +35,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     public _ng_charts: Chart | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _subscriptionsSession: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewChartCanvasComponent');
     private _destroyed: boolean = false;
     private _mainViewPosition: number | undefined;
@@ -87,6 +90,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         // Data events
         this._subscriptions.onData = this.service.getObservable().onData.subscribe(this._onData.bind(this));
         this._subscriptions.onCharts = this.service.getObservable().onCharts.subscribe(this._onChartData.bind(this));
+        this._subscriptions.onChartsScaleType = this.service.getObservable().onChartsScaleType.subscribe(this._onChartsScaleType.bind(this));
         // Position events
         this._subscriptions.onPosition = this.position.getObservable().onChange.subscribe(this._onPosition.bind(this));
         // Listen session changes event
@@ -95,12 +99,15 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         this._subscriptions.onSessionChange = TabsSessionsService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Update size of canvas and containers
         this._resize();
+        // Subscribe session events
+        this._subscribeSessionEvents(undefined);
         // Try to build chart
         this._build();
     }
 
     ngOnDestroy() {
         this._destroyed = true;
+        this._unsubscribeSessionEvents();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -317,7 +324,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                             },
                            display: false
                         }],
-                        yAxes: this._getYAxes(datasets),
+                        yAxes: this._getYAxes(datasets.scale),
                     }
                 }
             });
@@ -326,37 +333,42 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts.data.datasets = datasets.dataset;
             this._ng_charts.options.scales.xAxes[0].ticks.max = range.end;
             this._ng_charts.options.scales.xAxes[0].ticks.min = range.begin;
-            this._ng_charts.options.scales.yAxes = this._getYAxes(datasets);
-            setTimeout(() => {
-                if (this._destroyed) {
-                    return;
-                }
-                if (this._ng_charts === undefined) {
-                    return;
-                }
-                this._ng_charts.update();
-            });
+            this._ng_charts.options.scales.yAxes = this._getYAxes(datasets.scale);
+            this._softChartUpdate();
         }
         this._scrollMainView();
     }
 
-    private _getYAxes(datasets: IChartsResults) {
-        if (datasets.dataset.length === 0) {
+    private _getYAxes(scale: IScaleState) {
+        if (scale.yAxisIDs.length === 0) {
             return [{
                 display: false,
             }];
         }
-        return datasets.dataset.map((dataset, i: number) => {
-            const min: number = datasets.min[i];
-            const max: number = datasets.max[i];
+        return scale.yAxisIDs.map((yAxisID, i: number) => {
+            let min: number = 0;
+            let max: number = 100;
+            switch (this.service.getScaleType()) {
+                case EScaleType.common:
+                    min = scale.min[i];
+                    max = scale.max[i];
+                    break;
+                case EScaleType.common:
+                    min = Math.min(...scale.min);
+                    max = Math.max(...scale.max);
+                    break;
+            }
+            const display: boolean = this._getSelectedChartYAxisId() === yAxisID;
             return {
-                display: false,
+                display: display,
                 type: 'linear',
-                id: dataset.yAxisID,
+                id: yAxisID,
                 position: 'left',
                 ticks: {
                     min: min === undefined ? undefined : Math.floor(min - min * 0.02),
                     max: max === undefined ? undefined : Math.ceil(max + max * 0.02),
+                    fontColor: display ? scale.colors[i] : undefined,
+                    fontSize: 11,
                 },
             };
         });
@@ -397,6 +409,18 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         return range;
     }
 
+    private _softChartUpdate() {
+        setTimeout(() => {
+            if (this._destroyed) {
+                return;
+            }
+            if (this._ng_charts === undefined) {
+                return;
+            }
+            this._ng_charts.update();
+        });
+    }
+
     private _scrollMainView() {
         if (this._mainViewPosition === undefined) {
             return;
@@ -420,6 +444,14 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
 
     private _onChartData() {
         this._charts();
+    }
+
+    private _onChartsScaleType(scale: EScaleType) {
+        if (this._ng_charts === undefined) {
+            return;
+        }
+        this._ng_charts.options.scales.yAxes = this._getYAxes(this.service.getScaleState());
+        this._softChartUpdate();
     }
 
     private _onPosition(position: IPositionChange) {
@@ -448,7 +480,43 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts.destroy();
             this._ng_charts = undefined;
         }
+        this._subscribeSessionEvents(session);
         this._build();
+    }
+
+    private _subscribeSessionEvents(session: ControllerSessionTab | undefined) {
+        this._unsubscribeSessionEvents();
+        session = session === undefined ? TabsSessionsService.getActive() : session;
+        if (session === undefined) {
+            return;
+        }
+        this._subscriptionsSession.onChartSelected = session.getSessionSearch().getChartsAPI().getObservable().onChartSelected.subscribe(this._onChartSelected.bind(this));
+    }
+
+    private _getSelectedChartYAxisId(): string | undefined {
+        const session = TabsSessionsService.getActive();
+        if (session === undefined) {
+            return;
+        }
+        const selected: ChartRequest | undefined = session.getSessionSearch().getChartsAPI().getSelectedChart();
+        if (selected === undefined) {
+            return;
+        }
+        return `Y-${selected.asRegExp().source}`;
+    }
+
+    private _onChartSelected() {
+        if (this._ng_charts === undefined) {
+            return;
+        }
+        this._ng_charts.options.scales.yAxes = this._getYAxes(this.service.getScaleState());
+        this._softChartUpdate();
+    }
+
+    private _unsubscribeSessionEvents() {
+        Object.keys(this._subscriptionsSession).forEach((key: string) => {
+            this._subscriptionsSession[key].unsubscribe();
+        });
     }
 
     private _getPositionByChartPointData(event: MouseEvent): number | undefined {

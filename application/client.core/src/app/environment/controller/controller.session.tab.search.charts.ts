@@ -1,17 +1,19 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import ServiceElectronIpc, { IPCMessages } from '../services/service.electron.ipc';
-import * as ColorScheme from '../theme/colors';
-import { getController, AChart, EChartType, IOptionsObj } from '../components/views/chart/charts/charts';
-import OutputParsersService from '../services/standalone/service.output.parsers';
+import { IPCMessages } from '../services/service.electron.ipc';
+import { EChartType } from '../components/views/chart/charts/charts';
 import {
     ChartRequest,
     IChartUpdateEvent,
     IChartsStorageUpdated,
     ChartsStorage,
 } from './controller.session.tab.search.charts.storage';
+
+import ServiceElectronIpc from '../services/service.electron.ipc';
+import OutputParsersService from '../services/standalone/service.output.parsers';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IControllerSessionStreamCharts {
     guid: string;
@@ -37,6 +39,7 @@ export interface ISubjects {
     onExtractingStarted: Subject<void>;
     onExtractingFinished: Subject<void>;
     onChartsResultsUpdated: Subject<IPCMessages.TChartResults>;
+    onChartSelected: Subject<ChartRequest | undefined>;
 }
 
 export class ControllerSessionTabSearchCharts {
@@ -50,9 +53,11 @@ export class ControllerSessionTabSearchCharts {
         onExtractingStarted: new Subject<void>(),
         onExtractingFinished: new Subject<void>(),
         onChartsResultsUpdated: new Subject<IPCMessages.TChartResults>(),
+        onChartSelected: new Subject<ChartRequest | undefined>(),
     };
     private _activeRequestId: string | undefined;
     private _data: IPCMessages.TChartResults = {};
+    private _selected: string | undefined;
 
     constructor(params: IControllerSessionStreamCharts) {
         this._guid = params.guid;
@@ -84,13 +89,28 @@ export class ControllerSessionTabSearchCharts {
         onExtractingStarted: Observable<void>,
         onExtractingFinished: Observable<void>,
         onChartsResultsUpdated: Observable<IPCMessages.TChartResults>,
+        onChartSelected: Observable<ChartRequest | undefined>,
     } {
         return {
             onChartsUpdated: this._subjects.onChartsUpdated.asObservable(),
             onExtractingStarted: this._subjects.onExtractingStarted.asObservable(),
             onExtractingFinished: this._subjects.onExtractingFinished.asObservable(),
             onChartsResultsUpdated: this._subjects.onChartsResultsUpdated.asObservable(),
+            onChartSelected: this._subjects.onChartSelected.asObservable(),
         };
+    }
+
+    public selectBySource(source: string | undefined) {
+        this._selected = source;
+        if (source === undefined) {
+            this._subjects.onChartSelected.next(undefined);
+        } else {
+            this._subjects.onChartSelected.next(this._storage.getBySource(source));
+        }
+    }
+
+    public getSelectedChart(): ChartRequest | undefined {
+        return this._storage.getBySource(this._selected);
     }
 
     public extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
