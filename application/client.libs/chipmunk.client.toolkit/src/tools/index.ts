@@ -10,6 +10,7 @@ import * as regTools from './tools.regexp';
 import { hash } from './tools.hash';
 import { basename, dirname } from './tools.path';
 import { copy } from './tools.object';
+import * as Promises from './tools.promises';
 
 export {
     guid,
@@ -28,4 +29,5 @@ export {
     copy,
     setGlobalLogLevel,
     ELogLevels,
+    Promises,
 };
