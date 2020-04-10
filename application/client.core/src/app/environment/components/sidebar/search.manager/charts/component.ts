@@ -3,6 +3,7 @@ import { ChartRequest } from '../../../../controller/controller.session.tab.sear
 import { Subscription, Observable, Subject } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IReorderEvent, IContextMenuEvent } from '../component';
+import { MatCheckboxChange } from '@angular/material/checkbox';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-charts',
@@ -18,6 +19,8 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     @Input() offset: number = 0;
     @Input() reorder: Subject<IReorderEvent>;
     @Input() selected: Subject<string>;
+
+    public _ng_sameScale: boolean = true;
 
     // tslint:disable-next-line:no-output-on-prefix
     @Output() onContextMenu: EventEmitter<IContextMenuEvent> = new EventEmitter();
@@ -73,6 +76,10 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
             request: request,
             index: index,
         });
+    }
+
+    public _ng_onScaleChange(event: MatCheckboxChange) {
+        console.log(event);
     }
 
     private _onSelect(index: number) {

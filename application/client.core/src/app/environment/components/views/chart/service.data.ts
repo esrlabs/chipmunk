@@ -20,10 +20,22 @@ export interface IResults {
     min: number | undefined;
 }
 
-export interface IChartsResults {
-    dataset: Array<{ [key: string]: any }>;
+export enum EScaleType {
+    single = 'single',
+    common = 'common',
+}
+
+export interface IScaleState {
+    yAxisIDs: string[];
     max: number[];
     min: number[];
+    type: EScaleType;
+    colors: Array<string | undefined>;
+}
+
+export interface IChartsResults {
+    dataset: Array<{ [key: string]: any }>;
+    scale: IScaleState;
 }
 
 export class ServiceData {
@@ -34,12 +46,21 @@ export class ServiceData {
     private _matches: IMapState | undefined;
     private _charts: IPCMessages.TChartResults = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Charts ServiceData`);
+    private _scale: IScaleState = {
+        min: [],
+        max: [],
+        type: EScaleType.common,
+        yAxisIDs: [],
+        colors: [],
+    };
     private _subjects: {
         onData: Subject<void>;
         onCharts: Subject<IPCMessages.TChartResults>;
+        onChartsScaleType: Subject<EScaleType>;
     } = {
         onData: new Subject<void>(),
         onCharts: new Subject<IPCMessages.TChartResults>(),
+        onChartsScaleType: new Subject<EScaleType>(),
     };
 
     constructor() {
@@ -60,11 +81,21 @@ export class ServiceData {
     public getObservable(): {
         onData: Observable<void>;
         onCharts: Observable<IPCMessages.TChartResults>;
+        onChartsScaleType: Observable<EScaleType>;
     } {
         return {
             onData: this._subjects.onData.asObservable(),
             onCharts: this._subjects.onCharts.asObservable(),
+            onChartsScaleType: this._subjects.onChartsScaleType.asObservable(),
         };
+    }
+
+    public getScaleType(): EScaleType {
+        return this._scale.type;
+    }
+
+    public getScaleState(): IScaleState {
+        return this._scale;
     }
 
     public getLabes(width: number, range?: IRange): string[] {
@@ -172,14 +203,16 @@ export class ServiceData {
         preview: boolean = false,
     ): IChartsResults {
         if (this._stream === undefined || this._charts === undefined) {
-            return { dataset: [], max: undefined, min: undefined };
+            return { dataset: [], scale: { max: undefined, min: undefined, yAxisIDs: [], type: this._scale.type, colors: [] } };
         }
         if (this._stream.count === 0 || Object.keys(this._charts).length === 0) {
-            return { dataset: [], max: undefined, min: undefined };
+            return { dataset: [], scale: { max: undefined, min: undefined, yAxisIDs: [], type: this._scale.type, colors: [] } };
         }
         const datasets = [];
         const max: number[] = [];
         const min: number[] = [];
+        const colors: Array<string | undefined> = [];
+        const yAxisID: string[] = [];
         if (range === undefined) {
             range = {
                 begin: 0,
@@ -217,11 +250,24 @@ export class ServiceData {
                 range,
                 preview,
             );
+
             datasets.push(ds.dataset);
             max.push(ds.max);
             min.push(ds.min);
+            colors.push((() => {
+                const _chart: ChartRequest | undefined = this._getChartBySource(filter);
+                return _chart === undefined ? undefined : chart.getColor();
+            })());
+            yAxisID.push(ds.dataset.yAxisID);
         });
-        return { dataset: datasets, max: max, min: min };
+        this._scale = {
+            min: min,
+            max: max,
+            yAxisIDs: yAxisID,
+            type: this._scale.type,
+            colors: colors,
+        };
+        return { dataset: datasets, scale: { max: max, min: min, yAxisIDs: yAxisID, type: this._scale.type, colors: colors } };
     }
 
     public getStreamSize(): number | undefined {
@@ -254,6 +300,14 @@ export class ServiceData {
             return;
         }
         return this._sessionController.getGuid();
+    }
+
+    public setChartsScaleType(sType: EScaleType) {
+        if (this._scale.type === sType) {
+            return;
+        }
+        this._scale.type = sType;
+        this._subjects.onChartsScaleType.next(sType);
     }
 
     private _getChartBySource(source: string): ChartRequest | undefined {

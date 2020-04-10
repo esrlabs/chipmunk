@@ -1,4 +1,3 @@
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
