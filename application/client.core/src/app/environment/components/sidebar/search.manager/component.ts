@@ -126,6 +126,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             this._sessionSubscriptions[prop].unsubscribe();
         });
         window.removeEventListener('keyup', this._onGlobalKeyUp);
+        if (this._session !== undefined) {
+            this._session.getSessionSearch().getChartsAPI().selectBySource(undefined);
+        }
     }
 
     public ngAfterViewInit() {
