@@ -1,10 +1,14 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import SelectionParsersService, { IUpdateEvent, ISelectionParser } from '../../../services/standalone/service.selection.parsers';
+import { IUpdateEvent, ISelectionParser } from '../../../services/standalone/service.selection.parsers';
+import { IMenu, IMenuItem } from '../../../services/standalone/service.contextmenu';
+
+import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
-import ContextMenuService, { IMenu, IMenuItem } from '../../../services/standalone/service.contextmenu';
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-sidebar-app-parsing',
@@ -17,6 +21,7 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
     @Input() public selection: string | undefined;
     @Input() public caption: string | undefined;
     @Input() public parsed: string | undefined;
+    @Input() public getLastSelection: () => IUpdateEvent | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppParsingComponent');
@@ -37,6 +42,12 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
     }
 
     public ngAfterContentInit() {
+        const event: IUpdateEvent | undefined = this.getLastSelection();
+        if (event !== undefined) {
+            this.caption = event.caption;
+            this.parsed = event.parsed;
+            this.selection = event.selection;
+        }
         this._ng_caption = this.caption;
         this._ng_parsed = this.parsed === undefined ? undefined : this._getParsed(this.parsed);
         this._ng_selection = this._getSelection(this.selection);
