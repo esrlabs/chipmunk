@@ -20,8 +20,6 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     @Input() reorder: Subject<IReorderEvent>;
     @Input() selected: Subject<string>;
 
-    public _ng_sameScale: boolean = true;
-
     // tslint:disable-next-line:no-output-on-prefix
     @Output() onContextMenu: EventEmitter<IContextMenuEvent> = new EventEmitter();
 
@@ -76,10 +74,6 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
             request: request,
             index: index,
         });
-    }
-
-    public _ng_onScaleChange(event: MatCheckboxChange) {
-        console.log(event);
     }
 
     private _onSelect(index: number) {
