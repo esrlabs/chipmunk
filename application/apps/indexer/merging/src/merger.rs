@@ -250,7 +250,7 @@ pub fn merge_and_sort_files(
             None,
         )?;
         line_nr += 1;
-        if let Some(chunk) = chunk_factory.create_chunk_if_needed(
+        if let Some(chunk) = chunk_factory.add_bytes(
             line_nr, // TODO avoid passing in this line...error prone
             additional_bytes,
         ) {
@@ -368,7 +368,7 @@ pub fn merge_files_iter(
                         None,
                     )?;
                     line_nr += 1;
-                    if let Some(chunk) = chunk_factory.create_chunk_if_needed(
+                    if let Some(chunk) = chunk_factory.add_bytes(
                         line_nr, // TODO avoid passing in this line...error prone
                         additional_bytes,
                     ) {

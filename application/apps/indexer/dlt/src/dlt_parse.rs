@@ -727,8 +727,11 @@ fn dbg_parsed<T: std::fmt::Debug>(_name: &str, _before: &[u8], _after: &[u8], _v
 
 #[derive(Debug, PartialEq)]
 pub enum ParsedMessage {
+    /// Regular message, could be parsed
     Item(Message),
+    /// message was filtered out due to filter conditions (Log-Level etc.)
     FilteredOut,
+    /// Parsed message was invalid, no parse possible
     Invalid,
 }
 

@@ -307,9 +307,7 @@ pub fn index_dlt_content(
                     utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
                 // tmp_writer.write_all(&msg.as_bytes())?;
                 line_nr += 1;
-                if let Some(chunk) =
-                    chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
-                {
+                if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
                     stopped = utils::check_if_stop_was_requested(&shutdown_receiver, "dlt indexer");
                     chunk_count += 1;
                     last_byte_index = chunk.b.1;

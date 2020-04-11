@@ -139,7 +139,7 @@ pub fn index_file<T: Read>(
             utils::write_tagged_line(tag, &mut buf_writer, trimmed_line, line_nr, had_newline, ts)?;
         line_nr += 1;
 
-        match chunk_factory.create_chunk_if_needed(line_nr, additional_bytes) {
+        match chunk_factory.add_bytes(line_nr, additional_bytes) {
             Some(chunk) => {
                 stopped = utils::check_if_stop_was_requested(&shutdown_receiver, "indexer");
                 chunk_count += 1;

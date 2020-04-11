@@ -114,7 +114,7 @@ pub async fn index_from_socket2(
     // the type we use to unify is this Event enum
     enum Event {
         Shutdown,
-        Msg(Result<Option<Message>, DltParseError>),
+        Msg(Result<Option<Vec<Message>>, DltParseError>),
     }
     let shutdown_stream = shutdown_receiver.map(|_| {
         debug!("shutdown_receiver event");
@@ -124,7 +124,7 @@ pub async fn index_from_socket2(
         udp_msg_producer.map(Event::Msg);
     let mut event_stream = futures::stream::select(message_stream, shutdown_stream);
     while let Some(event) = event_stream.next().await {
-        let maybe_msg = match event {
+        let maybe_msgs = match event {
             Event::Shutdown => {
                 debug!("received shutdown through future channel");
                 let _ = update_channel.send(Ok(IndexingProgress::Stopped));
@@ -142,22 +142,22 @@ pub async fn index_from_socket2(
             Event::Msg(Err(DltParseError::Unrecoverable { .. })) => break,
             Event::Msg(Err(DltParseError::IncompleteParse { .. })) => break,
         };
-        match maybe_msg {
-            Some(msg) => {
-                trace!("socket: got msg ...({} bytes)", msg.byte_len());
-                tmp_writer.write_all(&msg.as_bytes())?;
-                let written_bytes_len =
-                    utils::create_tagged_line_d(tag, &mut buf_writer, &msg, line_nr, true)?;
-                line_nr += 1;
-                if let Some(chunk) =
-                    chunk_factory.create_chunk_if_needed(line_nr, written_bytes_len)
-                {
-                    buf_writer.flush()?;
-                    let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
+        match maybe_msgs {
+            Some(msgs) => {
+                trace!("socket: got {} messages ...", msgs.len());
+                for m in msgs {
+                    tmp_writer.write_all(&m.as_bytes())?;
+                    let written_bytes_len =
+                        utils::create_tagged_line_d(tag, &mut buf_writer, &m, line_nr, true)?;
+                    line_nr += 1;
+                    if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
+                        buf_writer.flush()?;
+                        let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
+                    }
                 }
             }
             None => {
-                trace!("msg was filtered");
+                trace!("msg not parsed but we can continue");
             }
         }
     }
@@ -237,20 +237,35 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     let _ = update_channel.send(Ok(IndexingProgress::Finished));
     res
 }
-struct UdpMessageProducer {
+pub struct UdpMessageProducer {
     socket: UdpSocket,
     update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
 }
+impl UdpMessageProducer {
+    pub fn new(
+        socket: UdpSocket,
+        update_channel: cc::Sender<ChunkResults>,
+        fibex_metadata: Option<Rc<FibexMetadata>>,
+        filter_config: Option<filtering::ProcessedDltFilterConfig>,
+    ) -> Self {
+        UdpMessageProducer {
+            socket,
+            update_channel,
+            fibex_metadata,
+            filter_config,
+        }
+    }
+}
 impl futures::Stream for UdpMessageProducer {
-    type Item = Result<Option<Message>, DltParseError>;
+    type Item = Result<Option<Vec<Message>>, DltParseError>;
     fn poll_next(
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context,
     ) -> futures::task::Poll<Option<Self::Item>> {
         let mut buf = [0u8; 65535];
-        let (pending, _received_bytes) = {
+        let (pending, received_bytes) = {
             let mut f = self.socket.recv_from(&mut buf).boxed();
             match f.as_mut().poll(cx) {
                 futures::task::Poll::Pending => (true, 0),
@@ -268,25 +283,47 @@ impl futures::Stream for UdpMessageProducer {
             //     received_bytes,
             //     &buf[..received_bytes]
             // );
-            match dlt_message(
-                &buf,
-                self.filter_config.as_ref(),
-                0,
-                Some(&self.update_channel),
-                self.fibex_metadata.clone(),
-                false,
-            ) {
-                Ok((_, ParsedMessage::Invalid)) => futures::task::Poll::Ready(None),
-                Ok((_, ParsedMessage::FilteredOut)) => futures::task::Poll::Ready(None),
-                Ok((_, ParsedMessage::Item(m))) => {
-                    let msg_with_storage_header = match m.storage_header {
-                        Some(_) => m,
-                        None => m.add_storage_header(None),
-                    };
-                    futures::task::Poll::Ready(Some(Ok(Some(msg_with_storage_header))))
+            let mut messages: Vec<Message> = vec![];
+            let mut consumed = 0usize;
+            loop {
+                match dlt_message(
+                    &buf[consumed..],
+                    self.filter_config.as_ref(),
+                    0,
+                    Some(&self.update_channel),
+                    self.fibex_metadata.clone(),
+                    false,
+                ) {
+                    Ok((_, ParsedMessage::Invalid)) => {
+                        warn!("invalid message received");
+                        if !messages.is_empty() {
+                            return futures::task::Poll::Ready(Some(Ok(Some(messages))));
+                        }
+                        return futures::task::Poll::Ready(None);
+                    }
+                    Ok((_, ParsedMessage::FilteredOut)) => {
+                        continue;
+                    }
+                    Ok((_, ParsedMessage::Item(m))) => {
+                        consumed += m.byte_len() as usize;
+                        let msg_with_storage_header = match m.storage_header {
+                            Some(_) => m,
+                            None => m.add_storage_header(None),
+                        };
+                        messages.push(msg_with_storage_header);
+                        if consumed >= received_bytes {
+                            debug!("received {} messages in upd packet", messages.len());
+                            return futures::task::Poll::Ready(Some(Ok(Some(messages))));
+                        }
+                    }
+                    Err(DltParseError::IncompleteParse { .. }) => {
+                        // TODO handle situation: multiple messages but last message is split
+                        return futures::task::Poll::Pending;
+                    }
+                    Err(e) => {
+                        return futures::task::Poll::Ready(Some(Err(e)));
+                    }
                 }
-                Err(DltParseError::IncompleteParse { .. }) => futures::task::Poll::Pending,
-                Err(e) => futures::task::Poll::Ready(Some(Err(e))),
             }
         }
     }

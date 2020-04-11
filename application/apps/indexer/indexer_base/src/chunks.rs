@@ -9,10 +9,10 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crate::progress::{IndexingProgress, Notification};
+use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use failure::Error;
-use crate::progress::{IndexingProgress, Notification};
 
 pub type ChunkResults = std::result::Result<IndexingProgress<Chunk>, Notification>;
 
@@ -48,11 +48,7 @@ impl ChunkFactory {
     pub fn get_current_byte_index(&self) -> usize {
         self.current_byte_index
     }
-    pub fn create_chunk_if_needed(
-        &mut self,
-        line_nr: usize,
-        additional_bytes: usize,
-    ) -> Option<Chunk> {
+    pub fn add_bytes(&mut self, line_nr: usize, additional_bytes: usize) -> Option<Chunk> {
         self.current_byte_index += additional_bytes;
         self.lines_in_chunk += 1;
         // check if we need to construct a new mapping chunk
