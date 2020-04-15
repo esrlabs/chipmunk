@@ -38,6 +38,7 @@ import ServicePatchesBefore from './services/service.patches.before';
 import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon';
 import ServiceOutputExport from './services/output/service.output.export';
 import ServiceRenderState from './services/service.render.state';
+import ServiceLogsExtractor from './services/service.logs.extractor';
 
 enum EAppState {
     initing = 'initing',
@@ -79,7 +80,7 @@ const InitializeStages = [
         ServiceFileOpener, ServiceAppState,
         ServiceDLTFiles, ServiceHotkeys,
         ServiceFilePicker, ServiceDLTDeamonConnector,
-        ServiceOutputExport,
+        ServiceOutputExport, ServiceLogsExtractor,
     ],
     // Stage #10. Init plugins
     [   ServicePlugins ],

@@ -1,3 +1,4 @@
+
 export interface IApplicationVersions {
     "electron": string;
     "electron-rebuild": string;
@@ -11,6 +12,7 @@ export interface IApplicationVersions {
 
 export interface ITabCustomAbout {
     version: string;
+    platform: string;
     dependencies: IApplicationVersions;
 }
 
@@ -19,6 +21,7 @@ export class TabCustomAbout {
     public signature: string = TabCustomAbout.signature;
     public version: string;
     public dependencies: IApplicationVersions;
+    public platform: string;
 
     constructor(params: ITabCustomAbout) {
         if (typeof params !== 'object' || params === null) {
@@ -27,10 +30,14 @@ export class TabCustomAbout {
         if (typeof params.version !== 'string' || params.version.trim() === '') {
             throw new Error(`Field "version" should be defined`);
         }
+        if (typeof params.platform !== 'string' || params.platform.trim() === '') {
+            throw new Error(`Field "platform" should be defined`);
+        }
         if (params.dependencies === undefined) {
             throw new Error(`Field "dependencies" should be defined`);
         }
         this.version = params.version;
+        this.platform = params.platform;
         this.dependencies = params.dependencies;
     }
 }
