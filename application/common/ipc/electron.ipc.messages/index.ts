@@ -385,6 +385,12 @@ export { IApplicationVersions, ITabCustomAbout, TabCustomAbout };
 import { TabCustomPlugins } from './tab.custom.plugins';
 export { TabCustomPlugins };
 
+import { ChipmunkLogsRequest } from './chipmunk.logs.request';
+export { ChipmunkLogsRequest }
+
+import { IChipmunkLogsResponse, ChipmunkLogsResponse } from './chipmunk.logs.response';
+export { IChipmunkLogsResponse, ChipmunkLogsResponse }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -512,7 +518,9 @@ export type TMessage =  AppRestartRequest |
                         OutputExportFeatureCallRequest |
                         OutputExportFeatureCallResponse |
                         TabCustomAbout |
-                        TabCustomPlugins;
+                        TabCustomPlugins |
+                        ChipmunkLogsRequest |
+                        ChipmunkLogsResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -665,4 +673,7 @@ export const Map = {
 
     [TabCustomAbout.signature                   ]: TabCustomAbout,
     [TabCustomPlugins.signature                 ]: TabCustomPlugins,
+
+    [ChipmunkLogsRequest.signature              ]: ChipmunkLogsRequest,
+    [ChipmunkLogsResponse.signature             ]: ChipmunkLogsResponse,
 };

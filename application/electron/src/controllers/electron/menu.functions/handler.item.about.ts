@@ -7,5 +7,6 @@ export default function about() {
     ServiceElectron.IPC.send(new IPCMessages.TabCustomAbout({
         version: ServicePackage.get().version,
         dependencies: ServicePackage.get().chipmunk.versions,
+        platform: process.platform,
     }));
 }

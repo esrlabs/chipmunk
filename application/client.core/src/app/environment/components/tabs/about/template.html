@@ -29,7 +29,7 @@
                     <td>
                         <div class="summury">
                             <table>
-                                <tr *ngFor="let dependency of _ng_dependencies.slice(4,7)">
+                                <tr *ngFor="let dependency of _ng_dependencies.slice(4,8)">
                                     <td>
                                         <p class="t-small color-scheme-1">{{dependency.name}}</p>
                                         <p class="t-small color-scheme-3">{{dependency.description}}</p>
@@ -46,6 +46,11 @@
                             <mat-icon>file_copy</mat-icon>
                             Copy
                         </button> 
+                        <button mat-stroked-button color="primary" (click)="_ng_onGetChipmunkLogs()" [disabled]="_ng_logsExtracting">
+                            <mat-icon *ngIf="!_ng_logsExtracting">save_alt</mat-icon>
+                            <mat-spinner *ngIf="_ng_logsExtracting" [diameter]="32" mode="indeterminate"></mat-spinner>
+                            Get Chipmunk's logs
+                        </button>
                     </td>
                 </tr>
             </table>
