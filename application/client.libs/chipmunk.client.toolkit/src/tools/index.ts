@@ -2,7 +2,7 @@ import guid from './tools.guid';
 import Emitter from './tools.emitter';
 import Queue from './tools.queue';
 import Logger from './tools.logger';
-import { LoggerParameters, setGlobalLogLevel, ELogLevels } from './tools.logger.parameters';
+import { LoggerParameters, setGlobalLogLevel, setGlobalLogCallback, ELogLevels } from './tools.logger.parameters';
 import Subscription, { THandler } from './tools.subscription';
 import Subject from './tools.subject';
 import { sequences } from './tools.sequences';
@@ -29,6 +29,7 @@ export {
     dirname,
     copy,
     setGlobalLogLevel,
+    setGlobalLogCallback,
     ELogLevels,
     Promises,
     CancelablePromise,

@@ -80,12 +80,18 @@ export default class Logger {
             return false;
         }
         /* tslint:disable */
-        this._parameters.allowedConsole[level] && console.log(message);
+        this._parameters.getAllowedConsole()[level] && console.log(message);
         /* tslint:enable */
     }
 
     private _output(message: string) {
         typeof this._parameters.output === 'function' && this._parameters.output(message);
+    }
+
+    private _callback(message: string, level: ELogLevels) {
+        if (typeof this._parameters.getCallback() === 'function' && this._parameters.getAllowedConsole()[level]) {
+            this._parameters.getCallback()(message, level);
+        }
     }
 
     private _getMessage(...args: any[]) {
@@ -109,8 +115,9 @@ export default class Logger {
     }
 
     private _log(message: string, level: ELogLevels) {
-        message = `[${this._signature}]: ${message}`;
+        message = `[${this._signature}][${level}]: ${message}`;
         this._console(`[${this._getTime()}]${message}`, level);
+        this._callback(`[${this._getTime()}]${message}`, level);
         this._output(`[${this._getTime()}]${message}`);
         return message;
     }

@@ -1,11 +1,11 @@
 
 export enum ELogLevels {
-    INFO = 'INFO',
-    DEBUG = 'DEBUG',
-    WARNING = 'WARNING',
-    VERBOS = 'VERBOS',
-    ERROR = 'ERROR',
-    ENV = 'ENV',
+    INFO = "INFO",
+    DEBUG = "DEBUG",
+    WARNING = "WARNING",
+    VERBOS = "VERBOS",
+    ERROR = "ERROR",
+    ENV = "ENV",
 }
 
 const DEFAUT_ALLOWED_CONSOLE = {
@@ -27,11 +27,23 @@ const LOGS_LEVEL_TABLE = {
 };
 
 export type TOutputFunc = (...args: any[]) => any;
+export type TLogCallback = (message: string, level: ELogLevels) => void;
 
-let level: ELogLevels | undefined;
+const allowedConsoleRefName = '__chipmunkAllowedConsoleLogger__';
+const callbackRefName = '__chipmunkLoggerCallback__';
 
 export function setGlobalLogLevel(lev: ELogLevels) {
-    level = lev;
+    if (LOGS_LEVEL_TABLE[lev] === undefined) {
+        return;
+    }
+    (window as any)[allowedConsoleRefName] = Object.assign({}, DEFAUT_ALLOWED_CONSOLE);
+    Object.keys((window as any)[allowedConsoleRefName]).forEach((key: string) => {
+        (window as any)[allowedConsoleRefName][key] = LOGS_LEVEL_TABLE[lev].indexOf(key as ELogLevels) !== -1;
+    });
+}
+
+export function setGlobalLogCallback(cb: TLogCallback) {
+    (window as any)[callbackRefName] = cb;
 }
 
 /**
@@ -45,8 +57,9 @@ export function setGlobalLogLevel(lev: ELogLevels) {
 export class LoggerParameters {
 
     public console: boolean = true;
-    public allowedConsole: {[key: string]: boolean} = {};
     public output: TOutputFunc | null = null;
+
+    private _allowedConsole: {[key: string]: boolean} = {};
 
     constructor(
         {
@@ -60,11 +73,21 @@ export class LoggerParameters {
         }) {
         this.console = console;
         this.output = output;
-        this.allowedConsole = allowedConsole;
-        if (level !== undefined && LOGS_LEVEL_TABLE[level] !== undefined) {
-            Object.keys(this.allowedConsole).forEach((key: string) => {
-                this.allowedConsole[key] = LOGS_LEVEL_TABLE[level].indexOf(key as ELogLevels) !== -1;
-            });
+        this._allowedConsole = allowedConsole;
+    }
+
+    public getAllowedConsole(): {[key: string]: boolean} {
+        if ((window as any)[allowedConsoleRefName] === undefined) {
+            return this._allowedConsole;
+        } else {
+            return (window as any)[allowedConsoleRefName];
         }
+    }
+
+    public getCallback(): TLogCallback | undefined {
+        if (typeof (window as any)[callbackRefName] === 'function') {
+            return (window as any)[callbackRefName] as TLogCallback;
+        }
+        return undefined;
     }
 }
