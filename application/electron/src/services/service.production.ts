@@ -1,7 +1,10 @@
-import Logger, { LogsService, ELogLevels } from '../tools/env.logger';
+
+import Logger from '../tools/env.logger';
+import ServiceEnv from './service.env';
+
+import { LogsService, ELogLevels } from '../tools/env.logger';
 import { IService } from '../interfaces/interface.service';
 
-import ServiceEnv from './service.env';
 
 const CDEV_ENV_VAR_VALUE = 'ON';
 
@@ -14,6 +17,7 @@ class ServiceProduction implements IService {
 
     private _logger: Logger = new Logger('ServiceProduction');
     private _production: boolean = true;
+    private _logLevel: ELogLevels = ELogLevels.ERROR;
 
     /**
      * Initialization function
@@ -29,12 +33,13 @@ class ServiceProduction implements IService {
             this._logger.debug(`Production is: ${this._production ? 'ON' : 'OFF'}`);
             const logLevel: string | undefined = ServiceEnv.get().CHIPMUNK_DEV_LOGLEVEL;
             if (logLevel !== undefined && LogsService.isValidLevel(logLevel)) {
-                LogsService.setGlobalLevel(logLevel as ELogLevels);
+                this._logLevel = LogsService.strToLogLevel(logLevel);
             } else if (this._production) {
-                LogsService.setGlobalLevel(ELogLevels.ERROR);
+                this._logLevel = ELogLevels.ERROR;
             } else {
-                LogsService.setGlobalLevel(ELogLevels.ENV);
+                this._logLevel = ELogLevels.ENV;
             }
+            LogsService.setGlobalLevel(this._logLevel);
             resolve();
         });
     }
@@ -51,6 +56,10 @@ class ServiceProduction implements IService {
 
     public isProduction(): boolean {
         return this._production;
+    }
+
+    public getLogLevel(): ELogLevels {
+        return this._logLevel;
     }
 
 }

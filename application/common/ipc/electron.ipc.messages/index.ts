@@ -391,6 +391,24 @@ export { ChipmunkLogsRequest }
 import { IChipmunkLogsResponse, ChipmunkLogsResponse } from './chipmunk.logs.response';
 export { IChipmunkLogsResponse, ChipmunkLogsResponse }
 
+import { ChipmunkLogLevelRequest } from './chipmunk.loglevel.request';
+export { ChipmunkLogLevelRequest }
+
+import { IChipmunkLogLevelResponse, ChipmunkLogLevelResponse, ELogLevels } from './chipmunk.loglevel.response';
+export { IChipmunkLogLevelResponse, ChipmunkLogLevelResponse, ELogLevels }
+
+import { ChipmunkDevModeRequest } from './chipmunk.devmode.request';
+export { ChipmunkDevModeRequest }
+
+import { IChipmunkDevModeResponse, ChipmunkDevModeResponse } from './chipmunk.devmode.response';
+export { IChipmunkDevModeResponse, ChipmunkDevModeResponse }
+
+import { IChipmunkLogRequest, ChipmunkLogRequest } from './chipmunk.log.request';
+export { IChipmunkLogRequest, ChipmunkLogRequest }
+
+import { IChipmunkLogResponse, ChipmunkLogResponse } from './chipmunk.log.response';
+export { IChipmunkLogResponse, ChipmunkLogResponse }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -520,7 +538,12 @@ export type TMessage =  AppRestartRequest |
                         TabCustomAbout |
                         TabCustomPlugins |
                         ChipmunkLogsRequest |
-                        ChipmunkLogsResponse;
+                        ChipmunkLogsResponse |
+                        ChipmunkLogLevelResponse |
+                        ChipmunkDevModeRequest |
+                        ChipmunkDevModeResponse |
+                        ChipmunkLogRequest |
+                        ChipmunkLogResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -676,4 +699,10 @@ export const Map = {
 
     [ChipmunkLogsRequest.signature              ]: ChipmunkLogsRequest,
     [ChipmunkLogsResponse.signature             ]: ChipmunkLogsResponse,
+    [ChipmunkLogLevelRequest.signature          ]: ChipmunkLogLevelRequest,
+    [ChipmunkLogLevelResponse.signature         ]: ChipmunkLogLevelResponse,
+    [ChipmunkDevModeRequest.signature           ]: ChipmunkDevModeRequest,
+    [ChipmunkDevModeResponse.signature          ]: ChipmunkDevModeResponse,
+    [ChipmunkLogRequest.signature               ]: ChipmunkLogRequest,
+    [ChipmunkLogResponse.signature              ]: ChipmunkLogResponse,
 };

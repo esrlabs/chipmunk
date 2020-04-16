@@ -150,7 +150,7 @@ class Service {
         return stamp;
     }
 
-    public write(msg: string, level: ELogLevels) {
+    public write(msg: string, level: ELogLevels | undefined) {
         if (level === ELogLevels.ENV) {
             return;
         }
@@ -180,6 +180,14 @@ class Service {
     public getStored(key: string): string {
         const stored: string | undefined = this._stored.get(key);
         return stored === undefined ? '' : stored;
+    }
+
+    public strToLogLevel(level: string): ELogLevels {
+        if ((LOGS_LEVEL_TABLE_ALIASES as any)[level] === undefined) {
+            return ELogLevels.WARNING;
+        } else {
+            return (LOGS_LEVEL_TABLE_ALIASES as any)[level];
+        }
     }
 }
 

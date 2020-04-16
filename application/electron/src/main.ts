@@ -38,6 +38,7 @@ import ServicePatchesBefore from './services/service.patches.before';
 import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon';
 import ServiceOutputExport from './services/output/service.output.export';
 import ServiceRenderState from './services/service.render.state';
+import ServiceLogs from './services/service.logs';
 import ServiceLogsExtractor from './services/service.logs.extractor';
 
 enum EAppState {
@@ -69,11 +70,13 @@ const InitializeStages = [
     [   ServiceSettings, ServiceWindowState, ServiceStorage ],
     // Stage #6. Init electron. Prepare browser window
     [   ServiceElectron ],
-    // Stage #7. Init services and helpers
+    // Stage #7. Render logs service
+    [   ServiceLogs ],
+    // Stage #8. Init services and helpers
     [   ServiceElectronState, ServiceNotifications, ServiceRenderState ],
-    // Stage #8. Stream service
+    // Stage #9. Stream service
     [   ServiceStreamSources, ServiceStreams ],
-    // Stage #9. Common functionality
+    // Stage #10. Common functionality
     [   ServiceFileInfo, ServiceMergeFiles,
         ServiceConcatFiles, ServiceFileSearch,
         ServiceFilters, ServiceFileReader,

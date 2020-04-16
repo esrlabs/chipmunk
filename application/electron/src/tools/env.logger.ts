@@ -110,6 +110,11 @@ export default class Logger {
         };
     }
 
+    public publish(msg: string, level: ELogLevels) {
+        this._console(msg, level);
+        LogsService.write(msg, level);
+    }
+
     private _console(message: string, level: ELogLevels) {
         if (!this._parameters.console) {
             return false;
