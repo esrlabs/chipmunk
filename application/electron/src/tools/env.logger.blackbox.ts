@@ -1,3 +1,5 @@
+// tslint:disable: no-console
+
 import * as FS from "./fs";
 import * as path from "path";
 import * as fs from "fs";
@@ -11,6 +13,8 @@ enum EState {
 }
 
 type TShutdownHandler = () => void;
+
+const CMaxLogFileSize = 20 * 1024 * 1024;
 
 export class LogsBlackbox {
     private _homeFolder: string = path.resolve(os.homedir(), ".chipmunk");
@@ -55,7 +59,6 @@ export class LogsBlackbox {
             (error: NodeJS.ErrnoException | null) => {
                 this._state = EState.ready;
                 if (error) {
-                    // tslint:disable-next-line:no-console
                     console.log(`Fail to write logs into file due error: ${error.message}`);
                     this._shutdown();
                 } else {
@@ -92,19 +95,40 @@ export class LogsBlackbox {
                 fs.mkdir(this._homeFolder, (err: NodeJS.ErrnoException | null) => {
                     if (err) {
                         // tslint:disable-next-line: no-console
-                        console.log(
-                            `LogsBlackbox:: Fail to create HOME folder "${this._homeFolder}" due error: ${err.message}`,
-                        );
+                        console.log(`LogsBlackbox:: Fail to create HOME folder "${this._homeFolder}" due error: ${err.message}`);
                         this._state = EState.locked;
                     } else {
-                        this._state = EState.ready;
-                        this.write();
+                        this._check();
                     }
                 });
             } else {
-                this._state = EState.ready;
-                this.write();
+                this._check();
             }
+        });
+    }
+
+    private _check() {
+        fs.stat(this._logFile, (statErr: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+            if (statErr) {
+                if (statErr.code === "ENOENT") {
+                    this._state = EState.ready;
+                    return this.write();
+                }
+                this._state = EState.locked;
+                return console.log(`LogsBlackbox:: Fail to check file "${this._logFile}" due error: ${statErr.message}`);
+            }
+            if (stats.size < CMaxLogFileSize) {
+                this._state = EState.ready;
+                return this.write();
+            }
+            fs.unlink(this._logFile, (unlinkErr: NodeJS.ErrnoException | null) => {
+                if (unlinkErr) {
+                    this._state = EState.locked;
+                    return console.log(`LogsBlackbox:: Fail to check file "${this._logFile}" due error: ${unlinkErr.message}`);
+                }
+                this._state = EState.ready;
+                return this.write();
+            });
         });
     }
 }
