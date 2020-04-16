@@ -10,6 +10,7 @@ import TabsCustomService from './service.custom.tabs';
 import FileOpenerService from './service.file.opener';
 import HotkeysService from './service.hotkeys';
 import ConnectionsService from './service.connections';
+import LogsService from './service.logs';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -19,12 +20,14 @@ const InitializeStages = [
     // Stage #1
     [ServiceElectronIpc],
     // Stage #2
-    [PluginsService, SourcesService],
+    [LogsService],
     // Stage #3
-    [PluginsIPCService],
+    [PluginsService, SourcesService],
     // Stage #4
-    [TabsSessionsService, TabsCustomService, ToolbarSessionsService, SidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService, ConnectionsService ],
+    [PluginsIPCService],
     // Stage #5
+    [TabsSessionsService, TabsCustomService, ToolbarSessionsService, SidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService, ConnectionsService ],
+    // Stage #6
     [TabSelectionParserService]
 ];
 

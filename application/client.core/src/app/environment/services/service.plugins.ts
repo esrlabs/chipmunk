@@ -12,6 +12,7 @@ import { getAvailablePluginModules } from '../controller/controller.plugin.deps'
 
 import ElectronIpcService from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
+import LogsService from './service.logs';
 import OutputParsersService from './standalone/service.output.parsers';
 import SelectionParsersService from './standalone/service.selection.parsers';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
@@ -209,6 +210,9 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             );
             (window as any).chipmunk = gate;
             (window as any).logviewer = gate; // Back-compatibility
+            if (!LogsService.isProduction()) {
+                code = `console.log('Reference to code of plugin "${name.replace(/'/gi, '"')}"');\n${code}`;
+            }
             // Step 3. Execute code of plugin to initialize
             try {
                 // tslint:disable-next-line:no-eval

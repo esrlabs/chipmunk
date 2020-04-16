@@ -14,6 +14,7 @@ const CLogsFiles = [
     'chipmunk.log',
     'chipmunk.indexer.log',
     'chipmunk.launcher.log',
+    'chipmunk.updater.log',
 ];
 
 /**
@@ -24,7 +25,6 @@ const CLogsFiles = [
 class ServiceLogsExtractor implements IService {
 
     private _logger: Logger = new Logger('ServiceLogsExtractor');
-    private _production: boolean = true;
     private _subscriptions: { [key: string ]: Subscription } = { };
 
     /**
@@ -54,10 +54,6 @@ class ServiceLogsExtractor implements IService {
 
     public getName(): string {
         return 'ServiceLogsExtractor';
-    }
-
-    public isProduction(): boolean {
-        return this._production;
     }
 
     private _ipc_onChipmunkLogsRequest(req: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
