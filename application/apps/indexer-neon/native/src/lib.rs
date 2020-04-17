@@ -24,13 +24,11 @@ mod merger_channel;
 mod timestamp_detector_channel;
 use crate::dlt_pcap_channel::JsDltPcapEventEmitter;
 use concatenator_channel::JsConcatenatorEmitter;
-use crossbeam_channel as cc;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
 use dlt_socket_channel::JsDltSocketEventEmitter;
 
 use dlt_stats_channel::JsDltStatsEventEmitter;
 use export_channel::JsExporterEventEmitter;
-use indexer_base::progress::{IndexingProgress, IndexingResults, Notification, Severity};
 use indexer_channel::JsIndexerEventEmitter;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
@@ -38,7 +36,7 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use merger_channel::JsMergerEmitter;
 use neon::prelude::*;
-use processor::parse::{self, timespan_in_files, DiscoverItem, TimestampFormatResult};
+use processor::parse::{self};
 use timestamp_detector_channel::JsTimestampFormatDetectionEmitter;
 
 #[no_mangle]
@@ -105,71 +103,11 @@ fn detect_timestamp_in_string(mut cx: FunctionContext) -> JsResult<JsNumber> {
         Err(e) => cx.throw_type_error(format!("{}", e)),
     }
 }
-fn detect_timestamp_format_in_file(mut cx: FunctionContext) -> JsResult<JsValue> {
-    let file_name: String = cx.argument::<JsString>(0)?.value();
-    let (tx, rx): (
-        cc::Sender<IndexingResults<TimestampFormatResult>>,
-        cc::Receiver<IndexingResults<TimestampFormatResult>>,
-    ) = cc::unbounded();
-    let items: Vec<DiscoverItem> = vec![DiscoverItem {
-        path: file_name.clone(),
-    }];
-    let err_timestamp_result = TimestampFormatResult {
-        path: file_name,
-        format: None,
-        min_time: None,
-        max_time: None,
-    };
-    let js_err_value = neon_serde::to_value(&mut cx, &err_timestamp_result)?;
-    match timespan_in_files(items, &tx) {
-        Ok(()) => (),
-        Err(_e) => {
-            return Ok(js_err_value);
-        }
-    };
-    loop {
-        match rx.recv() {
-            Ok(Ok(IndexingProgress::GotItem { item: res })) => match serde_json::to_string(&res) {
-                Ok(stats) => debug!("{}", stats),
-                Err(_e) => {
-                    return Ok(js_err_value);
-                }
-            },
-            Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
-                trace!("progress... ({:.1} %)", (t.0 as f64 / t.1 as f64) * 100.0);
-            }
-            Ok(Ok(IndexingProgress::Finished)) => {
-                trace!("finished...");
-            }
-            Ok(Err(Notification {
-                severity,
-                content,
-                line,
-            })) => {
-                if severity == Severity::WARNING {
-                    warn!("{:?}: {}", line, content);
-                } else {
-                    error!("{:?}: {}", line, content);
-                }
-            }
-            Ok(Ok(IndexingProgress::Stopped)) => {
-                trace!("stopped...");
-            }
-            Err(e) => {
-                error!("detect_timestamp_format_in_file: couldn't process: {}", e);
-            }
-        }
-    }
-}
 
 register_module!(mut cx, {
     init_logging().expect("logging has to be cofigured");
     // handle_discover_subcommand
     cx.export_function("detectTimestampInString", detect_timestamp_in_string)?;
-    cx.export_function(
-        "detectTimestampFormatInFile",
-        detect_timestamp_format_in_file,
-    )?;
     cx.export_class::<JsIndexerEventEmitter>("RustIndexerEventEmitter")?;
     cx.export_class::<JsDltIndexerEventEmitter>("RustDltIndexerEventEmitter")?;
     cx.export_class::<JsDltPcapEventEmitter>("RustDltPcapEventEmitter")?;
