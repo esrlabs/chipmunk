@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'rake/clean'
-require '../../../rake-extensions'
+require '../../../rake_extensions'
 
 LOCAL_EXAMPLE_DIR = "#{Dir.home}/tmp/logviewer_usecases"
 TEST_DIR = './tests'

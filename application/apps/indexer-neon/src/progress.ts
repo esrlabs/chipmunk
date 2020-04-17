@@ -1,3 +1,4 @@
+import { ITimestampFormat } from '../../../common/interfaces/interface.detect'
 export enum AsyncResult {
     Completed,
     Interrupted,
@@ -19,7 +20,7 @@ export interface INeonTransferChunk {
 }
 export interface ITimestampFormatResult {
     path: string,
-    format?: string,
+    format?: ITimestampFormat,
     minTime?: string,
     maxTime?: string,
 }

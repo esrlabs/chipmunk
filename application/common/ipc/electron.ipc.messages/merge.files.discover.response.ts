@@ -1,5 +1,7 @@
+import { ITimestampFormat } from '../../interfaces/interface.detect';
+
 export interface IMergeFilesDiscoverResult {
-    format: string;
+    format?: ITimestampFormat;
     path: string;
     error?: string;
 }

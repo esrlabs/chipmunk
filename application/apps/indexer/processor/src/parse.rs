@@ -481,10 +481,15 @@ pub fn timespan_in_files(
                         n
                     }
                 };
+                let timestamp_format = TimestampFormat {
+                    formatstring: format_expr,
+                    regex: regex_as_string(&regex),
+                    flags: vec![],
+                };
                 let _ = update_channel.send(Ok(IndexingProgress::GotItem {
                     item: TimestampFormatResult {
                         path: item.path.to_string(),
-                        format: Some(format_expr),
+                        format: Some(timestamp_format),
                         min_time: Some(posix_timestamp_as_string(min_timestamp)),
                         max_time: Some(posix_timestamp_as_string(max_timestamp)),
                     },
@@ -743,9 +748,15 @@ pub struct DiscoverItem {
 #[derive(Serialize, Debug)]
 pub struct TimestampFormatResult {
     pub path: String,
-    pub format: Option<String>,
+    pub format: Option<TimestampFormat>,
     pub min_time: Option<String>,
     pub max_time: Option<String>,
+}
+#[derive(Serialize, Debug)]
+pub struct TimestampFormat {
+    formatstring: String,
+    regex: String,
+    flags: Vec<String>,
 }
 pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::Error> {
     let f: fs::File = fs::File::open(path)?;
@@ -962,4 +973,9 @@ pub(crate) fn parse_timezone(input: &str) -> Result<i64, failure::Error> {
         Ok((_, res)) => Ok(res),
         Err(e) => Err(failure::err_msg(format!("error parsing timezone: {:?}", e))),
     }
+}
+fn regex_as_string(regex: &Regex) -> String {
+    let res = regex.as_str().to_string();
+    trace!("regex {} as_string = {}", regex.as_str(), res);
+    res
 }
