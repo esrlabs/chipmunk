@@ -103,9 +103,9 @@ export default class Logger {
     public measure(operation: string): () => void {
         const id: string = guid();
         this._unixtimes[id] = Date.now();
-        this.info(`starting "${operation}"`);
+        this.env(`starting "${operation}"`);
         return () => {
-            this.info(`"${operation}" finished in: ${((Date.now() - this._unixtimes[id]) / 1000).toFixed(2)} sec`);
+            this.env(`"${operation}" finished in: ${((Date.now() - this._unixtimes[id]) / 1000).toFixed(2)} sec`);
             delete this._unixtimes[id];
         };
     }

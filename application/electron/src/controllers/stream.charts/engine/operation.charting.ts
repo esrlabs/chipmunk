@@ -166,7 +166,7 @@ export class OperationCharting extends EventEmitter {
             ]);
         }
         args.push(target);
-        this._logger.debug(`Next regular expresition will be used with ripgrep: ${reg.source}. Full command: rg ${args.join(' ')}`);
+        this._logger.env(`Next regular expresition will be used with ripgrep: ${reg.source}. Full command: rg ${args.join(' ')}`);
         return args;
     }
 }
