@@ -1,12 +1,14 @@
 // tslint:disable:max-classes-per-file
 import ServiceStreams from "../../../services/service.streams";
 import indexer, { CancelablePromise, Processor, Progress, Units } from "indexer-neon";
+import { ITimestampFormat } from '../../../../../common/interfaces/interface.detect';
+
 import Logger from "../../../tools/env.logger";
 import ServiceNotifications from "../../../services/service.notifications";
 import { Subscription } from "../../../tools/index";
 
 export interface IDatetimeDiscoverFileResult {
-    format: string;
+    format?: ITimestampFormat;
     path: string;
     error?: string;
 }
@@ -79,12 +81,8 @@ export default class MergeDiscover {
             }).finally(() => {
                 this._task = undefined;
             }).on('chunk', (event: Progress.ITimestampFormatResult) => {
-                let format = "";
-                if (event.format !== undefined) {
-                    format = event.format;
-                }
                 const r: IDatetimeDiscoverFileResult = {
-                    format,
+                    format: event.format,
                     path: event.path,
                 };
                 results.push(r);

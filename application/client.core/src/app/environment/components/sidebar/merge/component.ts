@@ -460,15 +460,15 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
 
     private _setDiscoverResults(files: IPCMessages.IMergeFilesDiscoverResult[]) {
         files.forEach((file: IPCMessages.IMergeFilesDiscoverResult) => {
-            file.format = typeof file.format === 'string' ? file.format : '';
-            if (file.error !== undefined || file.format.trim() === '') {
+            this._logger.info(`_setDiscoverResults, IMergeFilesDiscoverResult: ${JSON.stringify(file)}`);
+            if (file.error !== undefined || file.format === null) {
                 return;
             }
             const comp: SidebarAppMergeFilesItemComponent | undefined = this._getFileComp(file.path);
             if (comp === undefined) {
                 return;
             }
-            comp.setFormat(typeof file.format === 'string' ? file.format : '');
+            comp.setFormat(file.format.formatstring);
         });
     }
 
