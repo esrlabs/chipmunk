@@ -6,6 +6,12 @@ import { TabsComponent                      } from './component';
 import { TabsListComponent                  } from './list/component';
 import { TabContentComponent                } from './content/component';
 
+export {
+    TabsComponent,
+    TabsListComponent,
+    TabContentComponent,
+};
+
 const entryComponents = [ TabsListComponent, TabContentComponent, TabsComponent ];
 const components = [ TabsComponent, ...entryComponents ];
 

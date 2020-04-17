@@ -17,6 +17,17 @@ import { CheckSimpleComponent                   } from './checkbox/simple/compon
 
 import { SliderNumericComponent                 } from './sliders/numeric/component';
 
+export {
+    DDListStandardComponent,
+    InputStandardComponent,
+    ButtonStandardComponent,
+    SpinnerRegularComponent,
+    SpinnerCircleComponent,
+    SwitcherSimpleComponent,
+    CheckSimpleComponent,
+    SliderNumericComponent,
+};
+
 const checkboxes = [
     CheckSimpleComponent
 ];
