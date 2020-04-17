@@ -12,6 +12,7 @@ export enum EProcessPluginType {
 export interface IChipmunk {
     version: string;
     type: EProcessPluginType;
+    displayName?: string;
 }
 
 export interface IPackageJson {
@@ -87,6 +88,16 @@ export default class ControllerPluginPackage {
 
     public getPath(): string {
         return this._folder;
+    }
+
+    public getDisplayName(): string | undefined {
+        if (this._package === undefined) {
+            return undefined;
+        }
+        if (this._package.chipmunk === null || typeof this._package.chipmunk !== 'object') {
+            return undefined;
+        }
+        return typeof this._package.chipmunk.displayName === 'string' ? this._package.chipmunk.displayName : undefined;
     }
 
     private _setPluginsSettings(packageJson: IPackageJson): IPackageJson {

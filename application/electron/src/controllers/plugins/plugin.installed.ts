@@ -157,6 +157,7 @@ export default class ControllerPluginInstalled {
                         }
                         ServiceElectronService.logStateToRender(`Creating controllers for "${path.basename(this._path)}"`);
                         this._addControllers().then(() => {
+                            this._verify();
                             this._logPluginState();
                             resolve();
                         }).catch((controllersErr: Error) => {
@@ -444,6 +445,24 @@ export default class ControllerPluginInstalled {
                 this._controllers.process.unbindMuliple(session).then(resolve).catch(reject);
             }
         });
+    }
+
+    private _verify() {
+        if (this._info === undefined) {
+            return;
+        }
+        if (typeof this._info.display_name !== 'string' || this._info.display_name.trim() === '' || this._info.display_name === this._info.name) {
+            let displayName: string | undefined;
+            if (this._packages.process !== undefined && this._packages.process.getDisplayName() !== undefined) {
+                displayName = this._packages.process.getDisplayName();
+            }
+            if (displayName === undefined && this._packages.render !== undefined && this._packages.render.getDisplayName() !== undefined) {
+                displayName = this._packages.render.getDisplayName();
+            }
+            if (displayName !== undefined) {
+                this._info.display_name = displayName;
+            }
+        }
     }
 
     private _logPluginState() {
