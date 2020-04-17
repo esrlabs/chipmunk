@@ -6,6 +6,12 @@ import { DockingComponent                       } from './component';
 import { DockComponent                          } from './dock/component';
 import { DockContainerComponent                 } from './container/component';
 
+export {
+    DockingComponent,
+    DockComponent,
+    DockContainerComponent,
+};
+
 const components = [ DockingComponent, DockComponent, DockContainerComponent];
 
 @NgModule({

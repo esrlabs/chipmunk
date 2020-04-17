@@ -1,6 +1,6 @@
 import { Component, OnDestroy, Input, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, ViewChildren, QueryList } from '@angular/core';
 import { ITabInternal, TabsService } from '../service';
-import { TabsOptions, ETabsListDirection } from '../options';
+import { TabsOptions } from '../options';
 import { Subscription } from 'rxjs';
 
 @Component({

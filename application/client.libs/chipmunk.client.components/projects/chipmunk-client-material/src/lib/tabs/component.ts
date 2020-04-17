@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { TabsService } from './service';
-import { TabsOptions, ETabsListDirection } from './options';
+import { TabsOptions } from './options';
 
 @Component({
     selector: 'lib-complex-tabs',

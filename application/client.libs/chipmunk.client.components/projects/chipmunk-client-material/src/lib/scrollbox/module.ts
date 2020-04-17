@@ -8,6 +8,12 @@ import { ComplexScrollBoxSBHComponent           } from './sbh/component';
 import { PrimitiveModule                        } from '../primitive.module';
 import { ContainersModule                       } from '../containers.module';
 
+export {
+    ComplexScrollBoxComponent,
+    ComplexScrollBoxSBVComponent,
+    ComplexScrollBoxSBHComponent,
+};
+
 const entryComponents = [ ComplexScrollBoxComponent, ComplexScrollBoxSBVComponent, ComplexScrollBoxSBHComponent ];
 const components = [ ...entryComponents ];
 
