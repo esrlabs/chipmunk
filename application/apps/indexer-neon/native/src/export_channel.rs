@@ -27,7 +27,8 @@ impl ExporterEventEmitter {
         destination_path: path::PathBuf,
         sections_config: SectionConfig,
         was_session_file: bool,
-        shutdown_rx: async_std::sync::Receiver<()>,
+        // TODO react on shutdown event
+        _shutdown_rx: async_std::sync::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
     ) -> Result<(), Error> {
         info!(

@@ -14,25 +14,25 @@ pub struct TimestampDetectorEmitter {
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl TimestampDetectorEmitter {
-    pub fn start_timestamp_detection_in_thread(
+    pub fn start_timespan_detection_in_thread(
         self: &mut TimestampDetectorEmitter,
         items: Vec<DiscoverItem>,
         result_sender: cc::Sender<IndexingResults<TimestampFormatResult>>,
         shutdown_rx: cc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
-            detect_timestamps_with_progress(items, result_sender, Some(shutdown_rx));
+            detect_timespan_with_progress(items, result_sender, Some(shutdown_rx));
             debug!("back after indexing finished!",);
         }));
     }
 }
 
-fn detect_timestamps_with_progress(
+fn detect_timespan_with_progress(
     items: Vec<DiscoverItem>,
     tx: cc::Sender<IndexingResults<TimestampFormatResult>>,
     _shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
-    trace!("detecting timestamps");
+    trace!("detecting timespan");
     match timespan_in_files(
         items, &tx,
         // shutdown_receiver,
@@ -66,7 +66,7 @@ pub class JsTimestampFormatDetectionEmitter for TimestampDetectorEmitter {
             shutdown_sender: shutdown_channel.0,
             task_thread: None,
         };
-        emitter.start_timestamp_detection_in_thread(
+        emitter.start_timespan_detection_in_thread(
             items,
             chunk_result_channel.0,
             shutdown_channel.1,

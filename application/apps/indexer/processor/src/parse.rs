@@ -482,7 +482,7 @@ pub fn timespan_in_files(
                     }
                 };
                 let timestamp_format = TimestampFormat {
-                    formatstring: format_expr,
+                    format: format_expr,
                     regex: regex_as_string(&regex),
                     flags: vec![],
                 };
@@ -754,7 +754,7 @@ pub struct TimestampFormatResult {
 }
 #[derive(Serialize, Debug)]
 pub struct TimestampFormat {
-    formatstring: String,
+    format: String,
     regex: String,
     flags: Vec<String>,
 }

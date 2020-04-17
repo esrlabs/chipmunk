@@ -120,7 +120,6 @@ export type TDiscoverTimespanAsyncEventObject =
 
 export function discoverTimespanAsync(
 	filesToDiscover: Array<IDiscoverItem>,
-	options?: IIndexOptions
 ): CancelablePromise<void, void, TDiscoverTimespanAsyncEvents, TDiscoverTimespanAsyncEventObject> {
 	return new CancelablePromise<
 		void,
@@ -129,8 +128,6 @@ export function discoverTimespanAsync(
 		TDiscoverTimespanAsyncEventObject
 	>((resolve, reject, cancel, refCancelCB, self) => {
 		try {
-			// Get defaults options
-			const opt = getDefaultProcessorOptions(options);
 			// Add cancel callback
 			refCancelCB(() => {
 				// Cancelation is started, but not canceled

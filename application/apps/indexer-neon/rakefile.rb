@@ -76,7 +76,7 @@ namespace :neon do
   desc 'test neon integration: discover timestamps'
   task discover: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function_with_array(
-      'testDiscoverTimespanAsync',
+      'testDiscoverTimestampAsync',
       ['./tests/mini_with_invalids.log',
        "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
        "#{LOCAL_EXAMPLE_DIR}/concat/2019-07-15_06.26.01.log"]
@@ -139,37 +139,50 @@ namespace :neon do
   desc 'test neon integration for a problematic file'
   task problem: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testDltIndexingAsync',
-                      "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt",
-                      "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt.out",
-                      5000)
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt",
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/morton_problem_file.dlt.out",
+                       5000)
   end
   task all: 'neon:problem'
 
   desc 'test neon integration for a problematic file2'
   task problem2: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testDltIndexingAsync',
-                      "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt",
-                      "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt.out",
-                      5000)
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt",
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/morten_3.dlt.out",
+                       5000)
   end
   task all: 'neon:problem'
 
   desc 'test neon integration stats for a huge file'
   task stats: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testCallDltStats',
-                      "#{LOCAL_EXAMPLE_DIR}/dlt/huge.dlt")
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/huge.dlt")
   end
   task all: 'neon:stats'
 
   desc 'test neon cancel task'
   task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testCancelledAsyncIndexing',
-                      "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
-                      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
+                       "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
+                       "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
   end
   task all: 'neon:cancelled'
-end
 
+  desc 'test neon cancel dlt stats'
+  task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testCancelledAsyncIndexing',
+                       "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
+                       "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
+  end
+  task all: 'neon:cancelled'
+
+  desc 'test neon detect timestamp'
+  task timestamp: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testDetectTimestampInFile',
+                       "#{LOCAL_EXAMPLE_DIR}/indexing/access_small.log")
+  end
+end
 
 def exec_node_expression(node_exp)
   puts "executing rust function: #{node_exp}"

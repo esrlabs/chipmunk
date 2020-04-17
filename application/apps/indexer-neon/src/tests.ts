@@ -42,35 +42,36 @@ function measure({ desc, f }: { desc: String; f: () => void }) {
 }
 
 export function testCallMergeFiles(mergeConf: string, out: string) {
+	log.setDefaultLevel(log.levels.WARN);
 	log.debug(`calling testCallMergeFiles with mergeConf: ${mergeConf}, out: ${out}`);
 	const bar = stdout.createProgressBar({ caption: 'merging files', width: 60 });
 	let onProgress = (ticks: ITicks) => {
 		bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 	};
 	let onNotification = (notification: INeonNotification) => {
-		log.debug('TTT: testDiscoverTimespanAsync: received notification:' + JSON.stringify(notification));
+		log.debug('TTT: testCallMergeFiles: received notification:' + JSON.stringify(notification));
 	};
-	log.trace('before measure');
+	log.debug('before measure');
 	measure({
 		desc: 'TTT: merge with config: ' + mergeConf + ', output: ' + out,
 		f: () => {
 			let merged_lines: number = 0;
 			let onResult = (res: IChunk) => {
-				log.trace('rowsEnd= ' + JSON.stringify(res));
+				log.debug('rowsEnd= ' + JSON.stringify(res));
 				merged_lines = res.rowsEnd;
 			};
-			log.trace('inside f measure');
+			log.debug('inside f measure');
 			const contents = fs.readFileSync(mergeConf, 'utf8');
-			log.trace(`contents is: ${contents}`);
+			log.debug(`contents is: ${contents}`);
 			const config: Array<IMergerItemOptions> = JSON.parse(contents);
-			log.trace(`config is: ${JSON.stringify(config)}`);
+			log.debug(`config is: ${JSON.stringify(config)}`);
 			const filePath = require('path').dirname(mergeConf);
 			const absolutePathConfig: Array<IMergerItemOptions> = config.map((input: IMergerItemOptions) => {
-				log.trace(`input is: ${JSON.stringify(input)}`);
+				log.debug(`input is: ${JSON.stringify(input)}`);
 				input.name = require('path').resolve(filePath, input.name);
 				return input;
 			});
-			log.trace(`absolutePathConfig: ${JSON.stringify(absolutePathConfig)}`);
+			log.debug(`absolutePathConfig: ${JSON.stringify(absolutePathConfig)}`);
 			const promise: CancelablePromise<
 				void,
 				void,
@@ -81,11 +82,11 @@ export function testCallMergeFiles(mergeConf: string, out: string) {
 					append: true
 				})
 				.then(() => {
-					log.trace('TTT: done');
-					log.trace(`merged_lines: ${merged_lines}`);
+					log.debug('TTT: done');
+					log.debug(`merged_lines: ${merged_lines}`);
 				})
 				.catch((error: Error) => {
-					log.trace(`Fail to merge due error: ${error.message}`);
+					log.debug(`Fail to merge due error: ${error.message}`);
 				})
 				.on('result', (event: IChunk) => {
 					onResult(event);
@@ -100,15 +101,16 @@ export function testCallMergeFiles(mergeConf: string, out: string) {
 	});
 }
 export function testCallConcatFiles(concatConfig: string, out: string) {
+	log.setDefaultLevel(log.levels.WARN);
 	const bar = stdout.createProgressBar({ caption: 'concatenating files', width: 60 });
 	let onProgress = (ticks: ITicks) => {
 		bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 	};
 	let onResult = (res: IChunk) => {
-		log.trace('TTT: concatenated res: ' + JSON.stringify(res));
+		log.debug('TTT: concatenated res: ' + JSON.stringify(res));
 	};
 	let onNotification = (notification: INeonNotification) => {
-		log.trace('TTT: testDiscoverTimespanAsync: received notification:' + JSON.stringify(notification));
+		log.debug('TTT: testCallConcatFiles: received notification:' + JSON.stringify(notification));
 	};
 	measure({
 		desc: 'TTT: concatenate with config: ' + concatConfig + ', output: ' + out,
@@ -136,11 +138,11 @@ export function testCallConcatFiles(concatConfig: string, out: string) {
 					chunk_size: 100
 				})
 				.then(() => {
-					log.trace('TTT: done ');
+					log.debug('TTT: done ');
 					// progressBar.update(1.0);
 				})
 				.catch((error: Error) => {
-					log.trace(`Fail to merge due error: ${error.message}`);
+					log.debug(`Fail to merge due error: ${error.message}`);
 				})
 				.on('result', (event: IChunk) => {
 					onResult(event);
@@ -154,7 +156,8 @@ export function testCallConcatFiles(concatConfig: string, out: string) {
 		}
 	});
 }
-function testDetectTimestampInString() {
+export function testDetectTimestampInString() {
+	log.setDefaultLevel(log.levels.WARN);
 	measure({
 		desc: 'detect timestamp in string',
 		f: () => {
@@ -166,23 +169,27 @@ function testDetectTimestampInString() {
 			} catch (error) {
 				log.error('error getting timestamp');
 			}
-			log.trace(timestamp);
+			log.debug(timestamp);
 		}
 	});
 }
-function testDetectTimestampInFile() {
+export function testDetectTimestampInFile(fileToDetect: string) {
+	log.setDefaultLevel(log.levels.DEBUG);
 	measure({
 		desc: 'detect timestamp in file',
 		f: () => {
-			const x = indexer.detectTimestampFormatInFile(examplePath + '/indexing/access_small.log');
-			log.trace(x);
+			log.debug("try to call detectTimestampFormatInFile");
+			const x = indexer.detectTimestampFormatInFile(fileToDetect);
+			log.debug(x);
 		}
 	});
 }
 function testDetectTimestampFormatsInFiles() {
+	log.setDefaultLevel(log.levels.DEBUG);
 	measure({
 		desc: 'detect timestamp in formats in files',
 		f: () => {
+			log.debug("try to call detectTimestampFormatInFiles");
 			const conf: Array<IFilePath> = [
 				{ path: examplePath + '/indexing/access_tiny.log' },
 				{ path: examplePath + '/indexing/access_small.log' },
@@ -192,7 +199,7 @@ function testDetectTimestampFormatsInFiles() {
 	});
 }
 export function testCallDltStats(file: string) {
-	log.setDefaultLevel(log.levels.TRACE);
+	log.setDefaultLevel(log.levels.DEBUG);
 	const hrstart = process.hrtime();
 	try {
 		let onProgress = (ticks: ITicks) => {
@@ -234,8 +241,9 @@ export function testCallDltStats(file: string) {
 	}
 }
 
-export function testDiscoverTimespanAsync(files: string[]) {
-	log.trace(`calling testDiscoverTimespanAsync with ${files}`);
+export function testDiscoverTimestampAsync(files: string[]) {
+	log.setDefaultLevel(log.levels.DEBUG);
+	log.debug(`calling testDiscoverTimestampAsync with ${files}`);
 	const hrstart = process.hrtime();
 	const bar = stdout.createProgressBar({ caption: 'discover timestamp', width: 60 });
 	try {
@@ -243,10 +251,10 @@ export function testDiscoverTimespanAsync(files: string[]) {
 			bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 		};
 		let onChunk = (chunk: ITimestampFormatResult) => {
-			log.trace('received ' + JSON.stringify(chunk));
+			log.debug('received ' + JSON.stringify(chunk));
 		};
 		let onNotification = (notification: INeonNotification) => {
-			log.trace('testDiscoverTimespanAsync: received notification:' + JSON.stringify(notification));
+			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
 		};
 		let items: IDiscoverItem[] = files.map((file: string) => {
 			return {
@@ -258,11 +266,11 @@ export function testDiscoverTimespanAsync(files: string[]) {
 				const hrend = process.hrtime(hrstart);
 				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
 				bar.update(100);
-				log.trace('COMPLETELY DONE');
+				log.debug('COMPLETELY DONE');
 				log.info('Execution time for indexing : %dms', ms);
 			})
 			.catch((error: Error) => {
-				log.trace(`Failed with error: ${error.message}`);
+				log.debug(`Failed with error: ${error.message}`);
 			})
 			.on('chunk', (event: Progress.ITimestampFormatResult) => {
 				onChunk(event);
@@ -301,7 +309,7 @@ class IndexingHelper {
 		this.bar.update(100);
 		const hrend = process.hrtime(this.hrstart);
 		const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-		log.trace(`COMPLETELY DONE (last result was: "${AsyncResult[x]}") (notifications: ${this.notificationCount})`);
+		log.debug(`COMPLETELY DONE (last result was: "${AsyncResult[x]}") (notifications: ${this.notificationCount})`);
 		log.info('Execution time for indexing : %dms', ms);
 	};
 }
@@ -311,12 +319,13 @@ export function testCancelledAsyncDltIndexing(
 	timeoutMs: number,
 	fibexPath?: string
 ) {
+	log.setDefaultLevel(log.levels.WARN);
 	const bar = stdout.createProgressBar({ caption: 'dlt indexing', width: 60 });
 	let onProgress = (ticks: ITicks) => {
 		bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 	};
 	let onNotification = (notification: INeonNotification) => {
-		log.trace('test: received notification:' + notification);
+		log.debug('test: received notification:' + notification);
 	};
 	let helper = new IndexingHelper('dlt async indexing');
 	const filterConfig: DltFilterConf = {
@@ -341,10 +350,10 @@ export function testCancelledAsyncDltIndexing(
 			helper.done(AsyncResult.Completed);
 		})
 		.catch((error: Error) => {
-			log.trace(`Failed with error: ${error.message}`);
+			log.debug(`Failed with error: ${error.message}`);
 		})
 		.canceled(() => {
-			log.trace(`Operation was canceled`);
+			log.debug(`Operation was canceled`);
 		})
 		.on('chunk', (event: Progress.IChunk) => {
 			helper.onChunk(event);
@@ -356,7 +365,7 @@ export function testCancelledAsyncDltIndexing(
 			helper.onNotification(notification);
 		});
 	const timerId = setTimeout(function() {
-		log.trace('cancelling operation after timeout');
+		log.debug('cancelling operation after timeout');
 		task.abort();
 	}, 500);
 }
@@ -467,6 +476,7 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string, timeo
 	log.debug('done with dlt test');
 }
 export function testIndexingPcap(fileToIndex: string, outPath: string) {
+	log.setDefaultLevel(log.levels.WARN);
 	const hrstart = process.hrtime();
 	const bar = stdout.createProgressBar({ caption: 'index file', width: 60 });
 	try {
@@ -481,7 +491,7 @@ export function testIndexingPcap(fileToIndex: string, outPath: string) {
 			}
 		};
 		let onNotification = (notification: INeonNotification) => {
-			log.trace('testIndexingPcap: received notification:' + JSON.stringify(notification));
+			log.debug('testIndexingPcap: received notification:' + JSON.stringify(notification));
 		};
 		const filterConfig: DltFilterConf = {
 			min_log_level: DltLogLevel.Debug
@@ -502,11 +512,11 @@ export function testIndexingPcap(fileToIndex: string, outPath: string) {
 				bar.update(100);
 				const hrend = process.hrtime(hrstart);
 				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-				log.trace('COMPLETELY DONE');
+				log.debug('COMPLETELY DONE');
 				log.info('Execution time for indexing : %dms', ms);
 			})
 			.catch((error: Error) => {
-				log.trace(`Failed with error: ${error.message}`);
+				log.debug(`Failed with error: ${error.message}`);
 			})
 			.on('chunk', (event: Progress.IChunk) => {
 				onChunk(event);
@@ -522,6 +532,7 @@ export function testIndexingPcap(fileToIndex: string, outPath: string) {
 	}
 }
 export function testIndexingAsync(inFile: string, outPath: string) {
+	log.setDefaultLevel(log.levels.WARN);
 	const hrstart = process.hrtime();
 	const bar = stdout.createProgressBar({ caption: 'index file', width: 60 });
 	try {
@@ -536,18 +547,18 @@ export function testIndexingAsync(inFile: string, outPath: string) {
 			}
 		};
 		let onNotification = (notification: INeonNotification) => {
-			log.trace('testIndexingAsync: received notification:' + JSON.stringify(notification));
+			log.debug('testIndexingAsync: received notification:' + JSON.stringify(notification));
 		};
 		indexAsync(inFile, outPath, 'TAG', { chunkSize: 500 })
 			.then(() => {
 				bar.update(100);
 				const hrend = process.hrtime(hrstart);
 				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-				log.trace('COMPLETELY DONE');
+				log.debug('COMPLETELY DONE');
 				log.info('Execution time for indexing : %dms', ms);
 			})
 			.catch((error: Error) => {
-				log.trace(`Failed with error: ${error.message}`);
+				log.debug(`Failed with error: ${error.message}`);
 			})
 			.on('chunk', (event: Progress.IChunk) => {
 				onChunk(event);
@@ -563,6 +574,7 @@ export function testIndexingAsync(inFile: string, outPath: string) {
 	}
 }
 export function testSocketDlt(outPath: string) {
+	log.setDefaultLevel(log.levels.WARN);
 	const hrstart = process.hrtime();
 	const bar = stdout.createProgressBar({ caption: 'index file', width: 60 });
 	try {
@@ -577,7 +589,7 @@ export function testSocketDlt(outPath: string) {
 			}
 		};
 		let onNotification = (notification: INeonNotification) => {
-			log.trace('testSocketDlt: received notification:' + JSON.stringify(notification));
+			log.debug('testSocketDlt: received notification:' + JSON.stringify(notification));
 		};
 		const filterConfig: DltFilterConf = {
 			min_log_level: DltLogLevel.Debug
@@ -610,11 +622,11 @@ export function testSocketDlt(outPath: string) {
 				const hrend = process.hrtime(hrstart);
 				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
 				clearTimeout(timerId);
-				log.trace('COMPLETELY DONE');
+				log.debug('COMPLETELY DONE');
 				log.info('socket dlt ended after: %dms', ms);
 			})
 			.catch((error: Error) => {
-				log.trace(`Failed with error: ${error.message}`);
+				log.debug(`Failed with error: ${error.message}`);
 			})
 			.on('chunk', (event: Progress.IChunk) => {
 				onChunk(event);
@@ -626,7 +638,7 @@ export function testSocketDlt(outPath: string) {
 				onNotification(notification);
 			});
 		const timerId = setTimeout(function() {
-			log.trace('cancelling operation after timeout');
+			log.debug('cancelling operation after timeout');
 			promise.abort();
 		}, 1000);
 	} catch (error) {
@@ -635,13 +647,14 @@ export function testSocketDlt(outPath: string) {
 }
 
 export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string) {
+	log.setDefaultLevel(log.levels.WARN);
 	const hrstart = process.hrtime();
 	const bar = stdout.createProgressBar({ caption: 'concatenating files', width: 60 });
 	let onProgress = (ticks: ITicks) => {
 		bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 	};
 	let onNotification = (notification: INeonNotification) => {
-		log.trace('test: received notification:' + notification);
+		log.debug('test: received notification:' + notification);
 	};
 	let onChunk = (chunk: IChunk) => {};
 	const promise = indexAsync(fileToIndex, outPath, 'TAG', { chunkSize: 500 })
@@ -649,14 +662,14 @@ export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string)
 			const hrend = process.hrtime(hrstart);
 			const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
 			clearTimeout(timerId);
-			log.trace('first event emitter task finished');
+			log.debug('first event emitter task finished');
 			log.info('Execution time for indexing : %dms', ms);
 		})
 		.catch((error: Error) => {
-			log.trace(`Failed with error: ${error.message}`);
+			log.debug(`Failed with error: ${error.message}`);
 		})
 		.canceled(() => {
-			log.trace(`Operation was canceled`);
+			log.debug(`Operation was canceled`);
 		})
 		.on('chunk', (event: Progress.IChunk) => {
 			onChunk(event);
@@ -668,7 +681,7 @@ export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string)
 			onNotification(notification);
 		});
 	const timerId = setTimeout(function() {
-		log.trace('cancelling operation after timeout');
+		log.debug('cancelling operation after timeout');
 		promise.abort();
 	}, 500);
 }
@@ -678,10 +691,10 @@ function testVeryShortIndexing() {
 	const hrstart = process.hrtime();
 	let chunks: number = 0;
 	let onProgress = (ticks: ITicks) => {
-		log.trace('progress: ' + ticks);
+		log.debug('progress: ' + ticks);
 	};
 	let onNotification = (notification: INeonNotification) => {
-		log.trace('testVeryShortIndexing: received notification:' + JSON.stringify(notification));
+		log.debug('testVeryShortIndexing: received notification:' + JSON.stringify(notification));
 	};
 	let onChunk = (chunk: IChunk) => {
 		chunks += 1;
@@ -693,11 +706,11 @@ function testVeryShortIndexing() {
 		.then(() => {
 			const hrend = process.hrtime(hrstart);
 			const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-			log.trace('first event emitter task finished');
+			log.debug('first event emitter task finished');
 			log.info('Execution time for indexing : %dms', ms);
 		})
 		.catch((error: Error) => {
-			log.trace(`Failed with error: ${error.message}`);
+			log.debug(`Failed with error: ${error.message}`);
 		})
 		.on('chunk', (event: Progress.IChunk) => {
 			onChunk(event);
