@@ -91,7 +91,7 @@ proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 ";
 
     fn sha256_digest(f: &Path) -> Digest {
-        let input = File::open(&f).unwrap();
+        let input = File::open(&f).unwrap_or_else(|_| panic!("error opening {:?}", f));
         let mut reader = BufReader::new(input);
 
         let mut context = Context::new(&SHA256);
@@ -123,7 +123,13 @@ proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
         }
         let tgz = tarball_app(&source_dir, &tmp_dir_path.path()).expect("packing failed");
         unpack(&tgz, &dest_dir).expect("could not unpack");
+
         for n in &file_names {
+            let dest_dir = if cfg!(target_os = "macos") {
+                dest_dir.clone().join("chipmunk.app")
+            } else {
+                dest_dir.clone()
+            };
             assert_eq!(
                 sha256_digest(&source_dir.join(n)).as_ref(),
                 sha256_digest(&dest_dir.join(n)).as_ref()
