@@ -24,18 +24,6 @@
     </app-sidebar-app-files-details>
 </mat-expansion-panel>
 
-<span class="slitter" *ngIf="_ng_selected !== undefined"></span>
-
-<mat-expansion-panel
-    *ngIf="_ng_selected !== undefined"
-    [expanded]="false">
-    <mat-expansion-panel-header>
-        <mat-panel-title>Options</mat-panel-title>
-    </mat-expansion-panel-header>
-    <app-sidebar-app-files-options [file]="_ng_selected" [controller]="_ng_controller">
-    </app-sidebar-app-files-options>
-</mat-expansion-panel>
-
 <span class="slitter"></span>
 
 <mat-expansion-panel

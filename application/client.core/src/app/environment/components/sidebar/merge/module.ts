@@ -6,7 +6,6 @@ import { SidebarAppMergeFilesComponent          } from './component';
 import { SidebarAppMergeFilesItemComponent      } from './file/component';
 import { SidebarAppMergeFilesListComponent      } from './files/component';
 import { SidebarAppMergeFilesDetailsComponent   } from './details/component';
-import { SidebarAppMergeFilesOptionsComponent   } from './options/component';
 
 import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
 
@@ -30,7 +29,6 @@ const entryComponents = [
     SidebarAppMergeFilesItemComponent,
     SidebarAppMergeFilesListComponent,
     SidebarAppMergeFilesDetailsComponent,
-    SidebarAppMergeFilesOptionsComponent,
 ];
 
 const components = [ ...entryComponents ];

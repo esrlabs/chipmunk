@@ -2,14 +2,39 @@
     <p class="preview-row t-console" *cdkVirtualFor="let row of _ng_preview" [innerHTML]="row"></p>
 </cdk-virtual-scroll-viewport>
 
+<div class="format">
+    <span class="slitter"></span>
+    <p class="t-normal format" [innerHTML]="_ng_getFormatStr()"></p>
+</div>
+
 <span class="slitter"></span>
 
-<mat-form-field class="format outline regular" appearance="outline">
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Format</mat-label>
     <input  type="text" 
-            placeholder="Format: DD/MM/YYYY etc."
             aria-label="Format"
             [(ngModel)]="_ng_format"
             (ngModelChange)="_ng_onFormatChange()"
+            matInput>
+</mat-form-field>
+
+<span class="slitter"></span>
+
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Year (YYYY)</mat-label>
+    <input  type="text" 
+            [(ngModel)]="_ng_year"
+            (ngModelChange)="_ng_onYearChange()"
+            matInput>
+</mat-form-field>
+
+<span class="slitter"></span>
+
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Offset in ms</mat-label>
+    <input  type="number" 
+            [(ngModel)]="_ng_offset"
+            (ngModelChange)="_ng_onOffsetChange()"
             matInput>
 </mat-form-field>
 
