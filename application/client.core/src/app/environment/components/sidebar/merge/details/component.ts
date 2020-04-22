@@ -95,7 +95,7 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
                     const matches: RegExpMatchArray | null = row.match(stampregexp);
                     if (matches !== null && matches.length !== 0) {
                         Array.prototype.forEach.call(matches, (match: string) => {
-                            row = row.replace(match, '<span class="match">' + match + '</span>')
+                            row = row.replace(match, '<span class="match">' + match + '</span>');
                         });
                     }
                 }

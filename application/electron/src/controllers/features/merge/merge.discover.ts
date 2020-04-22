@@ -1,9 +1,8 @@
 // tslint:disable:max-classes-per-file
 import { CancelablePromise, Processor, Progress, Units } from "indexer-neon";
-import { ITimestampFormat } from '../../../../../common/interfaces/interface.detect';
 import { Subscription } from "../../../tools/index";
 import { PCREToECMARegExp, isRegStrValid } from '../../../tools/tools.regexp';
-import { IPCMessages } from '../../../services/service.electron'
+import { IPCMessages } from '../../../services/service.electron';
 
 import Logger from "../../../tools/env.logger";
 import ServiceNotifications from "../../../services/service.notifications";
