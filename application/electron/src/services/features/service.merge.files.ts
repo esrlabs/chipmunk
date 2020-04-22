@@ -1,16 +1,19 @@
-import ServiceElectron, { IPCMessages } from '../service.electron';
+import ServiceElectron from '../service.electron';
 import Logger from '../../tools/env.logger';
+import ServiceStreams from "../service.streams";
+import MergeFiles from '../../controllers/features/merge/merge.files';
+import MergeDiscover from '../../controllers/features/merge/merge.discover';
+
+import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
-import ServiceStreams from "../service.streams";
 import { IFile as ITestFileRequest } from '../../../../common/ipc/electron.ipc.messages/merge.files.test.request';
 import { Progress } from "indexer-neon";
 import { IFile as ITestFileResponse } from '../../../../common/ipc/electron.ipc.messages/merge.files.test.response';
 import { IFile as IMergeFileRequest } from '../../../../common/ipc/electron.ipc.messages/merge.files.request';
-import * as moment from 'moment-timezone';
-import MergeFiles from '../../controllers/features/merge/merge.files';
-import MergeDiscover, { IDatetimeDiscoverFileResult } from '../../controllers/features/merge/merge.discover';
 import { IMapItem } from '../../controllers/files.parsers/interface';
+
+import * as moment from 'moment-timezone';
 
 /**
  * @class ServiceMergeFiles
@@ -133,7 +136,7 @@ class ServiceMergeFiles implements IService {
 
     private _onMergeFilesDiscoverRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesDiscoverRequest = request as IPCMessages.MergeFilesDiscoverRequest;
-        this._discover(req.files).then((processed: IDatetimeDiscoverFileResult[]) => {
+        this._discover(req.files).then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
             response(new IPCMessages.MergeFilesDiscoverResponse({
                 id: req.id,
                 files: processed,
@@ -202,10 +205,10 @@ class ServiceMergeFiles implements IService {
         });
     }
 
-    private _discover(files: string[]): Promise<IDatetimeDiscoverFileResult[]> {
+    private _discover(files: string[]): Promise<IPCMessages.IMergeFilesDiscoverResult[]> {
         return new Promise((resolve, reject) => {
             const controller: MergeDiscover = new MergeDiscover(files);
-            controller.discover().then((processed: IDatetimeDiscoverFileResult[]) => {
+            controller.discover().then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
                 resolve(processed);
             }).catch((error: Error) => {
                 reject(error);

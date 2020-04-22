@@ -1,0 +1,20 @@
+<cdk-virtual-scroll-viewport *ngIf="_ng_preview.length > 0" class="preview" itemSize="16">
+    <p class="preview-row t-console" *cdkVirtualFor="let row of _ng_preview" [innerHTML]="row"></p>
+</cdk-virtual-scroll-viewport>
+
+<span class="slitter"></span>
+
+<mat-form-field class="format outline regular" appearance="outline">
+    <input  type="text" 
+            placeholder="Format: DD/MM/YYYY etc."
+            aria-label="Format"
+            [(ngModel)]="_ng_format"
+            (ngModelChange)="_ng_onFormatChange()"
+            matInput>
+</mat-form-field>
+
+<span class="slitter" *ngIf="_ng_state !== 'tested'"></span>
+
+<div class="controlls" *ngIf="_ng_state !== 'tested'">
+    <button mat-stroked-button color="primary" (click)="_ng_onApply()">Apply</button>
+</div>

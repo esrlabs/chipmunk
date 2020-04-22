@@ -4,171 +4,69 @@
 :host {
     position: relative;
     display: block;
-    padding: 0;
     margin: 0;
-    width: 100%;
-    & span.close-button{
-        position: absolute;
-        right: -7px;
-        top: 0;
-        z-index: 1;
+    margin-bottom: 3px;
+    background: @scheme-color-5;
+    border-radius: 3px;
+    padding: 0 6px;
+    cursor: default;
+    &.selected{
+        background: @scheme-color-4;
     }
-    p.file-name{
-        position: relative;
-        color: @scheme-color-2;
-        width: 100%;
+    p.info-wrapper{
+        display: flex;
+        flex-direction: row;
+        & span.path {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 8px;
+            flex: auto;
+        }
+        & span.size{
+            text-align: right;
+        }
+    }
+    p.pending{
+        display: flex;
+        flex-direction: row;
+        & span.path {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 8px;
+            padding-top: 10px;
+            direction: rtl;
+            flex: auto;
+        }
+        & span.spinner{
+            & mat-spinner {
+                margin: 6px;
+            }
+        }
+    }
+    p.format {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    & div.options-wrapper{
-        position: relative;
-        width: 100%;
-        & div.toggle {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 1rem;
-            height: 100%;
-            & span.toggle-button{
-                position: absolute;
-                right: 0;
-                top: 4px;
-                transition: all 100ms ease-in-out;
-                &.opened{
-                    transform: rotateZ(180deg);
-                }
-            }
+    p.range{
+        display: flex;
+        flex-direction: row;
+        & span.left {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 8px;
+            flex: auto;
         }
-        & div.options {
-            position: relative;
-            width: ~"calc(100% - 1rem)";
-            margin-left: 1rem;
-            & p.file-name{
-                padding: 2px 0 0 0;
-            }
-        }
-    }
-    & div.format-input-wrapper{
-        position: relative;
-        width: 100%;
-        & div.input-controlls{
-            position: absolute;
-            right: 0;
-            top: 0;
-            height: 100%;
-            & span.input-button{
-                position: relative;
-                display: inline-block;
-                color: @scheme-color-1;
-                &:hover{
-                    color: @scheme-color-0;
-                }
-            }
-        }
-        & span.extend-button{
-            display: inline-block;
-            position: absolute;
-            top:2px;
-            right: 8px;
-            color: @scheme-color-0;
-            cursor: pointer;
-            font-weight: 400;
-            &:hover{
-                border-bottom: dotted thin @scheme-color-0;
-                cursor: pointer;
-            }
-        }
-    }
-    & div.controlls{
-        position: relative;
-        width: 100%;
-        text-align: right;
-        & .small-button:last-child{
-            margin-right: 0;
-        }
-    }
-    & table.result {
-        & td.name {
-            color: @scheme-color-3;
-        }
-        & td.value {
-            color: @scheme-color-2;
-        }
-    }
-    & span.spliter{
-        position: relative;
-        display: block;
-        width: 100%;
-        height: 0.5rem;
-    }
-    & div.preview{
-
-        & ul.rows{
-            position: relative;
-            display: block;
-            width: 100%;
-            max-height: 7rem;
-            overflow: auto;
-            padding: 0;
-            margin: 0;
-            list-style: none;
-            cursor: default;
-            user-select: text;
-            & li{
-                display: block;
-                font-family: 'console', monospace;
-                font-size: 12px;
-                font-variant-numeric: tabular-nums;
-                padding: 0;
-                margin: 0;
-                list-style: none;;
-                line-height: 14px;
-                height: 14px;
-                max-height: 14px;
-                white-space: pre;
-                cursor: text;
-                user-select: text;
-                color: @scheme-color-1;
-                & span.match{
-                    background: @scheme-color-2;
-                    color: @scheme-color-5;
-                    font-weight: 600;
-                }
-            }
-        }
-    }
-    & div.warning{
-        position: relative;
-        & span.warning-icon{
-            position: absolute;
-            display: block;
-            width: 3rem;
-            top:0;
-            left: 0;
-            font-size: 1rem;
-            line-height: 1rem;
-            color: @scheme-color-warning;
-            text-align: left;
-        }
-        & ul.messages{
-            position: relative;
-            display: block;
-            width: ~"calc(100% - 2.5rem)";
-            max-height: 7rem;
-            overflow: auto;
-            padding: 0 0 0 2.5rem;
-            margin: 0;
-            list-style: none;
-            cursor: default;
-            user-select: text;
-            & li.message{
-                display: block;
-                padding: 0;
-                margin: 0;
-                list-style: none;
-                color: @scheme-color-warning;
-            }
+        & span.right {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: auto;
+            direction: rtl;
+            text-align: right;
         }
     }
 }

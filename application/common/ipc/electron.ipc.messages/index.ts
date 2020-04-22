@@ -238,8 +238,8 @@ export { FiltersFilesRecentResetRequest };
 import { IFiltersFilesRecentResetResponse, FiltersFilesRecentResetResponse } from './files.filters.recent.reset.response';
 export { IFiltersFilesRecentResetResponse, FiltersFilesRecentResetResponse };
 
-import { IMergeFilesRequest, MergeFilesRequest } from './merge.files.request';
-export { IMergeFilesRequest, MergeFilesRequest };
+import { IMergeFilesRequest, MergeFilesRequest, IFile as IMergeFilesRequestFile } from './merge.files.request';
+export { IMergeFilesRequest, MergeFilesRequest, IMergeFilesRequestFile };
 
 import { IMergeFilesResponse, MergeFilesResponse } from './merge.files.response';
 export { IMergeFilesResponse, MergeFilesResponse };

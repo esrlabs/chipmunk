@@ -1,0 +1,5 @@
+<ul>
+    <li *ngFor="let file of _ng_files" (click)="_ng_onSelect(file)">
+        <app-sidebar-app-files-item [file]="file" [select]="select.asObservable()" [controller]="controller"></app-sidebar-app-files-item>
+    </li>
+</ul>

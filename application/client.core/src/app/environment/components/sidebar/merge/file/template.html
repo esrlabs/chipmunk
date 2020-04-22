@@ -1,70 +1,21 @@
-<span class="close-button small-icon-button fas fa-times" (click)="_ng_onRemove()"></span>
-<div class="options-wrapper">
-    <div class="toggle">
-        <span   [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_isPreviewOpened() ? ' opened' : '')"
-                [attr.title]="_ng_previewButtonTitle"
-                (click)="_ng_onPreviewToggle()"></span>
-    </div>
-    <div class="options">
-        <p class="t-small file-name">{{name}} ({{(size / 1024 / 1024).toFixed(2)}} Mb)</p>
-        <div class="preview" *ngIf="_ng_isPreviewOpened()">
-            <span class="spliter"></span>
-            <ul class="rows">
-                <li class="row" *ngFor="let row of _ng_rows" [innerHTML]="row"></li>
-            </ul>
-        </div>
-    </div>
-</div>
-<span class="spliter"></span>
-<div class="options-wrapper">
-    <div class="toggle">
-        <span   [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_isMoreOpened() ? ' opened' : '')"
-                [attr.title]="_ng_moreButtonTitle"
-                (click)="_ng_onMore()"></span>
-    </div>
-    <div class="options">
-        <div class="format-input-wrapper">
-            <lib-primitive-input #formatinput 
-                                [type]="'text'" 
-                                [placeholder]="'example: YYYY-MM-DD hh:mm:ss.s'" 
-                                [validate]="_ng_onFormatValidate" 
-                                [onChange]="_ng_onFormatChange" 
-                                [disabled]="_ng_disabled"></lib-primitive-input>
-            <div class="input-controlls">
-                <span   *ngIf="_ng_format !== ''" 
-                        class="small-icon-button input-button fas fa-play"
-                        title="Will test your datetime format" 
-                        (click)="_ng_onTest()"></span>
-                <span   *ngIf="_ng_format !== ''" 
-                        class="small-icon-button input-button far fa-copy" 
-                        title="Will put this format to other file-fields" 
-                        (click)="_ng_onExtend()"></span>
-            </div>
-        </div>
-        <div *ngIf="_ng_isMoreOpened()">
-            <span class="spliter"></span>
-            <lib-primitive-dropdownlist [placeholder]="'define timezone'" [defaults]="''" [items]="_ng_zones" [onChange]="_ng_onZoneChange" [disabled]="_ng_disabled"></lib-primitive-dropdownlist>
-            <div *ngIf="_ng_offset !== undefined">
-                <span class="spliter"></span>
-                <lib-primitive-input #offsetinput [type]="'number'" [placeholder]="'offset in ms'" [validate]="_ng_onOffsetValidate" [onChange]="_ng_onOffsetChange" [disabled]="_ng_disabled"></lib-primitive-input>
-            </div>
-            <span class="spliter"></span>
-            <lib-primitive-input #yearinput [placeholder]="'Type year if missed'" [validate]="_ng_onYearValidate" [onChange]="_ng_onYearChange" [disabled]="_ng_disabled" [type]="'number'"></lib-primitive-input>
-        </div>
-        <span class="spliter" *ngIf="_ng_warnings.length > 0"></span>
-        <div class="warning" *ngIf="_ng_warnings.length > 0">
-            <span class="warning-icon fas fa-exclamation-triangle"></span>
-            <ul class="messages">
-                <li class="message t-normal" *ngFor="let warning of _ng_warnings">{{warning}}</li>
-            </ul>
-        </div>
-    </div>
+<div *ngIf="file.info !== undefined">
+    <p class="t-normal info-wrapper">
+        <span class="path">{{file.info.name}}</span>
+        <span class="size t-small">{{(file.info.size / 1024 / 1024).toFixed(2)}}Mb</span>
+    </p>
+    <p class="t-small range" *ngIf="file.min !== undefined && file.max !== undefined">
+        <span class="left">{{file.min}}</span>
+        <span class="middle"> - </span>
+        <span class="right">{{file.max}}</span>
+    </p>
+    <p class="t-small format">{{file.format.format}}</p>
 </div>
 
-<div class="test-results" *ngIf="_ng_testResults !== undefined">
-    <span class="spliter"></span>
-    <p *ngIf="_ng_testResults.error === undefined && _ng_testResults.found > 0" class="t-small">Found: {{_ng_testResults.found}} rows from {{_ng_testResults.readRows}}</p>
-    <p *ngIf="_ng_testResults.error === undefined && _ng_testResults.found === 0" class="t-small color-scheme-warning">Nothing found in {{_ng_testResults.readRows}} rows</p>
-    <p *ngIf="_ng_testResults.error !== undefined" class="error t-normal">Error: {{_ng_testResults.error}}</p>
+<div *ngIf="file.info === undefined">
+    <p class="t-normal pending">
+        <span class="path">{{file.path}}</span>
+        <span class="spinner">
+            <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
+        </span>
+    </p>
 </div>
-<span class="spliter"></span>

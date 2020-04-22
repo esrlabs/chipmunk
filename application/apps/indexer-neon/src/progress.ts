@@ -21,8 +21,8 @@ export interface INeonTransferChunk {
 export interface ITimestampFormatResult {
     path: string,
     format?: ITimestampFormat,
-    minTime?: string,
-    maxTime?: string,
+    min_time?: string,
+    max_time?: string,
 }
 export interface IConcatenatorResult {
     file_cnt: number,

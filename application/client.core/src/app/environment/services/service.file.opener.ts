@@ -1,16 +1,20 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
-import ServiceElectronIpc, { IPCMessages, Subscription } from './service.electron.ipc';
-import TabsSessionsService from './service.sessions.tabs';
-import SidebarSessionsService from './service.sessions.sidebar';
+import { IPCMessages, Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import LayoutStateService from './standalone/service.layout.state';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
-import PopupsService from './standalone/service.popups';
-import FileOptionsService from './service.file.options';
 import { CGuids } from '../states/state.default.sidebar.apps';
 import { Storage } from '../controller/helpers/virtualstorage';
+
+import LayoutStateService from './standalone/service.layout.state';
+import ServiceElectronIpc from './service.electron.ipc';
+import TabsSessionsService from './service.sessions.tabs';
+import SidebarSessionsService from './service.sessions.sidebar';
+import PopupsService from './standalone/service.popups';
+import FileOptionsService from './service.file.options';
+import MergeFilesService from './service.file.merge';
 
 export enum EActionType {
     concat = 'concat',
@@ -35,7 +39,6 @@ export interface IFileOpenerService {
     merge: (files: IFile[]) => void;
     concat: (files: IFile[]) => void;
     getObservable: () => {
-        onFilesToBeMerged: Observable<IFile[]>,
         onFilesToBeConcat: Observable<IFile[]>,
     };
     getPendingFiles: () => IFile[];
@@ -50,7 +53,6 @@ export class FileOpenerService implements IService, IFileOpenerService {
     private _pending: IFile[] = [];
     private _subscriptions: { [key: string]: Subscription } = {};
     private _subjects = {
-        onFilesToBeMerged: new Subject<IFile[]>(),
         onFilesToBeConcat: new Subject<IFile[]>(),
     };
 
@@ -162,11 +164,9 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     public getObservable(): {
-        onFilesToBeMerged: Observable<IFile[]>,
         onFilesToBeConcat: Observable<IFile[]>,
     } {
         return {
-            onFilesToBeMerged: this._subjects.onFilesToBeMerged.asObservable(),
             onFilesToBeConcat: this._subjects.onFilesToBeConcat.asObservable(),
         };
     }
@@ -182,20 +182,31 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     private _open(files: IFile[], action: EActionType) {
-        // Stored panding files
-        this._pending = files;
+        const active = TabsSessionsService.getActive();
+        if (active === undefined) {
+            return;
+        }
         const guid: string = CGuids[action];
         const exist: boolean = SidebarSessionsService.has(guid);
-        // Show sidebar
-        LayoutStateService.sidebarMax();
+        switch (action) {
+            case EActionType.merging:
+                MergeFilesService.add(files, active.getGuid());
+                break;
+            case EActionType.concat:
+                // Stored panding files
+                this._pending = files;
+                // Show sidebar
+                LayoutStateService.sidebarMax();
+                // Trigger event
+                this._subjects[CSubjects[guid].subject].next(this._pending.slice());
+                break;
+        }
         // Add or activate tab on sidebar
         if (!exist) {
             SidebarSessionsService.addByGuid(guid);
         } else {
             SidebarSessionsService.setActive(guid);
         }
-        // Trigger event
-        this._subjects[CSubjects[guid].subject].next(this._pending.slice());
     }
 
     private _setReopenCallback(

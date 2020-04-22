@@ -1,26 +1,56 @@
-<p class="caption t-normal">Select files to be merged.</p>
-<ul class="files">
-    <li class="file" *ngFor="let file of _ng_files">
-        <app-sidebar-app-files-item [file]="file.file" 
-                                    [name]="file.name"
-                                    [parser]="file.parser"
-                                    [size]="file.size"
-                                    [preview]="file.preview"
-                                    [defaultFormat]="file.defaultFormat"
-                                    [zones]="_zones"
-                                    [onExtendSub]="_ng_extendSub"
-                                    [onExtendObs]="_ng_extendObs"
-                                    [onUpdated]="_ng_onFileFieldUpdated.bind(this, file.file)"
-                                    [onTest]="_ng_onFileTest.bind(this, file.file)"
-                                    [onRemove]="_ng_onFileRemove.bind(this, file.file)"></app-sidebar-app-files-item>
-    </li>
-</ul>
-<div class="controlls" *ngIf="!_ng_busy">
-    <span class="small-button" (click)="_ng_onAddFile()">Add file</span>
-    <span *ngIf="_ng_files.length > 1" class="small-button" (click)="_ng_onTest()">Test All</span>
-    <span *ngIf="_ng_files.length > 0" class="small-button" (click)="_ng_onDetect()" title="Detect date format automatically">Detect</span>
-    <span *ngIf="_ng_files.length > 1" [attr.class]="'small-button ' + (_ng_warning !== undefined ? 'warning' : '')" (click)="_ng_onMerge()">{{_ng_mergeButtonTitle}}</span>
-</div>
-<div class="progress-testing" *ngIf="_ng_busy">
-    <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
-</div>
+<mat-expansion-panel
+    [disabled]="true"
+    [expanded]="true"
+    [hideToggle]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Files</mat-panel-title>
+    </mat-expansion-panel-header>
+    <app-sidebar-app-files-list
+        *ngIf="_ng_controller !== undefined"
+        [select]="_ng_select"
+        [controller]="_ng_controller">
+    </app-sidebar-app-files-list>
+</mat-expansion-panel>
+
+<span class="slitter" *ngIf="_ng_selected !== undefined"></span>
+
+<mat-expansion-panel
+    *ngIf="_ng_selected !== undefined"
+    [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Details</mat-panel-title>
+    </mat-expansion-panel-header>
+    <app-sidebar-app-files-details [file]="_ng_selected" [controller]="_ng_controller">
+    </app-sidebar-app-files-details>
+</mat-expansion-panel>
+
+<span class="slitter" *ngIf="_ng_selected !== undefined"></span>
+
+<mat-expansion-panel
+    *ngIf="_ng_selected !== undefined"
+    [expanded]="false">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Options</mat-panel-title>
+    </mat-expansion-panel-header>
+    <app-sidebar-app-files-options [file]="_ng_selected" [controller]="_ng_controller">
+    </app-sidebar-app-files-options>
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<mat-expansion-panel
+    [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Manage</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="controlls">
+        <button mat-stroked-button color="primary" (click)="_ng_onAdd()" [disabled]="_ng_disabled()">
+            <mat-spinner *ngIf="_ng_state === 'discover'" [diameter]="32" mode="indeterminate"></mat-spinner>
+            Add
+        </button>
+        <button mat-stroked-button color="primary" (click)="_ng_onMerge()" [disabled]="_ng_disabled()">
+            <mat-spinner *ngIf="_ng_state === 'merge'" [diameter]="32" mode="indeterminate"></mat-spinner>
+            Merge
+        </button>
+    </div>
+</mat-expansion-panel>

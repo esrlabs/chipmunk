@@ -131,6 +131,28 @@ input.mat-input-element.standard{
     }
 }
 
+& mat-form-field.outline-native{
+    & .mat-form-field-wrapper {
+        padding-bottom: 0!important;
+    }
+    & .mat-form-field-outline-start,
+    & .mat-form-field-outline-end,
+    & .mat-form-field-outline-gap{
+        border-width: 1px!important;
+        border-color: @scheme-color-4;
+    }
+    &.mat-focused{
+        & .mat-form-field-outline{
+            background: @scheme-color-5;
+        }
+        & .mat-form-field-outline-start,
+        & .mat-form-field-outline-end,
+        & .mat-form-field-outline-gap{
+            border-color: @scheme-color-2;
+        }
+    }
+}
+
 & mat-form-field.regular{
     margin: 0 4px;
     width: 100%;

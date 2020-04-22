@@ -1,0 +1,50 @@
+@import '../../../../theme/variables.less';
+
+
+app-sidebar-app-files-details {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    & cdk-virtual-scroll-viewport.preview{
+        position: relative;
+        height: 15rem;
+        width: 100%;
+        background: @scheme-color-5;
+        & p.preview-row{
+            position: relative;
+            height: 16px;
+            white-space: nowrap;
+            padding: 0 6px;
+            &:first-child{
+                padding-top: 6px;
+            }
+            & span.match{
+                background: @scheme-color-1;
+                color: @scheme-color-6;
+            }
+        }
+    }
+    & span.slitter{
+        position: relative;
+        display: block;
+        height: 8px;
+    }
+    & mat-form-field.format {
+        margin: 0!important;
+        & input {
+            padding-top: 6px!important;
+        }
+    }
+    & .controlls{
+        text-align: right;
+        white-space: nowrap;
+        & * {
+            margin-right: 8px;
+            &:last-child {
+                margin-right: 0;
+            }
+        }
+    }
+}

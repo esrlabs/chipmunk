@@ -46,7 +46,7 @@
     <p class="t-small" *ngIf="_ng_charts.length === 0">No charts stored</p>
 </mat-expansion-panel>
 
-<span class="slitter"></span>
+<span class="slitter" *ngIf="_ng_filter || _ng_chart"></span>
 
 <mat-expansion-panel *ngIf="_ng_filter || _ng_chart"
     [disabled]="true"

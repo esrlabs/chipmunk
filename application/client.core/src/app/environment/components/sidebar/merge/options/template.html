@@ -1,0 +1,20 @@
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Year (YYYY)</mat-label>
+    <input  type="text" 
+            [(ngModel)]="_ng_year"
+            (ngModelChange)="_ng_onYearChange()"
+            matTooltip="If you datetime stamp doesn't have definition for year, you can define missed year here."
+            matInput>
+</mat-form-field>
+
+<span class="slitter"></span>
+
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Offset in ms</mat-label>
+    <input  type="number" 
+            [(ngModel)]="_ng_offset"
+            (ngModelChange)="_ng_onOffsetChange()"
+            matTooltip="You can define time offset (ms). Each time entry will be moved to offset"
+            matInput>
+</mat-form-field>
+

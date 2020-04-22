@@ -12,59 +12,26 @@
     top: 0.5rem;
     overflow-y: auto;
     overflow-x: hidden;
-    & p.caption{
-        color: @scheme-color-2;
-    }
-    & p.error{
-        color: @scheme-color-error;
-    }
-    & p.report{
-        color: @scheme-color-3;
-    }
-    & p.warning{
-        color: @scheme-color-warning;
-    }
-    & ul.files{
+    & span.slitter{
         position: relative;
         display: block;
-        padding: 0;
-        margin: 0;
-        list-style: none;
-        height: calc(100% - 56px);
-        overflow-x: hidden;
-        overflow-y: auto;
-        box-shadow: 0 0 1rem rgba(0,0,0,0.4) inset;
-        border-top: 1px dotted @scheme-color-3;
-        border-bottom: 1px dotted @scheme-color-3;
-        & li.file{
-            position: relative;
-            display: block;
-            padding: 0.25rem 0;
-            margin: 0.25rem 0;
-            list-style: none;
-            border-bottom: thin dotted @scheme-color-4;
-            &:last-child{
-                border-bottom: none;
-            }
-        }
+        height: 8px;
     }
-    & div.controlls{
-        position: relative;
-        width: 100%;
+    & .controlls{
         text-align: right;
         white-space: nowrap;
-        & .small-button:last-child{
-            margin-right: 0;
+        & * {
+            margin-right: 8px;
+            &:last-child {
+                margin-right: 0;
+            }
         }
-        & .small-button.warning{
-            color: @scheme-color-warning;
+        & > button {
+            margin-left: 16px;
+            & mat-spinner{
+                display: inline-block;
+                margin-right: 8px;
+            }
         }
-    }
-    & div.progress-testing{
-        position: relative;
-        max-width: 3rem;
-        width: 100%;
-        margin: 0 auto;
-        height: 1rem;
     }
 }
