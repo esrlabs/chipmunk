@@ -8,6 +8,7 @@ import SidebarSessionsService from './service.sessions.sidebar';
 import TabsSessionsService from './service.sessions.tabs';
 import TabsCustomService from './service.custom.tabs';
 import FileOpenerService from './service.file.opener';
+import MergeFilesService from './service.file.merge';
 import HotkeysService from './service.hotkeys';
 import ConnectionsService from './service.connections';
 import LogsService from './service.logs';
@@ -18,17 +19,26 @@ import { setSharedServices } from './shared.services.sidebar';
 
 const InitializeStages = [
     // Stage #1
-    [ServiceElectronIpc],
+    [   ServiceElectronIpc],
     // Stage #2
-    [LogsService],
+    [   LogsService],
     // Stage #3
-    [PluginsService, SourcesService],
+    [   PluginsService,
+        SourcesService],
     // Stage #4
-    [PluginsIPCService],
+    [   PluginsIPCService],
     // Stage #5
-    [TabsSessionsService, TabsCustomService, ToolbarSessionsService, SidebarSessionsService, FileOptionsService, FileOpenerService, HotkeysService, ConnectionsService ],
+    [   TabsSessionsService,
+        TabsCustomService,
+        ToolbarSessionsService,
+        SidebarSessionsService,
+        FileOptionsService,
+        FileOpenerService,
+        MergeFilesService,
+        HotkeysService,
+        ConnectionsService ],
     // Stage #6
-    [TabSelectionParserService]
+    [   TabSelectionParserService]
 ];
 
 // TODO: Destroy method, even dummy
@@ -108,6 +118,7 @@ export class LoaderService {
             // Set services, which should be shared with sidebar apps
             setSharedServices({
                 FileOpenerService: FileOpenerService,
+                MergeFilesService: MergeFilesService,
             });
             resolve();
         });

@@ -1,16 +1,14 @@
 import { Subscription, Subject, Observable } from 'rxjs';
-import { IPCMessages } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import { NotificationsService, ENotificationType } from '../services.injectable/injectable.service.notifications';
 import { CommonInterfaces} from '../interfaces/interface.common';
-import { CancelablePromise } from 'chipmunk.client.toolkit';
 import { IFile } from './service.file.opener';
 import { ControllerFileMergeSession } from '../controller/controller.file.merge.session';
+import { CGuids } from '../states/state.default.sidebar.apps';
+import { IService } from '../interfaces/interface.service';
 
 import EventsSessionService from './standalone/service.events.session';
 import SessionsService from './service.sessions.tabs';
-import EventsHubService from './standalone/service.eventshub';
-import ElectronIpcService from './service.electron.ipc';
+import SidebarSessionsService from './service.sessions.sidebar';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -28,7 +26,12 @@ export interface IMergeFile {
     format: CommonInterfaces.Detect.ITimestampFormat;
 }
 
-class MergeFilesService {
+export interface IMergeFilesService {
+    add(files: IFile[], session: string): void;
+    getController(session?: string): ControllerFileMergeSession | undefined;
+}
+
+export class MergeFilesService implements IService, IMergeFilesService {
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('MergeFilesService');
@@ -37,6 +40,16 @@ class MergeFilesService {
     constructor() {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+    }
+
+    public init(): Promise<void> {
+        return new Promise((resolve) => {
+            resolve();
+        });
+    }
+
+    public getName(): string {
+        return 'MergeFilesService';
     }
 
     public add(files: IFile[], session: string) {
@@ -68,6 +81,7 @@ class MergeFilesService {
             return;
         }
         if (this._controllers.has(session.getGuid())) {
+            SidebarSessionsService.remove('merge');
             return;
         }
         this._controllers.set(session.getGuid(), new ControllerFileMergeSession(session.getGuid()));
