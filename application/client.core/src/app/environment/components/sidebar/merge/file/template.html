@@ -3,10 +3,10 @@
         <span class="path">{{file.info.name}}</span>
         <span class="size t-small">{{(file.info.size / 1024 / 1024).toFixed(2)}}Mb</span>
     </p>
-    <p class="t-small range" *ngIf="file.min !== undefined && file.max !== undefined">
-        <span class="left">{{file.min}}</span>
+    <p class="t-small range" *ngIf="file.scale !== undefined">
+        <span class="left">{{file.scale.min}}</span>
         <span class="middle"> - </span>
-        <span class="right">{{file.max}}</span>
+        <span class="right">{{file.scale.max}}</span>
     </p>
     <p class="t-small format">{{file.format.format}}</p>
 </div>

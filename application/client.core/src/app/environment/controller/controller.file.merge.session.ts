@@ -25,11 +25,17 @@ export interface IFileOptions {
     offset: number | undefined;
 }
 
+export interface ITimeScale {
+    min: string;
+    max: string;
+    sMin: number;
+    sMax: number;
+}
+
 export interface IMergeFile {
     path: string;
     info?: IFileInfo;
-    min?: string;
-    max?: string;
+    scale?: ITimeScale;
     format?: CommonInterfaces.Detect.ITimestampFormat;
     options: IFileOptions;
 }
@@ -40,6 +46,12 @@ export class ControllerFileMergeSession {
     private _session: string;
     private _tasks: Map<string, CancelablePromise<any, any, any, any>> = new Map();
     private _files: Map<string, IMergeFile> = new Map();
+    private _timescale: ITimeScale = {
+        max: '',
+        min: '',
+        sMax: 0,
+        sMin: 0,
+    };
     private _subjects: {
         FileUpdated: Subject<IMergeFile>,
         FilesUpdated: Subject<IMergeFile[]>,
@@ -113,8 +125,7 @@ export class ControllerFileMergeSession {
                             // TODO: discoveredFile.format could be NULL or UNDEFINED
                             this._files.set(discoveredFile.path, {
                                 format: discoveredFile.format,
-                                min: discoveredFile.minTime,
-                                max: discoveredFile.maxTime,
+                                scale: this._getTimeScale(discoveredFile),
                                 info: info,
                                 path: discoveredFile.path,
                                 options: {
@@ -131,6 +142,7 @@ export class ControllerFileMergeSession {
                         });
                     });
                 })).then(() => {
+                    this._updateTimeScale();
                     resolve();
                 }).catch((queueErr: Error) => {
                     this._logger.warn(`Fail to discover some of files due error: ${queueErr.message}`);
@@ -145,6 +157,7 @@ export class ControllerFileMergeSession {
 
     public remove(path: string) {
         this._files.delete(path);
+        this._updateTimeScale();
         this._subjects.FilesUpdated.next(Array.from(this._files.values()));
     }
 
@@ -153,6 +166,7 @@ export class ControllerFileMergeSession {
             return false;
         }
         this._files.set(path, file);
+        this._updateTimeScale();
         this._subjects.FileUpdated.next(file);
         return true;
     }
@@ -170,6 +184,7 @@ export class ControllerFileMergeSession {
 
     public drop() {
         this._files.clear();
+        this._updateTimeScale();
         this._subjects.FilesUpdated.next([]);
     }
 
@@ -207,6 +222,10 @@ export class ControllerFileMergeSession {
         });
         this._tasks.set(id, task);
         return task;
+    }
+
+    public getTimeScale(): ITimeScale {
+        return this._timescale;
     }
 
     private _discover(files: string[]): CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]> {
@@ -302,6 +321,49 @@ export class ControllerFileMergeSession {
         });
         this._tasks.set(id, task);
         return task;
+    }
+
+    private _getTimeScale(file: IPCMessages.IMergeFilesDiscoverResult): ITimeScale | undefined {
+        function getUnixTime(smth: number | string): number | undefined {
+            const date: Date = new Date(smth);
+            if (!(date instanceof Date)) {
+                return undefined;
+            }
+            const ts: number = date.getTime();
+            if (isNaN(ts) || !isFinite(ts)) {
+                return undefined;
+            }
+            return ts;
+        }
+        if (file.maxTime === undefined || file.minTime === undefined) {
+            return undefined;
+        }
+        const sMin: number | undefined = getUnixTime(file.minTime);
+        const sMax: number | undefined = getUnixTime(file.maxTime);
+        if (sMin === undefined || sMax === undefined) {
+            return undefined;
+        }
+        return {
+            max: file.maxTime,
+            min: file.minTime,
+            sMax: sMax,
+            sMin: sMin,
+        };
+    }
+
+    private _updateTimeScale() {
+        this._timescale = { max: '', min: '', sMax: 0, sMin: Infinity, };
+        this._files.forEach((file: IMergeFile) => {
+            if (file.scale === undefined) {
+                return;
+            }
+            if (file.scale.sMax > this._timescale.sMax) {
+                this._timescale.sMax = file.scale.sMax;
+            }
+            if (file.scale.sMin < this._timescale.sMin) {
+                this._timescale.sMin = file.scale.sMin;
+            }
+        });
     }
 
 }
