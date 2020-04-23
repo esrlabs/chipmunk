@@ -2,13 +2,13 @@
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use crate::merger::*;
+    use crossbeam_channel as cc;
+    use indexer_base::chunks::ChunkResults;
+    use indexer_base::progress::{IndexingProgress, Notification};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;
     use tempdir::TempDir;
-    use indexer_base::chunks::ChunkResults;
-    use indexer_base::progress::{IndexingProgress, Notification};
-    use crossbeam_channel as cc;
     extern crate log;
 
     use log::LevelFilter;
