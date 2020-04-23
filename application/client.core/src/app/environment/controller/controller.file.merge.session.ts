@@ -3,12 +3,10 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { CommonInterfaces} from '../interfaces/interface.common';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
-import { CGuids } from '../states/state.default.sidebar.apps';
 
 import SessionsService from '../services/service.sessions.tabs';
 import EventsHubService from '../services/standalone/service.eventshub';
 import ElectronIpcService from '../services/service.electron.ipc';
-import SidebarSessionsService from '../services/service.sessions.sidebar';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -220,7 +218,6 @@ export class ControllerFileMergeSession {
                     this._logger.error(`Merge operation was failed due error: ${response.error}`);
                     return reject(new Error(response.error));
                 }
-                SidebarSessionsService.remove(CGuids.merging);
                 resolve();
             }).catch((mergeErr: Error) => {
                 this._logger.error(`Fail to do merge due error: ${mergeErr.message}`);

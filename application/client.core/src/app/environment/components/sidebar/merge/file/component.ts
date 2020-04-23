@@ -7,8 +7,6 @@ import { ControllerFileMergeSession, IMergeFile, ITimeScale, EViewMode } from '.
 
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 
-import * as Toolkit from 'chipmunk.client.toolkit';
-
 const CPadding = 12;
 
 @Component({

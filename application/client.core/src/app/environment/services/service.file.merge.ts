@@ -3,8 +3,8 @@ import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { CommonInterfaces} from '../interfaces/interface.common';
 import { IFile } from './service.file.opener';
 import { ControllerFileMergeSession } from '../controller/controller.file.merge.session';
-import { CGuids } from '../states/state.default.sidebar.apps';
 import { IService } from '../interfaces/interface.service';
+import { CGuids } from '../states/state.default.sidebar.apps';
 
 import EventsSessionService from './standalone/service.events.session';
 import SessionsService from './service.sessions.tabs';
@@ -29,6 +29,7 @@ export interface IMergeFile {
 export interface IMergeFilesService {
     add(files: IFile[], session: string): void;
     getController(session?: string): ControllerFileMergeSession | undefined;
+    closeSidebarView(): void;
 }
 
 export class MergeFilesService implements IService, IMergeFilesService {
@@ -76,12 +77,15 @@ export class MergeFilesService implements IService, IMergeFilesService {
         return this._controllers.get(session);
     }
 
+    public closeSidebarView() {
+        SidebarSessionsService.remove(CGuids.merging);
+    }
+
     private _onSessionChange(session: ControllerSessionTab | undefined) {
         if (session === undefined) {
             return;
         }
         if (this._controllers.has(session.getGuid())) {
-            SidebarSessionsService.remove('merge');
             return;
         }
         this._controllers.set(session.getGuid(), new ControllerFileMergeSession(session.getGuid()));
