@@ -4,7 +4,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, ViewChild, AfterContentInit, AfterViewInit, OnChanges, SimpleChanges, ViewContainerRef } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ControllerFileMergeSession, IMergeFile } from '../../../../controller/controller.file.merge.session';
+import { ControllerFileMergeSession, IMergeFile, EViewMode } from '../../../../controller/controller.file.merge.session';
 
 @Component({
     selector: 'app-sidebar-app-files-list',
@@ -16,6 +16,8 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
 
     @Input() public controller: ControllerFileMergeSession;
     @Input() public select: Subject<IMergeFile>;
+    @Input() public viewMode: EViewMode;
+    @Input() public timeLineVisibility: boolean;
 
     public _ng_files: IMergeFile[] = [];
     public _ng_width: number = 0;
@@ -41,12 +43,12 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
     }
 
     public ngOnChanges(changes: SimpleChanges) {
-        if (changes.controller === undefined) {
-            return;
+        if (changes.controller !== undefined) {
+            this._subscribe(changes.controller.currentValue);
         }
-        this._subscribe(changes.controller.currentValue);
-        if (changes.controller.previousValue !== undefined && changes.controller.previousValue.getGuid() === this.controller.getGuid()) {
-            return;
+        if ((changes.viewMode !== undefined && changes.viewMode.previousValue !== changes.viewMode.currentValue) ||
+            (changes.timeLineVisibility !== undefined && changes.timeLineVisibility.previousValue !== changes.timeLineVisibility.currentValue)) {
+            this._forceUpdate();
         }
     }
 

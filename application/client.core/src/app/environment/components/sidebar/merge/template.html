@@ -7,6 +7,8 @@
     </mat-expansion-panel-header>
     <app-sidebar-app-files-list
         *ngIf="_ng_controller !== undefined"
+        [viewMode]="_ng_viewMode"
+        [timeLineVisibility]="_ng_timeLineVisibility"
         [select]="_ng_select"
         [controller]="_ng_controller">
     </app-sidebar-app-files-list>

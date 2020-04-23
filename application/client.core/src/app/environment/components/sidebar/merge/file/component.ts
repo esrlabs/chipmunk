@@ -3,7 +3,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, HostBinding, HostListener, AfterContentInit, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import { ControllerFileMergeSession, IMergeFile, ITimeScale } from '../../../../controller/controller.file.merge.session';
+import { ControllerFileMergeSession, IMergeFile, ITimeScale, EViewMode } from '../../../../controller/controller.file.merge.session';
 
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 
@@ -23,6 +23,8 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     @Input() public select: Observable<IMergeFile>;
     @Input() public controller: ControllerFileMergeSession;
     @Input() public width: number;
+    @Input() public viewMode: EViewMode;
+    @Input() public timeLineVisibility: boolean;
 
     @HostBinding('class.selected') get cssClassSelected() {
         return this._selected;
@@ -93,7 +95,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public _ng_isScaleVisible(): boolean {
-        return this._scale.left !== -1;
+        return this._scale.left !== -1 && this.timeLineVisibility;
     }
 
     public _ng_getScaleStyle(): { [key: string]: string | number } {

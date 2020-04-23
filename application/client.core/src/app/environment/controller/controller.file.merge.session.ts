@@ -40,6 +40,11 @@ export interface IMergeFile {
     options: IFileOptions;
 }
 
+export enum EViewMode {
+    min = 'min',
+    max = 'max',
+}
+
 export class ControllerFileMergeSession {
 
     private _logger: Toolkit.Logger;
