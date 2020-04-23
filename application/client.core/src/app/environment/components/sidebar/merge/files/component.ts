@@ -2,8 +2,7 @@
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, ViewChild, AfterContentInit, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
+import { Component, OnDestroy, ChangeDetectorRef, Input, ViewChild, AfterContentInit, AfterViewInit, OnChanges, SimpleChanges, ViewContainerRef } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerFileMergeSession, IMergeFile } from '../../../../controller/controller.file.merge.session';
 
@@ -19,12 +18,15 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
     @Input() public select: Subject<IMergeFile>;
 
     public _ng_files: IMergeFile[] = [];
+    public _ng_width: number = 0;
 
     private _lastSelectedFilePath: string | undefined;
+    private _resizeObserver: ResizeObserver;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef) {
+    constructor(private _vcRef: ViewContainerRef,
+                private _cdRef: ChangeDetectorRef) {
     }
 
     public ngAfterContentInit() {
@@ -33,6 +35,9 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
     public ngAfterViewInit() {
         this._subscribe(this.controller);
         this._ng_files = this.controller.getFiles();
+        this._resizeObserver = new ResizeObserver(this._updateWidth.bind(this));
+        this._resizeObserver.observe(this._vcRef.element.nativeElement);
+        this._updateWidth();
     }
 
     public ngOnChanges(changes: SimpleChanges) {
@@ -47,6 +52,7 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
 
     public ngOnDestroy() {
         this._destroyed = true;
+        this._resizeObserver.disconnect();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -60,6 +66,14 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
             this._lastSelectedFilePath = file.path;
             this.select.next(file);
         }
+    }
+
+    private _updateWidth() {
+        if (this._vcRef === undefined || this._vcRef.element.nativeElement === undefined) {
+            return;
+        }
+        this._ng_width = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect().width;
+        this._forceUpdate();
     }
 
     private _subscribe(controller: ControllerFileMergeSession | undefined) {

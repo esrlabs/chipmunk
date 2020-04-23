@@ -55,9 +55,11 @@ export class ControllerFileMergeSession {
     private _subjects: {
         FileUpdated: Subject<IMergeFile>,
         FilesUpdated: Subject<IMergeFile[]>,
+        ScaleUpdated: Subject<ITimeScale>,
     } = {
         FileUpdated: new Subject<IMergeFile>(),
         FilesUpdated: new Subject<IMergeFile[]>(),
+        ScaleUpdated: new Subject<ITimeScale>(),
     };
 
     constructor(session: string) {
@@ -97,10 +99,12 @@ export class ControllerFileMergeSession {
     public getObservable(): {
         FileUpdated: Observable<IMergeFile>,
         FilesUpdated: Observable<IMergeFile[]>,
+        ScaleUpdated: Observable<ITimeScale>,
     } {
         return {
             FileUpdated: this._subjects.FileUpdated.asObservable(),
             FilesUpdated: this._subjects.FilesUpdated.asObservable(),
+            ScaleUpdated: this._subjects.ScaleUpdated.asObservable(),
         };
     }
 
@@ -226,6 +230,10 @@ export class ControllerFileMergeSession {
 
     public getTimeScale(): ITimeScale {
         return this._timescale;
+    }
+
+    public isTimeScaleValid(): boolean {
+        return this._timescale.max !== '' && this._timescale.min !== '';
     }
 
     private _discover(files: string[]): CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]> {
@@ -359,11 +367,14 @@ export class ControllerFileMergeSession {
             }
             if (file.scale.sMax > this._timescale.sMax) {
                 this._timescale.sMax = file.scale.sMax;
+                this._timescale.max = file.scale.max;
             }
             if (file.scale.sMin < this._timescale.sMin) {
                 this._timescale.sMin = file.scale.sMin;
+                this._timescale.min = file.scale.min;
             }
         });
+        this._subjects.ScaleUpdated.next(this._timescale);
     }
 
 }

@@ -7,6 +7,7 @@
         <span class="left">{{file.scale.min}}</span>
         <span class="middle"> - </span>
         <span class="right">{{file.scale.max}}</span>
+        <span class="scale" *ngIf="_ng_isScaleVisible()" [ngStyle]="_ng_getScaleStyle()"></span>
     </p>
     <p class="t-small format">{{file.format.format}}</p>
 </div>

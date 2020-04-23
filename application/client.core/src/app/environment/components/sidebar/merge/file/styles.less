@@ -53,6 +53,7 @@
     p.range{
         display: flex;
         flex-direction: row;
+        position: relative;
         & span.left {
             white-space: nowrap;
             overflow: hidden;
@@ -67,5 +68,12 @@
             flex: auto;
             text-align: right;
         }
+    }
+    span.scale{
+        position: absolute;
+        display: block;
+        top:0;
+        height: 100%;
+        background: fade(@scheme-color-accent, 20%);
     }
 }

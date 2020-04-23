@@ -21,6 +21,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSliderModule } from '@angular/material/slider';
 import { MarkdownModule } from 'ngx-markdown';
 
+import * as globals from './environment/controller/helpers/globals';
+
 export function createCompiler(fn: CompilerFactory): Compiler {
     return fn.createCompiler();
 }

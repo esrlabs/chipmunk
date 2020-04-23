@@ -1,14 +1,15 @@
 // tslint:disable: member-ordering
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, HostBinding, HostListener, AfterContentInit, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import { ControllerFileMergeSession, IMergeFile } from '../../../../controller/controller.file.merge.session';
+import { ControllerFileMergeSession, IMergeFile, ITimeScale } from '../../../../controller/controller.file.merge.session';
 
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+const CPadding = 12;
 
 @Component({
     selector: 'app-sidebar-app-files-item',
@@ -21,7 +22,7 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     @Input() public file: IMergeFile;
     @Input() public select: Observable<IMergeFile>;
     @Input() public controller: ControllerFileMergeSession;
-
+    @Input() public width: number;
 
     @HostBinding('class.selected') get cssClassSelected() {
         return this._selected;
@@ -55,15 +56,26 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     private _selected: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _scale: {
+        left: number;
+        width: number;
+        fWidth: number;
+    } = {
+        left: -1,
+        width: -1,
+        fWidth: -1,
+    };
 
-    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     public ngAfterContentInit() {
         this._subscriptions.select = this.select.subscribe(this._onSelected.bind(this));
+        this._subscriptions.ScaleUpdated = this.controller.getObservable().ScaleUpdated.subscribe(this._updateScale.bind(this));
     }
 
     public ngAfterViewInit() {
+        this._updateScale();
     }
 
     public ngOnDestroy() {
@@ -74,10 +86,24 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
     }
 
     public ngOnChanges(changes: SimpleChanges) {
-        if (changes.file === undefined) {
+        if (changes.file === undefined && changes.width === undefined) {
             return;
         }
-        this._forceUpdate();
+        this._updateScale();
+    }
+
+    public _ng_isScaleVisible(): boolean {
+        return this._scale.left !== -1;
+    }
+
+    public _ng_getScaleStyle(): { [key: string]: string | number } {
+        if (!this._ng_isScaleVisible()) {
+            return {};
+        }
+        return {
+            left: this._scale.left + 'px',
+            width: this._scale.width + 'px',
+        };
     }
 
     private _onSelected(file: IMergeFile | undefined) {
@@ -86,6 +112,19 @@ export class SidebarAppMergeFilesItemComponent implements OnDestroy, AfterConten
             this._selected = selected;
             this._forceUpdate();
         }
+    }
+
+    private _updateScale() {
+        this._scale.left = -1;
+        this._scale.width = -1;
+        if (!this.controller.isTimeScaleValid() || this.file.scale === undefined) {
+            return;
+        }
+        const scale: ITimeScale = this.controller.getTimeScale();
+        const rate: number = (this.width - CPadding) / (scale.sMax - scale.sMin);
+        this._scale.width = (this.file.scale.sMax - this.file.scale.sMin) * rate;
+        this._scale.left = (this.file.scale.sMin - scale.sMin) * rate;
+        this._forceUpdate();
     }
 
     private _forceUpdate() {
