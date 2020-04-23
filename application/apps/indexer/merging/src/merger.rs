@@ -10,11 +10,12 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crossbeam_channel as cc;
-use failure::err_msg;
+use failure::{err_msg, Error};
 use indexer_base::chunks::ChunkFactory;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::error_reporter::*;
 use indexer_base::progress::IndexingProgress;
+use indexer_base::progress::ProgressReporter;
 use indexer_base::timedline::*;
 use indexer_base::utils;
 use processor::parse::{line_to_timed_line, lookup_regex_for_format_str};
@@ -24,7 +25,7 @@ use std::collections::BinaryHeap;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::iter::{Iterator, Peekable};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MergeItemOptions {
@@ -160,110 +161,152 @@ pub fn merge_files_use_config_file(
         shutdown_rx,
     )
 }
-#[allow(dead_code)]
-pub fn merge_and_sort_files(
-    merger_inputs: Vec<MergerInput>,
-    out_path: &PathBuf,
-    append: bool,
-    chunk_size: usize, // used for mapping line numbers to byte positions
-) -> Result<(), failure::Error> {
-    let mut heap: BinaryHeap<TimedLine> = BinaryHeap::new();
-    let mut line_nr = 0;
-    let out_file: std::fs::File = if append {
-        std::fs::OpenOptions::new().append(true).open(out_path)?
-    } else {
-        std::fs::File::create(&out_path)?
-    };
-    let original_file_size = out_file.metadata()?.len() as usize;
-    let mut chunks = vec![];
-    let mut chunk_factory = ChunkFactory::new(chunk_size, original_file_size);
-    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-    let mut lines_with_year_missing = 0usize;
-    let mut lines_where_we_reuse_previous_date = 0usize;
-    let mut reporter: Reporter = Default::default();
 
-    for input in merger_inputs {
-        // let kind: RegexKind = detect_timestamp_regex(&input.path)?;
-        // let r: &Regex = &REGEX_REGISTRY[&kind];
-        let r = lookup_regex_for_format_str(&input.format)?;
-        let f: fs::File = fs::File::open(input.path)?;
-        let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
-        let mut buf = vec![];
-        let mut last_timestamp: i64 = 0;
-        while let Ok(len) = reader.read_until(b'\n', &mut buf) {
-            if len == 0 {
-                // no more content
-                break;
-            };
-            let s = unsafe { std::str::from_utf8_unchecked(&buf) };
-            let trimmed_line = s.trim_matches(utils::is_newline);
-            let alt_tag = input.tag.clone();
-            let timed_line = line_to_timed_line(
-                trimmed_line,
-                len,
-                &input.tag[..],
-                &r,
-                input.year,
-                input.offset,
-                line_nr,
-                &mut reporter,
-            )
-            .unwrap_or_else(|_| {
-                lines_where_we_reuse_previous_date += 1;
-                TimedLine {
-                    content: trimmed_line.to_string(),
-                    tag: alt_tag.to_string(),
-                    timestamp: last_timestamp,
-                    original_length: len,
-                    year_was_missing: false,
-                    line_nr,
-                }
-            });
-            if timed_line.year_was_missing {
-                lines_with_year_missing += 1
-            }
-            last_timestamp = timed_line.timestamp;
-            heap.push(timed_line);
-            buf = vec![];
-        }
-    }
-    if lines_with_year_missing > 0 {
-        report_warning(format!(
-            "year was missing for {} lines",
-            lines_with_year_missing
-        ));
-    }
-    if lines_where_we_reuse_previous_date > 0 {
-        report_warning(format!(
-            "could not determine date for {} lines",
-            lines_where_we_reuse_previous_date
-        ));
-    }
-    let sorted = heap.into_sorted_vec();
-    for t in sorted {
-        let additional_bytes = utils::write_tagged_line(
-            &t.tag[..],
-            &mut buf_writer,
-            &t.content[..],
+#[allow(dead_code)]
+pub fn do_the_merge(
+    append: bool,
+    out_path: &Path,
+    chunk_size: usize,
+    source_tag: String,
+    merger_inputs: Vec<MergerInput>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_rx: Option<&cc::Receiver<()>>,
+) -> Result<(), Error> {
+    let paths = merger_inputs
+        .iter()
+        .map(|i| i.path.clone())
+        .collect::<Vec<PathBuf>>();
+
+    let writer = IndexOutput::new(
+        append,
+        out_path,
+        chunk_size,
+        source_tag,
+        combined_file_size(&paths)?,
+        update_channel.clone(),
+    )?;
+    merge_files(&writer, merger_inputs, update_channel, shutdown_rx)
+}
+
+pub fn merge_files(
+    writer: &IndexOutput,
+    merger_inputs: Vec<MergerInput>,
+    update_channel: cc::Sender<ChunkResults>,
+    shutdown_rx: Option<&cc::Receiver<()>>,
+) -> Result<(), failure::Error> {
+    let mut lines_with_year_missing = 0usize;
+    let mut stopped = false;
+    // create a peekable iterator for all file inputs
+    let mut readers: Vec<Peekable<TimedLineIter<fs::File>>> = merger_inputs
+        .iter()
+        .map(|input| {
+            fs::File::open(&input.path)
+                .map_err(failure::Error::from)
+                .and_then(|f| {
+                    let r: Regex = lookup_regex_for_format_str(&input.format)?;
+                    Ok(TimedLineIter::new(
+                        f,
+                        input.tag.as_str(),
+                        r,
+                        input.year,
+                        input.offset,
+                        writer.line_nr,
+                    )
+                    .peekable())
+                })
+        })
+        .filter_map(Result::ok) // TODO better error handling
+        .collect();
+    Ok(())
+}
+pub struct IndexOutput {
+    line_nr: usize,
+    chunk_size: usize, // used for mapping line numbers to byte positions
+    update_channel: cc::Sender<ChunkResults>,
+    chunk_count: usize,
+    chunk_factory: ChunkFactory,
+    buf_writer: BufWriter<std::fs::File>,
+    source_tag: String,
+    processed_bytes: usize,
+    progress_reporter: ProgressReporter,
+}
+
+fn combined_file_size(paths: &[PathBuf]) -> Result<u64, Error> {
+    paths
+        .iter()
+        .try_fold(0, |acc, path| match fs::metadata(&path) {
+            Ok(metadata) => Ok(acc + metadata.len()),
+            Err(e) => Err(err_msg(format!(
+                "error getting size of file {:?} ({})",
+                path, e
+            ))),
+        })
+}
+
+impl IndexOutput {
+    fn new(
+        append: bool,
+        out_path: &Path,
+        chunk_size: usize,
+        source_tag: String,
+        combined_size: u64,
+        update_channel: cc::Sender<ChunkResults>,
+    ) -> Result<Self, Error> {
+        let out_file: std::fs::File = if append {
+            std::fs::OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(out_path)?
+        } else {
+            std::fs::File::create(&out_path)?
+        };
+        let line_nr = if append {
+            utils::next_line_nr(&out_path)?
+        } else {
+            0
+        };
+        let original_file_size = out_file.metadata()?.len() as usize;
+        let buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
+
+        let progress_reporter =
+            ProgressReporter::new(combined_size as usize, update_channel.clone());
+        Ok(IndexOutput {
             line_nr,
+            chunk_size,
+            update_channel,
+            chunk_factory: ChunkFactory::new(chunk_size, original_file_size),
+            chunk_count: 0usize,
+            buf_writer,
+            source_tag,
+            processed_bytes: 0,
+            progress_reporter,
+        })
+    }
+
+    fn write(&mut self, content: &str, original_len: usize) -> Result<(), Error> {
+        let additional_bytes = utils::write_tagged_line(
+            &self.source_tag,
+            &mut self.buf_writer,
+            &content,
+            self.line_nr,
             true,
             None,
         )?;
-        line_nr += 1;
-        if let Some(chunk) = chunk_factory.add_bytes(
-            line_nr, // TODO avoid passing in this line...error prone
+        self.line_nr += 1;
+        self.processed_bytes += original_len;
+        self.progress_reporter.make_progress(original_len);
+        if let Some(chunk) = self.chunk_factory.add_bytes(
+            self.line_nr, // TODO avoid passing in this line...error prone
             additional_bytes,
         ) {
-            chunks.push(chunk)
+            self.chunk_count += 1;
+            self.buf_writer.flush()?;
+            self.update_channel
+                .send(Ok(IndexingProgress::GotItem { item: chunk }))?;
         }
+        Ok(())
     }
-    buf_writer.flush()?;
-    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunks.is_empty()) {
-        chunks.push(chunk);
-    }
-    Ok(())
 }
-
 #[allow(clippy::too_many_arguments)]
 pub fn merge_files_iter(
     append: bool,
