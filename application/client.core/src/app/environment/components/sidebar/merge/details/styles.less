@@ -49,4 +49,24 @@ app-sidebar-app-files-details {
     & p.format{
         padding-left: 5px;
     }
+    p.range{
+        display: flex;
+        flex-direction: row;
+        position: relative;
+        padding: 0 3px;
+        & span.left {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 8px;
+            flex: auto;
+        }
+        & span.right {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: auto;
+            text-align: right;
+        }
+    }
 }

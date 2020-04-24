@@ -7,6 +7,14 @@
     <p class="t-normal format" [innerHTML]="_ng_getFormatStr()"></p>
 </div>
 
+<span class="slitter" *ngIf="file.scale !== undefined"></span>
+
+<p class="t-small range" *ngIf="file.scale !== undefined">
+    <span class="left">{{file.scale.min}}</span>
+    <span class="middle"> - </span>
+    <span class="right">{{file.scale.max}}</span>
+</p>
+
 <span class="slitter"></span>
 
 <mat-form-field class="outline-native" appearance="outline">
