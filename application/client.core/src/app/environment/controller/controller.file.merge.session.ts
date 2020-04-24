@@ -30,11 +30,18 @@ export interface ITimeScale {
     sMax: number;
 }
 
+export interface ITimestampFormat {
+    format: string;
+    regex: string;
+    flags: string[];
+}
+
 export interface IMergeFile {
     path: string;
     info?: IFileInfo;
     scale?: ITimeScale;
-    format?: CommonInterfaces.Detect.ITimestampFormat;
+    format?: ITimestampFormat;
+    error?: string;
     options: IFileOptions;
 }
 
@@ -112,6 +119,21 @@ export class ControllerFileMergeSession {
     }
 
     public add(files: string[]): Promise<void> {
+        function getTimestamp(file: IPCMessages.IMergeFilesDiscoverResult): ITimestampFormat | undefined {
+            if (file.format === undefined) {
+                return undefined;
+            }
+            if (file.format.Ok === undefined) {
+                return undefined;
+            }
+            return { regex: file.format.Ok.regex, format: file.format.Ok.formatstring, flags: file.format.Ok.flags };
+        }
+        function getErr(file: IPCMessages.IMergeFilesDiscoverResult): string | undefined {
+            if (file.format === undefined) {
+                return undefined;
+            }
+            return file.format.Err;
+        }
         return new Promise((resolve, reject) => {
             files.forEach((file: string) => {
                 this._files.set(file, {
@@ -131,7 +153,8 @@ export class ControllerFileMergeSession {
                         this._getFileInfo(discoveredFile.path).then((info: IFileInfo) => {
                             // TODO: discoveredFile.format could be NULL or UNDEFINED
                             this._files.set(discoveredFile.path, {
-                                format: discoveredFile.format,
+                                format: getTimestamp(discoveredFile),
+                                error: getErr(discoveredFile),
                                 scale: this._getTimeScale(discoveredFile),
                                 info: info,
                                 path: discoveredFile.path,
