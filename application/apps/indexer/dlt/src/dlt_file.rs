@@ -9,16 +9,15 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use crate::dlt::Message;
-use crate::dlt_parse::forward_to_next_storage_header;
-use crate::dlt_parse::skip_storage_header;
-use crate::dlt_parse::{
-    dlt_message, DltParseError, ParsedMessage, DLT_MIN_BUFFER_SPACE, DLT_PATTERN_SIZE,
-    DLT_READER_CAPACITY,
+use crate::{
+    dlt::Message,
+    dlt_parse::{
+        dlt_message, forward_to_next_storage_header, skip_storage_header, DltParseError,
+        ParsedMessage, DLT_MIN_BUFFER_SPACE, DLT_PATTERN_SIZE, DLT_READER_CAPACITY,
+    },
+    filtering,
 };
-use crate::filtering;
-use buf_redux::policy::MinBuffered;
-use buf_redux::BufReader as ReduxReader;
+use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
 use failure::{err_msg, Error};
@@ -29,10 +28,12 @@ use indexer_base::{
     progress::*,
     utils,
 };
-use std::fs;
-use std::io::{BufRead, BufWriter, Write};
-use std::path::PathBuf;
-use std::rc::Rc;
+use std::{
+    fs,
+    io::{BufRead, BufWriter, Write},
+    path::PathBuf,
+    rc::Rc,
+};
 
 use crate::fibex::FibexMetadata;
 
@@ -413,8 +414,7 @@ pub fn export_as_dlt_file(
     sections: SectionConfig,
     update_channel: cc::Sender<ChunkResults>,
 ) -> Result<(), Error> {
-    use std::io::Read;
-    use std::io::Seek;
+    use std::io::{Read, Seek};
     trace!(
         "export_as_dlt_file {:?} to file: {:?}, exporting {:?}",
         dlt_file_path,

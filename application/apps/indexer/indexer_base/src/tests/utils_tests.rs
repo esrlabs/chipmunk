@@ -2,9 +2,9 @@
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;
-    use tempdir::TempDir;
     use crate::utils::*;
     use std::fs;
+    use tempdir::TempDir;
 
     #[test]
     fn test_line_nr() {

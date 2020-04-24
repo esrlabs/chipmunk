@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
     use crate::fibex::read_fibexes;
+    use std::path::PathBuf;
     #[test]
     fn test_fibex_parsing() {
         let fibex = read_fibexes(vec![

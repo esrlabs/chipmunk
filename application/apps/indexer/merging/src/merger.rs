@@ -11,20 +11,22 @@
 // from E.S.R.Labs.
 use crossbeam_channel as cc;
 use failure::{err_msg, Error};
-use indexer_base::chunks::ChunkFactory;
-use indexer_base::chunks::{Chunk, ChunkResults};
-use indexer_base::error_reporter::*;
-use indexer_base::progress::IndexingProgress;
-use indexer_base::progress::ProgressReporter;
-use indexer_base::timedline::*;
-use indexer_base::utils;
+use indexer_base::{
+    chunks::{Chunk, ChunkFactory, ChunkResults},
+    error_reporter::*,
+    progress::{IndexingProgress, ProgressReporter},
+    timedline::*,
+    utils,
+};
 use processor::parse::{line_to_timed_line, lookup_regex_for_format_str};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
-use std::iter::{Iterator, Peekable};
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    io::{BufRead, BufReader, BufWriter, Read, Write},
+    iter::{Iterator, Peekable},
+    path::{Path, PathBuf},
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MergeItemOptions {

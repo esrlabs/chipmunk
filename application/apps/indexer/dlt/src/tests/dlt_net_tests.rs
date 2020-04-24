@@ -1,9 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use crate::dlt::Message;
-    use crate::dlt_net::*;
-    use crate::dlt_parse::DltParseError;
+    use crate::{dlt::Message, dlt_net::*, dlt_parse::DltParseError};
     use async_std::net::UdpSocket;
     use crossbeam_channel as cc;
     use futures::stream::StreamExt;

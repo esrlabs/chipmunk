@@ -12,27 +12,30 @@
 use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, Utc};
 use crossbeam_channel as cc;
 use failure::{err_msg, Error};
-use indexer_base::error_reporter::*;
-use indexer_base::progress::Severity;
-use indexer_base::progress::*;
-use indexer_base::timedline::TimedLine;
+use indexer_base::{
+    error_reporter::*,
+    progress::{Severity, *},
+    timedline::TimedLine,
+};
 
-use nom::bytes::complete::tag;
-use nom::bytes::complete::take;
-use nom::character::complete::{char, digit1};
-use nom::combinator::{map, map_res, opt};
-use nom::multi::{fold_many0, many1};
-use nom::IResult;
+use nom::{
+    bytes::complete::{tag, take},
+    character::complete::{char, digit1},
+    combinator::{map, map_res, opt},
+    multi::{fold_many0, many1},
+    IResult,
+};
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use std::borrow::Cow;
-use std::collections::BTreeMap;
-use std::fs;
-use std::io::Seek;
-use std::io::{BufRead, BufReader, Read};
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    collections::BTreeMap,
+    fs,
+    io::{BufRead, BufReader, Read, Seek},
+    path::{Path, PathBuf},
+};
 
 const MAX_LINES_TO_INSPECT: usize = 100_000;
 const LINE_DETECTION_THRESHOLD: usize = 5;

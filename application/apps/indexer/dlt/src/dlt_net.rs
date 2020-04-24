@@ -1,23 +1,26 @@
 extern crate dirs;
-use crate::dlt::*;
-use crate::dlt_file::create_dlt_session_file;
-use crate::dlt_parse::dlt_message;
-use crate::dlt_parse::*;
-use crate::fibex::FibexMetadata;
-use crate::filtering;
+use crate::{
+    dlt::*,
+    dlt_file::create_dlt_session_file,
+    dlt_parse::{dlt_message, *},
+    fibex::FibexMetadata,
+    filtering,
+};
 use async_std::net::{Ipv4Addr, UdpSocket};
 use crossbeam_channel as cc;
 use failure::err_msg;
-use futures::stream::StreamExt;
-use futures::FutureExt;
-use indexer_base::chunks::Chunk;
-use indexer_base::chunks::{ChunkFactory, ChunkResults};
-use indexer_base::config::SocketConfig;
-use indexer_base::progress::*;
-use indexer_base::utils;
-use std::io::{BufWriter, Write};
-use std::net::SocketAddr;
-use std::rc::Rc;
+use futures::{stream::StreamExt, FutureExt};
+use indexer_base::{
+    chunks::{Chunk, ChunkFactory, ChunkResults},
+    config::SocketConfig,
+    progress::*,
+    utils,
+};
+use std::{
+    io::{BufWriter, Write},
+    net::SocketAddr,
+    rc::Rc,
+};
 
 #[derive(Debug, Fail)]
 pub enum ConnectionError {

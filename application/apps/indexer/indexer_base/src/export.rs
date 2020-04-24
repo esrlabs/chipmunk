@@ -1,11 +1,15 @@
-use crate::chunks::ChunkResults;
-use crate::config::SectionConfig;
-use crate::progress::{IndexingProgress, Notification, Severity};
-use crate::utils::restore_line;
+use crate::{
+    chunks::ChunkResults,
+    config::SectionConfig,
+    progress::{IndexingProgress, Notification, Severity},
+    utils::restore_line,
+};
 use crossbeam_channel as cc;
 use failure::{err_msg, Error};
-use std::fs;
-use std::io::{BufRead, BufWriter, Write};
+use std::{
+    fs,
+    io::{BufRead, BufWriter, Write},
+};
 
 use std::path::PathBuf;
 

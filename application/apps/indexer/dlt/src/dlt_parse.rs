@@ -9,22 +9,28 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use crate::dlt::*;
-use crate::filtering;
+use crate::{dlt::*, filtering};
 use crossbeam_channel as cc;
 use indexer_base::{chunks::ChunkResults, error_reporter::*, progress::*, utils};
 use serde::Serialize;
 
-use buf_redux::policy::MinBuffered;
-use buf_redux::BufReader as ReduxReader;
+use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use byteorder::{BigEndian, LittleEndian};
 use failure::{err_msg, Error};
-use nom::bytes::streaming::{tag, take, take_while_m_n};
-use nom::{combinator::map, multi::count, number::streaming, sequence::tuple, IResult};
+use nom::{
+    bytes::streaming::{tag, take, take_while_m_n},
+    combinator::map,
+    multi::count,
+    number::streaming,
+    sequence::tuple,
+    IResult,
+};
 use rustc_hash::FxHashMap;
-use std::fs;
-use std::io::{BufRead, Read};
-use std::rc::Rc;
+use std::{
+    fs,
+    io::{BufRead, Read},
+    rc::Rc,
+};
 
 use crate::fibex::FibexMetadata;
 use std::str;

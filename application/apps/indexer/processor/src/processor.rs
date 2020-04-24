@@ -14,18 +14,21 @@ use crate::parse;
 use crossbeam_channel as cc;
 use encoding_rs_io::*;
 use failure::{err_msg, Error};
-use indexer_base::chunks::ChunkFactory;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::config::IndexingConfig;
-use indexer_base::progress::*;
-use indexer_base::utils;
-use indexer_base::utils::restore_line;
+use indexer_base::{
+    chunks::{ChunkFactory, ChunkResults},
+    config::IndexingConfig,
+    progress::*,
+    utils,
+    utils::restore_line,
+};
 use parse::detect_timestamp_in_string;
-use std::cell::RefCell;
-use std::fs;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
-use std::path::PathBuf;
-use std::time::Instant;
+use std::{
+    cell::RefCell,
+    fs,
+    io::{BufRead, BufReader, BufWriter, Read, Write},
+    path::PathBuf,
+    time::Instant,
+};
 
 pub fn create_index_and_mapping(
     config: IndexingConfig,

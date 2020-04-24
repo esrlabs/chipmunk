@@ -3,17 +3,20 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use crate::merger::*;
     use crossbeam_channel as cc;
-    use indexer_base::chunks::ChunkResults;
-    use indexer_base::progress::{IndexingProgress, Notification};
+    use indexer_base::{
+        chunks::ChunkResults,
+        progress::{IndexingProgress, Notification},
+    };
     use pretty_assertions::assert_eq;
-    use std::fs;
-    use std::path::PathBuf;
+    use std::{fs, path::PathBuf};
     use tempdir::TempDir;
     extern crate log;
 
     use log::LevelFilter;
-    use log4rs::append::console::ConsoleAppender;
-    use log4rs::config::{Appender, Config, Root};
+    use log4rs::{
+        append::console::ConsoleAppender,
+        config::{Appender, Config, Root},
+    };
     use std::sync::Once;
 
     static INIT: Once = Once::new();

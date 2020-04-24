@@ -11,12 +11,13 @@
 // from E.S.R.Labs.
 use crossbeam_channel as cc;
 use failure::{err_msg, Error};
-use std::char;
-use std::fmt::Display;
-use std::fs;
-use std::io::{self, BufReader, Read, Seek, SeekFrom, Write};
-use std::path;
-use std::str;
+use std::{
+    char,
+    fmt::Display,
+    fs,
+    io::{self, BufReader, Read, Seek, SeekFrom, Write},
+    path, str,
+};
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
