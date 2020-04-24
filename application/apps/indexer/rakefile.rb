@@ -31,6 +31,14 @@ desc 'run tests'
 task :test do
   sh 'cargo test'
 end
+
+desc 'Check'
+task :check do
+  sh 'cargo +nightly fmt -- --color=always --check'
+  sh 'cargo clippy'
+  sh 'cargo test'
+end
+
 namespace :bench do
   desc 'run dlt benchmarks'
   task :dlt do

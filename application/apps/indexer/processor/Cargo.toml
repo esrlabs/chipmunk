@@ -23,11 +23,12 @@ indexer_base = { path = "../indexer_base" }
 proptest = "0.9.4"
 proptest-derive = "0.1.2"
 pretty_assertions = "0.6"
-tempdir = "0.3"
+tempfile = "3.1"
 test-generator = "0.2.2"
 rand = "0.7"
 criterion = "0.2"
 dirs = "2.0"
+env_logger = "0.7"
 
 [[bench]]
 name = "parse_benchmarks"

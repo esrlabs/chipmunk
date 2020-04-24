@@ -11,6 +11,7 @@
 // from E.S.R.Labs.
 use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, Utc};
 use crossbeam_channel as cc;
+use failure::{err_msg, Error};
 use indexer_base::error_reporter::*;
 use indexer_base::progress::Severity;
 use indexer_base::progress::*;
@@ -31,9 +32,9 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::io::Seek;
 use std::io::{BufRead, BufReader, Read};
-use std::path::{self, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
-const MAX_LINES_TO_INSPECT: usize = 1_000_000;
+const MAX_LINES_TO_INSPECT: usize = 100_000;
 const LINE_DETECTION_THRESHOLD: usize = 5;
 
 /// add a format string in normal form and with TZD for a possible timezone match
@@ -130,20 +131,7 @@ impl std::fmt::Display for FormatPiece {
         }
     }
 }
-/// takes a format string for a date representation and tokenize it
-/// into it's individual elements
-/// e.g. "DD-MM" => [Day,Seperator("-"),Month]
-///      YYYY = four-digit year
-///      yy   = two-digit year
-///      MMM  = short month form (Jan, Feb, Mar, ..., Dec)
-///      MM   = two-digit month (01=January, etc.)
-///      DD   = two-digit day of month (01 through 31)
-///      hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
-///      mm   = two digits of minute (00 through 59)
-///      ss   = two digits of second (00 through 59)
-///      s    = one or more digits representing a decimal fraction of a second
-///      TZD  = time zone designator (Z or +hh:mm or -hh:mm)
-///      a    = support for 12-hour clock format (AM or PM)
+
 static DAY_FORMAT_TAG: &str = "DD";
 static MONTH_FORMAT_SHORT_NAME_TAG: &str = "MMM";
 static MONTH_FORMAT_TAG: &str = "MM";
@@ -153,6 +141,7 @@ static HOURS_FORMAT_TAG: &str = "hh";
 static MINUTES_FORMAT_TAG: &str = "mm";
 static SECONDS_FORMAT_TAG: &str = "ss";
 static TIMEZONE_FORMAT_TAG: &str = "TZD";
+static ABSOLUTE_MS_TAG: &str = "sss";
 const FRACTION_FORMAT_CHAR: char = 's';
 const AM_PM_TAG: char = 'a';
 
@@ -194,7 +183,7 @@ fn timezone(input: &str) -> IResult<&str, FormatPiece> {
     map(tag(TIMEZONE_FORMAT_TAG), |_| FormatPiece::TimeZone)(input)
 }
 fn absolute_millis(input: &str) -> IResult<&str, FormatPiece> {
-    map(tag("sss"), |_| FormatPiece::AbsoluteMilliseconds)(input)
+    map(tag(ABSOLUTE_MS_TAG), |_| FormatPiece::AbsoluteMilliseconds)(input)
 }
 fn many_spaces(input: &str) -> IResult<&str, char> {
     map(many1(nom::character::complete::char(' ')), |_| ' ')(input)
@@ -240,7 +229,22 @@ fn escape_metacharacters(c: char) -> Cow<'static, str> {
     }
     .into()
 }
-pub fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
+
+/// takes a format string for a date representation and tokenize it
+/// into it's individual elements
+/// e.g. "DD-MM" => [Day,Seperator("-"),Month]
+///      YYYY = four-digit year
+///      yy   = two-digit year
+///      MMM  = short month form (Jan, Feb, Mar, ..., Dec)
+///      MM   = two-digit month (01=January, etc.)
+///      DD   = two-digit day of month (01 through 31)
+///      hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
+///      mm   = two digits of minute (00 through 59)
+///      ss   = two digits of second (00 through 59)
+///      s    = one or more digits representing a decimal fraction of a second
+///      TZD  = time zone designator (Z or +hh:mm or -hh:mm)
+///      a    = support for 12-hour clock format (AM or PM)
+pub(crate) fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     let parser = fold_many0(
         any_date_format,
         (String::from(""), Vec::new()),
@@ -268,21 +272,22 @@ pub fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     })(input)
 }
 
-pub fn lookup_regex_for_format_str(date_format: &str) -> Result<Regex, failure::Error> {
+pub fn lookup_regex_for_format_str(date_format: &str) -> Result<Regex, Error> {
     match FORMAT_REGEX_MAPPING.get(date_format) {
         Some(r) => Ok(r.clone()),
         None => date_format_str_to_regex(date_format),
     }
 }
-fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> {
+
+fn date_format_str_to_regex(date_format: &str) -> Result<Regex, Error> {
     if date_format.is_empty() {
-        return Err(failure::err_msg("cannot construct regex from empty string"));
+        return Err(err_msg("cannot construct regex from empty string"));
     }
     let format_pieces = date_expression(date_format);
     match format_pieces {
         Ok(r) => {
             if r.1.is_empty() {
-                return Err(failure::err_msg(
+                return Err(err_msg(
                     "could not create regex, problems with format pieces",
                 ));
             }
@@ -294,12 +299,12 @@ fn date_format_str_to_regex(date_format: &str) -> Result<Regex, failure::Error> 
 
             return match Regex::new(s.as_str()) {
                 Ok(regex) => Ok(regex),
-                Err(e) => Err(failure::err_msg(format!("could not create regex: {}", e))),
+                Err(e) => Err(err_msg(format!("could not create regex: {}", e))),
             };
         }
         Err(e) => report_error(format!("{:?}", e)), // TODO replace
     }
-    Err(failure::err_msg("could not detect timestamp in"))
+    Err(err_msg("could not detect timestamp in"))
 }
 static DAY_GROUP: &str = "d";
 static MONTH_GROUP: &str = "m";
@@ -357,7 +362,7 @@ pub struct FormatTestOptions {
     pub format: String,
 }
 
-pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions, failure::Error> {
+pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions, Error> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
     let v: FormatTestOptions = serde_json::from_str(&contents[..])?;
@@ -372,134 +377,152 @@ pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions,
 /// * `limit` - if set, do not inspect more then this many lines
 /// * `start` - offset in bytes where to start the file inspection
 ///
-/// # Returns
+/// # Returns (scanned_cnt, min_timestamp, max_timestamp)
 ///
-/// * `min_timestamp` - return value for the min value
-/// * `max_timestamp` - return value for the max value
+/// * `scanned_cnt` - amount of lines we scanned
+/// * `min_timestamp` - value for the min value
+/// * `max_timestamp` - value for the max value
 ///
-fn scan_lines(
+pub(crate) fn scan_lines(
     f: &std::fs::File,
     regex: &Regex,
-    min_timestamp: &mut i64,
-    max_timestamp: &mut i64,
     limit: Option<usize>,
     start: Option<u64>,
-) -> Result<usize, (failure::Error, usize)> {
+) -> Result<(usize, Option<i64>, Option<i64>), Error> {
     let mut buf = vec![];
 
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
     let mut scanned_cnt = 0usize;
+    let mut min_timestamp: Option<i64> = None;
+    let mut max_timestamp: Option<i64> = None;
 
     if let Some(n) = start {
-        if let Err(e) = reader.seek(std::io::SeekFrom::Start(n)) {
-            return Err((failure::err_msg(format!("{}", e)), scanned_cnt));
-        }
+        reader.seek(std::io::SeekFrom::Start(n))?;
     }
     let mut inspected_lines = 0usize;
-    while let Ok(len) = reader.read_until(b'\n', &mut buf) {
-        if len == 0 {
-            break; // file is done
-        }
-        let line = String::from_utf8_lossy(&buf);
-        scanned_cnt += 1;
-        let trimmed = line.trim();
-        if !trimmed.is_empty() {
-            inspected_lines += 1;
-            // if regex.is_match(trimmed) {
-            match extract_posix_timestamp(trimmed, &regex, None, Some(0)) {
-                // TODO work on fast parsers to replace regex parsing
-                // match parse_full_timestamp(trimmed, &regex) {
-                Ok((timestamp, _)) => {
-                    *min_timestamp = std::cmp::min(*min_timestamp, timestamp);
-                    *max_timestamp = std::cmp::max(*max_timestamp, timestamp);
+    loop {
+        match reader.read_until(b'\n', &mut buf) {
+            Ok(len) => {
+                if len == 0 {
+                    break; // file is done
                 }
-                Err(_e) => (),
+                let line = String::from_utf8_lossy(&buf);
+                scanned_cnt += 1;
+                let trimmed = line.trim();
+                if !trimmed.is_empty() {
+                    inspected_lines += 1;
+                    match extract_posix_timestamp(trimmed, &regex, None, Some(0)) {
+                        // TODO work on fast parsers to replace regex parsing
+                        // match parse_full_timestamp(trimmed, &regex) {
+                        Ok((timestamp, _)) => {
+                            min_timestamp = match min_timestamp {
+                                Some(min) => Some(std::cmp::min(min, timestamp)),
+                                None => Some(timestamp),
+                            };
+                            max_timestamp = match max_timestamp {
+                                Some(max) => Some(std::cmp::max(max, timestamp)),
+                                None => Some(timestamp),
+                            };
+                        }
+                        Err(e) => debug!("error extracting timestamp: {}", e),
+                    }
+                }
+                buf = vec![];
+                if let Some(limit) = limit {
+                    if inspected_lines > limit {
+                        break;
+                    }
+                }
             }
-        }
-        buf = vec![];
-        if let Some(limit) = limit {
-            if inspected_lines > limit {
-                break;
-            }
+            Err(e) => return Err(err_msg(format!("error scanning: {}", e))),
         }
     }
-    Ok(scanned_cnt)
+    Ok((scanned_cnt, min_timestamp, max_timestamp))
 }
+
+pub fn unix_timestamp_to_utc(timestamp: i64) -> DateTime<Utc> {
+    let naive_datetime = NaiveDateTime::from_timestamp(timestamp, 0);
+    DateTime::from_utc(naive_datetime, Utc)
+}
+
 /// find out the lower and upper timestamp of a file
+pub(crate) fn timespan_in_file(
+    format_expr: &str,
+    file_path: impl AsRef<Path>,
+) -> Result<TimestampFormatResult, Error> {
+    let regex = lookup_regex_for_format_str(&format_expr)?;
+    let f: fs::File = fs::File::open(&file_path)?;
+    let file_size = f.metadata()?.len();
+    let min_buf_size = std::cmp::min(file_size, 256 * 1024); // 256k
+    let lines_to_scan = 1000usize;
+    let (_line_cnt, min_timestamp, max_timestamp) =
+        scan_lines(&f, &regex, Some(lines_to_scan), None)?;
+    // also read from end
+    let start = file_size - min_buf_size;
+    let (_last_scanned_lines, min_timestamp_last, max_timestamp_last) =
+        scan_lines(&f, &regex, None, Some(start))?;
+    let timestamp_format = TimestampFormat {
+        format: format_expr.to_string(),
+        regex: regex_as_string(&regex),
+        flags: vec![],
+    };
+    let min_time = match (min_timestamp, min_timestamp_last) {
+        (Some(t1), Some(t2)) => Some(std::cmp::min(t1, t2)),
+        _ => None,
+    };
+    let max_time = match (max_timestamp, max_timestamp_last) {
+        (Some(t1), Some(t2)) => Some(std::cmp::max(t1, t2)),
+        _ => None,
+    };
+    match (min_time, max_time) {
+        (None, None) => Ok(TimestampFormatResult {
+            path: format!("{}", file_path.as_ref().display()),
+            format: Err(format!("{} did not match in file", format_expr)),
+            min_time: None,
+            max_time: None,
+        }), // format string did not produce results
+        (min, max) => Ok(TimestampFormatResult {
+            path: format!("{}", file_path.as_ref().display()),
+            format: Ok(timestamp_format),
+            min_time: min,
+            max_time: max,
+        }),
+    }
+}
+
 pub fn timespan_in_files(
     items: Vec<DiscoverItem>,
     update_channel: &cc::Sender<IndexingResults<TimestampFormatResult>>,
-) -> Result<(), failure::Error> {
+) -> Result<(), Error> {
     let item_count = items.len();
-    let mut progress_percentage = 0usize;
-    for (processed_items, item) in items.into_iter().enumerate() {
-        let file_path = path::PathBuf::from(&item.path);
-        match detect_timestamp_format_in_file(&file_path) {
-            Ok(format_expr) => {
-                let regex = lookup_regex_for_format_str(&format_expr)?;
-                let f: fs::File = fs::File::open(file_path)?;
-                let mut min_timestamp = std::i64::MAX;
-                let mut max_timestamp = 0i64;
-                let file_size = f.metadata()?.len();
-                let min_buf_size = std::cmp::min(file_size, 256 * 1024); // 256k
-                let lines_to_scan = 1000usize;
-                let _line_cnt = match scan_lines(
-                    &f,
-                    &regex,
-                    &mut min_timestamp,
-                    &mut max_timestamp,
-                    Some(lines_to_scan),
-                    None,
-                ) {
-                    Ok(n) => n,
-                    Err((e, n)) => {
-                        let _ = update_channel.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: format!("{}", e),
-                            line: None,
-                        }));
-                        n
-                    }
-                };
-                // also read from end
-                let start = file_size - min_buf_size;
-                let _last_scanned_lines = match scan_lines(
-                    &f,
-                    &regex,
-                    &mut min_timestamp,
-                    &mut max_timestamp,
-                    None,
-                    Some(start),
-                ) {
-                    Ok(n) => n,
-                    Err((e, n)) => {
-                        let _ = update_channel.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: format!("{}", e),
-                            line: None,
-                        }));
-                        n
-                    }
-                };
-                let timestamp_format = TimestampFormat {
-                    format: format_expr,
-                    regex: regex_as_string(&regex),
-                    flags: vec![],
-                };
-                let _ = update_channel.send(Ok(IndexingProgress::GotItem {
-                    item: TimestampFormatResult {
-                        path: item.path.to_string(),
-                        format: Some(timestamp_format),
-                        min_time: Some(posix_timestamp_as_string(min_timestamp)),
-                        max_time: Some(posix_timestamp_as_string(max_timestamp)),
-                    },
-                }));
-            }
+    let mut progress_reporter = ProgressReporter::new(item_count, update_channel.clone());
+    for item in items.into_iter() {
+        let file_path = PathBuf::from(&item.path);
+        let format_expr_to_use = match item.format_string {
+            Some(test_expr) => Ok(test_expr),
+            None => detect_timestamp_format_in_file(&file_path),
+        };
+
+        match format_expr_to_use {
+            Ok(format_expr) => match timespan_in_file(&format_expr, &file_path) {
+                Ok(timestamp_format_result) => {
+                    let _ = update_channel.send(Ok(IndexingProgress::GotItem {
+                        item: timestamp_format_result,
+                    }));
+                }
+                Err(e) => {
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::WARNING,
+                        content: format!("{}", e),
+                        line: None,
+                    }));
+                }
+            },
             Err(e) => {
                 let _ = update_channel.send(Ok(IndexingProgress::GotItem {
                     item: TimestampFormatResult {
                         path: item.path.to_string(),
-                        format: None,
+                        format: Err(format!("error trying to detect format expression: {}", e)),
                         min_time: None,
                         max_time: None,
                     },
@@ -511,14 +534,7 @@ pub fn timespan_in_files(
                 }));
             }
         }
-        let new_progress_percentage: usize =
-            (processed_items as f64 / item_count as f64 * 10.0).round() as usize;
-        if new_progress_percentage != progress_percentage {
-            progress_percentage = new_progress_percentage;
-            let _ = update_channel.send(Ok(IndexingProgress::Progress {
-                ticks: (processed_items, item_count as usize),
-            }));
-        }
+        progress_reporter.make_progress(1);
     }
     let _ = update_channel.send(Ok(IndexingProgress::Finished));
     Ok(())
@@ -528,7 +544,7 @@ pub fn match_format_string_in_file(
     format_expr: &str,
     file_name: &str,
     max_lines: i64,
-) -> Result<FormatStringMatches, failure::Error> {
+) -> Result<FormatStringMatches, Error> {
     let regex = lookup_regex_for_format_str(format_expr)?;
     let path = PathBuf::from(file_name);
     let f: fs::File = fs::File::open(path)?;
@@ -563,15 +579,12 @@ pub fn match_format_string_in_file(
 }
 
 /// check a new format expression that was not precompiled
-pub fn line_matching_format_expression(
-    format_expr: &str,
-    line: &str,
-) -> Result<bool, failure::Error> {
+pub fn line_matching_format_expression(format_expr: &str, line: &str) -> Result<bool, Error> {
     let regex = lookup_regex_for_format_str(format_expr)?;
     let res = regex.is_match(line);
     Ok(res)
 }
-fn parse_from_month(mmm: &str) -> Result<u32, failure::Error> {
+fn parse_from_month(mmm: &str) -> Result<u32, Error> {
     match mmm {
         "Jan" => Ok(1),
         "Feb" => Ok(2),
@@ -585,7 +598,7 @@ fn parse_from_month(mmm: &str) -> Result<u32, failure::Error> {
         "Oct" => Ok(10),
         "Nov" => Ok(11),
         "Dec" => Ok(12),
-        _ => Err(failure::err_msg(format!("could not parse month {:?}", mmm))),
+        _ => Err(err_msg(format!("could not parse month {:?}", mmm))),
     }
 }
 // return the timestamp and wether the year was missing
@@ -594,10 +607,10 @@ pub fn extract_posix_timestamp(
     regex: &Regex,
     year: Option<i32>,
     time_offset: Option<i64>,
-) -> Result<(i64, bool), failure::Error> {
+) -> Result<(i64, bool), Error> {
     let caps = regex
         .captures(line)
-        .ok_or_else(|| failure::err_msg("no captures in regex"))?;
+        .ok_or_else(|| err_msg("no captures in regex"))?;
     /* only one matched group in addition to the full match */
     if caps.len() == 1 + 1 {
         if let Some(abs_ms_capt) = caps.name(ABSOLUTE_MS_GROUP) {
@@ -607,32 +620,32 @@ pub fn extract_posix_timestamp(
     }
     let day_capt = caps
         .name(DAY_GROUP)
-        .ok_or_else(|| failure::err_msg("no group for days found in regex"))?;
+        .ok_or_else(|| err_msg("no group for days found in regex"))?;
     let day: u32 = day_capt.as_str().parse()?;
     let month = match caps.name(MONTH_GROUP) {
         Some(month_capt) => month_capt
             .as_str()
             .parse()
-            .map_err(|e| failure::err_msg(format!("could not parse month: {}", e))),
+            .map_err(|e| err_msg(format!("could not parse month: {}", e))),
         None => match caps.name(MONTH_SHORT_NAME_GROUP) {
             Some(month_short_name) => parse_from_month(month_short_name.as_str()),
-            None => Err(failure::err_msg("no group for month found in regex")),
+            None => Err(err_msg("no group for month found in regex")),
         },
     }?;
     let hour_capt = caps
         .name(HOUR_GROUP)
-        .ok_or_else(|| failure::err_msg("no group for hour found in regex"))?;
+        .ok_or_else(|| err_msg("no group for hour found in regex"))?;
     let min_capt = caps
         .name(MINUTE_GROUP)
-        .ok_or_else(|| failure::err_msg("no group for minute found in regex"))?;
+        .ok_or_else(|| err_msg("no group for minute found in regex"))?;
     let sec_capt = caps
         .name(SECONDS_GROUP)
-        .ok_or_else(|| failure::err_msg("no group for seconds found in regex"))?;
+        .ok_or_else(|| err_msg("no group for seconds found in regex"))?;
     let am_pm_hour_offset: u32 = match caps.name(AM_PM_GROUP) {
         Some(m) => match m.as_str() {
             "PM" => Ok(12),
             "AM" => Ok(0),
-            _ => Err(failure::err_msg("no valid AM or PM designation")),
+            _ => Err(err_msg("no valid AM or PM designation")),
         },
         None => Ok(0),
     }?;
@@ -657,14 +670,12 @@ pub fn extract_posix_timestamp(
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
     if time_offset.is_none() && timezone_n.is_none() {
-        return Err(failure::err_msg(
-            "timestamp cannot be applied, timezone not known",
-        ));
+        return Err(err_msg("timestamp cannot be applied, timezone not known"));
     }
     let offset_result = if time_offset.is_none() {
         parse_timezone(&caps[TIMEZONE_GROUP])
     } else {
-        time_offset.ok_or_else(|| failure::err_msg("could not detect timestamp in (line {})"))
+        time_offset.ok_or_else(|| err_msg("could not detect timestamp in (line {})"))
     };
 
     // for the year first try YYYY, then yy, then fallback on the supplied year
@@ -687,7 +698,7 @@ pub fn extract_posix_timestamp(
                 .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
             match date_time {
                 Some(dt) => Ok((dt.timestamp_millis() - offset, false)),
-                None => Err(failure::err_msg(
+                None => Err(err_msg(
                     "error while parsing year/month/day/hour/minute/seconds",
                 )),
             }
@@ -698,16 +709,16 @@ pub fn extract_posix_timestamp(
                 .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
             match date_time {
                 Some(dt) => Ok((dt.timestamp_millis() - offset, true)),
-                None => Err(failure::err_msg(
+                None => Err(err_msg(
                     "error while parsing year/month/day/hour/minute/seconds",
                 )),
             }
         }
-        (Some(_), Err(e)) => Err(failure::err_msg(format!(
+        (Some(_), Err(e)) => Err(err_msg(format!(
             "could not determine the timezone or offset! ({})",
             e
         ))),
-        (None, Err(_)) => Err(failure::err_msg(
+        (None, Err(_)) => Err(err_msg(
             "could not determine the year and timezone or offset!",
         )),
     }
@@ -722,7 +733,7 @@ pub fn line_to_timed_line(
     time_offset: Option<i64>,
     line_nr: usize,
     reporter: &mut Reporter,
-) -> Result<TimedLine, failure::Error> {
+) -> Result<TimedLine, Error> {
     match extract_posix_timestamp(line, regex, year, time_offset) {
         Ok((posix_timestamp, year_was_missing)) => Ok(TimedLine {
             timestamp: posix_timestamp,
@@ -744,13 +755,14 @@ pub fn line_to_timed_line(
 #[derive(Deserialize, Debug)]
 pub struct DiscoverItem {
     pub path: String,
+    pub format_string: Option<String>,
 }
 #[derive(Serialize, Debug)]
 pub struct TimestampFormatResult {
     pub path: String,
-    pub format: Option<TimestampFormat>,
-    pub min_time: Option<String>,
-    pub max_time: Option<String>,
+    pub format: Result<TimestampFormat, String>,
+    pub min_time: Option<i64>,
+    pub max_time: Option<i64>,
 }
 #[derive(Serialize, Debug)]
 pub struct TimestampFormat {
@@ -758,7 +770,9 @@ pub struct TimestampFormat {
     regex: String,
     flags: Vec<String>,
 }
-pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::Error> {
+pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, Error> {
+    use std::time::Instant;
+    let now = Instant::now();
     let f: fs::File = fs::File::open(path)?;
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
 
@@ -796,6 +810,12 @@ pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::E
             },
         );
     let min_matched_lines = std::cmp::min(LINE_DETECTION_THRESHOLD, inspected_lines);
+    info!(
+        "inspecting {} lines in {} took {}ms",
+        inspected_lines,
+        path.display(),
+        now.elapsed().as_millis()
+    );
     if let (Some(s), n) = best_format_string {
         if n >= min_matched_lines {
             return Ok(s);
@@ -804,14 +824,11 @@ pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::E
                 "could not verify enough timestamps in {:?}, only found {}",
                 path, n
             );
-            return Err(failure::err_msg(warning));
+            return Err(err_msg(warning));
         }
     }
 
-    Err(failure::err_msg(format!(
-        "could not detect timestamp in {:?}",
-        path
-    )))
+    Err(err_msg(format!("could not detect timestamp in {:?}", path)))
 }
 /// Trys to detect a valid timestamp in a string
 /// Returns the a tuple of
@@ -826,7 +843,7 @@ pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, failure::E
 pub fn detect_timestamp_in_string(
     input: &str,
     offset: Option<i64>,
-) -> Result<(i64, bool, String), failure::Error> {
+) -> Result<(i64, bool, String), Error> {
     let trimmed = input.trim();
     for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
@@ -839,7 +856,7 @@ pub fn detect_timestamp_in_string(
             }
         }
     }
-    Err(failure::err_msg("try to detect timestamp but no match"))
+    Err(err_msg("try to detect timestamp but no match"))
 }
 /// Trys to detect a valid time-format in a string
 /// Returns the found format if any
@@ -850,7 +867,7 @@ pub fn detect_timestamp_in_string(
 pub fn detect_timeformat_in_string(
     input: &str,
     last_match: Option<&String>,
-) -> Result<String, failure::Error> {
+) -> Result<String, Error> {
     let trimmed = input.trim();
     // if we already had a match, try this first
     if let Some(last) = last_match {
@@ -867,10 +884,7 @@ pub fn detect_timeformat_in_string(
             return Ok((*format).to_string());
         }
     }
-    Err(failure::err_msg(format!(
-        "no timestamp match found in {}",
-        input
-    )))
+    Err(err_msg(format!("no timestamp match found in {}", input)))
 }
 
 /// should parse timezone string, valid formats are
@@ -914,7 +928,7 @@ fn parse_short_month(input: &str) -> IResult<&str, u32> {
         "Oct" => Ok(10),
         "Nov" => Ok(11),
         "Dec" => Ok(12),
-        _ => Err(failure::err_msg(format!("could not parse month {:?}", s))),
+        _ => Err(err_msg(format!("could not parse month {:?}", s))),
     })(input)
 }
 fn take1(s: &str) -> IResult<&str, &str> {
@@ -928,7 +942,7 @@ fn take4(s: &str) -> IResult<&str, &str> {
 }
 // 46.72.213.133 - - [12/Dec/2015:18:39:27 +0100]
 // DD/MMM/YYYY:hh:mm:ss
-pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool), failure::Error> {
+pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool), Error> {
     match regex.find(input) {
         Some(mat) => {
             let parser = nom::sequence::tuple((
@@ -954,24 +968,24 @@ pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool), f
                             .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, 0));
                     match date_time {
                         Some(dt) => Ok((dt.timestamp_millis() - offset, false)),
-                        None => Err(failure::err_msg(
+                        None => Err(err_msg(
                             "error while parsing year/month/day/hour/minute/seconds",
                         )),
                     }
                 }
-                Err(e) => Err(failure::err_msg(format!("error while parsing: {:?}", e))),
+                Err(e) => Err(err_msg(format!("error while parsing: {:?}", e))),
             }
         }
-        None => Err(failure::err_msg(format!(
+        None => Err(err_msg(format!(
             "no timestamp found using regex {}",
             regex.as_str()
         ))),
     }
 }
-pub(crate) fn parse_timezone(input: &str) -> Result<i64, failure::Error> {
+pub(crate) fn parse_timezone(input: &str) -> Result<i64, Error> {
     match timezone_parser(input) {
         Ok((_, res)) => Ok(res),
-        Err(e) => Err(failure::err_msg(format!("error parsing timezone: {:?}", e))),
+        Err(e) => Err(err_msg(format!("error parsing timezone: {:?}", e))),
     }
 }
 fn regex_as_string(regex: &Regex) -> String {

@@ -2,7 +2,7 @@
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     extern crate rand;
-    extern crate tempdir;
+    // extern crate tempdir;
     use crate::processor::*;
     use crossbeam_channel as cc;
     use crossbeam_channel::unbounded;
@@ -13,7 +13,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;
-    use tempdir::TempDir;
+    use tempfile::tempdir;
 
     fn get_chunks(
         test_content: &str,
@@ -21,7 +21,7 @@ mod tests {
         tag_name: &str,
         tmp_file_name: Option<&str>,
     ) -> (Vec<Chunk>, String) {
-        let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
+        let tmp_dir = tempdir().expect("could not create temp dir");
         let test_file_path = tmp_dir.path().join("tmpTestFile.txt");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
         fs::write(&test_file_path, test_content).expect("testfile could not be written");
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_append_to_empty_output() {
-        let tmp_dir = TempDir::new("my_directory_prefix").expect("could not create temp dir");
+        let tmp_dir = tempdir().expect("could not create temp dir");
         let empty_file_path = tmp_dir.path().join("empty.log");
         // call our function
         fs::write(&empty_file_path, "").expect("testfile could not be written");
@@ -298,7 +298,7 @@ mod tests {
 
     fn test_input_output(dir_name: &str) {
         let in_path = PathBuf::from("..").join(&dir_name).join("in.txt");
-        let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
+        let tmp_dir = tempdir().expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
         let restored_file_path = tmp_dir.path().join("restoredTestFile.txt.out");
 

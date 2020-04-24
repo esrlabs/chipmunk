@@ -1,6 +1,6 @@
-use serde::Serialize;
 use crate::chunks::*;
 use crossbeam_channel as cc;
+use serde::Serialize;
 
 #[derive(Serialize, Debug, PartialEq)]
 pub enum Severity {
@@ -31,14 +31,18 @@ pub struct Notification {
     pub line: Option<usize>,
 }
 
-pub struct ProgressReporter {
-    update_channel: cc::Sender<ChunkResults>,
+pub struct ProgressReporter<T> {
+    update_channel: cc::Sender<std::result::Result<IndexingProgress<T>, Notification>>,
     processed_bytes: usize,
     progress_percentage: usize,
     total: usize,
 }
-impl ProgressReporter {
-    pub fn new(total: usize, update_channel: cc::Sender<ChunkResults>) -> ProgressReporter {
+
+impl<T> ProgressReporter<T> {
+    pub fn new(
+        total: usize,
+        update_channel: cc::Sender<std::result::Result<IndexingProgress<T>, Notification>>,
+    ) -> ProgressReporter<T> {
         ProgressReporter {
             update_channel,
             processed_bytes: 0,

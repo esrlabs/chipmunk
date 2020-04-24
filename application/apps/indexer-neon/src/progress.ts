@@ -38,6 +38,7 @@ export interface IMergerItemOptions {
 }
 export interface IDiscoverItem {
     path: string,
+    format_string?: string,
 }
 export enum Severity {
     WARNING = 'WARNING',

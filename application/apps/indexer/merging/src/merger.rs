@@ -12,7 +12,7 @@
 use crossbeam_channel as cc;
 use failure::{err_msg, Error};
 use indexer_base::chunks::ChunkFactory;
-use indexer_base::chunks::ChunkResults;
+use indexer_base::chunks::{Chunk, ChunkResults};
 use indexer_base::error_reporter::*;
 use indexer_base::progress::IndexingProgress;
 use indexer_base::progress::ProgressReporter;
@@ -21,7 +21,6 @@ use indexer_base::utils;
 use processor::parse::{line_to_timed_line, lookup_regex_for_format_str};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::BinaryHeap;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::iter::{Iterator, Peekable};
@@ -228,7 +227,7 @@ pub struct IndexOutput {
     buf_writer: BufWriter<std::fs::File>,
     source_tag: String,
     processed_bytes: usize,
-    progress_reporter: ProgressReporter,
+    progress_reporter: ProgressReporter<Chunk>,
 }
 
 fn combined_file_size(paths: &[PathBuf]) -> Result<u64, Error> {

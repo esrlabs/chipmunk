@@ -250,15 +250,13 @@ export function testDiscoverTimestampAsync(files: string[]) {
 		let onProgress = (ticks: ITicks) => {
 			bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 		};
-		let onChunk = (chunk: ITimestampFormatResult) => {
-			log.debug('received ' + JSON.stringify(chunk));
-		};
 		let onNotification = (notification: INeonNotification) => {
 			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
 		};
 		let items: IDiscoverItem[] = files.map((file: string) => {
 			return {
-				path: file
+				path: file,
+				format_string: "YYYY-MM-DD hh:mm:ss.s"
 			};
 		});
 		discoverTimespanAsync(items)
@@ -273,7 +271,10 @@ export function testDiscoverTimestampAsync(files: string[]) {
 				log.debug(`Failed with error: ${error.message}`);
 			})
 			.on('chunk', (event: Progress.ITimestampFormatResult) => {
-				onChunk(event);
+				log.debug('received ' + JSON.stringify(event));
+				log.debug('event.format ' + JSON.stringify(event.format));
+				log.debug('event.format.Ok ' + JSON.stringify(event.format?.Ok));
+				log.debug('event.format.Err ' + JSON.stringify(event.format?.Err));
 			})
 			.on('progress', (event: Progress.ITicks) => {
 				onProgress(event);

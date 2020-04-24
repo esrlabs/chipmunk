@@ -10,6 +10,16 @@ mod tests {
 
     static VALID_TIMESTAMP_FORMAT: &str = "[+-]{1}[0-9]{2}[0-5]{1}[0-9]{1}";
 
+    fn init() {
+        if std::env::var("RUST_LOG").is_err() {
+            std::env::set_var(
+                "RUST_LOG",
+                "warn,processor::parse=debug,processor::tests=debug",
+            );
+        }
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
     proptest! {
         #[test]
         fn offset_from_timezone_in_ms_doesnt_crash(s in "\\PC*") {
@@ -360,7 +370,7 @@ mod tests {
         match_format!("23|05|2019", "DD|MM|YYYY");
         match_format!("1997  some other crap", "YYYY");
         match_format!("something before: [1997]", "YYYY");
-        // match_format!("1559831467577", "sss");
+        match_format!("1559831467577", "sss");
         match_format!("1997-07", "YYYY-MM");
         match_format!("1997-07-16", "YYYY-MM-DD");
         match_format!("1997071619203045+12:00", "YYYYMMDDhhmmsssTZD");
@@ -372,6 +382,8 @@ mod tests {
         no_match_format!("YYYY-MM-DDThh:mm:ssTZD", "1997-07-16T19:20:60+01:00"); // invalid seconds
         no_match_format!("YYYYMMDDhhmmsssTZD", "1997071619203045+15:00"); // "invalid timezone"
         no_match_format!("YYYYMMDDhhmmsssTZD", "1997071619203045+10:02"); // "invalid timezone"
+        no_match_format!("YYYYMMDDhhmmsssTZD", "12l 42 something different 3242");
+        // "invalid timezone"
     }
     #[test]
     fn test_detect_timestamp_in_string_simple() {
@@ -494,5 +506,65 @@ mod tests {
             fs::read_to_string(format_path).expect("Something went wrong reading the file");
         let expected_format_string: String = contents.trim().to_string();
         assert_eq!(expected_format_string, res);
+    }
+
+    #[test]
+    fn test_timespan_in_file() {
+        use std::fs::File;
+        use std::io::Write;
+        use tempfile::tempdir;
+        let dir = tempdir().expect("problem creating temp dir");
+        let file_path = dir.path().join("my-temp-log.txt");
+        let mut f = File::create(&file_path).expect("");
+
+        let ts_min = 1_584_447_316;
+        let ts_mid = 1_584_447_318;
+        let ts_max = 1_584_447_320;
+
+        let s = format!("{} abc", unix_timestamp_to_utc(ts_min).to_rfc3339());
+        writeln!(f, "{} abc", unix_timestamp_to_utc(ts_min).to_rfc3339()).expect("tempfile");
+        writeln!(f, "{} def", unix_timestamp_to_utc(ts_mid).to_rfc3339()).expect("tempfile");
+        writeln!(f, "{} ghi", unix_timestamp_to_utc(ts_max).to_rfc3339()).expect("tempfile");
+        match timespan_in_file("YYYY-MM-DDThh:mm:ssTZD", &file_path) {
+            Ok(res) => {
+                assert_eq!(res.max_time, Some(ts_max * 1000));
+                assert_eq!(res.min_time, Some(ts_min * 1000));
+            }
+            Err(e) => panic!("error was: {}", e),
+        }
+        // test a format expression that does not match
+        match timespan_in_file("YYYY MM DD hh:mm TZD", &file_path) {
+            Ok(res) => {
+                if res.format.is_ok() {
+                    panic!("format string should not match but was: {:?}", res)
+                }
+            }
+            Err(e) => panic!("error was: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_scan_lines() {
+        init();
+        use std::fs::File;
+        use std::io::Write;
+        use tempfile::tempdir;
+        let dir = tempdir().expect("problem creating temp dir");
+        let file_path = dir.path().join("my-temp-log.txt");
+        let mut f = File::create(&file_path).expect("");
+
+        let ts_min: i64 = 1_584_447_316;
+        let mut ts_max = ts_min;
+        let line_cnt = 1000usize;
+        for i in 0..line_cnt {
+            ts_max = ts_min + (i as i64);
+            writeln!(f, "{} {}", unix_timestamp_to_utc(ts_max).to_rfc3339(), i).expect("tempfile");
+        }
+        let regex = lookup_regex_for_format_str("YYYY-MM-DDThh:mm:ssTZD").expect("regex failed");
+        let f2 = File::open(&file_path).expect("");
+        let (scanned, min, max) = scan_lines(&f2, &regex, None, None).expect("scan failed");
+        assert_eq!(min, Some(ts_min * 1000));
+        assert_eq!(max, Some(ts_max * 1000));
+        assert_eq!(scanned, line_cnt);
     }
 }

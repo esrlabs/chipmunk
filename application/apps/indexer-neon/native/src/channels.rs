@@ -4,7 +4,6 @@ use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
 use serde::Serialize;
 use std::fmt::Debug;
-use std::fs;
 use std::path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -149,21 +148,6 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
 #[derive(Debug)]
 pub struct IndexingThreadConfig {
     pub in_file: path::PathBuf,
-    pub out_path: path::PathBuf,
-    pub append: bool,
-    pub tag: String,
-    pub timestamps: bool,
-}
-
-#[derive(Debug)]
-pub struct SocketThreadConfig {
-    pub out_path: path::PathBuf,
-    pub tag: String,
-}
-
-#[derive(Debug)]
-pub struct DltStatsConfig {
-    pub in_file: fs::File,
     pub out_path: path::PathBuf,
     pub append: bool,
     pub tag: String,
