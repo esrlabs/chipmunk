@@ -1,5 +1,4 @@
 use crate::channels::EventEmitterTask;
-use crate::channels::SocketThreadConfig;
 use crate::fibex_utils::gather_fibex_data;
 use crossbeam_channel as cc;
 use dlt::fibex::FibexMetadata;
@@ -12,6 +11,11 @@ use std::path;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[derive(Debug)]
+pub struct SocketThreadConfig {
+    pub out_path: path::PathBuf,
+    pub tag: String,
+}
 pub struct SocketDltEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
     pub shutdown_sender: async_std::sync::Sender<()>,

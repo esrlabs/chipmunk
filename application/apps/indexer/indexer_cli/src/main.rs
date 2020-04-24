@@ -1053,6 +1053,7 @@ fn main() {
             ) = unbounded();
             let items: Vec<DiscoverItem> = vec![DiscoverItem {
                 path: file_name_string,
+                format_string: None,
             }];
 
             let progress_bar = initialize_progress_bar(100);
