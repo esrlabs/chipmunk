@@ -468,7 +468,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             if (comp === undefined) {
                 return;
             }
-            comp.setFormat(file.format.formatstring);
+            if (file.format.Ok !== null) {
+                comp.setFormat(file.format.Ok.formatstring);
+            } else {
+                comp.setFormat(file.format.Err);
+            }
         });
     }
 
