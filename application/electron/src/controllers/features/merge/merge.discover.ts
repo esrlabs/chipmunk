@@ -77,11 +77,13 @@ export default class MergeDiscover {
             }).finally(() => {
                 this._task = undefined;
             }).on('chunk', (event: Progress.ITimestampFormatResult) => {
-                if (event.format !== undefined) {
-                    event.format.regex = PCREToECMARegExp(event.format.regex);
-                }
-                if (event.format !== undefined && !isRegStrValid(event.format.regex)) {
-                    event.format.regex = '';
+                if (event.format !== undefined && event.format.Ok !== undefined) {
+                    event.format.Ok.regex = PCREToECMARegExp(event.format.Ok.regex);
+                    if (!isRegStrValid(event.format.Ok.regex)) {
+                        event.format = {
+                            Err: `Fail convert "${event.format.Ok.regex}" from PCRE to ECMA regexp.`,
+                        };
+                    }
                 }
                 const r: IPCMessages.IMergeFilesDiscoverResult = {
                     format: event.format,
