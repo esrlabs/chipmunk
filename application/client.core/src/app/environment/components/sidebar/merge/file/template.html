@@ -1,4 +1,14 @@
 <div *ngIf="file.info !== undefined && viewMode === 'max'">
+    <span class="scale" *ngIf="_ng_isScaleVisible()" [ngStyle]="_ng_getScaleStyle()"></span>
+    <p class="t-normal info-wrapper">
+        <span class="path">{{file.info.name}}</span>
+        <span class="size t-small">{{(file.info.size / 1024 / 1024).toFixed(2)}}Mb</span>
+    </p>
+    <p class="t-small format">{{file.format.format}}</p>
+</div>
+
+<div *ngIf="file.info !== undefined && viewMode === 'min'">
+    <span class="scale" *ngIf="_ng_isScaleVisible()" [ngStyle]="_ng_getScaleStyle()"></span>
     <p class="t-normal info-wrapper">
         <span class="path">{{file.info.name}}</span>
         <span class="size t-small">{{(file.info.size / 1024 / 1024).toFixed(2)}}Mb</span>
@@ -7,17 +17,6 @@
         <span class="left">{{file.scale.min}}</span>
         <span class="middle"> - </span>
         <span class="right">{{file.scale.max}}</span>
-        <span class="scale" *ngIf="_ng_isScaleVisible()" [ngStyle]="_ng_getScaleStyle()"></span>
-    </p>
-    <p class="t-small format">{{file.format.format}}</p>
-</div>
-
-<div *ngIf="file.info !== undefined && viewMode === 'min'">
-    <p class="t-small range" *ngIf="file.scale !== undefined">
-        <span class="left">{{file.scale.min}}</span>
-        <span class="middle"> - </span>
-        <span class="right">{{file.scale.max}}</span>
-        <span class="scale" *ngIf="_ng_isScaleVisible()" [ngStyle]="_ng_getScaleStyle()"></span>
     </p>
 </div>
 
