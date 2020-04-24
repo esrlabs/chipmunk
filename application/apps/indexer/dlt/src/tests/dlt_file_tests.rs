@@ -3,8 +3,7 @@ mod tests {
 
     use crate::dlt_file::*;
     use crossbeam_channel as cc;
-    use indexer_base::chunks::ChunkResults;
-    use indexer_base::config::IndexingConfig;
+    use indexer_base::{chunks::ChunkResults, config::IndexingConfig};
     use std::path::PathBuf;
     #[test]
     fn test_storage_header_illegeal() {

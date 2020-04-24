@@ -9,12 +9,9 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use serde::{Deserialize, Serialize};
-use std::io::{Read};
-use std::fs;
-use std::collections::HashSet;
 use crate::dlt;
-use std::iter::FromIterator;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashSet, fs, io::Read, iter::FromIterator};
 
 /// only select log entries with level MIN_LEVEL and more severe
 ///  1 => FATAL

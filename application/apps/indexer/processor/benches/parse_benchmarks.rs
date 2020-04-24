@@ -1,9 +1,8 @@
 extern crate criterion;
 extern crate processor;
 
+use criterion::{Criterion, *};
 use processor::parse::*;
-use criterion::Criterion;
-use criterion::*;
 
 fn parse_benchmark(c: &mut Criterion) {
     let inputs = [

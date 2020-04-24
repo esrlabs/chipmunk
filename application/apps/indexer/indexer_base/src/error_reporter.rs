@@ -9,11 +9,11 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crate::progress::Severity;
+use log::*;
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::borrow::Cow;
-use rustc_hash::FxHashMap;
-use log::*;
-use crate::progress::Severity;
 
 type IncidentMap = FxHashMap<String, usize>;
 

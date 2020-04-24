@@ -22,16 +22,18 @@ extern crate lazy_static;
 use async_std::task;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::dlt_file::export_as_dlt_file;
-use dlt::dlt_parse::StatisticsResults;
-use dlt::dlt_pcap::convert_to_dlt_file;
-use dlt::fibex::FibexMetadata;
+use dlt::{
+    dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::convert_to_dlt_file,
+    fibex::FibexMetadata,
+};
 use failure::{err_msg, Error};
-use indexer_base::chunks::{serialize_chunks, Chunk, ChunkResults};
-use indexer_base::config::*;
-use indexer_base::error_reporter::*;
-use indexer_base::export::export_file_line_based;
-use indexer_base::progress::IndexingResults;
+use indexer_base::{
+    chunks::{serialize_chunks, Chunk, ChunkResults},
+    config::*,
+    error_reporter::*,
+    export::export_file_line_based,
+    progress::IndexingResults,
+};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::rc::Rc;
 
@@ -52,10 +54,7 @@ use processor::parse::{
     posix_timestamp_as_string, read_format_string_options, timespan_in_files, DiscoverItem,
     FormatTestOptions, TimestampFormatResult,
 };
-use std::fs;
-use std::io::Read;
-use std::path;
-use std::time::Instant;
+use std::{fs, io::Read, path, time::Instant};
 
 use std::thread;
 

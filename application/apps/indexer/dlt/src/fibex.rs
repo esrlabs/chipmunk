@@ -5,9 +5,8 @@ use quick_xml::{
     events::{attributes::Attributes, BytesStart, Event as XmlEvent},
     Reader as XmlReader,
 };
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
 use std::{
+    collections::{hash_map::Entry, HashMap},
     fs::File,
     io::{BufRead, BufReader},
     mem,

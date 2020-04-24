@@ -11,15 +11,18 @@
 // from E.S.R.Labs.
 use crossbeam_channel as cc;
 use failure::err_msg;
-use indexer_base::chunks::ChunkFactory;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::progress::IndexingProgress;
-use indexer_base::utils;
+use indexer_base::{
+    chunks::{ChunkFactory, ChunkResults},
+    progress::IndexingProgress,
+    utils,
+};
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
-use std::iter::Iterator;
-use std::path::PathBuf;
+use std::{
+    fs,
+    io::{BufRead, BufReader, BufWriter, Read, Write},
+    iter::Iterator,
+    path::PathBuf,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatItemOptions {

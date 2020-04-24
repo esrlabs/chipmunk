@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::dlt::*;
-    use crate::proptest_strategies::argument_strategy;
+    use crate::{dlt::*, proptest_strategies::argument_strategy};
     use byteorder::ByteOrder;
     use proptest::prelude::*;
 

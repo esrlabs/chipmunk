@@ -16,10 +16,7 @@ use byteorder::{BigEndian, LittleEndian};
 use bytes::{BufMut, ByteOrder, BytesMut};
 use indexer_base::error_reporter::*;
 use serde::Serialize;
-use std::fmt;
-use std::io;
-use std::io::Error;
-use std::rc::Rc;
+use std::{fmt, io, io::Error, rc::Rc};
 
 use proptest::prelude::*;
 use proptest_derive::Arbitrary;

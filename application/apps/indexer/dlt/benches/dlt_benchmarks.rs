@@ -3,7 +3,7 @@ extern crate criterion;
 extern crate dlt;
 
 // use dlt::dlt::*;
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use criterion::Criterion;
 
 fn dlt_benchmark(c: &mut Criterion) {

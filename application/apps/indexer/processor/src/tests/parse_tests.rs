@@ -5,8 +5,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use proptest::prelude::*;
-    use std::fs;
-    use std::path::PathBuf;
+    use std::{fs, path::PathBuf};
 
     static VALID_TIMESTAMP_FORMAT: &str = "[+-]{1}[0-9]{2}[0-5]{1}[0-9]{1}";
 
@@ -510,8 +509,7 @@ mod tests {
 
     #[test]
     fn test_timespan_in_file() {
-        use std::fs::File;
-        use std::io::Write;
+        use std::{fs::File, io::Write};
         use tempfile::tempdir;
         let dir = tempdir().expect("problem creating temp dir");
         let file_path = dir.path().join("my-temp-log.txt");
@@ -546,8 +544,7 @@ mod tests {
     #[test]
     fn test_scan_lines() {
         init();
-        use std::fs::File;
-        use std::io::Write;
+        use std::{fs::File, io::Write};
         use tempfile::tempdir;
         let dir = tempdir().expect("problem creating temp dir");
         let file_path = dir.path().join("my-temp-log.txt");

@@ -1,23 +1,22 @@
-use crate::dlt::*;
-use crate::dlt_parse::*;
-use crate::fibex::FibexMetadata;
-use crate::filtering;
+use crate::{dlt::*, dlt_parse::*, fibex::FibexMetadata, filtering};
 use async_std::task;
 use crossbeam_channel as cc;
 use etherparse::*;
 use failure::{err_msg, Error};
 use futures::stream::StreamExt;
-use indexer_base::chunks::{ChunkFactory, ChunkResults};
-use indexer_base::config::IndexingConfig;
-use indexer_base::progress::*;
-use indexer_base::utils;
-use pcap_parser::traits::PcapReaderIterator;
-use pcap_parser::PcapNGReader;
-use pcap_parser::*;
-use std::fs::*;
-use std::io::{BufWriter, Write};
-use std::rc::Rc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use indexer_base::{
+    chunks::{ChunkFactory, ChunkResults},
+    config::IndexingConfig,
+    progress::*,
+    utils,
+};
+use pcap_parser::{traits::PcapReaderIterator, PcapNGReader, *};
+use std::{
+    fs::*,
+    io::{BufWriter, Write},
+    rc::Rc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub fn convert_to_dlt_file(
     pcap_path: std::path::PathBuf,
@@ -268,9 +267,7 @@ pub fn index_from_pcap<'a>(
                         true,
                     )?;
                     line_nr += 1;
-                    if let Some(chunk) =
-                        chunk_factory.add_bytes(line_nr, written_bytes_len)
-                    {
+                    if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
                         // trace!("[line {}]: write to file {:?}", line_nr, out_file_name);
                         buf_writer.flush()?;
                         let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));

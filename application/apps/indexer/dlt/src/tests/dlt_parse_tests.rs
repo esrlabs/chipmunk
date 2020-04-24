@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::dlt::*;
-    use crate::dlt_parse::forward_to_next_storage_header;
-    use crate::dlt_parse::DLT_PATTERN;
-    use crate::dlt_parse::*;
-    use crate::proptest_strategies::*;
+    use crate::{
+        dlt::*,
+        dlt_parse::{forward_to_next_storage_header, DLT_PATTERN, *},
+        proptest_strategies::*,
+    };
     use dirs;
     use indexer_base::chunks::Chunk;
     use nom::IResult;

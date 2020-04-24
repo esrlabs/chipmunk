@@ -6,13 +6,13 @@ mod tests {
     use crate::processor::*;
     use crossbeam_channel as cc;
     use crossbeam_channel::unbounded;
-    use indexer_base::chunks::Chunk;
-    use indexer_base::chunks::ChunkResults;
-    use indexer_base::config::IndexingConfig;
-    use indexer_base::progress::{IndexingProgress, Notification};
+    use indexer_base::{
+        chunks::{Chunk, ChunkResults},
+        config::IndexingConfig,
+        progress::{IndexingProgress, Notification},
+    };
     use pretty_assertions::assert_eq;
-    use std::fs;
-    use std::path::PathBuf;
+    use std::{fs, path::PathBuf};
     use tempfile::tempdir;
 
     fn get_chunks(
