@@ -1,7 +1,7 @@
-import { ITimestampFormat } from '../../interfaces/interface.detect';
+import { ITimestampFormatOk } from '../../interfaces/interface.detect';
 
 export interface IMergeFilesDiscoverResult {
-    format?: ITimestampFormat;
+    format?: ITimestampFormatOk;
     minTime?: string;
     maxTime?: string;
     path: string;

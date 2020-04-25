@@ -1,12 +1,10 @@
-export interface IFile {
-    file: string;
-    parser: string;
-    format: string;
-}
+
 
 export interface IMergeFilesTestRequest {
     id: string;
-    files: IFile[];
+    file: string;
+    format?: string;
+    year?: number;
 }
 
 export class MergeFilesTestRequest {
@@ -14,8 +12,10 @@ export class MergeFilesTestRequest {
     public static signature: string = 'MergeFilesTestRequest';
     public signature: string = MergeFilesTestRequest.signature;
     public id: string = '';
-    public timezone: string = '';
-    public files: IFile[] = [];
+    public file: string = '';
+    public format?: string;
+    public year?: number;
+
 
     constructor(params: IMergeFilesTestRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -24,10 +24,12 @@ export class MergeFilesTestRequest {
         if (typeof params.id !== 'string' || params.id.trim() === '') {
             throw new Error(`id should be defined.`);
         }
-        if (params.files !== undefined && !(params.files instanceof Array)) {
-            throw new Error(`parsers should be defined as Array<IFile>.`);
+        if (typeof params.file !== 'string' || params.file.trim() === '') {
+            throw new Error(`file should be defined.`);
         }
         this.id = params.id;
-        this.files = params.files;
+        this.file = params.file;
+        this.format = params.format;
+        this.year = params.year;
     }
 }

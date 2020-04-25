@@ -3,7 +3,7 @@ export interface ITimestampFormat {
     Err?: string,
 }
 export interface ITimestampFormatOk {
-    formatstring: string;
+    format: string;
     regex: string;
-    flags: [string];
+    flags: string[];
 }

@@ -21,22 +21,23 @@ export interface ILogMessage {
     file_name?: string;
 }
 
+export interface IFile {
+    file: string;
+    format?: string;
+    year?: number;
+}
+
 export default class MergeDiscover {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Logger = new Logger("MergeDiscover");
     private _closed: boolean = false;
     private _session: string = "";
-    private _files: string[];
+    private _files: IFile[];
     private _task: CancelablePromise<void, void, Processor.TDiscoverTimespanAsyncEvents, Processor.TDiscoverTimespanAsyncEventObject> | undefined;
 
-    constructor(files: string[], session?: string) {
+    constructor(files: IFile[], session?: string) {
         this._files = files;
         this._session = session === undefined ? ServiceStreams.getActiveStreamId() : session;
-        /*
-        this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(
-            this._onSessionClosed.bind(this),
-        );
-        */
     }
 
     public discover(onProgress?: (ticks: Progress.ITicks) => void): Promise<IPCMessages.IMergeFilesDiscoverResult[]> {
@@ -45,8 +46,8 @@ export default class MergeDiscover {
             // Remember active session
             let completeTicks: number = 0;
             const hrstart = process.hrtime();
-            const discoverItems: Progress.IDiscoverItem[] = this._files.map((file: string) => {
-                return { path: file };
+            const discoverItems: Progress.IDiscoverItem[] = this._files.map((file: IFile) => {
+                return { path: file.file, format_string: file.format };
             });
             this._task = indexer.discoverTimespanAsync(discoverItems).then(() => {
                 if (onProgress !== undefined) {
@@ -86,10 +87,15 @@ export default class MergeDiscover {
                     }
                 }
                 const r: IPCMessages.IMergeFilesDiscoverResult = {
-                    format: event.format,
+                    format: event.format === undefined ? undefined : (event.format.Ok === undefined ? undefined : {
+                        regex: event.format.Ok.regex,
+                        flags: event.format.Ok.flags,
+                        format: event.format.Ok.format,
+                    }),
                     minTime: event.min_time,
                     maxTime: event.max_time,
                     path: event.path,
+                    error: event.format?.Err,
                 };
                 results.push(r);
             }).on('progress', (event: Progress.ITicks) => {

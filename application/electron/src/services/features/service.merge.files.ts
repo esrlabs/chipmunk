@@ -7,9 +7,7 @@ import MergeDiscover from '../../controllers/features/merge/merge.discover';
 import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
-import { IFile as ITestFileRequest } from '../../../../common/ipc/electron.ipc.messages/merge.files.test.request';
 import { Progress } from "indexer-neon";
-import { IFile as ITestFileResponse } from '../../../../common/ipc/electron.ipc.messages/merge.files.test.response';
 import { IFile as IMergeFileRequest } from '../../../../common/ipc/electron.ipc.messages/merge.files.request';
 import { IMapItem } from '../../controllers/files.parsers/interface';
 
@@ -152,62 +150,43 @@ class ServiceMergeFiles implements IService {
 
     private _onMergeFilesTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesTestRequest = request as IPCMessages.MergeFilesTestRequest;
-        const files: ITestFileResponse[] = [];
-        Promise.all(req.files.map((requestFile: ITestFileRequest) => {
-            return new Promise((resolve) => {
-                this._test(requestFile).then((responseFile: ITestFileResponse) => {
-                    files.push(responseFile);
-                    resolve();
-                }).catch((error: Error) => {
-                    files.push({
-                        file: requestFile.file,
-                        found: -1,
-                        readBytes: -1,
-                        readRows: -1,
-                        size: -1,
-                        regExpStr: '',
-                        error: error.message,
-                    });
-                    resolve();
-                });
-            });
-        })).then(() => {
+        this._test(req.file, req.format, req.year).then((results: IPCMessages.IMergeFilesDiscoverResult) => {
             response(new IPCMessages.MergeFilesTestResponse({
                 id: req.id,
-                files: files,
+                format: results.format,
+                error: results.error,
+                maxTime: results.maxTime,
+                minTime: results.minTime,
+                path: req.file,
+            }));
+        }).catch((error: Error) => {
+            response(new IPCMessages.MergeFilesTestResponse({
+                id: req.id,
+                error: error.message,
+                path: req.file,
             }));
         });
     }
 
-    private _test(file: ITestFileRequest): Promise<ITestFileResponse> {
+    private _test(file: string, format: string | undefined, year: number | undefined): Promise<IPCMessages.IMergeFilesDiscoverResult> {
         return new Promise((resolve, reject) => {
-            reject(new Error("no test implementend"));
-            // const controller: MergeTest = new MergeTest({
-            //     file: file.file,
-            //     format: file.format,
-            //     rowsToBeRead: 500,
-            // });
-            // controller.test().then((results: IFileTestResults) => {
-            //     if (results.results.readBytes === 0) {
-            //         return reject(new Error(`Fail to read file. Was read ${results.results.readBytes} bytes.`));
-            //     }
-            //     resolve({
-            //         file: file.file,
-            //         found: results.results.matches,
-            //         readBytes: results.results.readBytes,
-            //         readRows: results.results.readRows,
-            //         size: results.size,
-            //         regExpStr: results.results.regExpStr,
-            //     });
-            // }).catch((error: Error) => {
-            //     reject(error);
-            // });
+            const controller: MergeDiscover = new MergeDiscover([{ file: file, format: format, year: year }]);
+            controller.discover().then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
+                if (processed.length !== 1) {
+                    return reject(new Error(`Unexpected count of results: ${processed.length}. Expected 1.`));
+                }
+                resolve(processed[0]);
+            }).catch((error: Error) => {
+                reject(error);
+            });
         });
     }
 
     private _discover(files: string[]): Promise<IPCMessages.IMergeFilesDiscoverResult[]> {
         return new Promise((resolve, reject) => {
-            const controller: MergeDiscover = new MergeDiscover(files);
+            const controller: MergeDiscover = new MergeDiscover(files.map((file: string) => {
+                return { file: file };
+            }));
             controller.discover().then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
                 resolve(processed);
             }).catch((error: Error) => {

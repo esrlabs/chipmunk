@@ -4,7 +4,7 @@
         <span class="path">{{file.info.name}}</span>
         <span class="size t-small">{{(file.info.size / 1024 / 1024).toFixed(2)}}Mb</span>
     </p>
-    <p class="t-small format">{{file.format.format}}</p>
+    <p class="t-small format" *ngIf="file.format !== undefined">{{file.format.format}}</p>
 </div>
 
 <div *ngIf="file.info !== undefined && viewMode === 'min'">
@@ -28,3 +28,5 @@
         </span>
     </p>
 </div>
+
+<p class="t-small error" *ngIf="file.error !== undefined">{{file.error}}</p>

@@ -119,21 +119,6 @@ export class ControllerFileMergeSession {
     }
 
     public add(files: string[]): Promise<void> {
-        function getTimestamp(file: IPCMessages.IMergeFilesDiscoverResult): ITimestampFormat | undefined {
-            if (file.format === undefined) {
-                return undefined;
-            }
-            if (file.format.Ok === undefined) {
-                return undefined;
-            }
-            return { regex: file.format.Ok.regex, format: file.format.Ok.formatstring, flags: file.format.Ok.flags };
-        }
-        function getErr(file: IPCMessages.IMergeFilesDiscoverResult): string | undefined {
-            if (file.format === undefined) {
-                return undefined;
-            }
-            return file.format.Err;
-        }
         return new Promise((resolve, reject) => {
             files.forEach((file: string) => {
                 this._files.set(file, {
@@ -153,8 +138,12 @@ export class ControllerFileMergeSession {
                         this._getFileInfo(discoveredFile.path).then((info: IFileInfo) => {
                             // TODO: discoveredFile.format could be NULL or UNDEFINED
                             this._files.set(discoveredFile.path, {
-                                format: getTimestamp(discoveredFile),
-                                error: getErr(discoveredFile),
+                                format: discoveredFile.format === undefined ? undefined : {
+                                    format: discoveredFile.format.format,
+                                    flags: discoveredFile.format.flags,
+                                    regex: discoveredFile.format.regex,
+                                },
+                                error: discoveredFile.error,
                                 scale: this._getTimeScale(discoveredFile),
                                 info: info,
                                 path: discoveredFile.path,
@@ -245,6 +234,31 @@ export class ControllerFileMergeSession {
             }).catch((mergeErr: Error) => {
                 this._logger.error(`Fail to do merge due error: ${mergeErr.message}`);
                 reject(mergeErr);
+            });
+        }).finally(() => {
+            this._tasks.delete(id);
+        });
+        this._tasks.set(id, task);
+        return task;
+    }
+
+    public test(file: string, format: string): CancelablePromise<IPCMessages.IMergeFilesTestResponse> {
+        const id: string = Toolkit.guid();
+        const task: CancelablePromise<IPCMessages.IMergeFilesTestResponse> = new CancelablePromise<IPCMessages.IMergeFilesTestResponse>(
+            (resolve, reject, cancel, refCancelCB, self) => {
+            ElectronIpcService.request(new IPCMessages.MergeFilesTestRequest({
+                file: file,
+                format: format,
+                id: id,
+            }), IPCMessages.MergeFilesTestResponse).then((response: IPCMessages.MergeFilesTestResponse) => {
+                if (typeof response.error === 'string') {
+                    this._logger.error(`Fail to test files due error: ${response.error}`);
+                    return reject(new Error(response.error));
+                }
+                resolve(response);
+            }).catch((disErr: Error) => {
+                this._logger.error(`Fail to test files due error: ${disErr.message}`);
+                return reject(disErr);
             });
         }).finally(() => {
             this._tasks.delete(id);
@@ -371,14 +385,14 @@ export class ControllerFileMergeSession {
         if (file.maxTime === undefined || file.minTime === undefined) {
             return undefined;
         }
-        const sMin: number | undefined = getUnixTime(file.minTime);
-        const sMax: number | undefined = getUnixTime(file.maxTime);
+        const sMin: number | undefined = getUnixTime(parseInt(file.minTime, 10));
+        const sMax: number | undefined = getUnixTime(parseInt(file.maxTime, 10));
         if (sMin === undefined || sMax === undefined) {
             return undefined;
         }
         return {
-            max: file.maxTime,
-            min: file.minTime,
+            max: (new Date(sMax)).toUTCString(),
+            min: (new Date(sMin)).toUTCString(),
             sMax: sMax,
             sMin: sMin,
         };

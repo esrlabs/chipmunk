@@ -4,6 +4,8 @@ import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerFileMergeSession, IMergeFile, IFileOptions } from '../../../../controller/controller.file.merge.session';
 import { CColors } from '../../../../conts/colors';
 import { getContrastColor } from '../../../../theme/colors';
+import { IPCMessages } from '../../../../interfaces/interface.ipc';
+import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -79,7 +81,9 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef) {
+    constructor(private _sanitizer: DomSanitizer,
+                private _cdRef: ChangeDetectorRef,
+                private _notifications: NotificationsService) {
     }
 
     public ngAfterContentInit() {
@@ -123,8 +127,36 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
         if (this.file.format === undefined || this.file.format.format === this._ng_format) {
             return;
         }
-        this.file.format.format = this._ng_format;
-        this.controller.update(this.file.path, this.file);
+        this._ng_state = EFormatState.testing;
+        this.controller.test(this.file.path, this._ng_format).then((result: IPCMessages.IMergeFilesTestResponse) => {
+            if (result.error !== undefined || result.format === undefined) {
+                this._ng_format = this.file.format.format;
+                return this._notifications.add({
+                    message: result.error !== undefined ? result.error : `Format data wasn't gotten`,
+                    caption: 'Error',
+                    options: {
+                        type: ENotificationType.error
+                    }
+                });
+            }
+            this.file.format.format = result.format.format;
+            this.file.format.regex = result.format.regex;
+            this.file.format.flags = result.format.flags;
+            this._setPreview();
+            this.controller.update(this.file.path, this.file);
+        }).catch((error: Error) => {
+            this._ng_format = this.file.format.format;
+            return this._notifications.add({
+                message: error.message,
+                caption: 'Error',
+                options: {
+                    type: ENotificationType.error
+                }
+            });
+        }).finally(() => {
+            this._ng_state = EFormatState.tested;
+            this._forceUpdate();
+        });
     }
 
     public _ng_getFormatStr(): SafeHtml {
