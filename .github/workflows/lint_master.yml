@@ -3,24 +3,24 @@ name: LintMaster
 on:
   push:
     branches:
-      - master         # Push events on master branch
+      - master # Push events on master branch
 
 jobs:
   lint_js:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: install ruby
         uses: actions/setup-ruby@v1
         with:
-          ruby-version: '2.x'
+          ruby-version: "2.x"
       - name: install octokit
         run: gem install octokit
       - name: install node
         uses: actions/setup-node@master
         with:
-          node-version: '10.16.3'
+          node-version: "10.16.3"
       - name: install typescript
         run: npm install typescript --global
       - name: install tslint
@@ -31,11 +31,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: install ruby
         uses: actions/setup-ruby@v1
         with:
-          ruby-version: '2.x'
+          ruby-version: "2.x"
       - name: install octokit
         run: gem install octokit
       - name: install rust

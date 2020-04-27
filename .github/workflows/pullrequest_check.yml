@@ -11,17 +11,17 @@ jobs:
         rust: [stable]
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: Install windows python
         uses: actions/setup-python@v1
         if: startsWith(matrix.os, 'windows')
         with:
-          python-version: '2.7'
-          architecture: 'x64' # (x64 or x86)
+          python-version: "2.7"
+          architecture: "x64" # (x64 or x86)
       - name: install ruby
         uses: actions/setup-ruby@v1
         with:
-          ruby-version: '2.x'
+          ruby-version: "2.x"
       - name: install dotenv
         run: gem install dotenv
       - name: install octokit
@@ -29,7 +29,7 @@ jobs:
       - name: install node
         uses: actions/setup-node@master
         with:
-          node-version: '10.16.3'
+          node-version: "10.16.3"
       - name: install typescript
         if: "!startsWith(matrix.os, 'windows')"
         run: npm install --global typescript@3.7.3
@@ -48,17 +48,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: install ruby
         uses: actions/setup-ruby@v1
         with:
-          ruby-version: '2.x'
+          ruby-version: "2.x"
       - name: install octokit
         run: gem install octokit
       - name: install node
         uses: actions/setup-node@master
         with:
-          node-version: '10.16.3'
+          node-version: "10.16.3"
       - name: install typescript
         run: npm install typescript --global
       - name: install tslint
@@ -69,11 +69,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: install ruby
         uses: actions/setup-ruby@v1
         with:
-          ruby-version: '2.x'
+          ruby-version: "2.x"
       - name: install octokit
         run: gem install octokit
       - name: install rust
@@ -88,11 +88,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: install ruby
         uses: actions/setup-ruby@v1
         with:
-          ruby-version: '2.x'
+          ruby-version: "2.x"
       - name: install octokit
         run: gem install octokit
       - name: install rust
