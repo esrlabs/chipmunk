@@ -170,7 +170,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         if (this._controller === undefined) {
             return;
         }
-        const files: IConcatFile[] = this._ng_files.sortData(this._ng_files.filteredData,this._ng_files.sort);
+        const files: IConcatFile[] = this._ng_files.sortData(this._ng_files.filteredData, this._ng_files.sort);
         moveItemInArray(files, event.previousIndex, event.currentIndex);
         this._ng_sortDirRef.active = '';
         this._ng_sortDirRef.direction = '';
@@ -320,7 +320,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         if (this._controller === undefined) {
             return;
         }
-        this._controller.set(this._ng_files.sortData(this._ng_files.filteredData,this._ng_files.sort));
+        this._controller.set(this._ng_files.sortData(this._ng_files.filteredData, this._ng_files.sort));
     }
 
     private _initTableSources() {
