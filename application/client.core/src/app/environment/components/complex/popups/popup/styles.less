@@ -51,6 +51,19 @@
                 position: relative;
                 text-align: right;
                 padding: 0.5rem;
+                & * {
+                    margin-right: 8px;
+                    &:last-child {
+                        margin-right: 0;
+                    }
+                }
+                & > button {
+                    margin-left: 8px;
+                    & mat-spinner{
+                        display: inline-block;
+                        margin-right: 8px;
+                    }
+                }
             }
         }
     }
