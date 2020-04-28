@@ -1,34 +1,58 @@
-<p class="caption t-normal">Select files to be concatenated.</p>
 <div class="files" (contextmenu)="_ng_onContexMenu($event, undefined)">
-    <table *ngIf="_ng_files.length > 0" cdkDropList class="files-table" (cdkDropListDropped)="_ng_onResorted($event)">
-        <tr class="app-sidebar-app-concat-files-file-row">
-            <th [attr.class]="'t-small color-scheme-0'" (click)="_ng_sortBy('name')" colspan="2"><span [attr.class]="'sorted fas fa-caret-down ' + (_ng_sorting.abc ? 'revert' : '')" *ngIf="_ng_sorting.prop === 'name'"></span>Name</th>
-            <th [attr.class]="'t-small color-scheme-0'" (click)="_ng_sortBy('size')"><span [attr.class]="'sorted fas fa-caret-down ' + (_ng_sorting.abc ? 'revert' : '')" *ngIf="_ng_sorting.prop === 'size'"></span>Size</th>
-            <th [attr.class]="'t-small color-scheme-0'" (click)="_ng_sortBy('created')"><span [attr.class]="'sorted fas fa-caret-down ' + (_ng_sorting.abc ? 'revert' : '')" *ngIf="_ng_sorting.prop === 'created'"></span>Created</th>
-            <th [attr.class]="'t-small color-scheme-0'" (click)="_ng_sortBy('changed')"><span [attr.class]="'sorted fas fa-caret-down ' + (_ng_sorting.abc ? 'revert' : '')" *ngIf="_ng_sorting.prop === 'changed'"></span>Changed</th>
-        </tr>
-        <tr cdkDrag [attr.class]="'app-sidebar-app-concat-files-file-row ' + (file.selected ? 'selected' : '')" *ngFor="let file of _ng_files" (click)="_ng_onSelect(file)" (contextmenu)="_ng_onContexMenu($event, file)">
-            <td class="t-console color-scheme-2" [attr.title]="file.name">{{file.name}}</td>
-            <td class="t-console color-scheme-2">{{(file.matches !== 0 ? file.matches : '-')}}</td>
-            <td class="t-console color-scheme-2">{{(file.size / 1024 / 1024).toFixed(2)}} Mb</td>
-            <td class="t-console color-scheme-2">{{file.createdStr}}</td>
-            <td class="t-console color-scheme-2">{{file.changedStr}}</td>
-        </tr>
+    <table  mat-table
+            [dataSource]="_ng_files"
+            matSort
+            class="mat-elevation-z8"
+            cdkDropList
+            (matSortChange)="_ng_onSortChange()"
+            (cdkDropListDropped)="_ng_onResorted($event)">
+        <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+            <td mat-cell *matCellDef="let element"> {{element.name}} </td>
+        </ng-container>
+        <ng-container matColumnDef="matches">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Search</th>
+            <td mat-cell *matCellDef="let element">{{(element.matches !== 0 ? element.matches : '-')}}</td>
+        </ng-container>
+        <ng-container matColumnDef="size">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Size</th>
+            <td mat-cell *matCellDef="let element">{{(element.size / 1024 / 1024).toFixed(2)}} Mb</td>
+        </ng-container>
+        <ng-container matColumnDef="created">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+            <td mat-cell *matCellDef="let element">{{element.createdStr}}</td>
+        </ng-container>
+        <ng-container matColumnDef="changed">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Changed</th>
+            <td mat-cell *matCellDef="let element">{{element.changedStr}}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="['name', 'matches', 'size', 'created', 'changed']"></tr>
+        <tr mat-row
+            cdkDrag
+            *matRowDef="let row; columns: ['name', 'matches', 'size', 'created', 'changed'];" 
+            (click)="_ng_onSelect(row)"
+            (contextmenu)="_ng_onContexMenu($event, row)"
+            [attr.class]="'app-sidebar-app-concat-files-file-row ' + (row.selected ? 'selected' : '')"></tr>
     </table>
 </div>
-<div class="search" *ngIf="!_ng_busy">
-    <lib-primitive-input [type]="'text'"
-                         [value]="_ng_search"
-                         [inlineErrors]="true"
-                         [placeholder]="'search across file'" 
-                         [validate]="_ng_onSearchValidate" 
-                         [onEnter]="_ng_onSearchEnter"
-                         [onChange]="_ng_onSearchChange"></lib-primitive-input>
-</div>
-<div class="controlls" *ngIf="!_ng_busy">
-    <span class="small-button" (click)="_ng_onAddFile()">Add file</span>
-    <span *ngIf="_ng_files.length > 1" class="small-button" (click)="_ng_onConcat()">Concat</span>
-</div>
-<div class="progress-testing" *ngIf="_ng_busy">
-    <lib-primitive-spinner-regular></lib-primitive-spinner-regular>
+
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Search in files</mat-label>
+    <input  type="text" 
+            [(ngModel)]="_ng_search"
+            (keyup)="_ng_onSearchChange($event)"
+            matInput
+            [errorStateMatcher]="_ng_search_error">
+    <mat-error *ngIf="!_ng_search_error.isValid()">
+        Isn't valid regexp
+    </mat-error>
+</mat-form-field>
+
+<div class="controlls">
+    <button mat-stroked-button color="primary" (click)="_ng_onAddFile()">
+        Add File
+    </button>
+    <button mat-stroked-button color="primary" (click)="_ng_onConcat()">
+        Concat
+    </button>
 </div>

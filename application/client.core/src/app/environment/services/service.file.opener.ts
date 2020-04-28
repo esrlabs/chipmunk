@@ -15,16 +15,12 @@ import SidebarSessionsService from './service.sessions.sidebar';
 import PopupsService from './standalone/service.popups';
 import FileOptionsService from './service.file.options';
 import MergeFilesService from './service.file.merge';
+import ConcatFilesService from './service.file.concat';
 
 export enum EActionType {
     concat = 'concat',
     merging = 'merging',
 }
-
-export const CSubjects = {
-    [CGuids.merging]: { subject: 'onFilesToBeMerged' },
-    [CGuids.concat]: { subject: 'onFilesToBeConcat' },
-};
 
 export interface IFile {
     lastModified: number;
@@ -38,11 +34,6 @@ export interface IFile {
 export interface IFileOpenerService {
     merge: (files: IFile[]) => void;
     concat: (files: IFile[]) => void;
-    getObservable: () => {
-        onFilesToBeConcat: Observable<IFile[]>,
-    };
-    getPendingFiles: () => IFile[];
-    dropPendingFiles: () => void;
 }
 
 const CReopenContextMenuItemId = 'reopen_file_item';
@@ -50,11 +41,7 @@ const CReopenContextMenuItemId = 'reopen_file_item';
 export class FileOpenerService implements IService, IFileOpenerService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOpenerService');
-    private _pending: IFile[] = [];
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _subjects = {
-        onFilesToBeConcat: new Subject<IFile[]>(),
-    };
 
     constructor() {
 
@@ -107,8 +94,6 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 });
             } else {
                 // Multiple files
-                // Stored panding files
-                this._pending = files;
                 // Select way: merge or concat
                 PopupsService.add({
                     id: 'opening-file-dialog',
@@ -163,24 +148,6 @@ export class FileOpenerService implements IService, IFileOpenerService {
         this._open(files, EActionType.concat);
     }
 
-    public getObservable(): {
-        onFilesToBeConcat: Observable<IFile[]>,
-    } {
-        return {
-            onFilesToBeConcat: this._subjects.onFilesToBeConcat.asObservable(),
-        };
-    }
-
-    public getPendingFiles(): IFile[] {
-        const pending: IFile[] = this._pending.slice();
-        this._pending = [];
-        return pending;
-    }
-
-    public dropPendingFiles() {
-        this._pending = [];
-    }
-
     private _open(files: IFile[], action: EActionType) {
         const active = TabsSessionsService.getActive();
         if (active === undefined) {
@@ -193,12 +160,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 MergeFilesService.add(files, active.getGuid());
                 break;
             case EActionType.concat:
-                // Stored panding files
-                this._pending = files;
-                // Show sidebar
-                LayoutStateService.sidebarMax();
-                // Trigger event
-                this._subjects[CSubjects[guid].subject].next(this._pending.slice());
+                ConcatFilesService.add(files, active.getGuid());
                 break;
         }
         // Add or activate tab on sidebar

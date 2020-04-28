@@ -1,3 +1,5 @@
+import { setSharedServices } from './shared.services.sidebar';
+
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
@@ -9,13 +11,14 @@ import TabsSessionsService from './service.sessions.tabs';
 import TabsCustomService from './service.custom.tabs';
 import FileOpenerService from './service.file.opener';
 import MergeFilesService from './service.file.merge';
+import ConcatFilesService from './service.file.concat';
 import HotkeysService from './service.hotkeys';
 import ConnectionsService from './service.connections';
 import LogsService from './service.logs';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
+
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { setSharedServices } from './shared.services.sidebar';
 
 const InitializeStages = [
     // Stage #1
@@ -35,6 +38,7 @@ const InitializeStages = [
         FileOptionsService,
         FileOpenerService,
         MergeFilesService,
+        ConcatFilesService,
         HotkeysService,
         ConnectionsService ],
     // Stage #6
@@ -119,6 +123,7 @@ export class LoaderService {
             setSharedServices({
                 FileOpenerService: FileOpenerService,
                 MergeFilesService: MergeFilesService,
+                ConcatFilesService: ConcatFilesService,
             });
             resolve();
         });

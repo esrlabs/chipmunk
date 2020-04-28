@@ -1,5 +1,11 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
+
+interface IFileInfo {
+    name: string;
+    modified: number;
+    modifiedStr: string;
+    size: number;
+}
 
 @Component({
     selector: 'app-views-dialogs-multiplefilescation-map',
@@ -15,7 +21,6 @@ export class DialogsMultipleFilesActionComponent implements AfterContentInit {
     }
 
     ngAfterContentInit() {
-
     }
 
 }

@@ -1,7 +1,6 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import { CommonInterfaces} from '../interfaces/interface.common';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 
 import SessionsService from '../services/service.sessions.tabs';
@@ -391,8 +390,8 @@ export class ControllerFileMergeSession {
             return undefined;
         }
         return {
-            max: (new Date(sMax)).toUTCString(),
-            min: (new Date(sMin)).toUTCString(),
+            max: (new Date(sMax)).toISOString(),
+            min: (new Date(sMin)).toISOString(),
             sMax: sMax,
             sMin: sMin,
         };
