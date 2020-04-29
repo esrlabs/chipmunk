@@ -92,19 +92,23 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
             }
             Ok(IndexingProgress::GotItem { item: chunk }) => {
                 let event_name = cx.string("GotItem");
+                trace!("GotItem...{:?}", chunk);
                 match neon_serde::to_value(&mut cx, &chunk) {
-                    Ok(js_value) => match js_value.downcast::<JsObject>() {
-                        Ok(o) => {
-                            o.set(&mut cx, "event", event_name)?;
-                            o.upcast()
+                    Ok(js_value) => {
+                        trace!("Try to downcast {:?}", chunk);
+                        match js_value.downcast::<JsObject>() {
+                            Ok(o) => {
+                                o.set(&mut cx, "event", event_name)?;
+                                o.upcast()
+                            }
+                            Err(e) => {
+                                error!("error in downcasting object: {}...will throw js error", e);
+                                let o: Handle<JsObject> = js_value.downcast_or_throw(&mut cx)?;
+                                o.set(&mut cx, "event", event_name)?;
+                                o.upcast()
+                            }
                         }
-                        Err(e) => {
-                            error!("error in downcasting object: {}...will throw js error", e);
-                            let o: Handle<JsObject> = js_value.downcast_or_throw(&mut cx)?;
-                            o.set(&mut cx, "event", event_name)?;
-                            o.upcast()
-                        }
-                    },
+                    }
                     Err(e) => {
                         error!("error in converting to js: {}", e);
                         cx.empty_object().upcast()

@@ -18,6 +18,11 @@ export interface INeonTransferChunk {
     r: [number, number];
     b: [number, number];
 }
+export interface FormatOk {}
+export interface IFormatCheckResult {
+    FormatRegex?: string,
+    FormatInvalid?: string,
+}
 export interface ITimestampFormatResult {
     path: string,
     format?: ITimestampFormat,
@@ -39,6 +44,7 @@ export interface IMergerItemOptions {
 export interface IDiscoverItem {
     path: string,
     format_string?: string,
+    fallback_year?: number,
 }
 export enum Severity {
     WARNING = 'WARNING',

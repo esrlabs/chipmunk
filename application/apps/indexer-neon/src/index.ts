@@ -16,8 +16,6 @@ export default {
 	indexPcapDlt: DLT.indexPcapDlt,
 	// Indexing
 	indexAsync: Processor.indexAsync,
-	detectTimestampInString: Processor.detectTimestampInString,
-	detectTimestampFormatInFile: Processor.detectTimestampFormatInFile,
 	discoverTimespanAsync: Processor.discoverTimespanAsync,
 	exportLineBased: Processor.exportLineBased,
 	// Merging

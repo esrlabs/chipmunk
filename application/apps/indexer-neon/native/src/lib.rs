@@ -18,11 +18,13 @@ mod dlt_socket_channel;
 mod dlt_stats_channel;
 mod export_channel;
 mod fibex_utils;
+mod format_verify_channel;
 mod indexer_channel;
 mod logging;
 mod merger_channel;
 mod timestamp_detector_channel;
 use crate::dlt_pcap_channel::JsDltPcapEventEmitter;
+use crate::format_verify_channel::JsFormatVerificationEmitter;
 use concatenator_channel::JsConcatenatorEmitter;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
 use dlt_socket_channel::JsDltSocketEventEmitter;
@@ -117,6 +119,8 @@ register_module!(mut cx, {
     cx.export_class::<JsConcatenatorEmitter>("RustConcatenatorEmitter")?;
     cx.export_class::<JsMergerEmitter>("RustMergerEmitter")?;
     cx.export_class::<JsExporterEventEmitter>("RustExporterEventEmitter")?;
+    cx.export_class::<JsFormatVerificationEmitter>("RustFormatVerificationEmitter")?;
+
     // detect_timestamp_formats_in_files
     Ok(())
 });

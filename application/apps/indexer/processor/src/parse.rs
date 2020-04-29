@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 
 use std::{
     borrow::Cow,
-    collections::BTreeMap,
+    collections::{BTreeMap, HashSet},
     fs,
     io::{BufRead, BufReader, Read, Seek},
     path::{Path, PathBuf},
@@ -300,14 +300,16 @@ fn date_format_str_to_regex(date_format: &str) -> Result<Regex, Error> {
                 acc
             });
 
-            return match Regex::new(s.as_str()) {
+            match Regex::new(s.as_str()) {
                 Ok(regex) => Ok(regex),
                 Err(e) => Err(err_msg(format!("could not create regex: {}", e))),
-            };
+            }
         }
-        Err(e) => report_error(format!("{:?}", e)), // TODO replace
+        Err(e) => {
+            report_error(format!("{:?}", e));
+            Err(err_msg("could not use format expression".to_string()))
+        }
     }
-    Err(err_msg("could not detect timestamp in"))
 }
 static DAY_GROUP: &str = "d";
 static MONTH_GROUP: &str = "m";
@@ -391,6 +393,7 @@ pub(crate) fn scan_lines(
     regex: &Regex,
     limit: Option<usize>,
     start: Option<u64>,
+    year: Option<i32>,
 ) -> Result<(usize, Option<i64>, Option<i64>), Error> {
     let mut buf = vec![];
 
@@ -414,7 +417,7 @@ pub(crate) fn scan_lines(
                 let trimmed = line.trim();
                 if !trimmed.is_empty() {
                     inspected_lines += 1;
-                    match extract_posix_timestamp(trimmed, &regex, None, Some(0)) {
+                    match extract_posix_timestamp(trimmed, &regex, year, Some(0)) {
                         // TODO work on fast parsers to replace regex parsing
                         // match parse_full_timestamp(trimmed, &regex) {
                         Ok((timestamp, _)) => {
@@ -452,18 +455,21 @@ pub fn unix_timestamp_to_utc(timestamp: i64) -> DateTime<Utc> {
 pub(crate) fn timespan_in_file(
     format_expr: &str,
     file_path: impl AsRef<Path>,
+    year: Option<i32>,
 ) -> Result<TimestampFormatResult, Error> {
+    trace!("timespan_in_file for \"{}\"", format_expr);
     let regex = lookup_regex_for_format_str(&format_expr)?;
+    trace!("regex for \"{}\" => {}", format_expr, regex.as_str());
     let f: fs::File = fs::File::open(&file_path)?;
     let file_size = f.metadata()?.len();
     let min_buf_size = std::cmp::min(file_size, 256 * 1024); // 256k
     let lines_to_scan = 1000usize;
     let (_line_cnt, min_timestamp, max_timestamp) =
-        scan_lines(&f, &regex, Some(lines_to_scan), None)?;
+        scan_lines(&f, &regex, Some(lines_to_scan), None, year)?;
     // also read from end
     let start = file_size - min_buf_size;
     let (_last_scanned_lines, min_timestamp_last, max_timestamp_last) =
-        scan_lines(&f, &regex, None, Some(start))?;
+        scan_lines(&f, &regex, None, Some(start), year)?;
     let timestamp_format = TimestampFormat {
         format: format_expr.to_string(),
         regex: regex_as_string(&regex),
@@ -507,7 +513,8 @@ pub fn timespan_in_files(
         };
 
         match format_expr_to_use {
-            Ok(format_expr) => match timespan_in_file(&format_expr, &file_path) {
+            Ok(format_expr) => match timespan_in_file(&format_expr, &file_path, item.fallback_year)
+            {
                 Ok(timestamp_format_result) => {
                     let _ = update_channel.send(Ok(IndexingProgress::GotItem {
                         item: timestamp_format_result,
@@ -604,7 +611,63 @@ fn parse_from_month(mmm: &str) -> Result<u32, Error> {
         _ => Err(err_msg(format!("could not parse month {:?}", mmm))),
     }
 }
-// return the timestamp and wether the year was missing
+
+#[derive(Serialize, Debug, PartialEq)]
+pub enum FormatCheckResult {
+    FormatRegex(String),
+    FormatInvalid(String),
+}
+
+pub fn check_format(format: &str) -> FormatCheckResult {
+    match lookup_regex_for_format_str(format) {
+        Err(e) => FormatCheckResult::FormatInvalid(format!("format invalid: {}", e)),
+        Ok(regex) => {
+            let mut s = HashSet::new();
+            for n in regex.capture_names() {
+                if let Some(v) = n {
+                    s.insert(v);
+                }
+            }
+            if s.contains(ABSOLUTE_MS_TAG) {
+                FormatCheckResult::FormatRegex(regex.as_str().to_string())
+            } else {
+                if !s.contains(YEAR_GROUP) && !s.contains(YEAR_SHORT_GROUP) {
+                    return FormatCheckResult::FormatInvalid(format!(
+                        "missing long or short year ({} or {})",
+                        YEAR_FORMAT_TAG, YEAR_SHORT_FORMAT_TAG,
+                    ));
+                }
+                if !s.contains(MONTH_GROUP) && !s.contains(MONTH_SHORT_NAME_GROUP) {
+                    return FormatCheckResult::FormatInvalid(format!(
+                        "missing numeric or short month ({} or {})",
+                        MONTH_FORMAT_TAG, MONTH_FORMAT_SHORT_NAME_TAG,
+                    ));
+                }
+                if !s.contains(DAY_GROUP) {
+                    return FormatCheckResult::FormatInvalid(format!(
+                        "missing days ({})",
+                        DAY_FORMAT_TAG
+                    ));
+                }
+                if !s.contains(HOUR_GROUP) {
+                    return FormatCheckResult::FormatInvalid(format!(
+                        "missing hours ({})",
+                        HOURS_FORMAT_TAG
+                    ));
+                }
+                if !s.contains(MINUTE_GROUP) {
+                    return FormatCheckResult::FormatInvalid(format!(
+                        "missing minutes ({})",
+                        MINUTES_FORMAT_TAG
+                    ));
+                }
+                FormatCheckResult::FormatRegex(regex.as_str().to_string())
+            }
+        }
+    }
+}
+
+/// return the timestamp and wether the year was missing
 pub fn extract_posix_timestamp(
     line: &str,
     regex: &Regex,
@@ -641,9 +704,14 @@ pub fn extract_posix_timestamp(
     let min_capt = caps
         .name(MINUTE_GROUP)
         .ok_or_else(|| err_msg("no group for minute found in regex"))?;
-    let sec_capt = caps
-        .name(SECONDS_GROUP)
-        .ok_or_else(|| err_msg("no group for seconds found in regex"))?;
+    // let sec_capt: u32 = caps.name(SECONDS_GROUP).unwrap().as_str().parse()?;
+    let seconds: u32 = match caps.name(SECONDS_GROUP) {
+        None => {
+            warn!("no group for seconds found in regex, assuming 0");
+            0u32
+        }
+        Some(m) => m.as_str().parse()?,
+    };
     let am_pm_hour_offset: u32 = match caps.name(AM_PM_GROUP) {
         Some(m) => match m.as_str() {
             "PM" => Ok(12),
@@ -652,13 +720,12 @@ pub fn extract_posix_timestamp(
         },
         None => Ok(0),
     }?;
-    let (hour, minutes, seconds, second_fractions): (u32, u32, u32, u32) = (
+    let (hour, minutes, second_fractions): (u32, u32, u32) = (
         hour_capt
             .as_str()
             .parse()
             .map(|h: u32| h + am_pm_hour_offset)?,
         min_capt.as_str().parse()?,
-        sec_capt.as_str().parse()?,
         match caps.name(FRACTION_GROUP) {
             Some(m) => {
                 let s = m.as_str();
@@ -669,7 +736,6 @@ pub fn extract_posix_timestamp(
         },
     );
     let millis = second_fractions;
-    // let millis = (second_fractions as f64 / 1000.0) as u32;
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
     if time_offset.is_none() && timezone_n.is_none() {
@@ -759,6 +825,7 @@ pub fn line_to_timed_line(
 pub struct DiscoverItem {
     pub path: String,
     pub format_string: Option<String>,
+    pub fallback_year: Option<i32>,
 }
 #[derive(Serialize, Debug)]
 pub struct TimestampFormatResult {

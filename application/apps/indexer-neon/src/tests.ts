@@ -1,5 +1,5 @@
 import { CancelablePromise } from './promise';
-import { indexAsync, IFilePath, discoverTimespanAsync } from './processor';
+import { indexAsync, IFilePath, discoverTimespanAsync, checkFormat } from './processor';
 import {
 	DltFilterConf,
 	DltLogLevel,
@@ -156,48 +156,43 @@ export function testCallConcatFiles(concatConfig: string, out: string) {
 		}
 	});
 }
-export function testDetectTimestampInString() {
-	log.setDefaultLevel(log.levels.WARN);
-	measure({
-		desc: 'detect timestamp in string',
-		f: () => {
-			let timestamp;
-			try {
-				timestamp = indexer.detectTimestampInString(
-					'109.169.248.247 - - [13/Dec/2015:18:25:11 +0100] GET /administrator'
-				);
-			} catch (error) {
-				log.error('error getting timestamp');
-			}
-			log.debug(timestamp);
-		}
-	});
-}
-export function testDetectTimestampInFile(fileToDetect: string) {
+export function testCheckFormatString(input: string) {
 	log.setDefaultLevel(log.levels.DEBUG);
-	measure({
-		desc: 'detect timestamp in file',
-		f: () => {
-			log.debug("try to call detectTimestampFormatInFile");
-			const x = indexer.detectTimestampFormatInFile(fileToDetect);
-			log.debug(x);
-		}
-	});
+	log.debug(`calling testCheckFormatString with ${input}`);
+	const hrstart = process.hrtime();
+	try {
+		let onProgress = (ticks: ITicks) => {
+			log.debug('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total));
+		};
+		let onNotification = (notification: INeonNotification) => {
+			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
+		};
+		checkFormat(input)
+			.then(() => {
+				const hrend = process.hrtime(hrstart);
+				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+				log.info('Execution time for format check : %dms', ms);
+			})
+			.catch((error: Error) => {
+				log.debug(`Failed with error: ${error.message}`);
+			})
+			.on('chunk', (event: Progress.IFormatCheckResult) => {
+				log.debug('received ' + JSON.stringify(event));
+				log.debug('event.FormatInvalid: ' + event.FormatInvalid);
+				log.debug('event.FormatRegex: ' + event.FormatRegex);
+				// log.debug('event.format.Err ' + JSON.stringify(event.format?.Err));
+			})
+			.on('progress', (event: Progress.ITicks) => {
+				onProgress(event);
+			})
+			.on('notification', (event: Progress.INeonNotification) => {
+				onNotification(event);
+			});
+	} catch (error) {
+		log.error('error %s', error);
+	}
 }
-function testDetectTimestampFormatsInFiles() {
-	log.setDefaultLevel(log.levels.DEBUG);
-	measure({
-		desc: 'detect timestamp in formats in files',
-		f: () => {
-			log.debug("try to call detectTimestampFormatInFiles");
-			const conf: Array<IFilePath> = [
-				{ path: examplePath + '/indexing/access_tiny.log' },
-				{ path: examplePath + '/indexing/access_small.log' },
-				{ path: examplePath + '/indexing/access_mid.log' }
-			];
-		}
-	});
-}
+
 export function testCallDltStats(file: string) {
 	log.setDefaultLevel(log.levels.DEBUG);
 	const hrstart = process.hrtime();
