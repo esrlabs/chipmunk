@@ -5,7 +5,6 @@ mod tests {
         dlt_parse::{forward_to_next_storage_header, DLT_PATTERN, *},
         proptest_strategies::*,
     };
-    use dirs;
     use indexer_base::chunks::Chunk;
     use nom::IResult;
     use proptest::prelude::*;

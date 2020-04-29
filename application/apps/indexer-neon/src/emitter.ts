@@ -6,6 +6,7 @@ const {
     RustDltSocketEventEmitter: RustDltSocketChannel,
     RustDltPcapEventEmitter: RustDltPcapChannel,
     RustTimestampFormatDetectionEmitter: RustTimestampChannel,
+    RustFormatVerificationEmitter: RustFormatVerificationChannel,
     RustConcatenatorEmitter: RustConcatenatorChannel,
     RustMergerEmitter: RustMergerChannel,
 } = require("../../../../native/index.node");
@@ -19,6 +20,7 @@ export {
     RustDltSocketChannel,
     RustDltPcapChannel,
     RustTimestampChannel,
+    RustFormatVerificationChannel,
     RustConcatenatorChannel,
     RustMergerChannel,
 };

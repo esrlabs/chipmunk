@@ -22,7 +22,7 @@ impl TimestampDetectorEmitter {
     ) {
         self.task_thread = Some(thread::spawn(move || {
             detect_timespan_with_progress(items, result_sender, Some(shutdown_rx));
-            debug!("back after indexing finished!",);
+            debug!("back after timespan detection finished!",);
         }));
     }
 }

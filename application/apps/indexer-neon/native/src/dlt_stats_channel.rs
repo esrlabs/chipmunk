@@ -22,7 +22,7 @@ impl DltStatsEventEmitter {
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
             dlt_stats_with_progress(source_file, chunk_result_sender.clone(), Some(shutdown_rx));
-            debug!("back after indexing finished!",);
+            debug!("back after dlt stats finished!",);
         }));
     }
 }

@@ -179,11 +179,12 @@ namespace :neon do
   end
   task all: 'neon:cancelled'
 
-  desc 'test neon detect timestamp'
-  task timestamp: [:clean, OUT_DIR, 'neon:rebuild'] do
-    call_test_function('testDetectTimestampInFile',
-                       "#{LOCAL_EXAMPLE_DIR}/indexing/access_small.log")
+  desc 'test check format string'
+  task format: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testCheckFormatString', 'YYYY-MM-DDThh:mm:ss')
+    call_test_function('testCheckFormatString', 'MM-DDThh:mm:ss')
   end
+  task all: 'neon:format'
 end
 
 def exec_node_expression(node_exp)
