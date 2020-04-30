@@ -11,7 +11,6 @@
 // from E.S.R.Labs.
 use crate::merger::combined_file_size;
 use crossbeam_channel as cc;
-use failure::err_msg;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
     progress::{IndexingProgress, ProgressReporter},
@@ -113,7 +112,7 @@ pub fn concat_files(
         ProgressReporter::new(combined_file_size(&paths)?, update_channel.clone());
 
     for input in concat_inputs {
-        if utils::check_if_stop_was_requested(&shutdown_rx, "concatenator") {
+        if utils::check_if_stop_was_requested(shutdown_rx.as_ref(), "concatenator") {
             update_channel.send(Ok(IndexingProgress::Stopped))?;
             return Ok(());
         }

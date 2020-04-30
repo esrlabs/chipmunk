@@ -3,11 +3,10 @@ use crossbeam_channel as cc;
 use indexer_base::chunks::ChunkResults;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingProgress, Severity};
-use merging::merger::merge_files_iter;
+use merging::merger::merge_files_use_config;
 use merging::merger::MergeItemOptions;
-use merging::merger::MergerInput;
 use neon::prelude::*;
-use std::path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -20,17 +19,19 @@ pub struct MergerEmitter {
 impl MergerEmitter {
     pub fn start_merging_in_thread(
         self: &mut MergerEmitter,
-        merge_inputs: Vec<MergerInput>,
-        out_path: path::PathBuf,
+        options: Vec<MergeItemOptions>,
+        out_path: &Path,
         append: bool,
-        chunk_size: usize,
+        chunk_size: usize, // used for mapping line numbers to byte positions
         update_channel: cc::Sender<ChunkResults>,
         shutdown_rx: cc::Receiver<()>,
     ) {
+        let out = PathBuf::from(out_path);
+
         self.task_thread = Some(thread::spawn(move || {
             merge_with_progress(
-                merge_inputs,
-                out_path,
+                options,
+                &out,
                 append,
                 chunk_size,
                 update_channel,
@@ -42,22 +43,17 @@ impl MergerEmitter {
 }
 
 fn merge_with_progress(
-    merge_inputs: Vec<MergerInput>,
-    out_path: path::PathBuf,
+    options: Vec<MergeItemOptions>,
+    out_path: &Path,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
-    trace!(
-        "merge_with_progress with {} files <------------",
-        merge_inputs.len()
-    );
-
-    match merge_files_iter(
+    match merge_files_use_config(
+        options,
+        out_path,
         append,
-        merge_inputs,
-        &out_path,
         chunk_size,
         update_channel.clone(),
         shutdown_receiver,
@@ -86,7 +82,7 @@ pub class JsMergerEmitter for MergerEmitter {
     init(mut cx) {
         let arg_merge_inputs = cx.argument::<JsValue>(0)?;
         let merge_item_options: Vec<MergeItemOptions> = neon_serde::from_value(&mut cx, arg_merge_inputs)?;
-        let out_path = path::PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
+        let out_path = PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
         let append: bool = cx.argument::<JsBoolean>(2)?.value();
         let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;
         trace!("merge inputs: {:?}", merge_item_options);
@@ -100,18 +96,9 @@ pub class JsMergerEmitter for MergerEmitter {
             shutdown_sender: shutdown_channel.0,
             task_thread: None,
         };
-        let merge_inputs = merge_item_options.into_iter().map(|i: merging::merger::MergeItemOptions| {
-            MergerInput {
-                path: std::path::PathBuf::from(i.name),
-                offset: i.offset,
-                year: i.year,
-                tag: i.tag,
-                format: i.format,
-            }
-        }).collect();
         emitter.start_merging_in_thread(
-            merge_inputs,
-            out_path,
+            merge_item_options,
+            &out_path,
             append,
             chunk_size,
             result_tx,

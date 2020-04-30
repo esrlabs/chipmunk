@@ -1312,7 +1312,8 @@ pub fn get_dlt_file_info(
         }
         index += 1;
         if index % STOP_CHECK_LINE_THRESHOLD == 0 {
-            if utils::check_if_stop_was_requested(&shutdown_receiver, "dlt stats producer") {
+            if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "dlt stats producer")
+            {
                 update_channel.send(Ok(IndexingProgress::Stopped))?;
                 break;
             }

@@ -36,6 +36,11 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_merge_inputs_with_writer() {
+        assert_eq!(true, true)
+    }
+
     test_generator::test_expand_paths! { test_merge_files; "merging/test_samples/*" }
 
     fn test_merge_files(dir_name: &str) {
