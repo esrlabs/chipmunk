@@ -59,7 +59,7 @@ fn index_dlt_file_with_progress(
 ) {
     trace!("index_dlt_file_with_progress");
     let source_file_size = match config.in_file.metadata() {
-        Ok(file_meta) => file_meta.len() as usize,
+        Ok(file_meta) => file_meta.len(),
         Err(_) => {
             error!("could not find out size of source file");
             let _ = tx.try_send(Err(Notification {
