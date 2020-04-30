@@ -499,7 +499,7 @@ fn main() {
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
 
             let source_file_size = match fs::metadata(file) {
-                Ok(file_meta) => file_meta.len() as usize,
+                Ok(file_meta) => file_meta.len(),
                 Err(_) => {
                     report_error("could not find out size of source file");
                     std::process::exit(2);
@@ -734,7 +734,7 @@ fn main() {
             };
             let append: bool = matches.is_present("append");
             let source_file_size = match fs::metadata(file_name) {
-                Ok(file_meta) => file_meta.len() as usize,
+                Ok(file_meta) => file_meta.len(),
                 Err(_) => {
                     report_error("could not find out size of source file");
                     std::process::exit(2);

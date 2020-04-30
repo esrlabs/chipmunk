@@ -49,7 +49,7 @@ pub(crate) fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
 /// or None if no more storage header could be found.
 /// note: we won't skip anything if the input already begins
 /// with a storage header
-pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(usize, &[u8])> {
+pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(u64, &[u8])> {
     let mut found = false;
     let mut to_drop = 0usize;
     for v in input.windows(DLT_PATTERN_SIZE) {
@@ -70,7 +70,7 @@ pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(usize, &[u
     if to_drop > 0 {
         trace!("dropped {} to get to next message", to_drop);
     }
-    Some((to_drop, &input[to_drop..]))
+    Some((to_drop as u64, &input[to_drop..]))
 }
 
 pub(crate) fn dlt_storage_header<'a, T>(
@@ -964,7 +964,7 @@ fn validated_payload_length<T>(
     Some(message_length - headers_length)
 }
 
-fn skip_till_after_next_storage_header(input: &[u8]) -> Result<(&[u8], usize), DltParseError> {
+fn skip_till_after_next_storage_header(input: &[u8]) -> Result<(&[u8], u64), DltParseError> {
     match forward_to_next_storage_header(input) {
         Some((consumed, rest)) => {
             let (after_storage_header, skipped_bytes) = skip_storage_header(rest)?;
@@ -978,9 +978,9 @@ fn skip_till_after_next_storage_header(input: &[u8]) -> Result<(&[u8], usize), D
 
 /// check if the DLT_PATTERN next and just skip the storage header if so
 /// returns a slice where the storage header was removed
-pub(crate) fn skip_storage_header(input: &[u8]) -> Result<(&[u8], usize), DltParseError> {
+pub(crate) fn skip_storage_header(input: &[u8]) -> Result<(&[u8], u64), DltParseError> {
     let (i, (_, _, _)): (&[u8], _) = tuple((tag("DLT"), tag(&[0x01]), take(12usize)))(input)?;
-    if input.len() - i.len() == STORAGE_HEADER_LENGTH {
+    if input.len() - i.len() == STORAGE_HEADER_LENGTH as usize {
         Ok((i, STORAGE_HEADER_LENGTH))
     } else {
         Err(DltParseError::ParsingHickup {
@@ -1216,7 +1216,7 @@ pub fn get_dlt_file_info(
         }
     };
 
-    let source_file_size: usize = fs::metadata(&in_file)?.len() as usize;
+    let source_file_size = fs::metadata(&in_file)?.len();
     let mut reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
         .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE));
 
@@ -1224,7 +1224,7 @@ pub fn get_dlt_file_info(
     let mut context_ids: IdMap = FxHashMap::default();
     let mut ecu_ids: IdMap = FxHashMap::default();
     let mut index = 0usize;
-    let mut processed_bytes = 0usize;
+    let mut processed_bytes = 0u64;
     let mut contained_non_verbose = false;
     loop {
         match read_one_dlt_message_info(&mut reader, Some(index), true, Some(update_channel)) {
@@ -1238,7 +1238,7 @@ pub fn get_dlt_file_info(
                 },
             ))) => {
                 contained_non_verbose = contained_non_verbose || !verbose;
-                reader.consume(consumed);
+                reader.consume(consumed as usize);
                 add_for_level(level, &mut app_ids, app_id);
                 add_for_level(level, &mut context_ids, context_id);
                 match ecu {
@@ -1257,7 +1257,7 @@ pub fn get_dlt_file_info(
                 },
             ))) => {
                 contained_non_verbose = contained_non_verbose || !verbose;
-                reader.consume(consumed);
+                reader.consume(consumed as usize);
                 add_for_level(level, &mut app_ids, "NONE".to_string());
                 add_for_level(level, &mut context_ids, "NONE".to_string());
                 match ecu {
@@ -1351,7 +1351,7 @@ fn read_one_dlt_message_info<T: Read>(
     index: Option<usize>,
     with_storage_header: bool,
     update_channel: Option<&cc::Sender<StatisticsResults>>,
-) -> Result<Option<(usize, StatisticRowInfo)>, DltParseError> {
+) -> Result<Option<(u64, StatisticRowInfo)>, DltParseError> {
     match reader.fill_buf() {
         Ok(content) => {
             if content.is_empty() {
@@ -1360,7 +1360,7 @@ fn read_one_dlt_message_info<T: Read>(
             let available = content.len();
             let r = dlt_statistic_row_info(content, index, with_storage_header, update_channel)?;
             let consumed = available - r.0.len();
-            Ok(Some((consumed, r.1)))
+            Ok(Some((consumed as u64, r.1)))
         }
         Err(e) => Err(DltParseError::ParsingHickup {
             reason: format!("error while parsing dlt messages: {}", e),

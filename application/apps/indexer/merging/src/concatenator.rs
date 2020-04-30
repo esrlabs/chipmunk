@@ -9,11 +9,12 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crate::merger::combined_file_size;
 use crossbeam_channel as cc;
 use failure::err_msg;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
-    progress::IndexingProgress,
+    progress::{IndexingProgress, ProgressReporter},
     utils,
 };
 use serde::{Deserialize, Serialize};
@@ -102,20 +103,15 @@ pub fn concat_files(
     };
     let original_file_size = out_file.metadata()?.len() as usize;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-    let mut processed_bytes = 0;
     let mut chunk_factory = ChunkFactory::new(chunk_size, original_file_size);
+    let mut chunk_count = 0usize;
+    let paths: Vec<PathBuf> = concat_inputs
+        .iter()
+        .map(|x| PathBuf::from(x.path.clone()))
+        .collect();
+    let mut progress_reporter =
+        ProgressReporter::new(combined_file_size(&paths)?, update_channel.clone());
 
-    let combined_source_file_size = concat_inputs.iter().try_fold(0, |acc, i| {
-        let f = &PathBuf::from(i.path.clone());
-        match fs::metadata(f) {
-            Ok(metadata) => Ok(acc + metadata.len()),
-            Err(e) => Err(err_msg(format!(
-                "error getting size of file {:?} ({})",
-                f, e
-            ))),
-        }
-    })?;
-    let mut progress_percentage = 0usize;
     for input in concat_inputs {
         if utils::check_if_stop_was_requested(&shutdown_rx, "concatenator") {
             update_channel.send(Ok(IndexingProgress::Stopped))?;
@@ -130,7 +126,6 @@ pub fn concat_files(
                 break;
             };
             let original_line_length = len;
-            processed_bytes += original_line_length;
             let s = unsafe { std::str::from_utf8_unchecked(&buf) };
             let trimmed_line = s.trim_matches(utils::is_newline);
 
@@ -148,26 +143,19 @@ pub fn concat_files(
                 additional_bytes,
             ) {
                 // check if stop was requested
+                chunk_count += 1;
                 buf_writer.flush()?;
                 update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
             }
 
-            let new_progress_percentage: usize =
-                (processed_bytes as f64 / combined_source_file_size as f64 * 10.0).round() as usize;
-            if new_progress_percentage != progress_percentage {
-                progress_percentage = new_progress_percentage;
-                let _ = update_channel.send(Ok(IndexingProgress::Progress {
-                    ticks: (processed_bytes, combined_source_file_size as usize),
-                }));
-            }
+            progress_reporter.make_progress(original_line_length);
             buf = vec![];
         }
     }
     buf_writer.flush()?;
-
-    let _ = update_channel.send(Ok(IndexingProgress::Progress {
-        ticks: (processed_bytes, combined_source_file_size as usize),
-    }));
+    if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count > 0) {
+        update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+    }
 
     let _ = update_channel.send(Ok(IndexingProgress::Finished));
     Ok(())

@@ -504,7 +504,7 @@ pub fn timespan_in_files(
     update_channel: &cc::Sender<IndexingResults<TimestampFormatResult>>,
 ) -> Result<(), Error> {
     let item_count = items.len();
-    let mut progress_reporter = ProgressReporter::new(item_count, update_channel.clone());
+    let mut progress_reporter = ProgressReporter::new(item_count as u64, update_channel.clone());
     for item in items.into_iter() {
         let file_path = PathBuf::from(&item.path);
         let format_expr_to_use = match item.format_string {

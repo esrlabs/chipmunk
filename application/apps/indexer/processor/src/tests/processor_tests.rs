@@ -27,7 +27,7 @@ mod tests {
         fs::write(&test_file_path, test_content).expect("testfile could not be written");
         let source_file_size = fs::metadata(&test_file_path)
             .expect("metadata not found")
-            .len() as usize;
+            .len();
 
         // call our function
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
@@ -115,7 +115,7 @@ mod tests {
 
         let source_file_size = fs::metadata(&empty_file_path)
             .expect("metadata not found")
-            .len() as usize;
+            .len();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -178,7 +178,7 @@ mod tests {
 
         let source_file_size = fs::metadata(&nonempty_file_path)
             .expect("metadata not found")
-            .len() as usize;
+            .len();
         create_index_and_mapping(
             IndexingConfig {
                 tag: "tag",
@@ -326,7 +326,7 @@ mod tests {
                 out_path: &out_file_path,
                 append: append_use_case,
             },
-            fs::metadata(&in_path).expect("metadata not found").len() as usize,
+            fs::metadata(&in_path).expect("metadata not found").len(),
             false,
             tx,
             None,

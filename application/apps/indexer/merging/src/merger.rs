@@ -232,7 +232,7 @@ pub struct IndexOutput {
     progress_reporter: ProgressReporter<Chunk>,
 }
 
-fn combined_file_size(paths: &[PathBuf]) -> Result<u64, Error> {
+pub(crate) fn combined_file_size(paths: &[PathBuf]) -> Result<u64, Error> {
     paths
         .iter()
         .try_fold(0, |acc, path| match fs::metadata(&path) {
@@ -269,8 +269,7 @@ impl IndexOutput {
         let original_file_size = out_file.metadata()?.len() as usize;
         let buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
 
-        let progress_reporter =
-            ProgressReporter::new(combined_size as usize, update_channel.clone());
+        let progress_reporter = ProgressReporter::new(combined_size, update_channel.clone());
         Ok(IndexOutput {
             line_nr,
             chunk_size,
@@ -333,11 +332,9 @@ pub fn merge_files_iter(
     let original_file_size = out_file.metadata()?.len() as usize;
     let mut chunk_count = 0usize;
     let mut chunk_factory = ChunkFactory::new(chunk_size, original_file_size);
-    let mut processed_bytes = 0;
     let mut lines_with_year_missing = 0usize;
     let mut stopped = false;
 
-    let mut progress_percentage = 0usize;
     // create a peekable iterator for all file inputs
     let mut readers: Vec<Peekable<TimedLineIter<fs::File>>> = merger_inputs
         .iter()
@@ -360,17 +357,13 @@ pub fn merge_files_iter(
         .filter_map(Result::ok) // TODO better error handling
         .collect();
     // MergerInput
-    let combined_source_file_size = merger_inputs.iter().try_fold(0, |acc, i| {
-        let f = &i.path.clone();
-        match fs::metadata(f) {
-            Ok(metadata) => Ok(acc + metadata.len()),
-            Err(e) => Err(err_msg(format!(
-                "error getting size of file {:?} ({})",
-                f, e
-            ))),
-        }
-    })?;
+    let paths: Vec<PathBuf> = merger_inputs
+        .iter()
+        .map(|x| PathBuf::from(x.path.clone()))
+        .collect();
 
+    let mut progress_reporter =
+        ProgressReporter::new(combined_file_size(&paths)?, update_channel.clone());
     let mut buf_writer = BufWriter::with_capacity(100 * 1024 * 1024, out_file);
     loop {
         if stopped {
@@ -400,7 +393,6 @@ pub fn merge_files_iter(
             // we found a line with a minimal timestamp
             if let Some(line) = readers[min_index].next() {
                 // important: keep track of how many bytes we processed
-                processed_bytes += line.original_length;
                 let trimmed_len = line.content.len();
                 if trimmed_len > 0 {
                     let additional_bytes = utils::write_tagged_line(
@@ -422,15 +414,7 @@ pub fn merge_files_iter(
                         update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
                     }
 
-                    let new_progress_percentage: usize =
-                        (processed_bytes as f64 / combined_source_file_size as f64 * 100.0).round()
-                            as usize;
-                    if new_progress_percentage != progress_percentage {
-                        progress_percentage = new_progress_percentage;
-                        update_channel.send(Ok(IndexingProgress::Progress {
-                            ticks: (processed_bytes, combined_source_file_size as usize),
-                        }))?;
-                    }
+                    progress_reporter.make_progress(line.original_length);
                 }
             } else {
                 break;
