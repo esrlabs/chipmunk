@@ -122,6 +122,9 @@ export type TFormatVerificationAsyncEventObject =
 /**
   * Check a format string if it is generally valid
   * @param formatString 	the format string to check
+  *
+  * this function will deliever a positive result with a regex that was produced for the input
+  * in case the input was invalid, we deliever a negative result with the reason
   */
 export function checkFormat(
   formatString: string

@@ -18,7 +18,6 @@ export interface INeonTransferChunk {
     r: [number, number];
     b: [number, number];
 }
-export interface FormatOk {}
 export interface IFormatCheckResult {
     FormatRegex?: string,
     FormatInvalid?: string,

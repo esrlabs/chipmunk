@@ -120,6 +120,13 @@ export type TConcatFilesEventProgress = (event: ITicks) => void;
 export type TConcatFilesEventNotification = (event: INeonNotification) => void;
 export type TConcatFilesEventObject = TConcatFilesEventResult | TConcatFilesEventProgress | TConcatFilesEventNotification;
 
+/**
+ * Concatenate the content of a list of files in that order
+ *
+ * @param config list of files with tags that should be concatenated
+ * @param outFile the file where everything will be collected
+ * @param options tells us some options
+ */
 export function concatFilesAsync(
     config: Array<ConcatenatorInput>,
     outFile: string,
