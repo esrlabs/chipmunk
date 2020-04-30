@@ -71,9 +71,9 @@ pub fn create_tagged_line_d<T: Display>(
 }
 
 #[inline]
-pub fn write_tagged_line(
+pub fn write_tagged_line<T: io::Write>(
     tag: &str,
-    out_buffer: &mut dyn io::Write,
+    out_buffer: &mut T,
     trimmed_line: &str,
     line_nr: usize,
     with_newline: bool,
@@ -243,7 +243,7 @@ pub fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
 }
 
 pub fn check_if_stop_was_requested(
-    shutdown_receiver: &Option<cc::Receiver<()>>,
+    shutdown_receiver: Option<&cc::Receiver<()>>,
     component: &str,
 ) -> bool {
     match shutdown_receiver.as_ref() {

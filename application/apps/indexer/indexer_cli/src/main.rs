@@ -35,6 +35,7 @@ use indexer_base::{
     progress::IndexingResults,
 };
 use indicatif::{ProgressBar, ProgressStyle};
+use merging::merger::merge_files_use_config_file;
 use std::rc::Rc;
 
 lazy_static! {
@@ -177,12 +178,6 @@ fn main() {
                         .short("a")
                         .long("append")
                         .help("append to file if exists"),
-                )
-                .arg(
-                    Arg::with_name("stdout")
-                        .short("s")
-                        .long("stdout")
-                        .help("put out chunk information on stdout"),
                 ),
         )
         .subcommand(
@@ -457,7 +452,7 @@ fn main() {
     let use_stderr_for_status_updates = matches.occurrences_of("v") >= 1;
 
     if let Some(matches) = matches.subcommand_matches("merge") {
-        handle_merge_subcommand(matches, start, use_stderr_for_status_updates)
+        handle_merge_subcommand(matches, start)
     } else if let Some(matches) = matches.subcommand_matches("index") {
         handle_index_subcommand(matches, start, use_stderr_for_status_updates)
     } else if let Some(matches) = matches.subcommand_matches("format") {
@@ -583,11 +578,67 @@ fn main() {
         }
     }
 
-    fn handle_merge_subcommand(
-        _matches: &clap::ArgMatches,
-        _start: std::time::Instant,
-        _status_updates: bool,
-    ) {
+    fn handle_merge_subcommand(matches: &clap::ArgMatches, _start: std::time::Instant) {
+        debug!("handle_merge_subcommand");
+        let merge_conf_path_string = value_t_or_exit!(matches.value_of("merge_config"), String);
+        let merge_conf_path = path::PathBuf::from(merge_conf_path_string);
+        let append: bool = matches.is_present("append");
+        let output_path_string = value_t_or_exit!(matches.value_of("output"), String);
+        let out_path = path::PathBuf::from(output_path_string);
+        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+        let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+
+        let progress_bar = initialize_progress_bar(100 as u64);
+        thread::spawn(move || {
+            if let Err(why) = merge_files_use_config_file(
+                &merge_conf_path,
+                &out_path,
+                append,
+                chunk_size,
+                tx,
+                None,
+            ) {
+                report_error(format!("couldn't process: {}", why));
+                std::process::exit(2)
+            }
+        });
+        let mut chunks: Vec<Chunk> = vec![];
+        loop {
+            match rx.recv() {
+                Err(why) => {
+                    report_error(format!("couldn't process: {}", why));
+                    std::process::exit(2)
+                }
+                Ok(Ok(IndexingProgress::Finished { .. })) => {
+                    println!("received finish event");
+                    progress_bar.finish_and_clear();
+                    break;
+                }
+                Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                    let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+                    let pos = (progress_fraction * 100f64) as u64;
+                    progress_bar.set_position(pos);
+                }
+                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                    chunks.push(chunk);
+                }
+                Ok(Err(Notification {
+                    severity,
+                    content,
+                    line,
+                })) => {
+                    if severity == Severity::WARNING {
+                        report_warning_ln(content, line);
+                    } else {
+                        report_error_ln(content, line);
+                    }
+                }
+                Ok(_) => report_warning("process finished without result"),
+            }
+        }
+
+        println!("done with handle_dlt_subcommand");
+        std::process::exit(0)
     }
 
     fn handle_format_subcommand(

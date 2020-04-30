@@ -11,6 +11,36 @@
 // from E.S.R.Labs.
 use std::cmp::Ordering;
 
+pub trait FooEntry {
+    fn timestamp(&self) -> i64;
+    fn content(&self) -> &String;
+    fn tag(&self) -> &String;
+    fn original_length(&self) -> usize;
+    fn year_was_missing(&self) -> bool;
+    fn line_nr(&self) -> usize;
+}
+
+impl FooEntry for TimedLine {
+    fn timestamp(&self) -> i64 {
+        self.timestamp
+    }
+    fn content(&self) -> &String {
+        &self.content
+    }
+    fn tag(&self) -> &String {
+        &self.tag
+    }
+    fn original_length(&self) -> usize {
+        self.original_length
+    }
+    fn year_was_missing(&self) -> bool {
+        self.year_was_missing
+    }
+    fn line_nr(&self) -> usize {
+        self.line_nr
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TimedLine {
     pub timestamp: i64,

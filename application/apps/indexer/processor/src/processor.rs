@@ -144,7 +144,7 @@ pub fn index_file<T: Read>(
 
         match chunk_factory.add_bytes(line_nr, additional_bytes) {
             Some(chunk) => {
-                stopped = utils::check_if_stop_was_requested(&shutdown_receiver, "indexer");
+                stopped = utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "indexer");
                 chunk_count += 1;
                 last_byte_index = chunk.b.1;
                 update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;

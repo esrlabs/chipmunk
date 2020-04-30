@@ -34,7 +34,7 @@ export default class MergeFiles {
         this.registerSourceMarkers();
         this._absolutePathConfig = files.map((file: IFile) => {
             return {
-                name: file.file,
+                path: file.file,
                 offset: file.offset,
                 year: file.year,
                 format: file.format,

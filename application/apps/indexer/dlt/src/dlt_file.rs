@@ -55,7 +55,7 @@ pub async fn parse_dlt_file(
         fibex_metadata,
     )?;
     // type Item = Result<Option<Message>, DltParseError>;
-    while let Some(msg_result) = message_stream.next().await {
+    while let Some(msg_result) = futures::stream::StreamExt::next(&mut message_stream).await {
         trace!("got message from stream: {:?}", msg_result);
         match msg_result {
             Ok((consumed, Some(msg))) => {
@@ -149,6 +149,16 @@ impl FileMessageProducer {
             with_storage_header,
             fibex_metadata,
         })
+    }
+}
+
+impl Iterator for FileMessageProducer {
+    type Item = ParsedMessage;
+    fn next(&mut self) -> Option<ParsedMessage> {
+        match self.produce_next_message() {
+            (s, Ok(parsed_msg)) => Some(parsed_msg),
+            _ => None,
+        }
     }
 }
 impl FileMessageProducer {
@@ -309,7 +319,10 @@ pub fn index_dlt_content(
                 // tmp_writer.write_all(&msg.as_bytes())?;
                 line_nr += 1;
                 if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
-                    stopped = utils::check_if_stop_was_requested(&shutdown_receiver, "dlt indexer");
+                    stopped = utils::check_if_stop_was_requested(
+                        shutdown_receiver.as_ref(),
+                        "dlt indexer",
+                    );
                     chunk_count += 1;
                     last_byte_index = chunk.b.1;
                     update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
