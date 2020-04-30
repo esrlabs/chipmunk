@@ -98,12 +98,24 @@ namespace :neon do
   end
   task all: 'neon:dlt_socket'
 
+  desc 'test neon integration: concat kurt'
+  task concat_kurt: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function(
+      'testCallConcatFiles',
+      "#{LOCAL_EXAMPLE_DIR}/concat/concat_kurt.json.conf",
+      "#{LOCAL_EXAMPLE_DIR}/concat/concatenated_kurt.out",
+      30
+    )
+  end
+  task all: 'neon:concat_kurt'
+
   desc 'test neon integration: concat'
   task concat: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function(
       'testCallConcatFiles',
       "#{LOCAL_EXAMPLE_DIR}/concat/concat.json.conf",
-      "#{LOCAL_EXAMPLE_DIR}/concat/concatenated.out"
+      "#{LOCAL_EXAMPLE_DIR}/concat/concatenated.out",
+      100
     )
   end
   task all: 'neon:concat'
@@ -122,7 +134,8 @@ namespace :neon do
     call_test_function(
       'testIndexingAsync',
       "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
-      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out"
+      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out",
+      500
     )
   end
   task all: 'neon:index'
@@ -133,7 +146,8 @@ namespace :neon do
     call_test_function(
       'testIndexingAsync',
       "#{LOCAL_EXAMPLE_DIR}/indexing/access_tiny.log",
-      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out"
+      "#{LOCAL_EXAMPLE_DIR}/indexing/test.out",
+      7
     )
   end
   task all: 'neon:index_short'
@@ -192,8 +206,16 @@ def exec_node_expression(node_exp)
   system({ 'ELECTRON_RUN_AS_NODE' => 'true' }, "./node_modules/.bin/electron -e '#{node_exp}'")
 end
 
+def escape_strings(arg)
+  if arg.class == Integer
+    arg.to_s
+  else
+    "\"#{arg}\""
+  end
+end
+
 def call_test_function(function_name, *args)
-  func_args = args.map { |a| "\"#{a}\"" }.join(',')
+  func_args = args.map { |a| escape_strings(a) }.join(',')
   node_exp = "#{TESTS_JS_REQUIRE}.#{function_name}(#{func_args})"
   exec_node_expression(node_exp)
 end

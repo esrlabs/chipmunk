@@ -100,7 +100,7 @@ export function testCallMergeFiles(mergeConf: string, out: string) {
 		}
 	});
 }
-export function testCallConcatFiles(concatConfig: string, out: string) {
+export function testCallConcatFiles(concatConfig: string, out: string, chunk_size: number) {
 	log.setDefaultLevel(log.levels.WARN);
 	const bar = stdout.createProgressBar({ caption: 'concatenating files', width: 60 });
 	let onProgress = (ticks: ITicks) => {
@@ -135,7 +135,7 @@ export function testCallConcatFiles(concatConfig: string, out: string) {
 			> = indexer
 				.concatFilesAsync(absolutePathConfig, out, {
 					append: true,
-					chunk_size: 100
+					chunk_size
 				})
 				.then(() => {
 					log.debug('TTT: done ');
@@ -162,7 +162,7 @@ export function testCheckFormatString(input: string) {
 	const hrstart = process.hrtime();
 	try {
 		let onProgress = (ticks: ITicks) => {
-			log.debug('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total));
+			log.debug('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total) + '%');
 		};
 		let onNotification = (notification: INeonNotification) => {
 			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
@@ -527,16 +527,19 @@ export function testIndexingPcap(fileToIndex: string, outPath: string) {
 		log.error('error %s', error);
 	}
 }
-export function testIndexingAsync(inFile: string, outPath: string) {
-	log.setDefaultLevel(log.levels.WARN);
+export function testIndexingAsync(inFile: string, outPath: string, chunkSize: number) {
+	log.setDefaultLevel(log.levels.DEBUG);
+	log.debug(`testIndexingAsync for ${inFile} (chunkSize: ${chunkSize}, type: ${typeof(chunkSize)})`);
 	const hrstart = process.hrtime();
 	const bar = stdout.createProgressBar({ caption: 'index file', width: 60 });
 	try {
 		let chunks: number = 0;
 		let onProgress = (ticks: ITicks) => {
+			log.debug('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total) + '%');
 			bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 		};
 		let onChunk = (chunk: IChunk) => {
+			log.debug(`onChunk: ${JSON.stringify(chunk)}`)
 			chunks += 1;
 			if (chunks % 100 === 0) {
 				process.stdout.write('.');
@@ -545,7 +548,7 @@ export function testIndexingAsync(inFile: string, outPath: string) {
 		let onNotification = (notification: INeonNotification) => {
 			log.debug('testIndexingAsync: received notification:' + JSON.stringify(notification));
 		};
-		indexAsync(inFile, outPath, 'TAG', { chunkSize: 500 })
+		indexAsync(inFile, outPath, 'TAG', { chunkSize })
 			.then(() => {
 				bar.update(100);
 				const hrend = process.hrtime(hrstart);

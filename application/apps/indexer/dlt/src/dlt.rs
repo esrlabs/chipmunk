@@ -1345,14 +1345,14 @@ impl Message {
     }
 
     pub fn as_bytes(self: &Message) -> Vec<u8> {
-        let mut capacity = self.header.overall_length() as usize;
+        let mut capacity = self.header.overall_length() as u64;
         let mut buf = if let Some(storage_header) = &self.storage_header {
             capacity += STORAGE_HEADER_LENGTH;
-            let mut b = BytesMut::with_capacity(capacity);
+            let mut b = BytesMut::with_capacity(capacity as usize);
             b.extend_from_slice(&storage_header.as_bytes()[..]);
             b
         } else {
-            BytesMut::with_capacity(capacity)
+            BytesMut::with_capacity(capacity as usize)
         };
         dbg_bytes("header", &self.header.as_bytes());
         buf.extend_from_slice(&self.header.as_bytes());
@@ -1472,8 +1472,8 @@ pub trait TryFrom<T>: Sized {
 
 pub const DEFAULT_ECU_ID: &str = "ECU";
 // StorageHeader
-pub const STORAGE_HEADER_PATTERN_LENGTH: usize = 4;
-pub const STORAGE_HEADER_LENGTH: usize = 16;
+pub const STORAGE_HEADER_PATTERN_LENGTH: u64 = 4;
+pub const STORAGE_HEADER_LENGTH: u64 = 16;
 
 // Standard header
 pub const WITH_EXTENDED_HEADER_FLAG: u8 = 1;

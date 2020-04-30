@@ -20,7 +20,7 @@ pub type IndexingResults<T> = std::result::Result<IndexingProgress<T>, Notificat
 #[derive(Debug)]
 pub enum IndexingProgress<T> {
     GotItem { item: T },
-    Progress { ticks: (usize, usize) },
+    Progress { ticks: (u64, u64) },
     Stopped,
     Finished,
 }
@@ -32,14 +32,14 @@ pub struct Notification {
 
 pub struct ProgressReporter<T> {
     update_channel: cc::Sender<std::result::Result<IndexingProgress<T>, Notification>>,
-    processed_bytes: usize,
-    progress_percentage: usize,
-    total: usize,
+    processed_bytes: u64,
+    progress_percentage: u64,
+    total: u64,
 }
 
 impl<T> ProgressReporter<T> {
     pub fn new(
-        total: usize,
+        total: u64,
         update_channel: cc::Sender<std::result::Result<IndexingProgress<T>, Notification>>,
     ) -> ProgressReporter<T> {
         ProgressReporter {
@@ -50,9 +50,9 @@ impl<T> ProgressReporter<T> {
         }
     }
     pub fn make_progress(&mut self, consumed: usize) {
-        self.processed_bytes += consumed;
-        let new_progress_percentage: usize =
-            (self.processed_bytes as f64 / self.total as f64 * 100.0).round() as usize;
+        self.processed_bytes += consumed as u64;
+        let new_progress_percentage: u64 =
+            (self.processed_bytes as f64 / self.total as f64 * 100.0).round() as u64;
         if new_progress_percentage != self.progress_percentage {
             self.progress_percentage = new_progress_percentage;
             match self.update_channel.send(Ok(IndexingProgress::Progress {

@@ -285,6 +285,7 @@ export function indexAsync(
         log(`Get command "break" operation. Starting breaking.`);
         emitter.requestShutdown();
       });
+      log(`call rust indexer with opt: ${JSON.stringify(opt)}`)
       const channel = new RustIndexerChannel(
         fileToIndex,
         tag,

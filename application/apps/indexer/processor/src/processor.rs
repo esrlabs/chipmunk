@@ -32,7 +32,7 @@ use std::{
 
 pub fn create_index_and_mapping(
     config: IndexingConfig,
-    source_file_size: usize,
+    source_file_size: u64,
     parse_timestamps: bool,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
@@ -97,7 +97,7 @@ pub fn index_file<T: Read>(
     out_file: fs::File,
     current_out_file_size: usize,
     chunk_size: usize,
-    source_file_size: usize,
+    source_file_size: u64,
     initial_line_nr: usize,
     timestamps: bool,
     update_channel: cc::Sender<ChunkResults>,

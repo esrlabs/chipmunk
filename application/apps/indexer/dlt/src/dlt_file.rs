@@ -43,7 +43,7 @@ pub async fn parse_dlt_file(
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<Vec<Message>, Error> {
     trace!("parse_dlt_file");
-    let source_file_size = fs::metadata(&in_file)?.len() as usize;
+    let source_file_size = fs::metadata(&in_file)?.len();
     let (update_channel, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
     let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
     let mut messages: Vec<Message> = Vec::new();
@@ -76,7 +76,7 @@ pub async fn parse_dlt_file(
 
 pub fn create_index_and_mapping_dlt(
     config: IndexingConfig,
-    source_file_size: usize,
+    source_file_size: u64,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
@@ -265,7 +265,7 @@ impl futures::Stream for FileMessageProducer {
 #[allow(clippy::cognitive_complexity)]
 pub fn index_dlt_content(
     config: IndexingConfig,
-    source_file_size: usize,
+    source_file_size: u64,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     message_producer: &mut FileMessageProducer,
@@ -524,7 +524,7 @@ impl FilePartitioner {
                                 let (len_without_storage_header, _was_last) =
                                     match forward_to_next_storage_header(rest) {
                                         Some((dropped, _)) => (dropped, false),
-                                        None => (rest.len(), true),
+                                        None => (rest.len() as u64, true),
                                     };
                                 let consumed = skipped_bytes + len_without_storage_header;
                                 if state.index == section.first_line {
@@ -550,8 +550,8 @@ impl FilePartitioner {
                                     state.reset_section();
                                     break;
                                 }
-                                self.offset += consumed as u64;
-                                self.reader.consume(consumed);
+                                self.offset += consumed;
+                                self.reader.consume(consumed as usize);
                             }
                             Err(_e) => {
                                 warn!("error in FilePartitioner forward: {}", _e);
