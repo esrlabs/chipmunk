@@ -2,6 +2,7 @@ export enum ENotificationType {
     info = 'info',
     error = 'error',
     warning = 'warning',
+    accent = 'accent',
 }
 
 export interface INotificationOptions {
@@ -28,10 +29,11 @@ export interface INotification {
     row?: number;
     file?: string;
     message?: string;
-    component?: INotificationComponent;
-    progress?: boolean;
     buttons?: INotificationButton[];
     options?: INotificationOptions;
-    closing?: boolean;
     read?: boolean;
+    // Will be depricated
+    component?: INotificationComponent;
+    closing?: boolean;
+    progress?: boolean;
 }

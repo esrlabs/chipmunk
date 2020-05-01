@@ -1,8 +1,10 @@
-import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { Subscription } from 'rxjs';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ToolbarSessionsService, { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
 import { NotificationsService, INotification, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
+import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
+import { NotificationComponent } from './notification/component';
 
 const DEFAULT_OPTIONS = {
     closeDelay: 4000,           // ms
@@ -19,9 +21,10 @@ export class NotificationsComponent implements OnDestroy {
 
     private _subscription: Subscription;
 
-    public notifications: INotification[] = [];
-
-    constructor(private _notificationsService: NotificationsService, private _cdRef: ChangeDetectorRef) {
+    constructor(private _notificationsService: NotificationsService,
+                private _cdRef: ChangeDetectorRef,
+                private _snackBar: MatSnackBar,
+                private _zone: NgZone) {
         this._subscription = this._notificationsService.getObservable().new.subscribe(this._onNotification.bind(this));
     }
 
@@ -29,40 +32,39 @@ export class NotificationsComponent implements OnDestroy {
         this._subscription.unsubscribe();
     }
 
-    public onClose(notification: INotification) {
-        this._close(notification.id);
-    }
-
     private _onNotification(notification: INotification) {
-        /*
-        // It makes UI crazy on many DLT (as example) errors
-        if (this.notifications.length > 5) {
-            ToolbarSessionsService.setActive(CDefaultTabsGuids.notification);
-            return;
-        }
-        */
         notification = this._normalize(notification);
-        if (notification === null) {
+        if (notification === undefined) {
             return false;
         }
-        if (notification.options.type !== ENotificationType.error) {
+        if (notification.options.type === ENotificationType.info) {
             return false;
         }
-        this.notifications.push(notification);
-        if (isFinite(notification.options.closeDelay)) {
-            setTimeout(() => {
-                this._close(notification.id);
-            }, notification.options.closeDelay);
-        }
-        this._cdRef.detectChanges();
+        this._zone.run(() => {
+            const ref: MatSnackBarRef<NotificationComponent> = this._snackBar.openFromComponent(NotificationComponent, {
+                duration: notification.options.closeDelay,
+                horizontalPosition: 'center',
+                verticalPosition: 'bottom',
+                data: {
+                    close: () => {
+                        ref.dismiss();
+                    },
+                    getRef: (): MatSnackBarRef<NotificationComponent> => {
+                        return ref;
+                    },
+                    notification: notification,
+                },
+            });
+            this._cdRef.detectChanges();
+        });
     }
 
-    private _normalize(notification: INotification): INotification | null {
+    private _normalize(notification: INotification): INotification | undefined {
         if (typeof notification !== 'object' || notification === null) {
-            return null;
+            return undefined;
         }
         if (typeof notification.caption !== 'string') {
-            return null;
+            return undefined;
         }
         notification.id = typeof notification.id === 'string' ? (notification.id.trim() !== '' ? notification.id : Toolkit.guid()) : Toolkit.guid();
         notification.options = typeof notification.options === 'object' ? (notification.options !== null ? notification.options : {}) : {};
@@ -76,61 +78,10 @@ export class NotificationsComponent implements OnDestroy {
             if (typeof button.handler !== 'function') {
                 return null;
             }
-            button.handler = this._onButtonClick.bind(this, notification.id, button.handler);
             return button;
         }).filter(button => button !== null);
         notification.closing = false;
-        if (notification.progress === true) {
-            notification.component = void 0;
-            notification.message = void 0;
-            return notification;
-        }
-        if (typeof notification.message === 'string' && notification.message.trim() !== '') {
-            notification.component = void 0;
-            notification.progress = void 0;
-            return notification;
-        }
-        if (typeof notification.component === 'object' && notification.component !== null && notification.component.factory !== void 0) {
-            notification.message = void 0;
-            notification.progress = void 0;
-            notification.component.inputs = typeof notification.component.inputs === 'object' ? (notification.component.inputs !== null ? notification.component.inputs : {}) : {};
-            return notification;
-        }
-    }
-
-    private _onButtonClick(id: string, handler: (...args: any[]) => any) {
-        this._close(id);
-        handler();
-    }
-
-    private _close(id: string) {
-        this._update(id, { closing: true });
-        setTimeout(this._remove.bind(this, id), DEFAULT_OPTIONS.closingAnimationDelay);
-        this._cdRef.detectChanges();
-    }
-
-    private _remove(id: string) {
-        this.notifications = this.notifications.filter(notification => notification.id !== id);
-        this._cdRef.detectChanges();
-    }
-
-    private _update(id: string, updated: any): boolean {
-        let index: number = -1;
-        this.notifications.forEach((notify: INotification, i: number) => {
-            if (index !== -1) {
-                return;
-            }
-            if (notify.id === id) {
-                index = i;
-            }
-        });
-        if (index === -1) {
-            return false;
-        }
-        Object.keys(updated).forEach((key: string) => {
-            this.notifications[index][key] = updated[key];
-        });
-        return true;
+        return notification;
     }
 
 }

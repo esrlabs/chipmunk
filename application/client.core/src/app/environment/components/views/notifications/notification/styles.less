@@ -1,84 +1,83 @@
 @import '../../../../theme/variables.less';
 
-:host {
+app-sidebar-app-notification {
     position: relative;
-    display: block;
-    white-space: nowrap;
-    & p.caption{
+    display: flex;
+    height: 20px;
+    &:hover {
+        background: @scheme-color-4;
+    }
+    & .type {
         position: relative;
-        display: inline-block;
-        margin: 0;
-        padding: 0 1rem 0 0;
+        width: 32px;
+        min-width: 32px;
+        & mat-icon{
+            &.accent{
+                color: @scheme-color-accent;
+            }
+            &.warning{
+                color: @scheme-color-warning;
+            }
+            &.error{
+                color: @scheme-color-error;
+            }
+        }
+    }
+    & .ref,
+    & .actions {
+        position: relative;
+        width: 32px;
+        min-width: 32px;
         color: @scheme-color-1;
-        cursor: default;
-        font-size: 0.95rem;
-        width: 5rem;
+    }
+    & .type,
+    & .ref,
+    & .actions {
+        & mat-icon{
+            height: 20px;
+            width: 20px;
+            font-size: 20px;
+        }
+    }
+    & .caption{
+        position: relative;
+        width: 8rem;
+        min-width: 8rem;
         overflow: hidden;
         text-overflow: ellipsis;
-        vertical-align: top;
-        user-select: all!important;
-        & span.error-icon,
-        & span.warning-icon{
+        & > p {
+            white-space: nowrap;
             position: relative;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
             display: inline-block;
-            font-size: 10px;
-            line-height: 10px;
-            margin-right: 2px;
-            vertical-align: top;
-            margin-top: 4px;
-            margin-left: 4px;
-        }
-        & span.error-icon{
-            color: @scheme-color-error;
-        }
-        & span.warning-icon{
-            color: @scheme-color-warning;
+            color: @scheme-color-0;
+            & > span {
+                font-weight: bold;
+                color: @scheme-color-accent;
+                border-radius: 3px;
+            }
         }
     }
-    & p.line{
+    & .message{
         position: relative;
-        display: inline-block;
-        margin: 0;
-        padding: 0 1rem 0 0;
-        color: @scheme-color-1;
-        cursor: default;
-        font-size: 0.95rem;
-        width: 5rem;
+        flex: auto;
         overflow: hidden;
         text-overflow: ellipsis;
-        vertical-align: top;
-        user-select: all!important;
-    }
-    & div.content{
-        position: relative;
-        display: inline-block;
-        margin: 0;
-        padding: 0;
-        color: @scheme-color-1;
-        font-size: 0.95rem;
-        white-space: normal;
-        vertical-align: top;
-        user-select: all!important;
-        width: ~"calc(100% - 12rem)";
-        & p{
-            padding: 0;
-            &.more{
-                padding-left: 1rem;
-            }
-        }
-        & span.toggle-button{
-            position: absolute;
-            top: 2px;
-            left: -6px;
-            transition: all 100ms ease-in-out;
-            &.opened{
-                transform: rotateZ(180deg);
-            }
-        }
-        & div.more{
+        & > p {
+            white-space: nowrap;
             position: relative;
-            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            display: inline-block;
+            color: @scheme-color-2;
+            & span {
+                font-weight: bold;
+                color: @scheme-color-accent;
+                border-radius: 3px;
+            }
         }
-
     }
 }

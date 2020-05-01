@@ -1,21 +1,11 @@
-<div *ngIf="notification.message !== undefined" class="wrapper">
-    <p class="caption">
-        <span *ngIf="notification.options.type === 'error'" class="error-icon fas fa-exclamation-triangle"></span>
-        <span *ngIf="notification.options.type === 'warning'" class="warning-icon fas fa-exclamation-triangle"></span>
-        {{notification.caption}}
-        <span *ngIf="notification.options.closable" class="close-button fas fa-times" (click)="onClose()"></span>
-    </p>
-    <p class="content">{{notification.message}}</p>
-    <div *ngIf="notification.buttons !== undefined" class="buttons">
-        <lib-primitive-button *ngFor="let button of notification.buttons" [caption]="button.caption" [handler]="button.handler"></lib-primitive-button>
-    </div>
+<div class="icon">
+    <mat-icon *ngIf="data.notification.options.type === 'error'" class="error">error_outline</mat-icon>
+    <mat-icon *ngIf="data.notification.options.type === 'warning'" class="warning">warning</mat-icon>
+    <mat-icon *ngIf="data.notification.options.type === 'accent'" class="accent">notification_important</mat-icon>
 </div>
-<div *ngIf="notification.component !== undefined" class="wrapper">
-    <p class="caption">{{notification.caption}}<span *ngIf="notification.options.closable" class="close-button fas fa-times" (click)="onClose()"></span></p>
-    <div class="content">
-        <lib-containers-dynamic [component]="notification.component"></lib-containers-dynamic>
-    </div>
-    <div *ngIf="notification.buttons !== undefined" class="buttons">
-        <lib-primitive-button *ngFor="let button of notification.buttons" [caption]="button.caption" [handler]="button.handler"></lib-primitive-button>
-    </div>
+<div class="message">
+    <p class="t-normal">{{_ng_getMessage()}}</p>
+</div>
+<div class="button">
+    <button mat-stroked-button color="primary" (click)="_ng_close()">CLOSE</button>
 </div>
