@@ -169,6 +169,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         } else {
             SidebarSessionsService.setActive(guid);
         }
+        LayoutStateService.sidebarMax();
     }
 
     private _setReopenCallback(

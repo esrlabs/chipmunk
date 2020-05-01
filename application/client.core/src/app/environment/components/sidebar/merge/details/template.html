@@ -23,7 +23,11 @@
             aria-label="Format"
             [(ngModel)]="_ng_format"
             (ngModelChange)="_ng_onFormatChange()"
+            [errorStateMatcher]="_ng_format_error"
             matInput>
+    <mat-error *ngIf="!_ng_format_error.isValid()">
+        {{_ng_format_error.getError()}}
+    </mat-error>
 </mat-form-field>
 
 <span class="slitter"></span>
@@ -49,7 +53,7 @@
 <span class="slitter" *ngIf="_ng_state !== 'tested'"></span>
 
 <div class="controlls" *ngIf="_ng_state !== 'tested'">
-    <button mat-stroked-button color="primary" (click)="_ng_onApply()" [disabled]="_ng_state !== 'requiredtest'">
+    <button mat-stroked-button color="primary" (click)="_ng_onApply()" [disabled]="!_ng_format_error.isValid()">
         <mat-spinner *ngIf="_ng_state === 'testing'" [diameter]="32" mode="indeterminate"></mat-spinner>
         Apply
     </button>
