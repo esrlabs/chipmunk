@@ -1,0 +1,52 @@
+@import '../../../../theme/variables.less';
+
+:host {
+    position: relative;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    padding-left: 16px;
+    div.caption{
+        position: relative;        
+        width: 100%;
+        & > p {
+            color: @scheme-color-0;
+        }
+    }
+    div.source,
+    div.row{
+        position: relative;        
+        width: 100%;
+        & > p {
+            color: @scheme-color-3;
+        }
+    }
+    div.message{
+        position: relative;        
+        width: 100%;
+        flex: 100%;
+        overflow: auto;
+        & > p {
+            color: @scheme-color-2;
+        }
+    }
+    div.controls{
+        position: relative;        
+        width: 100%;
+        text-align: right;
+        padding: 8px 0;
+        & * {
+            margin-right: 8px;
+            &:last-child {
+                margin-right: 0;
+            }
+        }
+        & > button {
+            margin-left: 8px;
+            & mat-spinner{
+                display: inline-block;
+                margin-right: 8px;
+            }
+        }
+    }
+}

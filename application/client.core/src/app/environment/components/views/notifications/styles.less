@@ -16,45 +16,66 @@
         top:0;
         left: 0;
         width: 100%;
-        height: 1.5rem;
-        & table{
-            position: relative;
-            width: 100%;
-            & tr {
-                position: relative;
-                width: 100%;
-                td{
-                    position: relative;
-                    padding-right: 0.5rem;
-                    &:nth-child(2){
-                        width: 10rem;
-                    }
-                    &:nth-child(3){
-                        width: 1rem;
-                        padding-right: 0;
-                        & div.buttons{
-                            text-align: right;
-                        }
-                    }
+        height: 34px;
+        display: flex;
+        margin-top: -3px;
+        & div.summary{
+            flex: auto;
+            padding: 7px;
+            & > p {
+                color: @scheme-color-1;
+                text-align: right;
+                & span.error{
+                    color: @scheme-color-error;
+                }
+                & span.accent{
+                    color: @scheme-color-accent;
+                }
+                & span.warning{
+                    color: @scheme-color-warning;
                 }
             }
         }
+        & div.filter{
+            width: 15rem;
+        }
+        & div.shortcuts{
+            padding: 0px 0px 0 8px;
+            margin-top: -3px;
+            & > * {
+                color: @scheme-color-1;
+            }
+        }
     }
-    & ul.notifications {
+    & .notifications {
         position: absolute;
-        top:1.5rem;
+        top:32px;
         left: 0;
         width: 100%;
         bottom: 0;
-        list-style: none;
         display: block;
-        overflow: auto;
-        & li.notification{
-            position: relative;
-            display: block;
-            list-style: none;
-            border-bottom: 1px dashed @scheme-color-4;
-            padding: 0.25rem 0;
+        transition: width 250ms linear;
+        &.with_details{
+            width: ~"calc(100% - 21rem)";
+        }
+        & .selected {
+            background: @scheme-color-4;
+        }
+    }
+    & .details {
+        position: absolute;
+        top:32px;
+        right: 0;
+        width: 0;
+        bottom: 0;
+        display: block;
+        transition: width 250ms linear;
+        overflow: hidden;
+        &.with_details{
+            width: 21rem;
+        }
+        & app-sidebar-app-notification-details {
+            width: 20rem;
         }
     }
 }

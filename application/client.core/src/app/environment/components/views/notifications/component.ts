@@ -3,21 +3,35 @@ import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
 import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
+import { ENotificationType } from 'chipmunk.client.toolkit';
+import { sortPairs, IPair } from '../../../thirdparty/code/engine';
+import { INotificationData } from './notification/component';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-interface ILogLevelListItem {
-    value: string;
-    caption: string;
-}
-
 interface IState {
-    level: string;
+    level: ENotificationType | undefined;
     filter: string;
 }
+
+interface ISummary {
+    info: number;
+    accent: number;
+    warning: number;
+    error: number;
+}
+
+const CLogLevels: { [key: string]: ENotificationType[] } = {
+    [ENotificationType.info]: [ENotificationType.info, ENotificationType.accent, ENotificationType.warning, ENotificationType.error],
+    [ENotificationType.accent]: [ENotificationType.accent, ENotificationType.warning, ENotificationType.error],
+    [ENotificationType.warning]: [ENotificationType.warning, ENotificationType.error],
+    [ENotificationType.error]: [ENotificationType.error],
+};
 
 const CStateKey = 'notifications-state-key';
 
@@ -30,16 +44,17 @@ const CStateKey = 'notifications-state-key';
 export class SidebarAppNotificationsComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
     public _ng_session: string | undefined = undefined;
-    public _ng_notifications: INotification[] = [];
-    public _ng_levels: ILogLevelListItem[] = [
-        { value: 'all', caption: 'All' },
-        { value: 'error', caption: 'Errors' },
-        { value: 'warning', caption: 'Warnings' },
-        { value: 'info', caption: 'Info' },
-    ];
-    public _ng_level: string = 'all';
+    public _ng_notifications: INotificationData[] = [];
     public _ng_filter: string = '';
+    public _ng_summary: ISummary = {
+        info: 0,
+        accent: 0,
+        warning: 0,
+        error: 0,
+    };
+    public _ng_selected: INotification | undefined;
 
+    private _level: ENotificationType | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppNotificationsComponent');
     private _destroyed: boolean = false;
@@ -50,7 +65,6 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onNewNotification = this._notifications.getObservable().new.subscribe(this._onNewNotification.bind(this));
         this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
-        this._ng_onLevelChange = this._ng_onLevelChange.bind(this);
     }
 
     public ngOnDestroy() {
@@ -74,22 +88,124 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
 
     }
 
-    public _ng_onFilterChange(value: string) {
-        this._ng_filter = value;
-        this._ng_notifications = this._getNotifications();
-        this._forceUpdate();
+    public _ng_contextMenu(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Show All',
+                handler: () => {
+                    this._setLogLevel(undefined);
+                },
+            },
+            { /* delimiter */ },
+            {
+                caption: `Important`,
+                handler: () => {
+                    this._setLogLevel(ENotificationType.accent);
+                },
+            },
+            {
+                caption: `Warnings`,
+                handler: () => {
+                    this._setLogLevel(ENotificationType.warning);
+                },
+            },
+            {
+                caption: `Errors`,
+                handler: () => {
+                    this._setLogLevel(ENotificationType.error);
+                },
+            },
+            { /* delimiter */ },
+            {
+                caption: `Clear All`,
+                handler: () => {
+                    this._ng_onCleanup();
+                },
+            },
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
-    public _ng_onLevelChange(value: string) {
-        this._ng_level = value;
+    public _ng_onFilterChange() {
         this._ng_notifications = this._getNotifications();
         this._forceUpdate();
     }
 
     public _ng_onCleanup() {
         this._ng_notifications = [];
+        this._ng_filter = '';
+        this._ng_selected = undefined;
         this._notifications.clear(this._ng_session);
         this._forceUpdate();
+    }
+
+    public _ng_select(notification: INotification) {
+        if (this._ng_selected !== undefined && this._ng_selected.id === notification.id) {
+            this._ng_selected = undefined;
+        } else {
+            this._ng_selected = notification;
+        }
+        this._forceUpdate();
+    }
+
+    public _ng_isSelected(notification: INotification): boolean {
+        if (this._ng_selected === undefined) {
+            return false;
+        }
+        return this._ng_selected.id === notification.id;
+    }
+
+    private _getNotifications(): INotificationData[] {
+        const notifications: INotification[] = this._notifications.get(this._ng_session);
+        if (this._ng_filter === '') {
+            return this._filterLogLevel(notifications.map((notification: INotification) => {
+                return {
+                    notification: notification,
+                    match: {
+                        caption: notification.caption,
+                        message: notification.message,
+                    }
+                };
+            }));
+        }
+        const pairs: IPair[] = notifications.map((notification: INotification) => {
+            return {
+                id: notification.id,
+                caption: notification.caption,
+                description: notification.message,
+            };
+        });
+        const scored = sortPairs(pairs, this._ng_filter, this._ng_filter !== '', 'span');
+        const sorted: INotificationData[] = [];
+        scored.forEach((s: IPair) => {
+            const found: INotification | undefined = notifications.find(p => p.id === s.id);
+            if (found === undefined) {
+                return;
+            }
+            sorted.push({
+                notification: found,
+                match: {
+                    caption: s.tcaption,
+                    message: s.tdescription,
+                }
+            });
+        });
+        return this._filterLogLevel(sorted);
+    }
+
+    private _filterLogLevel(notifications: INotificationData[]): INotificationData[] {
+        if (this._level === undefined || CLogLevels[this._level] === undefined) {
+            return notifications;
+        }
+        return notifications.filter((data: INotificationData) => {
+            return CLogLevels[this._level].indexOf(data.notification.options.type) !== -1;
+        });
     }
 
     private _loadState() {
@@ -104,12 +220,13 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         const state: IState | undefined = scope.get<IState>(CStateKey);
         if (state !== undefined) {
             this._ng_filter = state.filter;
-            this._ng_level = state.level;
+            this._level = state.level;
         } else {
             this._ng_filter = '';
-            this._ng_level = 'all';
+            this._level = undefined;
         }
         this._ng_notifications = this._getNotifications();
+        this._ng_summary = this._getSummary();
         this._forceUpdate();
     }
 
@@ -124,8 +241,14 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         const scope: ControllerSessionScope = session.getScope();
         scope.set<IState>(CStateKey, {
             filter: this._ng_filter,
-            level: this._ng_level
+            level: this._level
         });
+    }
+
+    private _setLogLevel(value: ENotificationType | undefined) {
+        this._level = value;
+        this._ng_notifications = this._getNotifications();
+        this._forceUpdate();
     }
 
     private _onNewNotification(notification: INotification) {
@@ -133,6 +256,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
             return;
         }
         this._ng_notifications = this._getNotifications();
+        this._ng_summary = this._getSummary();
         this._forceUpdate();
     }
 
@@ -141,8 +265,9 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         if (session === undefined) {
             this._ng_session = undefined;
             this._ng_filter = '';
-            this._ng_level = 'all';
+            this._level = undefined;
             this._ng_notifications = [];
+            this._ng_selected = undefined;
             this._forceUpdate();
             return;
         }
@@ -150,25 +275,21 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         this._loadState();
     }
 
-    private _getNotifications(): INotification[] {
-        let notifications: INotification[] = this._notifications.get(this._ng_session);
-        if (this._ng_filter.trim() !== '') {
-            const regex: RegExp | Error = Toolkit.regTools.createFromStr(this._ng_filter);
-            if (!(regex instanceof Error)) {
-                notifications = notifications.filter((notification: INotification) => {
-                    return `${notification.caption}-#@#-${notification.message}`.search(regex) !== -1;
-                });
-            }
-        }
-        if (this._ng_level !== 'all') {
-            notifications = notifications.filter((notification: INotification) => {
-                if (notification.options === undefined) {
-                    return false;
-                }
-                return notification.options.type === this._ng_level;
-            });
-        }
-        return notifications;
+    private _getSummary(): ISummary {
+        const notifications: INotification[] = this._notifications.get(this._ng_session);
+        const summary: ISummary = {
+            info: 0,
+            accent: 0,
+            warning: 0,
+            error: 0,
+        };
+        notifications.forEach((notification: INotification) => {
+            summary.info += notification.options.type === ENotificationType.info ? 1 : 0;
+            summary.accent += notification.options.type === ENotificationType.accent ? 1 : 0;
+            summary.warning += notification.options.type === ENotificationType.warning ? 1 : 0;
+            summary.error += notification.options.type === ENotificationType.error ? 1 : 0;
+        });
+        return summary;
     }
 
     private _forceUpdate() {

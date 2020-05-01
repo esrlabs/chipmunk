@@ -12,8 +12,9 @@ import TabsSessionsService from '../services/service.sessions.tabs';
 export { INotification, ENotificationType };
 
 const CCloseDelay = {
-    [ENotificationType.error]: 4000,
-    [ENotificationType.warning]: 3000,
+    [ENotificationType.error]: 6000,
+    [ENotificationType.warning]: 4000,
+    [ENotificationType.accent]: 4000,
     [ENotificationType.info]: 2000,
 };
 
@@ -171,9 +172,6 @@ export class NotificationsService {
     }
 
     private _store(notification: INotification) {
-        if (notification.progress) {
-            return;
-        }
         if (typeof notification.message !== 'string' || notification.message.trim() === '') {
             return;
         }

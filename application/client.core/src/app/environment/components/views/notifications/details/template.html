@@ -1,0 +1,17 @@
+<div class="caption">
+    <p class="t-normal">{{notification.caption}}</p>
+</div>
+<div class="source" *ngIf="notification.file !== undefined">
+    <p class="t-small">source: {{notification.file}}</p>
+</div>
+<div class="row" *ngIf="notification.row !== undefined">
+    <p class="t-small">row: {{notification.row}}</p>
+</div>
+<div class="message">
+    <p class="t-normal">{{notification.message}}</p>
+</div>
+<div class="controls" *ngIf="notification.buttons !== undefined">
+    <button mat-stroked-button color="primary" *ngFor="let button of notification.buttons" (click)="button.handler()">
+        {{button.caption}}
+    </button>
+</div>

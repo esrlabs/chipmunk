@@ -1,25 +1,40 @@
 <div class="controls" *ngIf="_ng_session !== undefined">
-    <table>
-        <tr>
-            <td>
-                <lib-primitive-input [type]="'text'"
-                                     [value]="_ng_filter"
-                                     [placeholder]="'filter'" 
-                                     [onChange]="_ng_onFilterChange"></lib-primitive-input>
-            </td>
-            <td>
-                <lib-primitive-dropdownlist [defaults]="_ng_level" [items]="_ng_levels" [onChange]="_ng_onLevelChange"></lib-primitive-dropdownlist>
-            </td>
-            <td>
-                <div class="buttons">
-                    <span class="small-icon-button far fa-trash-alt" title="cleanup" (click)="_ng_onCleanup()"></span>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <div class="summary" (contextmenu)="_ng_contextMenu($event)">
+        <p class="t-small">
+            <span *ngIf="_ng_summary.info > 0">info: </span><span *ngIf="_ng_summary.info > 0" class="info">{{_ng_summary.info}}; </span>
+            <span *ngIf="_ng_summary.accent > 0">accent: </span><span *ngIf="_ng_summary.accent > 0" class="accent">{{_ng_summary.accent}}; </span>
+            <span *ngIf="_ng_summary.warning > 0">warning: </span><span *ngIf="_ng_summary.warning > 0" class="warning">{{_ng_summary.warning}}; </span>
+            <span *ngIf="_ng_summary.error > 0">error: </span><span *ngIf="_ng_summary.error > 0" class="error">{{_ng_summary.error}};</span>
+        </p>
+    </div>
+    <div class="filter">
+        <mat-form-field class="recent-requests outline regular" appearance="outline">
+            <input  type="text" 
+                    placeholder="Filter"
+                    [(ngModel)]="_ng_filter"
+                    (ngModelChange)="_ng_onFilterChange()"
+                    matInput>
+          </mat-form-field>
+    </div>
+    <div class="shortcuts">
+        <button mat-icon-button aria-label="Clear All" (click)="_ng_onCleanup()">
+            <mat-icon>delete_outline</mat-icon>
+        </button>
+    </div>
 </div>
-<ul class="notifications" *ngIf="_ng_session !== undefined">
-    <li class="notification" *ngFor="let notification of _ng_notifications">
-        <app-sidebar-app-notification [notification]="notification" [session]="_ng_session"></app-sidebar-app-notification>
-    </li>
-</ul>
+
+<cdk-virtual-scroll-viewport 
+    *ngIf="_ng_session !== undefined"
+    (contextmenu)="_ng_contextMenu($event)"
+    [attr.class]="'notifications ' + (_ng_selected !== undefined ? 'with_details' : '')"
+    itemSize="20">
+    <app-sidebar-app-notification
+        *cdkVirtualFor="let data of _ng_notifications"
+        [attr.class]="_ng_isSelected(data.notification) ? 'selected' : ''"
+        [data]="data"
+        [session]="_ng_session" (click)="_ng_select(data.notification)"></app-sidebar-app-notification>
+</cdk-virtual-scroll-viewport>
+
+<div [attr.class]="'details ' + (_ng_selected !== undefined ? 'with_details' : '')">
+    <app-sidebar-app-notification-details *ngIf="_ng_selected !== undefined" [notification]="_ng_selected"></app-sidebar-app-notification-details>
+</div>

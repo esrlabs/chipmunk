@@ -1,15 +1,17 @@
-<p class="caption" [attr.title]="notification.caption">
-    <span *ngIf="notification.options.type === 'error'" class="error-icon fas fa-exclamation-triangle"></span>
-    <span *ngIf="notification.options.type === 'warning'" class="warning-icon fas fa-exclamation-triangle"></span>
-    {{notification.caption}}
-</p>
-<p class="line">{{notification.row}}</p>
-<div [attr.class]="'content'">
-    <p [attr.class]="'t-normal ' + (notification.buttons !== undefined ? 'more' : '')">{{notification.message}}</p>
-    <span   *ngIf="notification.buttons !== undefined && notification.buttons.length !== 0"
-            [attr.class]="'toggle-button small-icon-button fas fa-angle-double-down' + (_ng_more ? ' opened' : '')"
-            (click)="_ng_onMore()"></span>
-    <div class="more" *ngIf="_ng_more && notification.buttons !== undefined">
-        <span *ngFor="let button of notification.buttons" class="small-button" (click)="_ng_onButtonClick(button.handler)">{{button.caption}}</span>
-    </div>
+<div class="type">
+    <mat-icon *ngIf="data.notification.options.type === 'error'" class="error">error_outline</mat-icon>
+    <mat-icon *ngIf="data.notification.options.type === 'warning'" class="warning">warning</mat-icon>
+    <mat-icon *ngIf="data.notification.options.type === 'accent'" class="accent">notification_important</mat-icon>
+</div>
+<div class="ref">
+    <mat-icon *ngIf="_ng_hasRef()" (click)="_ng_goToLink()">link</mat-icon>
+</div>
+<div class="actions">
+    <mat-icon *ngIf="_ng_hasActions()">assignment_turned_in</mat-icon>
+</div>
+<div class="caption">
+    <p class="t-normal" [innerHTML]="_ng_getSafeHTML(data.match.caption)"></p>
+</div>
+<div class="message">
+    <p class="t-normal" [innerHTML]="_ng_getSafeHTML(data.match.message)"></p>
 </div>

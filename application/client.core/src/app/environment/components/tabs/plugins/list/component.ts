@@ -1,7 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { MatInput } from '@angular/material/input';
 import { EManagerState, IPlugin, EUpdateState, IViewState } from '../../../../controller/controller.plugins.manager';
 import { Storage } from '../../../../controller/helpers/virtualstorage';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';

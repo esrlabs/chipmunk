@@ -1,6 +1,14 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Inject } from '@angular/core';
+import { INotification } from '../../../../services.injectable/injectable.service.notifications';
+import { MAT_SNACK_BAR_DATA, MatSnackBarRef } from '@angular/material/snack-bar';
 
-import { INotification, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
+export interface INotificationData {
+    close: () => void;
+    getRef: () => MatSnackBarRef<any>;
+    notification: INotification;
+}
+
+const CLengthLimit = 255;
 
 @Component({
     selector: 'app-notification',
@@ -10,7 +18,17 @@ import { INotification, ENotificationType } from '../../../../services.injectabl
 
 export class NotificationComponent {
 
-    @Input() public notification: INotification = { caption: '', message: '' };
-    @Input() public onClose: (...args: any[]) => any = () => {};
+    constructor(@Inject(MAT_SNACK_BAR_DATA) public data: INotificationData) { }
 
+    public _ng_getMessage() {
+        if (this.data.notification.message.length > CLengthLimit) {
+            return this.data.notification.message.substr(0, CLengthLimit) + '...';
+        } else {
+            return this.data.notification.message;
+        }
+    }
+
+    public _ng_close() {
+        this.data.close();
+    }
 }
