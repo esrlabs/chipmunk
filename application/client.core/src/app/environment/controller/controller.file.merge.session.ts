@@ -274,6 +274,28 @@ export class ControllerFileMergeSession {
         return this._timescale.max !== '' && this._timescale.min !== '';
     }
 
+    public validate(format): CancelablePromise<void> {
+        const id: string = Toolkit.guid();
+        const task: CancelablePromise<void> = new CancelablePromise<void>(
+            (resolve, reject, cancel, refCancelCB, self) => {
+            ElectronIpcService.request(new IPCMessages.MergeFilesFormatRequest({
+                format: format,
+            }), IPCMessages.MergeFilesFormatResponse).then((response: IPCMessages.MergeFilesFormatResponse) => {
+                if (typeof response.error === 'string') {
+                    return reject(new Error(response.error));
+                }
+                resolve();
+            }).catch((disErr: Error) => {
+                this._logger.error(`Fail to test format due error: ${disErr.message}`);
+                return reject(disErr);
+            });
+        }).finally(() => {
+            this._tasks.delete(id);
+        });
+        this._tasks.set(id, task);
+        return task;
+    }
+
     private _discover(files: string[]): CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]> {
         const id: string = Toolkit.guid();
         const task: CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]> = new CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]>(

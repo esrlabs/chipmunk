@@ -5,7 +5,7 @@ import { ControllerComponentsDragDropFiles } from '../../../controller/component
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices, IFile } from '../../../services/shared.services.sidebar';
-import { MatSort, Sort } from '@angular/material/sort';
+import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';

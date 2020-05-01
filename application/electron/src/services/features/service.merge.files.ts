@@ -3,6 +3,7 @@ import Logger from '../../tools/env.logger';
 import ServiceStreams from "../service.streams";
 import MergeFiles from '../../controllers/features/merge/merge.files';
 import MergeDiscover from '../../controllers/features/merge/merge.discover';
+import MergeFormat from '../../controllers/features/merge/merge.format';
 
 import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
@@ -46,6 +47,9 @@ class ServiceMergeFiles implements IService {
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.MergeFilesDiscoverRequest, this._onMergeFilesDiscoverRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.MergeFilesDiscoverRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.MergeFilesFormatRequest, this._onMergeFilesFormatRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.MergeFilesFormatRequest = subscription;
                 }),
             ]).then(() => {
                 this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
@@ -148,6 +152,18 @@ class ServiceMergeFiles implements IService {
         });
     }
 
+    private _onMergeFilesFormatRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.MergeFilesFormatRequest = request as IPCMessages.MergeFilesFormatRequest;
+        this._format(req.format).then(() => {
+            response(new IPCMessages.MergeFilesFormatResponse({
+            }));
+        }).catch((error: Error) => {
+            response(new IPCMessages.MergeFilesFormatResponse({
+                error: error.message,
+            }));
+        });
+    }
+
     private _onMergeFilesTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.MergeFilesTestRequest = request as IPCMessages.MergeFilesTestRequest;
         this._test(req.file, req.format, req.year).then((results: IPCMessages.IMergeFilesDiscoverResult) => {
@@ -189,6 +205,17 @@ class ServiceMergeFiles implements IService {
             }));
             controller.discover().then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
                 resolve(processed);
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    private _format(format: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const controller: MergeFormat = new MergeFormat(format);
+            controller.validate().then(() => {
+                resolve();
             }).catch((error: Error) => {
                 reject(error);
             });

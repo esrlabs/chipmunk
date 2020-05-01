@@ -20,5 +20,6 @@ export default {
 	exportLineBased: Processor.exportLineBased,
 	// Merging
 	mergeFilesAsync: Merge.mergeFilesAsync,
-	concatFilesAsync: Merge.concatFilesAsync
+	concatFilesAsync: Merge.concatFilesAsync,
+	checkFormat: Processor.checkFormat,
 };

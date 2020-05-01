@@ -6,6 +6,8 @@ import { CColors } from '../../../../conts/colors';
 import { getContrastColor } from '../../../../theme/colors';
 import { IPCMessages } from '../../../../interfaces/interface.ipc';
 import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
+import { ErrorStateMatcher } from '@angular/material/core';
+import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -60,6 +62,47 @@ const CGroupsStyles: { [group: string]: string } = {
     [CGroupsNames.am_pm]:      `background: ${CColors[24]};color: ${getContrastColor(CColors[24], true)}`,
 };
 
+export class ForamtErrorStateMatcher implements ErrorStateMatcher {
+    private _controller: ControllerFileMergeSession;
+    private _update: () => void;
+    private _valid: boolean = true;
+    private _error: string | undefined;
+    private _last_checked: string = '';
+
+    constructor(controller: ControllerFileMergeSession, update: () => void) {
+        this._controller = controller;
+        this._update = update;
+    }
+
+    public isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+        const valid = this._valid;
+        if (this._last_checked !== control.value) {
+            this._last_checked = control.value;
+            this._controller.validate(control.value).then(() => {
+                this._valid = true;
+                this._error = undefined;
+            }).catch((error: Error) => {
+                this._valid = false;
+                this._error = error.message;
+            }).finally(() => {
+                if (valid !== this._valid) {
+                    this._update();
+                }
+            });
+        }
+        return !this._valid;
+    }
+
+    public isValid(): boolean {
+        return this._valid;
+    }
+
+    public getError(): string | undefined {
+        return this._error;
+    }
+
+}
+
 @Component({
     selector: 'app-sidebar-app-files-details',
     templateUrl: './template.html',
@@ -77,6 +120,7 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
     public _ng_state: EFormatState = EFormatState.tested;
     public _ng_year: string = '';
     public _ng_offset: number = 0;
+    public _ng_format_error: ForamtErrorStateMatcher;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -89,6 +133,7 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
     public ngAfterContentInit() {
         this._setPreview();
         this._setFormat();
+        this._ng_format_error = new ForamtErrorStateMatcher(this.controller, this._forceUpdate.bind(this));
     }
 
     public ngAfterViewInit() {
@@ -109,9 +154,15 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
             return;
         }
         this._setPreview(changes.file.currentValue);
+        this._setFormat();
+        this._setOptions();
+        this._ng_onFormatChange();
     }
 
     public _ng_onFormatChange() {
+        if (this.controller === undefined) {
+            return;
+        }
         if (this.file.format === undefined) {
             this._ng_state = EFormatState.requiredtest;
             return;
@@ -124,7 +175,7 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
     }
 
     public _ng_onApply() {
-        if (this.file.format === undefined || this.file.format.format === this._ng_format) {
+        if (this._ng_format_error === undefined || !this._ng_format_error.isValid()) {
             return;
         }
         this._ng_state = EFormatState.testing;
