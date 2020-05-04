@@ -302,20 +302,8 @@ class ServiceFileOpener implements IService {
                     reject(new Error(`Fail open file due error: ${error.message}`));
                 });
             } else {
-                const extensions: string[] = [];
-                FileParsers.map((_parser: any) => {
-                    return new _parser.class();
-                }).forEach((_parser: AFileParser) => {
-                    extensions.push(..._parser.getExtensions());
-                });
                 dialog.showOpenDialog(win, {
                     properties: ['openFile', 'showHiddenFiles'],
-                    filters: [
-                        {
-                            name: 'Supported Files',
-                            extensions: extensions,
-                        },
-                    ],
                 }).then((returnValue: OpenDialogReturnValue) => {
                     if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
                         return resolve(undefined);
