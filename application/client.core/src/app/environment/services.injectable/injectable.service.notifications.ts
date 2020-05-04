@@ -41,48 +41,6 @@ export class NotificationsService {
         this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(IPCMessages.Notification, this._onProcessNotification.bind(this));
         // Share notifications methods
         TabsSessionsService.setNotificationOpener(this.add.bind(this));
-        setTimeout(() => {
-            this.add({
-                caption: 'Test',
-                message: 'This is test notification. This is test notification. This is test notification.',
-                options: {
-                    type: ENotificationType.info
-                }
-            });
-        }, 4000);
-        setTimeout(() => {
-            this.add({
-                caption: 'Test',
-                message: 'This is test notification. This is test notification. This is test notification. This is test notification. ',
-                row: 1000,
-                options: {
-                    type: ENotificationType.warning
-                }
-            });
-        }, 6000);
-        setTimeout(() => {
-            this.add({
-                caption: 'Test',
-                message: 'This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification.',
-                options: {
-                    type: ENotificationType.error
-                }
-            });
-        }, 8000);
-        setTimeout(() => {
-            this.add({
-                caption: 'Test',
-                message: 'This is test notification. This is test notification. This is test notification.',
-                buttons: [
-                    { caption: 'Accept', handler: () => {}},
-                    { caption: 'Remind', handler: () => {}},
-                ],
-                options: {
-                    type: ENotificationType.accent
-                }
-            });
-        }, 10000);
-
     }
 
     public destroy() {
