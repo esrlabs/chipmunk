@@ -15,6 +15,8 @@ export interface INotificationData {
     };
 }
 
+const CReadTimeout = 2000;
+
 @Component({
     selector: 'app-sidebar-app-notification',
     templateUrl: './template.html',
@@ -44,12 +46,13 @@ export class SidebarAppNotificationComponent implements OnDestroy, AfterContentI
     }
 
     public ngAfterViewInit() {
+        if (this.data.notification.read) {
+            return;
+        }
+        const id: string = this.data.notification.id;
         setTimeout(() => {
-            if (this._destroyed) {
-                return;
-            }
-            this._notifications.setAsRead(this.session, this.data.notification.id);
-        }, 2000);
+            this._notifications.setAsRead(this.session, id);
+        }, CReadTimeout);
     }
 
     public ngOnDestroy() {
