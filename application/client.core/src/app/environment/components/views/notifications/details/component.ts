@@ -14,6 +14,7 @@ export class SidebarAppNotificationDetailsComponent implements OnDestroy, AfterC
 
 
     @Input() public notification: INotification;
+    @Input() public session: string;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -27,7 +28,7 @@ export class SidebarAppNotificationDetailsComponent implements OnDestroy, AfterC
     }
 
     public ngAfterViewInit() {
-
+        this._notifications.setAsRead(this.session, this.notification.id);
     }
 
     public ngOnDestroy() {

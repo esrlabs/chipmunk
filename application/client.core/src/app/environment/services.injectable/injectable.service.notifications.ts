@@ -41,6 +41,48 @@ export class NotificationsService {
         this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(IPCMessages.Notification, this._onProcessNotification.bind(this));
         // Share notifications methods
         TabsSessionsService.setNotificationOpener(this.add.bind(this));
+        setTimeout(() => {
+            this.add({
+                caption: 'Test',
+                message: 'This is test notification. This is test notification. This is test notification.',
+                options: {
+                    type: ENotificationType.info
+                }
+            });
+        }, 4000);
+        setTimeout(() => {
+            this.add({
+                caption: 'Test',
+                message: 'This is test notification. This is test notification. This is test notification. This is test notification. ',
+                row: 1000,
+                options: {
+                    type: ENotificationType.warning
+                }
+            });
+        }, 6000);
+        setTimeout(() => {
+            this.add({
+                caption: 'Test',
+                message: 'This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification. This is test notification.',
+                options: {
+                    type: ENotificationType.error
+                }
+            });
+        }, 8000);
+        setTimeout(() => {
+            this.add({
+                caption: 'Test',
+                message: 'This is test notification. This is test notification. This is test notification.',
+                buttons: [
+                    { caption: 'Accept', handler: () => {}},
+                    { caption: 'Remind', handler: () => {}},
+                ],
+                options: {
+                    type: ENotificationType.accent
+                }
+            });
+        }, 10000);
+
     }
 
     public destroy() {
@@ -97,14 +139,13 @@ export class NotificationsService {
 
     public setAsRead(session: TSession, id: string) {
         const storage: INotification[] | undefined = this._storage.get(session);
-        if (storage === undefined) {
-            this._common = this._common.map((notification: INotification) => {
-                if (notification.id === id) {
-                    notification.read = true;
-                }
-                return notification;
-            });
-        } else {
+        this._common = this._common.map((notification: INotification) => {
+            if (notification.id === id) {
+                notification.read = true;
+            }
+            return notification;
+        });
+        if (storage !== undefined) {
             this._storage.set(session, storage.map((notification: INotification) => {
                 if (notification.id === id) {
                     notification.read = true;

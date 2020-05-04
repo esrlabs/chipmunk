@@ -36,5 +36,5 @@
 </cdk-virtual-scroll-viewport>
 
 <div [attr.class]="'details ' + (_ng_selected !== undefined ? 'with_details' : '')">
-    <app-sidebar-app-notification-details *ngIf="_ng_selected !== undefined" [notification]="_ng_selected"></app-sidebar-app-notification-details>
+    <app-sidebar-app-notification-details *ngIf="_ng_selected !== undefined" [notification]="_ng_selected" [session]="_ng_session"></app-sidebar-app-notification-details>
 </div>
