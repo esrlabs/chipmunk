@@ -7,6 +7,7 @@ import ServiceFileOpener from '../../services/files/service.file.opener';
 import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
 import HandlerItemAbout from './menu.functions/handler.item.about';
 import HandlerItemPlugins from './menu.functions/handler.item.plugins';
+import HandlerItemSettings from './menu.functions/handler.item.settings';
 
 import Logger from '../../tools/env.logger';
 
@@ -122,6 +123,11 @@ export default class ControllerElectronMenu {
                     { role: 'hideothers' },
                     { role: 'unhide' },
                     { type: 'separator' },
+                    {
+                        label: 'Settings',
+                        click: HandlerItemSettings,
+                    },
+                    { type: 'separator' },
                     { role: 'quit' },
                 ],
             });
@@ -134,6 +140,11 @@ export default class ControllerElectronMenu {
                 { role: 'front' },
             ];
         } else {
+            template[0].submenu.push({ type: 'separator' });
+            template[0].submenu.push({
+                label: 'Settings',
+                click: HandlerItemSettings,
+            });
             template[0].submenu.push({ type: 'separator' });
             template[0].submenu.push({
                 label: 'About Chipmunk',
