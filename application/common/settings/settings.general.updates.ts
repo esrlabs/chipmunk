@@ -1,6 +1,6 @@
 import { ISettingsField } from './field';
 
-export interface IGeneralUpdates {
+export interface IUpdates {
     check: ISettingsField<boolean>;
     download: ISettingsField<boolean>;
 }
