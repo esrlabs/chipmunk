@@ -1,12 +1,14 @@
 // tslint:disable: max-classes-per-file
 
 import { IService } from '../interfaces/interface.service';
-import { Entry, ESettingType } from '../../../common/settings/field';
+import { Entry, ESettingType } from '../../../common/settings/field.store';
 import { CoreIndex } from './settings.defaults/settings.core.index';
 import { GeneralUpdateApp } from './settings.defaults/settings.general.update.app';
 import { GeneralUpdatePlugins } from './settings.defaults/settings.general.update.plugins';
+import { sequences } from '../tools/sequences';
 
 import ServiceSettings from './service.settings';
+import Logger from '../tools/env.logger';
 
 export const CSettings = {
     client: {
@@ -27,15 +29,33 @@ export const CSettings = {
 
 class ServiceConfigDefault implements IService {
 
+    private _logger: Logger = new Logger('ServiceStorage');
+
     public init(): Promise<void> {
-        return new Promise((resolve) => {
-            ServiceSettings.register(new Entry({ key: 'core', name: 'Core', desc: 'Settings of core', path: '', type: ESettingType.hidden }));
-            ServiceSettings.register(CSettings.client.index);
-            ServiceSettings.register(new Entry({ key: 'general', name: 'Core', desc: 'General setting of chipmunk', path: '', type: ESettingType.standard }));
-            ServiceSettings.register(new Entry({ key: 'update', name: 'Update', desc: 'Configure update workflow', path: 'general', type: ESettingType.standard }));
-            ServiceSettings.register(CSettings.general.update.app);
-            ServiceSettings.register(CSettings.general.update.plugins);
-            resolve();
+        return new Promise((resolve, reject) => {
+            sequences([
+                ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'core', name: 'Core', desc: 'Settings of core', path: '', type: ESettingType.hidden })),
+                ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'general', name: 'Core', desc: 'General setting of chipmunk', path: '', type: ESettingType.standard })),
+                ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'update', name: 'Update', desc: 'Configure update workflow', path: 'general', type: ESettingType.standard })),
+            ]).then(() => {
+                Promise.all([
+                    ServiceSettings.register(CSettings.client.index).catch((regErr: Error) => {
+                        this._logger.error(regErr.message);
+                    }),
+                    ServiceSettings.register(CSettings.general.update.app).catch((regErr: Error) => {
+                        this._logger.error(regErr.message);
+                    }),
+                    ServiceSettings.register(CSettings.general.update.plugins).catch((regErr: Error) => {
+                        this._logger.error(regErr.message);
+                    }),
+                ]).then(() => {
+                    resolve();
+                }).catch((error: Error) => {
+                    reject(error);
+                });
+            }).catch((structErr: Error) => {
+                reject(structErr);
+            });
         });
     }
 
