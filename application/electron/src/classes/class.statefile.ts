@@ -7,6 +7,12 @@ import ServicePaths from '../services/service.paths';
 import { IService } from '../interfaces/interface.service';
 
 /**
+ * TODO:
+ * Method _validation looks like dangerous. It might be we have some new field
+ * in this case state will have new field, default-state - no; validation method
+ * will return Error. But should not.
+ */
+/**
  * @class StateFile
  * @description Used as parent for state services
  */
@@ -26,7 +32,7 @@ export class StateFile<TState> implements IService {
         this._defaults = defaults;
         this._file = file;
         this._allowResetToDefault = allowResetToDefault;
-        this._logger.verbose(`Created state file: ${this._file}`);
+        this._logger.wtf(`Created state file: ${this._file}`);
     }
 
     /**
@@ -39,7 +45,7 @@ export class StateFile<TState> implements IService {
             this._default().then(() => {
                 this._read().then((state: TState) => {
                     this._state = state;
-                    this._logger.verbose(`Inited state file: ${this._file}`);
+                    this._logger.wtf(`Inited state file: ${this._file}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._state = null;
