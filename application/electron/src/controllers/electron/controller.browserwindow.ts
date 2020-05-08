@@ -2,7 +2,7 @@ import * as Url from 'url';
 
 import { BrowserWindow, BrowserWindowConstructorOptions, Event } from 'electron';
 import { IWindowState } from '../../services/service.window.state.scheme';
-import { getPlatform, EPlatforms } from '../../tools/env.os';
+import { CSettings } from '../../services/service.settings.default';
 
 import EventEmitter from '../../tools/emitter';
 import Logger from '../../tools/env.logger';
@@ -102,7 +102,11 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 },
             };
             this._window = new BrowserWindow(options);
-            const clientPath = ServicePath.resoveRootFolder(ServiceSettings.getSettings().get().client.indexHtml);
+            const index: string | Error = ServiceSettings.get(CSettings.client.index.getFullPath());
+            if (index instanceof Error) {
+                throw index;
+            }
+            const clientPath = ServicePath.resoveRootFolder(index);
             if (!ServicePath.isExist(clientPath)) {
                 throw new Error(this._logger.error(`Cannot find client on path "${clientPath}"`));
             }
