@@ -24,9 +24,9 @@ export class StateFile<TState> implements IService {
         this._alias = alias;
         this._logger = new Logger(alias);
         this._defaults = defaults;
-        this._file = ServicePaths.resoveHomeFolder(file);
+        this._file = file;
         this._allowResetToDefault = allowResetToDefault;
-        this._logger.verbose(`Inited state file: ${this._file}`);
+        this._logger.verbose(`Created state file: ${this._file}`);
     }
 
     /**
@@ -35,9 +35,11 @@ export class StateFile<TState> implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._file = ServicePaths.resoveHomeFolder(this._file);
             this._default().then(() => {
                 this._read().then((state: TState) => {
                     this._state = state;
+                    this._logger.verbose(`Inited state file: ${this._file}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._state = null;
