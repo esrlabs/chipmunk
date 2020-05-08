@@ -1,3 +1,5 @@
+import { Element } from './field.render';
+
 export enum ESettingType {
     standard = 'standard',
     advanced = 'advanced',
@@ -125,6 +127,13 @@ export class Entry {
         return this._type;
     }
 
+    public extract(store: IStorage): Promise<void> {
+        return new Promise((resolve) => {
+            // Dummy method to make code look nicer (see: service.settings.ts)
+            resolve();
+        });
+    }
+
     public write(store: IStorage): Error | IStorage {
         if (typeof store !== 'object' && store === null) {
             return new Error(`Fail to write, because store isn't an object.`);
@@ -141,7 +150,6 @@ export class Entry {
 
 }
 
-
 export abstract class Field<T> extends Entry {
 
     private _value: T | undefined;
@@ -150,38 +158,46 @@ export abstract class Field<T> extends Entry {
         super(entry);
     }
 
-    public abstract getValidateErrorMessage(value: T): Error | undefined;
-    public abstract getDefault(): T;
-    public abstract getOptions(): T[];
+    public abstract validate(value: T): Promise<void>;
+    public abstract getDefault(): Promise<T>;
+    public abstract getElement(): Promise<Element<any> | undefined>;
 
-    public extract(store: IStorage): Error | undefined {
-        const ref: IStorage | Error = findRef(store, this.getPath());
-        if (ref instanceof Error) {
-            return ref;
-        }
-        const stored: T | undefined = (ref as any)[this.getKey()];
-        if (stored === undefined) {
-            return this.set(this.getDefault());
-        } else {
-            const error: Error | undefined = this.getValidateErrorMessage(stored);
-            if (error instanceof Error) {
-                return error;
+    public extract(store: IStorage): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const ref: IStorage | Error = findRef(store, this.getPath());
+            if (ref instanceof Error) {
+                return reject(ref);
+            }
+            const stored: T | undefined = (ref as any)[this.getKey()];
+            if (stored === undefined) {
+                this.getDefault().then((value: T) => {
+                    this.set(value).then(resolve).catch(reject);
+                });
+                return;
             } else {
-                return this.set(stored);
-            }    
-        }
+                this.validate(stored).then(() => {
+                    this.set(stored).then(resolve).catch(reject);
+                }).catch(reject);    
+            }
+        });
     }
 
-    public set(value: T): Error | undefined {
-        const error: Error | undefined = this.getValidateErrorMessage(value);
-        if (error instanceof Error) {
-            return error;
-        }
-        this._value = value;
+    public set(value: T): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.validate(value).then(() => {
+                this._value = value;
+                resolve();
+            }).catch((err: Error) => {
+                reject(err);
+            })
+        });
     }
 
     public get(): T {
-        return this._value === undefined ? this.getDefault() : this._value;
+        if (this._value === undefined) {
+            throw new Error(`Value of "${this.getFullPath()}" isn't initialized`);
+        }
+        return this._value;
     }
 
     public write(store: IStorage): Error | IStorage {

@@ -1,20 +1,32 @@
-import { Field } from '../../../../common/settings/field';
+import { Field } from '../../../../common/settings/field.store';
+import { ElementCheckbox } from '../../../../common/settings/field.render';
 
 export class GeneralUpdateApp extends Field<boolean> {
 
-    public getDefault(): boolean {
-        return true;
+    private _element: ElementCheckbox = new ElementCheckbox();
+
+    public getDefault(): Promise<boolean> {
+        return new Promise((resolve) => {
+            resolve(true);
+        });
     }
 
-    public getOptions(): boolean[] {
-        return [];
+    public validate(state: boolean): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (typeof state !== 'boolean') {
+                return reject(new Error(`Expecting boolean type for GeneralUpdateApp`));
+            }
+            resolve();
+        });
     }
 
-    public getValidateErrorMessage(state: boolean): Error | undefined {
-        if (typeof state !== 'boolean') {
-            return new Error(`Expecting boolean type for GeneralUpdateApp`);
-        }
-        return undefined;
+    public getElement(): Promise<ElementCheckbox> {
+        return new Promise((resolve) => {
+            if (this._element === undefined) {
+                this._element = new ElementCheckbox();
+            }
+            resolve(this._element);
+        });
     }
 
 }

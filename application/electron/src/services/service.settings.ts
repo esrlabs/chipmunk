@@ -1,6 +1,6 @@
 import { StateFile } from '../classes/class.statefile';
 import { IService } from '../interfaces/interface.service';
-import { Entry, Field, getEntryKey, ESettingType } from '../../../common/settings/field';
+import { Entry, Field, getEntryKey, ESettingType } from '../../../common/settings/field.store';
 
 export { ESettingType, Field };
 
@@ -41,24 +41,24 @@ class ServiceConfig implements IService {
         return 'ServiceConfig';
     }
 
-    public register(entry: Entry | Field<any>): Error | undefined {
-        const key: string = getEntryKey(entry);
-        if (this._register.has(key)) {
-            return new Error(`Entry "${entry.getName()}" is already registered.`);
-        }
-        if (entry instanceof Field) {
-            const extrErr: Error | undefined = entry.extract(this._storage.get());
-            if (extrErr instanceof Error) {
-                return extrErr;
+    public register(entry: Entry | Field<any>): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const key: string = getEntryKey(entry);
+            if (this._register.has(key)) {
+                return new Error(`Entry "${entry.getName()}" is already registered.`);
             }
-        }
-        const state: Error | IStorage = entry.write(this._storage.get());
-        if (state instanceof Error) {
-            return state;
-        }
-        this._storage.set(state);
-        this._register.set(key, entry);
-        return undefined;
+            entry.extract(this._storage.get()).then(() => {
+                const state: Error | IStorage = entry.write(this._storage.get());
+                if (state instanceof Error) {
+                    return reject(state);
+                }
+                this._storage.set(state);
+                this._register.set(key, entry);
+                resolve();
+            }).catch((extrErr: Error) => {
+                reject(extrErr);
+            });
+        });
     }
 
     public get<T>(path: string): T | Error {
