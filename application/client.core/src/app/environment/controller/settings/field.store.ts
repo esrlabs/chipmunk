@@ -1,11 +1,11 @@
 
 import { Entry, IEntry, ESettingType } from '../../../../../../common/settings/field.store';
-import { ElementRefs } from '../../../../../../common/settings/field.render';
+import { ElementRefs, EElementSignature, getElementType } from '../../../../../../common/settings/field.render';
 import { IPCMessages } from '../../services/service.electron.ipc';
 
 import ElectronIpcService from '../../services/service.electron.ipc';
 
-export { Entry, IEntry, ESettingType };
+export { Entry, IEntry, ESettingType, getElementType };
 
 export class Field<T> extends Entry {
 
@@ -47,10 +47,8 @@ export class Field<T> extends Entry {
         });
     }
 
-    public getElement(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            //
-        });
+    public getElementType(): EElementSignature | undefined {
+        return getElementType(this._elementRef);
     }
 
     public set(value: T): Promise<void> {

@@ -19,6 +19,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTreeModule } from '@angular/material/tree';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatInputModule } from '@angular/material/input';
 
 import {
     FormsModule,
@@ -50,6 +52,8 @@ const entryComponents = [ ...components, MatFormField ];
         MatProgressBarModule,
         MatProgressSpinnerModule,
         MatTreeModule,
+        MatCheckboxModule,
+        MatInputModule,
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]

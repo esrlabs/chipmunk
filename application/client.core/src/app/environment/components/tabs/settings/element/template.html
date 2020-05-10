@@ -1,0 +1,17 @@
+<mat-form-field *ngIf="field.getElementType() === 'checkbox'" class="outline-settings" appearance="outline">
+    <input matInput style="display: none">
+    <mat-checkbox [(ngModel)]="_ng_value">{{field.getName()}}</mat-checkbox>
+    <mat-hint>{{field.getDesc()}}</mat-hint>
+</mat-form-field>
+
+<mat-form-field *ngIf="field.getElementType() === 'string'" class="outline-settings" appearance="outline">
+    <mat-label>{{field.getName()}}</mat-label>
+    <input matInput [(ngModel)]="_ng_value" type="text">
+    <mat-hint>{{field.getDesc()}}</mat-hint>
+</mat-form-field>
+
+<mat-form-field *ngIf="field.getElementType() === 'number'" class="outline-settings" appearance="outline">
+    <mat-label>{{field.getName()}}</mat-label>
+    <input matInput [(ngModel)]="_ng_value" type="number">
+    <mat-hint>{{field.getDesc()}}</mat-hint>
+</mat-form-field>

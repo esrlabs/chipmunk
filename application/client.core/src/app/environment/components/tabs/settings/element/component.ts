@@ -10,11 +10,14 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     selector: 'app-tabs-settings-element',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 
 export class TabSettingsElementComponent implements OnDestroy, AfterContentInit {
 
     @Input() public field: Field<any>;
+
+    public _ng_value: any;
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _destroyed: boolean = false;

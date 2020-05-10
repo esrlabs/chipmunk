@@ -21,9 +21,6 @@ export class GeneralUpdatePlugins extends Field<boolean> {
     }
 
     public getElement(): ElementCheckboxRef {
-        if (this._element === undefined) {
-            this._element = new ElementCheckboxRef();
-        }
         return this._element;
     }
 
