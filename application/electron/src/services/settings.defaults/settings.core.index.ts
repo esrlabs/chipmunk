@@ -1,4 +1,5 @@
 import { Field } from '../../../../common/settings/field.store';
+import { ElementRefs } from '../../../../common/settings/field.render';
 import ServicePath from '../service.paths';
 
 export class CoreIndex extends Field<string> {
@@ -19,10 +20,8 @@ export class CoreIndex extends Field<string> {
         });
     }
 
-    public getElement(): Promise<undefined> {
-        return new Promise((resolve) => {
-            resolve(undefined);
-        });
+    public getElement(): undefined {
+        return undefined;
     }
 
 }

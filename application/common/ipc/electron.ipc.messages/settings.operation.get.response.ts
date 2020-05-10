@@ -1,21 +1,23 @@
-
-export interface ISettingsOperationGetResponse {
-    value: string | boolean | number;
+export interface ISettingsOperationGetResponse<T> {
+    value?: T;
+    error?: string;
 }
 
-export class SettingsOperationGetResponse {
+export class SettingsOperationGetResponse<T> {
 
     public static signature: string = 'SettingsOperationGetResponse';
     public signature: string = SettingsOperationGetResponse.signature;
-    public value: string | boolean | number;
+    public value?: T;
+    public error?: string;
 
-    constructor(params: ISettingsOperationGetResponse) {
+    constructor(params: ISettingsOperationGetResponse<T>) {
         if (typeof params !== 'object' || params === null) {
             throw new Error(`Incorrect parameters for SettingsOperationGetResponse message`);
         }
-        if (params.value === undefined) {
-            throw new Error(`Field "value" should be defined`);
+        if (params.error !== undefined && typeof params.error !== 'string') {
+            throw new Error(`Field "error" should be defined`);
         }
+        this.error = params.error;
         this.value = params.value;
     }
 }

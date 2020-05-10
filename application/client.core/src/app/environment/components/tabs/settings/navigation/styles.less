@@ -1,0 +1,23 @@
+@import '../../../../theme/variables.less';
+
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    overflow: auto;
+    & > .mat-tree{
+        background: none;
+        & .mat-tree-node {
+            box-sizing: border-box;
+            &.focused{
+                border: thin solid @scheme-color-accent;
+            }
+        }
+    }
+}

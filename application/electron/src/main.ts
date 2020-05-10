@@ -325,8 +325,12 @@ class Application implements IApplication {
 
 (new Application()).init().then((application: Application) => {
     application.getLogger().debug(`Application is ready.`);
-    ServiceElectronState.setStateAsReady();
-    ServicePlugins.revision();
+    ServiceSettings.subscribe().then(() => {
+        ServiceElectronState.setStateAsReady();
+        ServicePlugins.revision();
+    }).catch((settingsErr: Error) => {
+        application.getLogger().error(`Fail to subscribe settings service due error: ${settingsErr.message}`);
+    });
 }).catch((error: Error) => {
     // tslint:disable-next-line:no-console
     console.log(error);

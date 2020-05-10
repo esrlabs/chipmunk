@@ -1,17 +1,19 @@
 
-export interface ISettingsOperationValidateRequest {
+export interface ISettingsOperationValidateRequest<T> {
     path: string;
     key: string;
+    value: T;
 }
 
-export class SettingsOperationValidateRequest {
+export class SettingsOperationValidateRequest<T> {
 
     public static signature: string = 'SettingsOperationValidateRequest';
     public signature: string = SettingsOperationValidateRequest.signature;
     public path: string;
     public key: string;
+    public value: T;
 
-    constructor(params: ISettingsOperationValidateRequest) {
+    constructor(params: ISettingsOperationValidateRequest<T>) {
         if (typeof params !== 'object' || params === null) {
             throw new Error(`Incorrect parameters for SettingsOperationValidateRequest message`);
         }
@@ -21,8 +23,12 @@ export class SettingsOperationValidateRequest {
         if (typeof params.key !== 'string' || params.key.trim() === '') {
             throw new Error(`Field "key" should be defined`);
         }
+        if (params.value === undefined) {
+            throw new Error(`Field "value" should be defined`);
+        }
         this.path = params.path;
         this.key = params.key;
+        this.value = params.value;
     }
 
 }

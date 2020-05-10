@@ -15,6 +15,7 @@ import ConcatFilesService from './service.file.concat';
 import HotkeysService from './service.hotkeys';
 import ConnectionsService from './service.connections';
 import LogsService from './service.logs';
+import SettingsService from './service.settings';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 
 import * as Defaults from '../states/state.default';
@@ -22,15 +23,17 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 const InitializeStages = [
     // Stage #1
-    [   ServiceElectronIpc],
+    [   ServiceElectronIpc ],
     // Stage #2
-    [   LogsService],
+    [   LogsService ],
     // Stage #3
+    [   SettingsService ],
+    // Stage #4
     [   PluginsService,
         SourcesService],
-    // Stage #4
-    [   PluginsIPCService],
     // Stage #5
+    [   PluginsIPCService],
+    // Stage #6
     [   TabsSessionsService,
         TabsCustomService,
         ToolbarSessionsService,
@@ -41,7 +44,7 @@ const InitializeStages = [
         ConcatFilesService,
         HotkeysService,
         ConnectionsService ],
-    // Stage #6
+    // Stage #7
     [   TabSelectionParserService]
 ];
 
@@ -49,7 +52,7 @@ const InitializeStages = [
 
 export class LoaderService {
 
-    private _logger: Toolkit.Logger = new Toolkit.Logger('PluginsLoader');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('LoaderService');
     private _subscription: Toolkit.Subscription | undefined;
     private _resolver: () => any | undefined;
     /**

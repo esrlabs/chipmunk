@@ -424,6 +424,36 @@ export { IChipmunkLogRequest, ChipmunkLogRequest }
 import { IChipmunkLogResponse, ChipmunkLogResponse } from './chipmunk.log.response';
 export { IChipmunkLogResponse, ChipmunkLogResponse }
 
+import { SettingsAppDataRequest } from './settings.app.data.request';
+export { SettingsAppDataRequest }
+
+import { ISettingsAppDataResponse, SettingsAppDataResponse } from './settings.app.data.response';
+export { ISettingsAppDataResponse, SettingsAppDataResponse }
+
+import { ISettingsOperationDefaultRequest, SettingsOperationDefaultRequest } from './settings.operation.default.request';
+export { ISettingsOperationDefaultRequest, SettingsOperationDefaultRequest }
+
+import { ISettingsOperationDefaultResponse, SettingsOperationDefaultResponse } from './settings.operation.default.response';
+export { ISettingsOperationDefaultResponse, SettingsOperationDefaultResponse }
+
+import { ISettingsOperationGetRequest, SettingsOperationGetRequest } from './settings.operation.get.request';
+export { ISettingsOperationGetRequest, SettingsOperationGetRequest }
+
+import { ISettingsOperationGetResponse, SettingsOperationGetResponse } from './settings.operation.get.response';
+export { ISettingsOperationGetResponse, SettingsOperationGetResponse }
+
+import { ISettingsOperationSetRequest, SettingsOperationSetRequest } from './settings.operation.set.request';
+export { ISettingsOperationSetRequest, SettingsOperationSetRequest }
+
+import { ISettingsOperationSetResponse, SettingsOperationSetResponse } from './settings.operation.set.response';
+export { ISettingsOperationSetResponse, SettingsOperationSetResponse }
+
+import { ISettingsOperationValidateRequest, SettingsOperationValidateRequest } from './settings.operation.validate.request';
+export { ISettingsOperationValidateRequest, SettingsOperationValidateRequest }
+
+import { ISettingsOperationValidateResponse, SettingsOperationValidateResponse } from './settings.operation.validate.response';
+export { ISettingsOperationValidateResponse, SettingsOperationValidateResponse }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -563,7 +593,17 @@ export type TMessage =  AppRestartRequest |
                         ChipmunkDevModeRequest |
                         ChipmunkDevModeResponse |
                         ChipmunkLogRequest |
-                        ChipmunkLogResponse;
+                        ChipmunkLogResponse |
+                        SettingsAppDataRequest |
+                        SettingsAppDataResponse |
+                        SettingsOperationDefaultRequest |
+                        SettingsOperationDefaultResponse<any> |
+                        SettingsOperationGetRequest |
+                        SettingsOperationGetResponse<any> |
+                        SettingsOperationSetRequest<any> |
+                        SettingsOperationSetResponse |
+                        SettingsOperationValidateRequest<any> |
+                        SettingsOperationValidateResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -730,4 +770,15 @@ export const Map = {
     [ChipmunkDevModeResponse.signature          ]: ChipmunkDevModeResponse,
     [ChipmunkLogRequest.signature               ]: ChipmunkLogRequest,
     [ChipmunkLogResponse.signature              ]: ChipmunkLogResponse,
+
+    [SettingsAppDataRequest.signature               ]: SettingsAppDataRequest,
+    [SettingsAppDataResponse.signature              ]: SettingsAppDataResponse,
+    [SettingsOperationDefaultRequest.signature      ]: SettingsOperationDefaultRequest,
+    [SettingsOperationDefaultResponse.signature     ]: SettingsOperationDefaultResponse,
+    [SettingsOperationGetRequest.signature          ]: SettingsOperationGetRequest,
+    [SettingsOperationGetResponse.signature         ]: SettingsOperationGetResponse,
+    [SettingsOperationSetRequest.signature          ]: SettingsOperationSetRequest,
+    [SettingsOperationSetResponse.signature         ]: SettingsOperationSetResponse,
+    [SettingsOperationValidateRequest.signature     ]: SettingsOperationValidateRequest,
+    [SettingsOperationValidateResponse.signature    ]: SettingsOperationValidateResponse,
 };

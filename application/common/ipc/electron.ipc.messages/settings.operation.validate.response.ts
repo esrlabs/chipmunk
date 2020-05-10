@@ -13,7 +13,7 @@ export class SettingsOperationValidateResponse {
         if (typeof params !== 'object' || params === null) {
             throw new Error(`Incorrect parameters for SettingsOperationValidateResponse message`);
         }
-        if (params.error !== undefined && typeof params.error !== 'string' || params.error.trim() === '') {
+        if (params.error !== undefined && typeof params.error !== 'string') {
             throw new Error(`Field "error" should be defined`);
         }
         this.error = params.error;
