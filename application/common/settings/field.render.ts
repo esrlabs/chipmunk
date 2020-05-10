@@ -1,7 +1,15 @@
+
 export enum EElementSignature {
     checkbox = 'checkbox',
     string = 'string',
     number = 'number',
+}
+
+export function getElementType(el: any): EElementSignature | undefined {
+    if (typeof el !== 'object' || el === null) {
+        return undefined;
+    }
+    return typeof el.signature === 'string' ? el.signature : undefined;
 }
 
 export class Element<T> {

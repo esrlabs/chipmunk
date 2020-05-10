@@ -1,9 +1,14 @@
-import { Field } from '../../../../common/settings/field.store';
-import { ElementCheckboxRef } from '../../../../common/settings/field.render';
+import { Field, IEntry } from '../../../../common/settings/field.store';
+import { ElementInputNumberRef } from '../../../../common/settings/field.render';
 
-export class GeneralUpdateApp extends Field<boolean> {
+export class GeneralUpdateTestNumbers extends Field<boolean> {
 
-    private _element: ElementCheckboxRef = new ElementCheckboxRef();
+    private _element: ElementInputNumberRef = new ElementInputNumberRef({
+        placeholder: 'Test Placeholder',
+        label: 'Test Label',
+        min: 10,
+        max: 100,
+    });
 
     public getDefault(): Promise<boolean> {
         return new Promise((resolve) => {
@@ -20,7 +25,7 @@ export class GeneralUpdateApp extends Field<boolean> {
         });
     }
 
-    public getElement(): ElementCheckboxRef {
+    public getElement(): ElementInputNumberRef {
         return this._element;
     }
 
