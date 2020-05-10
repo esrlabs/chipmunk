@@ -29,13 +29,13 @@ export const CSettings = {
 
 class ServiceConfigDefault implements IService {
 
-    private _logger: Logger = new Logger('ServiceStorage');
+    private _logger: Logger = new Logger('ServiceConfigDefault');
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             sequences([
                 ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'core', name: 'Core', desc: 'Settings of core', path: '', type: ESettingType.hidden })),
-                ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'general', name: 'Core', desc: 'General setting of chipmunk', path: '', type: ESettingType.standard })),
+                ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'general', name: 'General', desc: 'General setting of chipmunk', path: '', type: ESettingType.standard })),
                 ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'update', name: 'Update', desc: 'Configure update workflow', path: 'general', type: ESettingType.standard })),
             ]).then(() => {
                 Promise.all([

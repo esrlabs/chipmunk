@@ -2,19 +2,49 @@
 
 
 :host {
-    position: absolute;
+    position: relative;
     display: block;
     padding: 0;
-    margin: 0;
-    top: 1rem;
-    left:1rem;
-    bottom: 1rem;
-    right: 1rem;
-    overflow: auto;
-    & span.slitter{
-        position: relative;
-        display: block;
-        height: 8px;
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    max-width: 50rem;
+    overflow: hidden;
+    & div.search{
+        position: absolute;
+        top:0;
+        left:0;
+        right: 0;
+        height: 2rem;
+        border: red thin solid;
+        overflow: hidden;
     }
-
+    & div.wrapper{
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        top:2rem;
+        left:0;
+        right: 0;
+        bottom: 0;
+        border: red thin solid;
+        overflow: hidden;
+    }
+    & div.navigation{
+        position: relative;
+        height: 100%;
+        overflow: auto;
+        width: 15rem;
+        top:0;
+        border: red thin solid;
+    }
+    & div.content{
+        position: relative;
+        height: 100%;
+        overflow: auto;
+        width: auto;
+        flex: auto;
+        top:0;
+        border: red thin solid;
+    }
 }

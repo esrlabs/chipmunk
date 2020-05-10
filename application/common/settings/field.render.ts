@@ -18,33 +18,56 @@ export class Element<T> {
 
 }
 
-export class ElementCheckbox extends Element<boolean> {
+export class ElementCheckboxRef {
 
     public static readonly signature: EElementSignature = EElementSignature.checkbox;
-    public readonly signature: EElementSignature = ElementCheckbox.signature;
+    public readonly signature: EElementSignature = ElementCheckboxRef.signature;
 
 }
 
-export abstract class ElementInputString extends Element<string> {
+interface IElementInputStringRef {
+    placeholder: string;
+    label: string;
+}
+
+export class ElementInputStringRef {
 
     public static readonly signature: EElementSignature = EElementSignature.string;
-    public readonly signature: EElementSignature = ElementInputString.signature;
+    public readonly signature: EElementSignature = ElementInputStringRef.signature;
 
-    public abstract getPlaceholder(): string;
-    public abstract getLabel(): string;
-    public abstract getValidationError(): string;
+    public placeholder: string;
+    public label: string;
+
+    constructor(params: IElementInputStringRef) {
+        this.placeholder = params.placeholder;
+        this.label = params.label;
+    }
 
 }
 
-export abstract class ElementInputNumber extends Element<number> {
+interface IElementInputNumberRef {
+    placeholder: string;
+    label: string;
+    min: number;
+    max: number;
+}
+
+export class ElementInputNumberRef {
 
     public static readonly signature: EElementSignature = EElementSignature.number;
-    public readonly signature: EElementSignature = ElementInputNumber.signature;
+    public readonly signature: EElementSignature = ElementInputNumberRef.signature;
 
-    public abstract getPlaceholder(): string;
-    public abstract getLabel(): string;
-    public abstract getValidationError(): string;
-    public abstract min(): number;
-    public abstract max(): number;
+    public placeholder: string;
+    public label: string;
+    public min: number;
+    public max: number;
 
+    constructor(params: IElementInputNumberRef) {
+        this.placeholder = params.placeholder;
+        this.label = params.label;
+        this.min = params.min;
+        this.max = params.max;
+    }
 }
+
+export type ElementRefs = ElementCheckboxRef | ElementInputNumberRef | ElementInputStringRef;

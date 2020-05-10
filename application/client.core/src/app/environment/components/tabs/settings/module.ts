@@ -3,6 +3,9 @@ import { CommonModule                           } from '@angular/common';
 import { ScrollingModule                        } from '@angular/cdk/scrolling';
 
 import { TabSettingsComponent                   } from './component';
+import { TabSettingsElementComponent            } from './element/component';
+import { TabSettingsNavigationComponent         } from './navigation/component';
+import { TabSettingsContentComponent            } from './content/component';
 
 import {
     ComplexModule,
@@ -15,13 +18,20 @@ import { MatFormField, MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTreeModule } from '@angular/material/tree';
 
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [ TabSettingsComponent, MatFormField ];
-const components = [ TabSettingsComponent ];
+const components = [
+    TabSettingsComponent,
+    TabSettingsElementComponent,
+    TabSettingsNavigationComponent,
+    TabSettingsContentComponent
+];
+
+const entryComponents = [ ...components, MatFormField ];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],
@@ -38,7 +48,8 @@ const components = [ TabSettingsComponent ];
         MatIconModule,
         MatExpansionModule,
         MatProgressBarModule,
-        MatProgressSpinnerModule
+        MatProgressSpinnerModule,
+        MatTreeModule,
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]

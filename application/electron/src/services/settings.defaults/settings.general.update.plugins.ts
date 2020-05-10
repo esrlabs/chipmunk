@@ -1,9 +1,9 @@
 import { Field, IEntry } from '../../../../common/settings/field.store';
-import { ElementCheckbox } from '../../../../common/settings/field.render';
+import { ElementCheckboxRef } from '../../../../common/settings/field.render';
 
 export class GeneralUpdatePlugins extends Field<boolean> {
 
-    private _element: ElementCheckbox = new ElementCheckbox();
+    private _element: ElementCheckboxRef = new ElementCheckboxRef();
 
     public getDefault(): Promise<boolean> {
         return new Promise((resolve) => {
@@ -20,13 +20,11 @@ export class GeneralUpdatePlugins extends Field<boolean> {
         });
     }
 
-    public getElement(): Promise<ElementCheckbox> {
-        return new Promise((resolve) => {
-            if (this._element === undefined) {
-                this._element = new ElementCheckbox();
-            }
-            resolve(this._element);
-        });
+    public getElement(): ElementCheckboxRef {
+        if (this._element === undefined) {
+            this._element = new ElementCheckboxRef();
+        }
+        return this._element;
     }
 
 }

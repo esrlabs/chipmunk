@@ -1,1 +1,11 @@
-<p>Settings!</p>
+<div class="search">
+    
+</div>
+<div class="wrapper">
+    <div class="navigation">
+        <app-tabs-settings-navigation [entries]="_ng_entries" [focused]="_ng_focusedSubject"></app-tabs-settings-navigation>
+    </div>
+    <div class="content">
+        <app-tabs-settings-content *ngIf="_ng_focused !== undefined" [fields]="_ng_fields" [entry]="_ng_focused"></app-tabs-settings-content>
+    </div>
+</div>

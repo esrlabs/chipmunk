@@ -1,4 +1,4 @@
-import { Element } from './field.render';
+import { ElementRefs } from './field.render';
 
 export enum ESettingType {
     standard = 'standard',
@@ -83,6 +83,10 @@ export function getEntryKey(entry: Entry | Field<any>): string {
     return `${entry.getPath()}${entry.getPath() === '' ? '' : '.'}${entry.getKey()}`;
 }
 
+export function getEntryKeyByArgs(path: string, key: string): string {
+    return `${path}${path === '' ? '' : '.'}${key}`;
+}
+
 export class Entry {
 
     private _key: string;
@@ -127,6 +131,16 @@ export class Entry {
         return this._type;
     }
 
+    public asEntry(): IEntry {
+        return {
+            key: this.getKey(),
+            name: this.getName(),
+            path: this.getPath(),
+            type: this.getType(),
+            desc: this.getDesc(),
+        };
+    }
+
     public extract(store: IStorage): Promise<void> {
         return new Promise((resolve) => {
             // Dummy method to make code look nicer (see: service.settings.ts)
@@ -160,7 +174,7 @@ export abstract class Field<T> extends Entry {
 
     public abstract validate(value: T): Promise<void>;
     public abstract getDefault(): Promise<T>;
-    public abstract getElement(): Promise<Element<any> | undefined>;
+    public abstract getElement(): ElementRefs | undefined;
 
     public extract(store: IStorage): Promise<void> {
         return new Promise((resolve, reject) => {
