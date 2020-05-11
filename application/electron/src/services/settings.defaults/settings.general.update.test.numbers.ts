@@ -1,7 +1,7 @@
 import { Field, IEntry } from '../../../../common/settings/field.store';
 import { ElementInputNumberRef } from '../../../../common/settings/field.render';
 
-export class GeneralUpdateTestNumbers extends Field<boolean> {
+export class GeneralUpdateTestNumbers extends Field<number> {
 
     private _element: ElementInputNumberRef = new ElementInputNumberRef({
         placeholder: 'Test Placeholder',
@@ -10,18 +10,22 @@ export class GeneralUpdateTestNumbers extends Field<boolean> {
         max: 100,
     });
 
-    public getDefault(): Promise<boolean> {
+    public getDefault(): Promise<number> {
         return new Promise((resolve) => {
-            resolve(true);
+            resolve(this._element.min);
         });
     }
 
-    public validate(state: boolean): Promise<void> {
+    public validate(state: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (typeof state !== 'boolean') {
-                return reject(new Error(`Expecting boolean type for GeneralUpdateApp`));
+            if (typeof state !== 'number') {
+                return reject(new Error(`Expecting number type`));
             }
-            resolve();
+            if (state < this._element.min || state > this._element.max) {
+                reject(new Error(`Value should be ${this._element.min} < and > ${this._element.max}`));
+            } else {
+                resolve();
+            }
         });
     }
 

@@ -23,7 +23,7 @@ export class Field<T> extends Entry {
                 key: this.getKey(),
                 path: this.getPath(),
                 value: value,
-            })).then((response: IPCMessages.SettingsOperationValidateResponse) => {
+            }), IPCMessages.SettingsOperationValidateResponse).then((response: IPCMessages.SettingsOperationValidateResponse) => {
                 if (typeof response.error === 'string') {
                     return reject(new Error(response.error));
                 }
@@ -39,7 +39,7 @@ export class Field<T> extends Entry {
             ElectronIpcService.request(new IPCMessages.SettingsOperationDefaultRequest({
                 key: this.getKey(),
                 path: this.getPath(),
-            })).then((response: IPCMessages.SettingsOperationDefaultResponse<T>) => {
+            }), IPCMessages.SettingsOperationDefaultResponse).then((response: IPCMessages.SettingsOperationDefaultResponse<T>) => {
                 resolve(response.value);
             }).catch((err: Error) => {
                 reject(err);
@@ -57,7 +57,7 @@ export class Field<T> extends Entry {
                 key: this.getKey(),
                 path: this.getPath(),
                 value: value,
-            })).then((response: IPCMessages.SettingsOperationSetResponse) => {
+            }), IPCMessages.SettingsOperationSetResponse).then((response: IPCMessages.SettingsOperationSetResponse) => {
                 if (typeof response.error === 'string') {
                     return reject(new Error(response.error));
                 }
@@ -80,7 +80,7 @@ export class Field<T> extends Entry {
             ElectronIpcService.request(new IPCMessages.SettingsOperationGetRequest({
                 key: this.getKey(),
                 path: this.getPath(),
-            })).then((response: IPCMessages.SettingsOperationGetResponse<T>) => {
+            }), IPCMessages.SettingsOperationGetResponse).then((response: IPCMessages.SettingsOperationGetResponse<T>) => {
                 resolve(response.value);
             }).catch((err: Error) => {
                 reject(err);

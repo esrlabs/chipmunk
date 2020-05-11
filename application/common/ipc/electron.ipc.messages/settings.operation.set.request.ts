@@ -23,9 +23,6 @@ export class SettingsOperationSetRequest<T> {
         if (typeof params.key !== 'string' || params.key.trim() === '') {
             throw new Error(`Field "key" should be defined`);
         }
-        if (params.value === undefined) {
-            throw new Error(`Field "value" should be defined`);
-        }
         this.path = params.path;
         this.key = params.key;
         this.value = params.value;
