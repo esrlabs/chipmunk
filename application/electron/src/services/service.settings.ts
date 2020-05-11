@@ -210,8 +210,9 @@ class ServiceConfig implements IService {
                 this._logger.warn(`Fail to send response on SettingsOperationValidateResponse due error: ${error.message}`);
             });
         }).catch((setErr: Error) => {
+            this._logger.warn(`Fail to set valid of field "${key}" due error: ${setErr.message}`);
             response(new IPCMessages.SettingsOperationValidateResponse({
-                error: `Fail to set valud of field "${key}" due error: ${setErr.message}`,
+                error: setErr.message,
             })).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on SettingsOperationValidateResponse due error: ${error.message}`);
             });

@@ -21,6 +21,7 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
     public _ng_fields: Map<string, Field<any>> = new Map();
     public _ng_focused: Entry | undefined;
     public _ng_focusedSubject: Subject<string> = new Subject();
+    public _ng_filter: string = '';
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _destroyed: boolean = false;

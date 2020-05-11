@@ -6,12 +6,14 @@
 
 <mat-form-field *ngIf="field.getElementType() === 'string'" class="outline-settings" appearance="outline">
     <mat-label>{{field.getName()}}</mat-label>
-    <input matInput [(ngModel)]="_ng_value" type="text">
+    <input matInput [(ngModel)]="_ng_value" type="text" [errorStateMatcher]="_ng_value_error">
     <mat-hint>{{field.getDesc()}}</mat-hint>
+    <mat-error *ngIf="!_ng_value_error.isValid()">{{_ng_value_error.getError()}}</mat-error>
 </mat-form-field>
 
 <mat-form-field *ngIf="field.getElementType() === 'number'" class="outline-settings" appearance="outline">
     <mat-label>{{field.getName()}}</mat-label>
-    <input matInput [(ngModel)]="_ng_value" type="number">
+    <input matInput [(ngModel)]="_ng_value" type="number" [errorStateMatcher]="_ng_value_error" [attr.min]="field.min" [attr.max]="field.min">
     <mat-hint>{{field.getDesc()}}</mat-hint>
+    <mat-error *ngIf="!_ng_value_error.isValid()">{{_ng_value_error.getError()}}</mat-error>
 </mat-form-field>
