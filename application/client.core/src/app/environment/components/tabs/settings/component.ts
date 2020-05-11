@@ -18,7 +18,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export class TabSettingsComponent implements OnDestroy, AfterContentInit {
 
     public _ng_entries: Map<string, Entry | Field<any>> = new Map();
-    public _ng_fields: Map<string, Field<any>> = new Map();
+    public _ng_fields: Field<any>[] = [];
     public _ng_focused: Entry | undefined;
     public _ng_focusedSubject: Subject<string> = new Subject();
     public _ng_filter: string = '';
@@ -54,12 +54,15 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
             return;
         }
         this._ng_focused = entry;
-        const fields: Map<string, Field<any>> = new Map();
+        const fields: Field<any>[] = [];
         this._ng_entries.forEach((field: Entry | Field<any>, key: string) => {
             if (!(field instanceof Field) || field.getPath() !== path) {
                 return;
             }
-            fields.set(key, field);
+            fields.push(field);
+        });
+        fields.sort((a, b) => {
+            return a.getIndex() > b.getIndex() ? 1 : -1;
         });
         this._ng_fields = fields;
         this._forceUpdate();
