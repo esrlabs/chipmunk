@@ -16,6 +16,7 @@ export interface IEntry {
     name: string;
     desc: string;
     type: ESettingType;
+    index?: number;
 }
 
 interface IEntryDesc {
@@ -94,6 +95,7 @@ export class Entry {
     private _desc: string;
     private _path: string;
     private _type: ESettingType;
+    private _index: number = 0;
 
     constructor(entry: IEntry) {
         const err: Error | undefined = getEntryError(entry);
@@ -105,6 +107,7 @@ export class Entry {
         this._desc = entry.desc;
         this._path = entry.path;
         this._type = entry.type;
+        this._index = typeof entry.index === 'number' ? (!isNaN(entry.index) ? (isFinite(entry.index) ? entry.index : 0) : 0) : 0;
     }
 
     public getKey(): string {
@@ -131,6 +134,14 @@ export class Entry {
         return this._type;
     }
 
+    public getIndex(): number {
+        return this._index;
+    }
+
+    public setIndex(index: number) {
+        this._index = index;
+    }
+
     public asEntry(): IEntry {
         return {
             key: this.getKey(),
@@ -138,6 +149,7 @@ export class Entry {
             path: this.getPath(),
             type: this.getType(),
             desc: this.getDesc(),
+            index: this.getIndex(),
         };
     }
 

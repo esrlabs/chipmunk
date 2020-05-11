@@ -15,7 +15,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export class TabSettingsContentComponent implements OnDestroy, AfterContentInit {
 
     @Input() public entry: Entry;
-    @Input() public fields: Map<string, Field<any>>;
+    @Input() public fields: Field<any>[] = [];
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _destroyed: boolean = false;

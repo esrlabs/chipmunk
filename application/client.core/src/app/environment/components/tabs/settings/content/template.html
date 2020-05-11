@@ -1,3 +1,3 @@
 <p class="t-normal color-scheme-0">{{entry.getName()}}</p>
 <p class="t-small color-scheme-2">{{entry.getDesc()}}</p>
-<app-tabs-settings-element *ngFor="let field of fields | keyvalue" [field]="field.value"></app-tabs-settings-element>
+<app-tabs-settings-element *ngFor="let field of fields" [field]="field"></app-tabs-settings-element>

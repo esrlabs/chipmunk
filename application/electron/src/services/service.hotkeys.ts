@@ -6,6 +6,8 @@ import ServiceStreams from './service.streams';
 import { IService } from '../interfaces/interface.service';
 import { app, globalShortcut } from 'electron';
 
+// TODO: cmd/ctrl + , <-- open settings tab
+
 const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.newTab]:                  { darwin: ['Cmd+T'],            other: ['Ctrl+T'] },
     [IPCMessages.EHotkeyActionRef.closeTab]:                { darwin: ['Cmd+W'],            other: ['Ctrl+w'] },

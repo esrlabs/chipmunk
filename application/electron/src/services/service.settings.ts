@@ -26,6 +26,7 @@ class ServiceConfig implements IService {
     private _register: Map<string, Field<any> | Entry> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Logger = new Logger('ServiceConfig');
+    private _index: number = 0;
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -76,6 +77,7 @@ class ServiceConfig implements IService {
     }
 
     public register(entry: Entry | Field<any>): Promise<void> {
+        entry.setIndex(this._getIndex());
         return new Promise((resolve, reject) => {
             const key: string = getEntryKey(entry);
             if (this._register.has(key)) {
@@ -106,6 +108,10 @@ class ServiceConfig implements IService {
         return field.get();
     }
 
+    private _getIndex(): number {
+        return this._index++;
+    }
+
     private _ipc_SettingsAppDataRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
         const entries: IEntry[] = [];
         const fields: IEntry[] = [];
@@ -120,6 +126,11 @@ class ServiceConfig implements IService {
             } else {
                 entries.push(entry.asEntry());
             }
+        });
+        [entries, fields].forEach((target) => {
+            target.sort((a, b) => {
+                return (a.index as number) > (b.index as number) ? 1 : -1;
+            });
         });
         response(new IPCMessages.SettingsAppDataResponse({
             fields: fields,
