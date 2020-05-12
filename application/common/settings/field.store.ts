@@ -184,8 +184,11 @@ export class FieldBase<T> extends Entry {
 
     public value: T | undefined;
 
+    private _stored: T | undefined;
+
     constructor(entry: IField<T>) {
         super(entry);
+        this._stored = entry.value;
         this.value = entry.value;
     }
 
@@ -218,6 +221,14 @@ export class FieldBase<T> extends Entry {
         const stored: T | undefined = (ref as any)[this.getKey()];
         return stored;
     }
+
+    public isChanged(): boolean {
+        return this.get() !== this._stored;
+    }
+
+    public setAsChanged() {
+        this._stored = this.get();
+    }
 }
 
 export class RenderField<T> extends FieldBase<T> {
@@ -248,6 +259,7 @@ export class RenderField<T> extends FieldBase<T> {
     public set(value: T): Promise<void> {
         return new Promise((resolve) => {
             this.value = value;
+            this.setAsChanged();
             resolve();
         });
     }
@@ -308,6 +320,7 @@ export abstract class Field<T> extends FieldBase<T> {
         return new Promise((resolve, reject) => {
             this.validate(value).then(() => {
                 this.value = value;
+                this.setAsChanged();
                 resolve();
             }).catch((err: Error) => {
                 reject(err);
