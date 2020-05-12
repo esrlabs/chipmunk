@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, SimpleChanges, OnChanges, Input, AfterContentInit, NgZone } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { Entry, Field } from '../../../../controller/settings/field.store';
+import { Entry, ConnectedField, Field } from '../../../../controller/settings/field.store';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree';
 
@@ -29,7 +29,7 @@ interface ISettingNode {
 
 export class TabSettingsNavigationComponent implements OnDestroy, AfterContentInit, OnChanges {
 
-    @Input() public entries: Map<string, Entry | Field<any>>;
+    @Input() public entries: Map<string, Entry | ConnectedField<any> | Field<any>>;
     @Input() public focused: Subject<string> = new Subject();
 
     public _ng_treeControl;
@@ -124,11 +124,11 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
             return tree;
         }
         const data: ISettingNodeSrc[] = [];
-        const sources: Entry[] = Array.from(this.entries.values()).filter((entry: Entry | Field<any>) => {
+        const sources: Entry[] = Array.from(this.entries.values()).filter((entry: Entry | ConnectedField<any> | Field<any>) => {
             if (entry.getType() === ESettingType.hidden) {
                 return false;
             }
-            if (entry instanceof Field) {
+            if (entry instanceof ConnectedField || entry instanceof Field) {
                 return false;
             }
             return true;

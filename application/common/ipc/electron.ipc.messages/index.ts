@@ -454,6 +454,12 @@ export { ISettingsOperationValidateRequest, SettingsOperationValidateRequest }
 import { ISettingsOperationValidateResponse, SettingsOperationValidateResponse } from './settings.operation.validate.response';
 export { ISettingsOperationValidateResponse, SettingsOperationValidateResponse }
 
+import { ISettingsRenderRegisterRequest, SettingsRenderRegisterRequest } from './settings.render.register.request';
+export { ISettingsRenderRegisterRequest, SettingsRenderRegisterRequest }
+
+import { ISettingsRenderRegisterResponse, SettingsRenderRegisterResponse } from './settings.render.register.response';
+export { ISettingsRenderRegisterResponse, SettingsRenderRegisterResponse }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -603,7 +609,9 @@ export type TMessage =  AppRestartRequest |
                         SettingsOperationSetRequest<any> |
                         SettingsOperationSetResponse |
                         SettingsOperationValidateRequest<any> |
-                        SettingsOperationValidateResponse;
+                        SettingsOperationValidateResponse |
+                        SettingsRenderRegisterRequest<any> |
+                        SettingsRenderRegisterResponse<any>;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -781,4 +789,6 @@ export const Map = {
     [SettingsOperationSetResponse.signature         ]: SettingsOperationSetResponse,
     [SettingsOperationValidateRequest.signature     ]: SettingsOperationValidateRequest,
     [SettingsOperationValidateResponse.signature    ]: SettingsOperationValidateResponse,
+    [SettingsRenderRegisterRequest.signature        ]: SettingsRenderRegisterRequest,
+    [SettingsRenderRegisterResponse.signature       ]: SettingsRenderRegisterResponse,
 };

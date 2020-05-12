@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { Entry, Field } from '../../../../controller/settings/field.store';
+import { Entry, ConnectedField, Field } from '../../../../controller/settings/field.store';
 
 import SettingsService from '../../../../services/service.settings';
 
@@ -15,7 +15,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export class TabSettingsContentComponent implements OnDestroy, AfterContentInit {
 
     @Input() public entry: Entry;
-    @Input() public fields: Field<any>[] = [];
+    @Input() public fields: Array<ConnectedField<any> | Field<any>> = [];
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _destroyed: boolean = false;

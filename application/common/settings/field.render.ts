@@ -1,4 +1,3 @@
-
 export enum EElementSignature {
     checkbox = 'checkbox',
     string = 'string',

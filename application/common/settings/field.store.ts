@@ -1,4 +1,4 @@
-import { ElementRefs } from './field.render';
+import { ElementRefs, EElementSignature, getElementType } from './field.render';
 
 export enum ESettingType {
     standard = 'standard',
@@ -176,13 +176,106 @@ export class Entry {
 
 }
 
-export abstract class Field<T> extends Entry {
+export interface IField<T> extends IEntry {
+    value?: T;
+}
 
-    private _value: T | undefined;
+export class FieldBase<T> extends Entry {
 
-    constructor(entry: IEntry) {
+    public value: T | undefined;
+
+    constructor(entry: IField<T>) {
         super(entry);
+        this.value = entry.value;
     }
+
+    public asField(): IField<T> {
+        return Object.assign({ value: this.value }, this.asEntry());
+    }
+
+    public get(): T {
+        // Dummy implementation
+        return this.value as T;
+    }
+
+    public write(store: IStorage): Error | IStorage {
+        if (typeof store !== 'object' && store === null) {
+            return new Error(`Fail to write, because store isn't an object.`);
+        }
+        const ref: IStorage | Error = findRef(store, this.getPath());
+        if (ref instanceof Error) {
+            return ref;
+        }
+        (ref as any)[this.getKey()] = this.get();
+        return store;
+    }
+
+    public read(store: IStorage): T | undefined {
+        const ref: IStorage | Error = findRef(store, this.getPath());
+        if (ref instanceof Error) {
+            return undefined;
+        }
+        const stored: T | undefined = (ref as any)[this.getKey()];
+        return stored;
+    }
+}
+
+export class RenderField<T> extends FieldBase<T> {
+    
+    public value: T | undefined;
+
+    constructor(entry: IField<T>) {
+        super(entry);
+        this.value = entry.value;
+    }
+
+    public extract(store: IStorage, defaults?: T): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const ref: IStorage | Error = findRef(store, this.getPath());
+            if (ref instanceof Error) {
+                return reject(ref);
+            }
+            const stored: T | undefined = (ref as any)[this.getKey()];
+            if (stored === undefined && defaults !== undefined) {
+                this.set(defaults).then(resolve).catch(reject);
+            } else if (stored !== undefined) {
+                this.set(stored).then(resolve).catch(reject);  
+            }
+            resolve();
+        });
+    }
+
+    public set(value: T): Promise<void> {
+        return new Promise((resolve) => {
+            this.value = value;
+            resolve();
+        });
+    }
+
+    public get(): T {
+        if (this.value === undefined) {
+            throw new Error(`Value of "${this.getFullPath()}" isn't initialized`);
+        }
+        return this.value;
+    }
+
+    public write(store: IStorage): Error | IStorage {
+        if (typeof store !== 'object' && store === null) {
+            return new Error(`Fail to write, because store isn't an object.`);
+        }
+        const ref: IStorage | Error = findRef(store, this.getPath());
+        if (ref instanceof Error) {
+            return ref;
+        }
+        (ref as any)[this.getKey()] = this.get();
+        return store;
+    }
+
+}
+
+export abstract class Field<T> extends FieldBase<T> {
+
+    public value: T | undefined;
 
     public abstract validate(value: T): Promise<void>;
     public abstract getDefault(): Promise<T>;
@@ -211,7 +304,7 @@ export abstract class Field<T> extends Entry {
     public set(value: T): Promise<void> {
         return new Promise((resolve, reject) => {
             this.validate(value).then(() => {
-                this._value = value;
+                this.value = value;
                 resolve();
             }).catch((err: Error) => {
                 reject(err);
@@ -220,10 +313,10 @@ export abstract class Field<T> extends Entry {
     }
 
     public get(): T {
-        if (this._value === undefined) {
+        if (this.value === undefined) {
             throw new Error(`Value of "${this.getFullPath()}" isn't initialized`);
         }
-        return this._value;
+        return this.value;
     }
 
     public write(store: IStorage): Error | IStorage {
@@ -236,6 +329,10 @@ export abstract class Field<T> extends Entry {
         }
         (ref as any)[this.getKey()] = this.get();
         return store;
+    }
+
+    public getElementType(): EElementSignature | undefined {
+        return getElementType(this.getElement());
     }
 
 }

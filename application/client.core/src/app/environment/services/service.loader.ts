@@ -16,6 +16,7 @@ import HotkeysService from './service.hotkeys';
 import ConnectionsService from './service.connections';
 import LogsService from './service.logs';
 import SettingsService from './service.settings';
+import SettingsDefaultsService from './settings/settings.defaults';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 
 import * as Defaults from '../states/state.default';
@@ -29,11 +30,13 @@ const InitializeStages = [
     // Stage #3
     [   SettingsService ],
     // Stage #4
+    [SettingsDefaultsService],
+    // Stage #5
     [   PluginsService,
         SourcesService],
-    // Stage #5
-    [   PluginsIPCService],
     // Stage #6
+    [   PluginsIPCService],
+    // Stage #7
     [   TabsSessionsService,
         TabsCustomService,
         ToolbarSessionsService,
@@ -44,7 +47,7 @@ const InitializeStages = [
         ConcatFilesService,
         HotkeysService,
         ConnectionsService ],
-    // Stage #7
+    // Stage #8
     [   TabSelectionParserService]
 ];
 

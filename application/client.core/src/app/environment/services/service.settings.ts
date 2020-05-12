@@ -1,6 +1,6 @@
 import { IPCMessages, Subscription } from './service.electron.ipc';
 import { IService } from '../interfaces/interface.service';
-import { Field, Entry, IEntry, ESettingType  } from '../controller/settings/field.store';
+import { ConnectedField, Entry, IEntry, ESettingType, IField, Field } from '../controller/settings/field.store';
 
 import ElectronIpcService from './service.electron.ipc';
 
@@ -12,9 +12,7 @@ export class SettingsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('SettingsService');
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
-
-    constructor() {
-    }
+    private _register: Map<string, Field<any>> = new Map();
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
@@ -32,20 +30,52 @@ export class SettingsService implements IService {
         });
     }
 
-    public get(): Promise<Map<string, Entry | Field<any>>> {
+    public get(): Promise<Map<string, Entry | ConnectedField<any> | Field<any>>> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.SettingsAppDataRequest(), IPCMessages.SettingsAppDataResponse).then((response: IPCMessages.SettingsAppDataResponse) => {
-                const entries: Map<string, Entry | Field<any>> = new Map();
+                const entries: Map<string, Entry | ConnectedField<any>> = new Map();
                 response.entries.forEach((data: IEntry) => {
                     const entry: Entry = new Entry(data);
                     entries.set(entry.getFullPath(), entry);
                 });
-                response.fields.forEach((data: IEntry) => {
+                response.fields.forEach((data: IField<any>) => {
                     const entry: Entry = new Entry(data);
-                    const field: Field<any> = new Field<any>(data, response.elements[entry.getFullPath()]);
+                    const field: ConnectedField<any> = new ConnectedField<any>(data, response.elements[entry.getFullPath()]);
                     entries.set(field.getFullPath(), field);
                 });
+                response.renders.forEach((data: IField<any>) => {
+                    const entry: Entry = new Entry(data);
+                    const field: Field<any> | undefined = this._register.get(entry.getFullPath());
+                    if (field !== undefined) {
+                        entries.set(field.getFullPath(), field);
+                    }
+                });
                 resolve(entries);
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    public register(entry: Entry | Field<any>): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.SettingsRenderRegisterRequest({
+                entry: !(entry instanceof Field) ? entry.asEntry() : undefined,
+                field: entry instanceof Field ? Object.assign({ value: entry.get() }, entry.asEntry()) : undefined,
+            }), IPCMessages.SettingsRenderRegisterResponse).then((response: IPCMessages.SettingsRenderRegisterResponse<any>) => {
+                if (entry instanceof Field && response.value !== undefined) {
+                    entry.set(response.value).then(() => {
+                        this._register.set(entry.getFullPath(), entry);
+                        resolve();
+                    }).then(() => {
+                        this._register.set(entry.getFullPath(), entry);
+                        resolve();
+                    }).catch((setErr: Error) => {
+                        reject(setErr);
+                    });
+                } else {
+                    resolve();
+                }
             }).catch((error: Error) => {
                 reject(error);
             });

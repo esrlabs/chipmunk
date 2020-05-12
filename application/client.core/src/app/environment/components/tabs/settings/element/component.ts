@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { Entry, Field } from '../../../../controller/settings/field.store';
+import { ConnectedField, Field } from '../../../../controller/settings/field.store';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 
@@ -9,13 +9,13 @@ import SettingsService from '../../../../services/service.settings';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class ValueErrorStateMatcher implements ErrorStateMatcher {
-    private _field: Field<any>;
+    private _field: ConnectedField<any> | Field<any>;
     private _update: () => void;
     private _valid: boolean = true;
     private _error: string | undefined;
     private _last_checked: string = '';
 
-    constructor(field: Field<any>, update: () => void) {
+    constructor(field: ConnectedField<any> | Field<any>, update: () => void) {
         this._field = field;
         this._update = update;
     }
@@ -58,7 +58,7 @@ export class ValueErrorStateMatcher implements ErrorStateMatcher {
 
 export class TabSettingsElementComponent implements OnDestroy, AfterContentInit {
 
-    @Input() public field: Field<any>;
+    @Input() public field: ConnectedField<any> | Field<any>;
 
     public _ng_value: any;
     public _ng_value_error: ValueErrorStateMatcher;
