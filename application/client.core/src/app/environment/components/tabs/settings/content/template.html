@@ -1,3 +1,6 @@
 <p class="t-normal color-scheme-0">{{entry.getName()}}</p>
 <p class="t-small color-scheme-2">{{entry.getDesc()}}</p>
-<app-tabs-settings-element *ngFor="let field of fields" [field]="field"></app-tabs-settings-element>
+<app-tabs-settings-element *ngFor="let field of fields" [field]="field" [change]="_ng_getChangeCallback(field)"></app-tabs-settings-element>
+<div class="controlls">
+    <button mat-stroked-button color="primary" *ngIf="_ng_hasChanges()">Apply / Save</button>
+</div>

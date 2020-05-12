@@ -59,6 +59,7 @@ export class ValueErrorStateMatcher implements ErrorStateMatcher {
 export class TabSettingsElementComponent implements OnDestroy, AfterContentInit {
 
     @Input() public field: ConnectedField<any> | Field<any>;
+    @Input() public change: (value: any) => void;
 
     public _ng_value: any;
     public _ng_value_error: ValueErrorStateMatcher;
@@ -81,6 +82,10 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
         });
         this._destroyed = true;
     }
+
+    public _ng_onValueChange(value) {
+        this.change(value);
+    }
 
     private _forceUpdate() {
         if (this._destroyed) {

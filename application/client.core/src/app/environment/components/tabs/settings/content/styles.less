@@ -16,5 +16,24 @@
         display: block;
         height: 8px;
     }
+    & div.controlls{
+        position: relative;
+        width: 100%;
+        text-align: right;
+        margin-top: 8px;
+        & * {
+            margin-right: 8px;
+            &:last-child {
+                margin-right: 0;
+            }
+        }
+        & > button {
+            margin-left: 8px;
+            & mat-spinner{
+                display: inline-block;
+                margin-right: 8px;
+            }
+        }
+    }
 
 }
