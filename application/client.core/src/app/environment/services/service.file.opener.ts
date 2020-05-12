@@ -72,12 +72,11 @@ export class FileOpenerService implements IService, IFileOpenerService {
         if (files.length === 0) {
             return;
         }
-        this._setSessionForFile().then((session: ControllerSessionTab) => {
-            TabsSessionsService.setActive(session.getGuid());
-            ServiceElectronIpc.request(new IPCMessages.FileCheckRequest({
-                files: files.map((file: IFile) => file.path),
-                guid: session.getGuid(),
-            }), IPCMessages.FileCheckResponse).then((checkResponse: IPCMessages.FileCheckResponse) => {
+        ServiceElectronIpc.request(new IPCMessages.FileListRequest({
+            files: files.map((file: IFile) => file.path),
+        }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
+            this._setSessionForFile().then((session: ControllerSessionTab) => {
+                TabsSessionsService.setActive(session.getGuid());
                 if (checkResponse.error !== undefined) {
                     this._logger.error(`Fail check paths due error: ${checkResponse.error}`);
                     return;
