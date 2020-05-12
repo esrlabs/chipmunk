@@ -22,6 +22,15 @@ interface IOpenFileResult {
     options: any;
 }
 
+interface IFile {
+    lastModified: number;
+    lastModifiedDate: Date;
+    name: string;
+    path: string;
+    size: number;
+    type: string;
+}
+
 /**
  * @class ServiceFileOpener
  * @description Opens files dropped on render
@@ -33,6 +42,7 @@ class ServiceFileOpener implements IService {
     // Should detect by executable file
     private _subscriptions: { [key: string]: Subscription } = {};
     private _active: Map<string, AFileParser> = new Map<string, AFileParser>();
+    private _files: IFile[] = [];
 
     /**
      * Initialization function
@@ -43,6 +53,9 @@ class ServiceFileOpener implements IService {
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.FileOpenRequest, this._ipc_FileOpenRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.FileOpenRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.FileCheckRequest, this._ipc_FileCheckRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.FileCheckRequest = subscription;
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.FilesRecentRequest, this._ipc_FilesRecentRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.FilesRecentRequest = subscription;
@@ -198,6 +211,25 @@ class ServiceFileOpener implements IService {
         ServiceElectron.updateMenu();
     }
 
+    private _ipc_FileCheckRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.FileCheckRequest = request as IPCMessages.FileCheckRequest;
+        this._getFiles(req.files).then(() => {
+            response(new IPCMessages.FileCheckResponse({
+                files: this._files.slice(),
+                guid: req.guid,
+            })).catch((error: Error) => {
+                this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
+            });
+            this._files = [];
+        }).catch((error: Error) => {
+            response(new IPCMessages.FileCheckResponse({
+                files: [],
+                guid: req.guid,
+                error: error.message,
+            }));
+        });
+    }
+
     private _ipc_FileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.FileOpenRequest = request as IPCMessages.FileOpenRequest;
         this.open(req.file, req.session, undefined, req.options).then((result: IOpenFileResult) => {
@@ -226,6 +258,44 @@ class ServiceFileOpener implements IService {
                 files: files,
             }));
         });
+    }
+
+    private _getFiles(files: string[]): Promise<string[]> {
+        return new Promise((resolve) => {
+            files.forEach((file: string) => {
+                this._listFiles(file);
+            });
+            resolve();
+        });
+    }
+
+    private _listFiles(file: string) {
+        if (fs.lstatSync(file).isFile()) {
+            // File
+            const STATS = fs.statSync(file);
+            return this._files.push({
+                lastModified: STATS.mtimeMs,
+                lastModifiedDate: STATS.mtime,
+                name: this._getName(file),
+                path: file,
+                size: STATS.size,
+                type: 'file',
+            });
+        } else if (!(fs.lstatSync(file).isDirectory())) {
+            // Other
+            return;
+        } else {
+            // Directory
+            fs.readdirSync(file).forEach((subFile: string) => this._listFiles(file + '/' + subFile));
+        }
+    }
+
+    private _getName(file: string): string {
+        if (file.trim() === '') {
+            return '';
+        }
+        const SPLIT = file.split(/[\\\/]+/);
+        return SPLIT[SPLIT.length - 1];
     }
 
     private _getOptions(fullFileName: string, fileName: string, parser: AFileParser, size: number ): Promise<any> {
