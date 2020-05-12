@@ -312,7 +312,7 @@ export abstract class Field<T> extends FieldBase<T> {
                 resolve();
             }).catch((err: Error) => {
                 reject(err);
-            })
+            });
         });
     }
 
