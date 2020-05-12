@@ -60,7 +60,6 @@ export class ConnectedField<T> extends FieldBase<T> {
                 if (typeof response.error === 'string') {
                     return reject(new Error(response.error));
                 }
-                this.setAsChanged();
                 resolve();
             }).catch((err: Error) => {
                 reject(err);
