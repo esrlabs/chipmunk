@@ -91,11 +91,10 @@ class ServiceConfig implements IService {
                 }
             }
             entry.extract(this._storage.get()).then(() => {
-                const state: Error | IStorage = entry.write(this._storage.get());
-                if (state instanceof Error) {
-                    return reject(state);
+                const wrtErr: Error | undefined = this._write(entry);
+                if (wrtErr instanceof Error) {
+                    return reject(wrtErr);
                 }
-                this._storage.set(state);
                 this._register.set(key, entry);
                 resolve();
             }).catch((extrErr: Error) => {
@@ -117,6 +116,14 @@ class ServiceConfig implements IService {
 
     private _getIndex(): number {
         return this._index++;
+    }
+
+    private _write(entry: Entry): Error | undefined {
+        const state: Error | IStorage = entry.write(this._storage.get());
+        if (state instanceof Error) {
+            return state;
+        }
+        return this._storage.set(state);
     }
 
     private _ipc_SettingsAppDataRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
@@ -181,7 +188,7 @@ class ServiceConfig implements IService {
     private _ipc_SettingsOperationSetRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
         const request: IPCMessages.SettingsOperationSetRequest<any> = message as IPCMessages.SettingsOperationSetRequest<any>;
         const key: string = getEntryKeyByArgs(request.path, request.key);
-        const entry: Entry | Field<any> | undefined = this._register.get(key);
+        const entry: Entry | Field<any> | RenderField<any> | undefined = this._register.get(key);
         if (entry === undefined) {
             return response(new IPCMessages.SettingsOperationSetResponse({
                 error: `Field "${key}" isn't found`,
@@ -189,7 +196,7 @@ class ServiceConfig implements IService {
                 this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
             });
         }
-        if (!(entry instanceof Field)) {
+        if (!(entry instanceof Field) && !(entry instanceof RenderField)) {
             return response(new IPCMessages.SettingsOperationSetResponse({
                 error: `Field "${key}" is Entry and doesn't have value`,
             })).catch((error: Error) => {
@@ -197,12 +204,21 @@ class ServiceConfig implements IService {
             });
         }
         entry.set(request.value).then(() => {
-            response(new IPCMessages.SettingsOperationSetResponse({})).catch((error: Error) => {
-                this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
-            });
+            const wrtErr: Error | undefined = this._write(entry);
+            if (wrtErr !== undefined) {
+                response(new IPCMessages.SettingsOperationSetResponse({
+                    error: `Fail to write field "${key}" due error: ${wrtErr.message}`,
+                })).catch((error: Error) => {
+                    this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
+                });
+            } else {
+                response(new IPCMessages.SettingsOperationSetResponse({})).catch((error: Error) => {
+                    this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
+                });
+            }
         }).catch((setErr: Error) => {
             response(new IPCMessages.SettingsOperationSetResponse({
-                error: `Fail to set valud of field "${key}" due error: ${setErr.message}`,
+                error: `Fail to set valid of field "${key}" due error: ${setErr.message}`,
             })).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
             });

@@ -7,6 +7,43 @@ import ElectronIpcService from '../../services/service.electron.ipc';
 
 export { Entry, IEntry, ESettingType, getElementType, FieldBase, RenderField, IField, Field };
 
+export abstract class LocalField<T> extends Field<T> {
+
+    public set(value: T): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.validate(value).then(() => {
+                ElectronIpcService.request(new IPCMessages.SettingsOperationSetRequest<T>({
+                    key: this.getKey(),
+                    path: this.getPath(),
+                    value: value,
+                }), IPCMessages.SettingsOperationSetResponse).then((response: IPCMessages.SettingsOperationSetResponse) => {
+                    if (typeof response.error === 'string') {
+                        return reject(new Error(response.error));
+                    }
+                    this.value = value;
+                    resolve();
+                }).catch((err: Error) => {
+                    reject(err);
+                });
+            }).catch((err: Error) => {
+                reject(err);
+            });
+        });
+    }
+
+    public setup(value: T): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.validate(value).then(() => {
+                this.value = value;
+                resolve();
+            }).catch((err: Error) => {
+                reject(err);
+            });
+        });
+    }
+
+}
+
 export class ConnectedField<T> extends FieldBase<T> {
 
     private _elementRef: ElementRefs | undefined;
@@ -60,6 +97,7 @@ export class ConnectedField<T> extends FieldBase<T> {
                 if (typeof response.error === 'string') {
                     return reject(new Error(response.error));
                 }
+                this.value = value;
                 resolve();
             }).catch((err: Error) => {
                 reject(err);

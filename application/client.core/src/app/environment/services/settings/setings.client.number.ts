@@ -1,7 +1,7 @@
-import { Field, IEntry } from '../../../../../../common/settings/field.store';
+import { LocalField } from '../../controller/settings/field.store';
 import { ElementInputNumberRef } from '../../../../../../common/settings/field.render';
 
-export class ClientTestNumbers extends Field<number> {
+export class ClientTestNumbers extends LocalField<number> {
 
     private _element: ElementInputNumberRef = new ElementInputNumberRef({
         placeholder: 'Test Placeholder',

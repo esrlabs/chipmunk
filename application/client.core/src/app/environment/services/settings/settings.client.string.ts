@@ -1,7 +1,7 @@
-import { Field, IEntry } from '../../../../../../common/settings/field.store';
+import { LocalField } from '../../controller/settings/field.store';
 import { ElementInputStringRef } from '../../../../../../common/settings/field.render';
 
-export class ClientTestStrings extends Field<string> {
+export class ClientTestStrings extends LocalField<string> {
 
     private _element: ElementInputStringRef = new ElementInputStringRef({
         placeholder: 'Test Placeholder',

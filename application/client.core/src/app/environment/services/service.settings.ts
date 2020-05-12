@@ -1,6 +1,6 @@
 import { IPCMessages, Subscription } from './service.electron.ipc';
 import { IService } from '../interfaces/interface.service';
-import { ConnectedField, Entry, IEntry, ESettingType, IField, Field } from '../controller/settings/field.store';
+import { ConnectedField, Entry, IEntry, ESettingType, IField, Field, LocalField } from '../controller/settings/field.store';
 
 import ElectronIpcService from './service.electron.ipc';
 
@@ -57,17 +57,14 @@ export class SettingsService implements IService {
         });
     }
 
-    public register(entry: Entry | Field<any>): Promise<void> {
+    public register(entry: Entry | LocalField<any>): Promise<void> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.SettingsRenderRegisterRequest({
-                entry: !(entry instanceof Field) ? entry.asEntry() : undefined,
-                field: entry instanceof Field ? Object.assign({ value: entry.get() }, entry.asEntry()) : undefined,
+                entry: !(entry instanceof LocalField) ? entry.asEntry() : undefined,
+                field: entry instanceof LocalField ? Object.assign({ value: entry.get() }, entry.asEntry()) : undefined,
             }), IPCMessages.SettingsRenderRegisterResponse).then((response: IPCMessages.SettingsRenderRegisterResponse<any>) => {
-                if (entry instanceof Field && response.value !== undefined) {
-                    entry.set(response.value).then(() => {
-                        this._register.set(entry.getFullPath(), entry);
-                        resolve();
-                    }).then(() => {
+                if (entry instanceof LocalField && response.value !== undefined) {
+                    entry.setup(response.value).then(() => {
                         this._register.set(entry.getFullPath(), entry);
                         resolve();
                     }).catch((setErr: Error) => {
