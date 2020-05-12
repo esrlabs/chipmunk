@@ -11,7 +11,7 @@ export class ConnectedField<T> extends FieldBase<T> {
 
     private _elementRef: ElementRefs | undefined;
 
-    constructor(entry: IEntry, elementRef: ElementRefs | undefined) {
+    constructor(entry: IField<T>, elementRef: ElementRefs | undefined) {
         super(entry);
         this._elementRef = elementRef;
     }
@@ -60,6 +60,7 @@ export class ConnectedField<T> extends FieldBase<T> {
                 if (typeof response.error === 'string') {
                     return reject(new Error(response.error));
                 }
+                this.setAsChanged();
                 resolve();
             }).catch((err: Error) => {
                 reject(err);
