@@ -202,11 +202,11 @@ export { IFileInfoRequest, FileInfoRequest };
 import { IFileInfoResponse, FileInfoResponse } from './file.fileinfo.response';
 export { IFileInfoResponse, FileInfoResponse };
 
-import { IFileListRequest, FileListRequest } from './file.list.request';
-export { IFileListRequest, FileListRequest };
+import { IFileCheckRequest, FileCheckRequest } from './file.check.request';
+export { IFileCheckRequest, FileCheckRequest };
 
-import { IFileListResponse, FileListResponse, IFile } from './file.list.response';
-export { IFileListResponse, FileListResponse, IFile };
+import { IFileCheckResponse, FileCheckResponse } from './file.check.response';
+export { IFileCheckResponse, FileCheckResponse };
 
 import { IFilePickerRequest, FilePickerRequest, IFilePickerFilter } from './file.filepicker.request';
 export { IFilePickerRequest, FilePickerRequest, IFilePickerFilter };
@@ -531,8 +531,8 @@ export type TMessage =  AppRestartRequest |
                         FilesRecentResponse |
                         FileInfoRequest |
                         FileInfoResponse |
-                        FileListRequest |
-                        FileListResponse |
+                        FileCheckRequest |
+                        FileCheckResponse |
                         FilePickerRequest |
                         FilePickerResponse |
                         ConcatFilesRequest |
@@ -698,8 +698,8 @@ export const Map = {
     [FileInfoResponse.signature                 ]: FileInfoResponse,
     [FilePickerRequest.signature                ]: FilePickerRequest,
     [FilePickerResponse.signature               ]: FilePickerResponse,
-    [FileListRequest.signature                  ]: FileListRequest,
-    [FileListResponse.signature                 ]: FileListResponse,
+    [FileCheckRequest.signature                 ]: FileCheckRequest,
+    [FileCheckResponse.signature                ]: FileCheckResponse,            
 
     [ConcatFilesRequest.signature               ]: ConcatFilesRequest,
     [ConcatFilesResponse.signature              ]: ConcatFilesResponse,
