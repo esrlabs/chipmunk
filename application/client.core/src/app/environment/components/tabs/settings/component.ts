@@ -1,9 +1,7 @@
-declare var Electron: any;
-
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
-import { Entry, Field } from '../../../controller/settings/field.store';
+import { Entry, ConnectedField, Field } from '../../../controller/settings/field.store';
 
 import SettingsService from '../../../services/service.settings';
 
@@ -17,8 +15,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class TabSettingsComponent implements OnDestroy, AfterContentInit {
 
-    public _ng_entries: Map<string, Entry | Field<any>> = new Map();
-    public _ng_fields: Field<any>[] = [];
+    public _ng_entries: Map<string, Entry | ConnectedField<any> | Field<any>> = new Map();
+    public _ng_fields: Array<ConnectedField<any> | Field<any>> = [];
     public _ng_focused: Entry | undefined;
     public _ng_focusedSubject: Subject<string> = new Subject();
     public _ng_filter: string = '';
@@ -49,14 +47,14 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
     }
 
     private _onFocusChange(path: string) {
-        const entry: Entry | Field<any> | undefined = this._ng_entries.get(path);
+        const entry: Entry | ConnectedField<any> | Field<any> | undefined = this._ng_entries.get(path);
         if (entry === undefined) {
             return;
         }
         this._ng_focused = entry;
-        const fields: Field<any>[] = [];
-        this._ng_entries.forEach((field: Entry | Field<any>, key: string) => {
-            if (!(field instanceof Field) || field.getPath() !== path) {
+        const fields: Array<ConnectedField<any> | Field<any>> = [];
+        this._ng_entries.forEach((field: Entry | ConnectedField<any> | Field<any>, key: string) => {
+            if ((!(field instanceof ConnectedField) && !(field instanceof Field)) || field.getPath() !== path) {
                 return;
             }
             fields.push(field);

@@ -1,6 +1,6 @@
 import { StateFile } from '../classes/class.statefile';
 import { IService } from '../interfaces/interface.service';
-import { Entry, Field, getEntryKey, getEntryKeyByArgs, ESettingType, IEntry } from '../../../common/settings/field.store';
+import { Entry, Field, getEntryKey, getEntryKeyByArgs, ESettingType, IEntry, IField, RenderField} from '../../../common/settings/field.store';
 import { ElementRefs } from '../../../common/settings/field.render';
 import { IPCMessages, Subscription } from './service.electron';
 
@@ -23,7 +23,7 @@ interface IStorage {
 class ServiceConfig implements IService {
 
     private _storage: StateFile<IStorage> = new StateFile<IStorage>(this.getName(), {}, SETTINGS_FILE, true);
-    private _register: Map<string, Field<any> | Entry> = new Map();
+    private _register: Map<string, Field<any> | RenderField<any> | Entry> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Logger = new Logger('ServiceConfig');
     private _index: number = 0;
@@ -68,6 +68,9 @@ class ServiceConfig implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.SettingsOperationDefaultRequest, this._ipc_SettingsOperationDefaultRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.SettingsOperationDefaultRequest = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.SettingsRenderRegisterRequest, this._ipc_SettingsRenderRegisterRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.SettingsRenderRegisterRequest = subscription;
+                }),
             ]).then(() => {
                 resolve();
             }).catch((error: Error) => {
@@ -76,12 +79,16 @@ class ServiceConfig implements IService {
         });
     }
 
-    public register(entry: Entry | Field<any>): Promise<void> {
+    public register(entry: Entry | Field<any> | RenderField<any>): Promise<any> {
         entry.setIndex(this._getIndex());
         return new Promise((resolve, reject) => {
             const key: string = getEntryKey(entry);
             if (this._register.has(key)) {
-                return new Error(`Entry "${entry.getName()}" is already registered.`);
+                if (entry instanceof Field || entry instanceof RenderField) {
+                    return reject(new Error(`Entry "${entry.getName()}" is already registered.`));
+                } else {
+                    return resolve();
+                }
             }
             entry.extract(this._storage.get()).then(() => {
                 const state: Error | IStorage = entry.write(this._storage.get());
@@ -114,11 +121,14 @@ class ServiceConfig implements IService {
 
     private _ipc_SettingsAppDataRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
         const entries: IEntry[] = [];
-        const fields: IEntry[] = [];
+        const fields: Array<IField<any>> = [];
+        const renders: Array<IField<any>> = [];
         const elements: { [key: string]: ElementRefs } = {};
-        this._register.forEach((entry: Entry | Field<any>) => {
-            if (entry instanceof Field) {
-                fields.push(entry.asEntry());
+        this._register.forEach((entry: Entry | Field<any> | RenderField<any>) => {
+            if (entry instanceof RenderField) {
+                renders.push(entry.asField());
+            } else if (entry instanceof Field) {
+                fields.push(entry.asField());
                 const elementRef: ElementRefs | undefined = entry.getElement();
                 if (elementRef !== undefined) {
                     elements[entry.getFullPath()] = elementRef;
@@ -127,7 +137,7 @@ class ServiceConfig implements IService {
                 entries.push(entry.asEntry());
             }
         });
-        [entries, fields].forEach((target) => {
+        [entries, fields, renders].forEach((target) => {
             target.sort((a, b) => {
                 return (a.index as number) > (b.index as number) ? 1 : -1;
             });
@@ -135,6 +145,7 @@ class ServiceConfig implements IService {
         response(new IPCMessages.SettingsAppDataResponse({
             fields: fields,
             entries: entries,
+            renders: renders,
             elements: elements,
             store: this._storage.get(),
         })).catch((error: Error) => {
@@ -259,6 +270,24 @@ class ServiceConfig implements IService {
                 error: `Fail to get default value of field "${key}" due error: ${getErr.message}`,
             })).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on SettingsOperationDefaultResponse due error: ${error.message}`);
+            });
+        });
+    }
+
+    private _ipc_SettingsRenderRegisterRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
+        const request: IPCMessages.SettingsRenderRegisterRequest<any> = message as IPCMessages.SettingsRenderRegisterRequest<any>;
+        const inst: Entry | RenderField<any> = request.entry !== undefined ? new Entry(request.entry) : new RenderField<any>(request.field as IField<any>);
+        this.register(inst).then(() => {
+            response(new IPCMessages.SettingsRenderRegisterResponse({
+                value: inst instanceof RenderField ? inst.read(this._storage.get()) : undefined,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on SettingsRenderRegisterResponse due error: ${error.message}`);
+            });
+        }).catch((entryErr: Error) => {
+            response(new IPCMessages.SettingsRenderRegisterResponse({
+                error: `Field to register entries due error: ${entryErr.message}`,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on SettingsRenderRegisterResponse due error: ${error.message}`);
             });
         });
     }
