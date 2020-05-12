@@ -62,9 +62,7 @@ export class SettingsDefaultsService implements IService {
         return 'SettingsDefaultsService';
     }
 
-    public destroy() {
-        
-    }
+    public destroy() { }
 
 }
 
