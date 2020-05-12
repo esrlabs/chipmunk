@@ -22,15 +22,6 @@ interface IOpenFileResult {
     options: any;
 }
 
-interface IFile {
-    lastModified: number;
-    lastModifiedDate: Date;
-    name: string;
-    path: string;
-    size: number;
-    type: string;
-}
-
 /**
  * @class ServiceFileOpener
  * @description Opens files dropped on render
@@ -42,7 +33,6 @@ class ServiceFileOpener implements IService {
     // Should detect by executable file
     private _subscriptions: { [key: string]: Subscription } = {};
     private _active: Map<string, AFileParser> = new Map<string, AFileParser>();
-    private _files: IFile[] = [];
 
     /**
      * Initialization function
@@ -54,8 +44,8 @@ class ServiceFileOpener implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.FileOpenRequest, this._ipc_FileOpenRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.FileOpenRequest = subscription;
                 }),
-                ServiceElectron.IPC.subscribe(IPCMessages.FileCheckRequest, this._ipc_FileCheckRequest.bind(this)).then((subscription: Subscription) => {
-                    this._subscriptions.FileCheckRequest = subscription;
+                ServiceElectron.IPC.subscribe(IPCMessages.FileListRequest, this._ipc_FileListRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.FileListRequest = subscription;
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.FilesRecentRequest, this._ipc_FilesRecentRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.FilesRecentRequest = subscription;
@@ -211,23 +201,28 @@ class ServiceFileOpener implements IService {
         ServiceElectron.updateMenu();
     }
 
-    private _ipc_FileCheckRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const req: IPCMessages.FileCheckRequest = request as IPCMessages.FileCheckRequest;
-        this._getFiles(req.files).then(() => {
-            response(new IPCMessages.FileCheckResponse({
-                files: this._files.slice(),
-                guid: req.guid,
+    private _ipc_FileListRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.FileListRequest = request as IPCMessages.FileListRequest;
+        Promise.all(
+            req.files.map((file: string) => {
+                return this._getFiles(file);
+        })).then((fileLists: IPCMessages.IFile[][]) => {
+            response(new IPCMessages.FileListResponse({
+                files: this._concatFileList(fileLists),
             })).catch((error: Error) => {
                 this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
             });
-            this._files = [];
         }).catch((error: Error) => {
-            response(new IPCMessages.FileCheckResponse({
+            response(new IPCMessages.FileListResponse({
                 files: [],
-                guid: req.guid,
                 error: error.message,
             }));
         });
+    }
+
+    private _concatFileList(fileLists: IPCMessages.IFile[][]): IPCMessages.IFile[] {
+        const cConcatFiles: IPCMessages.IFile[] = [];
+        return cConcatFiles.concat(...fileLists);
     }
 
     private _ipc_FileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
@@ -260,34 +255,63 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _getFiles(files: string[]): Promise<string[]> {
+    private _getFiles(file: string): Promise<IPCMessages.IFile[]> {
         return new Promise((resolve) => {
-            files.forEach((file: string) => {
-                this._listFiles(file);
-            });
-            resolve();
+            resolve(this._listFiles(file));
         });
     }
 
-    private _listFiles(file: string) {
-        if (fs.lstatSync(file).isFile()) {
-            // File
-            const STATS = fs.statSync(file);
-            return this._files.push({
-                lastModified: STATS.mtimeMs,
-                lastModifiedDate: STATS.mtime,
-                name: this._getName(file),
-                path: file,
-                size: STATS.size,
-                type: 'file',
+    private _listFiles(startFile: string): Promise<IPCMessages.IFile[]> {
+        return new Promise((resolve) => {
+            const FILES: IPCMessages.IFile[] = [];
+            const SELF = this;
+
+            function listAllFiles(file: string): Promise<number> {
+                return new Promise((resolved) => {
+                    fs.lstat(file, (lsErr, lsStats) => {
+                        if (lsErr) {
+                            SELF._logger.warn(`Fail to list files due to error: ${lsErr.message}`);
+                        }
+                        if (lsStats.isFile()) {
+                            // File
+                            return fs.stat(file, (fsErr, fsStats) => {
+                                if (fsErr) {
+                                    SELF._logger.warn(`Fail to get file info of ${file} due to error: ${fsErr.message}`);
+                                } else {
+                                    resolved(FILES.push({
+                                        lastModified: fsStats.mtimeMs,
+                                        lastModifiedDate: fsStats.mtime,
+                                        name: SELF._getName(file),
+                                        path: file,
+                                        size: fsStats.size,
+                                        type: 'file',
+                                    }));
+                                }
+                            });
+                        } else if (!(lsStats.isDirectory())) {
+                            // Other
+                            return;
+                        } else {
+                            // Directory
+                            fs.readdir(file, (err, files) => {
+                                Promise.all(files.map((subFile: string) => {
+                                    return listAllFiles(file + '/' + subFile);
+                                })).then(() => {
+                                    resolve(FILES);
+                                }).catch((error: Error) => {
+                                    SELF._logger.warn(`Fail to list files of directory ${file} info due to error: ${error.message}`);
+                                });
+                            });
+                        }
+                    });
+                });
+            }
+            listAllFiles(startFile).then(() => {
+                resolve(FILES);
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to list files of directory ${startFile} info due to error: ${error.message}`);
             });
-        } else if (!(fs.lstatSync(file).isDirectory())) {
-            // Other
-            return;
-        } else {
-            // Directory
-            fs.readdirSync(file).forEach((subFile: string) => this._listFiles(file + '/' + subFile));
-        }
+        });
     }
 
     private _getName(file: string): string {

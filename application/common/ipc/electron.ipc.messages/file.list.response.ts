@@ -1,10 +1,9 @@
-export interface IFileCheckResponse {
-    guid: string;
+export interface IFileListResponse {
     files: IFile[];
     error?: string;
 }
 
-interface IFile {
+export interface IFile {
     lastModified: number;
     lastModifiedDate: Date;
     name: string;
@@ -13,19 +12,15 @@ interface IFile {
     type: string;
 }
 
-export class FileCheckResponse {
-    public static signature: string = 'FileCheckResponse';
-    public signature: string = FileCheckResponse.signature;
-    public guid: string;
+export class FileListResponse {
+    public static signature: string = 'FileListResponse';
+    public signature: string = FileListResponse.signature;
     public files: IFile[];
     public error?: string;
 
-    constructor(params: IFileCheckResponse) {
+    constructor(params: IFileListResponse) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for FileCheckResponse message`);
-        }
-        if (typeof params.guid !== 'string' || params.guid.trim() === '') {
-            throw new Error(`Field "guid" should be defined`);
+            throw new Error(`Incorrect parameters for FileListResponse message`);
         }
         if (!(params.files instanceof Array)) {
             throw new Error(`Field "files" should of type <string[]>`)
@@ -37,7 +32,6 @@ export class FileCheckResponse {
                 }
             }
         });
-        this.guid = params.guid;
         this.files = params.files;
         this.error = params.error;
     }
