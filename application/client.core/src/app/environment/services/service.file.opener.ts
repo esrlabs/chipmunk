@@ -72,44 +72,52 @@ export class FileOpenerService implements IService, IFileOpenerService {
         if (files.length === 0) {
             return;
         }
-        if (files.length === 0) {
-            return;
-        }
         this._setSessionForFile().then((session: ControllerSessionTab) => {
             TabsSessionsService.setActive(session.getGuid());
-            if (files.length === 1) {
-                // Single file
-                ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
-                    file: files[0].path,
-                    session: session.getGuid(),
-                }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileReadResponse) => {
-                    if (response.error !== undefined) {
-                        this._logger.error(`Fail open file "${files[0].path}" due error: ${response.error}`);
-                        // TODO: add notification here
-                        return;
-                    }
-                }).catch((error: Error) => {
-                    this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`);
-                    // TODO: add notification here
-                });
-            } else {
-                // Multiple files
-                // Select way: merge or concat
-                PopupsService.add({
-                    id: 'opening-file-dialog',
-                    caption: `Opening files`,
-                    component: {
-                        factory: DialogsMultipleFilesActionComponent,
-                        inputs: {
-                            files: files
+            ServiceElectronIpc.request(new IPCMessages.FileCheckRequest({
+                files: files.map((file: IFile) => file.path),
+                guid: session.getGuid(),
+            }), IPCMessages.FileCheckResponse).then((checkResponse: IPCMessages.FileCheckResponse) => {
+                if (checkResponse.error !== undefined) {
+                    this._logger.error(`Fail check paths due error: ${checkResponse.error}`);
+                    return;
+                }
+                if (checkResponse.files.length === 1) {
+                    // Single file
+                    ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
+                        file: checkResponse.files[0].path,
+                        session: session.getGuid(),
+                    }), IPCMessages.FileOpenResponse).then((openResponse: IPCMessages.FileReadResponse) => {
+                        if (openResponse.error !== undefined) {
+                            this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${openResponse.error}`);
+                            // TODO: add notification here
+                            return;
                         }
-                    },
-                    buttons: [
-                        { caption: 'Merge', handler: this.merge.bind(this, files), },
-                        { caption: 'Concat', handler: this.concat.bind(this, files), },
-                    ],
-                });
-            }
+                    }).catch((error: Error) => {
+                        this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${error.message}`);
+                        // TODO: add notification here
+                    });
+                } else {
+                    // Multiple files
+                    // Select way: merge or concat
+                    PopupsService.add({
+                        id: 'opening-file-dialog',
+                        caption: `Opening files`,
+                        component: {
+                            factory: DialogsMultipleFilesActionComponent,
+                            inputs: {
+                                files: checkResponse.files
+                            }
+                        },
+                        buttons: [
+                            { caption: 'Merge', handler: this.merge.bind(this, checkResponse.files), },
+                            { caption: 'Concat', handler: this.concat.bind(this, checkResponse.files), },
+                        ],
+                    });
+                }
+            }).catch((error: Error) => {
+                this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`);
+            });
         }).catch((error: Error) => {
             this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
         });
