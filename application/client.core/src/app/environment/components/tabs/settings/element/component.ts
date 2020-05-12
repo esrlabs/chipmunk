@@ -72,6 +72,7 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
 
     public ngAfterContentInit() {
         this._ng_value_error = new ValueErrorStateMatcher(this.field, this._forceUpdate.bind(this));
+        this._ng_value = this.field.get();
     }
 
     public ngOnDestroy() {

@@ -291,12 +291,15 @@ export abstract class Field<T> extends FieldBase<T> {
             if (stored === undefined) {
                 this.getDefault().then((value: T) => {
                     this.set(value).then(resolve).catch(reject);
-                });
-                return;
+                }).catch(reject);
             } else {
                 this.validate(stored).then(() => {
                     this.set(stored).then(resolve).catch(reject);
-                }).catch(reject);    
+                }).catch(() => {
+                    this.getDefault().then((value: T) => {
+                        this.set(value).then(resolve).catch(reject);
+                    }).catch(reject);
+                });    
             }
         });
     }

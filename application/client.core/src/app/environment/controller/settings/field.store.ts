@@ -1,26 +1,15 @@
 
-import { Entry, IEntry, ESettingType, IField, RenderField, Field } from '../../../../../../common/settings/field.store';
+import { Entry, FieldBase, IEntry, ESettingType, IField, RenderField, Field } from '../../../../../../common/settings/field.store';
 import { ElementRefs, EElementSignature, getElementType } from '../../../../../../common/settings/field.render';
 import { IPCMessages } from '../../services/service.electron.ipc';
 
 import ElectronIpcService from '../../services/service.electron.ipc';
 
-export { Entry, IEntry, ESettingType, getElementType, RenderField, IField, Field };
+export { Entry, IEntry, ESettingType, getElementType, FieldBase, RenderField, IField, Field };
 
-export class ConnectedField<T> extends Entry {
+export class ConnectedField<T> extends FieldBase<T> {
 
-    private _value: T | undefined;
     private _elementRef: ElementRefs | undefined;
-
-    public static isInstance(smth: any): boolean {
-        if (typeof smth !== 'object' || smth === null) {
-            return false;
-        }
-        if (typeof smth.constructor !== 'object' || smth.constructor === null) {
-            return false;
-        }
-        return smth.constructor.name === ConnectedField.name;
-    }
 
     constructor(entry: IEntry, elementRef: ElementRefs | undefined) {
         super(entry);
@@ -79,10 +68,10 @@ export class ConnectedField<T> extends Entry {
     }
 
     public get(): T {
-        if (this._value === undefined) {
+        if (this.value === undefined) {
             throw new Error(`Value of "${this.getFullPath()}" isn't initialized`);
         }
-        return this._value;
+        return this.value;
     }
 
     public refresh(): Promise<T> {
