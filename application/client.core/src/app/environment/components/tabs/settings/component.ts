@@ -8,6 +8,8 @@ import SettingsService from '../../../services/service.settings';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+const CDelimiter = '\u0008';
+
 @Component({
     selector: 'app-tabs-settings',
     templateUrl: './template.html',
@@ -95,16 +97,17 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         this._entries.forEach((entry: Entry) => {
             pairs.push({
                 id: entry.getFullPath(),
-                caption: entry.getName(),
-                description: entry.getDesc(),
+                caption: `${entry.getName()}${CDelimiter}${entry.getDesc()}`,
+                description: '',
             });
         });
         const scored = sortPairs(pairs, this._ng_filter, true, 'span');
         scored.forEach((s: IPair) => {
+            const pair = s.tcaption.split(CDelimiter);
             filtered.set(s.id, {
                 id: s.id,
-                caption: s.tcaption,
-                description: s.tdescription,
+                caption: pair[0],
+                description: pair[1],
             });
         });
         return filtered;
