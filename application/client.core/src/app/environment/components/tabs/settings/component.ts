@@ -60,10 +60,10 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
     }
 
     private _updateFocused() {
-        if (this._ng_focused === undefined) {
+        if (this._ng_focused === undefined && this._ng_filter === '') {
             return;
         }
-        if (this._ng_entries.has(this._ng_focused.getFullPath())) {
+        if (this._ng_focused !== undefined && this._ng_entries.has(this._ng_focused.getFullPath())) {
             return;
         }
         if (this._ng_matches.size === 0) {
@@ -74,7 +74,7 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
             if (parent === undefined) {
                 this._ng_focused = undefined;
             } else {
-                this._ng_focused = parent;
+                this._onFocusChange(parent.getFullPath(), true);
             }
         }
     }
@@ -154,13 +154,19 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         return fields;
     }
 
-    private _onFocusChange(path: string) {
+    private _onFocusChange(path: string, internal: boolean = false) {
         const entry: Entry | ConnectedField<any> | Field<any> | undefined = this._entries.get(path);
         if (entry === undefined) {
             return;
         }
+        if (this._ng_focused !== undefined && this._ng_focused.getFullPath() === entry.getFullPath()) {
+            return;
+        }
         this._ng_focused = entry;
         this._ng_fields = this._getFields();
+        if (internal) {
+            this._ng_focusedSubject.next(path);
+        }
         this._forceUpdate();
     }
 

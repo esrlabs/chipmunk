@@ -53,6 +53,7 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
 
     public ngAfterContentInit() {
         this._ng_dataSource.data = this._getData();
+        this._subscriptions.focused = this.focused.asObservable().subscribe(this._onFocusChanged.bind(this));
     }
 
     public ngOnDestroy() {
@@ -84,6 +85,14 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
         }
         this._ng_focused = node.path;
         this.focused.next(node.path);
+        this._forceUpdate();
+    }
+
+    private _onFocusChanged(path: string) {
+        if (this._ng_focused === path) {
+            return;
+        }
+        this._ng_focused = path;
         this._forceUpdate();
     }
 
