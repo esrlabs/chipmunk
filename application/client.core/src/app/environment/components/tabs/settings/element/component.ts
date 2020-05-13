@@ -3,8 +3,7 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { ConnectedField, Field } from '../../../../controller/settings/field.store';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
-
-import SettingsService from '../../../../services/service.settings';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -60,6 +59,8 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
 
     @Input() public field: ConnectedField<any> | Field<any>;
     @Input() public change: (value: any) => void;
+    @Input() public name: string = '';
+    @Input() public description: string = '';
 
     public _ng_value: any;
     public _ng_value_error: ValueErrorStateMatcher;
@@ -68,7 +69,8 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabSettingsElementComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef,
+                private _sanitizer: DomSanitizer) {
     }
 
     public ngAfterContentInit() {
@@ -85,6 +87,10 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
 
     public _ng_onValueChange(value) {
         this.change(value);
+    }
+
+    public _ng_getSafeHTML(str: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 
     private _forceUpdate() {
