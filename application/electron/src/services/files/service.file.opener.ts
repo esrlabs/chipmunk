@@ -282,7 +282,7 @@ class ServiceFileOpener implements IService {
                                         caption: 'Error with file',
                                         message: errorMessage,
                                         type: ENotificationType.warning,
-                                    })
+                                    });
                                     rejected(new Error(errorMessage));
                                 } else {
                                     resolved(allFiles.push({
