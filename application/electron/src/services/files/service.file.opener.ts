@@ -205,7 +205,7 @@ class ServiceFileOpener implements IService {
         const req: IPCMessages.FileListRequest = request as IPCMessages.FileListRequest;
         Promise.all(
             req.files.map((file: string) => {
-                return this._getFiles(file);
+                return this._listFiles(file);
         })).then((fileLists: IPCMessages.IFile[][]) => {
             response(new IPCMessages.FileListResponse({
                 files: this._concatFileList(fileLists),
@@ -255,33 +255,27 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _getFiles(file: string): Promise<IPCMessages.IFile[]> {
-        return new Promise((resolve) => {
-            resolve(this._listFiles(file));
-        });
-    }
-
     private _listFiles(startFile: string): Promise<IPCMessages.IFile[]> {
-        return new Promise((resolve) => {
-            const FILES: IPCMessages.IFile[] = [];
-            const SELF = this;
+        return new Promise((resolve, reject) => {
+            const allFiles: IPCMessages.IFile[] = [];
+            const self = this;
 
-            function listAllFiles(file: string): Promise<number> {
-                return new Promise((resolved) => {
+            function listAllFiles(file: string): Promise<any> {
+                return new Promise((resolved, rejected) => {
                     fs.lstat(file, (lsErr, lsStats) => {
                         if (lsErr) {
-                            SELF._logger.warn(`Fail to list files due to error: ${lsErr.message}`);
+                            return rejected(new Error(`Fail to list files due to error: ${lsErr.message}`));
                         }
                         if (lsStats.isFile()) {
                             // File
                             return fs.stat(file, (fsErr, fsStats) => {
                                 if (fsErr) {
-                                    SELF._logger.warn(`Fail to get file info of ${file} due to error: ${fsErr.message}`);
+                                    rejected(new Error(`Fail to get file info of ${file} due to error: ${fsErr.message}`));
                                 } else {
-                                    resolved(FILES.push({
+                                    resolved(allFiles.push({
                                         lastModified: fsStats.mtimeMs,
                                         lastModifiedDate: fsStats.mtime,
-                                        name: SELF._getName(file),
+                                        name: self._getName(file),
                                         path: file,
                                         size: fsStats.size,
                                         type: 'file',
@@ -289,27 +283,31 @@ class ServiceFileOpener implements IService {
                                 }
                             });
                         } else if (!(lsStats.isDirectory())) {
-                            // Other
-                            return;
+                            // Neither file nor directory
+                            rejected(new Error(`Fail to get file info of ${file} because it is neither a file nor a directory`));
                         } else {
                             // Directory
-                            fs.readdir(file, (err, files) => {
-                                Promise.all(files.map((subFile: string) => {
-                                    return listAllFiles(file + '/' + subFile);
-                                })).then(() => {
-                                    resolve(FILES);
-                                }).catch((error: Error) => {
-                                    SELF._logger.warn(`Fail to list files of directory ${file} info due to error: ${error.message}`);
-                                });
+                            return fs.readdir(file, (err, files) => {
+                                if (err) {
+                                    rejected(new Error(`Fail to list files of directory ${file} due to error: ${err.message}`));
+                                } else {
+                                    Promise.all(files.map((subFile: string) => {
+                                        return listAllFiles(file + '/' + subFile);
+                                    })).then(() => {
+                                        resolve(allFiles);
+                                    }).catch((error: Error) => {
+                                        rejected(new Error(`Fail to list files of directory ${file} info due to error: ${error.message}`));
+                                    });
+                                }
                             });
                         }
                     });
                 });
             }
             listAllFiles(startFile).then(() => {
-                resolve(FILES);
+                resolve(allFiles);
             }).catch((error: Error) => {
-                this._logger.warn(`Fail to list files of directory ${startFile} info due to error: ${error.message}`);
+                reject(new Error(`Fail to list files of directory ${startFile} info due to error: ${error.message}`));
             });
         });
     }
@@ -318,8 +316,7 @@ class ServiceFileOpener implements IService {
         if (file.trim() === '') {
             return '';
         }
-        const SPLIT = file.split(/[\\\/]+/);
-        return SPLIT[SPLIT.length - 1];
+        return path.basename(file);
     }
 
     private _getOptions(fullFileName: string, fileName: string, parser: AFileParser, size: number ): Promise<any> {
