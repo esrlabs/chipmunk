@@ -4,14 +4,24 @@
                 placeholder="Search settings"
                 aria-label="Filter"
                 [(ngModel)]="_ng_filter"
+                (ngModelChange)="_ng_onFilterChange($event)"
                 matInput>
       </mat-form-field>
 </div>
 <div class="wrapper">
     <div class="navigation">
-        <app-tabs-settings-navigation [entries]="_ng_entries" [focused]="_ng_focusedSubject"></app-tabs-settings-navigation>
+        <app-tabs-settings-navigation
+            [filter]="_ng_filter"
+            [matches]="_ng_matches"
+            [entries]="_ng_entries"
+            [focused]="_ng_focusedSubject"></app-tabs-settings-navigation>
     </div>
     <div class="content">
-        <app-tabs-settings-content *ngIf="_ng_focused !== undefined" [fields]="_ng_fields" [entry]="_ng_focused"></app-tabs-settings-content>
+        <app-tabs-settings-content
+            *ngIf="_ng_focused !== undefined"
+            [filter]="_ng_filter"
+            [matches]="_ng_matches"
+            [fields]="_ng_fields"
+            [entry]="_ng_focused"></app-tabs-settings-content>
     </div>
 </div>

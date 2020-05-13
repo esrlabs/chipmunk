@@ -2,6 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterCon
 import { Subscription, Subject, Observable } from 'rxjs';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { Entry, ConnectedField, Field } from '../../../controller/settings/field.store';
+import { sortPairs, IPair } from '../../../thirdparty/code/engine';
 
 import SettingsService from '../../../services/service.settings';
 
@@ -20,7 +21,9 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
     public _ng_focused: Entry | undefined;
     public _ng_focusedSubject: Subject<string> = new Subject();
     public _ng_filter: string = '';
+    public _ng_matches: Map<string, IPair> = new Map();
 
+    private _entries: Map<string, Entry | ConnectedField<any> | Field<any>> = new Map();
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabSettingsComponent');
@@ -32,7 +35,9 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
 
     public ngAfterContentInit() {
         SettingsService.get().then((entries) => {
-            this._ng_entries = entries;
+            this._entries = entries;
+            this._ng_entries = this._getEntries();
+            this._ng_matches = this._getMatches();
             this._forceUpdate();
         }).catch((error: Error) => {
             this._logger.error(`Fail get settings data due error: ${error.message}`);
@@ -46,23 +51,116 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         this._destroyed = true;
     }
 
-    private _onFocusChange(path: string) {
-        const entry: Entry | ConnectedField<any> | Field<any> | undefined = this._ng_entries.get(path);
-        if (entry === undefined) {
+    public _ng_onFilterChange(value: string) {
+        this._ng_matches = this._getMatches();
+        this._ng_fields = this._getFields();
+        this._ng_entries = this._getEntries();
+        this._updateFocused();
+        this._forceUpdate();
+    }
+
+    private _updateFocused() {
+        if (this._ng_focused === undefined) {
             return;
         }
-        this._ng_focused = entry;
+        if (this._ng_entries.has(this._ng_focused.getFullPath())) {
+            return;
+        }
+        if (this._ng_matches.size === 0) {
+            this._ng_focused = undefined;
+        } else {
+            const entry: Entry | undefined = this._entries.get(Array.from(this._ng_matches.values())[0].id);
+            const parent: Entry | undefined = entry === undefined ? undefined : this._entries.get(entry.getPath());
+            if (parent === undefined) {
+                this._ng_focused = undefined;
+            } else {
+                this._ng_focused = parent;
+            }
+        }
+    }
+
+    private _getMatches(): Map<string, IPair> {
+        const filtered: Map<string, IPair> = new Map();
+        if (this._ng_filter === '') {
+            this._entries.forEach((entry: Entry) => {
+                filtered.set(entry.getFullPath(), {
+                    id: entry.getFullPath(),
+                    caption: entry.getName(),
+                    description: entry.getDesc(),
+                });
+            });
+            return filtered;
+        }
+        const pairs: IPair[] = [];
+        this._entries.forEach((entry: Entry) => {
+            pairs.push({
+                id: entry.getFullPath(),
+                caption: entry.getName(),
+                description: entry.getDesc(),
+            });
+        });
+        const scored = sortPairs(pairs, this._ng_filter, true, 'span');
+        scored.forEach((s: IPair) => {
+            filtered.set(s.id, {
+                id: s.id,
+                caption: s.tcaption,
+                description: s.tdescription,
+            });
+        });
+        return filtered;
+    }
+
+    private _getEntries(): Map<string, Entry | ConnectedField<any> | Field<any>> {
+        function hasMatches(matches: Map<string, IPair>, path: string): boolean {
+            let included: boolean = false;
+            matches.forEach((pair: IPair, key: string) => {
+                if (included) {
+                    return;
+                }
+                included = key.indexOf(path) === 0;
+            });
+            return included;
+        }
+        if (this._ng_filter === '') {
+            return this._entries;
+        }
+        const entries: Map<string, Entry | ConnectedField<any> | Field<any>> = new Map();
+        this._entries.forEach((entry: Entry | ConnectedField<any> | Field<any>) => {
+            if (entry instanceof ConnectedField || entry instanceof Field) {
+                return;
+            } else if (hasMatches(this._ng_matches, entry.getFullPath())) {
+                entries.set(entry.getFullPath(), entry);
+            }
+        });
+        return entries;
+    }
+
+    private _getFields(): Array<ConnectedField<any> | Field<any>> {
+        if (this._ng_focused === undefined) {
+            return [];
+        }
         const fields: Array<ConnectedField<any> | Field<any>> = [];
-        this._ng_entries.forEach((field: Entry | ConnectedField<any> | Field<any>, key: string) => {
-            if ((!(field instanceof ConnectedField) && !(field instanceof Field)) || field.getPath() !== path) {
+        this._entries.forEach((field: Entry | ConnectedField<any> | Field<any>, key: string) => {
+            if ((!(field instanceof ConnectedField) && !(field instanceof Field)) || field.getPath() !== this._ng_focused.getFullPath()) {
                 return;
             }
-            fields.push(field);
+            if (this._ng_filter === '' || this._ng_matches.has(field.getFullPath())) {
+                fields.push(field);
+            }
         });
         fields.sort((a, b) => {
             return a.getIndex() > b.getIndex() ? 1 : -1;
         });
-        this._ng_fields = fields;
+        return fields;
+    }
+
+    private _onFocusChange(path: string) {
+        const entry: Entry | ConnectedField<any> | Field<any> | undefined = this._entries.get(path);
+        if (entry === undefined) {
+            return;
+        }
+        this._ng_focused = entry;
+        this._ng_fields = this._getFields();
         this._forceUpdate();
     }
 

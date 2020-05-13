@@ -2,6 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, OnChanges, Inpu
 import { Subscription, Subject, Observable } from 'rxjs';
 import { Entry, ConnectedField, LocalField } from '../../../../controller/settings/field.store';
 import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
+import { IPair } from '../../../../thirdparty/code/engine';
 
 import SettingsService from '../../../../services/service.settings';
 
@@ -22,6 +23,8 @@ export class TabSettingsContentComponent implements OnDestroy, AfterContentInit,
 
     @Input() public entry: Entry;
     @Input() public fields: Array<ConnectedField<any> | LocalField<any>> = [];
+    @Input() public matches: Map<string, IPair> = new Map();
+    @Input() public filter: string = '';
 
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _destroyed: boolean = false;
@@ -84,6 +87,24 @@ export class TabSettingsContentComponent implements OnDestroy, AfterContentInit,
 
     public _ng_isWorking(): boolean {
         return this._working;
+    }
+
+    public _ng_getName(field: ConnectedField<any> | LocalField<any>): string {
+        const match: IPair | undefined = this.matches.get(field.getFullPath());
+        if (match === undefined) {
+            return field.getName();
+        } else {
+            return match.caption;
+        }
+    }
+
+    public _ng_getDescription(field: ConnectedField<any> | LocalField<any>): string {
+        const match: IPair | undefined = this.matches.get(field.getFullPath());
+        if (match === undefined) {
+            return field.getDesc();
+        } else {
+            return match.description;
+        }
     }
 
     private _onFieldChanged(field: ConnectedField<any> | LocalField<any>, value: any) {

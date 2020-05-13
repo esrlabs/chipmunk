@@ -3,7 +3,7 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { Entry, ConnectedField, Field } from '../../../../controller/settings/field.store';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree';
-
+import { IPair } from '../../../../thirdparty/code/engine';
 import { ESettingType } from '../../../../services/service.settings';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -31,8 +31,10 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
 
     @Input() public entries: Map<string, Entry | ConnectedField<any> | Field<any>>;
     @Input() public focused: Subject<string> = new Subject();
+    @Input() public matches: Map<string, IPair> = new Map();
+    @Input() public filter: string = '';
 
-    public _ng_treeControl;
+    public _ng_treeControl: FlatTreeControl<ISettingNode>;
     public _ng_dataSource;
     public _ng_focused: string | undefined;
 
@@ -66,6 +68,9 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
         }
         this._zone.run(() => {
             this._ng_dataSource.data = this._getData();
+            if (this.filter !== '') {
+                this._ng_treeControl.expandAll();
+            }
         });
     }
 
