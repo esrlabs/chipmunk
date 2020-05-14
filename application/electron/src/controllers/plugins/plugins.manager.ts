@@ -8,6 +8,7 @@ import ServiceRenderState from '../../services/service.render.state';
 import ServiceElectron from '../../services/service.electron';
 import ServiceElectronService from '../../services/service.electron.state';
 import ServiceEnv from '../../services/service.env';
+import ServiceSettings from '../../services/service.settings';
 
 import InstalledPlugin from './plugin.installed';
 import ControllerPluginStore from './plugins.store';
@@ -19,6 +20,7 @@ import { CommonInterfaces } from '../../interfaces/interface.common';
 import { ErrorCompatibility } from './plugin.installed';
 import { PromisesQueue } from '../../tools/promise.queue';
 import { dialog, OpenDialogReturnValue } from 'electron';
+import { CSettingsAliases, CSettingsEtries, registerPluginsManagerSettings } from './settings/settings.index';
 
 interface IQueueTask {
     name: string;
@@ -51,6 +53,17 @@ export default class ControllerPluginsManager {
     private _incompatibles: ControllerPluginsIncompatiblesStorage;
     private _downloads: PromisesQueue = new PromisesQueue('Downloads plugins queue');
     private _subscriptions: { [key: string ]: Subscription } = { };
+    private _settings: {
+        [CSettingsAliases.PluginsUpdates]: boolean,
+        [CSettingsAliases.PluginsUpgrades]: boolean,
+        [CSettingsAliases.RemoveNotValid]: boolean,
+        [CSettingsAliases.DefaultsPlugins]: boolean,
+    } = {
+        [CSettingsAliases.PluginsUpdates]: true,
+        [CSettingsAliases.PluginsUpgrades]: true,
+        [CSettingsAliases.RemoveNotValid]: true,
+        [CSettingsAliases.DefaultsPlugins]: true,
+    };
 
     constructor(store: ControllerPluginStore, storage: ControllerPluginsStorage) {
         this._store = store;
@@ -90,7 +103,12 @@ export default class ControllerPluginsManager {
             }).catch((error: Error) => {
                 this._logger.debug(`Fail to subscribe due error: ${error.message}`);
             }).finally(() => {
-                resolve();
+                registerPluginsManagerSettings().catch((settingErr: Error) => {
+                    this._logger.debug(`Fail to register settings due error: ${settingErr.message}`);
+                }).finally(() => {
+                    this._loadSettings();
+                    resolve();
+                });
             });
         });
     }
@@ -139,9 +157,9 @@ export default class ControllerPluginsManager {
                     this._logger.warn(`Error during reading plugins: ${readErr.message}`);
                 }).finally(() => {
                     ServiceElectronService.logStateToRender(`Removing invalid plugins...`);
-                    if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID) {
+                    if (!this._settings.RemoveNotValid) {
                         if (toBeRemoved.length > 0) {
-                            this._logger.debug(`Found ${toBeRemoved.length} not valid plugins to be removed. But because CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID=true, plugins will not be removed. Not valid plugins:\n${toBeRemoved.map((plugin: InstalledPlugin) => {
+                            this._logger.debug(`Found ${toBeRemoved.length} not valid plugins to be removed. But because this._settings.RemoveNotValid=false, plugins will not be removed. Not valid plugins:\n${toBeRemoved.map((plugin: InstalledPlugin) => {
                                 return `\t - ${plugin.getPath()}`;
                             }).join('\n')}`);
                         }
@@ -256,8 +274,8 @@ export default class ControllerPluginsManager {
 
     public defaults(): Promise<void> {
         return new Promise((resolve) => {
-            if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_DEFAULTS) {
-                this._logger.debug(`Checking defaults plugins is skipped because envvar CHIPMUNK_PLUGINS_NO_DEFAULTS is true`);
+            if (!this._settings.DefaultsPlugins) {
+                this._logger.debug(`Checking defaults plugins is skipped because envvar _settings.DefaultsPlugins is false`);
                 return resolve();
             }
             const installed: string[] = this.getInstalled().map((plugin: CommonInterfaces.Plugins.IPlugin) => {
@@ -351,7 +369,7 @@ export default class ControllerPluginsManager {
             }).finally(() => {
                 this._downloads.do(() => {
                     // Upgrade tasks
-                    const upgrade: Promise<any> = Promise.all(ServiceEnv.get().CHIPMUNK_PLUGINS_NO_UPGRADE ? [] : Array.from(this._queue.upgrade.values()).map((task: IQueueTask) => {
+                    const upgrade: Promise<any> = Promise.all(!this._settings.PluginsUpgrades ? [] : Array.from(this._queue.upgrade.values()).map((task: IQueueTask) => {
                         return this.install([task]).catch((upgErr: Error) => {
                             this._logger.warn(`Fail to upgrade plugin "${task.name}" due error: ${upgErr.message}`);
                         });
@@ -361,7 +379,7 @@ export default class ControllerPluginsManager {
                         this._logger.warn(`Fail to do upgrade of plugins due error: ${error.message}`);
                     });
                     // Update tasks
-                    const update: Promise<any> = Promise.all(ServiceEnv.get().CHIPMUNK_PLUGINS_NO_UPDATES ? [] : Array.from(this._queue.update.values()).map((task: IQueueTask) => {
+                    const update: Promise<any> = Promise.all(!this._settings.PluginsUpdates ? [] : Array.from(this._queue.update.values()).map((task: IQueueTask) => {
                         const plugin: InstalledPlugin | undefined = this._storage.getPluginByName(task.name);
                         if (plugin === undefined) {
                             this._logger.warn(`Fail to find installed plugin "${task.name}" to update it`);
@@ -603,6 +621,32 @@ export default class ControllerPluginsManager {
                 error: this._logger.error(`Fail open file due error: ${error.message}`),
             }));
         });
+    }
+
+    private _loadSettings() {
+        [   CSettingsAliases.PluginsUpdates,
+            CSettingsAliases.PluginsUpgrades,
+            CSettingsAliases.RemoveNotValid,
+            CSettingsAliases.DefaultsPlugins].forEach((alias: CSettingsAliases) => {
+            const setting: boolean | Error = ServiceSettings.get<boolean>(CSettingsEtries[alias].getFullPath());
+            if (setting instanceof Error) {
+                this._logger.warn(`Fail to load settings "${CSettingsEtries[alias].getFullPath()}" due error: ${setting.message}`);
+            } else {
+                this._settings[alias] = setting;
+            }
+        });
+        if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_UPDATES) {
+            this._settings.PluginsUpdates = false;
+        }
+        if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_UPGRADE) {
+            this._settings.PluginsUpgrades = false;
+        }
+        if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID) {
+            this._settings.RemoveNotValid = false;
+        }
+        if (ServiceEnv.get().CHIPMUNK_PLUGINS_NO_DEFAULTS) {
+            this._settings.DefaultsPlugins = false;
+        }
     }
 
 }
