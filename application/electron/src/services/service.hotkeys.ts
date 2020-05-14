@@ -6,8 +6,6 @@ import ServiceStreams from './service.streams';
 import { IService } from '../interfaces/interface.service';
 import { app, globalShortcut } from 'electron';
 
-// TODO: cmd/ctrl + , <-- open settings tab
-
 const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.newTab]:                  { darwin: ['Cmd+T'],            other: ['Ctrl+T'] },
     [IPCMessages.EHotkeyActionRef.closeTab]:                { darwin: ['Cmd+W'],            other: ['Ctrl+w'] },
@@ -22,6 +20,7 @@ const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { darwin: ['Cmd+J'],            other: ['Ctrl+J'] },
     [IPCMessages.EHotkeyActionRef.recentFiles]:             { darwin: ['Cmd+P'],            other: ['Ctrl+P'] },
     [IPCMessages.EHotkeyActionRef.recentFilters]:           { darwin: ['Shift+Cmd+P'],      other: ['Shift+Ctrl+P'] },
+    [IPCMessages.EHotkeyActionRef.settings]:                { darwin: ['Cmd+,'],            other: ['Ctrl+,'] },
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    {                               other: ['?'] },
 };
 
@@ -30,6 +29,7 @@ const CInputRelatedHotkeys = [
     'k',
     'J',
     'K',
+    ',',
     '/',
     '?',
 ];

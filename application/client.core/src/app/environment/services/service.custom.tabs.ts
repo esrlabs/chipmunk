@@ -8,8 +8,15 @@ import { TabSettingsComponent } from '../components/tabs/settings/component';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import CustomTabsEventsService from './standalone/service.customtabs.events';
+import HotkeysService from './service.hotkeys';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+const GUIDs = {
+    about: `AboutTab:${Toolkit.guid()}`,
+    plugins: `PluginsTab:${Toolkit.guid()}`,
+    settings: `SettingsTab:${Toolkit.guid()}`,
+};
 
 export class TabsCustomService implements IService {
 
@@ -25,6 +32,7 @@ export class TabsCustomService implements IService {
             this._subscriptions.TabCustomSettings = ElectronIpcService.subscribe(IPCMessages.TabCustomSettings, this._onTabCustomSettings.bind(this));
             this._subscriptions.TabCustomPlugins = ElectronIpcService.subscribe(IPCMessages.TabCustomPlugins, this._onTabCustomPlugins.bind(this));
             this._subscriptions.plugins = CustomTabsEventsService.getObservable().plugins.subscribe(this._onTabCustomPlugins.bind(this));
+            this._subscriptions.TabCustomSettingsHotKey = HotkeysService.getObservable().settings.subscribe(this._onTabCustomSettings.bind(this));
             resolve();
         });
     }
@@ -48,48 +56,60 @@ export class TabsCustomService implements IService {
     }
 
     private _onTabCustomAbout(message: IPCMessages.TabCustomAbout) {
-        TabsSessionsService.add({
-            id: 'about',
-            title: 'About',
-            component: {
-                factory: TabAboutComponent,
-                inputs: {
-                    data: message,
+        if (TabsSessionsService.isTabExist(GUIDs.about)) {
+            TabsSessionsService.setActive(GUIDs.about);
+        } else {
+            TabsSessionsService.add({
+                id: GUIDs.about,
+                title: 'About',
+                component: {
+                    factory: TabAboutComponent,
+                    inputs: {
+                        data: message,
+                    }
                 }
-            }
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail add about tab due error: ${error.message}`);
-        });
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail add about tab due error: ${error.message}`);
+            });
+        }
     }
 
     private _onTabCustomSettings(message: IPCMessages.TabCustomSettings) {
-        TabsSessionsService.add({
-            id: 'settings',
-            title: 'Settings',
-            component: {
-                factory: TabSettingsComponent,
-                inputs: {}
-            }
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail add settings tab due error: ${error.message}`);
-        });
+        if (TabsSessionsService.isTabExist(GUIDs.settings)) {
+            TabsSessionsService.setActive(GUIDs.settings);
+        } else {
+            TabsSessionsService.add({
+                id: GUIDs.settings,
+                title: 'Settings',
+                component: {
+                    factory: TabSettingsComponent,
+                    inputs: {}
+                }
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail add settings tab due error: ${error.message}`);
+            });
+        }
     }
 
     private _onTabCustomPlugins() {
-        TabsSessionsService.add({
-            id: 'plugins',
-            title: 'Plugins',
-            component: {
-                factory: TabPluginsComponent,
-                inputs: { }
-            },
-            tabCaptionInjection: {
-                factory: TabPluginsCounterComponent,
-                inputs: { }
-            }
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail add plugins tab due error: ${error.message}`);
-        });
+        if (TabsSessionsService.isTabExist(GUIDs.plugins)) {
+            TabsSessionsService.setActive(GUIDs.plugins);
+        } else {
+            TabsSessionsService.add({
+                id: GUIDs.plugins,
+                title: 'Plugins',
+                component: {
+                    factory: TabPluginsComponent,
+                    inputs: { }
+                },
+                tabCaptionInjection: {
+                    factory: TabPluginsCounterComponent,
+                    inputs: { }
+                }
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail add plugins tab due error: ${error.message}`);
+            });
+        }
     }
 
 }
