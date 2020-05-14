@@ -6,8 +6,6 @@ import { CoreIndex } from './settings.defaults/settings.core.index';
 import { GeneralUpdateApp } from './settings.defaults/settings.general.update.app';
 import { GeneralUpdatePlugins } from './settings.defaults/settings.general.update.plugins';
 import { sequences } from '../tools/sequences';
-import { GeneralUpdateTestNumbers } from './settings.defaults/settings.general.update.test.numbers';
-import { GeneralUpdateTestStrings } from './settings.defaults/settings.general.update.test.string';
 
 import ServiceSettings from './service.settings';
 import Logger from '../tools/env.logger';
@@ -20,8 +18,6 @@ export const CSettings = {
         update: {
             app: new GeneralUpdateApp({ key: 'app', name: 'Application', desc: 'Automatically check for application updates', path: 'general.update', type: ESettingType.standard }),
             plugins: new GeneralUpdatePlugins({ key: 'plugins', name: 'Plugins', desc: 'Automatically check for plugins updates', path: 'general.update', type: ESettingType.standard }),
-            numbers: new GeneralUpdateTestNumbers({ key: 'numbers', name: 'Numbers', desc: 'Automatically check for plugins updates', path: 'general.update', type: ESettingType.standard }),
-            strings: new GeneralUpdateTestStrings({ key: 'strings', name: 'Strings', desc: 'Automatically check for plugins updates', path: 'general.update', type: ESettingType.standard }),
         },
     },
 };
@@ -50,12 +46,6 @@ class ServiceConfigDefault implements IService {
                         this._logger.error(regErr.message);
                     }),
                     ServiceSettings.register(CSettings.general.update.plugins).catch((regErr: Error) => {
-                        this._logger.error(regErr.message);
-                    }),
-                    ServiceSettings.register(CSettings.general.update.numbers).catch((regErr: Error) => {
-                        this._logger.error(regErr.message);
-                    }),
-                    ServiceSettings.register(CSettings.general.update.strings).catch((regErr: Error) => {
                         this._logger.error(regErr.message);
                     }),
                 ]).then(() => {
