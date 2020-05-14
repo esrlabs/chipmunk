@@ -114,12 +114,12 @@ export default class Logger {
         return `${time.toJSON()}`;
     }
 
-    private _log(message: string, level: ELogLevels) {
-        message = `[${this._signature}][${level}]: ${message}`;
+    private _log(original: string, level: ELogLevels) {
+        const message: string = `[${this._signature}][${level}]: ${original}`;
         this._console(`[${this._getTime()}]${message}`, level);
         this._callback(`[${this._getTime()}]${message}`, level);
         this._output(`[${this._getTime()}]${message}`);
-        return message;
+        return original;
     }
 
 }
