@@ -1,10 +1,8 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, OnChanges, Input, AfterContentInit, SimpleChanges } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, OnChanges, Input, AfterContentInit, SimpleChanges } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { Entry, ConnectedField, LocalField } from '../../../../controller/settings/field.store';
+import { Entry, ConnectedField, LocalField, ESettingType } from '../../../../controller/settings/field.store';
 import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
 import { IPair } from '../../../../thirdparty/code/engine';
-
-import SettingsService from '../../../../services/service.settings';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -31,6 +29,7 @@ export class TabSettingsContentComponent implements OnDestroy, AfterContentInit,
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabSettingsContentComponent');
     private _changes: Map<string, IChange> = new Map();
     private _working: boolean = false;
+    private _advanced: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
@@ -105,6 +104,34 @@ export class TabSettingsContentComponent implements OnDestroy, AfterContentInit,
         } else {
             return match.description;
         }
+    }
+
+    public _ng_getFields(): Array<ConnectedField<any> | LocalField<any>> {
+        return this.fields.filter((field: ConnectedField<any> | LocalField<any>) => {
+            return this._advanced ? field : (field.getType() === ESettingType.standard);
+        });
+    }
+
+    public _ng_hasAdvanced(): boolean {
+        let has: boolean = false;
+        this.fields.forEach((field: ConnectedField<any> | LocalField<any>) => {
+            if (has) {
+                return;
+            }
+            if (field.getType() === ESettingType.advanced) {
+                has = true;
+            }
+        });
+        return has;
+    }
+
+    public _ng_onAdvanced() {
+        this._advanced = !this._advanced;
+        this._forceUpdate();
+    }
+
+    public _ng_getAdvancedLabel(): string {
+        return this._advanced ? 'Hide advanced' : 'Show advanced';
     }
 
     private _onFieldChanged(field: ConnectedField<any> | LocalField<any>, value: any) {
