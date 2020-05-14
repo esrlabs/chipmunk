@@ -1,6 +1,7 @@
 import { Component, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
 import FileOpenerService, { IFile } from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
+import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { Subscription } from 'rxjs';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -17,7 +18,7 @@ export class LayoutPrimiryAreaNoTabsComponent implements AfterViewInit, OnDestro
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutPrimiryAreaNoTabsComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef, private _notifications: NotificationsService) {
 
     }
 
@@ -34,7 +35,15 @@ export class LayoutPrimiryAreaNoTabsComponent implements AfterViewInit, OnDestro
 
     private _onFilesDropped(files: IFile[]) {
         TabsSessionsService.add().then(() => {
-            FileOpenerService.open(files);
+            FileOpenerService.open(files).catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Error opening file',
+                    message: error.message,
+                    options: {
+                        type: ENotificationType.error,
+                    }
+                });
+            });
         }).catch((error: Error) => {
             this._logger.error(`Fail to open new tab due error: ${error.message}`);
         });

@@ -2,7 +2,6 @@ import ServiceElectron, { IPCMessages } from '../service.electron';
 import ServiceStreams, { IStreamInfo } from '../service.streams';
 import ServiceStorage, { IStorageScheme } from '../service.storage';
 import ServiceStreamSource from '../service.stream.sources';
-import ServiceNotifications, { ENotificationType } from '../../services/service.notifications';
 import ServiceHotkeys from '../service.hotkeys';
 import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
 import { FileParsers } from '../../controllers/files.parsers/index';
@@ -266,11 +265,7 @@ class ServiceFileOpener implements IService {
                     fs.lstat(file, (lsErr, lsStats) => {
                         if (lsErr) {
                             const errorMessage = `Fail to list files due to error: ${lsErr.message}`;
-                            ServiceNotifications.notify({
-                                caption: 'Error with file',
-                                message: errorMessage,
-                                type: ENotificationType.warning,
-                            });
+                            self._logger.warn(errorMessage);
                             return rejected(new Error(errorMessage));
                         }
                         if (lsStats.isFile()) {
@@ -278,17 +273,13 @@ class ServiceFileOpener implements IService {
                             return fs.stat(file, (fsErr, fsStats) => {
                                 if (fsErr) {
                                     const errorMessage = `Fail to get file info of ${file} due to error: ${fsErr.message}`;
-                                    ServiceNotifications.notify({
-                                        caption: 'Error with file',
-                                        message: errorMessage,
-                                        type: ENotificationType.warning,
-                                    });
+                                    self._logger.warn(errorMessage);
                                     rejected(new Error(errorMessage));
                                 } else {
                                     resolved(allFiles.push({
                                         lastModified: fsStats.mtimeMs,
                                         lastModifiedDate: fsStats.mtime,
-                                        name: self._getName(file),
+                                        name: path.basename(file),
                                         path: file,
                                         size: fsStats.size,
                                         type: 'file',
@@ -298,22 +289,14 @@ class ServiceFileOpener implements IService {
                         } else if (!(lsStats.isDirectory())) {
                             // Neither file nor directory
                             const errorMessage = `Fail to get file info of ${file} because it is neither a file nor a directory`;
-                            ServiceNotifications.notify({
-                                caption: `Error with file`,
-                                message: errorMessage,
-                                type: ENotificationType.warning,
-                            });
+                            self._logger.warn(errorMessage);
                             rejected(new Error(errorMessage));
                         } else {
                             // Directory
                             return fs.readdir(file, (err, files) => {
                                 if (err) {
                                     const errorMessage = `Fail to list files of directory ${file} due to error: ${err.message}`;
-                                    ServiceNotifications.notify({
-                                        caption: 'Error with directory',
-                                        message: errorMessage,
-                                        type: ENotificationType.warning,
-                                    });
+                                    self._logger.warn(errorMessage);
                                     rejected(new Error(errorMessage));
                                 } else {
                                     Promise.all(files.map((subFile: string) => {
@@ -335,13 +318,6 @@ class ServiceFileOpener implements IService {
                 reject(new Error(`Fail to list files of directory ${startFile} info due to error: ${error.message}`));
             });
         });
-    }
-
-    private _getName(file: string): string {
-        if (file.trim() === '') {
-            return '';
-        }
-        return path.basename(file);
     }
 
     private _getOptions(fullFileName: string, fileName: string, parser: AFileParser, size: number ): Promise<any> {
