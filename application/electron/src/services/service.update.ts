@@ -8,12 +8,15 @@ import ServicePackage from './service.package';
 import ServiceElectron, { Subscription, IPCMessages } from './service.electron';
 import ServiceProduction from './service.production';
 import GitHubClient from '../tools/env.github.client';
+import ServiceSettings from './service.settings';
 
 import { IReleaseAsset, IReleaseData } from '../tools/env.github.client';
 import { getPlatform, EPlatforms } from '../tools/env.os';
 import { IService } from '../interfaces/interface.service';
-
+import { StandardBoolean } from '../controllers/settings/settings.standard.boolean';
 import { IApplication, EExitCodes } from '../interfaces/interface.app';
+import { sequences } from '../tools/sequences';
+import { Entry, ESettingType } from '../../../common/settings/field.store';
 
 const CHooks = {
     alias: '<alias>',
@@ -40,6 +43,18 @@ class ServiceUpdate implements IService {
     private _tgzfile: string | undefined;
     private _subscription: { [key: string]: Subscription } = {};
     private _app: IApplication | undefined;
+    private _settings: {
+        updates: StandardBoolean,
+    } = {
+        updates: new StandardBoolean({
+            key: 'ApplicationUpdates',
+            name: 'Automatically update chipmunk',
+            desc: 'Update chipmunk automatically if update is available',
+            path: 'general.updates',
+            type: ESettingType.standard },
+            'ApplicationUpdates',
+        ),
+    };
 
     /**
      * Initialization function
@@ -58,11 +73,14 @@ class ServiceUpdate implements IService {
                 ServiceElectron.IPC.subscribe(ServiceElectron.IPCMessages.UpdateRequest, this._onUpdateRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscription.UpdateRequest = subscription;
                 }),
-            ]).then(() => {
-                resolve();
-            }).catch((error: Error) => {
+            ]).catch((error: Error) => {
                 this._logger.warn(`Fail to make subscriptions to due error: ${error.message}`);
-                resolve();
+            }).finally(() => {
+                this._setSettings().catch((settingErr: Error) => {
+                    this._logger.warn(`Fail to register settings due error: ${settingErr.message}`);
+                }).finally(() => {
+                    resolve();
+                });
             });
         });
     }
@@ -77,7 +95,32 @@ class ServiceUpdate implements IService {
         return 'ServiceUpdate';
     }
 
+    private _setSettings(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            sequences([
+                ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'general', name: 'General', desc: 'General setting of chipmunk', path: '', type: ESettingType.standard })),
+                ServiceSettings.register.bind(ServiceSettings, new Entry({ key: 'updates', name: 'Updates', desc: 'Configure application update workflow', path: 'general', type: ESettingType.standard })),
+            ]).then(() => {
+                Promise.all([
+                    ServiceSettings.register(this._settings.updates).catch((regErr: Error) => {
+                        this._logger.error(regErr.message);
+                    }),
+                ]).then(() => {
+                    resolve();
+                }).catch((error: Error) => {
+                    reject(error);
+                });
+            }).catch((structErr: Error) => {
+                reject(structErr);
+            });
+        });
+    }
+
     private _check() {
+        if (!this._settings.updates.get()) {
+            // Autoupdate is off
+            return;
+        }
         if (!ServiceProduction.isProduction()) {
             // In dev mode do not check for updates
             return;
