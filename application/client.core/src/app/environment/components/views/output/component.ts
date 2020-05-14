@@ -10,7 +10,7 @@ import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import FileOpenerService, { IFile } from '../../../services/service.file.opener';
 import EventsHubService from '../../../services/standalone/service.eventshub';
-import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import PluginsService from '../../../services/service.plugins';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { cleanupOutput } from '../row/helpers';
@@ -315,7 +315,15 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _onFilesDropped(files: IFile[]) {
-        FileOpenerService.open(files);
+        FileOpenerService.open(files).catch((error: Error) => {
+            this._notifications.add({
+                caption: 'Error opening file',
+                message: error.message,
+                options: {
+                    type: ENotificationType.error
+                }
+            });
+        });
     }
 
     private _onKeepScrollPrevent() {
