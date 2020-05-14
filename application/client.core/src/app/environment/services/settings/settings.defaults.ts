@@ -29,6 +29,8 @@ export class SettingsDefaultsService implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
+            resolve();
+            /*
             Toolkit.sequences([
                 SettingsService.register.bind(SettingsService, new Entry({ key: 'client', name: 'Core', desc: 'Settings of client', path: '', type: ESettingType.standard })),
                 SettingsService.register.bind(SettingsService, new Entry({ key: 'general', name: 'General', desc: 'General setting of chipmunk', path: '', type: ESettingType.standard })),
@@ -55,6 +57,7 @@ export class SettingsDefaultsService implements IService {
                     resolve();
                 });
             });
+            */
         });
     }
 
