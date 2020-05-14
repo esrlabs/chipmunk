@@ -24,14 +24,15 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.recentFilters]:           { shortkeys: ['Shift + ⌘ + J', 'Shift + Ctrl + P'],         description: 'Open recent filtres',             category: EHotkeyCategory.Files },
     [IPCMessages.EHotkeyActionRef.openLocalFile]:           { shortkeys: ['⌘ + O', 'Ctrl + O'],                         description: 'Open local file',                 category: EHotkeyCategory.Files },
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'],         description: 'Show filters tab',                category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                         description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
-    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                         description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
+    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                          description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
+    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                          description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
     [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { shortkeys: ['⌘ + F', 'Ctrl + F', '/'],                    description: 'Focus on search input',           category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.focusMainView]:           { shortkeys: ['⌘ + 1', 'Ctrl + 1'],                         description: 'Focus on main output',            category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                         description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
     [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                         description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                         description: 'Show this dialog',                category: EHotkeyCategory.Other },
+    [IPCMessages.EHotkeyActionRef.settings]:                { shortkeys: ['⌘ + ,', 'Ctrl + ,'],                         description: 'Show settings',                   category: EHotkeyCategory.Other },
+    [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                          description: 'Show this dialog',                category: EHotkeyCategory.Other },
 };
 
 const CLocalHotkeyMap = {
@@ -70,6 +71,7 @@ export class HotkeysService implements IService {
         toolbarToggle: new Subject<IHotkeyEvent>(),
         recentFiles: new Subject<IHotkeyEvent>(),
         recentFilters: new Subject<IHotkeyEvent>(),
+        settings: new Subject<IHotkeyEvent>(),
     };
 
     constructor() {
@@ -121,6 +123,7 @@ export class HotkeysService implements IService {
         toolbarToggle: Observable<IHotkeyEvent>,
         recentFiles: Observable<IHotkeyEvent>,
         recentFilters: Observable<IHotkeyEvent>,
+        settings: Observable<IHotkeyEvent>,
     } {
         return {
             newTab: this._subjects.newTab.asObservable(),
@@ -137,6 +140,7 @@ export class HotkeysService implements IService {
             toolbarToggle: this._subjects.toolbarToggle.asObservable(),
             recentFiles: this._subjects.recentFiles.asObservable(),
             recentFilters: this._subjects.recentFilters.asObservable(),
+            settings: this._subjects.settings.asObservable(),
         };
     }
 

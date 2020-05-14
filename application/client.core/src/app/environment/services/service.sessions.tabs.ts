@@ -107,6 +107,10 @@ export class TabsSessionsService implements IService {
         this._defaults.views = views;
     }
 
+    public isTabExist(guid: string): boolean {
+        return this._sessions.has(guid);
+    }
+
     public add(custom?: ICustomTab): Promise<ControllerSessionTab | ICustomTab> {
         return new Promise((resolve, reject) => {
             const guid: string = custom !== undefined ? custom.id : Toolkit.guid();
