@@ -113,7 +113,6 @@ class ServiceConfig implements IService {
         }
         return field.get();
     }
-    
 
     private _getIndex(): number {
         return this._index++;

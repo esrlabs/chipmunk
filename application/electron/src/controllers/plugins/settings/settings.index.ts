@@ -12,7 +12,7 @@ export enum CSettingsAliases {
     PluginsUpgrades = 'PluginsUpgrades',
     RemoveNotValid = 'RemoveNotValid',
     DefaultsPlugins = 'DefaultsPlugins',
-};
+}
 
 export const CSettingsEtries = {
     [CSettingsAliases.PluginsUpdates]: new StandardBoolean({
