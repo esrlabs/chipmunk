@@ -1,4 +1,6 @@
 
+// tslint:disable: member-ordering
+
 import { Entry, FieldBase, IEntry, ESettingType, IField, RenderField, Field } from '../../../../../../common/settings/field.store';
 import { ElementRefs, EElementSignature, getElementType } from '../../../../../../common/settings/field.render';
 import { IPCMessages } from '../../services/service.electron.ipc';
@@ -6,6 +8,8 @@ import { IPCMessages } from '../../services/service.electron.ipc';
 import ElectronIpcService from '../../services/service.electron.ipc';
 
 export { Entry, IEntry, ESettingType, getElementType, FieldBase, RenderField, IField, Field };
+
+const CLocalFieldClassSignature = 'CLocalFieldClassSignature';
 
 export abstract class LocalField<T> extends Field<T> {
 
@@ -42,7 +46,69 @@ export abstract class LocalField<T> extends Field<T> {
         });
     }
 
+    public refresh(): Promise<T> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.SettingsOperationGetRequest({
+                key: this.getKey(),
+                path: this.getPath(),
+            }), IPCMessages.SettingsOperationGetResponse).then((response: IPCMessages.SettingsOperationGetResponse<T>) => {
+                resolve(response.value);
+            }).catch((err: Error) => {
+                reject(err);
+            });
+        });
+    }
+
+    /**
+     * Internal usage
+     */
+    public getClassSignature(): string {
+        return CLocalFieldClassSignature;
+    }
+
+    /**
+     * Internal usage
+     */
+    public static isInstance(smth: any): boolean {
+        if (typeof smth !== 'object' || smth === null) {
+            return false;
+        }
+        if (typeof smth.getClassSignature !== 'function') {
+            return false;
+        }
+        return smth.getClassSignature() === CLocalFieldClassSignature;
+    }
+
 }
+
+export class LocalFieldAPIWrapper<T> extends LocalField<T> {
+
+    private _field: Field<T>;
+
+    constructor(field: Field<T>) {
+        super(field.asField());
+        this._field = field;
+    }
+
+    public validate(value: T): Promise<void> {
+        return this._field.validate(value);
+    }
+
+    public getDefault(): Promise<T> {
+        return this._field.getDefault();
+    }
+
+    public getElementType(): EElementSignature | undefined {
+        return this._field.getElementType();
+    }
+
+    public getElement(): ElementRefs {
+        return this._field.getElement();
+    }
+
+}
+
+const CConnectedFieldClassSignature = 'CConnectedFieldClassSignature';
 
 export class ConnectedField<T> extends FieldBase<T> {
 
@@ -123,6 +189,26 @@ export class ConnectedField<T> extends FieldBase<T> {
                 reject(err);
             });
         });
+    }
+
+    /**
+     * Internal usage
+     */
+    public getClassSignature(): string {
+        return CConnectedFieldClassSignature;
+    }
+
+    /**
+     * Internal usage
+     */
+    public static isInstance(smth: any): boolean {
+        if (typeof smth !== 'object' || smth === null) {
+            return false;
+        }
+        if (typeof smth.getClassSignature !== 'function') {
+            return false;
+        }
+        return smth.getClassSignature() === CConnectedFieldClassSignature;
     }
 
 }
