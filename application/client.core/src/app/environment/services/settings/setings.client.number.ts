@@ -5,7 +5,6 @@ export class ClientTestNumbers extends LocalField<number> {
 
     private _element: ElementInputNumberRef = new ElementInputNumberRef({
         placeholder: 'Test Placeholder',
-        label: 'Test Label',
         min: 10,
         max: 100,
     });

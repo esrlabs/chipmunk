@@ -5,7 +5,6 @@ export class ClientTestStrings extends LocalField<string> {
 
     private _element: ElementInputStringRef = new ElementInputStringRef({
         placeholder: 'Test Placeholder',
-        label: 'Test Label',
     });
 
     public getDefault(): Promise<string> {
