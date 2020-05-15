@@ -30,12 +30,12 @@ const InitializeStages = [
     // Stage #3
     [   SettingsService ],
     // Stage #4
-    [SettingsDefaultsService],
+    [   SettingsDefaultsService ],
     // Stage #5
     [   PluginsService,
-        SourcesService],
+        SourcesService ],
     // Stage #6
-    [   PluginsIPCService],
+    [   PluginsIPCService ],
     // Stage #7
     [   TabsSessionsService,
         TabsCustomService,
@@ -48,7 +48,7 @@ const InitializeStages = [
         HotkeysService,
         ConnectionsService ],
     // Stage #8
-    [   TabSelectionParserService]
+    [   TabSelectionParserService ]
 ];
 
 // TODO: Destroy method, even dummy
