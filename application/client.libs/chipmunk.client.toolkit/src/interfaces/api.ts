@@ -6,6 +6,32 @@ import { IPC } from '../classes/class.ipc';
 import { IPopup } from './client.popup';
 import { IComponentDesc } from './client.components.containers';
 import { INotification } from './client.notification';
+import { ESettingType, Entry, IEntry, Field, IField, IStorage, FieldBase } from '../../../../common/settings/field.store';
+import { EElementSignature, Element, ElementCheckboxRef, ElementInputNumberRef, ElementInputStringRef, ElementRefs } from '../../../../common/settings/field.render';
+
+export {
+    ESettingType,
+    Entry,
+    IEntry,
+    Field,
+    IField,
+    IStorage,
+    FieldBase,
+    EElementSignature,
+    Element,
+    ElementCheckboxRef,
+    ElementInputNumberRef,
+    ElementInputStringRef,
+    ElementRefs
+}
+
+export interface ISettingsAPI {
+
+    register(entry: Entry | Field<any>): Promise<void>;
+
+    get<T>(key: string, path: string): Promise<T>;
+
+}
 
 /**
  * Plugin's API. Gives access to:
@@ -18,6 +44,11 @@ export interface IAPI {
      * @returns {IPC} Returns PluginAPI object for host and render plugin communication
      */
     getIPC: () => IPC | undefined;
+
+    /**
+     * @returns {IPC} Returns ISettingsAPI object to manage settings of plugins/application
+     */
+    getSettingsAPI: () => ISettingsAPI;
 
     /**
      * @returns {string} ID of active stream (active tab)
