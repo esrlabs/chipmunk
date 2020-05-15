@@ -315,7 +315,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     private _loadAndInit_SetupPluginService(name: string, token: string, id: number, location: string, pluginData: IPluginData): Promise<IPluginData> {
         return new Promise((resolve) => {
-            const service: Toolkit.APluginService | undefined = this._getPluginService(pluginData.exports);
+            const service: Toolkit.PluginService | undefined = this._getPluginService(pluginData.exports);
             if (service === undefined) {
                 return resolve(pluginData);
             }
@@ -336,18 +336,18 @@ export class PluginsService extends Toolkit.Emitter implements IService {
     private _getNgModule(exports: Toolkit.IPluginExports): AngularCore.Type<any> | undefined {
         let module: Toolkit.PluginNgModule | undefined;
         Object.keys(exports).forEach((key: string) => {
-            if (module === undefined && Toolkit.PluginNgModule.isPrototypeOf(exports[key])) {
+            if (module === undefined && Toolkit.PluginNgModule.isInstance(exports[key])) {
                 module = (exports as any)[key] as Toolkit.PluginNgModule;
             }
         });
         return module as any;
     }
 
-    private _getPluginService(exports: Toolkit.IPluginExports): Toolkit.APluginService | undefined {
-        let service: Toolkit.APluginService | undefined;
+    private _getPluginService(exports: Toolkit.IPluginExports): Toolkit.PluginService | undefined {
+        let service: Toolkit.PluginService | undefined;
         Object.keys(exports).forEach((key: string) => {
-            if (service === undefined && exports[key] instanceof Toolkit.APluginService) {
-                service = exports[key] as Toolkit.APluginService;
+            if (service === undefined && Toolkit.PluginService.isInstance(exports[key])) {
+                service = exports[key] as Toolkit.PluginService;
             }
         });
         return service;
