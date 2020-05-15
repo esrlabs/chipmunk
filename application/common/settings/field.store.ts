@@ -88,6 +88,8 @@ export function getEntryKeyByArgs(path: string, key: string): string {
     return `${path}${path === '' ? '' : '.'}${key}`;
 }
 
+const CEntryClassSignature = 'CEntryClassSignature';
+
 export class Entry {
 
     private _key: string;
@@ -174,11 +176,33 @@ export class Entry {
         return store;
     }
 
+    /**
+     * Internal usage
+     */
+    public getClassSignature(): string {
+        return CEntryClassSignature;
+    }
+
+    /**
+     * Internal usage
+     */
+    public static isInstance(smth: any): boolean {
+        if (typeof smth !== 'object' || smth === null) {
+            return false;
+        }
+        if (typeof smth.getClassSignature !== 'function') {
+            return false;
+        }
+        return smth.getClassSignature() === CEntryClassSignature;
+    }
+
 }
 
 export interface IField<T> extends IEntry {
     value?: T;
 }
+
+const CFieldBaseClassSignature = 'CFieldBaseClassSignature';
 
 export class FieldBase<T> extends Entry {
 
@@ -219,7 +243,29 @@ export class FieldBase<T> extends Entry {
         return stored;
     }
 
+    /**
+     * Internal usage
+     */
+    public getClassSignature(): string {
+        return CFieldBaseClassSignature;
+    }
+
+    /**
+     * Internal usage
+     */
+    public static isInstance(smth: any): boolean {
+        if (typeof smth !== 'object' || smth === null) {
+            return false;
+        }
+        if (typeof smth.getClassSignature !== 'function') {
+            return false;
+        }
+        return smth.getClassSignature() === CFieldBaseClassSignature;
+    }
+
 }
+
+const CRenderFieldClassSignature = 'CRenderFieldClassSignature';
 
 export class RenderField<T> extends FieldBase<T> {
     
@@ -272,7 +318,29 @@ export class RenderField<T> extends FieldBase<T> {
         return store;
     }
 
+    /**
+     * Internal usage
+     */
+    public getClassSignature(): string {
+        return CRenderFieldClassSignature;
+    }
+
+    /**
+     * Internal usage
+     */
+    public static isInstance(smth: any): boolean {
+        if (typeof smth !== 'object' || smth === null) {
+            return false;
+        }
+        if (typeof smth.getClassSignature !== 'function') {
+            return false;
+        }
+        return smth.getClassSignature() === CRenderFieldClassSignature;
+    }
+
 }
+
+const CFieldClassSignature = 'CFieldClassSignature';
 
 export abstract class Field<T> extends FieldBase<T> {
 
@@ -337,6 +405,26 @@ export abstract class Field<T> extends FieldBase<T> {
 
     public getElementType(): EElementSignature | undefined {
         return getElementType(this.getElement());
+    }
+
+    /**
+     * Internal usage
+     */
+    public getClassSignature(): string {
+        return CFieldClassSignature;
+    }
+
+    /**
+     * Internal usage
+     */
+    public static isInstance(smth: any): boolean {
+        if (typeof smth !== 'object' || smth === null) {
+            return false;
+        }
+        if (typeof smth.getClassSignature !== 'function') {
+            return false;
+        }
+        return smth.getClassSignature() === CFieldClassSignature;
     }
 
 }
