@@ -34,7 +34,6 @@ export class ElementCheckboxRef {
 
 interface IElementInputStringRef {
     placeholder: string;
-    label: string;
 }
 
 export class ElementInputStringRef {
@@ -43,18 +42,15 @@ export class ElementInputStringRef {
     public readonly signature: EElementSignature = ElementInputStringRef.signature;
 
     public placeholder: string;
-    public label: string;
 
     constructor(params: IElementInputStringRef) {
         this.placeholder = params.placeholder;
-        this.label = params.label;
     }
 
 }
 
 interface IElementInputNumberRef {
     placeholder: string;
-    label: string;
     min: number;
     max: number;
 }
@@ -65,13 +61,11 @@ export class ElementInputNumberRef {
     public readonly signature: EElementSignature = ElementInputNumberRef.signature;
 
     public placeholder: string;
-    public label: string;
     public min: number;
     public max: number;
 
     constructor(params: IElementInputNumberRef) {
         this.placeholder = params.placeholder;
-        this.label = params.label;
         this.min = params.min;
         this.max = params.max;
     }
