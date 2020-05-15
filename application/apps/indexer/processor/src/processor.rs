@@ -30,8 +30,8 @@ use std::{
     time::Instant,
 };
 
-pub fn create_index_and_mapping(
-    config: IndexingConfig,
+pub async fn create_index_and_mapping(
+    config: IndexingConfig<'_>,
     source_file_size: u64,
     parse_timestamps: bool,
     update_channel: cc::Sender<ChunkResults>,

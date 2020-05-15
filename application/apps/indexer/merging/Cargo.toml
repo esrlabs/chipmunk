@@ -14,6 +14,8 @@ indexer_base = { path = "../indexer_base" }
 processor = { path = "../processor" }
 dlt = { path = "../dlt" }
 crossbeam-channel = "0.4"
+async-std = { version = "1.5", features = ["attributes", "unstable"] }
+futures = { version = "0.3.4", features = ["std", "async-await"], default-features = false }
 
 [dev-dependencies]
 tempdir = "0.3"

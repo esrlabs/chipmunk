@@ -16,6 +16,7 @@ extern crate log;
 
 pub mod concatenator;
 pub mod merger;
+pub mod merger_async;
 
 #[cfg(test)]
 mod tests;
