@@ -6,6 +6,7 @@ mod tests {
     use crate::processor::*;
     use crossbeam_channel as cc;
     use crossbeam_channel::unbounded;
+    use failure::Error;
     use indexer_base::{
         chunks::{Chunk, ChunkResults},
         config::IndexingConfig,
@@ -15,7 +16,7 @@ mod tests {
     use std::{fs, path::PathBuf};
     use tempfile::tempdir;
 
-    fn get_chunks(
+    async fn get_chunks(
         test_content: &str,
         chunksize: usize,
         tag_name: &str,
@@ -44,6 +45,7 @@ mod tests {
             tx,
             None,
         )
+        .await
         .unwrap();
         let out_file_content: String =
             fs::read_to_string(out_file_path).expect("could not read file");
@@ -104,8 +106,8 @@ mod tests {
             && row_pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
     }
 
-    #[test]
-    fn test_append_to_empty_output() {
+    #[async_std::test]
+    async fn test_append_to_empty_output() -> Result<(), Error> {
         let tmp_dir = tempdir().expect("could not create temp dir");
         let empty_file_path = tmp_dir.path().join("empty.log");
         // call our function
@@ -129,7 +131,7 @@ mod tests {
             tx,
             None,
         )
-        .expect("could not index file");
+        .await?;
 
         let mut chunks: Vec<Chunk> = vec![];
         loop {
@@ -192,7 +194,7 @@ mod tests {
             tx,
             None,
         )
-        .unwrap();
+        .await?;
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {
@@ -234,32 +236,33 @@ mod tests {
                 }
             }
         }
+        Ok(())
     }
-    #[test]
-    fn test_chunking_one_chunk_exact() {
-        let (chunks, content) = get_chunks("A\n", 1, "some_new_tag", None);
+    #[async_std::test]
+    async fn test_chunking_one_chunk_exact() {
+        let (chunks, content) = get_chunks("A\n", 1, "some_new_tag", None).await;
         println!("chunks: {:?}", chunks);
         println!("content: {:02X?}", content.as_bytes());
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[test]
-    fn test_chunking_one_chunk_to_big() {
-        let (chunks, content) = get_chunks("A\n", 2, "tag_ok", None);
+    #[async_std::test]
+    async fn test_chunking_one_chunk_to_big() {
+        let (chunks, content) = get_chunks("A\n", 2, "tag_ok", None).await;
         println!("chunks: {:?}", chunks);
         println!("content: {:02X?}", content.as_bytes());
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[test]
-    fn test_chunking_one_chunk_exact_no_nl() {
-        let (chunks, content) = get_chunks("A", 1, "tag_no_nl", None);
+    #[async_std::test]
+    async fn test_chunking_one_chunk_exact_no_nl() {
+        let (chunks, content) = get_chunks("A", 1, "tag_no_nl", None).await;
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[test]
-    fn test_chunking_multiple_chunks_partly() {
-        let (chunks, content) = get_chunks("A\nB\nC", 2, "T", None);
+    #[async_std::test]
+    async fn test_chunking_multiple_chunks_partly() {
+        let (chunks, content) = get_chunks("A\nB\nC", 2, "T", None).await;
         println!("chunks: {:?}", chunks);
         println!(
             "content ({} bytes): {:02X?}",
@@ -269,15 +272,15 @@ mod tests {
         assert_eq!(2, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[test]
-    fn test_chunking_multiple_chunks_complete() {
-        let (chunks, content) = get_chunks("A\nB\nC\nD\n", 2, "tag_chunk_complet", None);
+    #[async_std::test]
+    async fn test_chunking_multiple_chunks_complete() {
+        let (chunks, content) = get_chunks("A\nB\nC\nD\n", 2, "tag_chunk_complet", None).await;
         assert_eq!(2, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[test]
-    fn test_chunking_multiple_chunks_complete_no_nl() {
-        let (chunks, content) = get_chunks("A\nB\nC\nD", 2, "tag_complete_no_nl", None);
+    #[async_std::test]
+    async fn test_chunking_multiple_chunks_complete_no_nl() {
+        let (chunks, content) = get_chunks("A\nB\nC\nD", 2, "tag_complete_no_nl", None).await;
         println!("chunks: {:?}", chunks);
         trace!("content: {:02X?}", content.as_bytes());
         assert_eq!(2, chunks.len());
@@ -318,20 +321,23 @@ mod tests {
             fs::copy(&append_to_this, &out_file_path).expect("copy content failed");
         }
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-        create_index_and_mapping(
-            IndexingConfig {
-                tag: "TAG",
-                chunk_size: 1,
-                in_file: in_path.clone(),
-                out_path: &out_file_path,
-                append: append_use_case,
-            },
-            fs::metadata(&in_path).expect("metadata not found").len(),
-            false,
-            tx,
-            None,
-        )
-        .unwrap();
+        async_std::task::block_on(async {
+            create_index_and_mapping(
+                IndexingConfig {
+                    tag: "TAG",
+                    chunk_size: 1,
+                    in_file: in_path.clone(),
+                    out_path: &out_file_path,
+                    append: append_use_case,
+                },
+                fs::metadata(&in_path).expect("metadata not found").len(),
+                false,
+                tx,
+                None,
+            )
+            .await
+            .unwrap();
+        });
         let mut chunks: Vec<Chunk> = vec![];
         loop {
             match rx.recv() {

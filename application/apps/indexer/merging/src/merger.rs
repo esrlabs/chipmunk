@@ -21,7 +21,6 @@ use indexer_base::{
 use processor::parse::{line_to_timed_line, lookup_regex_for_format_str};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::{
     fmt::Debug,
     fs::{self, File},
@@ -44,12 +43,59 @@ pub struct FileMergeOptions {
     pub format: String,
 }
 
-pub fn read_merge_options(f: &mut File) -> Result<Vec<FileMergeOptions>, failure::Error> {
+pub fn read_merge_options(
+    f: &mut File,
+    relative_path: Option<impl AsRef<Path>>,
+) -> Result<Vec<FileMergeOptions>, failure::Error> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
 
     let v: Vec<FileMergeOptions> = serde_json::from_str(&contents[..])?;
-    Ok(v)
+    match relative_path {
+        Some(relative) => Ok(v
+            .into_iter()
+            .map(|option| FileMergeOptions {
+                path: relative.as_ref().join(option.path).to_string_lossy().into(),
+                ..option
+            })
+            .collect()),
+        None => Ok(v),
+    }
+}
+
+#[allow(dead_code)]
+pub struct FileLogEntryProducer {
+    timed_line_iterator: TimedLineIter,
+}
+#[allow(dead_code)]
+impl FileLogEntryProducer {
+    pub(crate) fn new(
+        read_from: File,
+        tag: String,
+        regex: Regex,
+        year: Option<i32>,
+        time_offset: Option<i64>,
+        current_line_nr: usize,
+    ) -> Result<FileLogEntryProducer, Error> {
+        let iter = TimedLineIter::new(read_from, tag, regex, year, time_offset, current_line_nr);
+        Ok(FileLogEntryProducer {
+            timed_line_iterator: iter,
+        })
+    }
+}
+
+impl futures::Stream for FileLogEntryProducer {
+    type Item = Result<Option<TimedLine>, Error>;
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context,
+    ) -> futures::task::Poll<Option<Self::Item>> {
+        let next = self.timed_line_iterator.next();
+        match next {
+            Some(msg) => futures::task::Poll::Ready(Some(Ok(Some(msg)))),
+            None => futures::task::Poll::Ready(Some(Err(err_msg("no more message")))),
+        }
+    }
 }
 
 pub struct TimedLineIter {
@@ -151,7 +197,6 @@ pub fn merge_files_use_config(
         &out_path,
         chunk_size,
         options,
-        None,
         update_channel,
         shutdown_rx.as_ref(),
     )
@@ -173,14 +218,14 @@ pub fn merge_files_use_config_file(
 ) -> Result<(), failure::Error> {
     trace!("merge files using config from {}", config_path.display());
     let mut merge_option_file = File::open(config_path)?;
-    let parent_name = config_path.parent();
-    let options: Vec<FileMergeOptions> = read_merge_options(&mut merge_option_file)?;
+    let options: Vec<FileMergeOptions> =
+        read_merge_options(&mut merge_option_file, config_path.parent())?;
+    trace!("with options...");
     do_the_merge(
         append,
         &out_path,
         chunk_size,
         options,
-        parent_name,
         update_channel,
         shutdown_rx.as_ref(),
     )
@@ -191,7 +236,6 @@ fn do_the_merge(
     out_path: &Path,
     chunk_size: usize,
     merger_inputs: Vec<FileMergeOptions>,
-    parent_dir: Option<&Path>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<&cc::Receiver<()>>,
 ) -> Result<(), Error> {
@@ -202,13 +246,8 @@ fn do_the_merge(
         combined_file_size(&merger_inputs)?,
         update_channel.clone(),
     )?;
-    merge_inputs_with_writer(
-        parent_dir,
-        &mut writer,
-        merger_inputs,
-        update_channel,
-        shutdown_rx,
-    )
+    trace!("calling merge_inputs_with_writer");
+    merge_inputs_with_writer(&mut writer, merger_inputs, update_channel, shutdown_rx)
 }
 
 pub trait Len {
@@ -264,7 +303,6 @@ pub trait TimedLogEntry: PartialOrd {
 // ) -> Result<(), failure::Error> {
 
 pub(crate) fn merge_inputs_with_writer(
-    parent_dir: Option<&Path>,
     writer: &mut IndexOutput,
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
@@ -278,10 +316,11 @@ pub(crate) fn merge_inputs_with_writer(
         .map(
             |input: FileMergeOptions| -> Result<Peekable<TimedLineIter>, failure::Error> {
                 let file_path = PathBuf::from(input.path);
-                let absolute_path = match parent_dir {
-                    Some(dir) if !file_path.is_absolute() => PathBuf::from(&dir).join(file_path),
-                    _ => file_path,
-                };
+                let absolute_path = file_path;
+                //     Some(dir) if !file_path.is_absolute() => PathBuf::from(&dir).join(file_path),
+                //     _ => file_path,
+                // };
+                trace!("absolute_path was: {:?}", absolute_path);
                 Ok(TimedLineIter::new(
                     File::open(absolute_path)?,
                     input.tag,
@@ -355,7 +394,7 @@ pub(crate) fn merge_inputs_with_writer(
 }
 
 pub struct IndexOutput {
-    line_nr: usize,
+    pub(crate) line_nr: usize,
     update_channel: cc::Sender<ChunkResults>,
     chunk_count: usize,
     chunk_factory: ChunkFactory,
@@ -365,8 +404,11 @@ pub struct IndexOutput {
 
 pub(crate) fn combined_file_size<T>(paths: &[T]) -> Result<u64, Error>
 where
-    T: Len,
+    T: Len + Debug,
 {
+    let path = std::env::current_dir()?;
+    println!("The current directory is {}", path.display());
+    println!("paths: {:?}", paths);
     paths.iter().try_fold(0, |acc, x| match x.len() {
         Ok(len) => Ok(acc + len as u64),
         Err(e) => Err(err_msg(format!("error getting combined file size ({})", e))),
@@ -408,7 +450,12 @@ impl IndexOutput {
         })
     }
 
-    fn add_to_chunk(&mut self, content: &str, tag: &str, original_len: usize) -> Result<(), Error> {
+    pub(crate) fn add_to_chunk(
+        &mut self,
+        content: &str,
+        tag: &str,
+        original_len: usize,
+    ) -> Result<(), Error> {
         let additional_bytes = utils::write_tagged_line(
             &tag,
             &mut self.buf_writer,
@@ -430,7 +477,7 @@ impl IndexOutput {
         }
         Ok(())
     }
-    fn write_rest(&mut self) -> Result<(), Error> {
+    pub(crate) fn write_rest(&mut self) -> Result<(), Error> {
         self.buf_writer.flush()?;
         if let Some(chunk) = self
             .chunk_factory

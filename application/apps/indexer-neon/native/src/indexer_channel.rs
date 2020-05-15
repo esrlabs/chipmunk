@@ -26,7 +26,7 @@ impl IndexingEventEmitter {
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            index_file_with_progress(
+            let index_future = index_file_with_progress(
                 IndexingConfig {
                     tag: thread_conf.tag.as_str(),
                     chunk_size,
@@ -38,13 +38,17 @@ impl IndexingEventEmitter {
                 chunk_result_sender.clone(),
                 Some(shutdown_rx),
             );
+
+            async_std::task::block_on(async {
+                index_future.await;
+            });
             debug!("back after indexing finished!",);
         }));
     }
 }
 
-fn index_file_with_progress(
-    config: IndexingConfig,
+async fn index_file_with_progress(
+    config: IndexingConfig<'_>,
     timestamps: bool,
     tx: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
@@ -68,7 +72,9 @@ fn index_file_with_progress(
         timestamps,
         tx.clone(),
         shutdown_receiver,
-    ) {
+    )
+    .await
+    {
         Err(why) => {
             error!("create_index_and_mapping: couldn't process: {}", why);
             let _ = tx.try_send(Err(Notification {

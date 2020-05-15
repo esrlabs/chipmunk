@@ -8,6 +8,7 @@ members = [
     "merging",
 ]
 
+edition = "2018"
 # only uncomment when profiling
 # [profile.release]
 # debug = true

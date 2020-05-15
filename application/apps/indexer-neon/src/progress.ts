@@ -34,7 +34,7 @@ export interface IConcatenatorResult {
     byte_cnt: number,
 }
 export interface IMergerItemOptions {
-    name: string,
+    path: string,
     offset?: number,
     year?: number,
     format: string,

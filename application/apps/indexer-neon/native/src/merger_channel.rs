@@ -4,7 +4,7 @@ use indexer_base::chunks::ChunkResults;
 use indexer_base::progress::Notification;
 use indexer_base::progress::{IndexingProgress, Severity};
 use merging::merger::merge_files_use_config;
-use merging::merger::MergeItemOptions;
+use merging::merger::FileMergeOptions;
 use neon::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -19,7 +19,7 @@ pub struct MergerEmitter {
 impl MergerEmitter {
     pub fn start_merging_in_thread(
         self: &mut MergerEmitter,
-        options: Vec<MergeItemOptions>,
+        options: Vec<FileMergeOptions>,
         out_path: &Path,
         append: bool,
         chunk_size: usize, // used for mapping line numbers to byte positions
@@ -43,7 +43,7 @@ impl MergerEmitter {
 }
 
 fn merge_with_progress(
-    options: Vec<MergeItemOptions>,
+    options: Vec<FileMergeOptions>,
     out_path: &Path,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
@@ -81,7 +81,7 @@ declare_types! {
 pub class JsMergerEmitter for MergerEmitter {
     init(mut cx) {
         let arg_merge_inputs = cx.argument::<JsValue>(0)?;
-        let merge_item_options: Vec<MergeItemOptions> = neon_serde::from_value(&mut cx, arg_merge_inputs)?;
+        let merge_item_options: Vec<FileMergeOptions> = neon_serde::from_value(&mut cx, arg_merge_inputs)?;
         let out_path = PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
         let append: bool = cx.argument::<JsBoolean>(2)?.value();
         let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;

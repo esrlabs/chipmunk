@@ -68,7 +68,7 @@ export function testCallMergeFiles(mergeConf: string, out: string) {
 			const filePath = require('path').dirname(mergeConf);
 			const absolutePathConfig: Array<IMergerItemOptions> = config.map((input: IMergerItemOptions) => {
 				log.debug(`input is: ${JSON.stringify(input)}`);
-				input.name = require('path').resolve(filePath, input.name);
+				input.path = require('path').resolve(filePath, input.path);
 				return input;
 			});
 			log.debug(`absolutePathConfig: ${JSON.stringify(absolutePathConfig)}`);

@@ -451,28 +451,30 @@ fn main() {
     // (i.e. 'myprog -v -v -v' or 'myprog -vvv' vs 'myprog -v'
     let use_stderr_for_status_updates = matches.occurrences_of("v") >= 1;
 
-    if let Some(matches) = matches.subcommand_matches("merge") {
-        handle_merge_subcommand(matches, start)
-    } else if let Some(matches) = matches.subcommand_matches("index") {
-        handle_index_subcommand(matches, start, use_stderr_for_status_updates)
-    } else if let Some(matches) = matches.subcommand_matches("format") {
-        handle_format_subcommand(matches, start, use_stderr_for_status_updates)
-    } else if let Some(matches) = matches.subcommand_matches("export") {
-        handle_export_subcommand(matches, start)
-    } else if let Some(matches) = matches.subcommand_matches("dlt") {
-        handle_dlt_subcommand(matches, start)
-    } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
-        handle_dlt_pcap_subcommand(matches)
-    } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
-        handle_dlt_udp_subcommand(matches)
-    } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
-        handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates)
-    } else if let Some(matches) = matches.subcommand_matches("discover") {
-        handle_discover_subcommand(matches)
-    }
+    task::block_on(async {
+        if let Some(matches) = matches.subcommand_matches("merge") {
+            handle_merge_subcommand(matches, start).await
+        } else if let Some(matches) = matches.subcommand_matches("index") {
+            handle_index_subcommand(matches, start, use_stderr_for_status_updates).await
+        } else if let Some(matches) = matches.subcommand_matches("format") {
+            handle_format_subcommand(matches, start, use_stderr_for_status_updates).await
+        } else if let Some(matches) = matches.subcommand_matches("export") {
+            handle_export_subcommand(matches, start).await
+        } else if let Some(matches) = matches.subcommand_matches("dlt") {
+            handle_dlt_subcommand(matches, start).await
+        } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
+            handle_dlt_pcap_subcommand(matches).await
+        } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
+            handle_dlt_udp_subcommand(matches).await
+        } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
+            handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates).await
+        } else if let Some(matches) = matches.subcommand_matches("discover") {
+            handle_discover_subcommand(matches).await
+        }
+    });
 
-    fn handle_index_subcommand(
-        matches: &clap::ArgMatches,
+    async fn handle_index_subcommand(
+        matches: &clap::ArgMatches<'_>,
         start: std::time::Instant,
         status_updates: bool,
     ) {
@@ -507,7 +509,7 @@ fn main() {
                 cc::Receiver<ChunkResults>,
             ) = unbounded();
 
-            let _h = thread::spawn(move || {
+            let _h = task::spawn(async move {
                 match processor::processor::create_index_and_mapping(
                     IndexingConfig {
                         tag: tag_string.as_str(),
@@ -520,10 +522,12 @@ fn main() {
                     timestamps,
                     tx,
                     None,
-                ) {
+                )
+                .await
+                {
                     Err(why) => {
                         report_error(format!("couldn't process: {}", why));
-                        std::process::exit(2)
+                        async_std::process::exit(2)
                     }
                     Ok(()) => (),
                 }
@@ -578,7 +582,7 @@ fn main() {
         }
     }
 
-    fn handle_merge_subcommand(matches: &clap::ArgMatches, _start: std::time::Instant) {
+    async fn handle_merge_subcommand(matches: &clap::ArgMatches<'_>, _start: std::time::Instant) {
         debug!("handle_merge_subcommand");
         let merge_conf_path_string = value_t_or_exit!(matches.value_of("merge_config"), String);
         let merge_conf_path = path::PathBuf::from(merge_conf_path_string);
@@ -641,8 +645,8 @@ fn main() {
         std::process::exit(0)
     }
 
-    fn handle_format_subcommand(
-        matches: &clap::ArgMatches,
+    async fn handle_format_subcommand(
+        matches: &clap::ArgMatches<'_>,
         start: std::time::Instant,
         status_updates: bool,
     ) {
@@ -724,7 +728,7 @@ fn main() {
             last_line: elems[1].parse()?,
         })
     }
-    fn handle_export_subcommand(matches: &clap::ArgMatches, _start: std::time::Instant) {
+    async fn handle_export_subcommand(matches: &clap::ArgMatches<'_>, _start: std::time::Instant) {
         debug!("handle_export_subcommand");
 
         if let Some(file_name) = matches.value_of("file") {
@@ -764,7 +768,7 @@ fn main() {
             std::process::exit(0)
         }
     }
-    fn handle_dlt_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+    async fn handle_dlt_subcommand(matches: &clap::ArgMatches<'_>, start: std::time::Instant) {
         debug!("handle_dlt_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
@@ -882,7 +886,7 @@ fn main() {
         }
     }
 
-    fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches) {
+    async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches<'_>) {
         debug!("handle_dlt_pcap_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
@@ -985,7 +989,7 @@ fn main() {
             }
         }
     };
-    fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches) {
+    async fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches<'_>) {
         debug!("handle_dlt_udp_subcommand");
         if let (Some(ip_address), Some(tag), Some(output)) = (
             matches.value_of("ip"),
@@ -1085,7 +1089,7 @@ fn main() {
         }
     }
 
-    fn handle_discover_subcommand(matches: &clap::ArgMatches) {
+    async fn handle_discover_subcommand(matches: &clap::ArgMatches<'_>) {
         if let Some(test_string) = matches.value_of("input-string") {
             match detect_timestamp_in_string(test_string, None) {
                 Ok((timestamp, _, _)) => println!(
@@ -1239,8 +1243,8 @@ fn main() {
         }
     }
 
-    fn handle_dlt_stats_subcommand(
-        matches: &clap::ArgMatches,
+    async fn handle_dlt_stats_subcommand(
+        matches: &clap::ArgMatches<'_>,
         start: std::time::Instant,
         status_updates: bool,
     ) {

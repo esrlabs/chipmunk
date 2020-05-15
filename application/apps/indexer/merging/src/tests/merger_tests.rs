@@ -26,7 +26,7 @@ mod tests {
             let stdout = ConsoleAppender::builder().build();
             let config = Config::builder()
                 .appender(Appender::builder().build("stdout", Box::new(stdout)))
-                .build(Root::builder().appender("stdout").build(LevelFilter::Error))
+                .build(Root::builder().appender("stdout").build(LevelFilter::Trace))
                 .unwrap();
 
             match log4rs::init_config(config) {
@@ -62,6 +62,7 @@ mod tests {
         }
 
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+
         merge_files_use_config_file(&option_path, &out_file_path, append_use_case, 5, tx, None)
             .expect("calling our merge function should succeed");
         let mut last_processed_line: usize = 0;

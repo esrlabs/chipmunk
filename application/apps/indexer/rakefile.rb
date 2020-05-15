@@ -5,6 +5,46 @@ CLI_EXE_NAME = 'indexer_cli'
 EXE_NAME = 'chip'
 HOME = ENV['HOME']
 
+LEVEL_WARN = 1
+LEVEL_INFO = 2
+LEVEL_DEBUG = 3
+LEVEL_TRACE = 4
+VERBOSITY = LEVEL_DEBUG
+
+def debug(content)
+  puts("DEBUG: #{content}") unless VERBOSITY < LEVEL_DEBUG
+end
+
+def green(content)
+  begin
+    require 'colored'
+    content.green.to_s
+  rescue LoadError
+    content
+  end
+end
+def yellow(content)
+  begin
+    require 'colored'
+    content.yellow.to_s
+  rescue LoadError
+    content
+  end
+end
+
+def info(content)
+  puts("#{green('INFO')}: #{content}") unless VERBOSITY < LEVEL_INFO
+end
+
+def warn(content)
+  require 'colored'
+  puts("#{yellow('WARN')}: #{content}") unless VERBOSITY < LEVEL_WARN
+end
+
+def sh_cmds(commands)
+  sh commands.join(' && ')
+end
+
 # distinguish between OS
 module OS
   def self.windows?
@@ -147,7 +187,7 @@ task :create_release do
   current_tag = `git describe --tags`
   current_toml_version = read_current_version
   unless current_tag.start_with?(current_toml_version)
-    raise "current tag #{current_tag} does not match with current toml version: #{current_toml_version}"
+    warn "current tag #{current_tag} does not match toml version: #{current_toml_version}"
   end
 
   require 'highline'
@@ -157,19 +197,19 @@ task :create_release do
     menu.prompt = "this will create and tag a new version (default: #{default}) "
     menu.choice(:minor) do
       next_version = get_next_version(:minor)
-      puts "create minor version with version #{next_version}"
+      debug "create minor version with version #{next_version}"
       create_new_version(next_version)
       build_the_release
     end
     menu.choice(:major) do
       next_version = get_next_version(:major)
-      puts "create major version with version #{next_version}"
+      debug "create major version with version #{next_version}"
       create_new_version(next_version)
       build_the_release
     end
     menu.choice(:patch) do
       next_version = get_next_version(:patch)
-      puts "create patch version with version #{next_version}"
+      debug "create patch version with version #{next_version}"
       create_new_version(next_version)
       build_the_release
     end
@@ -195,19 +235,19 @@ namespace :version do
   desc 'bump patch level'
   task :patch do
     next_version = get_next_version(:patch)
-    puts "next_version=#{next_version}"
+    debug "next_version=#{next_version}"
     create_new_version(next_version)
   end
   desc 'bump minor level'
   task :minor do
     next_version = get_next_version(:minor)
-    puts "next_version=#{next_version}"
+    debug "next_version=#{next_version}"
     create_new_version(next_version)
   end
   desc 'bump major level'
   task :major do
     next_version = get_next_version(:major)
-    puts "next_version=#{next_version}"
+    debug "next_version=#{next_version}"
     create_new_version(next_version)
   end
 end
@@ -302,19 +342,3 @@ class Version < Array
   end
 end
 
-desc 'test server'
-task :server do
-  require 'socket'        # Sockets are in standard library
-
-  hostname = 'localhost'
-  port = 8080
-
-  s = TCPSocket.open(hostname, port)
-
-  s.puts('hi')
-  s.puts('ho')
-  while (line = s.gets) # Read lines from the socket
-    puts line.chop # And print with platform line terminator
-  end
-  s.close # Cl
-end
