@@ -4,7 +4,7 @@ import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView } from '../states/state.default';
-import { IAPI, IPopup, IComponentDesc } from 'chipmunk.client.toolkit';
+import { IAPI, IPopup, IComponentDesc, ISettingsAPI } from 'chipmunk.client.toolkit';
 import { LayoutPrimiryAreaTabTitleControlsComponent } from '../layout/area.primary/tab-title-controls/component';
 import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
 
@@ -16,6 +16,7 @@ import PluginsService from './service.plugins';
 import PopupsService from './standalone/service.popups';
 import OutputRedirectionsService from './standalone/service.output.redirections';
 import LayoutStateService from './standalone/service.layout.state';
+import SettingsService from './service.settings';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -268,6 +269,9 @@ export class TabsSessionsService implements IService {
                     return undefined;
                 }
                 return plugin.ipc;
+            },
+            getSettingsAPI: () => {
+                return SettingsService.getPluginsAPI();
             },
             getActiveSessionId: () => {
                 const controller: ControllerSessionTab | undefined = this.getActive();

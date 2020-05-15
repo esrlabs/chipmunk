@@ -1,6 +1,7 @@
 import { IPCMessages, Subscription } from './service.electron.ipc';
 import { IService } from '../interfaces/interface.service';
-import { ConnectedField, Entry, IEntry, ESettingType, IField, Field, LocalField } from '../controller/settings/field.store';
+import { ConnectedField, Entry, IEntry, ESettingType, IField, Field, LocalField, LocalFieldAPIWrapper } from '../controller/settings/field.store';
+import { ISettingsAPI } from 'chipmunk.client.toolkit';
 
 import ElectronIpcService from './service.electron.ipc';
 
@@ -30,7 +31,24 @@ export class SettingsService implements IService {
         });
     }
 
-    public get(): Promise<Map<string, Entry | ConnectedField<any> | Field<any>>> {
+    public get<T>(key: string, path: string): Promise<T> {
+        return new Promise((resolve, reject) => {
+            const local: LocalField<T> | Entry | undefined = this._register.get(path);
+            if (LocalField.isInstance(local)) {
+                return (local as LocalField<T>).refresh();
+            }
+            ElectronIpcService.request(new IPCMessages.SettingsOperationGetRequest({
+                key: key,
+                path: path,
+            }), IPCMessages.SettingsOperationGetResponse).then((response: IPCMessages.SettingsOperationGetResponse<T>) => {
+                resolve(response.value);
+            }).catch((err: Error) => {
+                reject(err);
+            });
+        });
+    }
+
+    public entries(): Promise<Map<string, Entry | ConnectedField<any> | Field<any>>> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.SettingsAppDataRequest(), IPCMessages.SettingsAppDataResponse).then((response: IPCMessages.SettingsAppDataResponse) => {
                 const entries: Map<string, Entry | ConnectedField<any>> = new Map();
@@ -57,15 +75,17 @@ export class SettingsService implements IService {
         });
     }
 
-    public register(entry: Entry | LocalField<any>): Promise<void> {
+    public register(smth: Entry | LocalField<any>): Promise<void> {
         return new Promise((resolve, reject) => {
+            const entry: Entry | undefined = Entry.isInstance(smth) ? smth as Entry : undefined;
+            const field: LocalField<any> | undefined = LocalField.isInstance(smth) ? smth as LocalField<any> : undefined;
             ElectronIpcService.request(new IPCMessages.SettingsRenderRegisterRequest({
-                entry: !(entry instanceof LocalField) ? entry.asEntry() : undefined,
-                field: entry instanceof LocalField ? Object.assign({ value: entry.get() }, entry.asEntry()) : undefined,
+                entry: entry ? entry.asEntry() : undefined,
+                field: field ? Object.assign({ value: field.get() }, field.asEntry()) : undefined,
             }), IPCMessages.SettingsRenderRegisterResponse).then((response: IPCMessages.SettingsRenderRegisterResponse<any>) => {
-                if (entry instanceof LocalField && response.value !== undefined) {
-                    entry.setup(response.value).then(() => {
-                        this._register.set(entry.getFullPath(), entry);
+                if (field && response.value !== undefined) {
+                    field.setup(response.value).then(() => {
+                        this._register.set(field.getFullPath(), field);
                         resolve();
                     }).catch((setErr: Error) => {
                         reject(setErr);
@@ -79,6 +99,28 @@ export class SettingsService implements IService {
         });
     }
 
+    public getPluginsAPI(): ISettingsAPI {
+        return {
+            get: this._api_get.bind(this),
+            register: this._api_register.bind(this),
+        };
+    }
+
+    private _api_get<T>(key: string, path: string): Promise<T> {
+        return this.get(key, path);
+    }
+
+    private _api_register(smth: Entry | Field<any>): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const entry: Entry | undefined = Entry.isInstance(smth) ? smth as Entry : undefined;
+            const field: Field<any> | undefined = Field.isInstance(smth) ? smth as Field<any> : undefined;
+            if (field) {
+                this.register(new LocalFieldAPIWrapper(field)).then(resolve).catch(reject);
+            } else {
+                this.register(entry).then(resolve).catch(reject);
+            }
+        });
+    }
 }
 
 export default (new SettingsService());

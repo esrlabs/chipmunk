@@ -36,7 +36,7 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
     }
 
     public ngAfterContentInit() {
-        SettingsService.get().then((entries) => {
+        SettingsService.entries().then((entries) => {
             this._entries = entries;
             this._ng_entries = this._getEntries();
             this._ng_matches = this._getMatches();
