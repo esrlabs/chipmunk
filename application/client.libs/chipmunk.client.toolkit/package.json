@@ -1,9 +1,9 @@
 {
   "name": "chipmunk.client.toolkit",
-  "version": "1.1.10",
+  "version": "1.2.9",
   "description": "Toolkit for developing render part of plugin of logviewer ",
   "main": "./dist/toolkit.js",
-  "types": "./dist/toolkit.d.ts",
+  "types": "./dist/client.libs/chipmunk.client.toolkit/src/toolkit.d.ts",
   "scripts": {
     "build": "tsc -p ./tsconfig.json & ./node_modules/.bin/webpack",
     "build-ts": "tsc -p ./tsconfig.json",

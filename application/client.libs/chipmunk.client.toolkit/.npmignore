@@ -4,3 +4,4 @@ src
 platform
 tsconfig.json
 tslint.json
+!dist/client.libs/chipmunk.client.toolkit/src
