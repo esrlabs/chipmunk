@@ -207,10 +207,18 @@ class ServiceFileOpener implements IService {
             req.files.map((file: string) => {
                 return this._listFiles(file);
         })).then((fileLists: IPCMessages.IFile[][]) => {
-            response(new IPCMessages.FileListResponse({
-                files: this._concatFileList(fileLists),
-            })).catch((error: Error) => {
-                this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
+            const cFiles = this._concatFileList(fileLists);
+            this._verify(cFiles).then(() => {
+                response(new IPCMessages.FileListResponse({
+                    files: this._concatFileList(fileLists),
+                })).catch((error: Error) => {
+                    this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
+                });
+            }).catch((error: Error) => {
+                response(new IPCMessages.FileListResponse({
+                    files: [],
+                    error: error.message,
+                }));
             });
         }).catch((error: Error) => {
             response(new IPCMessages.FileListResponse({
@@ -255,6 +263,19 @@ class ServiceFileOpener implements IService {
         });
     }
 
+    private _verify(files: IPCMessages.IFile[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            files.forEach((file: IPCMessages.IFile) => {
+                fs.access(file.path, fs.constants.R_OK, (err) => {
+                    if (err) {
+                        return reject(new Error(this._logger.warn(`Fail to read file(s) due to missing access rights`)));
+                    }
+                });
+            });
+            resolve();
+        });
+    }
+
     private _listFiles(startFile: string): Promise<IPCMessages.IFile[]> {
         return new Promise((resolve, reject) => {
             const allFiles: IPCMessages.IFile[] = [];
@@ -264,19 +285,15 @@ class ServiceFileOpener implements IService {
                 return new Promise((resolved, rejected) => {
                     fs.lstat(file, (lsErr, lsStats) => {
                         if (lsErr) {
-                            const errorMessage = `Fail to list files due to error: ${lsErr.message}`;
-                            self._logger.warn(errorMessage);
-                            return rejected(new Error(errorMessage));
+                            return rejected(new Error(self._logger.warn(`Fail to list files due to error: ${lsErr.message}`)));
                         }
                         if (lsStats.isFile()) {
                             // File
                             return fs.stat(file, (fsErr, fsStats) => {
                                 if (fsErr) {
-                                    const errorMessage = `Fail to get file info of ${file} due to error: ${fsErr.message}`;
-                                    self._logger.warn(errorMessage);
-                                    rejected(new Error(errorMessage));
+                                    return rejected(new Error(self._logger.warn(`Fail to get file info of ${file} due to error: ${fsErr.message}`)));
                                 } else {
-                                    resolved(allFiles.push({
+                                    return resolved(allFiles.push({
                                         lastModified: fsStats.mtimeMs,
                                         lastModifiedDate: fsStats.mtime,
                                         name: path.basename(file),
@@ -288,23 +305,19 @@ class ServiceFileOpener implements IService {
                             });
                         } else if (!(lsStats.isDirectory())) {
                             // Neither file nor directory
-                            const errorMessage = `Fail to get file info of ${file} because it is neither a file nor a directory`;
-                            self._logger.warn(errorMessage);
-                            rejected(new Error(errorMessage));
+                            return rejected(new Error(self._logger.warn(`Fail to get file info of ${file} because it is neither a file nor a directory`)));
                         } else {
                             // Directory
                             return fs.readdir(file, (err, files) => {
                                 if (err) {
-                                    const errorMessage = `Fail to list files of directory ${file} due to error: ${err.message}`;
-                                    self._logger.warn(errorMessage);
-                                    rejected(new Error(errorMessage));
+                                    return rejected(new Error(self._logger.warn(`Fail to list files of directory ${file} due to error: ${err.message}`)));
                                 } else {
                                     Promise.all(files.map((subFile: string) => {
                                         return listAllFiles(file + '/' + subFile);
                                     })).then(() => {
                                         resolved(allFiles);
                                     }).catch((error: Error) => {
-                                        rejected(new Error(`Fail to list files of directory ${file} info due to error: ${error.message}`));
+                                        rejected(new Error(self._logger.warn(`Fail to list files of directory ${file} info due to error: ${error.message}`)));
                                     });
                                 }
                             });
@@ -315,7 +328,7 @@ class ServiceFileOpener implements IService {
             listAllFiles(startFile).then(() => {
                 resolve(allFiles);
             }).catch((error: Error) => {
-                reject(new Error(`Fail to list files of directory ${startFile} info due to error: ${error.message}`));
+                reject(new Error(self._logger.warn(`Fail to list files of directory ${startFile} info due to error: ${error.message}`)));
             });
         });
     }
