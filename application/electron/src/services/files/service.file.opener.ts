@@ -208,7 +208,11 @@ class ServiceFileOpener implements IService {
                 return this._listFiles(file);
         })).then((fileLists: IPCMessages.IFile[][]) => {
             const cFiles = this._concatFileList(fileLists);
-            this._verify(cFiles).then(() => {
+            Promise.all(
+                cFiles.map((file: IPCMessages.IFile) => {
+                    return this._verify(file);
+                }),
+            ).then(() => {
                 response(new IPCMessages.FileListResponse({
                     files: this._concatFileList(fileLists),
                 })).catch((error: Error) => {
@@ -263,16 +267,14 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _verify(files: IPCMessages.IFile[]): Promise<void> {
+    private _verify(file: IPCMessages.IFile): Promise<void> {
         return new Promise((resolve, reject) => {
-            files.forEach((file: IPCMessages.IFile) => {
-                fs.access(file.path, fs.constants.R_OK, (err) => {
-                    if (err) {
-                        return reject(new Error(this._logger.warn(`Fail to read file(s) due to missing access rights`)));
-                    }
-                });
+            fs.access(file.path, fs.constants.R_OK, (err) => {
+                if (err) {
+                    return reject(new Error(this._logger.warn(`Fail to read file(s) due to missing access rights for ${file.path}`)));
+                }
+                return resolve();
             });
-            resolve();
         });
     }
 
