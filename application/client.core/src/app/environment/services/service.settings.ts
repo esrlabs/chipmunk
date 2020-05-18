@@ -9,6 +9,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export { ESettingType };
 
+const CPluginsSettingsGroupKey = 'plugins';
+
 export class SettingsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('SettingsService');
@@ -112,13 +114,28 @@ export class SettingsService implements IService {
 
     private _api_register(smth: Entry | Field<any>): Promise<void> {
         return new Promise((resolve, reject) => {
-            const entry: Entry | undefined = Entry.isInstance(smth) ? smth as Entry : undefined;
-            const field: Field<any> | undefined = Field.isInstance(smth) ? smth as Field<any> : undefined;
-            if (field) {
-                this.register(new LocalFieldAPIWrapper(field)).then(resolve).catch(reject);
-            } else {
-                this.register(entry).then(resolve).catch(reject);
-            }
+            // Create holder before
+            this.register(new Entry({
+                name: 'Plugins',
+                desc: 'Settings of plugins',
+                key: CPluginsSettingsGroupKey,
+                path: '',
+                type: ESettingType.standard,
+            })).then(() => {
+                // Update a path (move plugin setting into plugins-wrapper)
+                smth.setPath(smth.getPath() === '' ? CPluginsSettingsGroupKey : `${CPluginsSettingsGroupKey}.${smth.getPath()}`);
+                // Create entry or field
+                const entry: Entry | undefined = Entry.isInstance(smth) ? smth as Entry : undefined;
+                const field: Field<any> | undefined = Field.isInstance(smth) ? smth as Field<any> : undefined;
+                if (field) {
+                    this.register(new LocalFieldAPIWrapper(field)).then(resolve).catch(reject);
+                } else {
+                    this.register(entry).then(resolve).catch(reject);
+                }
+            }).catch((wrapErr: Error) => {
+                this._logger.warn(`Fail to create wrapper of plugins settings due error: ${wrapErr.message}`);
+                reject(wrapErr);
+            });
         });
     }
 }
