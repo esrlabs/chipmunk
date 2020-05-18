@@ -128,6 +128,10 @@ export class Entry {
         return this._path;
     }
 
+    public setPath(path: string) {
+        this._path = path;
+    }
+
     public getFullPath(): string {
         return getEntryKey(this);
     }
