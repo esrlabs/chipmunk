@@ -302,7 +302,7 @@ class ServiceFileOpener implements IService {
                                     Promise.all(files.map((subFile: string) => {
                                         return listAllFiles(file + '/' + subFile);
                                     })).then(() => {
-                                        resolve(allFiles);
+                                        resolved(allFiles);
                                     }).catch((error: Error) => {
                                         rejected(new Error(`Fail to list files of directory ${file} info due to error: ${error.message}`));
                                     });

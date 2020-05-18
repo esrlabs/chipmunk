@@ -68,10 +68,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
         });
     }
 
-    public open(files: IFile[]): Promise<Error> {
+    public open(files: IFile[]): Promise<void> {
         return new Promise((resolve, reject) => {
             if (files.length === 0) {
-                return;
+                return resolve();
             }
             ServiceElectronIpc.request(new IPCMessages.FileListRequest({
                 files: files.map((file: IFile) => file.path),
@@ -79,9 +79,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 this._setSessionForFile().then((session: ControllerSessionTab) => {
                     TabsSessionsService.setActive(session.getGuid());
                     if (checkResponse.error !== undefined) {
-                        const errorMessage = `Fail check paths due error: ${checkResponse.error}`;
-                        this._logger.error(errorMessage);
-                        reject(new Error(errorMessage));
+                        return reject(new Error(this._logger.error(`Fail check paths due error: ${checkResponse.error}`)));
                     }
                     if (checkResponse.files.length === 1) {
                         // Single file
@@ -90,14 +88,11 @@ export class FileOpenerService implements IService, IFileOpenerService {
                             session: session.getGuid(),
                         }), IPCMessages.FileOpenResponse).then((openResponse: IPCMessages.FileReadResponse) => {
                             if (openResponse.error !== undefined) {
-                                const errorMessage = `Fail open file/folder "${files[0].path}" due error: ${openResponse.error}`;
-                                this._logger.error(errorMessage);
-                                reject(new Error(errorMessage));
+                                return reject(new Error(this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${openResponse.error}`)));
                             }
+                            resolve();
                         }).catch((error: Error) => {
-                            const errorMessage = `Fail open file/folder "${files[0].path}" due error: ${error.message}`;
-                            this._logger.error(errorMessage);
-                            reject(new Error(errorMessage));
+                            return reject(new Error(this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${error.message}`)));
                     });
                     } else {
                         // Multiple files
@@ -116,12 +111,13 @@ export class FileOpenerService implements IService, IFileOpenerService {
                                 { caption: 'Concat', handler: this.concat.bind(this, checkResponse.files), },
                             ],
                         });
+                        resolve();
                     }
                 }).catch((error: Error) => {
-                    this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`);
+                    return reject(new Error(this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`)));
                 });
             }).catch((error: Error) => {
-                this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
+                return reject(new Error(this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`)));
             });
         });
     }
