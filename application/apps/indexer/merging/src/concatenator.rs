@@ -10,6 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::merger::combined_file_size;
+use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
@@ -30,7 +31,7 @@ pub struct ConcatItemOptions {
     tag: String,
 }
 
-pub fn read_concat_options(f: &mut fs::File) -> Result<Vec<ConcatItemOptions>, failure::Error> {
+pub fn read_concat_options(f: &mut fs::File) -> Result<Vec<ConcatItemOptions>> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
 
@@ -56,11 +57,11 @@ pub fn concat_files_use_config_file(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<cc::Receiver<()>>,
-) -> Result<(), failure::Error> {
+) -> Result<()> {
     let mut concat_option_file = fs::File::open(config_path)?;
     let dir_name = config_path
         .parent()
-        .ok_or_else(|| failure::err_msg("could not find directory of config file"))?;
+        .ok_or_else(|| anyhow!("could not find directory of config file"))?;
     let options: Vec<ConcatItemOptions> = read_concat_options(&mut concat_option_file)?;
     let inputs: Vec<ConcatenatorInput> = options
         .into_iter()
@@ -88,7 +89,7 @@ pub fn concat_files(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<cc::Receiver<()>>,
-) -> Result<(), failure::Error> {
+) -> Result<()> {
     let file_cnt = concat_inputs.len();
     trace!("concat_files called with {} files", file_cnt);
     let mut line_nr = 0;

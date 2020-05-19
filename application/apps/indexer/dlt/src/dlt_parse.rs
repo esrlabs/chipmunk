@@ -14,9 +14,9 @@ use crossbeam_channel as cc;
 use indexer_base::{chunks::ChunkResults, error_reporter::*, progress::*, utils};
 use serde::Serialize;
 
+use anyhow;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use byteorder::{BigEndian, LittleEndian};
-use failure::{err_msg, Error};
 use nom::{
     bytes::streaming::{tag, take, take_while_m_n},
     combinator::map,
@@ -31,6 +31,7 @@ use std::{
     io::{BufRead, Read},
     rc::Rc,
 };
+use thiserror::Error;
 
 use crate::fibex::FibexMetadata;
 use std::str;
@@ -1051,17 +1052,31 @@ pub fn dlt_statistic_row_info<'a, T>(
     ))
 }
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Error, Debug, PartialEq)]
 pub enum DltParseError {
-    #[fail(display = "parsing stopped, cannot continue: {}", cause)]
+    #[error("parsing stopped, cannot continue: {}", cause)]
     Unrecoverable { cause: String },
-    #[fail(display = "parsing error, try to continue: {}", reason)]
+    #[error("parsing error, try to continue: {}", reason)]
     ParsingHickup { reason: String },
-    #[fail(display = "parsing could not complete: {:?}", needed)]
+    #[error("parsing could not complete: {:?}", needed)]
     IncompleteParse { needed: Option<usize> },
 }
 impl From<std::io::Error> for DltParseError {
     fn from(err: std::io::Error) -> DltParseError {
+        DltParseError::Unrecoverable {
+            cause: format!("{}", err),
+        }
+    }
+}
+impl From<pcap_parser::PcapError> for DltParseError {
+    fn from(err: pcap_parser::PcapError) -> DltParseError {
+        DltParseError::Unrecoverable {
+            cause: format!("{}", err),
+        }
+    }
+}
+impl From<anyhow::Error> for DltParseError {
+    fn from(err: anyhow::Error) -> DltParseError {
         DltParseError::Unrecoverable {
             cause: format!("{}", err),
         }
@@ -1202,19 +1217,14 @@ pub struct StatisticInfo {
     ecu_ids: Vec<(String, LevelDistribution)>,
     contained_non_verbose: bool,
 }
+
 pub type StatisticsResults = std::result::Result<IndexingProgress<StatisticInfo>, Notification>;
 pub fn get_dlt_file_info(
     in_file: &std::path::PathBuf,
     update_channel: &cc::Sender<StatisticsResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-) -> Result<(), Error> {
-    let f = match fs::File::open(in_file) {
-        Ok(file) => file,
-        Err(e) => {
-            error!("could not open {:?}", in_file);
-            return Err(err_msg(format!("could not open {:?} ({})", in_file, e)));
-        }
-    };
+) -> Result<(), DltParseError> {
+    let f = fs::File::open(in_file)?;
 
     let source_file_size = fs::metadata(&in_file)?.len();
     let mut reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
@@ -1288,11 +1298,11 @@ pub fn get_dlt_file_info(
                     }
                     DltParseError::Unrecoverable { cause } => {
                         warn!("cannot continue parsing: {}", cause);
-                        update_channel.send(Err(Notification {
+                        let _ = update_channel.send(Err(Notification {
                             severity: Severity::ERROR,
                             content: format!("error parsing dlt file: {}", cause),
                             line: None,
-                        }))?;
+                        }));
                         break;
                     }
                     DltParseError::IncompleteParse { needed } => {
@@ -1300,11 +1310,11 @@ pub fn get_dlt_file_info(
                             "cannot continue parsing, parse was incomplete: {:?}",
                             needed
                         );
-                        update_channel.send(Err(Notification {
+                        let _ = update_channel.send(Err(Notification {
                             severity: Severity::ERROR,
                             content: format!("parse was incomplete: {:?}", needed),
                             line: None,
-                        }))?;
+                        }));
                         break;
                     }
                 }
@@ -1314,12 +1324,12 @@ pub fn get_dlt_file_info(
         if index % STOP_CHECK_LINE_THRESHOLD == 0 {
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "dlt stats producer")
             {
-                update_channel.send(Ok(IndexingProgress::Stopped))?;
+                let _ = update_channel.send(Ok(IndexingProgress::Stopped));
                 break;
             }
-            update_channel.send(Ok(IndexingProgress::Progress {
+            let _ = update_channel.send(Ok(IndexingProgress::Progress {
                 ticks: (processed_bytes, source_file_size),
-            }))?;
+            }));
         }
     }
     let res = StatisticInfo {
@@ -1335,8 +1345,8 @@ pub fn get_dlt_file_info(
         contained_non_verbose,
     };
 
-    update_channel.send(Ok(IndexingProgress::GotItem { item: res }))?;
-    update_channel.send(Ok(IndexingProgress::Finished))?;
+    let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: res }));
+    let _ = update_channel.send(Ok(IndexingProgress::Finished));
     Ok(())
 }
 

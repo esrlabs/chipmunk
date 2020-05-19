@@ -9,9 +9,9 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, Utc};
 use crossbeam_channel as cc;
-use failure::{err_msg, Error};
 use indexer_base::{
     error_reporter::*,
     progress::{Severity, *},
@@ -275,22 +275,22 @@ pub(crate) fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     })(input)
 }
 
-pub fn lookup_regex_for_format_str(date_format: &str) -> Result<Regex, Error> {
+pub fn lookup_regex_for_format_str(date_format: &str) -> Result<Regex> {
     match FORMAT_REGEX_MAPPING.get(date_format) {
         Some(r) => Ok(r.clone()),
         None => date_format_str_to_regex(date_format),
     }
 }
 
-fn date_format_str_to_regex(date_format: &str) -> Result<Regex, Error> {
+fn date_format_str_to_regex(date_format: &str) -> Result<Regex> {
     if date_format.is_empty() {
-        return Err(err_msg("cannot construct regex from empty string"));
+        return Err(anyhow!("cannot construct regex from empty string"));
     }
     let format_pieces = date_expression(date_format);
     match format_pieces {
         Ok(r) => {
             if r.1.is_empty() {
-                return Err(err_msg(
+                return Err(anyhow!(
                     "could not create regex, problems with format pieces",
                 ));
             }
@@ -302,12 +302,12 @@ fn date_format_str_to_regex(date_format: &str) -> Result<Regex, Error> {
 
             match Regex::new(s.as_str()) {
                 Ok(regex) => Ok(regex),
-                Err(e) => Err(err_msg(format!("could not create regex: {}", e))),
+                Err(e) => Err(anyhow!(format!("could not create regex: {}", e))),
             }
         }
         Err(e) => {
             report_error(format!("{:?}", e));
-            Err(err_msg("could not use format expression".to_string()))
+            Err(anyhow!("could not use format expression".to_string()))
         }
     }
 }
@@ -367,7 +367,7 @@ pub struct FormatTestOptions {
     pub format: String,
 }
 
-pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions, Error> {
+pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
     let v: FormatTestOptions = serde_json::from_str(&contents[..])?;
@@ -394,7 +394,7 @@ pub(crate) fn scan_lines(
     limit: Option<usize>,
     start: Option<u64>,
     year: Option<i32>,
-) -> Result<(usize, Option<i64>, Option<i64>), Error> {
+) -> Result<(usize, Option<i64>, Option<i64>)> {
     let mut buf = vec![];
 
     let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
@@ -440,7 +440,7 @@ pub(crate) fn scan_lines(
                     }
                 }
             }
-            Err(e) => return Err(err_msg(format!("error scanning: {}", e))),
+            Err(e) => return Err(anyhow!("error scanning: {}", e)),
         }
     }
     Ok((scanned_cnt, min_timestamp, max_timestamp))
@@ -456,7 +456,7 @@ pub(crate) fn timespan_in_file(
     format_expr: &str,
     file_path: impl AsRef<Path>,
     year: Option<i32>,
-) -> Result<TimestampFormatResult, Error> {
+) -> Result<TimestampFormatResult> {
     trace!("timespan_in_file for \"{}\"", format_expr);
     let regex = lookup_regex_for_format_str(&format_expr)?;
     trace!("regex for \"{}\" => {}", format_expr, regex.as_str());
@@ -502,7 +502,7 @@ pub(crate) fn timespan_in_file(
 pub fn timespan_in_files(
     items: Vec<DiscoverItem>,
     update_channel: &cc::Sender<IndexingResults<TimestampFormatResult>>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let item_count = items.len();
     let mut progress_reporter = ProgressReporter::new(item_count as u64, update_channel.clone());
     for item in items.into_iter() {
@@ -554,7 +554,7 @@ pub fn match_format_string_in_file(
     format_expr: &str,
     file_name: &str,
     max_lines: i64,
-) -> Result<FormatStringMatches, Error> {
+) -> Result<FormatStringMatches> {
     let regex = lookup_regex_for_format_str(format_expr)?;
     let path = PathBuf::from(file_name);
     let f: fs::File = fs::File::open(path)?;
@@ -589,12 +589,12 @@ pub fn match_format_string_in_file(
 }
 
 /// check a new format expression that was not precompiled
-pub fn line_matching_format_expression(format_expr: &str, line: &str) -> Result<bool, Error> {
+pub fn line_matching_format_expression(format_expr: &str, line: &str) -> Result<bool> {
     let regex = lookup_regex_for_format_str(format_expr)?;
     let res = regex.is_match(line);
     Ok(res)
 }
-fn parse_from_month(mmm: &str) -> Result<u32, Error> {
+fn parse_from_month(mmm: &str) -> Result<u32> {
     match mmm {
         "Jan" => Ok(1),
         "Feb" => Ok(2),
@@ -608,7 +608,7 @@ fn parse_from_month(mmm: &str) -> Result<u32, Error> {
         "Oct" => Ok(10),
         "Nov" => Ok(11),
         "Dec" => Ok(12),
-        _ => Err(err_msg(format!("could not parse month {:?}", mmm))),
+        _ => Err(anyhow!("could not parse month {:?}", mmm)),
     }
 }
 
@@ -673,10 +673,10 @@ pub fn extract_posix_timestamp(
     regex: &Regex,
     year: Option<i32>,
     time_offset: Option<i64>,
-) -> Result<(i64, bool), Error> {
+) -> Result<(i64, bool)> {
     let caps = regex
         .captures(line)
-        .ok_or_else(|| err_msg("no captures in regex"))?;
+        .ok_or_else(|| anyhow!("no captures in regex"))?;
     /* only one matched group in addition to the full match */
     if caps.len() == 1 + 1 {
         if let Some(abs_ms_capt) = caps.name(ABSOLUTE_MS_GROUP) {
@@ -686,24 +686,24 @@ pub fn extract_posix_timestamp(
     }
     let day_capt = caps
         .name(DAY_GROUP)
-        .ok_or_else(|| err_msg("no group for days found in regex"))?;
+        .ok_or_else(|| anyhow!("no group for days found in regex"))?;
     let day: u32 = day_capt.as_str().parse()?;
     let month = match caps.name(MONTH_GROUP) {
         Some(month_capt) => month_capt
             .as_str()
             .parse()
-            .map_err(|e| err_msg(format!("could not parse month: {}", e))),
+            .map_err(|e| anyhow!("could not parse month: {}", e)),
         None => match caps.name(MONTH_SHORT_NAME_GROUP) {
             Some(month_short_name) => parse_from_month(month_short_name.as_str()),
-            None => Err(err_msg("no group for month found in regex")),
+            None => Err(anyhow!("no group for month found in regex")),
         },
     }?;
     let hour_capt = caps
         .name(HOUR_GROUP)
-        .ok_or_else(|| err_msg("no group for hour found in regex"))?;
+        .ok_or_else(|| anyhow!("no group for hour found in regex"))?;
     let min_capt = caps
         .name(MINUTE_GROUP)
-        .ok_or_else(|| err_msg("no group for minute found in regex"))?;
+        .ok_or_else(|| anyhow!("no group for minute found in regex"))?;
     // let sec_capt: u32 = caps.name(SECONDS_GROUP).unwrap().as_str().parse()?;
     let seconds: u32 = match caps.name(SECONDS_GROUP) {
         None => {
@@ -716,7 +716,7 @@ pub fn extract_posix_timestamp(
         Some(m) => match m.as_str() {
             "PM" => Ok(12),
             "AM" => Ok(0),
-            _ => Err(err_msg("no valid AM or PM designation")),
+            _ => Err(anyhow!("no valid AM or PM designation")),
         },
         None => Ok(0),
     }?;
@@ -739,12 +739,12 @@ pub fn extract_posix_timestamp(
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
     if time_offset.is_none() && timezone_n.is_none() {
-        return Err(err_msg("timestamp cannot be applied, timezone not known"));
+        return Err(anyhow!("timestamp cannot be applied, timezone not known"));
     }
     let offset_result = if time_offset.is_none() {
         parse_timezone(&caps[TIMEZONE_GROUP])
     } else {
-        time_offset.ok_or_else(|| err_msg("could not detect timestamp in (line {})"))
+        time_offset.ok_or_else(|| anyhow!("could not detect timestamp in (line {})"))
     };
 
     // for the year first try YYYY, then yy, then fallback on the supplied year
@@ -767,7 +767,7 @@ pub fn extract_posix_timestamp(
                 .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
             match date_time {
                 Some(dt) => Ok((dt.timestamp_millis() - offset, false)),
-                None => Err(err_msg(
+                None => Err(anyhow!(
                     "error while parsing year/month/day/hour/minute/seconds",
                 )),
             }
@@ -778,16 +778,16 @@ pub fn extract_posix_timestamp(
                 .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, millis));
             match date_time {
                 Some(dt) => Ok((dt.timestamp_millis() - offset, true)),
-                None => Err(err_msg(
+                None => Err(anyhow!(
                     "error while parsing year/month/day/hour/minute/seconds",
                 )),
             }
         }
-        (Some(_), Err(e)) => Err(err_msg(format!(
+        (Some(_), Err(e)) => Err(anyhow!(
             "could not determine the timezone or offset! ({})",
             e
-        ))),
-        (None, Err(_)) => Err(err_msg(
+        )),
+        (None, Err(_)) => Err(anyhow!(
             "could not determine the year and timezone or offset!",
         )),
     }
@@ -802,7 +802,7 @@ pub fn line_to_timed_line(
     time_offset: Option<i64>,
     line_nr: usize,
     reporter: &mut Reporter,
-) -> Result<TimedLine, Error> {
+) -> Result<TimedLine> {
     match extract_posix_timestamp(line, regex, year, time_offset) {
         Ok((posix_timestamp, year_was_missing)) => Ok(TimedLine {
             timestamp: posix_timestamp,
@@ -840,7 +840,7 @@ pub struct TimestampFormat {
     regex: String,
     flags: Vec<String>,
 }
-pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, Error> {
+pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String> {
     use std::time::Instant;
     let now = Instant::now();
     let f: fs::File = fs::File::open(path)?;
@@ -894,11 +894,11 @@ pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, Error> {
                 "could not verify enough timestamps in {:?}, only found {}",
                 path, n
             );
-            return Err(err_msg(warning));
+            return Err(anyhow!(warning));
         }
     }
 
-    Err(err_msg(format!("could not detect timestamp in {:?}", path)))
+    Err(anyhow!("could not detect timestamp in {:?}", path))
 }
 /// Trys to detect a valid timestamp in a string
 /// Returns the a tuple of
@@ -910,10 +910,7 @@ pub fn detect_timestamp_format_in_file(path: &Path) -> Result<String, Error> {
 /// # Arguments
 ///
 /// * `input` - A string slice that should be parsed
-pub fn detect_timestamp_in_string(
-    input: &str,
-    offset: Option<i64>,
-) -> Result<(i64, bool, String), Error> {
+pub fn detect_timestamp_in_string(input: &str, offset: Option<i64>) -> Result<(i64, bool, String)> {
     let trimmed = input.trim();
     for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
@@ -926,7 +923,7 @@ pub fn detect_timestamp_in_string(
             }
         }
     }
-    Err(err_msg("try to detect timestamp but no match"))
+    Err(anyhow!("try to detect timestamp but no match"))
 }
 /// Trys to detect a valid time-format in a string
 /// Returns the found format if any
@@ -934,10 +931,7 @@ pub fn detect_timestamp_in_string(
 /// # Arguments
 ///
 /// * `input` - A string slice that should be examined
-pub fn detect_timeformat_in_string(
-    input: &str,
-    last_match: Option<&String>,
-) -> Result<String, Error> {
+pub fn detect_timeformat_in_string(input: &str, last_match: Option<&String>) -> Result<String> {
     let trimmed = input.trim();
     // if we already had a match, try this first
     if let Some(last) = last_match {
@@ -954,7 +948,7 @@ pub fn detect_timeformat_in_string(
             return Ok((*format).to_string());
         }
     }
-    Err(err_msg(format!("no timestamp match found in {}", input)))
+    Err(anyhow!("no timestamp match found in {}", input))
 }
 
 /// should parse timezone string, valid formats are
@@ -998,7 +992,7 @@ fn parse_short_month(input: &str) -> IResult<&str, u32> {
         "Oct" => Ok(10),
         "Nov" => Ok(11),
         "Dec" => Ok(12),
-        _ => Err(err_msg(format!("could not parse month {:?}", s))),
+        _ => Err(anyhow!("could not parse month {:?}", s)),
     })(input)
 }
 fn take1(s: &str) -> IResult<&str, &str> {
@@ -1012,7 +1006,7 @@ fn take4(s: &str) -> IResult<&str, &str> {
 }
 // 46.72.213.133 - - [12/Dec/2015:18:39:27 +0100]
 // DD/MMM/YYYY:hh:mm:ss
-pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool), Error> {
+pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool)> {
     match regex.find(input) {
         Some(mat) => {
             let parser = nom::sequence::tuple((
@@ -1038,24 +1032,21 @@ pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool), E
                             .and_then(|d| d.and_hms_milli_opt(hour, minutes, seconds, 0));
                     match date_time {
                         Some(dt) => Ok((dt.timestamp_millis() - offset, false)),
-                        None => Err(err_msg(
+                        None => Err(anyhow!(
                             "error while parsing year/month/day/hour/minute/seconds",
                         )),
                     }
                 }
-                Err(e) => Err(err_msg(format!("error while parsing: {:?}", e))),
+                Err(e) => Err(anyhow!("error while parsing: {:?}", e)),
             }
         }
-        None => Err(err_msg(format!(
-            "no timestamp found using regex {}",
-            regex.as_str()
-        ))),
+        None => Err(anyhow!("no timestamp found using regex {}", regex.as_str())),
     }
 }
-pub(crate) fn parse_timezone(input: &str) -> Result<i64, Error> {
+pub(crate) fn parse_timezone(input: &str) -> Result<i64> {
     match timezone_parser(input) {
         Ok((_, res)) => Ok(res),
-        Err(e) => Err(err_msg(format!("error parsing timezone: {:?}", e))),
+        Err(e) => Err(anyhow!("error parsing timezone: {:?}", e)),
     }
 }
 fn regex_as_string(regex: &Regex) -> String {

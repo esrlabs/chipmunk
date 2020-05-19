@@ -1,8 +1,8 @@
 use crate::merger::FileLogEntryProducer;
 use crate::merger::FileMergeOptions;
 use crate::merger::IndexOutput;
+use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
-use failure::{err_msg, Error};
 use futures::pin_mut;
 use futures::stream::{Peekable, StreamExt};
 use indexer_base::{
@@ -21,14 +21,14 @@ pub(crate) async fn merge_inputs_with_writer_async(
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<&cc::Receiver<()>>,
-) -> Result<(), failure::Error> {
+) -> Result<()> {
     trace!("merge_inputs_with_writer ({} files)", merger_inputs.len());
     let mut lines_with_year_missing = 0usize;
     // create a peekable iterator for all file inputs
     let mut log_entry_streams: Vec<Peekable<FileLogEntryProducer>> = merger_inputs
         .into_iter()
         .map(
-            |input: FileMergeOptions| -> Result<Peekable<FileLogEntryProducer>, failure::Error> {
+            |input: FileMergeOptions| -> Result<Peekable<FileLogEntryProducer>> {
                 let file_path = PathBuf::from(input.path);
                 let absolute_path = match parent_dir {
                     Some(dir) if !file_path.is_absolute() => PathBuf::from(&dir).join(file_path),
@@ -109,7 +109,7 @@ pub(crate) async fn merge_inputs_with_writer_async(
 }
 mod test {
 
-    use failure::{err_msg, Error};
+    use anyhow::{anyhow, Result};
     use futures::executor::block_on;
     use futures::pin_mut;
     use futures::stream::{self, Peekable, StreamExt};
@@ -140,7 +140,7 @@ mod test {
     }
 
     impl futures::Stream for ItemProducer {
-        type Item = Result<Option<Item>, Error>;
+        type Item = Result<Option<Item>>;
         fn poll_next(
             mut self: std::pin::Pin<&mut Self>,
             _cx: &mut std::task::Context,
@@ -148,7 +148,7 @@ mod test {
             let next = self.item_iterator.next();
             match next {
                 Some(msg) => futures::task::Poll::Ready(Some(Ok(Some(msg)))),
-                None => futures::task::Poll::Ready(Some(Err(err_msg("no more elements")))),
+                None => futures::task::Poll::Ready(Some(Err(anyhow!("no more elements")))),
             }
         }
     }
@@ -159,7 +159,7 @@ mod test {
         let inputs = vec![iter_1, iter_2];
         let mut item_streams: Vec<Peekable<ItemProducer>> = inputs
             .into_iter()
-            .map(|input: ItemIter| -> Result<Peekable<ItemProducer>, Error> {
+            .map(|input: ItemIter| -> Result<Peekable<ItemProducer>> {
                 let x = ItemProducer {
                     item_iterator: input,
                 };

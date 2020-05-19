@@ -8,7 +8,6 @@ use crate::{
 };
 use async_std::net::{Ipv4Addr, UdpSocket};
 use crossbeam_channel as cc;
-use failure::err_msg;
 use futures::{stream::StreamExt, FutureExt};
 use indexer_base::{
     chunks::{Chunk, ChunkFactory, ChunkResults},
@@ -21,15 +20,18 @@ use std::{
     net::SocketAddr,
     rc::Rc,
 };
+use thiserror::Error;
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum ConnectionError {
-    #[fail(display = "socket configuration seems to be broken: {}", cause)]
+    #[error("socket configuration seems to be broken: {}", cause)]
     WrongConfiguration { cause: String },
-    #[fail(display = "could not establish a connection: {}", reason)]
+    #[error("could not establish a connection: {}", reason)]
     UnableToConnect { reason: String },
-    #[fail(display = "error trying to connect: {}", info)]
+    #[error("error trying to connect: {}", info)]
     Other { info: String },
+    #[error(transparent)]
+    Any(#[from] anyhow::Error),
 }
 impl From<std::io::Error> for ConnectionError {
     fn from(err: std::io::Error) -> ConnectionError {
@@ -45,15 +47,15 @@ impl From<std::net::AddrParseError> for ConnectionError {
         }
     }
 }
-impl From<failure::Error> for ConnectionError {
-    fn from(err: failure::Error) -> ConnectionError {
-        ConnectionError::Other {
-            info: format!("{}", err),
-        }
-    }
-}
+// impl From<failure::Error> for ConnectionError {
+//     fn from(err: failure::Error) -> ConnectionError {
+//         ConnectionError::Other {
+//             info: format!("{}", err),
+//         }
+//     }
+// }
 #[allow(clippy::too_many_arguments)]
-pub async fn index_from_socket2(
+pub async fn index_from_socket(
     session_id: String,
     socket_config: SocketConfig,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
@@ -77,10 +79,12 @@ pub async fn index_from_socket2(
     debug!("create UDP socket by binding to: {}", bind_addr_and_port);
     let socket = UdpSocket::bind(bind_addr_and_port).await.map_err(|e| {
         warn!("error trying to bind to {}: {}", bind_addr_and_port, e);
-        err_msg(format!(
-            "you cannot not bind a UDP socket to {}",
-            socket_config.bind_addr
-        ))
+        ConnectionError::Other {
+            info: format!(
+                "you cannot not bind a UDP socket to {}",
+                socket_config.bind_addr
+            ),
+        }
     })?;
     if let Some(multicast_info) = socket_config.multicast_addr {
         let multi_addr = multicast_info.multiaddr.parse()?;
@@ -142,8 +146,7 @@ pub async fn index_from_socket2(
                 }));
                 None
             }
-            Event::Msg(Err(DltParseError::Unrecoverable { .. })) => break,
-            Event::Msg(Err(DltParseError::IncompleteParse { .. })) => break,
+            Event::Msg(Err(_)) => break,
         };
         match maybe_msgs {
             Some(msgs) => {
@@ -178,13 +181,13 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: async_std::sync::Receiver<()>,
     fibex_metadata: Option<FibexMetadata>,
-) -> Result<(), failure::Error> {
+) -> Result<(), ConnectionError> {
     trace!("create_index_and_mapping_dlt_from_socket");
     let res = match utils::next_line_nr(out_path) {
         Ok(initial_line_nr) => {
             let filter_config: Option<filtering::ProcessedDltFilterConfig> =
                 dlt_filter.map(filtering::process_filter_config);
-            match index_from_socket2(
+            match index_from_socket(
                 session_id,
                 socket_config,
                 filter_config,
@@ -203,7 +206,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
                         content: cause.clone(),
                         line: None,
                     }));
-                    Err(err_msg(cause))
+                    Err(ConnectionError::Other { info: cause })
                 }
                 Err(ConnectionError::UnableToConnect { reason }) => {
                     let _ = update_channel.send(Err(Notification {
@@ -211,7 +214,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
                         content: reason.clone(),
                         line: None,
                     }));
-                    Err(err_msg(reason))
+                    Err(ConnectionError::Other { info: reason })
                 }
                 Err(ConnectionError::Other { info }) => {
                     let _ = update_channel.send(Err(Notification {
@@ -219,7 +222,16 @@ pub async fn create_index_and_mapping_dlt_from_socket(
                         content: info.clone(),
                         line: None,
                     }));
-                    Err(err_msg(info))
+                    Err(ConnectionError::Other { info })
+                }
+                Err(ConnectionError::Any(e)) => {
+                    let info = format!("{}", e);
+                    let _ = update_channel.send(Err(Notification {
+                        severity: Severity::ERROR,
+                        content: info.clone(),
+                        line: None,
+                    }));
+                    Err(ConnectionError::Other { info })
                 }
                 Ok(_) => Ok(()),
             }
@@ -234,7 +246,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
                 content: content.clone(),
                 line: None,
             }));
-            Err(err_msg(content))
+            Err(ConnectionError::Other { info: content })
         }
     };
     let _ = update_channel.send(Ok(IndexingProgress::Finished));

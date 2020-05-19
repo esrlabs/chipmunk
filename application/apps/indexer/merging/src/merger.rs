@@ -9,8 +9,8 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
-use failure::{err_msg, Error};
 use indexer_base::{
     chunks::{Chunk, ChunkFactory, ChunkResults},
     error_reporter::*,
@@ -46,7 +46,7 @@ pub struct FileMergeOptions {
 pub fn read_merge_options(
     f: &mut File,
     relative_path: Option<impl AsRef<Path>>,
-) -> Result<Vec<FileMergeOptions>, failure::Error> {
+) -> Result<Vec<FileMergeOptions>> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
 
@@ -76,7 +76,7 @@ impl FileLogEntryProducer {
         year: Option<i32>,
         time_offset: Option<i64>,
         current_line_nr: usize,
-    ) -> Result<FileLogEntryProducer, Error> {
+    ) -> Result<FileLogEntryProducer> {
         let iter = TimedLineIter::new(read_from, tag, regex, year, time_offset, current_line_nr);
         Ok(FileLogEntryProducer {
             timed_line_iterator: iter,
@@ -85,7 +85,7 @@ impl FileLogEntryProducer {
 }
 
 impl futures::Stream for FileLogEntryProducer {
-    type Item = Result<Option<TimedLine>, Error>;
+    type Item = Result<Option<TimedLine>>;
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context,
@@ -93,7 +93,7 @@ impl futures::Stream for FileLogEntryProducer {
         let next = self.timed_line_iterator.next();
         match next {
             Some(msg) => futures::task::Poll::Ready(Some(Ok(Some(msg)))),
-            None => futures::task::Poll::Ready(Some(Err(err_msg("no more message")))),
+            None => futures::task::Poll::Ready(Some(Err(anyhow!("no more message")))),
         }
     }
 }
@@ -190,7 +190,7 @@ pub fn merge_files_use_config(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<cc::Receiver<()>>,
-) -> Result<(), failure::Error> {
+) -> Result<()> {
     trace!("merge {} files", options.len());
     do_the_merge(
         append,
@@ -215,7 +215,7 @@ pub fn merge_files_use_config_file(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<cc::Receiver<()>>,
-) -> Result<(), failure::Error> {
+) -> Result<()> {
     trace!("merge files using config from {}", config_path.display());
     let mut merge_option_file = File::open(config_path)?;
     let options: Vec<FileMergeOptions> =
@@ -238,7 +238,7 @@ fn do_the_merge(
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<&cc::Receiver<()>>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let mut writer = IndexOutput::new(
         append,
         out_path,
@@ -251,12 +251,12 @@ fn do_the_merge(
 }
 
 pub trait Len {
-    fn len(&self) -> Result<u64, Error>;
+    fn len(&self) -> Result<u64>;
     fn is_empty(self: &Self) -> bool;
 }
 
 impl Len for FileMergeOptions {
-    fn len(&self) -> Result<u64, Error> {
+    fn len(&self) -> Result<u64> {
         Ok(fs::metadata(&self.path)?.len())
     }
 
@@ -268,7 +268,7 @@ impl Len for FileMergeOptions {
     }
 }
 impl Len for PathBuf {
-    fn len(&self) -> Result<u64, Error> {
+    fn len(&self) -> Result<u64> {
         Ok(fs::metadata(self)?.len())
     }
     fn is_empty(self: &Self) -> bool {
@@ -300,21 +300,21 @@ pub trait TimedLogEntry: PartialOrd {
 //     merger_inputs: Vec<impl Iterator<Item = TimedLogEntry>>,
 //     update_channel: cc::Sender<ChunkResults>,
 //     shutdown_rx: Option<&cc::Receiver<()>>,
-// ) -> Result<(), failure::Error> {
+// ) -> Result<()> {
 
 pub(crate) fn merge_inputs_with_writer(
     writer: &mut IndexOutput,
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<&cc::Receiver<()>>,
-) -> Result<(), failure::Error> {
+) -> Result<()> {
     trace!("merge_inputs_with_writer ({} files)", merger_inputs.len());
     let mut lines_with_year_missing = 0usize;
     // create a peekable iterator for all file inputs
     let mut readers: Vec<Peekable<TimedLineIter>> = merger_inputs
         .into_iter()
         .map(
-            |input: FileMergeOptions| -> Result<Peekable<TimedLineIter>, failure::Error> {
+            |input: FileMergeOptions| -> Result<Peekable<TimedLineIter>> {
                 let file_path = PathBuf::from(input.path);
                 let absolute_path = file_path;
                 //     Some(dir) if !file_path.is_absolute() => PathBuf::from(&dir).join(file_path),
@@ -402,7 +402,7 @@ pub struct IndexOutput {
     progress_reporter: ProgressReporter<Chunk>,
 }
 
-pub(crate) fn combined_file_size<T>(paths: &[T]) -> Result<u64, Error>
+pub(crate) fn combined_file_size<T>(paths: &[T]) -> Result<u64>
 where
     T: Len + Debug,
 {
@@ -411,7 +411,7 @@ where
     println!("paths: {:?}", paths);
     paths.iter().try_fold(0, |acc, x| match x.len() {
         Ok(len) => Ok(acc + len as u64),
-        Err(e) => Err(err_msg(format!("error getting combined file size ({})", e))),
+        Err(e) => Err(anyhow!("error getting combined file size ({})", e)),
     })
 }
 
@@ -422,7 +422,7 @@ impl IndexOutput {
         chunk_size: usize,
         combined_size: u64,
         update_channel: cc::Sender<ChunkResults>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self> {
         let out_file: File = if append {
             std::fs::OpenOptions::new()
                 .append(true)
@@ -455,7 +455,7 @@ impl IndexOutput {
         content: &str,
         tag: &str,
         original_len: usize,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let additional_bytes = utils::write_tagged_line(
             &tag,
             &mut self.buf_writer,
@@ -477,7 +477,7 @@ impl IndexOutput {
         }
         Ok(())
     }
-    pub(crate) fn write_rest(&mut self) -> Result<(), Error> {
+    pub(crate) fn write_rest(&mut self) -> Result<()> {
         self.buf_writer.flush()?;
         if let Some(chunk) = self
             .chunk_factory

@@ -10,7 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::progress::{IndexingProgress, Notification};
-use failure::Error;
+use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use std::fs;
 

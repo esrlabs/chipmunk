@@ -2,7 +2,6 @@ use crate::{dlt::*, dlt_parse::*, fibex::FibexMetadata, filtering};
 use async_std::task;
 use crossbeam_channel as cc;
 use etherparse::*;
-use failure::{err_msg, Error};
 use futures::stream::StreamExt;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
@@ -17,18 +16,19 @@ use std::{
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
+use thiserror::Error;
 
 pub fn convert_to_dlt_file(
     pcap_path: std::path::PathBuf,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
     fibex: Option<Rc<FibexMetadata>>,
-) -> Result<(), Error> {
+) -> Result<(), DltParseError> {
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
     let ending = &pcap_path
         .extension()
-        .ok_or_else(|| err_msg("could not get extension"))?;
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "could not get extension"))?;
     trace!(
         "convert_to_dlt_file({:?}) with ending: {:?}",
         pcap_path,
@@ -66,6 +66,7 @@ struct PcapMessageProducer {
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
 }
 
+use std::error::Error;
 impl PcapMessageProducer {
     #![allow(dead_code)]
     pub fn new(
@@ -73,7 +74,7 @@ impl PcapMessageProducer {
         update_channel: cc::Sender<ChunkResults>,
         fibex_metadata: Option<Rc<FibexMetadata>>,
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, DltParseError> {
         let pcap_file = File::open(&pcap_path)?;
         match PcapNGReader::new(65536, pcap_file) {
             Ok(reader) => Ok(PcapMessageProducer {
@@ -83,7 +84,7 @@ impl PcapMessageProducer {
                 fibex_metadata,
                 filter_config,
             }),
-            Err(e) => Err(err_msg(format!("{:?}", e))),
+            Err(e) => Err(e.into()),
         }
     }
 }
@@ -159,17 +160,6 @@ impl futures::Stream for PcapMessageProducer {
                                 Ok((_, ParsedMessage::Invalid)) => {
                                     futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Skipped)))
                                 }
-                                Err(DltParseError::ParsingHickup { reason }) => {
-                                    futures::task::Poll::Ready(Some(Err(
-                                        DltParseError::ParsingHickup { reason },
-                                    )))
-                                }
-                                Err(DltParseError::Unrecoverable { cause }) => {
-                                    futures::task::Poll::Ready(Some(Err(
-                                        DltParseError::Unrecoverable { cause },
-                                    )))
-                                }
-
                                 Err(DltParseError::IncompleteParse { needed }) => {
                                     let needed_s = match needed {
                                         Some(s) => format!("{}", s),
@@ -184,6 +174,7 @@ impl futures::Stream for PcapMessageProducer {
                                           },
                                       )))
                                 }
+                                Err(e) => futures::task::Poll::Ready(Some(Err(e))),
                             }
                         }
                     }
@@ -220,7 +211,7 @@ pub fn index_from_pcap<'a>(
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: async_std::sync::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
-) -> Result<(), Error> {
+) -> Result<(), DltParseError> {
     trace!("index_from_pcap for  conf: {:?}", config);
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, config.out_path)?;
     // let out_file_name = format!("{:?}", out_file);
@@ -321,7 +312,7 @@ pub fn create_index_and_mapping_dlt_from_pcap<'a>(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: async_std::sync::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
-) -> Result<(), Error> {
+) -> Result<(), DltParseError> {
     trace!("create_index_and_mapping_dlt_from_pcap");
     match utils::next_line_nr(config.out_path) {
         Ok(initial_line_nr) => {
@@ -343,7 +334,7 @@ pub fn create_index_and_mapping_dlt_from_pcap<'a>(
                         content: content.clone(),
                         line: None,
                     }));
-                    Err(err_msg(content))
+                    Err(e)
                 }
             }
         }
@@ -357,7 +348,7 @@ pub fn create_index_and_mapping_dlt_from_pcap<'a>(
                 content: content.clone(),
                 line: None,
             }));
-            Err(err_msg(content))
+            Err(e.into())
         }
     }
 }

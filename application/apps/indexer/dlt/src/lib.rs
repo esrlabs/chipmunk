@@ -16,8 +16,6 @@ extern crate indexer_base;
 
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate failure;
 
 pub mod dlt;
 pub mod dlt_file;

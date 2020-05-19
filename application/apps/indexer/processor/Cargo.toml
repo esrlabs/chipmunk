@@ -5,12 +5,12 @@ authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0"
 async-std = { version = "1.5.0", features = ["attributes", "unstable"] }
 buf_redux = "0.8.1"
 chrono = "0.4"
 crossbeam-channel = "0.4"
 encoding_rs_io = "0.1.7"
-failure = "0.1"
 futures = { version = "0.3.4", features = ["std", "async-await"], default-features = false }
 indexer_base = { path = "../indexer_base" }
 lazy_static = "1.3.0"
