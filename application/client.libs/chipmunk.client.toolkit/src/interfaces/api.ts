@@ -48,7 +48,7 @@ export interface IAPI {
     /**
      * @returns {IPC} Returns ISettingsAPI object to manage settings of plugins/application
      */
-    getSettingsAPI?: () => ISettingsAPI;
+    getSettingsAPI: () => ISettingsAPI;
 
     /**
      * @returns {string} ID of active stream (active tab)
