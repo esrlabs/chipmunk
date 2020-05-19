@@ -17,10 +17,10 @@ use crate::{
     },
     filtering,
 };
+use anyhow::anyhow;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use failure::{err_msg, Error};
 use futures::stream::StreamExt;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
@@ -41,7 +41,7 @@ pub async fn parse_dlt_file(
     in_file: PathBuf,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
-) -> Result<Vec<Message>, Error> {
+) -> Result<Vec<Message>, DltParseError> {
     trace!("parse_dlt_file");
     let source_file_size = fs::metadata(&in_file)?.len();
     let (update_channel, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
@@ -81,7 +81,7 @@ pub fn create_index_and_mapping_dlt(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     fibex_metadata: Option<FibexMetadata>,
-) -> Result<(), Error> {
+) -> Result<(), anyhow::Error> {
     trace!("create_index_and_mapping_dlt");
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
@@ -123,7 +123,7 @@ impl FileMessageProducer {
         update_channel: cc::Sender<ChunkResults>,
         with_storage_header: bool,
         fibex_metadata: Option<Rc<FibexMetadata>>,
-    ) -> Result<FileMessageProducer, Error> {
+    ) -> Result<FileMessageProducer, DltParseError> {
         let f = match fs::File::open(&in_path) {
             Ok(file) => file,
             Err(e) => {
@@ -133,7 +133,9 @@ impl FileMessageProducer {
                     content: format!("could not open file ({})", e),
                     line: None,
                 }));
-                return Err(err_msg(format!("could not open file ({})", e)));
+                return Err(DltParseError::Unrecoverable {
+                    cause: format!("could not open file ({})", e),
+                });
             }
         };
         let reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
@@ -229,6 +231,19 @@ impl FileMessageProducer {
                                 }),
                             );
                         }
+                        Err(e) => {
+                            warn!("other parsing error");
+                            self.stats.no_parse += 1;
+                            break (
+                                0,
+                                Err(DltParseError::Unrecoverable {
+                                    cause: format!(
+                                        "read_one_dlt_message: parsing error for dlt messages: {}",
+                                        e
+                                    ),
+                                }),
+                            );
+                        }
                     }
                 }
                 Err(e) => {
@@ -279,7 +294,7 @@ pub fn index_dlt_content(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     message_producer: &mut FileMessageProducer,
-) -> Result<(), Error> {
+) -> Result<(), anyhow::Error> {
     trace!("index_dlt_file {:?}", config);
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
@@ -300,14 +315,14 @@ pub fn index_dlt_content(
 
     let mut stopped = false;
     let mut skipped = 0usize;
-    loop {
+    'reading_messages: loop {
         if stopped {
             info!("we were stopped in dlt-indexer",);
-            break;
+            break 'reading_messages;
         };
         let (consumed, next) = message_producer.produce_next_message();
         if consumed == 0 {
-            break;
+            break 'reading_messages;
         } else {
             progress_reporter.make_progress(consumed);
         }
@@ -325,7 +340,7 @@ pub fn index_dlt_content(
                     );
                     chunk_count += 1;
                     last_byte_index = chunk.b.1;
-                    update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+                    let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
                     buf_writer.flush()?;
                 }
             }
@@ -343,26 +358,14 @@ pub fn index_dlt_content(
                         reason
                     );
                 }
-                DltParseError::Unrecoverable { cause } => {
-                    warn!("dlt_file: cannot continue parsing: {}", cause);
-                    update_channel.send(Err(Notification {
+                e => {
+                    warn!("error while parsing: {}", e);
+                    let _ = update_channel.send(Err(Notification {
                         severity: Severity::ERROR,
-                        content: format!("error parsing dlt file: {}", cause),
+                        content: format!("error while parsing dlt file: {}", e),
                         line: None,
-                    }))?;
-                    break;
-                }
-                DltParseError::IncompleteParse { needed } => {
-                    warn!(
-                        "dlt_file: cannot continue parsing, was incomplete: needed {:?}",
-                        needed
-                    );
-                    update_channel.send(Err(Notification {
-                        severity: Severity::ERROR,
-                        content: format!("error parsing dlt file (incomplete parse): {:?}", needed),
-                        line: None,
-                    }))?;
-                    break;
+                    }));
+                    break 'reading_messages;
                 }
             },
         }
@@ -373,30 +376,30 @@ pub fn index_dlt_content(
     // tmp_writer.flush()?;
     if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0) {
         trace!("send chunk {:?}", chunk);
-        update_channel.send(Ok(IndexingProgress::GotItem {
+        let _ = update_channel.send(Ok(IndexingProgress::GotItem {
             item: chunk.clone(),
-        }))?;
+        }));
         chunk_count += 1;
         last_byte_index = chunk.b.1;
     }
     if chunk_count > 0 {
         let last_expected_byte_index = fs::metadata(config.out_path).map(|md| md.len() as usize)?;
         if last_expected_byte_index != last_byte_index {
-            update_channel.send(Err(Notification {
+            let _ = update_channel.send(Err(Notification {
                 severity: Severity::ERROR,
                 content: format!(
                     "error in computation! last byte in chunks is {} but should be {}",
                     last_byte_index, last_expected_byte_index
                 ),
                 line: Some(line_nr),
-            }))?;
+            }));
         }
     }
     debug!(
         "sending IndexingProgress::Finished (skipped {} msgs)",
         skipped
     );
-    update_channel.send(Ok(IndexingProgress::Finished))?;
+    let _ = update_channel.send(Ok(IndexingProgress::Finished));
     Ok(())
 }
 
@@ -405,7 +408,7 @@ pub fn export_session_file(
     destination_path: PathBuf,
     sections: SectionConfig,
     update_channel: cc::Sender<ChunkResults>,
-) -> Result<(), Error> {
+) -> Result<(), DltParseError> {
     trace!(
         "export_as_dlt_file with id: {} to file: {:?}, exporting {:?}",
         session_id,
@@ -426,7 +429,7 @@ pub fn export_as_dlt_file(
     destination_path: PathBuf,
     sections: SectionConfig,
     update_channel: cc::Sender<ChunkResults>,
-) -> Result<(), Error> {
+) -> Result<(), DltParseError> {
     use std::io::{Read, Seek};
     trace!(
         "export_as_dlt_file {:?} to file: {:?}, exporting {:?}",
@@ -460,12 +463,12 @@ pub fn export_as_dlt_file(
             content: reason.clone(),
             line: None,
         }));
-        Err(err_msg(reason))
+        Err(DltParseError::Unrecoverable { cause: reason })
     }
 }
 
-pub(crate) fn session_file_path(session_id: &str) -> Result<PathBuf, Error> {
-    let home_dir = dirs::home_dir().ok_or_else(|| err_msg("couldn't get home directory"))?;
+pub(crate) fn session_file_path(session_id: &str) -> Result<PathBuf, anyhow::Error> {
+    let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("couldn't get home directory"))?;
     let tmp_file_name = format!("{}.dlt", session_id);
     Ok(home_dir
         .join(".chipmunk")
@@ -473,7 +476,7 @@ pub(crate) fn session_file_path(session_id: &str) -> Result<PathBuf, Error> {
         .join(tmp_file_name))
 }
 
-pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File, Error> {
+pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File, anyhow::Error> {
     let path = session_file_path(session_id)?;
     Ok(std::fs::File::create(path)?)
 }
@@ -485,7 +488,7 @@ struct FilePartitioner {
     file_size: u64,
 }
 impl FilePartitioner {
-    fn new(in_path: &PathBuf, c: SectionConfig) -> Result<Self, Error> {
+    fn new(in_path: &PathBuf, c: SectionConfig) -> Result<Self, anyhow::Error> {
         let f = fs::File::open(&in_path)?;
         Ok(FilePartitioner {
             reader: ReduxReader::with_capacity(DLT_READER_CAPACITY, f)

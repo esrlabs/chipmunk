@@ -1,6 +1,6 @@
 use crate::dlt::{FloatWidth, StringCoding, TypeInfo, TypeInfoKind, TypeLength};
+use anyhow;
 use derive_more::{Deref, Display};
-use failure::{bail, format_err, Error};
 use quick_xml::{
     events::{attributes::Attributes, BytesStart, Event as XmlEvent},
     Reader as XmlReader,
@@ -13,8 +13,9 @@ use std::{
     path::{Path, PathBuf},
     rc::Rc,
 };
+use thiserror::Error;
 
-type Result<T = ()> = std::result::Result<T, Error>;
+type Result<T = ()> = std::result::Result<T, anyhow::Error>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FibexMetadata {
@@ -287,7 +288,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
                     pdu_by_id
                         .get(&r)
                         .cloned()
-                        .ok_or_else(|| format_err!("pdu {} not found", &r))
+                        .ok_or_else(|| anyhow::anyhow!("pdu {} not found", &r))
                 })
                 .collect::<Result<Vec<_>>>()?,
             application_id,
@@ -496,7 +497,7 @@ impl<B: BufRead> XmlReaderWithContext<B> {
     pub fn read_usize(&mut self, e: &BytesStart<'_>) -> Result<usize> {
         Ok(self.read_text_buf(e)?.parse::<usize>().map_err(|e| {
             let (line, column) = self.line_and_column().unwrap_or((0, 0));
-            format_err!("can't parse usize at {}:{}: {}", line, column, e)
+            anyhow::anyhow!("can't parse usize at {}:{}: {}", line, column, e)
         })?)
     }
     pub fn read_text_buf(&mut self, e: &BytesStart<'_>) -> Result<String> {
@@ -513,7 +514,12 @@ impl<B: BufRead> XmlReaderWithContext<B> {
             "false" => Ok(false),
             v => {
                 let (line, column) = self.line_and_column()?;
-                bail!("expected bool value, got {} at {}:{}", v, line, column)
+                Err(anyhow::anyhow!(
+                    "expected bool value, got {} at {}:{}",
+                    v,
+                    line,
+                    column
+                ))
             }
         }
     }
@@ -843,16 +849,20 @@ impl<B: BufRead> Reader<B> {
         }
     }
 }
-fn missing_tag_err(tag: &[u8], enclosing_tag: &[u8], line_column: Result<(usize, usize)>) -> Error {
-    format_err!(
+fn missing_tag_err(
+    tag: &[u8],
+    enclosing_tag: &[u8],
+    line_column: Result<(usize, usize)>,
+) -> anyhow::Error {
+    anyhow::anyhow!(
         "required {} tag is missing for {} at {:?}",
         String::from_utf8_lossy(tag),
         String::from_utf8_lossy(enclosing_tag),
         line_column.unwrap_or((0, 0))
     )
 }
-fn missing_attr_err(attr: &[u8], tag: &[u8], line_column: Result<(usize, usize)>) -> Error {
-    format_err!(
+fn missing_attr_err(attr: &[u8], tag: &[u8], line_column: Result<(usize, usize)>) -> anyhow::Error {
+    anyhow::anyhow!(
         "required {} attribute is missing for {} at {:?}",
         String::from_utf8_lossy(attr),
         String::from_utf8_lossy(tag),

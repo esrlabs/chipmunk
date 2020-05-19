@@ -9,8 +9,8 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use anyhow::{Error, *};
 use crossbeam_channel as cc;
-use failure::{err_msg, Error};
 use std::{
     char,
     fmt::Display,
@@ -188,10 +188,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     match reader.seek(SeekFrom::End(seek_offset as i64)) {
         Ok(_) => (),
         Err(e) => {
-            return Err(err_msg(format!(
-                "could not read last entry in file {:?}",
-                e
-            )));
+            return Err(anyhow!("could not read last entry in file {:?}", e));
         }
     };
     let size_of_slice = seek_offset.abs() as usize;
@@ -210,10 +207,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
             return Ok(row_nr + 1);
         }
     }
-    Err(err_msg(format!(
-        "did not find row number in line: {:X?}",
-        buf
-    )))
+    Err(anyhow!("did not find row number in line: {:X?}", buf))
 }
 pub fn get_out_file_and_size(
     append: bool,

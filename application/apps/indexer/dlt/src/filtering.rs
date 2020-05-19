@@ -44,7 +44,7 @@ pub fn process_filter_config(cfg: DltFilterConfig) -> ProcessedDltFilterConfig {
     }
 }
 
-pub fn read_filter_options(f: &mut fs::File) -> Result<DltFilterConfig, failure::Error> {
+pub fn read_filter_options(f: &mut fs::File) -> Result<DltFilterConfig, anyhow::Error> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
     let v: DltFilterConfig = serde_json::from_str(&contents[..])?;

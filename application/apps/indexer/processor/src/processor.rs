@@ -11,9 +11,9 @@
 // from E.S.R.Labs.
 
 use crate::parse;
+use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use encoding_rs_io::*;
-use failure::{err_msg, Error};
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
     config::IndexingConfig,
@@ -36,7 +36,7 @@ pub async fn create_index_and_mapping(
     parse_timestamps: bool,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let initial_line_nr = match utils::next_line_nr(config.out_path) {
         Ok(nr) => nr,
         Err(e) => {
@@ -49,7 +49,7 @@ pub async fn create_index_and_mapping(
                 content: c.clone(),
                 line: None,
             }));
-            return Err(err_msg(c));
+            return Err(anyhow!(c));
         }
     };
     let (out_file, current_out_file_size) =
@@ -64,7 +64,7 @@ pub async fn create_index_and_mapping(
                 content: format!("could not open file ({})", e),
                 line: None,
             }));
-            return Err(err_msg(format!("could not open file ({})", e)));
+            return Err(anyhow!("could not open file ({})", e));
         }
     };
     let mut decode_builder = DecodeReaderBytesBuilder::new();
@@ -102,7 +102,7 @@ pub fn index_file<T: Read>(
     timestamps: bool,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let start = Instant::now();
 
     let mut chunk_count = 0usize;
@@ -172,10 +172,11 @@ pub fn index_file<T: Read>(
         if chunk_count > 0 {
             let last_expected_byte_index = out_file.metadata().map(|md| md.len() as usize)?;
             if last_expected_byte_index != last_byte_index {
-                return Err(err_msg(format!(
+                return Err(anyhow!(
                     "error in computation! last byte in chunks is {} but should be {}",
-                    last_byte_index, last_expected_byte_index
-                )));
+                    last_byte_index,
+                    last_expected_byte_index
+                ));
             }
         }
         info!(
@@ -188,10 +189,7 @@ pub fn index_file<T: Read>(
     }
 }
 
-pub fn restore_original_from_indexed_file(
-    indexed_file: &PathBuf,
-    out: &PathBuf,
-) -> Result<(), Error> {
+pub fn restore_original_from_indexed_file(indexed_file: &PathBuf, out: &PathBuf) -> Result<()> {
     let f = fs::File::open(&indexed_file)?;
     let reader = &mut std::io::BufReader::new(f);
     let out_file = std::fs::File::create(out)?;

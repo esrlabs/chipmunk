@@ -4,8 +4,8 @@ use crate::{
     progress::{IndexingProgress, Notification, Severity},
     utils::restore_line,
 };
+use anyhow::{Error, *};
 use crossbeam_channel as cc;
-use failure::{err_msg, Error};
 use std::{
     fs,
     io::{BufRead, BufWriter, Write},
@@ -77,6 +77,6 @@ pub fn export_file_line_based(
             content: reason.clone(),
             line: None,
         }));
-        Err(err_msg(reason))
+        Err(anyhow!(reason))
     }
 }

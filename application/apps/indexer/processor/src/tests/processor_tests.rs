@@ -4,9 +4,9 @@ mod tests {
     extern crate rand;
     // extern crate tempdir;
     use crate::processor::*;
+    use anyhow::Result;
     use crossbeam_channel as cc;
     use crossbeam_channel::unbounded;
-    use failure::Error;
     use indexer_base::{
         chunks::{Chunk, ChunkResults},
         config::IndexingConfig,
@@ -107,7 +107,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn test_append_to_empty_output() -> Result<(), Error> {
+    async fn test_append_to_empty_output() -> Result<()> {
         let tmp_dir = tempdir().expect("could not create temp dir");
         let empty_file_path = tmp_dir.path().join("empty.log");
         // call our function

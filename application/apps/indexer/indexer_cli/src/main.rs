@@ -19,6 +19,7 @@ extern crate processor;
 #[macro_use]
 extern crate lazy_static;
 
+use anyhow::{anyhow, Result};
 use async_std::task;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
@@ -26,7 +27,6 @@ use dlt::{
     dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::convert_to_dlt_file,
     fibex::FibexMetadata,
 };
-use failure::{err_msg, Error};
 use indexer_base::{
     chunks::{serialize_chunks, Chunk, ChunkResults},
     config::*,
@@ -59,7 +59,7 @@ use std::{fs, io::Read, path, time::Instant};
 
 use std::thread;
 
-fn init_logging() -> Result<(), Error> {
+fn init_logging() -> Result<()> {
     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
     let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
     if !log_config_path.exists() {
@@ -718,10 +718,10 @@ fn main() {
             }
         }
     }
-    fn to_pair(input: &str) -> Result<IndexSection, Error> {
+    fn to_pair(input: &str) -> Result<IndexSection> {
         let elems: Vec<&str> = input.split(',').collect();
         if elems.len() != 2 {
-            return Err(err_msg("no valid section element"));
+            return Err(anyhow!("no valid section element"));
         }
         Ok(IndexSection {
             first_line: elems[0].parse()?,
