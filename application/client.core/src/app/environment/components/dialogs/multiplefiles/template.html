@@ -1,3 +1,6 @@
 <ul>
-    <li *ngFor="let file of files">{{file.name}} ({{(file.size / 1024 / 1024).toFixed(2)}} Mb)</li>
+    <li *ngFor="let file of files">
+        <mat-checkbox [(ngModel)]="_ng_check[file.path].checked" (change)="_ng_onChange()" [checked]="_ng_check[file.path].checked" [disabled]="_ng_check[file.path].disabled"></mat-checkbox>
+        {{file.name}} ({{(file.size / 1024 / 1024).toFixed(2)}} Mb)
+    </li>
 </ul>

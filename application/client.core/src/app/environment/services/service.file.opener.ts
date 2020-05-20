@@ -4,6 +4,7 @@ import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
 import { IPCMessages, Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { FilesList } from '../controller/controller.file.storage';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
 import { CGuids } from '../states/state.default.sidebar.apps';
 import { Storage } from '../controller/helpers/virtualstorage';
@@ -29,6 +30,9 @@ export interface IFile {
     path: string;
     size: number;
     type: string;
+    hasProblem: boolean;
+    hasParser: boolean;
+    isHidden: boolean;
 }
 
 export interface IFileOpenerService {
@@ -68,13 +72,13 @@ export class FileOpenerService implements IService, IFileOpenerService {
         });
     }
 
-    public open(files: IFile[]): Promise<void> {
+    public open(files: IPCMessages.IFile[]): Promise<void> {
         return new Promise((resolve, reject) => {
             if (files.length === 0) {
                 return resolve();
             }
             ServiceElectronIpc.request(new IPCMessages.FileListRequest({
-                files: files.map((file: IFile) => file.path),
+                files: files.map((file: IPCMessages.IFile) => file.path),
             }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
                 this._setSessionForFile().then((session: ControllerSessionTab) => {
                     TabsSessionsService.setActive(session.getGuid());
@@ -97,18 +101,20 @@ export class FileOpenerService implements IService, IFileOpenerService {
                     } else {
                         // Multiple files
                         // Select way: merge or concat
+                        const fileList: FilesList = new FilesList(checkResponse.files);
                         PopupsService.add({
                             id: 'opening-file-dialog',
                             caption: `Opening files`,
                             component: {
                                 factory: DialogsMultipleFilesActionComponent,
                                 inputs: {
-                                    files: checkResponse.files
+                                    fileList: fileList,
+                                    files: fileList.getFiles().slice()
                                 }
                             },
                             buttons: [
-                                { caption: 'Merge', handler: this.merge.bind(this, checkResponse.files), },
-                                { caption: 'Concat', handler: this.concat.bind(this, checkResponse.files), },
+                                { caption: 'Merge', handler: this.merge.bind(this, fileList), },
+                                { caption: 'Concat', handler: this.concat.bind(this, fileList), },
                             ],
                         });
                         resolve();
@@ -147,15 +153,14 @@ export class FileOpenerService implements IService, IFileOpenerService {
         });
     }
 
-    public merge(files: IFile[]) {
-        this._open(files, EActionType.merging);
+    public merge(list: FilesList | IPCMessages.IFile[]) {
+        this._open(list instanceof Array ? list : list.getFiles(), EActionType.merging);
+    }
+    public concat(list: FilesList | IPCMessages.IFile[]) {
+        this._open(list instanceof Array ? list : list.getFiles(), EActionType.concat);
     }
 
-    public concat(files: IFile[]) {
-        this._open(files, EActionType.concat);
-    }
-
-    private _open(files: IFile[], action: EActionType) {
+    private _open(files: IPCMessages.IFile[], action: EActionType) {
         const active = TabsSessionsService.getActive();
         if (active === undefined) {
             return;

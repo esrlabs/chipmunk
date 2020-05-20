@@ -10,6 +10,9 @@ export interface IFile {
     path: string;
     size: number;
     type: string;
+    hasProblem: boolean;
+    hasParser: boolean;
+    isHidden: boolean;
 }
 
 export class FileListResponse {

@@ -268,10 +268,10 @@ class ServiceFileOpener implements IService {
     }
 
     private _verify(file: IPCMessages.IFile): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             fs.access(file.path, fs.constants.R_OK, (err) => {
                 if (err) {
-                    return reject(new Error(this._logger.warn(`Fail to read file(s) due to missing access rights for ${file.path}`)));
+                    file.hasProblem = true;
                 }
                 return resolve();
             });
@@ -285,27 +285,38 @@ class ServiceFileOpener implements IService {
 
             function listAllFiles(file: string): Promise<any> {
                 return new Promise((resolved, rejected) => {
-                    fs.lstat(file, (lsErr, lsStats) => {
+                    fs.lstat(file, (lsErr, stats) => {
                         if (lsErr) {
-                            return rejected(new Error(self._logger.warn(`Fail to list files due to error: ${lsErr.message}`)));
+                            return resolved(allFiles.push({
+                                hasParser: false,
+                                hasProblem: true,
+                                isHidden: false,
+                                lastModified: 0,
+                                lastModifiedDate: new Date(),
+                                name: path.basename(file),
+                                path: file,
+                                size: 0,
+                                type: 'file',
+                            }));
                         }
-                        if (lsStats.isFile()) {
+                        if (stats.isFile()) {
                             // File
-                            return fs.stat(file, (fsErr, fsStats) => {
-                                if (fsErr) {
-                                    return rejected(new Error(self._logger.warn(`Fail to get file info of ${file} due to error: ${fsErr.message}`)));
-                                } else {
-                                    return resolved(allFiles.push({
-                                        lastModified: fsStats.mtimeMs,
-                                        lastModifiedDate: fsStats.mtime,
-                                        name: path.basename(file),
-                                        path: file,
-                                        size: fsStats.size,
-                                        type: 'file',
-                                    }));
-                                }
+                            getParserForFile(file).then((parser: AFileParser | undefined) => {
+                                return resolved(allFiles.push({
+                                    hasParser: (parser === undefined) ? false : true,
+                                    hasProblem: false,
+                                    isHidden: false,
+                                    lastModified: stats.mtimeMs,
+                                    lastModifiedDate: stats.mtime,
+                                    name: path.basename(file),
+                                    path: file,
+                                    size: stats.size,
+                                    type: 'file',
+                                }));
+                            }).catch((error: Error) => {
+                                return rejected(new Error(self._logger.warn(`Fail to indentify parser of ${file} due to error: ${error.message}`)));
                             });
-                        } else if (!(lsStats.isDirectory())) {
+                        } else if (!(stats.isDirectory())) {
                             // Neither file nor directory
                             return rejected(new Error(self._logger.warn(`Fail to get file info of ${file} because it is neither a file nor a directory`)));
                         } else {
