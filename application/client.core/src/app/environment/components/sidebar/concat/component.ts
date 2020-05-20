@@ -4,12 +4,13 @@ import { Subscription, Subject } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
-import { IServices, IFile } from '../../../services/shared.services.sidebar';
+import { IServices } from '../../../services/shared.services.sidebar';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { ControllerFileConcatSession, IConcatFile } from '../../../controller/controller.file.concat.session';
+import { IPCMessages } from '../../../services/service.electron.ipc';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
@@ -436,7 +437,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         this._controller.drop();
     }
 
-    private _onFilesDropped(files: IFile[]) {
+    private _onFilesDropped(files: IPCMessages.IFile[]) {
         this.services.FileOpenerService.concat(files);
     }
 

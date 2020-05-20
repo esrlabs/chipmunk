@@ -1,10 +1,11 @@
 import { Component, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef } from '@angular/core';
-import FileOpenerService, { IFile } from '../../../services/service.file.opener';
+import FileOpenerService from '../../../services/service.file.opener';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { Subscription } from 'rxjs';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { IPCMessages } from '../../../services/service.electron.ipc';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',
@@ -33,7 +34,7 @@ export class LayoutPrimiryAreaNoTabsComponent implements AfterViewInit, OnDestro
         });
     }
 
-    private _onFilesDropped(files: IFile[]) {
+    private _onFilesDropped(files: IPCMessages.IFile[]) {
         TabsSessionsService.add().then(() => {
             FileOpenerService.open(files).catch((error: Error) => {
                 this._notifications.add({

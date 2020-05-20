@@ -1,10 +1,10 @@
 // List of services bellow is shared with each tab component (sidebar and secondary area)
 
-import { IFileOpenerService, IFile } from './service.file.opener';
+import { IFileOpenerService } from './service.file.opener';
 import { IMergeFilesService } from './service.file.merge';
 import { IConcatFilesService } from './service.file.concat';
 
-export { IFileOpenerService, IFile };
+export { IFileOpenerService };
 
 export interface IServices {
     FileOpenerService: IFileOpenerService;

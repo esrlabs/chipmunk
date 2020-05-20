@@ -1,6 +1,6 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
-import { IFile } from './service.file.opener';
+import { IPCMessages } from './service.electron.ipc';
 import { ControllerFileConcatSession } from '../controller/controller.file.concat.session';
 import { IService } from '../interfaces/interface.service';
 import { CGuids } from '../states/state.default.sidebar.apps';
@@ -12,7 +12,7 @@ import SidebarSessionsService from './service.sessions.sidebar';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IConcatFilesService {
-    add(files: IFile[], session: string): void;
+    add(files: IPCMessages.IFile[], session: string): void;
     getController(session?: string): ControllerFileConcatSession | undefined;
     closeSidebarView(): void;
 }
@@ -38,12 +38,12 @@ export class ConcatFilesService implements IService, IConcatFilesService {
         return 'ConcatFilesService';
     }
 
-    public add(files: IFile[], session: string) {
+    public add(files: IPCMessages.IFile[], session: string) {
         const controller: ControllerFileConcatSession | undefined = this._controllers.get(session);
         if (controller === undefined) {
             return this._logger.error(`Fail to find ControllerFileConcatSession for session: ${session}`);
         }
-        controller.add(files.map((file: IFile) => {
+        controller.add(files.map((file: IPCMessages.IFile) => {
             return file.path;
         })).catch((addErr: Error) => {
             this._logger.error(`Fail add files to merge controller due error: ${addErr.message}`);
