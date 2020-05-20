@@ -23,21 +23,10 @@ export enum EActionType {
     merging = 'merging',
 }
 
-export interface IFile {
-    lastModified: number;
-    lastModifiedDate: Date;
-    name: string;
-    path: string;
-    size: number;
-    type: string;
-    hasProblem: boolean;
-    hasParser: boolean;
-    isHidden: boolean;
-}
 
 export interface IFileOpenerService {
-    merge: (files: IFile[]) => void;
-    concat: (files: IFile[]) => void;
+    merge: (files: IPCMessages.IFile[]) => void;
+    concat: (files: IPCMessages.IFile[]) => void;
 }
 
 const CReopenContextMenuItemId = 'reopen_file_item';
