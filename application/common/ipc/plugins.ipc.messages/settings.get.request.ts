@@ -1,18 +1,19 @@
-export interface ISettingsOperationDefaultRequest {
+
+export interface ISettingsGetRequest {
     path: string;
     key: string;
 }
 
-export class SettingsOperationDefaultRequest {
+export class SettingsGetRequest {
 
-    public static signature: string = 'SettingsOperationDefaultRequest';
-    public signature: string = SettingsOperationDefaultRequest.signature;
+    public static signature: string = 'SettingsGetRequest';
+    public signature: string = SettingsGetRequest.signature;
     public path: string;
     public key: string;
 
-    constructor(params: ISettingsOperationDefaultRequest) {
+    constructor(params: ISettingsGetRequest) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for SettingsOperationDefaultRequest message`);
+            throw new Error(`Incorrect parameters for SettingsGetRequest message`);
         }
         if (typeof params.path !== 'string') {
             throw new Error(`Field "path" should be defined`);

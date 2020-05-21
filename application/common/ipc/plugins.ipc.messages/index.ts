@@ -28,6 +28,30 @@ export { ISessionStreamBound, SessionStreamBound };
 import { ISessionStreamUnbound, SessionStreamUnbound } from './session.stream.unbound';
 export { ISessionStreamUnbound, SessionStreamUnbound };
 
+import { ISettingsRegisterRequest, SettingsRegisterRequest } from './settings.register.request';
+export { ISettingsRegisterRequest, SettingsRegisterRequest };
+
+import { ISettingsRegisterResponse, SettingsRegisterResponse } from './settings.register.response';
+export { ISettingsRegisterResponse, SettingsRegisterResponse };
+
+import { ISettingsValidateRequest, SettingsValidateRequest } from './settings.validate.request';
+export { ISettingsValidateRequest, SettingsValidateRequest };
+
+import { ISettingsValidateResponse, SettingsValidateResponse } from './settings.validate.response';
+export { ISettingsValidateResponse, SettingsValidateResponse };
+
+import { ISettingsDefaultRequest, SettingsDefaultRequest } from './settings.default.request';
+export { ISettingsDefaultRequest, SettingsDefaultRequest };
+
+import { ISettingsDefaultResponse, SettingsDefaultResponse } from './settings.default.response';
+export { ISettingsDefaultResponse, SettingsDefaultResponse };
+
+import { ISettingsGetRequest, SettingsGetRequest } from './settings.get.request';
+export { ISettingsGetRequest, SettingsGetRequest };
+
+import { ISettingsGetResponse, SettingsGetResponse } from './settings.get.response';
+export { ISettingsGetResponse, SettingsGetResponse };
+
 // Common type for expected message implementation
 export type TMessage =  PluginState |
                         PluginInternalMessage |
@@ -38,7 +62,15 @@ export type TMessage =  PluginState |
                         SessionStreamPipeStarted |
                         SessionStreamPipeFinished |
                         SessionStreamBound |
-                        SessionStreamUnbound;
+                        SessionStreamUnbound |
+                        SettingsRegisterRequest<any> |
+                        SettingsRegisterResponse<any> |
+                        SettingsValidateRequest<any> |
+                        SettingsValidateResponse |
+                        SettingsDefaultRequest |
+                        SettingsDefaultResponse<any> |
+                        SettingsGetRequest |
+                        SettingsGetResponse<any>;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -55,5 +87,14 @@ export const Map = {
     [SessionStreamPipeFinished.signature    ]: SessionStreamPipeFinished,
     [SessionStreamBound.signature           ]: SessionStreamBound,
     [SessionStreamUnbound.signature         ]: SessionStreamUnbound,
+
+    [SettingsRegisterRequest.signature      ]: SettingsRegisterRequest,
+    [SettingsRegisterResponse.signature     ]: SettingsRegisterResponse,
+    [SettingsValidateRequest.signature      ]: SettingsValidateRequest,
+    [SettingsValidateResponse.signature     ]: SettingsValidateResponse,
+    [SettingsDefaultRequest.signature       ]: SettingsDefaultRequest,
+    [SettingsDefaultResponse.signature      ]: SettingsDefaultResponse,
+    [SettingsGetRequest.signature           ]: SettingsGetRequest,
+    [SettingsGetResponse.signature          ]: SettingsGetResponse,
 
 };
