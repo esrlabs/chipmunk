@@ -1,8 +1,8 @@
 {
     "electron": "8.1.0",
     "electron-rebuild": "1.10.0",
-    "chipmunk.client.toolkit": "1.2.13",
-    "chipmunk.plugin.ipc": "0.0.43",
+    "chipmunk.client.toolkit": "1.2.14",
+    "chipmunk.plugin.ipc": "0.0.49",
     "chipmunk-client-material": "1.0.0",
     "angular-core": "9.0.6",
     "angular-material": "9.1.3",
