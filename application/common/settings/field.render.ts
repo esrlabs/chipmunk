@@ -11,6 +11,25 @@ export function getElementType(el: any): EElementSignature | undefined {
     return typeof el.signature === 'string' ? el.signature : undefined;
 }
 
+export function getElement(signature: string | undefined, params: any): ElementRefs | undefined {
+    if (typeof signature !== 'string') {
+        return;
+    }
+    const references = {
+        [EElementSignature.checkbox]: ElementCheckboxRef,
+        [EElementSignature.string]: ElementInputStringRef,
+        [EElementSignature.number]: ElementInputNumberRef,
+    };
+    if ((references as any)[signature] === undefined) {
+        return undefined;
+    }
+    try {
+        return new (references as any)[signature](params);
+    } catch (e) {
+        return undefined;
+    }
+}
+
 export class Element<T> {
 
     private _value: T | undefined;
@@ -25,10 +44,20 @@ export class Element<T> {
 
 }
 
-export class ElementCheckboxRef {
+export interface IElement {
+
+    getParams(): any;
+
+}
+
+export class ElementCheckboxRef implements IElement {
 
     public static readonly signature: EElementSignature = EElementSignature.checkbox;
     public readonly signature: EElementSignature = ElementCheckboxRef.signature;
+
+    public getParams() {
+        return undefined;
+    }
 
 }
 
@@ -36,7 +65,7 @@ interface IElementInputStringRef {
     placeholder: string;
 }
 
-export class ElementInputStringRef {
+export class ElementInputStringRef implements IElement {
 
     public static readonly signature: EElementSignature = EElementSignature.string;
     public readonly signature: EElementSignature = ElementInputStringRef.signature;
@@ -47,6 +76,12 @@ export class ElementInputStringRef {
         this.placeholder = params.placeholder;
     }
 
+    public getParams(): IElementInputStringRef {
+        return {
+            placeholder: this.placeholder,
+        }
+    }
+
 }
 
 interface IElementInputNumberRef {
@@ -55,7 +90,7 @@ interface IElementInputNumberRef {
     max: number;
 }
 
-export class ElementInputNumberRef {
+export class ElementInputNumberRef implements IElement {
 
     public static readonly signature: EElementSignature = EElementSignature.number;
     public readonly signature: EElementSignature = ElementInputNumberRef.signature;
@@ -69,6 +104,15 @@ export class ElementInputNumberRef {
         this.min = params.min;
         this.max = params.max;
     }
+
+    public getParams(): IElementInputNumberRef {
+        return {
+            placeholder: this.placeholder,
+            min: this.min,
+            max: this.max,
+        }
+    }
+
 }
 
 export type ElementRefs = ElementCheckboxRef | ElementInputNumberRef | ElementInputStringRef;

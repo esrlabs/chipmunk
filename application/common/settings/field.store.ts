@@ -204,6 +204,8 @@ export class Entry {
 
 export interface IField<T> extends IEntry {
     value?: T;
+    elSignature?: EElementSignature,
+    elParams?: any;
 }
 
 const CFieldBaseClassSignature = 'CFieldBaseClassSignature';
@@ -218,7 +220,9 @@ export class FieldBase<T> extends Entry {
     }
 
     public asField(): IField<T> {
-        return Object.assign({ value: this.value }, this.asEntry());
+        return Object.assign({
+            value: this.value,
+        }, this.asEntry());
     }
 
     public get(): T {
@@ -269,12 +273,12 @@ export class FieldBase<T> extends Entry {
 
 }
 
-const CRenderFieldClassSignature = 'CRenderFieldClassSignature';
+const CRemoteFieldClassSignature = 'CRemoteFieldClassSignature';
 
-export class RenderField<T> extends FieldBase<T> {
+export class RemoteField<T> extends FieldBase<T> {
     
     public value: T | undefined;
-
+    
     constructor(entry: IField<T>) {
         super(entry);
         this.value = entry.value;
@@ -326,7 +330,7 @@ export class RenderField<T> extends FieldBase<T> {
      * Internal usage
      */
     public getClassSignature(): string {
-        return CRenderFieldClassSignature;
+        return CRemoteFieldClassSignature;
     }
 
     /**
@@ -339,7 +343,7 @@ export class RenderField<T> extends FieldBase<T> {
         if (typeof smth.getClassSignature !== 'function') {
             return false;
         }
-        return smth.getClassSignature() === CRenderFieldClassSignature;
+        return smth.getClassSignature() === CRemoteFieldClassSignature;
     }
 
 }
@@ -353,6 +357,15 @@ export abstract class Field<T> extends FieldBase<T> {
     public abstract validate(value: T): Promise<void>;
     public abstract getDefault(): Promise<T>;
     public abstract getElement(): ElementRefs | undefined;
+
+    public asField(): IField<T> {
+        const element: ElementRefs | undefined = this.getElement();
+        return Object.assign({
+            value: this.value,
+            elSignature: this.getElementType(),
+            elParams: element === undefined ? undefined : element.getParams(),
+        }, this.asEntry());
+    }
 
     public extract(store: IStorage): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -430,5 +443,13 @@ export abstract class Field<T> extends FieldBase<T> {
         }
         return smth.getClassSignature() === CFieldClassSignature;
     }
+
+}
+
+export abstract class RemoteFieldWrapper<T> extends RemoteField<T> {
+
+    public abstract validate(value: T): Promise<void>;
+    public abstract getDefault(): Promise<T>;
+    public abstract getElement(): ElementRefs | undefined;
 
 }
