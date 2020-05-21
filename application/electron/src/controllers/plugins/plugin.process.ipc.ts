@@ -1,19 +1,20 @@
+import * as IPCMessages from '../../../../common/ipc/plugins.ipc.messages/index';
+
 import { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
-import { Readable } from 'stream';
 import { IPCMessagePackage } from './plugin.process.ipc.messagepackage';
-import * as IPCMessages from '../../../../common/ipc/plugins.ipc.messages/index';
+import { guid, Subscription, THandler } from '../../tools/index';
+import { Entry, getElement, IField, getEntryKeyByArgs } from '../../services/service.settings';
+import { IControllerIPCPlugin } from './plugin.process.ipc.interface';
+import { PluginField } from './plugin.process.setting.field';
+
+import ServiceConfig from '../../services/service.settings';
 import ServiceElectron from '../../services/service.electron';
 import Logger from '../../tools/env.logger';
-import { guid, Subscription, THandler } from '../../tools/index';
 
 export { IPCMessages };
 
-export default class ControllerIPCPlugin extends EventEmitter {
-
-    public static Events = {
-    };
-    public Events = ControllerIPCPlugin.Events;
+export default class ControllerIPCPlugin extends EventEmitter implements IControllerIPCPlugin {
 
     private _logger: Logger;
     private _pluginName: string;
@@ -30,6 +31,12 @@ export default class ControllerIPCPlugin extends EventEmitter {
         this._token = token;
         this._logger = new Logger(`plugin IPC: ${this._pluginName}`);
         this._process.on('message', this._onMessage.bind(this));
+        this.subscribe(IPCMessages.SettingsRegisterRequest, this._ipc_onSettingsRegisterRequest.bind(this)).then((subscription: Subscription) => {
+            this._subscriptions.set('SettingsRegisterRequest', subscription);
+        });
+        this.subscribe(IPCMessages.SettingsGetRequest, this._ipc_onSettingsGetRequest.bind(this)).then((subscription: Subscription) => {
+            this._subscriptions.set('SettingsGetRequest', subscription);
+        });
     }
 
     /**
@@ -231,6 +238,43 @@ export default class ControllerIPCPlugin extends EventEmitter {
         } else {
             this._handlers.set(signature, handlers);
         }
+    }
+
+    private _ipc_onSettingsRegisterRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
+        const request: IPCMessages.SettingsRegisterRequest<any> = message as IPCMessages.SettingsRegisterRequest<any>;
+        const inst: Entry | PluginField<any> = request.entry !== undefined ?
+                new Entry(request.entry) :
+                new PluginField<any>(request.field as IField<any>, getElement(request.field?.elSignature, request.field?.elParams), this);
+        ServiceConfig.register(inst).then((value: any) => {
+            response(new IPCMessages.SettingsRegisterResponse({
+                value: value,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on SettingsRegisterResponse due error: ${error.message}`);
+            });
+        }).catch((entryErr: Error) => {
+            response(new IPCMessages.SettingsRegisterResponse({
+                error: `Field to register entries due error: ${entryErr.message}`,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on SettingsRegisterResponse due error: ${error.message}`);
+            });
+        });
+    }
+
+    private _ipc_onSettingsGetRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
+        const request: IPCMessages.SettingsGetRequest = message as IPCMessages.SettingsGetRequest;
+        ServiceConfig.get<any>(getEntryKeyByArgs(request.path, request.key)).then((value: any) => {
+            response(new IPCMessages.SettingsGetResponse({
+                value: value,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on SettingsGetResponse due error: ${error.message}`);
+            });
+        }).catch((entryErr: Error) => {
+            response(new IPCMessages.SettingsGetResponse({
+                error: `Field to register entries due error: ${entryErr.message}`,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on SettingsGetResponse due error: ${error.message}`);
+            });
+        });
     }
 
 }

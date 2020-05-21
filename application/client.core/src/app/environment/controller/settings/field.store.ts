@@ -1,13 +1,13 @@
 
 // tslint:disable: member-ordering
 
-import { Entry, FieldBase, IEntry, ESettingType, IField, RenderField, Field } from '../../../../../../common/settings/field.store';
+import { Entry, FieldBase, IEntry, ESettingType, IField, RemoteField, Field } from '../../../../../../common/settings/field.store';
 import { ElementRefs, EElementSignature, getElementType } from '../../../../../../common/settings/field.render';
 import { IPCMessages } from '../../services/service.electron.ipc';
 
 import ElectronIpcService from '../../services/service.electron.ipc';
 
-export { Entry, IEntry, ESettingType, getElementType, FieldBase, RenderField, IField, Field };
+export { Entry, IEntry, ESettingType, getElementType, FieldBase, RemoteField, IField, Field };
 
 const CLocalFieldClassSignature = 'CLocalFieldClassSignature';
 

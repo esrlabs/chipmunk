@@ -1,13 +1,25 @@
 import { StateFile } from '../classes/class.statefile';
 import { IService } from '../interfaces/interface.service';
-import { Entry, Field, getEntryKey, getEntryKeyByArgs, ESettingType, IEntry, IField, RenderField} from '../../../common/settings/field.store';
-import { ElementRefs } from '../../../common/settings/field.render';
+import { Entry, Field, getEntryKey, getEntryKeyByArgs, ESettingType, IEntry, IField, RemoteField } from '../../../common/settings/field.store';
+import { ElementRefs, getElement } from '../../../common/settings/field.render';
 import { IPCMessages, Subscription } from './service.electron';
+import { PluginField } from '../controllers/plugins/plugin.process.setting.field';
 
 import ServiceElectron from './service.electron';
 import Logger from '../tools/env.logger';
 
-export { ESettingType, Field };
+export {
+    ESettingType,
+    Field,
+    Entry,
+    getEntryKey,
+    getEntryKeyByArgs,
+    IEntry,
+    IField,
+    RemoteField,
+    ElementRefs,
+    getElement,
+};
 
 const SETTINGS_FILE = 'config.application.json';
 
@@ -23,7 +35,7 @@ interface IStorage {
 class ServiceConfig implements IService {
 
     private _storage: StateFile<IStorage> = new StateFile<IStorage>(this.getName(), {}, SETTINGS_FILE, true);
-    private _register: Map<string, Field<any> | RenderField<any> | Entry> = new Map();
+    private _register: Map<string, Field<any> | RemoteField<any> | PluginField <any> | Entry> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Logger = new Logger('ServiceConfig');
     private _index: number = 0;
@@ -79,12 +91,12 @@ class ServiceConfig implements IService {
         });
     }
 
-    public register(entry: Entry | Field<any> | RenderField<any>): Promise<any> {
+    public register<T>(entry: Entry | Field<any> | RemoteField<any> | PluginField<any>): Promise<T | undefined> {
         entry.setIndex(this._getIndex());
         return new Promise((resolve, reject) => {
             const key: string = getEntryKey(entry);
             if (this._register.has(key)) {
-                if (entry instanceof Field || entry instanceof RenderField) {
+                if (Field.isInstance(entry) || RemoteField.isInstance(entry) || PluginField.isInstance(entry)) {
                     return reject(new Error(`Entry "${entry.getName()}" is already registered.`));
                 } else {
                     return resolve();
@@ -96,7 +108,11 @@ class ServiceConfig implements IService {
                     return reject(wrtErr);
                 }
                 this._register.set(key, entry);
-                resolve();
+                if (Field.isInstance(entry) || RemoteField.isInstance(entry) || PluginField.isInstance(entry)) {
+                    resolve((entry as Field<T>).read(this._storage.get()));
+                } else {
+                    resolve();
+                }
             }).catch((extrErr: Error) => {
                 reject(extrErr);
             });
@@ -131,12 +147,12 @@ class ServiceConfig implements IService {
         const fields: Array<IField<any>> = [];
         const renders: Array<IField<any>> = [];
         const elements: { [key: string]: ElementRefs } = {};
-        this._register.forEach((entry: Entry | Field<any> | RenderField<any>) => {
-            if (entry instanceof RenderField) {
-                renders.push(entry.asField());
-            } else if (entry instanceof Field) {
-                fields.push(entry.asField());
-                const elementRef: ElementRefs | undefined = entry.getElement();
+        this._register.forEach((entry: Entry | Field<any> | RemoteField<any>) => {
+            if (RemoteField.isInstance(entry)) {
+                renders.push((entry as RemoteField<any>).asField());
+            } else if (Field.isInstance(entry) || PluginField.isInstance(entry)) {
+                fields.push((entry as Field<any>).asField());
+                const elementRef: ElementRefs | undefined = (entry as Field<any>).getElement();
                 if (elementRef !== undefined) {
                     elements[entry.getFullPath()] = elementRef;
                 }
@@ -171,7 +187,7 @@ class ServiceConfig implements IService {
                 this._logger.warn(`Fail to send response on SettingsOperationGetResponse due error: ${error.message}`);
             });
         }
-        if (!(entry instanceof Field)) {
+        if (!(entry instanceof Field) && !(entry instanceof PluginField)) {
             return response(new IPCMessages.SettingsOperationGetResponse({
                 error: `Field "${key}" is Entry and doesn't have value`,
             })).catch((error: Error) => {
@@ -188,7 +204,7 @@ class ServiceConfig implements IService {
     private _ipc_SettingsOperationSetRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
         const request: IPCMessages.SettingsOperationSetRequest<any> = message as IPCMessages.SettingsOperationSetRequest<any>;
         const key: string = getEntryKeyByArgs(request.path, request.key);
-        const entry: Entry | Field<any> | RenderField<any> | undefined = this._register.get(key);
+        const entry: Entry | Field<any> | RemoteField<any> | undefined = this._register.get(key);
         if (entry === undefined) {
             return response(new IPCMessages.SettingsOperationSetResponse({
                 error: `Field "${key}" isn't found`,
@@ -196,7 +212,7 @@ class ServiceConfig implements IService {
                 this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
             });
         }
-        if (!(entry instanceof Field) && !(entry instanceof RenderField)) {
+        if (!(entry instanceof Field) && !(entry instanceof RemoteField)) {
             return response(new IPCMessages.SettingsOperationSetResponse({
                 error: `Field "${key}" is Entry and doesn't have value`,
             })).catch((error: Error) => {
@@ -217,6 +233,7 @@ class ServiceConfig implements IService {
                 });
             }
         }).catch((setErr: Error) => {
+            this._logger.warn(`Fail to set valid of field "${key}" due error: ${setErr.message}`);
             response(new IPCMessages.SettingsOperationSetResponse({
                 error: `Fail to set valid of field "${key}" due error: ${setErr.message}`,
             })).catch((error: Error) => {
@@ -236,7 +253,7 @@ class ServiceConfig implements IService {
                 this._logger.warn(`Fail to send response on SettingsOperationValidateResponse due error: ${error.message}`);
             });
         }
-        if (!(entry instanceof Field)) {
+        if (!(entry instanceof Field) && !(entry instanceof PluginField)) {
             return response(new IPCMessages.SettingsOperationValidateResponse({
                 error: `Field "${key}" is Entry and doesn't have value (and doesn't need validate function)`,
             })).catch((error: Error) => {
@@ -247,10 +264,9 @@ class ServiceConfig implements IService {
             response(new IPCMessages.SettingsOperationValidateResponse({})).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on SettingsOperationValidateResponse due error: ${error.message}`);
             });
-        }).catch((setErr: Error) => {
-            this._logger.warn(`Fail to set valid of field "${key}" due error: ${setErr.message}`);
+        }).catch((validErr: Error) => {
             response(new IPCMessages.SettingsOperationValidateResponse({
-                error: setErr.message,
+                error: validErr.message,
             })).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on SettingsOperationValidateResponse due error: ${error.message}`);
             });
@@ -268,7 +284,7 @@ class ServiceConfig implements IService {
                 this._logger.warn(`Fail to send response on SettingsOperationDefaultResponse due error: ${error.message}`);
             });
         }
-        if (!(entry instanceof Field)) {
+        if (!(entry instanceof Field) && !(entry instanceof PluginField)) {
             return response(new IPCMessages.SettingsOperationDefaultResponse({
                 error: `Field "${key}" is Entry and doesn't have value`,
             })).catch((error: Error) => {
@@ -292,10 +308,10 @@ class ServiceConfig implements IService {
 
     private _ipc_SettingsRenderRegisterRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
         const request: IPCMessages.SettingsRenderRegisterRequest<any> = message as IPCMessages.SettingsRenderRegisterRequest<any>;
-        const inst: Entry | RenderField<any> = request.entry !== undefined ? new Entry(request.entry) : new RenderField<any>(request.field as IField<any>);
+        const inst: Entry | RemoteField<any> = request.entry !== undefined ? new Entry(request.entry) : new RemoteField<any>(request.field as IField<any>);
         this.register(inst).then(() => {
             response(new IPCMessages.SettingsRenderRegisterResponse({
-                value: inst instanceof RenderField ? inst.read(this._storage.get()) : undefined,
+                value: inst instanceof RemoteField ? inst.read(this._storage.get()) : undefined,
             })).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on SettingsRenderRegisterResponse due error: ${error.message}`);
             });
