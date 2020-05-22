@@ -21,6 +21,8 @@ export {
     ElementRefs,
 };
 
+const CPluginsSettingsGroupKey = 'plugins';
+
 /**
  * @class ServiceSettings
  * @description Provides access to chipmunk settings.
@@ -42,20 +44,21 @@ export class ServiceSettings {
 
     public register(entry: Entry | Field<any>): Promise<void> {
         return new Promise((resolve, reject) => {
-            PluginIPCService.request(new IPCMessages.SettingsRegisterRequest({
-                entry: Entry.isInstance(entry) ? entry.asEntry() : undefined,
-                field: Field.isInstance(entry) ? (entry as Field<any>).asField() : undefined,
-            })).then((res: any) => {
-                const response: IPCMessages.SettingsRegisterResponse<any> = res as IPCMessages.SettingsRegisterResponse<any>;
-                if (response.error !== undefined) {
-                    return reject(new Error(response.error));
-                }
-                if (Field.isInstance(entry)) {
-                    this._fields.set(entry.getFullPath(), (entry as Field<any>));
-                }
-                resolve(response.value);
-            }).catch((error: Error) => {
-                reject(error);
+            // Create holder before
+            this._register(new Entry({
+                name: 'Plugins',
+                desc: 'Settings of plugins',
+                key: CPluginsSettingsGroupKey,
+                path: '',
+                type: ESettingType.standard,
+            })).then(() => {
+                // Update a path (move plugin setting into plugins-wrapper)
+                entry.setPath(entry.getPath() === '' ? CPluginsSettingsGroupKey : `${CPluginsSettingsGroupKey}.${entry.getPath()}`);
+                // Create entry
+                this._register(entry).then(resolve).catch(reject);
+            }).catch((wrapErr: Error) => {
+                console.log(`Fail to create wrapper of plugins settings due error: ${wrapErr.message}`);
+                reject(wrapErr);
             });
         });
     }
@@ -69,6 +72,26 @@ export class ServiceSettings {
                 const response: IPCMessages.SettingsGetResponse<T> = res as IPCMessages.SettingsGetResponse<T>;
                 if (response.error !== undefined) {
                     return reject(new Error(response.error));
+                }
+                resolve(response.value);
+            }).catch((error: Error) => {
+                reject(error);
+            });
+        });
+    }
+
+    private _register(entry: Entry | Field<any>): Promise<void> {
+        return new Promise((resolve, reject) => {
+            PluginIPCService.request(new IPCMessages.SettingsRegisterRequest({
+                entry: Entry.isInstance(entry) ? entry.asEntry() : undefined,
+                field: Field.isInstance(entry) ? (entry as Field<any>).asField() : undefined,
+            })).then((res: any) => {
+                const response: IPCMessages.SettingsRegisterResponse<any> = res as IPCMessages.SettingsRegisterResponse<any>;
+                if (response.error !== undefined) {
+                    return reject(new Error(response.error));
+                }
+                if (Field.isInstance(entry)) {
+                    this._fields.set(entry.getFullPath(), (entry as Field<any>));
                 }
                 resolve(response.value);
             }).catch((error: Error) => {
