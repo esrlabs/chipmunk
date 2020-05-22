@@ -69,7 +69,7 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
         }
         this._zone.run(() => {
             this._ng_dataSource.data = this._getData();
-            if (this.filter !== '') {
+            if (this.filter !== '' || this._ng_focused !== undefined) {
                 this._ng_treeControl.expandAll();
             }
         });

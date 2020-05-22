@@ -65,19 +65,15 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         if (this._ng_focused === undefined && this._ng_filter === '') {
             return;
         }
-        if (this._ng_focused !== undefined && this._ng_entries.has(this._ng_focused.getFullPath())) {
+        if (this._ng_matches.size === 0) {
             return;
         }
-        if (this._ng_matches.size === 0) {
-            this._ng_focused = undefined;
-        } else {
-            const entry: Entry | undefined = this._entries.get(Array.from(this._ng_matches.values())[0].id);
-            const parent: Entry | undefined = entry === undefined ? undefined : this._entries.get(entry.getPath());
-            if (parent === undefined) {
-                this._ng_focused = undefined;
-            } else {
-                this._onFocusChange(parent.getFullPath(), true);
-            }
+        const entry: Entry | undefined = this._entries.get(Array.from(this._ng_matches.values())[0].id);
+        const parent: Entry | undefined = entry === undefined ? undefined : this._entries.get(entry.getPath());
+        if (parent !== undefined) {
+            this._onFocusChange(parent.getFullPath(), true);
+        } else if (this._ng_focused !== undefined) {
+            this._onFocusChange(this._ng_focused.getFullPath(), true);
         }
     }
 
