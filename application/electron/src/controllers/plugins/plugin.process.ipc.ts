@@ -262,19 +262,20 @@ export default class ControllerIPCPlugin extends EventEmitter implements IContro
 
     private _ipc_onSettingsGetRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
         const request: IPCMessages.SettingsGetRequest = message as IPCMessages.SettingsGetRequest;
-        ServiceConfig.get<any>(getEntryKeyByArgs(request.path, request.key)).then((value: any) => {
+        const value: any = ServiceConfig.get<any>(getEntryKeyByArgs(request.path, request.key));
+        if (value instanceof Error) {
+            response(new IPCMessages.SettingsGetResponse({
+                error: `Field to register entries due error: ${value.message}`,
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send response on SettingsGetResponse due error: ${error.message}`);
+            });
+        } else {
             response(new IPCMessages.SettingsGetResponse({
                 value: value,
             })).catch((error: Error) => {
                 this._logger.warn(`Fail to send response on SettingsGetResponse due error: ${error.message}`);
             });
-        }).catch((entryErr: Error) => {
-            response(new IPCMessages.SettingsGetResponse({
-                error: `Field to register entries due error: ${entryErr.message}`,
-            })).catch((error: Error) => {
-                this._logger.warn(`Fail to send response on SettingsGetResponse due error: ${error.message}`);
-            });
-        });
+        }
     }
 
 }
