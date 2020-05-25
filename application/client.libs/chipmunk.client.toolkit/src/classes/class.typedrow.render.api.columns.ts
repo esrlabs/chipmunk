@@ -16,6 +16,14 @@ const CSignature = 'TypedRowRenderAPIColumns';
  * @class TypedRowRenderAPIColumns
  */
 export abstract class TypedRowRenderAPIColumns {
+
+    /**
+     * Internal usage
+     */
+    public static getClassSignature(): string {
+        return CSignature;
+    }
+
     /**
      * Internal usage
      */
@@ -27,7 +35,7 @@ export abstract class TypedRowRenderAPIColumns {
      * Internal usage
      */
     public static isInstance(smth: any): boolean {
-        if (typeof smth !== 'object' || smth === null) {
+        if (smth === undefined || smth === null) {
             return false;
         }
         if (typeof smth.getClassSignature !== 'function') {
