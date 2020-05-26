@@ -232,7 +232,7 @@ export class PluginIPCService extends EventEmitter {
                 return reject(new Error(`Fail to find bound socket with stream "${streamId}".`));
             }
             // Send data
-            socket.write(chunk, (error: Error) => {
+            socket.write(chunk, (error: Error | undefined) => {
                 if (error) {
                     console.log(`Fail to send data due error: ${error.message}`);
                     // return reject(error);
@@ -370,7 +370,7 @@ export class PluginIPCService extends EventEmitter {
                 this._sockets.set(stream.id, socket);
                 // Send signature
                 console.log(`Socket connection is created on plugin level. Will send signature (plugin ID: ${this._id}; token: ${this._token})`);
-                socket.write(`[plugin:${this._id}]`, (error: Error) => {
+                socket.write(`[plugin:${this._id}]`, (error: Error | undefined) => {
                     if (error) {
                         return console.log(`Cannot send ID of plugin into socket due error: ${error.message}`);
                     }
