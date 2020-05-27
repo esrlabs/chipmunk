@@ -62,27 +62,24 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
         });
     }
 
-    private _onFilesDropped(files: IPCMessages.IFile[]): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (files.length === 0) {
-                return resolve();
+    private _onFilesDropped(files: IPCMessages.IFile[]) {
+        if (files.length === 0) {
+            return;
+        }
+        ServiceElectronIpc.request(new IPCMessages.FileListRequest({
+            files: files.map((file: IPCMessages.IFile) => file.path),
+        }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
+            if (checkResponse.error !== undefined) {
+                this._logger.error(`Failed to check paths due error: ${checkResponse.error}`);
             }
-            ServiceElectronIpc.request(new IPCMessages.FileListRequest({
-                files: files.map((file: IPCMessages.IFile) => file.path),
-            }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
-                if (checkResponse.error !== undefined) {
-                    return reject(new Error(this._logger.error(`Failed to check paths due error: ${checkResponse.error}`)));
-                }
-                this._getUniqueFiles(checkResponse.files).then((unique_files: IPCMessages.IFile[]) => {
-                    this.files = this.files.concat(unique_files);
-                    this._forceUpdate();
-                }).catch((error: Error) => {
-                    return reject(new Error(this._logger.error(`Failed to add files to dialog due error: ${error.message}`)));
-                });
-                resolve();
+            this._getUniqueFiles(checkResponse.files).then((unique_files: IPCMessages.IFile[]) => {
+                this.files = this.files.concat(unique_files);
+                this._forceUpdate();
             }).catch((error: Error) => {
-                return reject(new Error(this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`)));
+                this._logger.error(`Failed to add files to dialog due error: ${error.message}`);
             });
+        }).catch((error: Error) => {
+            this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
         });
     }
 
