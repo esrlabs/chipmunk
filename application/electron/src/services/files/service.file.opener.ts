@@ -278,6 +278,10 @@ class ServiceFileOpener implements IService {
         });
     }
 
+    private isHidden(file: string) {
+        return (/(^|\/)\.[^\/\.]/g).test(file);
+    }
+
     private _listFiles(startFile: string): Promise<IPCMessages.IFile[]> {
         return new Promise((resolve, reject) => {
             const allFiles: IPCMessages.IFile[] = [];
@@ -290,13 +294,15 @@ class ServiceFileOpener implements IService {
                             return resolved(allFiles.push({
                                 hasParser: false,
                                 hasProblem: true,
-                                isHidden: false,
+                                isHidden: self.isHidden(file),
                                 lastModified: 0,
                                 lastModifiedDate: new Date(),
                                 name: path.basename(file),
                                 path: file,
                                 size: 0,
                                 type: 'file',
+                                checked: false,
+                                disabled: true,
                             }));
                         }
                         if (stats.isFile()) {
@@ -312,6 +318,8 @@ class ServiceFileOpener implements IService {
                                     path: file,
                                     size: stats.size,
                                     type: 'file',
+                                    checked: (parser === undefined) ? false : true,
+                                    disabled: false,
                                 }));
                             }).catch((error: Error) => {
                                 return rejected(new Error(self._logger.warn(`Fail to indentify parser of ${file} due to error: ${error.message}`)));

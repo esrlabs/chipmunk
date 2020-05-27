@@ -13,6 +13,8 @@ export interface IFile {
     hasProblem: boolean;
     hasParser: boolean;
     isHidden: boolean;
+    checked: boolean;
+    disabled: boolean;
 }
 
 export class FileListResponse {
