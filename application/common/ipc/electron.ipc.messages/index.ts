@@ -698,8 +698,8 @@ export const Map = {
     [FileInfoResponse.signature                 ]: FileInfoResponse,
     [FilePickerRequest.signature                ]: FilePickerRequest,
     [FilePickerResponse.signature               ]: FilePickerResponse,
-    [FileListRequest.signature                  ]: FileListRequest,
-    [FileListResponse.signature                 ]: FileListResponse,
+    [FileListRequest.signature                 ]: FileListRequest,
+    [FileListResponse.signature                ]: FileListResponse,            
 
     [ConcatFilesRequest.signature               ]: ConcatFilesRequest,
     [ConcatFilesResponse.signature              ]: ConcatFilesResponse,

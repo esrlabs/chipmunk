@@ -8,7 +8,7 @@ import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, Comp
 import { ViewOutputRowComponent, IScope } from '../row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
-import FileOpenerService, { IFile } from '../../../services/service.file.opener';
+import FileOpenerService from '../../../services/service.file.opener';
 import EventsHubService from '../../../services/standalone/service.eventshub';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import PluginsService from '../../../services/service.plugins';
@@ -18,6 +18,7 @@ import ContextMenuService, { IMenuItem } from '../../../services/standalone/serv
 import SelectionParsersService, { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
 import OutputExportsService, { IExportAction } from '../../../services/standalone/service.output.exports';
 import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
+import { IPCMessages } from '../../../interfaces/interface.ipc';
 
 const CSettings: {
     preloadCount: number,
@@ -314,7 +315,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._output.setHorScrollOffset(offset);
     }
 
-    private _onFilesDropped(files: IFile[]) {
+    private _onFilesDropped(files: IPCMessages.IFile[]) {
         FileOpenerService.open(files).catch((error: Error) => {
             this._notifications.add({
                 caption: 'Error opening file',

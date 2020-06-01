@@ -207,22 +207,10 @@ class ServiceFileOpener implements IService {
             req.files.map((file: string) => {
                 return this._listFiles(file);
         })).then((fileLists: IPCMessages.IFile[][]) => {
-            const cFiles = this._concatFileList(fileLists);
-            Promise.all(
-                cFiles.map((file: IPCMessages.IFile) => {
-                    return this._verify(file);
-                }),
-            ).then(() => {
-                response(new IPCMessages.FileListResponse({
-                    files: this._concatFileList(fileLists),
-                })).catch((error: Error) => {
-                    this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
-                });
-            }).catch((error: Error) => {
-                response(new IPCMessages.FileListResponse({
-                    files: [],
-                    error: error.message,
-                }));
+            response(new IPCMessages.FileListResponse({
+                files: this._concatFileList(fileLists),
+            })).catch((error: Error) => {
+                this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
             });
         }).catch((error: Error) => {
             response(new IPCMessages.FileListResponse({
@@ -267,15 +255,8 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _verify(file: IPCMessages.IFile): Promise<void> {
-        return new Promise((resolve, reject) => {
-            fs.access(file.path, fs.constants.R_OK, (err) => {
-                if (err) {
-                    return reject(new Error(this._logger.warn(`Fail to read file(s) due to missing access rights for ${file.path}`)));
-                }
-                return resolve();
-            });
-        });
+    private isHidden(file: string) {
+        return (/(^|\/)\.[^\/\.]/g).test(file);
     }
 
     private _listFiles(startFile: string): Promise<IPCMessages.IFile[]> {
@@ -285,34 +266,60 @@ class ServiceFileOpener implements IService {
 
             function listAllFiles(file: string): Promise<any> {
                 return new Promise((resolved, rejected) => {
-                    fs.lstat(file, (lsErr, lsStats) => {
+                    fs.lstat(file, (lsErr, stats) => {
                         if (lsErr) {
-                            return rejected(new Error(self._logger.warn(`Fail to list files due to error: ${lsErr.message}`)));
+                            return resolved(allFiles.push({
+                                hasParser: false,
+                                isHidden: self.isHidden(file),
+                                lastModified: 0,
+                                lastModifiedDate: new Date(),
+                                name: path.basename(file),
+                                path: file,
+                                size: 0,
+                                type: 'file',
+                                checked: false,
+                                disabled: true,
+                            }));
                         }
-                        if (lsStats.isFile()) {
+                        if (stats.isFile()) {
                             // File
-                            return fs.stat(file, (fsErr, fsStats) => {
-                                if (fsErr) {
-                                    return rejected(new Error(self._logger.warn(`Fail to get file info of ${file} due to error: ${fsErr.message}`)));
-                                } else {
-                                    return resolved(allFiles.push({
-                                        lastModified: fsStats.mtimeMs,
-                                        lastModifiedDate: fsStats.mtime,
-                                        name: path.basename(file),
-                                        path: file,
-                                        size: fsStats.size,
-                                        type: 'file',
-                                    }));
-                                }
+                            getParserForFile(file).then((parser: AFileParser | undefined) => {
+                                return resolved(allFiles.push({
+                                    hasParser: (parser === undefined) ? false : true,
+                                    isHidden: false,
+                                    lastModified: stats.mtimeMs,
+                                    lastModifiedDate: stats.mtime,
+                                    name: path.basename(file),
+                                    path: file,
+                                    size: stats.size,
+                                    type: 'file',
+                                    checked: (parser === undefined) ? false : true,
+                                    disabled: false,
+                                }));
+                            }).catch((error: Error) => {
+                                self._logger.warn(`Fail to indentify parser of ${file} due to error: ${error.message}`);
+                                return resolved(allFiles.push({
+                                    hasParser: false,
+                                    isHidden: false,
+                                    lastModified: stats.mtimeMs,
+                                    lastModifiedDate: stats.mtime,
+                                    name: path.basename(file),
+                                    path: file,
+                                    size: stats.size,
+                                    type: 'file',
+                                    checked: false,
+                                    disabled: true,
+                                }));
                             });
-                        } else if (!(lsStats.isDirectory())) {
+                        } else if (!(stats.isDirectory())) {
                             // Neither file nor directory
                             return rejected(new Error(self._logger.warn(`Fail to get file info of ${file} because it is neither a file nor a directory`)));
                         } else {
                             // Directory
                             return fs.readdir(file, (err, files) => {
                                 if (err) {
-                                    return rejected(new Error(self._logger.warn(`Fail to list files of directory ${file} due to error: ${err.message}`)));
+                                    self._logger.warn(`Fail to list files of directory ${file} due to error: ${err.message}`);
+                                    return resolved();
                                 } else {
                                     Promise.all(files.map((subFile: string) => {
                                         return listAllFiles(file + '/' + subFile);
