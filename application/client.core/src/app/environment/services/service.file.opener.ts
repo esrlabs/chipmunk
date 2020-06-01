@@ -74,6 +74,9 @@ export class FileOpenerService implements IService, IFileOpenerService {
                     if (checkResponse.error !== undefined) {
                         return reject(new Error(this._logger.error(`Fail check paths due error: ${checkResponse.error}`)));
                     }
+                    if (checkResponse.files.length === 0) {
+                        return resolve();
+                    }
                     if (checkResponse.files.length === 1) {
                         // Single file
                         ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({

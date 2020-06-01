@@ -322,7 +322,20 @@ class ServiceFileOpener implements IService {
                                     disabled: false,
                                 }));
                             }).catch((error: Error) => {
-                                return rejected(new Error(self._logger.warn(`Fail to indentify parser of ${file} due to error: ${error.message}`)));
+                                self._logger.warn(`Fail to indentify parser of ${file} due to error: ${error.message}`);
+                                return resolved(allFiles.push({
+                                    hasParser: false,
+                                    hasProblem: true,
+                                    isHidden: false,
+                                    lastModified: stats.mtimeMs,
+                                    lastModifiedDate: stats.mtime,
+                                    name: path.basename(file),
+                                    path: file,
+                                    size: stats.size,
+                                    type: 'file',
+                                    checked: false,
+                                    disabled: true,
+                                }));
                             });
                         } else if (!(stats.isDirectory())) {
                             // Neither file nor directory
@@ -331,7 +344,8 @@ class ServiceFileOpener implements IService {
                             // Directory
                             return fs.readdir(file, (err, files) => {
                                 if (err) {
-                                    return rejected(new Error(self._logger.warn(`Fail to list files of directory ${file} due to error: ${err.message}`)));
+                                    self._logger.warn(`Fail to list files of directory ${file} due to error: ${err.message}`);
+                                    return resolved();
                                 } else {
                                     Promise.all(files.map((subFile: string) => {
                                         return listAllFiles(file + '/' + subFile);
