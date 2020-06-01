@@ -7,9 +7,10 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
-import { IServices, IFile } from '../../../services/shared.services.sidebar';
+import { IServices } from '../../../services/shared.services.sidebar';
 import { ControllerFileMergeSession, IMergeFile, EViewMode } from '../../../controller/controller.file.merge.session';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { IPCMessages } from '../../../services/service.electron.ipc';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
@@ -160,11 +161,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         this._forceUpdate();
     }
 
-    private _onFilesDropped(files: IFile[]) {
+    private _onFilesDropped(files: IPCMessages.IFile[]) {
         if (this._ng_controller === undefined) {
             return;
         }
-        this._ng_controller.add(files.map((file: IFile) => file.path));
+        this._ng_controller.add(files.map((file: IPCMessages.IFile) => file.path));
     }
 
     private _onSessionChange(session: ControllerSessionTab | undefined) {
