@@ -207,22 +207,10 @@ class ServiceFileOpener implements IService {
             req.files.map((file: string) => {
                 return this._listFiles(file);
         })).then((fileLists: IPCMessages.IFile[][]) => {
-            const cFiles = this._concatFileList(fileLists);
-            Promise.all(
-                cFiles.map((file: IPCMessages.IFile) => {
-                    return this._verify(file);
-                }),
-            ).then(() => {
-                response(new IPCMessages.FileListResponse({
-                    files: this._concatFileList(fileLists),
-                })).catch((error: Error) => {
-                    this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
-                });
-            }).catch((error: Error) => {
-                response(new IPCMessages.FileListResponse({
-                    files: [],
-                    error: error.message,
-                }));
+            response(new IPCMessages.FileListResponse({
+                files: this._concatFileList(fileLists),
+            })).catch((error: Error) => {
+                this._logger.error(`Fail to respond to files ${req.files} due error: ${error.message}`);
             });
         }).catch((error: Error) => {
             response(new IPCMessages.FileListResponse({
@@ -267,17 +255,6 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _verify(file: IPCMessages.IFile): Promise<void> {
-        return new Promise((resolve) => {
-            fs.access(file.path, fs.constants.R_OK, (err) => {
-                if (err) {
-                    file.hasProblem = true;
-                }
-                return resolve();
-            });
-        });
-    }
-
     private isHidden(file: string) {
         return (/(^|\/)\.[^\/\.]/g).test(file);
     }
@@ -293,7 +270,6 @@ class ServiceFileOpener implements IService {
                         if (lsErr) {
                             return resolved(allFiles.push({
                                 hasParser: false,
-                                hasProblem: true,
                                 isHidden: self.isHidden(file),
                                 lastModified: 0,
                                 lastModifiedDate: new Date(),
@@ -310,7 +286,6 @@ class ServiceFileOpener implements IService {
                             getParserForFile(file).then((parser: AFileParser | undefined) => {
                                 return resolved(allFiles.push({
                                     hasParser: (parser === undefined) ? false : true,
-                                    hasProblem: false,
                                     isHidden: false,
                                     lastModified: stats.mtimeMs,
                                     lastModifiedDate: stats.mtime,
@@ -325,7 +300,6 @@ class ServiceFileOpener implements IService {
                                 self._logger.warn(`Fail to indentify parser of ${file} due to error: ${error.message}`);
                                 return resolved(allFiles.push({
                                     hasParser: false,
-                                    hasProblem: true,
                                     isHidden: false,
                                     lastModified: stats.mtimeMs,
                                     lastModifiedDate: stats.mtime,

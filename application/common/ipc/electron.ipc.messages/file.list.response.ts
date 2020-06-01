@@ -10,7 +10,6 @@ export interface IFile {
     path: string;
     size: number;
     type: string;
-    hasProblem: boolean;
     hasParser: boolean;
     isHidden: boolean;
     checked: boolean;
