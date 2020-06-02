@@ -1,3 +1,5 @@
+// tslint:disable-next-line: no-var-requires
+const fswin = require("fswin");
 import * as fs from "fs";
 import * as Path from "path";
 
@@ -275,4 +277,17 @@ export function copyFolder(source: string, dest: string) {
             }
         });
     }
+}
+
+export function isHidden(file: string): Promise<boolean> {
+    return new Promise((resolve) => {
+        fswin.getAttributes(file, (result: any) => {
+            const key = 'IS_HIDDEN';
+            if (result && result[key] !== undefined) {
+                return resolve(result[key]);
+            } else {
+                return resolve(false);
+            }
+        });
+    });
 }
