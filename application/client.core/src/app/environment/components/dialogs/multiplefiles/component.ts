@@ -43,17 +43,9 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
         this._cdRef.detectChanges();
     }
 
-    private _getUniqueFiles(files: IPCMessages.IFile[]): Promise<IPCMessages.IFile[]> {
-        return new Promise((resolve) => {
-            const paths: string[] = [];
-            let unique_files: IPCMessages.IFile[] = [];
-
-            this.files.forEach((file: IPCMessages.IFile) => {
-                paths.push(file.path);
-            });
-
-            unique_files = files.filter((ifile: IPCMessages.IFile) => paths.indexOf(ifile.path) === -1 );
-            resolve(unique_files);
+    private _getUniqueFiles(files: IPCMessages.IFile[]): IPCMessages.IFile[] {
+        return files.filter((file: IPCMessages.IFile) => {
+            return this.files.findIndex((f: IPCMessages.IFile) => f.path === file.path) === -1;
         });
     }
 
@@ -66,13 +58,10 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
         }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
             if (checkResponse.error !== undefined) {
                 this._logger.error(`Failed to check paths due error: ${checkResponse.error}`);
+                return;
             }
-            this._getUniqueFiles(checkResponse.files).then((unique_files: IPCMessages.IFile[]) => {
-                this.files = this.files.concat(unique_files);
-                this._forceUpdate();
-            }).catch((error: Error) => {
-                this._logger.error(`Failed to add files to dialog due error: ${error.message}`);
-            });
+            this.files = this.files.concat(this._getUniqueFiles(checkResponse.files));
+            this._forceUpdate();
         }).catch((error: Error) => {
             this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
         });

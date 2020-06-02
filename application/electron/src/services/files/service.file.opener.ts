@@ -14,6 +14,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
+import * as os from '../../tools/env.os';
+import { isHidden } from '../../tools/fs';
 
 const MAX_NUMBER_OF_RECENT_FILES = 150;
 
@@ -255,8 +257,20 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private isHidden(file: string) {
-        return (/(^|\/)\.[^\/\.]/g).test(file);
+    private hidden(file: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            const ops = os.getPlatform();
+            if (ops === os.EPlatforms.win32 || ops === os.EPlatforms.win64) {
+                isHidden(file).then((hid: boolean) => {
+                    return resolve(hid);
+                }).catch((err: Error) => {
+                    this._logger.warn(`Fail to check if ${file} is hidden due to error: ${err.message}`);
+                    return resolve(false);
+                });
+            } else {
+                return resolve((/(^|\/)\.[^\/\.]/g).test(file));
+            }
+        });
     }
 
     private _listFiles(startFile: string): Promise<IPCMessages.IFile[]> {
@@ -270,7 +284,7 @@ class ServiceFileOpener implements IService {
                         if (lsErr) {
                             return resolved(allFiles.push({
                                 hasParser: false,
-                                isHidden: self.isHidden(file),
+                                isHidden: false,
                                 lastModified: 0,
                                 lastModifiedDate: new Date(),
                                 name: path.basename(file),
@@ -283,17 +297,19 @@ class ServiceFileOpener implements IService {
                         }
                         if (stats.isFile()) {
                             // File
-                            getParserForFile(file).then((parser: AFileParser | undefined) => {
+                            Promise.all([getParserForFile(file),self.hidden(file)]).then((values: [AFileParser | undefined, boolean | undefined]) => {
+                                const parser = values[0];
+                                const hideStatus = (values[1] === undefined) ? false : values[1];
                                 return resolved(allFiles.push({
                                     hasParser: (parser === undefined) ? false : true,
-                                    isHidden: false,
+                                    isHidden: hideStatus,
                                     lastModified: stats.mtimeMs,
                                     lastModifiedDate: stats.mtime,
                                     name: path.basename(file),
                                     path: file,
                                     size: stats.size,
                                     type: 'file',
-                                    checked: (parser === undefined) ? false : true,
+                                    checked: (parser === undefined || hideStatus) ? false : true,
                                     disabled: false,
                                 }));
                             }).catch((error: Error) => {
