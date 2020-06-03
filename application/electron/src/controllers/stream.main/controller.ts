@@ -2,17 +2,18 @@ import * as fs from 'fs';
 import * as Stream from 'stream';
 
 import Logger from '../../tools/env.logger';
-import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
+import ServiceElectron from '../../services/service.electron';
 import ServicePlugins from '../../services/service.plugins';
 import ServiceStreamSource from '../../services/service.stream.sources';
 import State from './state';
-
-import ControllerIPCPlugin, { IPCMessages as IPCPluginMessages} from '../plugins/plugin.process.ipc';
+import ControllerIPCPlugin from '../plugins/plugin.process.ipc';
 
 import { IMapItem } from './file.map';
 import { EventsHub } from '../stream.common/events';
 import { FileWriter } from './file.writer';
 import { DefaultOutputExport } from './output.export.default';
+import { IPCMessages as IPCPluginMessages } from '../plugins/plugin.process.ipc';
+import { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
 
 export interface IPipeOptions {
     reader: fs.ReadStream;
@@ -90,7 +91,7 @@ export default class ControllerStreamProcessor {
         });
     }
 
-    public write(chunk: Buffer, pluginReference: string | undefined, trackId: string | undefined, pluginId?: number): Promise<void> {
+    public write(chunk: Buffer | string, pluginReference: string | undefined, trackId: string | undefined, pluginId?: number): Promise<void> {
         return new Promise((resolve, reject) => {
             let output: string = '';
             if (typeof chunk === 'string') {

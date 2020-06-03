@@ -32,6 +32,11 @@ export enum EChipmunkEnvVars {
     CHIPMUNK_DEV_LOGLEVEL = 'CHIPMUNK_DEV_LOGLEVEL',
 
     /**
+     * TRUE (true, ON, on) - prevent recording render's logs into backend
+     */
+    CHIPMUNK_NO_RENDER_LOGS = 'CHIPMUNK_NO_RENDER_LOGS',
+
+    /**
      * Path to custom plugins folder
      */
     CHIPMUNK_PLUGINS_SANDBOX = 'CHIPMUNK_PLUGINS_SANDBOX',
@@ -60,6 +65,7 @@ export enum EChipmunkEnvVars {
 export const CChipmunkEnvVars: string[] = [
     EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
     EChipmunkEnvVars.CHIPMUNK_DEV_LOGLEVEL,
+    EChipmunkEnvVars.CHIPMUNK_NO_RENDER_LOGS,
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
     EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,
@@ -70,6 +76,7 @@ export const CChipmunkEnvVars: string[] = [
 export interface IChipmunkEnvVars {
     CHIPMUNK_DEVELOPING_MODE: string | undefined;
     CHIPMUNK_NO_WEBDEVTOOLS: boolean | undefined;
+    CHIPMUNK_NO_RENDER_LOGS: boolean | undefined;
     CHIPMUNK_DEV_LOGLEVEL: string | undefined;
     CHIPMUNK_PLUGINS_SANDBOX: string | undefined;
     CHIPMUNK_PLUGINS_NO_DEFAULTS: boolean | undefined;
@@ -80,6 +87,15 @@ export interface IChipmunkEnvVars {
 
 const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
     [EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS]: (smth: any): boolean => {
+        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+            return true;
+        }
+        if (typeof smth === 'number' && smth === 1) {
+            return true;
+        }
+        return false;
+    },
+    [EChipmunkEnvVars.CHIPMUNK_NO_RENDER_LOGS]: (smth: any): boolean => {
         if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
             return true;
         }
@@ -138,6 +154,7 @@ class ServiceEnv implements IService {
         CHIPMUNK_DEVELOPING_MODE: undefined,
         CHIPMUNK_NO_WEBDEVTOOLS: undefined,
         CHIPMUNK_DEV_LOGLEVEL: undefined,
+        CHIPMUNK_NO_RENDER_LOGS: undefined,
         CHIPMUNK_PLUGINS_SANDBOX: undefined,
         CHIPMUNK_PLUGINS_NO_DEFAULTS: undefined,
         CHIPMUNK_PLUGINS_NO_UPDATES: undefined,
@@ -155,6 +172,7 @@ class ServiceEnv implements IService {
                 EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
                 EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS,
                 EChipmunkEnvVars.CHIPMUNK_DEV_LOGLEVEL,
+                EChipmunkEnvVars.CHIPMUNK_NO_RENDER_LOGS,
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,

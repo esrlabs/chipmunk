@@ -1,6 +1,7 @@
 import Logger from '../tools/env.logger';
 import ServiceElectron from './service.electron';
 import ServiceProduction from './service.production';
+import ServiceEnv from './service.env';
 
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
@@ -70,7 +71,7 @@ class ServiceLogs implements IService {
 
     private _ipc_onChipmunkLogRequest(req: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const request: IPCMessages.ChipmunkLogRequest = req as IPCMessages.ChipmunkLogRequest;
-        if (typeof request.msg === 'string' && request.msg.trim() !== '') {
+        if (!ServiceEnv.get().CHIPMUNK_NO_RENDER_LOGS && typeof request.msg === 'string' && request.msg.trim() !== '') {
             this._logger.publish('RENDER: ' + request.msg, request.level);
         }
         response(new IPCMessages.ChipmunkLogResponse({ })).catch((err: Error) => {
