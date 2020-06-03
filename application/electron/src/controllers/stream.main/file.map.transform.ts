@@ -74,6 +74,9 @@ export default class Transform extends Stream.Transform {
         output = output.replace(CRegCarrets, () => {
             return `${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
         });
+        if (rows.to === rows.from) {
+            output = `${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
+        }
         const size: number = Buffer.byteLength(output, 'utf8');
         rows.to -= 1;
         bytes.to += size - 1;

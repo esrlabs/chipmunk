@@ -10,6 +10,7 @@ import Logger from '../tools/env.logger';
 import ControllerStreamSearch from '../controllers/stream.search/controller';
 import ControllerStreamCharts from '../controllers/stream.charts/controller';
 import ControllerStreamProcessor from '../controllers/stream.main/controller';
+import ControllerStreamPty from '../controllers/stream.pty/controller';
 import { EventsHub } from '../controllers/stream.common/events';
 
 import { IService } from '../interfaces/interface.service';
@@ -28,6 +29,7 @@ export interface IStreamInfo {
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
     charts: ControllerStreamCharts;
+    pty: ControllerStreamPty;
     received: number;
 }
 
@@ -299,6 +301,7 @@ class ServiceStreams implements IService  {
                 const streamController: ControllerStreamProcessor   = new ControllerStreamProcessor(guid, streamFile, events);
                 const searchController: ControllerStreamSearch      = new ControllerStreamSearch(guid, streamFile, searchFile, streamController, events);
                 const chartsController: ControllerStreamCharts      = new ControllerStreamCharts(guid, streamFile, searchFile, streamController, events);
+                const ptyController: ControllerStreamPty            = new ControllerStreamPty(guid, streamController);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
                     guid: guid,
@@ -320,6 +323,7 @@ class ServiceStreams implements IService  {
                     processor: streamController,
                     search: searchController,
                     charts: chartsController,
+                    pty: ptyController,
                     received: 0,
                 };
                 // Bind server with file
@@ -372,6 +376,7 @@ class ServiceStreams implements IService  {
                 return Promise.all([
                     stream.processor.destroy(),
                     stream.search.destroy(),
+                    stream.pty.destroy(),
                 ]);
             };
             const unlinkFile = (file: string): Promise<void> => {

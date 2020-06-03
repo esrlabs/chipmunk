@@ -44,11 +44,17 @@ export default class BytesRowsMap {
         this._bytes = this._map[this._map.length - 1].bytes.to + 1;
     }
 
-    public add(item: IMapItem | IMapItem[]) {
-        item = item instanceof Array ? item : [item];
-        this._map.push(...item);
-        this._bytes = item[item.length - 1].bytes.to + 1;
-        this._rows = item[item.length - 1].rows.to + 1;
+    public add(item: IMapItem) {
+        if (item.bytes.from === item.bytes.to ||
+            item.bytes.from < 0 ||
+            item.bytes.to < 0 ||
+            item.rows.from < 0 ||
+            item.rows.to < 0) {
+            return this._logger.error(`Attempt to add not valid map item: ${JSON.stringify(item)}`);
+        }
+        this._map.push(item);
+        this._bytes = item.bytes.to + 1;
+        this._rows = item.rows.to + 1;
         this.validate();
     }
 
@@ -120,17 +126,17 @@ export default class BytesRowsMap {
         this._map.forEach((item: IMapItem, i: number) => {
             if (i !== 0) {
                 if (this._map[i].bytes.from !== this._map[i - 1].bytes.to + 1) {
-                    errors.push(`Indexes ${i - 1}-${i} :: bytes dismiss`);
+                    errors.push(`Indexes ${i - 1}:${this._map[i - 1].bytes.to + 1}-${i}:${this._map[i].bytes.from} :: bytes dismiss`);
                 }
                 if (this._map[i].rows.from !== this._map[i - 1].rows.to + 1) {
-                    errors.push(`Indexes ${i - 1}-${i} :: rows dismiss`);
+                    errors.push(`Indexes ${i - 1}:${this._map[i - 1].rows.to + 1}-${i}:${this._map[i].rows.from} :: rows dismiss`);
                 }
             }
             if (item.bytes.from >= item.bytes.to) {
-                errors.push(`Index ${i} :: wrong bytes position`);
+                errors.push(`Index ${i} :: wrong bytes position: { from: ${item.bytes.from}, to: ${item.bytes.to}}`);
             }
             if (item.rows.from > item.rows.to) {
-                errors.push(`Index ${i} :: wrong rows position`);
+                errors.push(`Index ${i} :: wrong rows position: { from: ${item.rows.from}, to: ${item.rows.to}}`);
             }
         });
         if (errors.length === 0) {

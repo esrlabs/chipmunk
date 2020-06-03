@@ -52,6 +52,23 @@ export class ServiceStreamSources implements IService  {
         this._notify(id, desc);
     }
 
+    public getIdByName(session: string, name: string): number | undefined {
+        let id: number | undefined;
+        this._sources.forEach((source: ISource, key: number) => {
+            if (id !== undefined) {
+                return;
+            }
+            if (source.session !== session) {
+                return;
+            }
+            if (source.name !== name) {
+                return;
+            }
+            id = key;
+        });
+        return id;
+    }
+
     private _notify(id: number, source: ISource) {
         // Notify render about new source
         ServiceElectron.IPC.send(new IPCElectronMessages.StreamSourceNew({

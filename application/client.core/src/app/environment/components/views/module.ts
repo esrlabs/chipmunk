@@ -4,6 +4,7 @@ import { ViewLoaderComponent                    } from './loader/component';
 import { ViewOutputModule                       } from './output/module';
 import { ViewSearchModule                       } from './search/module';
 import { ViewChartModule                        } from './chart/module';
+import { ViewTerminalModule                     } from './terminal/module';
 
 const components = [ ViewLoaderComponent ];
 
@@ -11,7 +12,7 @@ const components = [ ViewLoaderComponent ];
     entryComponents : [ ...components ],
     imports         : [ CommonModule ],
     declarations    : [ ...components ],
-    exports         : [ ViewOutputModule, ViewSearchModule, ViewChartModule, ...components ]
+    exports         : [ ViewOutputModule, ViewSearchModule, ViewChartModule, ViewTerminalModule, ...components ]
 })
 
 export class EnvironmentViewsModule {

@@ -130,6 +130,30 @@ export { IStreamResetRequest, StreamResetRequest };
 import { IStreamResetResponse, StreamResetResponse } from './stream.reset.response';
 export { IStreamResetResponse, StreamResetResponse };
 
+import { IStreamPtyInRequest, StreamPtyInRequest } from './stream.pty.in.request';
+export { IStreamPtyInRequest, StreamPtyInRequest };
+
+import { IStreamPtyInResponse, StreamPtyInResponse } from './stream.pty.in.response';
+export { IStreamPtyInResponse, StreamPtyInResponse };
+
+import { IStreamPtyOutRequest, StreamPtyOutRequest } from './stream.pty.out.request';
+export { IStreamPtyOutRequest, StreamPtyOutRequest };
+
+import { IStreamPtyOutResponse, StreamPtyOutResponse } from './stream.pty.out.response';
+export { IStreamPtyOutResponse, StreamPtyOutResponse };
+
+import { IStreamPtyStreamingRequest, StreamPtyStreamingRequest } from './stream.pty.streaming.request';
+export { IStreamPtyStreamingRequest, StreamPtyStreamingRequest };
+
+import { IStreamPtyStreamingResponse, StreamPtyStreamingResponse } from './stream.pty.streaming.response';
+export { IStreamPtyStreamingResponse, StreamPtyStreamingResponse };
+
+import { IStreamPtyOscRequest, StreamPtyOscRequest } from './stream.pty.osc.request';
+export { IStreamPtyOscRequest, StreamPtyOscRequest };
+
+import { IStreamPtyOscResponse, StreamPtyOscResponse } from './stream.pty.osc.response';
+export { IStreamPtyOscResponse, StreamPtyOscResponse };
+
 import { ISearchResultMap, SearchResultMap, ISearchResultMapData } from './search.results.map';
 export { ISearchResultMap, SearchResultMap, ISearchResultMapData };
 
@@ -505,6 +529,14 @@ export type TMessage =  AppRestartRequest |
                         StreamSourceNew |
                         StreamResetRequest |
                         StreamResetResponse |
+                        StreamPtyInRequest |
+                        StreamPtyInResponse |
+                        StreamPtyOutRequest |
+                        StreamPtyOutResponse |
+                        StreamPtyStreamingRequest |
+                        StreamPtyStreamingResponse |
+                        StreamPtyOscRequest |
+                        StreamPtyOscResponse |
                         SearchResultMap |
                         SearchRequest |
                         SearchRequestCancelRequest |
@@ -666,6 +698,13 @@ export const Map = {
     [StreamSourceNew.signature                  ]: StreamSourceNew,
     [StreamResetRequest.signature               ]: StreamResetRequest,
     [StreamResetResponse.signature              ]: StreamResetResponse,
+    [StreamPtyInRequest.signature               ]: StreamPtyInRequest,
+    [StreamPtyInResponse.signature              ]: StreamPtyInResponse,
+    [StreamPtyOutRequest.signature              ]: StreamPtyOutRequest,
+    [StreamPtyOutResponse.signature             ]: StreamPtyOutResponse,
+    [StreamPtyStreamingRequest.signature        ]: StreamPtyStreamingRequest,
+    [StreamPtyStreamingResponse.signature       ]: StreamPtyStreamingResponse,
+    [StreamPtyOscRequest.signature              ]: StreamPtyOscRequest,
 
     [SearchResultMap.signature                  ]: SearchResultMap,
     [SearchRequest.signature                    ]: SearchRequest,
