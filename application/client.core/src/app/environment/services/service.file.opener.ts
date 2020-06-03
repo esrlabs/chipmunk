@@ -61,6 +61,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
         });
     }
 
+    private _filterChecked(fileList: IPCMessages.IFile[]): IPCMessages.IFile[] {
+        return fileList.filter((file: IPCMessages.IFile) => file.checked === true);
+    }
+
     public open(files: IPCMessages.IFile[]): Promise<void> {
         return new Promise((resolve, reject) => {
             if (files.length === 0) {
@@ -146,10 +150,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     public merge(list: FilesList | IPCMessages.IFile[]) {
-        this._open(list instanceof Array ? list : list.getFiles(), EActionType.merging);
+        this._open(list instanceof Array ? list : this._filterChecked(list.getFiles()), EActionType.merging);
     }
     public concat(list: FilesList | IPCMessages.IFile[]) {
-        this._open(list instanceof Array ? list : list.getFiles(), EActionType.concat);
+        this._open(list instanceof Array ? list : this._filterChecked(list.getFiles()), EActionType.concat);
     }
 
     private _open(files: IPCMessages.IFile[], action: EActionType) {
