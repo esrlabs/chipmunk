@@ -93,7 +93,8 @@
         "ncp": "^2.0.0",
         "semver": "^7.1.3",
         "tar": "^6.0.1",
-        "uuid": "latest"
+        "uuid": "latest",
+        "fswin": "^3.19.908"
     },
     "devDependencies": {
         "@types/file-type": "^10.9.1",
