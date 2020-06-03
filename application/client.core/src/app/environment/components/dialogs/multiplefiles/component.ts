@@ -49,6 +49,10 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
         });
     }
 
+    private _filterChecked() {
+        this.fileList.setFiles(this.files.filter((file: IPCMessages.IFile) => file.checked === true ));
+    }
+
     private _onFilesDropped(files: IPCMessages.IFile[]) {
         if (files.length === 0) {
             return;
@@ -61,6 +65,7 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
                 return;
             }
             this.files = this.files.concat(this._getUniqueFiles(checkResponse.files));
+            this._filterChecked();
             this._forceUpdate();
         }).catch((error: Error) => {
             this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
@@ -69,7 +74,7 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
 
     public _ng_onChange(event: any, fileName: IPCMessages.IFile) {
         fileName.checked = event.checked;
-        this.fileList.setFiles(this.files.filter((file: IPCMessages.IFile) => file.checked === true ));
+        this._filterChecked();
     }
 
 }
