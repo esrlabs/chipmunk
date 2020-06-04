@@ -96,16 +96,6 @@ export class ViewTerminalComponent implements OnDestroy, AfterContentInit, After
         this._subscriptions.onTermData = this._xterm.onData(this._onInData.bind(this));
         this._subscriptions.onTitleChange = this._xterm.onTitleChange(this._onTitleChange.bind(this));
         this._onOutData(ServiceData.getCache());
-        /*
-        this._subscriptions.onOscEventOsc0 = this._xterm.parser.registerOscHandler(0, (params) => {
-            console.warn(`Osc0 ===========> ${params}`);
-            return false;
-        });
-        this._subscriptions.onOscEventOsc2 = this._xterm.parser.registerOscHandler(2, (params) => {
-            console.warn(`Osc2 ===========> ${params}`);
-            return false;
-        });
-        */
     }
 
     private _dispose() {
@@ -121,12 +111,10 @@ export class ViewTerminalComponent implements OnDestroy, AfterContentInit, After
     }
 
     private _setTheme(xterm: Terminal) {
-        // xterm.setOption('allowTransparency', true);
         xterm.setOption('fontFamily', 'monospace');
         xterm.setOption('fontSize', 13);
         xterm.setOption('fontWeight', 300);
         xterm.setOption('fontWeightBold', 400);
-        // xterm.setOption('lineHeight', 15);
         xterm.setOption('theme', {
             background: '#333333',
             foreground: '#eaeaea',
@@ -154,7 +142,7 @@ export class ViewTerminalComponent implements OnDestroy, AfterContentInit, After
     }
 
     private _onTitleChange(title: string) {
-
+        ServiceData.setTitle(title);
     }
 
     private _onSessionChange() {
