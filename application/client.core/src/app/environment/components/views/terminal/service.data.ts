@@ -12,14 +12,14 @@ import ElectronIpcService from '../../../services/service.electron.ipc';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 
 interface ITermSession {
-    controller: ControllerSessionTab;
-    xterm: Terminal;
+    guid: string;
     streaming: boolean;
+    cache: string;
+    prompt: string;
+    title: string;
 }
 
-const CSettings = {
-    cacheLimit: 1000000, // chars
-};
+const TERMINAL_CACHE_MAX_CHARS_SIZE = 1000000;
 
 export class ServiceData {
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
@@ -38,7 +38,7 @@ export class ServiceData {
     };
 
     constructor() {
-        this._init();
+        this._switch();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
         );
@@ -54,9 +54,6 @@ export class ServiceData {
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
-        });
-        this._sessions.forEach((session: ITermSession) => {
-            session.xterm.dispose();
         });
         this._sessions.clear();
     }
@@ -96,6 +93,17 @@ export class ServiceData {
         return this._active;
     }
 
+    public getCache(): string {
+        const session: ITermSession | undefined = this._sessions.get(this._active);
+        if (session === undefined) {
+            return '';
+        }
+        const cache: string = session.cache;
+        session.cache = '';
+        this._sessions.set(session.guid, session);
+        return cache;
+    }
+
     public toggleRedirection(): Promise<boolean> {
         return new Promise((resolve, reject) => {
             const guid: string | undefined = this._active;
@@ -127,53 +135,77 @@ export class ServiceData {
         return session.streaming;
     }
 
-    private _init(controller?: ControllerSessionTab) {
+    public setTitle(prompt: string) {
+        const session: ITermSession | undefined = this._sessions.get(this._active);
+        if (session === undefined) {
+            return;
+        }
+        if (session.prompt === '') {
+            session.prompt = prompt.trim();
+        }
+        session.title = prompt;
+        this._sessions.set(session.guid, session);
+        ElectronIpcService.request(new IPCMessages.StreamPtyOscRequest({
+            guid: session.guid,
+            streaming: session.prompt !== session.title,
+            title: session.title,
+        }), IPCMessages.StreamPtyOscResponse).then((response: IPCMessages.StreamPtyOscResponse) => {
+            if (response.error !== undefined) {
+                this._logger.warn(`Fail call OSC due error: ${response.error}`);
+            }
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail send request to change OSC due error: ${err.message}`);
+        });
+    }
+
+    private _switch(controller?: ControllerSessionTab) {
         controller = controller === undefined ? TabsSessionsService.getActive() : controller;
         if (controller === undefined) {
             return;
         }
-        // Store controller
-        this._session = controller;
-        if (!this._redirections.has(this._session.getGuid())) {
-            this._redirections.set(this._session.getGuid(), true);
+        if (!this._sessions.has(controller.getGuid())) {
+            this._sessions.set(controller.getGuid(), {
+                guid: controller.getGuid(),
+                streaming: false,
+                cache: '',
+                prompt: '',
+                title: '',
+            });
         }
-        // Trigger event
+        this._active = controller.getGuid();
         this._subjects.onSessionChange.next();
-    }
-
-    private _addToCache(data: string) {
-        if (this._session === undefined) {
-            return;
-        }
-        let cached: string = this._cache.has(this._session.getGuid()) ? this._cache.get(this._session.getGuid()) : '';
-        cached = cached + data;
-        if (cached.length > CSettings.cacheLimit) {
-            cached = cached.substr(cached.length - CSettings.cacheLimit, CSettings.cacheLimit);
-        }
-        this._cache.set(this._session.getGuid(), cached);
     }
 
     private _onSessionChange(controller: ControllerSessionTab) {
         if (controller === undefined) {
             return;
         }
-        this._init(controller);
+        this._switch(controller);
     }
 
     private _onResize() {
-        if (this._session === undefined) {
+        if (this._active === undefined) {
             return;
         }
         this._subjects.onResize.next();
     }
 
     private _onSessionClosed(session: string) {
-        this._cache.delete(session);
+        this._sessions.delete(session);
     }
 
     private _ipc_StreamPtyOutRequest(message: IPCMessages.StreamPtyOutRequest, response: (message: IPCMessages.TMessage) => void) {
-        this._addToCache(message.data);
-        if (this._session !== undefined && this._session.getGuid() === message.guid) {
+        const session: ITermSession | undefined = this._sessions.get(message.guid);
+        if (session === undefined) {
+            return response(new IPCMessages.StreamPtyOutResponse({ error: `Session "${message.guid}" isn't inited. Cannot bind data with terminal.`}));
+        }
+        if (session.guid !== this._active) {
+            session.cache += message.data;
+            if (session.cache.length > TERMINAL_CACHE_MAX_CHARS_SIZE) {
+                session.cache = session.cache.substr(TERMINAL_CACHE_MAX_CHARS_SIZE - session.cache.length, TERMINAL_CACHE_MAX_CHARS_SIZE);
+            }
+            this._sessions.set(session.guid, session);
+        } else {
             this._subjects.onData.next(message.data);
         }
         response(new IPCMessages.StreamPtyOutResponse({}));

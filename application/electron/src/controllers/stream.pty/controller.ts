@@ -117,11 +117,6 @@ export default class ControllerStreamPty {
             return this._process.stt;
         }
         this._process.ttl = this._pty.process;
-        if (this._process.ttl === this._process.def) {
-            this._process.stt = false;
-        } else {
-            this._process.stt = true;
-        }
         return this._process.stt;
     }
 
@@ -210,7 +205,8 @@ export default class ControllerStreamPty {
         if (request.guid !== this._guid) {
             return;
         }
-        this._streaming = request.streaming;
+        this._process.stt = request.streaming;
+        this._process.ttl = request.title;
         response(new IPCMessages.StreamPtyOscResponse({ })).catch((err: Error) => {
             this._logger.warn(`Fail send response (StreamPtyOscRequest) due error: ${err.message}`);
         });
