@@ -3,8 +3,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { IPCMessages } from '../../../services/service.electron.ipc';
-import { Terminal, IDisposable } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -17,6 +15,8 @@ interface ITermSession {
     cache: string;
     prompt: string;
     title: string;
+    cols: number;
+    rows: number;
 }
 
 const TERMINAL_CACHE_MAX_CHARS_SIZE = 1000000;
@@ -98,10 +98,7 @@ export class ServiceData {
         if (session === undefined) {
             return '';
         }
-        const cache: string = session.cache;
-        session.cache = '';
-        this._sessions.set(session.guid, session);
-        return cache;
+        return session.cache;
     }
 
     public toggleRedirection(): Promise<boolean> {
@@ -145,16 +142,35 @@ export class ServiceData {
         }
         session.title = prompt;
         this._sessions.set(session.guid, session);
-        ElectronIpcService.request(new IPCMessages.StreamPtyOscRequest({
+    }
+
+    public setSize(cols: number, rows: number) {
+        const session: ITermSession | undefined = this._sessions.get(this._active);
+        if (session === undefined) {
+            return;
+        }
+        if (typeof cols !== 'number' || isNaN(cols) || !isFinite(cols)) {
+            return;
+        }
+        if (typeof rows !== 'number' || isNaN(rows) || !isFinite(rows)) {
+            return;
+        }
+        if (session.cols === cols && session.rows ===  rows) {
+            return;
+        }
+        session.cols = cols;
+        session.rows = rows;
+        this._sessions.set(session.guid, session);
+        ElectronIpcService.request(new IPCMessages.StreamPtyResizeRequest({
             guid: session.guid,
-            streaming: session.prompt !== session.title,
-            title: session.title,
-        }), IPCMessages.StreamPtyOscResponse).then((response: IPCMessages.StreamPtyOscResponse) => {
+            col: cols,
+            row: rows,
+        }), IPCMessages.StreamPtyResizeResponse).then((response: IPCMessages.StreamPtyResizeResponse) => {
             if (response.error !== undefined) {
-                this._logger.warn(`Fail call OSC due error: ${response.error}`);
+                return this._logger.warn(`Fail to update terminal size due error: ${response.error}`);
             }
         }).catch((err: Error) => {
-            this._logger.warn(`Fail send request to change OSC due error: ${err.message}`);
+            this._logger.warn(`Fail to send an update terminal size request due error: ${err.message}`);
         });
     }
 
@@ -170,10 +186,45 @@ export class ServiceData {
                 cache: '',
                 prompt: '',
                 title: '',
+                rows: 15,
+                cols: 64,
             });
         }
         this._active = controller.getGuid();
         this._subjects.onSessionChange.next();
+        // Request pending data
+        ElectronIpcService.request(new IPCMessages.StreamPtyPendingRequest({
+            guid: this._active,
+        }), IPCMessages.StreamPtyPendingResponse).then((response: IPCMessages.StreamPtyPendingResponse) => {
+            if (response.error !== undefined) {
+                return this._logger.error(`Fail get pending data due error: ${response.error}`);
+            }
+            if (response.pending === '') {
+                return;
+            }
+            const error: Error | undefined = this._write(this._active, response.pending);
+            if (error !== undefined) {
+                return this._logger.error(`Fail write data for pending data due error: ${error.message}`);
+            }
+        }).catch((err: Error) => {
+            this._logger.error(`Fail request pending data due error: ${err.message}`);
+        });
+    }
+
+    private _write(guid: string, data: string): Error | undefined {
+        const session: ITermSession | undefined = this._sessions.get(guid);
+        if (session === undefined) {
+            return new Error(`Session "${guid}" isn't inited. Cannot bind data with terminal.`);
+        }
+        session.cache += data;
+        if (session.cache.length > TERMINAL_CACHE_MAX_CHARS_SIZE) {
+            session.cache = session.cache.substr(TERMINAL_CACHE_MAX_CHARS_SIZE - session.cache.length, TERMINAL_CACHE_MAX_CHARS_SIZE);
+        }
+        this._sessions.set(session.guid, session);
+        if (session.guid === this._active) {
+            this._subjects.onData.next(data);
+        }
+        return;
     }
 
     private _onSessionChange(controller: ControllerSessionTab) {
@@ -195,18 +246,9 @@ export class ServiceData {
     }
 
     private _ipc_StreamPtyOutRequest(message: IPCMessages.StreamPtyOutRequest, response: (message: IPCMessages.TMessage) => void) {
-        const session: ITermSession | undefined = this._sessions.get(message.guid);
-        if (session === undefined) {
-            return response(new IPCMessages.StreamPtyOutResponse({ error: `Session "${message.guid}" isn't inited. Cannot bind data with terminal.`}));
-        }
-        if (session.guid !== this._active) {
-            session.cache += message.data;
-            if (session.cache.length > TERMINAL_CACHE_MAX_CHARS_SIZE) {
-                session.cache = session.cache.substr(TERMINAL_CACHE_MAX_CHARS_SIZE - session.cache.length, TERMINAL_CACHE_MAX_CHARS_SIZE);
-            }
-            this._sessions.set(session.guid, session);
-        } else {
-            this._subjects.onData.next(message.data);
+        const error: Error | undefined = this._write(message.guid, message.data);
+        if (error !== undefined) {
+            return response(new IPCMessages.StreamPtyOutResponse({ error: error.message}));
         }
         response(new IPCMessages.StreamPtyOutResponse({}));
     }

@@ -5,10 +5,9 @@ import ServiceElectron from '../../services/service.electron';
 import ServiceStreamSources from '../../services/service.stream.sources';
 import Logger from '../../tools/env.logger';
 import ControllerStreamProcessor from '../stream.main/controller';
+import ServiceRenderState from '../../services/service.render.state';
 
 import { IPCMessages, Subscription } from '../../services/service.electron';
-
-const DEFAULT_SOURCE_NAME = 'Shell';
 
 export default class ControllerStreamPty {
 
@@ -16,22 +15,19 @@ export default class ControllerStreamPty {
     private _guid: string;
     private _pty: pty.IPty;
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
-    private _streaming: boolean = true;
+    private _streaming: boolean = false;
     private _processor: ControllerStreamProcessor;
+    private _pending: string = '';
     private _process: {
         pid: number | undefined,    // This is PID of node-pty, but not of programm running in shell
         def: string | undefined,    // Title of shell. Basically it's shell promt
         ttl: string | undefined,    // Current title. Title of running programm.
-        stt: boolean,               // Stream output state: allowed / disallowed
         src: number,                // ID of sources
-        osc: boolean,               // Stream output state: allowed / disallowed (front-end)
     } = {
         pid: undefined,
         def: undefined,
         ttl: undefined,
-        stt: false,
         src: 1000,
-        osc: false,
     };
 
     constructor(guid: string, stream: ControllerStreamProcessor) {
@@ -50,10 +46,15 @@ export default class ControllerStreamPty {
         }).catch((error: Error) => {
             this._logger.warn(`Fail to subscribe to event "StreamPtyStreamingRequest" due error: ${error.message}.`);
         });
-        ServiceElectron.IPC.subscribe(IPCMessages.StreamPtyOscRequest, this._ipc_onStreamPtyOscRequest.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.StreamPtyOscRequest = subscription;
+        ServiceElectron.IPC.subscribe(IPCMessages.StreamPtyPendingRequest, this._ipc_onStreamPtyPendingRequest.bind(this)).then((subscription: Subscription) => {
+            this._subscriptions.StreamPtyPendingRequest = subscription;
         }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to event "StreamPtyOscRequest" due error: ${error.message}.`);
+            this._logger.warn(`Fail to subscribe to event "StreamPtyPendingRequest" due error: ${error.message}.`);
+        });
+        ServiceElectron.IPC.subscribe(IPCMessages.StreamPtyResizeRequest, this._ipc_onStreamPtyResizeRequest.bind(this)).then((subscription: Subscription) => {
+            this._subscriptions.StreamPtyResizeRequest = subscription;
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to subscribe to event "StreamPtyResizeRequest" due error: ${error.message}.`);
         });
     }
 
@@ -76,9 +77,8 @@ export default class ControllerStreamPty {
         const ptyChild = pty.spawn(shell as string, [], {
             name: 'xterm-256color',
             cols: 160,
-            rows: 30,
+            rows: 2,
             cwd: process.cwd(),
-            //env: process.env,   // TODO: <-- import here all OS envs
         });
         ptyChild.on('data', this._pty_onData.bind(this));
         return ptyChild;
@@ -102,7 +102,7 @@ export default class ControllerStreamPty {
         (this._pty as any).resume();
     }
 
-    private _isStreamAllowed() {
+    private _updateTitleState() {
         if (this._process.def === undefined) {
             this._process.def = this._pty.process;
         }
@@ -111,13 +111,14 @@ export default class ControllerStreamPty {
         }
         if (this._process.ttl === undefined) {
             this._process.ttl = this._pty.process;
-            return this._process.stt;
+            return;
         }
         if (this._process.ttl === this._pty.process) {
-            return this._process.stt;
+            return;
+        } else {
+            this._logger.wtf(`>>>> ${this._pty.process}`);
         }
         this._process.ttl = this._pty.process;
-        return this._process.stt;
     }
 
     private _getSourceId(): number {
@@ -141,6 +142,7 @@ export default class ControllerStreamPty {
     }
 
     private _pty_onData(data: string) {
+        this._updateTitleState();
         this._pause();
         Promise.all([
             this._outToTerminal(data),
@@ -154,15 +156,23 @@ export default class ControllerStreamPty {
 
     private _outToTerminal(data: string): Promise<void> {
         return new Promise((resolve) => {
+            if (!ServiceRenderState.ready()) {
+                this._pending += data;
+                return resolve();
+            }
             ServiceElectron.IPC.request(new IPCMessages.StreamPtyOutRequest({
                 guid: this._guid,
-                data: data,
+                data: this._pending + data,
             }), IPCMessages.StreamPtyOutResponse).then((response: IPCMessages.StreamPtyOutResponse) => {
                 if (response.error !== undefined) {
                     this._logger.warn(`Error during writing into terminal: ${response.error}`);
+                    this._pending += data;
+                } else {
+                    this._pending = '';
                 }
             }).catch((err: Error) => {
                 this._logger.warn(`Fail write to terminal due error: ${err.message}`);
+                this._pending += data;
             }).finally(() => {
                 resolve();
             });
@@ -171,7 +181,7 @@ export default class ControllerStreamPty {
 
     private _outToStream(data: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (!this._streaming || !this._isStreamAllowed()) {
+            if (!this._streaming || data.trim() === '') {
                 return resolve();
             }
             this._processor.write(data, undefined, undefined, this._getSourceId()).then(resolve).catch(reject);
@@ -200,15 +210,26 @@ export default class ControllerStreamPty {
         });
     }
 
-    private _ipc_onStreamPtyOscRequest(message: IPCMessages.TMessage, response: (instance: any) => Promise<void>) {
-        const request: IPCMessages.StreamPtyOscRequest = message as IPCMessages.StreamPtyOscRequest;
+    private _ipc_onStreamPtyPendingRequest(message: IPCMessages.TMessage, response: (instance: any) => Promise<void>) {
+        const request: IPCMessages.StreamPtyPendingRequest = message as IPCMessages.StreamPtyPendingRequest;
         if (request.guid !== this._guid) {
             return;
         }
-        this._process.stt = request.streaming;
-        this._process.ttl = request.title;
-        response(new IPCMessages.StreamPtyOscResponse({ })).catch((err: Error) => {
-            this._logger.warn(`Fail send response (StreamPtyOscRequest) due error: ${err.message}`);
+        response(new IPCMessages.StreamPtyPendingResponse({
+            pending: this._pending,
+        })).catch((err: Error) => {
+            this._logger.warn(`Fail send response (StreamPtyPendingResponse) due error: ${err.message}`);
+        });
+    }
+
+    private _ipc_onStreamPtyResizeRequest(message: IPCMessages.TMessage, response: (instance: any) => Promise<void>) {
+        const request: IPCMessages.StreamPtyResizeRequest = message as IPCMessages.StreamPtyResizeRequest;
+        if (request.guid !== this._guid) {
+            return;
+        }
+        this._pty.resize(request.col, request.row);
+        response(new IPCMessages.StreamPtyResizeResponse({})).catch((err: Error) => {
+            this._logger.warn(`Fail send response (StreamPtyResizeResponse) due error: ${err.message}`);
         });
     }
 
