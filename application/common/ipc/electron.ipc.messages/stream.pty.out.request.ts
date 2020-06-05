@@ -16,7 +16,7 @@ export class StreamPtyOutRequest {
         if (typeof params.guid !== 'string' || params.guid.trim() === '') {
             throw new Error(`Field "guid" should be defined`);
         }
-        if (typeof params.data !== 'string' || params.data.trim() === '') {
+        if (typeof params.data !== 'string') {
             throw new Error(`Field "data" should be defined`);
         }
         this.guid = params.guid;
