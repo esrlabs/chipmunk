@@ -2,6 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, After
 import { Subscription } from 'rxjs';
 import { Terminal, IDisposable } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
+import { copyTextToClipboard, readTextFromClipboard } from '../../../controller/helpers/clipboard';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -54,17 +55,25 @@ export class ViewTerminalComponent implements OnDestroy, AfterContentInit, After
         const items: IMenuItem[] = [
             {
                 caption: `Copy`,
-                handler: () => {},
+                handler: () => {
+                    copyTextToClipboard(this._xterm.getSelection());
+                },
                 disabled: false,
             },
             {
                 caption: `Paste`,
-                handler: () => {},
+                handler: () => {
+                    readTextFromClipboard().then((buffer: string) => {
+                        this._xterm.paste(buffer);
+                    }).catch((err: Error) => {
+                        this._logger.error(`Fail read data from clipboard due error: ${err.message}`);
+                    });
+                },
                 disabled: false,
             },
             { /* delimiter */ },
             {
-                caption: ServiceData.getRedirectionState() ? `Do not redirect output` : `Redirect output`,
+                caption: ServiceData.getRedirectionState() ? `Do not redirect output` : `Redirect output (experimental)`,
                 handler: () => {
                     ServiceData.toggleRedirection();
                 },
@@ -81,11 +90,12 @@ export class ViewTerminalComponent implements OnDestroy, AfterContentInit, After
     }
 
     private _create() {
-        if (this._xterm !== undefined) {
-            return;
-        }
         if (this._ng_xtermholder === null || this._ng_xtermholder === undefined) {
             return null;
+        }
+        if (this._xterm !== undefined) {
+            ServiceData.setSize(this._xterm.cols, this._xterm.rows);
+            return;
         }
         this._fitAddon = new FitAddon();
         this._xterm = new Terminal();
@@ -96,6 +106,7 @@ export class ViewTerminalComponent implements OnDestroy, AfterContentInit, After
         this._subscriptions.onTermData = this._xterm.onData(this._onInData.bind(this));
         this._subscriptions.onTitleChange = this._xterm.onTitleChange(this._onTitleChange.bind(this));
         this._onOutData(ServiceData.getCache());
+        ServiceData.setSize(this._xterm.cols, this._xterm.rows);
     }
 
     private _dispose() {
@@ -155,6 +166,7 @@ export class ViewTerminalComponent implements OnDestroy, AfterContentInit, After
             return;
         }
         this._fitAddon.fit();
+        ServiceData.setSize(this._xterm.cols, this._xterm.rows);
         this._forceUpdate();
     }
 

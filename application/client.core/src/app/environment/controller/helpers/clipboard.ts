@@ -30,3 +30,7 @@ export function copyTextToClipboard(text: string) {
     selection.empty();
     document.body.removeChild(element);
 }
+
+export function readTextFromClipboard(): Promise<string> {
+    return navigator.clipboard.readText();
+}

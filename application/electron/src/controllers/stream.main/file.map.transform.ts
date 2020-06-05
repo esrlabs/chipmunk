@@ -75,7 +75,7 @@ export default class Transform extends Stream.Transform {
             return `${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
         });
         if (rows.to === rows.from) {
-            output = `${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
+            output = `${output}${getSourceMarker(this._pluginId)}${StreamMarkers.RowNumber}${rows.to++}${StreamMarkers.RowNumber}\n`;
         }
         const size: number = Buffer.byteLength(output, 'utf8');
         rows.to -= 1;
