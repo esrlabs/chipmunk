@@ -2,6 +2,7 @@
 const fswin = require("fswin");
 import * as fs from "fs";
 import * as Path from "path";
+import * as os from './env.os';
 
 /**
  * Check is file/folder exist
@@ -279,15 +280,20 @@ export function copyFolder(source: string, dest: string) {
     }
 }
 
-export function isHidden(file: string): Promise<boolean> {
-    return new Promise((resolve) => {
-        fswin.getAttributes(file, (result: any) => {
-            const key = 'IS_HIDDEN';
-            if (result && result[key] !== undefined) {
-                return resolve(result[key]);
-            } else {
-                return resolve(false);
-            }
-        });
+export function isHidden(path: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        const ops = os.getPlatform();
+        if (ops === os.EPlatforms.win32 || ops === os.EPlatforms.win64) {
+            fswin.getAttributes(path, (result: any) => {
+                const key = 'IS_HIDDEN';
+                if (result && result[key] !== undefined) {
+                    return resolve(result[key]);
+                } else {
+                    return reject(false);
+                }
+            });
+        } else {
+            return resolve((/(^|\/)\.[^\/\.]/g).test(path));
+        }
     });
 }

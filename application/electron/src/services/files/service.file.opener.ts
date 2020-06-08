@@ -14,7 +14,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
-import * as os from '../../tools/env.os';
 import { isHidden } from '../../tools/fs';
 
 const MAX_NUMBER_OF_RECENT_FILES = 150;
@@ -257,22 +256,6 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private hidden(file: string): Promise<boolean> {
-        return new Promise((resolve) => {
-            const ops = os.getPlatform();
-            if (ops === os.EPlatforms.win32 || ops === os.EPlatforms.win64) {
-                isHidden(file).then((hid: boolean) => {
-                    return resolve(hid);
-                }).catch((err: Error) => {
-                    this._logger.warn(`Fail to check if ${file} is hidden due to error: ${err.message}`);
-                    return resolve(false);
-                });
-            } else {
-                return resolve((/(^|\/)\.[^\/\.]/g).test(file));
-            }
-        });
-    }
-
     private _listFiles(startFile: string): Promise<IPCMessages.IFile[]> {
         return new Promise((resolve, reject) => {
             const allFiles: IPCMessages.IFile[] = [];
@@ -297,7 +280,7 @@ class ServiceFileOpener implements IService {
                         }
                         if (stats.isFile()) {
                             // File
-                            Promise.all([getParserForFile(file),self.hidden(file)]).then((values: [AFileParser | undefined, boolean | undefined]) => {
+                            Promise.all([getParserForFile(file), isHidden(file)]).then((values: [AFileParser | undefined, boolean | undefined]) => {
                                 const parser = values[0];
                                 const hideStatus = (values[1] === undefined) ? false : values[1];
                                 return resolved(allFiles.push({
