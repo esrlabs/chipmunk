@@ -371,6 +371,28 @@ task :electron_build_ts do
   end
 end
 
+desc 'Force npm resolutions'
+task :resolutions do
+  [
+    ELECTRON_DIR,
+    CLIENT_CORE_DIR,
+    'application/client.libs/chipmunk.client.components',
+    'application/client.libs/chipmunk.client.toolkit',
+    'application/node.libs/chipmunk.plugin.ipc',
+    'application/node.libs/chipmunk.shell.env',
+    "#{APPS_DIR}/indexer-neon",
+  ].each do|path|
+    if File.exist? "#{path}/package-lock.json" 
+      puts path
+      cd path do
+        npm_force_resolutions
+      end
+    else
+      puts "#{path} skipped, because no package-lock.json has been found"
+    end
+  end
+end
+
 desc 're-install'
 task reinstall: [:folders,
                  'client:rebuild_core',
