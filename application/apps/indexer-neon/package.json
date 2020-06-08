@@ -25,5 +25,13 @@
   },
   "dependencies": {
     "electron": "8.1.0"
+  },
+  "resolutions": {
+    "websocket-extensions": ">=0.1.4",
+    "serialize-javascript": ">=2.1.2",
+    "minimist": ">=0.2.1",
+    "acorn": ">=6.4.1",
+    "kind-of": ">=6.0.3",
+    "mem": ">=4.0.0"
   }
 }
