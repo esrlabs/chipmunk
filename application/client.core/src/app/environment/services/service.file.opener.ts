@@ -25,8 +25,8 @@ export enum EActionType {
 
 
 export interface IFileOpenerService {
-    merge: (files: IPCMessages.IFile[]) => void;
-    concat: (files: IPCMessages.IFile[]) => void;
+    merge: (files: IPCMessages.IFile[] | FilesList) => void;
+    concat: (files: IPCMessages.IFile[] | FilesList) => void;
 }
 
 const CReopenContextMenuItemId = 'reopen_file_item';
@@ -105,7 +105,6 @@ export class FileOpenerService implements IService, IFileOpenerService {
                                 factory: DialogsMultipleFilesActionComponent,
                                 inputs: {
                                     fileList: fileList,
-                                    files: fileList.getFiles().slice()
                                 }
                             },
                             buttons: [
@@ -149,19 +148,19 @@ export class FileOpenerService implements IService, IFileOpenerService {
         });
     }
 
-    public merge(list: FilesList | IPCMessages.IFile[]) {
-        list = list instanceof Array ? list : this._filterChecked(list.getFiles());
-        if (list.length <= 0) {
+    public merge(list: IPCMessages.IFile[] | FilesList) {
+        const checked = list instanceof Array ? this._filterChecked(list) : this._filterChecked(list.getFiles());
+        if (checked.length <= 0) {
             return;
         }
-        this._open(list, EActionType.merging);
+        this._open(checked, EActionType.merging);
     }
-    public concat(list: FilesList | IPCMessages.IFile[]) {
-        list = list instanceof Array ? list : this._filterChecked(list.getFiles());
-        if (list.length <= 0) {
+    public concat(list: FilesList) {
+        const checked = list instanceof Array ? this._filterChecked(list) : this._filterChecked(list.getFiles());
+        if (checked.length <= 0) {
             return;
         }
-        this._open(list, EActionType.concat);
+        this._open(checked, EActionType.concat);
     }
 
     private _open(files: IPCMessages.IFile[], action: EActionType) {
