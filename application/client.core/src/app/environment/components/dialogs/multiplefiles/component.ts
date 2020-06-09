@@ -4,6 +4,7 @@ import { FilesList } from '../../../controller/controller.file.storage';
 import { Subscription } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import * as Toolkit from 'chipmunk.client.toolkit';
+import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 @Component({
     selector: 'app-views-dialogs-multiplefilescation-map',
@@ -13,7 +14,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDestroy {
 
-    @Input() files: IPCMessages.IFile[] = [];
     @Input() fileList: FilesList;
 
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
@@ -45,12 +45,12 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
 
     private _getUniqueFiles(files: IPCMessages.IFile[]): IPCMessages.IFile[] {
         return files.filter((file: IPCMessages.IFile) => {
-            return this.files.findIndex((f: IPCMessages.IFile) => f.path === file.path) === -1;
+            return this.fileList.getFiles().findIndex((f: IPCMessages.IFile) => f.path === file.path) === -1;
         });
     }
 
-    private _filterChecked() {
-        this.fileList.setFiles(this.files.filter((file: IPCMessages.IFile) => file.checked === true ));
+    public _ng_onChange(event: any, fileName: IPCMessages.IFile) {
+        fileName.checked = event.checked;
     }
 
     private _onFilesDropped(files: IPCMessages.IFile[]) {
@@ -64,17 +64,59 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
                 this._logger.error(`Failed to check paths due error: ${checkResponse.error}`);
                 return;
             }
-            this.files = this.files.concat(this._getUniqueFiles(checkResponse.files));
-            this._filterChecked();
+            this.fileList.setFiles(this.fileList.getFiles().concat(this._getUniqueFiles(checkResponse.files)));
             this._forceUpdate();
         }).catch((error: Error) => {
             this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
         });
     }
 
-    public _ng_onChange(event: any, fileName: IPCMessages.IFile) {
-        fileName.checked = event.checked;
-        this._filterChecked();
+    private _selectAll() {
+        this.fileList.setFiles(this.fileList.getFiles().map((file: IPCMessages.IFile) => {
+            if (!file.disabled) {
+                file.checked = true;
+            }
+            return file;
+        }));
     }
 
+    private _deselectAll() {
+        this.fileList.setFiles(this.fileList.getFiles().map((file: IPCMessages.IFile) => {
+            if (!file.disabled) {
+                file.checked = false;
+            }
+            return file;
+        }));
+    }
+
+    private _reverseSelectAll() {
+        this.fileList.setFiles(this.fileList.getFiles().map((file: IPCMessages.IFile) => {
+            if (!file.disabled) {
+                file.checked = !file.checked;
+            }
+            return file;
+        }));
+    }
+
+    public _ng_onContexMenu(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Select all',
+                handler: this._selectAll.bind(this)
+            },
+            {
+                caption: 'Deselect all',
+                handler: this._deselectAll.bind(this)
+            },
+            {
+                caption: 'Reverse select all',
+                handler: this._reverseSelectAll.bind(this)
+            },
+        ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+    }
 }
