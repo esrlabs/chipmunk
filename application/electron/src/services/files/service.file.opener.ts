@@ -417,6 +417,7 @@ class ServiceFileOpener implements IService {
             } else {
                 dialog.showOpenDialog(win, {
                     properties: ['openFile', 'showHiddenFiles'],
+                    filters: [ { name: 'All Files', extensions: ['*'] } ],
                 }).then((returnValue: OpenDialogReturnValue) => {
                     if (!(returnValue.filePaths instanceof Array) || returnValue.filePaths.length !== 1) {
                         return resolve(undefined);
