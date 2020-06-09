@@ -150,10 +150,18 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     public merge(list: FilesList | IPCMessages.IFile[]) {
-        this._open(list instanceof Array ? list : this._filterChecked(list.getFiles()), EActionType.merging);
+        list = list instanceof Array ? list : this._filterChecked(list.getFiles());
+        if (list.length <= 0) {
+            return;
+        }
+        this._open(list, EActionType.merging);
     }
     public concat(list: FilesList | IPCMessages.IFile[]) {
-        this._open(list instanceof Array ? list : this._filterChecked(list.getFiles()), EActionType.concat);
+        list = list instanceof Array ? list : this._filterChecked(list.getFiles());
+        if (list.length <= 0) {
+            return;
+        }
+        this._open(list, EActionType.concat);
     }
 
     private _open(files: IPCMessages.IFile[], action: EActionType) {
