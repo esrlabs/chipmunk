@@ -180,6 +180,10 @@ export class ControllerSessionTab {
         return this._sessionId;
     }
 
+    public getTimestamp(): ControllerSessionTabTimestamp {
+        return this._timestamp;
+    }
+
     public getScope(): ControllerSessionScope {
         return this._scope;
     }

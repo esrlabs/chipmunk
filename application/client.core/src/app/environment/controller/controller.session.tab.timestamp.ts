@@ -9,12 +9,24 @@ import ElectronIpcService from '../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export interface IRow {
+    position: number;
+    str: string;
+    timestamp: number;
+}
+
+export interface IRange {
+    start: IRow;
+    end: IRow | undefined;
+}
+
 export class ControllerSessionTabTimestamp {
 
     private _guid: string;
     private _logger: Toolkit.Logger;
     private _tasks: Map<string, CancelablePromise<any, any, any, any>> = new Map();
     private _latest: IPCMessages.TimestampDiscoverResponse | undefined;
+    private _ranges: IRange[] = [];
 
     constructor(guid: string) {
         this._guid = guid;
@@ -93,6 +105,23 @@ export class ControllerSessionTabTimestamp {
         });
         this._tasks.set(id, task);
         return task;
+    }
+
+    public isDetected(): boolean {
+        return this._latest !== undefined;
+    }
+
+    public hasOpenRange(): boolean {
+        return this._ranges.find((range: IRange) => {
+            return range.end === undefined;
+        }) !== undefined;
+    }
+
+    public getOpenRangeStart(): number | undefined {
+        const range: IRange | undefined = this._ranges.find((r: IRange) => {
+            return r.end === undefined;
+        });
+        return range === undefined ? undefined : range.start.timestamp;
     }
 
 }
