@@ -1,14 +1,19 @@
 import * as Tools from "../../tools/index";
+import * as path from 'path';
+import * as fs from 'fs';
 
 import Logger from '../../tools/env.logger';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceOutputExport from "../../services/output/service.output.export";
 import ServiceStreams from "../../services/service.streams";
 import indexer, { CancelablePromise, Processor, Progress } from "indexer-neon";
+import ServiceStorage, { IStorageScheme } from '../../services/service.storage';
 
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { dialog, SaveDialogReturnValue } from 'electron';
 import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
+
+const MAX_NUMBER_OF_RECENT_FILES = 150;
 
 export class DefaultOutputExport {
 
@@ -79,6 +84,7 @@ export class DefaultOutputExport {
                 }
                 this._logger.info(`Saving`);
                 this._saver = indexer.exportLineBased(sessionFile, filename, true, { sections: sections }).then(() => {
+                    this._saveAsRecentFile(filename);
                     this._logger.info(`Saved`);
                     // Resolving
                     resolve(filename);
@@ -95,6 +101,32 @@ export class DefaultOutputExport {
             }).catch((error: Error) => {
                 reject(error);
             });
+        });
+    }
+
+    private _saveAsRecentFile(file: string) {
+        fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+            if (error) {
+                return this._logger.warn(`Fail to find save "${file}" as recent file`);
+            }
+            const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+            const files: IStorageScheme.IRecentFile[] = stored.recentFiles.filter((fileInfo: IStorageScheme.IRecentFile) => {
+                return fileInfo.file !== file;
+            });
+            if (files.length > MAX_NUMBER_OF_RECENT_FILES) {
+                files.splice(files.length - 1, 1);
+            }
+            files.unshift({
+                file: file,
+                filename: path.basename(file),
+                folder: path.dirname(file),
+                timestamp: Date.now(),
+                size: stats.size,
+            });
+            ServiceStorage.get().set({
+                recentFiles: files,
+            });
+            ServiceElectron.updateMenu();
         });
     }
 
