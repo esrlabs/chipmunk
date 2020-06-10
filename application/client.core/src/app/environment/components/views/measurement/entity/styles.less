@@ -1,0 +1,23 @@
+@import '../../../../theme/variables.less';
+
+:host {
+    position: relative;
+    display: block;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    & div.container{
+        position: absolute;
+        display: block;
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        top:0;
+        &.hidden{
+            opacity: 0;
+            pointer-events: none;
+        }
+    }
+}

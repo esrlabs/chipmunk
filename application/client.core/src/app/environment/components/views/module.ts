@@ -5,6 +5,7 @@ import { ViewOutputModule                       } from './output/module';
 import { ViewSearchModule                       } from './search/module';
 import { ViewChartModule                        } from './chart/module';
 import { ViewTerminalModule                     } from './terminal/module';
+import { ViewMeasurementModule                  } from './measurement/module';
 
 const components = [ ViewLoaderComponent ];
 
@@ -12,7 +13,14 @@ const components = [ ViewLoaderComponent ];
     entryComponents : [ ...components ],
     imports         : [ CommonModule ],
     declarations    : [ ...components ],
-    exports         : [ ViewOutputModule, ViewSearchModule, ViewChartModule, ViewTerminalModule, ...components ]
+    exports         : [
+        ViewOutputModule,
+        ViewSearchModule,
+        ViewChartModule,
+        ViewTerminalModule,
+        ViewMeasurementModule,
+        ...components
+    ]
 })
 
 export class EnvironmentViewsModule {
