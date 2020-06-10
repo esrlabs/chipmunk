@@ -4,6 +4,7 @@ import { IStorageScheme } from '../../services/service.storage';
 
 import ServiceStorage from '../../services/service.storage';
 import ServiceFileOpener from '../../services/files/service.file.opener';
+import ServiceFileRecent from '../../services/files/service.file.recent';
 import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
 import HandlerItemAbout from './menu.functions/handler.item.about';
 import HandlerItemPlugins from './menu.functions/handler.item.plugins';
@@ -95,7 +96,7 @@ export default class ControllerElectronMenu {
                     {
                         label: 'Clear',
                         click: () => {
-                            ServiceFileOpener.clearRecent();
+                            ServiceFileRecent.clear();
                         },
                     },
                 ],

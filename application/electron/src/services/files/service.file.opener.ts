@@ -1,10 +1,9 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import ServiceStreams, { IStreamInfo } from '../service.streams';
-import ServiceStorage, { IStorageScheme } from '../service.storage';
+import ServiceStreams from '../service.streams';
 import ServiceStreamSource from '../service.stream.sources';
 import ServiceHotkeys from '../service.hotkeys';
 import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
-import { FileParsers } from '../../controllers/files.parsers/index';
+import ServiceFileRecent from './service.file.recent';
 
 import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue } from 'electron';
@@ -15,8 +14,6 @@ import * as path from 'path';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import { isHidden } from '../../tools/fs';
-
-const MAX_NUMBER_OF_RECENT_FILES = 150;
 
 interface IOpenFileResult {
     sourceId: number;
@@ -48,9 +45,7 @@ class ServiceFileOpener implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.FileListRequest, this._ipc_FileListRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.FileListRequest = subscription;
                 }),
-                ServiceElectron.IPC.subscribe(IPCMessages.FilesRecentRequest, this._ipc_FilesRecentRequest.bind(this)).then((subscription: Subscription) => {
-                    this._subscriptions.FilesRecentRequest = subscription;
-                }),
+                ServiceFileRecent.subscribeRecentRequest(),
             ]).then(() => {
                 this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
                 this._subscriptions.openLocalFile = ServiceHotkeys.getSubject().openLocalFile.subscribe(this._hotkey_openLocalFile.bind(this));
@@ -122,7 +117,7 @@ class ServiceFileOpener implements IService {
                         this._directReadWrite(file, sessionId, instanceParser, options, trackingId).then((sourceId: number) => {
                             instanceParser.destroy().then(() => {
                                 // Save recent
-                                this._saveAsRecentFile(file, stats.size);
+                                ServiceFileRecent.save(file, stats.size);
                                 // Get meta file info
                                 const info = ServiceStreamSource.get(sourceId);
                                 if (info !== undefined) {
@@ -195,13 +190,6 @@ class ServiceFileOpener implements IService {
         return this._openFile();
     }
 
-    public clearRecent() {
-        ServiceStorage.get().set({
-            recentFiles: [],
-        });
-        ServiceElectron.updateMenu();
-    }
-
     private _ipc_FileListRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.FileListRequest = request as IPCMessages.FileListRequest;
         Promise.all(
@@ -241,17 +229,6 @@ class ServiceFileOpener implements IService {
             response(new IPCMessages.FileOpenResponse({
                 error: openError.message,
                 stream: undefined,
-            }));
-        });
-    }
-
-    private _ipc_FilesRecentRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        this._getRecentFiles().then((files: IStorageScheme.IRecentFile[]) => {
-            files.sort((a: IStorageScheme.IRecentFile, b: IStorageScheme.IRecentFile) => {
-                return a.timestamp < b.timestamp ? 1 : -1;
-            });
-            response(new IPCMessages.FilesRecentResponse({
-                files: files,
             }));
         });
     }
@@ -458,55 +435,6 @@ class ServiceFileOpener implements IService {
     private _hotkey_openLocalFile() {
         this._openFile().catch((error: Error) => {
             this._logger.error(`Fail open file on CMD + P: ${error.message}`);
-        });
-    }
-
-    private _saveAsRecentFile(file: string, size: number) {
-        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-        const files: IStorageScheme.IRecentFile[] = stored.recentFiles.filter((fileInfo: IStorageScheme.IRecentFile) => {
-            return fileInfo.file !== file;
-        });
-        if (files.length > MAX_NUMBER_OF_RECENT_FILES) {
-            files.splice(files.length - 1, 1);
-        }
-        files.unshift({
-            file: file,
-            filename: path.basename(file),
-            folder: path.dirname(file),
-            timestamp: Date.now(),
-            size: size,
-        });
-        ServiceStorage.get().set({
-            recentFiles: files,
-        });
-        ServiceElectron.updateMenu();
-    }
-
-    private _getRecentFiles(): Promise<IStorageScheme.IRecentFile[]> {
-        return new Promise((resolve) => {
-            const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-            const checked: IStorageScheme.IRecentFile[] = [];
-            Promise.all(stored.recentFiles.map((file: IStorageScheme.IRecentFile) => {
-                return new Promise((resolveFile) => {
-                    fs.stat(file.file, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
-                        if (err) {
-                            return resolveFile();
-                        }
-                        file.size = stats.size;
-                        checked.push(file);
-                        resolveFile();
-                    });
-                });
-            })).then(() => {
-                if (checked.length === stored.recentFiles.length) {
-                    return resolve(checked);
-                }
-                ServiceStorage.get().set({
-                    recentFiles: checked,
-                });
-                ServiceElectron.updateMenu();
-                resolve(checked);
-            });
         });
     }
 

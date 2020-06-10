@@ -1,12 +1,9 @@
 import Logger from '../tools/env.logger';
 import { dialog, SaveDialogReturnValue, OpenDialogReturnValue } from 'electron';
 import * as fs from 'fs';
-import * as path from 'path';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
-import ServiceStorage, { IStorageScheme } from '../services/service.storage';
-
-const MAX_NUMBER_OF_RECENT_FILES = 100;
+import ServiceFileRecent from './files/service.file.recent';
 
 interface IStoredFileData {
     filters: IPCMessages.IFilter[];
@@ -82,31 +79,7 @@ class ServiceFilters implements IService {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "FiltersSaveRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
-            ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentRequest, this._ipc_onFiltersRecentRequested.bind(this)).then((subscription: Subscription) => {
-                this._subscriptions.FiltersFilesRecentRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
-            ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentResetRequest, this._ipc_onFiltersFilesRecentResetRequested.bind(this)).then((subscription: Subscription) => {
-                this._subscriptions.FiltersFilesRecentResetRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentResetRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
-            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentRequest, this._ipc_onSearchRecentRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscriptions.SearchRecentRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "SearchRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
-            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentClearRequest, this._ipc_onSearchRecentClearRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscriptions.SearchRecentClearRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "SearchRecentClearRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
-            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentAddRequest, this._ipc_onSearchRecentAddRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscriptions.SearchRecentAddRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "SearchRecentAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
+            ServiceFileRecent.init();
             resolve();
         });
     }
@@ -137,7 +110,7 @@ class ServiceFilters implements IService {
                 }
                 const file: string = returnValue.filePaths[0];
                 this._loadFile(file).then((content: IStoredFileData) => {
-                    this._saveAsRecentFile(file, content.filters.length + content.charts.length);
+                    ServiceFileRecent.saveFilters(file, content.filters.length + content.charts.length);
                     response(new IPCMessages.FiltersLoadResponse({
                         filters: normalizeStoredFilters(content.filters),
                         charts: normalizeStoredCharts(content.charts),
@@ -154,7 +127,7 @@ class ServiceFilters implements IService {
             });
         } else {
             this._loadFile(request.file).then((content: IStoredFileData) => {
-                this._saveAsRecentFile(request.file as string, content.filters.length + content.charts.length);
+                ServiceFileRecent.saveFilters(request.file as string, content.filters.length + content.charts.length);
                 response(new IPCMessages.FiltersLoadResponse({
                     filters: normalizeStoredFilters(content.filters),
                     charts: normalizeStoredCharts(content.charts),
@@ -184,7 +157,7 @@ class ServiceFilters implements IService {
         }
         if (typeof request.file === 'string') {
             this._saveFile(request.file, content).then(() => {
-                this._saveAsRecentFile(request.file as string, request.filters.length);
+                ServiceFileRecent.saveFilters(request.file as string, request.filters.length);
                 response(new IPCMessages.FiltersSaveResponse({
                     filename: request.file as string,
                 }));
@@ -201,7 +174,7 @@ class ServiceFilters implements IService {
                 filters: [{ name: 'Text Files', extensions: ['txt']}],
             }).then((results: SaveDialogReturnValue) => {
                 this._saveFile(results.filePath, content).then(() => {
-                    this._saveAsRecentFile(results.filePath as string, request.filters.length);
+                    ServiceFileRecent.saveFilters(results.filePath as string, request.filters.length);
                     response(new IPCMessages.FiltersSaveResponse({
                         filename: results.filePath as string,
                     }));
@@ -214,70 +187,6 @@ class ServiceFilters implements IService {
                 });
             });
         }
-    }
-
-    private _ipc_onFiltersRecentRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
-        this._validateRecentFiles().then((files: IStorageScheme.IRecentFilterFile[]) => {
-            files.sort((a: IStorageScheme.IRecentFilterFile, b: IStorageScheme.IRecentFilterFile) => {
-                return a.timestamp < b.timestamp ? 1 : -1;
-            });
-            response(new IPCMessages.FiltersFilesRecentResponse({
-                files: files,
-            }));
-        });
-    }
-
-    private _ipc_onFiltersFilesRecentResetRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
-        ServiceStorage.get().set({
-            recentFiltersFiles: [],
-        });
-        response(new IPCMessages.FiltersFilesRecentResetResponse({ }));
-    }
-
-    private _ipc_onSearchRecentRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
-        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-        response(new IPCMessages.SearchRecentResponse({
-            requests: stored.recentSearchRequests,
-        }));
-    }
-
-    private _ipc_onSearchRecentClearRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
-        ServiceStorage.get().set({
-            recentSearchRequests: [],
-        });
-        response(new IPCMessages.SearchRecentClearResponse({ }));
-    }
-
-    private _ipc_onSearchRecentAddRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
-        const message: IPCMessages.SearchRecentAddRequest = _message as IPCMessages.SearchRecentAddRequest;
-        if (typeof message.request !== 'string' || message.request.trim() === '') {
-            response(new IPCMessages.SearchRecentAddResponse({
-                error: `Search request isn't correct. It should be not empty string.`,
-            }));
-            return;
-        }
-        let stored: IStorageScheme.IRecentSearchRequest[] = ServiceStorage.get().get().recentSearchRequests;
-        let updated: IStorageScheme.IRecentSearchRequest | undefined;
-        // Update usage of filter
-        stored = stored.filter((recent: IStorageScheme.IRecentSearchRequest) => {
-            if (recent.request === message.request) {
-                recent.used += 1;
-                updated = recent;
-                return false;
-            }
-            return true;
-        });
-        if (updated === undefined) {
-            updated = {
-                request: message.request,
-                used: 0,
-            };
-        }
-        stored.unshift(updated);
-        ServiceStorage.get().set({
-            recentSearchRequests: stored,
-        });
-        response(new IPCMessages.SearchRecentAddResponse({ }));
     }
 
     private _loadFile(file: string): Promise<IStoredFileData> {
@@ -322,55 +231,6 @@ class ServiceFilters implements IService {
             });
         });
     }
-
-    private _saveAsRecentFile(file: string, filters: number) {
-        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-        const files: IStorageScheme.IRecentFilterFile[] = stored.recentFiltersFiles.filter((fileInfo: IStorageScheme.IRecentFilterFile) => {
-            return fileInfo.file !== file;
-        });
-        if (files.length > MAX_NUMBER_OF_RECENT_FILES) {
-            files.splice(files.length - 1, 1);
-        }
-        files.unshift({
-            file: file,
-            filename: path.basename(file),
-            folder: path.dirname(file),
-            timestamp: Date.now(),
-            filters: filters,
-        });
-        ServiceStorage.get().set({
-            recentFiltersFiles: files,
-        });
-        ServiceElectron.updateMenu();
-    }
-
-    private _validateRecentFiles(): Promise<IStorageScheme.IRecentFilterFile[]> {
-        return new Promise((resolve) => {
-            const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
-            const files: IStorageScheme.IRecentFilterFile[] = [];
-            Promise.all(stored.recentFiltersFiles.map((file: IStorageScheme.IRecentFilterFile) => {
-                return new Promise((resolveFile) => {
-                    fs.access(file.file, fs.constants.F_OK, (err) => {
-                        if (err) {
-                            return resolveFile();
-                        }
-                        files.push(file);
-                        resolveFile();
-                    });
-                });
-            })).then(() => {
-                if (files.length === stored.recentFiltersFiles.length) {
-                    return resolve(files);
-                }
-                ServiceStorage.get().set({
-                    recentFiltersFiles: files,
-                });
-                ServiceElectron.updateMenu();
-                resolve(files);
-            });
-        });
-    }
-
 }
 
 export default (new ServiceFilters());
