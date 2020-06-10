@@ -1,5 +1,10 @@
 # Changelog
 
+### [2.3.1] - 06/10/2020
+* [](fix) fix version of app
+* [#822](feat) Context menu
+* [#822](refact) No selected no action
+
 ### [2.2.0] - 04/11/2020
 
 * [#780](feat) support multiple dlt messages in a udp frame
