@@ -1,7 +1,6 @@
 # Changelog
 
 ### [2.3.1] - 06/10/2020
-* [](fix) fix version of app
 * [#822](feat) Context menu
 * [#822](refact) No selected no action
 
