@@ -16,6 +16,7 @@ import { ControllerSessionTabMap } from './controller.session.tab.map';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTabTitleContextMenu } from './controller.session.tab.titlemenu';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
 import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -46,6 +47,7 @@ export class ControllerSessionTab {
     private _states: ControllerSessionTabStates;
     private _scope: ControllerSessionScope;
     private _map: ControllerSessionTabMap;
+    private _timestamp: ControllerSessionTabTimestamp;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _tabAPI: ITabAPI | undefined;
     private _tabTitleContentService: TabTitleContentService;
@@ -80,6 +82,7 @@ export class ControllerSessionTab {
             stream: this._stream,
         });
         this._states = new ControllerSessionTabStates(params.guid);
+        this._timestamp = new ControllerSessionTabTimestamp(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
@@ -116,6 +119,7 @@ export class ControllerSessionTab {
                         this._stream.destroy(),
                         this._search.destroy(),
                         this._states.destroy(),
+                        this._timestamp.destroy(),
                     ])
                         .then(() => {
                             this._scope.destroy();

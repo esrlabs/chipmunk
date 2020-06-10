@@ -1,15 +1,18 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { ViewSearchComponent } from '../components/views/search/component';
 import { SidebarAppNotificationsComponent } from '../components/views/notifications/component';
 import { SidebarAppNotificationsCounterComponent } from '../components/views/notifications/counter/component';
 import { ViewChartComponent } from '../components/views/chart/component';
 import { ViewTerminalComponent } from '../components/views/terminal/component';
+import { ViewMeasurementComponent } from '../components/views/measurement/component';
 
 export interface IDefaultTabsGuids {
     search: string;
     charts: string;
     notification: string;
     terminal: string;
+    timemeasurement: string;
 }
 
 export const CDefaultTabsGuids: IDefaultTabsGuids = {
@@ -17,10 +20,17 @@ export const CDefaultTabsGuids: IDefaultTabsGuids = {
     charts: Toolkit.guid(),
     notification: Toolkit.guid(),
     terminal: Toolkit.guid(),
+    timemeasurement: Toolkit.guid(),
 };
 
 
 export const DefaultViews = [
+    {
+        name: 'Time Measurement',
+        guid: CDefaultTabsGuids.timemeasurement,
+        factory: ViewMeasurementComponent,
+        inputs: { }
+    },
     {
         name: 'Terminal',
         guid: CDefaultTabsGuids.terminal,

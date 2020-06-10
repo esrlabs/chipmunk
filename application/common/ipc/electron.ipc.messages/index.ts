@@ -490,6 +490,18 @@ export { ISettingsRenderRegisterRequest, SettingsRenderRegisterRequest }
 import { ISettingsRenderRegisterResponse, SettingsRenderRegisterResponse } from './settings.render.register.response';
 export { ISettingsRenderRegisterResponse, SettingsRenderRegisterResponse }
 
+import { ITimestampDiscoverRequest, TimestampDiscoverRequest } from './timestamp.discover.request';
+export { ITimestampDiscoverRequest, TimestampDiscoverRequest }
+
+import { ITimestampDiscoverResponse, TimestampDiscoverResponse } from './timestamp.discover.response';
+export { ITimestampDiscoverResponse, TimestampDiscoverResponse }
+
+import { ITimestampTestRequest, TimestampTestRequest } from './timestamp.test.request';
+export { ITimestampTestRequest, TimestampTestRequest }
+
+import { ITimestampTestResponse, TimestampTestResponse } from './timestamp.test.response';
+export { ITimestampTestResponse, TimestampTestResponse }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -651,7 +663,11 @@ export type TMessage =  AppRestartRequest |
                         SettingsOperationValidateRequest<any> |
                         SettingsOperationValidateResponse |
                         SettingsRenderRegisterRequest<any> |
-                        SettingsRenderRegisterResponse<any>;
+                        SettingsRenderRegisterResponse<any> |
+                        TimestampDiscoverRequest |
+                        TimestampDiscoverResponse |
+                        TimestampTestRequest |
+                        TimestampTestResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -841,4 +857,9 @@ export const Map = {
     [SettingsOperationValidateResponse.signature    ]: SettingsOperationValidateResponse,
     [SettingsRenderRegisterRequest.signature        ]: SettingsRenderRegisterRequest,
     [SettingsRenderRegisterResponse.signature       ]: SettingsRenderRegisterResponse,
+
+    [TimestampDiscoverRequest.signature             ]: TimestampDiscoverRequest,
+    [TimestampDiscoverResponse.signature            ]: TimestampDiscoverResponse,
+    [TimestampTestRequest.signature                 ]: TimestampTestRequest,
+    [TimestampTestResponse.signature                ]: TimestampTestResponse,
 };
