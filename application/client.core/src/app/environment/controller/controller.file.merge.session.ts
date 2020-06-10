@@ -393,6 +393,9 @@ export class ControllerFileMergeSession {
 
     private _getTimeScale(file: IPCMessages.IMergeFilesDiscoverResult): ITimeScale | undefined {
         function getUnixTime(smth: number | string): number | undefined {
+            if (typeof smth === 'string') {
+                smth = parseInt(smth, 10);
+            }
             const date: Date = new Date(smth);
             if (!(date instanceof Date)) {
                 return undefined;
@@ -406,8 +409,8 @@ export class ControllerFileMergeSession {
         if (file.maxTime === undefined || file.minTime === undefined) {
             return undefined;
         }
-        const sMin: number | undefined = getUnixTime(parseInt(file.minTime, 10));
-        const sMax: number | undefined = getUnixTime(parseInt(file.maxTime, 10));
+        const sMin: number | undefined = getUnixTime(file.minTime);
+        const sMax: number | undefined = getUnixTime(file.maxTime);
         if (sMin === undefined || sMax === undefined) {
             return undefined;
         }

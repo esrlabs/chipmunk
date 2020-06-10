@@ -194,6 +194,29 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 disabled: selection === undefined || this._getFilterFromStr(selection.selection) === undefined
             }
         ]);
+        if (this.session.getTimestamp().isDetected()) {
+            items.push(...[
+                { /* delimiter */ },
+                {
+                    caption: `Set as ${this.session.getTimestamp().getOpenRangeStart() === undefined ? 'start' : 'end'} of range`,
+                    handler: () => { },
+                }
+            ]);
+        } else {
+            this.session.getTimestamp().discover().then(() => {
+                console.log('DETECTED!');
+            }).catch((error: Error) => {
+                console.error(error);
+            });
+            items.push(...[
+                { /* delimiter */ },
+                {
+                    caption: 'Set as start of range',
+                    handler: () => { },
+                    disabled: true
+                }
+            ]);
+        }
         OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
             if (actions.length > 0) {
                 items.push(...[

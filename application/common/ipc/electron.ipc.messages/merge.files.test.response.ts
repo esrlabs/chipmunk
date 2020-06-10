@@ -3,8 +3,8 @@ import { ITimestampFormatOk } from '../../interfaces/interface.detect';
 export interface IMergeFilesTestResponse {
     id: string;
     format?: ITimestampFormatOk;
-    minTime?: string;
-    maxTime?: string;
+    minTime?: number;
+    maxTime?: number;
     path: string;
     error?: string;
 }
@@ -15,8 +15,8 @@ export class MergeFilesTestResponse {
     public signature: string = MergeFilesTestResponse.signature;
     public id: string = '';
     public format?: ITimestampFormatOk;
-    public minTime?: string;
-    public maxTime?: string;
+    public minTime?: number;
+    public maxTime?: number;
     public path: string;
     public error?: string;
 
