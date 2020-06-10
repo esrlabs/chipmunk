@@ -26,6 +26,7 @@ import ServiceProduction from './services/service.production';
 import ServiceFileInfo from './services/files/service.file.info';
 import ServiceMergeFiles from './services/features/service.merge.files';
 import ServiceConcatFiles from './services/features/service.concat.files';
+import ServiceTimestamp from './services/features/service.timestamp';
 import ServiceFileReader from './services/files/service.file.reader';
 import ServiceFileSearch from './services/files/service.file.search';
 import ServiceFileOpener from './services/files/service.file.opener';
@@ -87,7 +88,7 @@ const InitializeStages = [
         ServiceDLTFiles, ServiceHotkeys,
         ServiceFilePicker, ServiceDLTDeamonConnector,
         ServiceOutputExport, ServiceLogsExtractor,
-        ServiceFileRecent,
+        ServiceFileRecent, ServiceTimestamp,
     ],
     // Stage #10. Init plugins
     [   ServicePlugins ],
