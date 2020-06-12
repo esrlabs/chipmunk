@@ -3,21 +3,23 @@
 :host {
     position: relative;
     display: block;
-    height: 100%;
-    width: 100%;
     margin: 0;
-    padding: 0;
-    & div.container{
+    margin-bottom: 3px;
+    background: @scheme-color-6;
+    border-radius: 3px;
+    padding: 2px 6px;
+    cursor: default;
+    span.scale{
         position: absolute;
         display: block;
-        height: 100%;
-        width: 100%;
-        margin: 0;
-        padding: 0;
         top:0;
-        &.hidden{
-            opacity: 0;
-            pointer-events: none;
-        }
+        height: 100%;
+        background: fade(@scheme-color-accent, 40%);
+    }
+    p.error{
+        color: @scheme-color-warning;
+    }
+    span.duration{
+        font-weight: 600;
     }
 }

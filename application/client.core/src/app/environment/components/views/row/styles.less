@@ -104,6 +104,15 @@
                     font-family: 'console', monospace;
                     user-select: none;
                 }
+                & span.range{
+                    position: absolute;
+                    display: block;
+                    height: 100%;
+                    width: 4px;
+                    background: @scheme-color-accent;
+                    top:0;
+                    right: 4px;
+                }
                 &:hover::after{
                     position: absolute;
                     display: block;
@@ -113,6 +122,13 @@
                     right: 0;
                     width: 4px;
                     .gradient(linear; @scheme-color-2, lighten(@scheme-color-2, 4%));
+                }
+            }
+        }
+        &.timeranges{
+            & div.container{
+                & span.number {
+                    padding: 0 16px 0 0;
                 }
             }
         }

@@ -1,10 +1,16 @@
-<div *ngIf="_ng_isPending() === false" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked ' : ' ') + (_ng_isSelected() ? 'selected' : '')" (contextmenu)="_ng_onContextMenu($event)">
+<div *ngIf="_ng_isPending() === false" 
+    [attr.class]="'wrapper noreset ' + _ng_getAdditionCssClass()" 
+    (contextmenu)="_ng_onContextMenu($event)">
     <div class="container" #numbernode>
         <span   class="source-alias"
                 (click)="_ng_onNumberClick()"
                 [ngStyle]="{'background': _ng_sourceColor}"
                 [attr.data-source-name]="_ng_sourceName"></span>
-        <span class="number" (click)="_ng_onNumberClick()"><span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}{{_ng_numberDelimiter}}</span>
+        <span   class="number"
+                (click)="_ng_onNumberClick()">
+                    <span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}{{_ng_numberDelimiter}}
+                    <span class="range" *ngIf="_ng_getRangeColor() !== undefined" [ngStyle]="_ng_getRangeStyle()"></span>
+                </span>
         <span   class="error fas fa-exclamation-circle" 
                 *ngIf="_ng_error !== undefined"
                 [attr.title]="_ng_error"></span>

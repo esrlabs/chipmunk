@@ -54,6 +54,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     private _output: ControllerSessionTabStreamOutput | undefined;
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _destroyed: boolean = false;
+    private _logger: Toolkit.Logger = new Toolkit.Logger('ViewOutputComponent');
     private _controls: {
         update: Subject<IButton[]>,
         keepScrollDown: boolean,
@@ -138,6 +139,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
         const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
+        const row: IStreamPacket | undefined = contextRowNumber !== -1 ? this._output.getRowByPosition(contextRowNumber) : undefined;
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
@@ -150,19 +152,16 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         if (selection === undefined) {
             window.getSelection().removeAllRanges();
         }
-        if (contextRowNumber !== -1) {
-            const row: IStreamPacket | undefined = this._output.getRowByPosition(contextRowNumber);
-            if (row !== undefined) {
-                items.push(...[
-                    { /* delimiter */ },
-                    {
-                        caption: `Show row #${contextRowNumber}`,
-                        handler: () => {
-                            SelectionParsersService.memo(row.str, `Row #${contextRowNumber}`);
-                        },
+        if (row !== undefined) {
+            items.push(...[
+                { /* delimiter */ },
+                {
+                    caption: `Show row #${contextRowNumber}`,
+                    handler: () => {
+                        SelectionParsersService.memo(row.str, `Row #${contextRowNumber}`);
                     },
-                ]);
-            }
+                },
+            ]);
         }
         if (selection !== undefined) {
             const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
@@ -194,51 +193,66 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 disabled: selection === undefined || this._getFilterFromStr(selection.selection) === undefined
             }
         ]);
-        if (this.session.getTimestamp().isDetected()) {
-            items.push(...[
-                { /* delimiter */ },
-                {
-                    caption: `Set as ${this.session.getTimestamp().getOpenRangeStart() === undefined ? 'start' : 'end'} of range`,
-                    handler: () => { },
+        this.session.getTimestamp().discover().catch((error: Error) => {
+            this._logger.warn(`Fail detect timestamp due error: ${error.message}`);
+        }).finally(() => {
+            if (this.session.getTimestamp().isDetected() && row !== undefined) {
+                const tm: number | undefined = this.session.getTimestamp().getTimestamp(row.str);
+                const start: number | undefined = this.session.getTimestamp().getOpenRangeStart();
+                if (tm !== undefined) {
+                    items.push(...[
+                        { /* delimiter */ },
+                        {
+                            caption: `Set as ${start === undefined ? 'start' : 'end' } of range${start !== undefined ? `: ${Math.abs(tm - start).toFixed(2)}ms (${(Math.abs(tm - start) / 1000).toFixed(2)}s)` : ``}`,
+                            handler: () => {
+                                this.session.getTimestamp().setPoint({
+                                    position: row.position,
+                                    str: row.str,
+                                });
+                            },
+                        }
+                    ]);
+                } else {
+                    items.push(...[
+                        { /* delimiter */ },
+                        {
+                            caption: `Set as ${start === undefined ? 'start' : 'end' } of range`,
+                            handler: () => { },
+                            disabled: true,
+                        }
+                    ]);
                 }
-            ]);
-        } else {
-            this.session.getTimestamp().discover().then(() => {
-                console.log('DETECTED!');
-            }).catch((error: Error) => {
-                console.error(error);
-            });
-            items.push(...[
-                { /* delimiter */ },
-                {
-                    caption: 'Set as start of range',
-                    handler: () => { },
-                    disabled: true
-                }
-            ]);
-        }
-        OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
-            if (actions.length > 0) {
+
+            } else {
                 items.push(...[
                     { /* delimiter */ },
-                    ...actions.map((action: IExportAction) => {
-                        return {
-                            caption: action.caption,
-                            handler: action.caller
-                        };
-                    })
+                    {
+                        caption: 'Set as start of range',
+                        handler: () => { },
+                        disabled: true
+                    }
                 ]);
             }
-            ContextMenuService.show({
-                items: items,
-                x: event.pageX,
-                y: event.pageY,
-            });
-        }).catch((err: Error) => {
-            ContextMenuService.show({
-                items: items,
-                x: event.pageX,
-                y: event.pageY,
+            OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
+                if (actions.length > 0) {
+                    items.push(...[
+                        { /* delimiter */ },
+                        ...actions.map((action: IExportAction) => {
+                            return {
+                                caption: action.caption,
+                                handler: action.caller
+                            };
+                        })
+                    ]);
+                }
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail get actions due error: ${err.message}`);
+            }).finally(() => {
+                ContextMenuService.show({
+                    items: items,
+                    x: event.pageX,
+                    y: event.pageY,
+                });
             });
         });
     }

@@ -4,6 +4,8 @@ import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/controller.session.tab.scope';
+import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamp';
+
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
 import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
@@ -44,6 +46,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public controller: ControllerSessionTabStreamOutput | undefined;
     @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
+    @Input() public timestamp: ControllerSessionTabTimestamp | undefined;
     @Input() public rank: number = 1;
     @Input() public parent: string;
 
@@ -135,7 +138,23 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         SelectionParsersService.setContextRowNumber(this._getPosition());
     }
 
+    public _ng_getAdditionCssClass(): string {
+        let css: string = '';
+        if (this._ng_bookmarked) {
+            css += ' bookmarked ';
+        }
+        if (this._ng_isSelected()) {
+            css += ' selected ';
+        }
+        if (this.timestamp.getCount() > 0) {
+            css += ' timeranges ';
+        }
+        return css;
+    }
 
+    public _ng_getRangeColor(): string | undefined {
+        return this.timestamp.getRangeColorFor(this._getPosition());
+    }
 
     public _ng_isPending() {
         return this.str === undefined;
@@ -184,6 +203,12 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             return false;
         }
         return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition());
+    }
+
+    public _ng_getRangeStyle(): { [key: string]: string } {
+        return {
+            background: this._ng_getRangeColor(),
+        };
     }
 
     private _onRowWasSelected(sender: string, selection: number[], clicked: number) {

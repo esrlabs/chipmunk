@@ -2,6 +2,7 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
 import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
 
 import OutputRedirectionsService, { ISelectionAccessor } from '../services/standalone/service.output.redirections';
@@ -15,6 +16,7 @@ export interface IParamerters {
     requestDataHandler: TRequestDataHandler;
     bookmarks: ControllerSessionTabStreamBookmarks;
     scope: ControllerSessionScope;
+    timestamp: ControllerSessionTabTimestamp;
 }
 
 export interface IStreamPacket {
@@ -27,6 +29,7 @@ export interface IStreamPacket {
     controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
     parent: string;
+    timestamp: ControllerSessionTabTimestamp;
 }
 
 export interface IStreamState {
@@ -67,6 +70,7 @@ export class ControllerSessionTabStreamOutput {
     private _rows: IStreamPacket[] = [];
     private _requestDataHandler: TRequestDataHandler;
     private _bookmarks: ControllerSessionTabStreamBookmarks;
+    private _timestamp: ControllerSessionTabTimestamp;
     private _scope: ControllerSessionScope;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription} = {};
     private _preloadTimestamp: number = -1;
@@ -103,6 +107,7 @@ export class ControllerSessionTabStreamOutput {
         this._guid = params.guid;
         this._requestDataHandler = params.requestDataHandler;
         this._bookmarks = params.bookmarks;
+        this._timestamp = params.timestamp;
         this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
         this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
@@ -446,6 +451,7 @@ export class ControllerSessionTabStreamOutput {
                     bookmarks: this._bookmarks,
                     scope: this._scope,
                     parent: 'stream',
+                    timestamp: this._timestamp,
                 });
             });
         } catch (e) {
@@ -474,6 +480,7 @@ export class ControllerSessionTabStreamOutput {
                 bookmarks: this._bookmarks,
                 scope: this._scope,
                 parent: 'stream',
+                timestamp: this._timestamp,
             };
         });
         return rows;

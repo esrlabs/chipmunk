@@ -18,6 +18,31 @@
         color: @scheme-color-5;
         font-weight: 600;
     }
+    &.timestampmatch{
+        color:inherit;
+        background: fade(@scheme-color-accent, 30%);
+        cursor: default;
+        position: relative;
+        &:hover{
+            background: fade(@scheme-color-accent, 60%);
+            color: @scheme-color-0;
+            font-weight: 600;
+            &::after {
+                position: absolute;
+                display: inline-block;
+                background: @scheme-color-accent;
+                color: @scheme-color-0;
+                content: attr(data-duration) "ms";
+                padding: 3px 6px;
+                border-radius: 3px;
+                z-index: 1;
+                top: 0;
+                font-weight: normal;
+                margin: -3px 6px;
+            }
+        }
+        
+    }
 }
 & .console-content,
 & .console-content * {

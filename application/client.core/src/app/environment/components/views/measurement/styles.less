@@ -11,20 +11,11 @@
     left:0.5rem;
     top:0.5rem;
     overflow: hidden;
-    & div.main {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 3rem;
-        overflow: hidden;
-    }
-    & div.secondary{
-        position: absolute;
-        height: 3rem;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        overflow: hidden;
+    & cdk-virtual-scroll-viewport{
+        position: relative;
+        height: 100%;
+        width: 100%;
+        background: @scheme-color-5;
+        overflow-x: hidden;
     }
 }

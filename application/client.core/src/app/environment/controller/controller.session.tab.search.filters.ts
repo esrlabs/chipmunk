@@ -3,6 +3,7 @@ import { ControllerSessionTabSearchOutput } from './controller.session.tab.searc
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
 import {
     FilterRequest,
     IFilterFlags,
@@ -22,6 +23,7 @@ export interface IControllerSessionStreamFilters {
     guid: string;
     stream: ControllerSessionTabStreamOutput;
     scope: ControllerSessionScope;
+    timestamp: ControllerSessionTabTimestamp;
 }
 
 export interface ISearchOptions {
@@ -64,6 +66,7 @@ export class ControllerSessionTabSearchFilters {
             requestDataHandler: this._requestStreamData.bind(this),
             stream: params.stream,
             scope: this._scope,
+            timestamp: params.timestamp,
         });
         this._storage = new FiltersStorage(params.guid);
         this._state = new ControllerSessionTabSearchState(params.guid);
