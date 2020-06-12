@@ -1,0 +1,14 @@
+<div>
+    <span class="scale" [ngStyle]="_ng_getScaleStyle()"></span>
+    <p class="range t-small color-scheme-2">
+        <span>{{range.start.match}}</span> -
+        <span *ngIf="range.end !== undefined"> {{range.end.match}}</span>
+        <span *ngIf="range.end === undefined"> ...</span>
+        <span *ngIf="range.duration !== -1" class="duration color-scheme-0"> ({{range.duration.toFixed(2)}}ms/ ({{(range.duration / 1000).toFixed(2)}}s))</span>
+    </p>
+    <div *ngIf="content === 'details'">
+        <p class="preview t-small color-scheme-3">{{range.start.str}}</p>
+        <p class="preview t-small color-scheme-3" *ngIf="range.end !== undefined">{{range.end.str}}</p>
+        <p class="preview t-small color-scheme-3" *ngIf="range.end === undefined">...</p>    
+    </div>
+</div>

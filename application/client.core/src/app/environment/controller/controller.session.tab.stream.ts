@@ -1,9 +1,14 @@
-import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
+import { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState } from './controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import QueueService, { IQueueController } from '../services/standalone/service.queue';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
+import { IQueueController } from '../services/standalone/service.queue';
+
+import QueueService from '../services/standalone/service.queue';
+import ServiceElectronIpc from '../services/service.electron.ipc';
+
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState };
@@ -11,6 +16,7 @@ export { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState };
 export interface IControllerSessionStream {
     guid: string;
     scope: ControllerSessionScope;
+    timestamp: ControllerSessionTabTimestamp;
 }
 
 export class ControllerSessionTabStream {
@@ -37,6 +43,7 @@ export class ControllerSessionTabStream {
             requestDataHandler: this._requestData.bind(this),
             bookmarks: this._bookmarks,
             scope: this._scope,
+            timestamp: params.timestamp,
         });
         this._queue = new Toolkit.Queue(this._logger.error.bind(this._logger), 0);
         // Subscribe to queue events

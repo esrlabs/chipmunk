@@ -1,7 +1,8 @@
 import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
-import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
+import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.session.tab.stream.bookmarks';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
 
@@ -15,6 +16,7 @@ export interface IParameters {
     guid: string;
     requestDataHandler: TRequestDataHandler;
     stream: ControllerSessionTabStreamOutput;
+    timestamp: ControllerSessionTabTimestamp;
     scope: ControllerSessionScope;
 }
 
@@ -28,6 +30,7 @@ export interface ISearchStreamPacket {
     scope: ControllerSessionScope;
     controller: ControllerSessionTabStreamOutput;
     bookmarks: ControllerSessionTabStreamBookmarks;
+    timestamp: ControllerSessionTabTimestamp;
     parent: string;
 }
 
@@ -69,6 +72,7 @@ export class ControllerSessionTabSearchOutput {
     private _scope: ControllerSessionScope;
     private _preloadTimestamp: number = -1;
     private _bookmakrs: ControllerSessionTabStreamBookmarks;
+    private _timestamp: ControllerSessionTabTimestamp;
     private _lastRequestedRows: ISearchStreamPacket[] = [];
     private _state: IStreamState = {
         count: 0,
@@ -98,6 +102,7 @@ export class ControllerSessionTabSearchOutput {
         this._guid = params.guid;
         this._stream = params.stream;
         this._bookmakrs = params.stream.getBookmarks();
+        this._timestamp = params.timestamp;
         this._requestDataHandler = params.requestDataHandler;
         this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._guid}`);
@@ -346,7 +351,8 @@ export class ControllerSessionTabSearchOutput {
                     bookmarks: this._bookmakrs,
                     parent: 'search',
                     scope: this._scope,
-                    controller: this._stream
+                    controller: this._stream,
+                    timestamp: this._timestamp,
                 });
                 this._state.bookmarksCount += 1;
             });
@@ -549,7 +555,8 @@ export class ControllerSessionTabSearchOutput {
                     bookmarks: this._bookmakrs,
                     parent: 'search',
                     scope: this._scope,
-                    controller: this._stream
+                    controller: this._stream,
+                    timestamp: this._timestamp,
                 });
             });
         } catch (e) {
@@ -581,7 +588,8 @@ export class ControllerSessionTabSearchOutput {
                 bookmarks: this._bookmakrs,
                 parent: 'search',
                 scope: this._scope,
-                controller: this._stream
+                controller: this._stream,
+                timestamp: this._timestamp,
             };
         });
         return rows;

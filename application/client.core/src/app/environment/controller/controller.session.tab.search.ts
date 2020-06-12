@@ -3,6 +3,8 @@ import { ControllerSessionTabSearchCharts } from './controller.session.tab.searc
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchRecent } from './controller.session.tab.search.recent';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
+
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { Subject, Observable } from 'rxjs';
 
@@ -12,6 +14,7 @@ export interface IControllerSessionStream {
     guid: string;
     stream: ControllerSessionTabStreamOutput;
     scope: ControllerSessionScope;
+    timestamp: ControllerSessionTabTimestamp;
 }
 
 export class ControllerSessionTabSearch {

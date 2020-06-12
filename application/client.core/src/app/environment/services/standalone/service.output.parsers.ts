@@ -1,9 +1,15 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { Observable, Subject } from 'rxjs';
 import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
 import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
 import { FilterRequest } from '../../controller/controller.session.tab.search.filters.request';
+import { ControllerSessionTabTimestamp, IRange } from '../../controller/controller.session.tab.timestamp';
+import { ControllerSessionTab } from '../../controller/controller.session.tab';
+import { Subscription } from 'rxjs';
+
+import EventsSessionService from '../../services/standalone/service.events.session';
 
 export interface IRequest {
     reg: RegExp;
@@ -40,6 +46,9 @@ export class OutputParsersService {
     private _charts: Map<string, IRequest[]> = new Map();
     private _highlights: Map<string, IRequest[]> = new Map();
     private _typedRowRenders: Map<string, Toolkit.ATypedRowRender<any>> = new Map();
+    private _subscriptions: { [key: string]: Subscription } = {};
+    private _sessionSubscriptions: { [key: string]: Subscription } = {};
+    private _timestamp: ControllerSessionTabTimestamp | undefined;
     private _typedRowRendersHistory: {
         sources: string[],
         aliases: Map<string, string>,
@@ -55,6 +64,18 @@ export class OutputParsersService {
         onRepain: new Subject<void>(),
     };
     private _cache: { [key: string]: ICachedKey } = {};
+
+    constructor() {
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
+            this._onSessionChange.bind(this),
+        );
+    }
+
+    public destroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
+    }
 
     public getObservable(): {
         onUpdatedSearch: Observable<void>,
@@ -147,6 +168,10 @@ export class OutputParsersService {
         this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
             row.str = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
         });
+        // Inject timestamps highlight
+        if (this._timestamp !== undefined) {
+            row.str = this._timestamp.injectHighlight(row.str);
+        }
         return row.str;
     }
 
@@ -241,6 +266,18 @@ export class OutputParsersService {
         }
         this._parsers.bound.set(pluginId, parser);
         return true;
+    }
+
+    private _onSessionChange(controller?: ControllerSessionTab) {
+        Object.keys(this._sessionSubscriptions).forEach((key: string) => {
+            this._sessionSubscriptions[key].unsubscribe();
+        });
+        if (controller === undefined) {
+            return;
+        }
+        this._timestamp = controller.getTimestamp();
+        this._timestamp.getObservable().change.subscribe(this.updateRowsView.bind(this));
+        this._timestamp.getObservable().update.subscribe(this.updateRowsView.bind(this));
     }
 
     private _setCommonParsers(exports: Toolkit.IPluginExports, pluginId: number) {

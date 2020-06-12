@@ -38,3 +38,7 @@ export const CColors = [
     '#574b90',
     '#303952',
 ];
+
+export function getBasicColors(): string[] {
+    return CColors.slice(3, CColors.length);
+}

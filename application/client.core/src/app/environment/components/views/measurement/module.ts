@@ -1,5 +1,6 @@
 import { NgModule                                   } from '@angular/core';
 import { CommonModule                               } from '@angular/common';
+import { ScrollingModule                            } from '@angular/cdk/scrolling';
 
 import { ViewMeasurementComponent                   } from './component';
 import { ViewMeasurementEntityComponent             } from './entity/component';
@@ -14,7 +15,7 @@ const components = [ ...entryComponents ];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],
-    imports         : [ CommonModule, PrimitiveModule, ContainersModule ],
+    imports         : [ CommonModule, PrimitiveModule, ContainersModule, ScrollingModule ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
 })

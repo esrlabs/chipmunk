@@ -66,15 +66,18 @@ export class ControllerSessionTab {
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
         this._scope = new ControllerSessionScope(this._sessionId, params.sessionsEventsHub);
+        this._timestamp = new ControllerSessionTabTimestamp(params.guid);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
             guid: params.guid,
             scope: this._scope,
+            timestamp: this._timestamp,
         });
         this._search = new ControllerSessionTabSearch({
             guid: params.guid,
             stream: this._stream.getOutputStream(),
             scope: this._scope,
+            timestamp: this._timestamp,
         });
         this._map = new ControllerSessionTabMap({
             guid: params.guid,
@@ -82,7 +85,6 @@ export class ControllerSessionTab {
             stream: this._stream,
         });
         this._states = new ControllerSessionTabStates(params.guid);
-        this._timestamp = new ControllerSessionTabTimestamp(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
