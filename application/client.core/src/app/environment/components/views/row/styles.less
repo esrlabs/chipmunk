@@ -83,7 +83,6 @@
                 position: relative;
                 font-family: 'console', monospace;
                 font-variant-numeric: tabular-nums;
-                overflow: hidden;
                 line-height: 16px;
                 height: 16px;
                 max-height: 16px;
@@ -111,7 +110,7 @@
                     width: 4px;
                     background: @scheme-color-accent;
                     top:0;
-                    right: 4px;
+                    right: -8px;
                 }
                 &:hover::after{
                     position: absolute;
@@ -129,19 +128,22 @@
             & div.container{
                 & span.number {
                     padding: 0 16px 0 0;
+                    margin-right: 12px;
                 }
             }
         }
         &.bookmarked {
             & div.container{
                 & span.number {
+                    background: @scheme-color-warning;
+                    color: @scheme-color-7;
                     &::after{
                         position: absolute;
                         display: block;
                         content: '';
                         top:0;
                         bottom: 0;
-                        right: 0;
+                        left: -4px;
                         width: 4px;
                         background: @scheme-color-warning;
                     }

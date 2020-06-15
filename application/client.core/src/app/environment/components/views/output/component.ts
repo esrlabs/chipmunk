@@ -202,8 +202,23 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 if (tm !== undefined) {
                     items.push(...[
                         { /* delimiter */ },
+                    ]);
+                    if (start !== undefined) {
+                        items.push(...[
+                            {
+                                caption: `Add time range: ${this.session.getTimestamp().getOpenRangePosition()} - ${row.position}`,
+                                handler: () => {
+                                    this.session.getTimestamp().addRange(this.session.getTimestamp().getOpenRangeRow(), {
+                                        position: row.position,
+                                        str: row.str,
+                                    });
+                                },
+                            },
+                        ]);
+                    }
+                    items.push(...[
                         {
-                            caption: `Set as ${start === undefined ? 'start' : 'end' } of range${start !== undefined ? `: ${Math.abs(tm - start).toFixed(2)}ms (${(Math.abs(tm - start) / 1000).toFixed(2)}s)` : ``}`,
+                            caption: `${start === undefined ? `New time range` : `Add time range: ${this.session.getTimestamp().getOpenRangePosition()} - ${row.position} and close` }`,
                             handler: () => {
                                 this.session.getTimestamp().setPoint({
                                     position: row.position,
@@ -212,24 +227,34 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                             },
                         }
                     ]);
-                } else {
-                    items.push(...[
-                        { /* delimiter */ },
-                        {
-                            caption: `Set as ${start === undefined ? 'start' : 'end' } of range`,
-                            handler: () => { },
-                            disabled: true,
-                        }
-                    ]);
+                    if (start !== undefined) {
+                        items.push(...[
+                            {
+                                caption: `Drop start point`,
+                                handler: () => {
+                                    this.session.getTimestamp().dropOpenRange();
+                                },
+                            }
+                        ]);
+                    }
                 }
-
-            } else {
+            }
+            if (this.session.getTimestamp().getRanges().length > 0) {
+                const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(row.position);
                 items.push(...[
                     { /* delimiter */ },
                     {
-                        caption: 'Set as start of range',
-                        handler: () => { },
-                        disabled: true
+                        caption: `Remove all ranges`,
+                        handler: () => {
+                            this.session.getTimestamp().drop();
+                        },
+                    },
+                    {
+                        caption: `Remove all except selected`,
+                        handler: () => {
+                            this.session.getTimestamp().drop([selected]);
+                        },
+                        disabled: selected === undefined
                     }
                 ]);
             }

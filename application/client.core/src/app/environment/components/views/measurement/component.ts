@@ -4,12 +4,14 @@ import { ControllerSessionTab } from '../../../controller/controller.session.tab
 import { ControllerSessionTabTimestamp, IRange } from '../../../controller/controller.session.tab.timestamp';
 import { EViewType, EViewContent } from './entity/component';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { scheme_color_0 } from '../../../theme/colors';
 import { Chart } from 'chart.js';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
+import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -32,6 +34,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
     private _session: ControllerSessionTab | undefined;
     private _destroy: boolean = false;
     private _chart: Chart | undefined;
+    private _refs: number[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -121,23 +124,51 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                     labels: this._getChartLabels(),
                 },
                 options: {
+                    onClick: this._onBarClick.bind(this),
+                    tooltips: {
+                        enabled: false,
+                    },
                     title: {
                         display: false,
                     },
                     legend: {
                         display: false,
                     },
-                    /*
-                    animation: {
-                        duration: 0
-                    },
                     hover: {
                         animationDuration: 0
                     },
-                    */
                     responsiveAnimationDuration: 0,
                     responsive: true,
                     maintainAspectRatio: false,
+                    scales: {
+                        xAxes: [{
+                            gridLines: {
+                                offsetGridLines: true
+                            },
+                            stacked: true
+                        }],
+                        yAxes: [{
+                            stacked: true
+                        }],
+                    },
+                    animation: {
+                        duration: 1,
+                        onComplete: function() {
+                            const chartInstance = this.chart;
+                            const ctx = chartInstance.ctx;
+                            ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            this.data.datasets.forEach(function(dataset, i) {
+                                const meta = chartInstance.controller.getDatasetMeta(i);
+                                meta.data.forEach(function(bar, index) {
+                                    const data = `${dataset.data[index]} ms`;
+                                    ctx.fillStyle = scheme_color_0;
+                                    ctx.fillText(data, bar._model.x + 8, bar._model.y);
+                                });
+                            });
+                        }
+                    }
                 }
             });
         } else {
@@ -147,23 +178,48 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         }
     }
 
+    private _onBarClick(event?: MouseEvent, elements?: any[]) {
+        if (this._session === undefined) {
+            return;
+        }
+        if (!(elements instanceof Array)) {
+            return;
+        }
+        if (elements.length !== 1) {
+            return;
+        }
+        if (typeof elements[0]._index !== 'number') {
+            return;
+        }
+        const position: number = this._refs[elements[0]._index];
+        if (isNaN(position) || !isFinite(position)) {
+            return;
+        }
+        OutputRedirectionsService.select('measurement', this._session.getGuid(), position);
+    }
+
     private _getChartDataset(): any {
+        this._refs = [];
         const colors: string[] = [];
         const values: number[] = [];
-        const labels: string[] = [];
         this._getComplitedRanges().forEach((range: IRange) => {
             colors.push(range.color);
             values.push(range.duration);
-            labels.push(`${range.duration}ms`);
+            this._refs.push(range.start.position < range.end.position ? range.start.position : range.end.position);
         });
+        // TODO: - [x] use fixed height of bar. Check responsive view for this case.
+        //       - [x] remove seconds from labels (left side)
+        //       - sorting: by region; by duration;
+        //       - grouping (stacked): common start (first point) and different end points.
+        //       - swap bookmark column and time-range column
+        //       - highlight number when bookmarked
         return [{
-            // label: labels,
             barPercentage: 0.5,
-            barThickness: 6,
-            maxBarThickness: 8,
-            minBarLength: 2,
+            barThickness: 8,
             backgroundColor: colors,
+            hoverBackgroundColor: colors,
             data: values,
+            stack: 'stack'
         }];
     }
 

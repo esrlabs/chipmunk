@@ -21,6 +21,7 @@ export interface IRange {
     end: IRow | undefined;
     duration: number;
     color: string;
+    group: number;
 }
 
 export interface IState {
@@ -104,6 +105,7 @@ export class ControllerSessionTabTimestamp {
                 end: undefined,
                 duration: -1,
                 color: this._getColor(),
+                group: this._sequence++,
             });
             this._open = this._ranges[this._ranges.length - 1];
             this._setState();
@@ -120,6 +122,54 @@ export class ControllerSessionTabTimestamp {
             this._setState();
             this._subjects.change.next(Toolkit.copy(this._ranges[index]));
         }
+    }
+
+    public addRange(start: IRow, end: IRow) {
+        start.timestamp = this.getTimestamp(start.str);
+        end.timestamp = this.getTimestamp(end.str);
+        if (start.timestamp === undefined || end.timestamp === undefined) {
+            return;
+        }
+        const group: number | undefined = this.getOpenRangeGroup();
+        [start, end].forEach((row: IRow) => {
+            row.match = this.getMatch(row.str);
+            row.format = this._latest.format.format;
+        });
+        if (end.timestamp < start.timestamp) {
+            const backup = end;
+            end = start;
+            start = backup;
+        }
+        this._ranges.push({
+            id: this._sequence++,
+                start: start,
+                end: end,
+                duration: Math.abs(end.timestamp - start.timestamp),
+                color: this._getColor(),
+                group: group === undefined ? this._sequence++ : group,
+        });
+        this._setState();
+        this._subjects.update.next(this.getRanges());
+    }
+
+    public dropOpenRange() {
+        const index: number | undefined = this.getOpenRangeIndex();
+        if (index === undefined) {
+            return;
+        }
+        this._ranges.splice(index, 1);
+        this._open = undefined;
+        this._setState();
+        this._subjects.update.next(this.getRanges());
+    }
+
+    public drop(exceptions: number[] = []) {
+        this._ranges = this._ranges.filter((row: IRange) => {
+            return exceptions.indexOf(row.id) !== -1;
+        });
+        this._open = undefined;
+        this._setState();
+        this._subjects.update.next(this.getRanges());
     }
 
     public getTimestamp(str: string): number | undefined {
@@ -211,6 +261,23 @@ export class ControllerSessionTabTimestamp {
         return this._latest !== undefined;
     }
 
+    public getRangeIdByPosition(position: number): number {
+        let id: number | undefined;
+        this._ranges.forEach((r: IRange) => {
+            if (id !== undefined) {
+                return;
+            }
+            if (r.start.position === position) {
+                id = r.id;
+            } else if (r.end !== undefined && r.start.position < r.end.position && r.start.position <= position && r.end.position >= position) {
+                id = r.id;
+            } else if (r.end !== undefined && r.start.position > r.end.position && r.start.position >= position && r.end.position <= position) {
+                id = r.id;
+            }
+        });
+        return id;
+    }
+
     public getOpenRangeIndex(): number {
         return this._ranges.findIndex((r: IRange) => {
             return r.end === undefined;
@@ -219,6 +286,18 @@ export class ControllerSessionTabTimestamp {
 
     public getOpenRangeStart(): number | undefined {
         return this._open === undefined ? undefined : this._open.start.timestamp;
+    }
+
+    public getOpenRangePosition(): number | undefined {
+        return this._open === undefined ? undefined : this._open.start.position;
+    }
+
+    public getOpenRangeGroup(): number | undefined {
+        return this._open === undefined ? undefined : this._open.group;
+    }
+
+    public getOpenRangeRow(): IRow | undefined {
+        return this._open === undefined ? undefined : Object.assign({}, this._open.start);
     }
 
     public getRanges(): IRange[] {
