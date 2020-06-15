@@ -4,6 +4,7 @@ import { ControllerSessionTab } from '../../../controller/controller.session.tab
 import { ControllerSessionTabTimestamp, IRange } from '../../../controller/controller.session.tab.timestamp';
 import { EViewType, EViewContent } from './entity/component';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { Chart } from 'chart.js';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -30,6 +31,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementComponent');
     private _session: ControllerSessionTab | undefined;
     private _destroy: boolean = false;
+    private _chart: Chart | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -110,6 +112,68 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         event.preventDefault();
     }
 
+    private _build() {
+        if (this._chart === undefined) {
+            this._chart = new Chart('view-measurement-canvas', {
+                type: 'horizontalBar',
+                data: {
+                    datasets: this._getChartDataset(),
+                    labels: this._getChartLabels(),
+                },
+                options: {
+                    title: {
+                        display: false,
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    /*
+                    animation: {
+                        duration: 0
+                    },
+                    hover: {
+                        animationDuration: 0
+                    },
+                    */
+                    responsiveAnimationDuration: 0,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+        } else {
+            this._chart.data.datasets = this._getChartDataset();
+            this._chart.data.labels = this._getChartLabels();
+            !this._destroy && this._chart.update();
+        }
+    }
+
+    private _getChartDataset(): any {
+        const colors: string[] = [];
+        const values: number[] = [];
+        const labels: string[] = [];
+        this._getComplitedRanges().forEach((range: IRange) => {
+            colors.push(range.color);
+            values.push(range.duration);
+            labels.push(`${range.duration}ms`);
+        });
+        return [{
+            // label: labels,
+            barPercentage: 0.5,
+            barThickness: 6,
+            maxBarThickness: 8,
+            minBarLength: 2,
+            backgroundColor: colors,
+            data: values,
+        }];
+    }
+
+    private _getChartLabels(): string[] {
+        return this._getComplitedRanges().map((range: IRange) => {
+            return range.start.position < range.end.position ? `${range.start.position} - ${range.end.position}` : `${range.end.position} - ${range.start.position}`;
+        });
+
+    }
+
     private _onSessionChange(controller?: ControllerSessionTab) {
         Object.keys(this._sessionSubscriptions).forEach((key: string) => {
             this._sessionSubscriptions[key].unsubscribe();
@@ -125,6 +189,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
 
     private _refresh(ranges?: IRange[]) {
         this._ng_ranges = ranges instanceof Array ? ranges : this._session.getTimestamp().getRanges();
+        this._build();
         this._forceUpdate();
     }
 
@@ -138,6 +203,15 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
 
     private _onResize() {
         this._ng_width = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect().width;
+        if (this._chart !== undefined && !this._destroy) {
+            this._chart.update();
+        }
+    }
+
+    private _getComplitedRanges(): IRange[] {
+        return this._ng_ranges.filter((range: IRange) => {
+            return range.end !== undefined;
+        });
     }
 
     private _forceUpdate() {
