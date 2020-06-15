@@ -4,51 +4,62 @@ import Logger from '../../tools/env.logger';
 import { Subscription } from '../../tools/index';
 import ServiceElectron, { IPCMessages } from '../service.electron';
 import ServiceStorage, { IStorageScheme } from '../service.storage';
+import { IService } from '../../interfaces/interface.service';
 
 export const MAX_NUMBER_OF_RECENT_FILES = 150;
 
-export class ServiceFileRecent {
+export class ServiceFileRecent implements IService {
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Logger = new Logger('ServiceFileRecent');
 
-    public subscribeRecentRequest(): Promise<void> {
+    public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             ServiceElectron.IPC.subscribe(IPCMessages.FilesRecentRequest, this._ipc_FilesRecentRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscriptions.FilesRecentRequest = subscription;
-                resolve();
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to "FilterRecentRequest" due error: ${error.message}.`);
             });
+            ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentRequest, this._ipc_onFiltersRecentRequested.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.FiltersFilesRecentRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentResetRequest, this._ipc_onFiltersFilesRecentResetRequested.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.FiltersFilesRecentResetRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentResetRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentRequest, this._ipc_onSearchRecentRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.SearchRecentRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "SearchRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentClearRequest, this._ipc_onSearchRecentClearRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.SearchRecentClearRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "SearchRecentClearRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentAddRequest, this._ipc_onSearchRecentAddRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.SearchRecentAddRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "SearchRecentAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            resolve();
         });
     }
 
-    public init() {
-        ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentRequest, this._ipc_onFiltersRecentRequested.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.FiltersFilesRecentRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+    public destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].destroy();
+            });
+            resolve();
         });
-        ServiceElectron.IPC.subscribe(IPCMessages.FiltersFilesRecentResetRequest, this._ipc_onFiltersFilesRecentResetRequested.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.FiltersFilesRecentResetRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "FiltersFilesRecentResetRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
-        ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentRequest, this._ipc_onSearchRecentRequest.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.SearchRecentRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "SearchRecentRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
-        ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentClearRequest, this._ipc_onSearchRecentClearRequest.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.SearchRecentClearRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "SearchRecentClearRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
-        ServiceElectron.IPC.subscribe(IPCMessages.SearchRecentAddRequest, this._ipc_onSearchRecentAddRequest.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.SearchRecentAddRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "SearchRecentAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
+    }
+
+    public getName(): string {
+        return 'ServiceFileRecent';
     }
 
     public save(file: string, size: number) {

@@ -30,6 +30,7 @@ import ServiceFileReader from './services/files/service.file.reader';
 import ServiceFileSearch from './services/files/service.file.search';
 import ServiceFileOpener from './services/files/service.file.opener';
 import ServiceFilePicker from './services/files/service.file.picker';
+import ServiceFileRecent from './services/files/service.file.recent';
 import ServiceStreamSources from './services/service.stream.sources';
 import ServiceFilters from './services/service.filters';
 import ServiceAppState from './services/service.app.state';
@@ -86,6 +87,7 @@ const InitializeStages = [
         ServiceDLTFiles, ServiceHotkeys,
         ServiceFilePicker, ServiceDLTDeamonConnector,
         ServiceOutputExport, ServiceLogsExtractor,
+        ServiceFileRecent,
     ],
     // Stage #10. Init plugins
     [   ServicePlugins ],

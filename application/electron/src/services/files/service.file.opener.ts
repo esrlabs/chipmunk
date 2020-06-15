@@ -45,7 +45,6 @@ class ServiceFileOpener implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.FileListRequest, this._ipc_FileListRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.FileListRequest = subscription;
                 }),
-                ServiceFileRecent.subscribeRecentRequest(),
             ]).then(() => {
                 this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
                 this._subscriptions.openLocalFile = ServiceHotkeys.getSubject().openLocalFile.subscribe(this._hotkey_openLocalFile.bind(this));

@@ -79,7 +79,6 @@ class ServiceFilters implements IService {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "FiltersSaveRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
-            ServiceFileRecent.init();
             resolve();
         });
     }
