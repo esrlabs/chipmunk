@@ -196,8 +196,12 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this.session.getTimestamp().discover().catch((error: Error) => {
             this._logger.warn(`Fail detect timestamp due error: ${error.message}`);
         }).finally(() => {
-            if (this.session.getTimestamp().isDetected() && row !== undefined) {
-                const tm: number | undefined = this.session.getTimestamp().getTimestamp(row.str);
+            let tm: number | undefined;
+            this.session.getTimestamp().getTimestamp(row.str).then((_tm: number | undefined) => {
+                tm = _tm;
+            }).catch((err: Error) => {
+                this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+            }).finally(() => {
                 const start: number | undefined = this.session.getTimestamp().getOpenRangeStart();
                 if (tm !== undefined) {
                     items.push(...[
@@ -238,45 +242,45 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                         ]);
                     }
                 }
-            }
-            if (this.session.getTimestamp().getRanges().length > 0) {
-                const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(row.position);
-                items.push(...[
-                    { /* delimiter */ },
-                    {
-                        caption: `Remove all ranges`,
-                        handler: () => {
-                            this.session.getTimestamp().drop();
-                        },
-                    },
-                    {
-                        caption: `Remove all except selected`,
-                        handler: () => {
-                            this.session.getTimestamp().drop([selected]);
-                        },
-                        disabled: selected === undefined
-                    }
-                ]);
-            }
-            OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
-                if (actions.length > 0) {
+                if (this.session.getTimestamp().getRanges().length > 0) {
+                    const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(row.position);
                     items.push(...[
                         { /* delimiter */ },
-                        ...actions.map((action: IExportAction) => {
-                            return {
-                                caption: action.caption,
-                                handler: action.caller
-                            };
-                        })
+                        {
+                            caption: `Remove all ranges`,
+                            handler: () => {
+                                this.session.getTimestamp().drop();
+                            },
+                        },
+                        {
+                            caption: `Remove all except selected`,
+                            handler: () => {
+                                this.session.getTimestamp().drop([selected]);
+                            },
+                            disabled: selected === undefined
+                        }
                     ]);
                 }
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail get actions due error: ${err.message}`);
-            }).finally(() => {
-                ContextMenuService.show({
-                    items: items,
-                    x: event.pageX,
-                    y: event.pageY,
+                OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
+                    if (actions.length > 0) {
+                        items.push(...[
+                            { /* delimiter */ },
+                            ...actions.map((action: IExportAction) => {
+                                return {
+                                    caption: action.caption,
+                                    handler: action.caller
+                                };
+                            })
+                        ]);
+                    }
+                }).catch((err: Error) => {
+                    this._logger.warn(`Fail get actions due error: ${err.message}`);
+                }).finally(() => {
+                    ContextMenuService.show({
+                        items: items,
+                        x: event.pageX,
+                        y: event.pageY,
+                    });
                 });
             });
         });

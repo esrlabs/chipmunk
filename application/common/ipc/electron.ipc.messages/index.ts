@@ -502,6 +502,12 @@ export { ITimestampTestRequest, TimestampTestRequest }
 import { ITimestampTestResponse, TimestampTestResponse } from './timestamp.test.response';
 export { ITimestampTestResponse, TimestampTestResponse }
 
+import { ITimestampExtractRequest, TimestampExtractRequest } from './timestamp.extract.request';
+export { ITimestampExtractRequest, TimestampExtractRequest }
+
+import { ITimestampExtractResponse, TimestampExtractResponse } from './timestamp.extract.response';
+export { ITimestampExtractResponse, TimestampExtractResponse }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -667,7 +673,9 @@ export type TMessage =  AppRestartRequest |
                         TimestampDiscoverRequest |
                         TimestampDiscoverResponse |
                         TimestampTestRequest |
-                        TimestampTestResponse;
+                        TimestampTestResponse |
+                        TimestampExtractRequest |
+                        TimestampExtractResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -862,4 +870,6 @@ export const Map = {
     [TimestampDiscoverResponse.signature            ]: TimestampDiscoverResponse,
     [TimestampTestRequest.signature                 ]: TimestampTestRequest,
     [TimestampTestResponse.signature                ]: TimestampTestResponse,
+    [TimestampExtractRequest.signature              ]: TimestampExtractRequest,
+    [TimestampExtractResponse.signature             ]: TimestampExtractResponse,
 };

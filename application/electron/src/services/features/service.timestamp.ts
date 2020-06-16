@@ -3,6 +3,7 @@ import Logger from '../../tools/env.logger';
 import ServiceStreams from "../service.streams";
 import MergeDiscover from '../../controllers/features/merge/merge.discover';
 import MergeFormat from '../../controllers/features/merge/merge.format';
+import TimestampExtract from '../../controllers/features/timestamp/timestamp.extract';
 
 import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
@@ -31,6 +32,9 @@ class ServiceTimestamp implements IService {
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.TimestampTestRequest, this._onTimestampTestRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.TimestampTestRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.TimestampExtractRequest, this._onTimestampExtractRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.TimestampExtractRequest = subscription;
                 }),
             ]).then(() => {
                 this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
@@ -106,6 +110,29 @@ class ServiceTimestamp implements IService {
             }
         }).catch((error: Error) => {
             response(new IPCMessages.TimestampTestResponse({
+                id: req.id,
+                error: error.message,
+            }));
+        });
+    }
+
+    private _onTimestampExtractRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.TimestampExtractRequest = request as IPCMessages.TimestampExtractRequest;
+        const controller: TimestampExtract = new TimestampExtract(req.str, req.format);
+        controller.extract().then((timestamp: number) => {
+            if (timestamp === undefined) {
+                response(new IPCMessages.TimestampExtractResponse({
+                    id: req.id,
+                    error: `Fail to extract timestamp based on "${req.format}" format string.`,
+                }));
+            } else {
+                response(new IPCMessages.TimestampExtractResponse({
+                    id: req.id,
+                    timestamp: timestamp,
+                }));
+            }
+        }).catch((error: Error) => {
+            response(new IPCMessages.TimestampExtractResponse({
                 id: req.id,
                 error: error.message,
             }));
