@@ -257,9 +257,9 @@ export class ControllerSessionTabTimestamp {
         return task;
     }
 
-    public test(format: string): CancelablePromise<IPCMessages.TimestampTestResponse> {
+    public validate(format: string): CancelablePromise<RegExp> {
         const id: string = Toolkit.guid();
-        const task: CancelablePromise<IPCMessages.TimestampTestResponse> = new CancelablePromise<IPCMessages.TimestampTestResponse>(
+        const task: CancelablePromise<RegExp> = new CancelablePromise<RegExp>(
             (resolve, reject, cancel, refCancelCB, self) => {
             ElectronIpcService.request(new IPCMessages.TimestampTestRequest({
                 session: this._guid,
@@ -270,7 +270,12 @@ export class ControllerSessionTabTimestamp {
                     this._logger.error(`Fail to test files due error: ${response.error}`);
                     return reject(new Error(response.error));
                 }
-                resolve(response);
+                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(response.format.regex, response.format.flags.join(''));
+                if (regexp instanceof Error) {
+                    this._logger.warn(`Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`);
+                    return reject(regexp);
+                }
+                resolve(regexp);
             }).catch((disErr: Error) => {
                 this._logger.error(`Fail to test files due error: ${disErr.message}`);
                 return reject(disErr);
@@ -367,6 +372,11 @@ export class ControllerSessionTabTimestamp {
 
     public removeFormatDef(format: string) {
         this._format = this._format.filter(f => f.format !== format);
+        this._subjects.formats.next();
+    }
+
+    public addFormat(format: IFormat) {
+        this._format.push(format);
         this._subjects.formats.next();
     }
 

@@ -2,6 +2,7 @@ import ServiceElectron from '../service.electron';
 import Logger from '../../tools/env.logger';
 import ServiceStreams from "../service.streams";
 import MergeDiscover from '../../controllers/features/merge/merge.discover';
+import MergeFormat from '../../controllers/features/merge/merge.format';
 
 import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
@@ -86,38 +87,29 @@ class ServiceTimestamp implements IService {
 
     private _onTimestampTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.TimestampTestRequest = request as IPCMessages.TimestampTestRequest;
-        const filedata: { streamId: string, file: string } | Error = ServiceStreams.getStreamFile(req.session);
-        if (filedata instanceof Error) {
-            return response(new IPCMessages.TimestampTestResponse({
-                id: req.id,
-                error: filedata.message,
-            }));
-        }
-        const controller: MergeDiscover = new MergeDiscover([{ file: filedata.file, format: req.format }]);
-        controller.discover().then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
-            if (processed.length !== 1) {
-                return response(new IPCMessages.TimestampTestResponse({
+        const controller: MergeFormat = new MergeFormat(req.format);
+        controller.validate().then((regexp: string) => {
+            if (regexp === undefined) {
+                response(new IPCMessages.TimestampTestResponse({
                     id: req.id,
-                    error: `Unexpected count of results: ${processed.length}. Expected 1.`,
+                    error: `Fail to generate regexp based on "${req.format}" format string.`,
+                }));
+            } else {
+                response(new IPCMessages.TimestampTestResponse({
+                    id: req.id,
+                    format: {
+                        regex: regexp,
+                        flags: [],
+                        format: req.format,
+                    },
                 }));
             }
-            response(new IPCMessages.TimestampTestResponse({
-                id: req.id,
-                format: processed[0].format,
-                error: processed[0].error,
-                maxTime: processed[0].maxTime,
-                minTime: processed[0].minTime,
-            }));
         }).catch((error: Error) => {
             response(new IPCMessages.TimestampTestResponse({
                 id: req.id,
                 error: error.message,
             }));
-        }).finally(() => {
-            this._removeTask(req.signature, req.id);
         });
-        // Store task
-        this._addTask(req.signature, req.id, controller);
     }
 
     private _addTask(session: string, taskId: string, controller: MergeDiscover) {

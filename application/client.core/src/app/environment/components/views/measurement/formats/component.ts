@@ -2,8 +2,10 @@ import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewCont
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamp';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import { DialogsMeasurementAddFormatComponent } from '../../../dialogs/measurement.format.add/component';
 
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
+import PopupsService from '../../../../services/standalone/service.popups';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -32,6 +34,7 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
     }
 
     ngAfterViewInit() {
+        this._onFormatsChange();
         this._subscribe();
     }
 
@@ -71,7 +74,27 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
     }
 
     public _ng_onAddFormat() {
-        //
+        const guid: string = PopupsService.add({
+            id: 'measurement-time-add-format-dialog',
+            options: {
+                closable: false,
+                width: 40,
+            },
+            caption: `Add new format`,
+            component: {
+                factory: DialogsMeasurementAddFormatComponent,
+                inputs: {
+                    controller: this.controller,
+                    add: (format: IFormat) => {
+                        PopupsService.remove(guid);
+                        this.controller.addFormat(format);
+                    },
+                    cancel: () => {
+                        PopupsService.remove(guid);
+                    }
+                }
+            }
+        });
     }
 
     public _ng_onResetAndDetect() {

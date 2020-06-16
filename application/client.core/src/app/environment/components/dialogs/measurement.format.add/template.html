@@ -1,0 +1,16 @@
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Format</mat-label>
+    <input  type="text" 
+            aria-label="Format"
+            [(ngModel)]="_ng_format"
+            (ngModelChange)="_ng_onFormatChange()"
+            [errorStateMatcher]="_ng_format_error"
+            matInput>
+    <mat-error *ngIf="!_ng_format_error.isValid()">
+        {{_ng_format_error.getError()}}
+    </mat-error>
+</mat-form-field>
+<div class="controlls">
+    <button mat-stroked-button color="primary" [disabled]="_ng_disabled" (click)="_ng_add()">Add</button>
+    <button mat-stroked-button color="primary" (click)="_ng_cancel()">Cancel</button>
+</div>
