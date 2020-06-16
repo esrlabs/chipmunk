@@ -103,64 +103,74 @@ export class ControllerSessionTabTimestamp {
     }
 
     public setPoint(row: IRow) {
-        const index: number = this.getOpenRangeIndex();
-        const tm: number | undefined = this.getTimestamp(row.str);
-        if (tm === undefined) {
-            return;
-        }
-        row.timestamp = tm;
-        row.match = this.getMatch(row.str);
-        if (index === -1) {
-            this._ranges.push({
-                id: this._sequence++,
-                start: row,
-                end: undefined,
-                duration: -1,
-                color: this._getColor(),
-                group: this._sequence++,
-            });
-            this._open = this._ranges[this._ranges.length - 1];
-            this._setState();
-            this._subjects.update.next(this.getRanges());
-        } else {
-            this._ranges[index].end = row;
-            this._ranges[index].duration = Math.abs(this._ranges[index].start.timestamp - this._ranges[index].end.timestamp);
-            if (this._ranges[index].end.timestamp < this._ranges[index].start.timestamp) {
-                const backup = this._ranges[index].end;
-                this._ranges[index].end = this._ranges[index].start;
-                this._ranges[index].start = backup;
+        this.getTimestamp(row.str).then((tm: number | undefined) => {
+            if (tm === undefined) {
+                return;
             }
-            this._open = undefined;
-            this._setState();
-            this._subjects.change.next(Toolkit.copy(this._ranges[index]));
-        }
+            const index: number = this.getOpenRangeIndex();
+            row.timestamp = tm;
+            row.match = this.getMatch(row.str);
+            if (index === -1) {
+                this._ranges.push({
+                    id: this._sequence++,
+                    start: row,
+                    end: undefined,
+                    duration: -1,
+                    color: this._getColor(),
+                    group: this._sequence++,
+                });
+                this._open = this._ranges[this._ranges.length - 1];
+                this._setState();
+                this._subjects.update.next(this.getRanges());
+            } else {
+                this._ranges[index].end = row;
+                this._ranges[index].duration = Math.abs(this._ranges[index].start.timestamp - this._ranges[index].end.timestamp);
+                if (this._ranges[index].end.timestamp < this._ranges[index].start.timestamp) {
+                    const backup = this._ranges[index].end;
+                    this._ranges[index].end = this._ranges[index].start;
+                    this._ranges[index].start = backup;
+                }
+                this._open = undefined;
+                this._setState();
+                this._subjects.change.next(Toolkit.copy(this._ranges[index]));
+            }
+        }).catch((err: Error) => {
+            this._logger.error(`setPoint:: Fail get timestamp due error: ${err.message}`);
+        });
     }
 
     public addRange(start: IRow, end: IRow) {
-        start.timestamp = this.getTimestamp(start.str);
-        end.timestamp = this.getTimestamp(end.str);
-        if (start.timestamp === undefined || end.timestamp === undefined) {
-            return;
-        }
-        const group: number | undefined = this.getOpenRangeGroup();
-        [start, end].forEach((row: IRow) => {
-            row.match = this.getMatch(row.str);
+        Promise.all([
+            this.getTimestamp(start.str),
+            this.getTimestamp(end.str),
+        ]).then((timestamps: Array<number | undefined>) => {
+            start.timestamp = timestamps[0];
+            end.timestamp = timestamps[1];
+            if (start.timestamp === undefined || end.timestamp === undefined) {
+                return;
+            }
+            const group: number | undefined = this.getOpenRangeGroup();
+            [start, end].forEach((row: IRow) => {
+                row.match = this.getMatch(row.str);
+            });
+            if (end.timestamp < start.timestamp) {
+                const backup = end;
+                end = start;
+                start = backup;
+            }
+            this._ranges.push({
+                id: this._sequence++,
+                    start: start,
+                    end: end,
+                    duration: Math.abs(end.timestamp - start.timestamp),
+                    color: this._getColor(),
+                    group: group === undefined ? this._sequence++ : group,
+            });
+            this._setState();
+            this._subjects.update.next(this.getRanges());
+        }).catch((err: Error) => {
+            this._logger.error(`addRange:: Fail get timestamp due error: ${err.message}`);
         });
-        if (end.timestamp < start.timestamp) {
-            const backup = end;
-            end = start;
-            start = backup;
-        }
-        this._ranges.push({
-            id: this._sequence++,
-                start: start,
-                end: end,
-                duration: Math.abs(end.timestamp - start.timestamp),
-                color: this._getColor(),
-                group: group === undefined ? this._sequence++ : group,
-        });
-        this._setState();
-        this._subjects.update.next(this.getRanges());
     }
 
     public dropOpenRange() {
@@ -183,22 +193,31 @@ export class ControllerSessionTabTimestamp {
         this._subjects.update.next(this.getRanges());
     }
 
-    public getTimestamp(str: string): number | undefined {
-        let tm: any;
-        this._format.forEach((format: IFormat) => {
-            if (tm !== undefined) {
-                return;
+    public getTimestamp(str: string): Promise<number | undefined> {
+        return new Promise((resolve, reject) => {
+            if (this._format.length === 0) {
+                return resolve(undefined);
             }
-            const match: RegExpMatchArray | null = str.match(format.regexp);
-            if (match === null || match.length === 0) {
-                return undefined;
+            let inputStr: string | undefined;
+            let formatStr: string | undefined; 
+            this._format.forEach((format: IFormat) => {
+                if (inputStr !== undefined) {
+                    return;
+                }
+                const match: RegExpMatchArray | null = str.match(format.regexp);
+                if (match === null || match.length === 0) {
+                    return undefined;
+                }
+                inputStr = match[0];
+                formatStr = format.format;
+            });
+            if (inputStr === undefined) {
+                return resolve(undefined);
             }
-            tm = moment(match[0], format.format);
-            if (!tm.isValid()) {
-                tm = undefined;
-            }
+            this.extract(inputStr, formatStr).then((timestamp: number) => {
+                resolve(timestamp);
+            }).catch(reject);
         });
-        return tm === undefined ? undefined : tm.toDate().getTime();
     }
 
     public getMatch(str: string): string | undefined {
@@ -287,6 +306,32 @@ export class ControllerSessionTabTimestamp {
         return task;
     }
 
+    public extract(str: string, format: string): CancelablePromise<number> {
+        const id: string = Toolkit.guid();
+        const task: CancelablePromise<number> = new CancelablePromise<number>(
+            (resolve, reject, cancel, refCancelCB, self) => {
+            ElectronIpcService.request(new IPCMessages.TimestampExtractRequest({
+                session: this._guid,
+                str: str,
+                format: format,
+                id: id,
+            }), IPCMessages.TimestampExtractResponse).then((response: IPCMessages.TimestampExtractResponse) => {
+                if (typeof response.error === 'string') {
+                    this._logger.error(`Fail to extract timestamp due error: ${response.error}`);
+                    return reject(new Error(response.error));
+                }
+                resolve(response.timestamp);
+            }).catch((disErr: Error) => {
+                this._logger.error(`Fail to test files due error: ${disErr.message}`);
+                return reject(disErr);
+            });
+        }).finally(() => {
+            this._tasks.delete(id);
+        });
+        this._tasks.set(id, task);
+        return task;
+    }
+
     public isDetected(): boolean {
         return this._format.length > 0;
     }
@@ -357,17 +402,22 @@ export class ControllerSessionTabTimestamp {
         return color;
     }
 
-    public injectHighlight(str: string): string {
-        if (this._open === undefined) {
-            return str;
-        }
-        this._format.forEach((format: IFormat) => {
-            const tm: number | undefined = this.getTimestamp(str);
-            str = str.replace(format.regexp, (_match: string) => {
-                return `<span class="timestampmatch" data-duration="${tm === undefined ? '-' : Math.abs(tm - this._open.start.timestamp)}">${_match}</span>`;
+    public injectHighlight(str: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (this._open === undefined) {
+                return resolve(str);
+            }
+            this.getTimestamp(str).then((tm: number | undefined) => {
+                this._format.forEach((format: IFormat) => {
+                    str = str.replace(format.regexp, (_match: string) => {
+                        return `<span class="timestampmatch" data-duration="${tm === undefined ? '-' : Math.abs(tm - this._open.start.timestamp)}">${_match}</span>`;
+                    });
+                });
+                resolve(str);
+            }).catch((err: Error) => {
+                this._logger.error(`injectHighlight:: Fail get timestamp due error: ${err.message}`);
             });
         });
-        return str;
     }
 
     public removeFormatDef(format: string) {

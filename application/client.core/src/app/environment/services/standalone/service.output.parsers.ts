@@ -170,7 +170,7 @@ export class OutputParsersService {
         });
         // Inject timestamps highlight
         if (this._timestamp !== undefined) {
-            row.str = this._timestamp.injectHighlight(row.str);
+            // row.str = this._timestamp.injectHighlight(row.str);
         }
         return row.str;
     }
