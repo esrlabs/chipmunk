@@ -11,7 +11,6 @@ export interface IRow {
     position: number;
     str: string;
     timestamp?: number;
-    format?: string;
     match?: string;
 }
 
@@ -30,13 +29,17 @@ export interface IState {
     duration: number;
 }
 
+export interface IFormat {
+    format: string;
+    regexp: RegExp;
+}
+
 export class ControllerSessionTabTimestamp {
 
     private _guid: string;
     private _logger: Toolkit.Logger;
     private _tasks: Map<string, CancelablePromise<any, any, any, any>> = new Map();
-    private _latest: IPCMessages.TimestampDiscoverResponse | undefined;
-    private _regexp: RegExp | undefined;
+    private _format: IFormat[] = [];
     private _ranges: IRange[] = [];
     private _state: IState = { min: Infinity, max: -1, duration: 0 };
     private _sequence: number = 0;
@@ -44,9 +47,11 @@ export class ControllerSessionTabTimestamp {
     private _subjects: {
         change: Subject<IRange>,
         update: Subject<IRange[]>,
+        formats: Subject<void>,
     } = {
         change: new Subject(),
         update: new Subject(),
+        formats: new Subject(),
     };
 
     constructor(guid: string) {
@@ -78,15 +83,23 @@ export class ControllerSessionTabTimestamp {
     public getObservable(): {
         change: Observable<IRange>,
         update: Observable<IRange[]>,
+        formats: Observable<void>,
     } {
         return {
             change: this._subjects.change.asObservable(),
             update: this._subjects.update.asObservable(),
+            formats: this._subjects.formats.asObservable(),
         };
     }
 
     public getState(): IState {
         return this._state;
+    }
+
+    public getFormats(): IFormat[] {
+        return this._format.map((format: IFormat) => {
+            return { format: format.format, regexp: format.regexp };
+        });
     }
 
     public setPoint(row: IRow) {
@@ -97,7 +110,6 @@ export class ControllerSessionTabTimestamp {
         }
         row.timestamp = tm;
         row.match = this.getMatch(row.str);
-        row.format = this._latest.format.format;
         if (index === -1) {
             this._ranges.push({
                 id: this._sequence++,
@@ -133,7 +145,6 @@ export class ControllerSessionTabTimestamp {
         const group: number | undefined = this.getOpenRangeGroup();
         [start, end].forEach((row: IRow) => {
             row.match = this.getMatch(row.str);
-            row.format = this._latest.format.format;
         });
         if (end.timestamp < start.timestamp) {
             const backup = end;
@@ -173,40 +184,46 @@ export class ControllerSessionTabTimestamp {
     }
 
     public getTimestamp(str: string): number | undefined {
-        if (this._regexp === undefined) {
-            return undefined;
-        }
-        const match: RegExpMatchArray | null = str.match(this._regexp);
-        if (match === null || match.length === 0) {
-            return undefined;
-        }
-        const tm = moment(match[0], this._latest.format.format);
-        if (!tm.isValid()) {
-            return undefined;
-        }
-        return tm.toDate().getTime();
+        let tm: any;
+        this._format.forEach((format: IFormat) => {
+            if (tm !== undefined) {
+                return;
+            }
+            const match: RegExpMatchArray | null = str.match(format.regexp);
+            if (match === null || match.length === 0) {
+                return undefined;
+            }
+            tm = moment(match[0], format.format);
+            if (!tm.isValid()) {
+                tm = undefined;
+            }
+        });
+        return tm === undefined ? undefined : tm.toDate().getTime();
     }
 
     public getMatch(str: string): string | undefined {
-        if (this._regexp === undefined) {
-            return undefined;
-        }
-        const match: RegExpMatchArray | null = str.match(this._regexp);
-        if (match === null || match.length === 0) {
-            return undefined;
-        }
-        return match[0];
+        let match: string | undefined;
+        this._format.forEach((format: IFormat) => {
+            if (match !== undefined) {
+                return;
+            }
+            const matches: RegExpMatchArray | null = str.match(format.regexp);
+            if (matches === null || matches.length === 0) {
+                return undefined;
+            }
+            match = matches[0];
+        });
+        return match;
     }
 
-    public discover(update: boolean = false): CancelablePromise<IPCMessages.TimestampDiscoverResponse> {
+    public discover(update: boolean = false): CancelablePromise<void> {
         const id: string = Toolkit.guid();
-        const task: CancelablePromise<IPCMessages.TimestampDiscoverResponse> = new CancelablePromise<IPCMessages.TimestampDiscoverResponse>(
+        const task: CancelablePromise<void> = new CancelablePromise<void>(
             (resolve, reject, cancel, refCancelCB, self) => {
-            if (this._latest !== undefined && !update) {
-                return resolve(Object.assign({}, this._latest));
+            if (this._format.length > 0 && !update) {
+                return resolve();
             }
-            this._latest = undefined;
-            this._regexp = undefined;
+            this._format = [];
             ElectronIpcService.request(new IPCMessages.TimestampDiscoverRequest({
                 session: this._guid,
                 id: id,
@@ -215,12 +232,20 @@ export class ControllerSessionTabTimestamp {
                     this._logger.error(`Fail to discover files due error: ${response.error}`);
                     return reject(new Error(response.error));
                 }
-                if (response.format !== undefined) {
-                    this._latest = Object.assign({}, response);
-                    const regexp: RegExp | Error = Toolkit.regTools.createFromStr(this._latest.format.regex, this._latest.format.flags.join(''));
-                    this._regexp = regexp instanceof Error ? undefined : regexp;
+                if (response.format === undefined) {
+                    return reject(new Error(`Format isn't detected.`));
                 }
-                resolve(response);
+                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(response.format.regex, response.format.flags.join(''));
+                if (regexp instanceof Error) {
+                    this._logger.warn(`Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`);
+                    return reject(regexp);
+                }
+                this._format.push({
+                    format: response.format.format,
+                    regexp: regexp,
+                });
+                this._subjects.formats.next();
+                resolve();
             }).catch((disErr: Error) => {
                 this._logger.error(`Fail to discover files due error: ${disErr.message}`);
                 return reject(disErr);
@@ -258,7 +283,7 @@ export class ControllerSessionTabTimestamp {
     }
 
     public isDetected(): boolean {
-        return this._latest !== undefined;
+        return this._format.length > 0;
     }
 
     public getRangeIdByPosition(position: number): number {
@@ -331,13 +356,18 @@ export class ControllerSessionTabTimestamp {
         if (this._open === undefined) {
             return str;
         }
-        if (this._regexp === undefined) {
-            return str;
-        }
-        const tm: number | undefined = this.getTimestamp(str);
-        return str.replace(this._regexp, (_match: string) => {
-            return `<span class="timestampmatch" data-duration="${tm === undefined ? '-' : Math.abs(tm - this._open.start.timestamp)}">${_match}</span>`;
+        this._format.forEach((format: IFormat) => {
+            const tm: number | undefined = this.getTimestamp(str);
+            str = str.replace(format.regexp, (_match: string) => {
+                return `<span class="timestampmatch" data-duration="${tm === undefined ? '-' : Math.abs(tm - this._open.start.timestamp)}">${_match}</span>`;
+            });
         });
+        return str;
+    }
+
+    public removeFormatDef(format: string) {
+        this._format = this._format.filter(f => f.format !== format);
+        this._subjects.formats.next();
     }
 
     private _getColor(): string {

@@ -1,0 +1,15 @@
+<p class="t-small color-scheme-1">Available/detected formats:</p>
+<div class="list" (contextmenu)="_ng_onContexMenu($event)">
+    <app-views-measurement-format
+        (contextmenu)="_ng_onContexMenu($event, format)"
+        [format]="format"
+        *ngFor="let format of _ng_formats"></app-views-measurement-format>
+</div>
+<div class="controlls">
+    <button mat-icon-button color="primary" aria-label="Add Format" (click)="_ng_onAddFormat()">
+        <mat-icon>add</mat-icon>
+    </button>
+    <button mat-icon-button color="primary" aria-label="Reset & Detect" (click)="_ng_onResetAndDetect()">
+        <mat-icon>refresh</mat-icon>
+    </button>
+</div>

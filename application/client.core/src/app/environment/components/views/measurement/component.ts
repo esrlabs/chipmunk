@@ -2,7 +2,6 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, After
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { ControllerSessionTabTimestamp, IRange } from '../../../controller/controller.session.tab.timestamp';
-import { EViewType, EViewContent } from './entity/component';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { scheme_color_0, getContrastColor } from '../../../theme/colors';
 import { Chart } from 'chart.js';
@@ -25,8 +24,6 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
 
     public _ng_ranges: IRange[] = [];
     public _ng_width: number = 0;
-    public _ng_type: EViewType = EViewType.scope;
-    public _ng_content: EViewContent = EViewContent.details;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
@@ -65,7 +62,10 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         this._onSessionChange(TabsSessionsService.getActive());
     }
 
-    public _ng_getController(): ControllerSessionTabTimestamp {
+    public _ng_getController(): ControllerSessionTabTimestamp | undefined {
+        if (this._session === undefined) {
+            return undefined;
+        }
         return this._session.getTimestamp();
     }
 
@@ -76,20 +76,6 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
             return;
         }
         const items: IMenuItem[] = [
-            {
-                caption: `Switch to: ${this._ng_content === EViewContent.details ? 'minimal view' : 'detailed view'}`,
-                handler: () => {
-                    this._ng_content = this._ng_content === EViewContent.details ? EViewContent.minimal : EViewContent.details;
-                    this._forceUpdate();
-                },
-            },
-            {
-                caption: `Align: ${this._ng_type === EViewType.scope ? 'all to left' : 'in scope'}`,
-                handler: () => {
-                    this._ng_type = this._ng_type === EViewType.scope ? EViewType.measure : EViewType.scope;
-                    this._forceUpdate();
-                },
-            },
             { /* Delimiter */},
             {
                 caption: `Remove`,
@@ -207,8 +193,6 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         labels: string[],
     } {
         this._refs = [];
-        const colors: string[] = [];
-        const values: number[] = [];
         const groups: Map<number, IRange[]> = new Map();
         const labels: string[] = [];
         const datasets: any[] = [];
@@ -255,6 +239,8 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         //       - [x] swap bookmark column and time-range column
         //       - [x] highlight number when bookmarked
         //       - [x] remove all / remove except
+        //       - [x] bug with merge view: no scale higlighting (select first 10 files from examples, linux)
+        //       - recent files dialog was empty
         /*
         return [{
             barPercentage: 0.5,
