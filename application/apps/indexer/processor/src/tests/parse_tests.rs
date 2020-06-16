@@ -297,6 +297,131 @@ mod tests {
             extract_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
+
+    #[test]
+    fn test_parse_date_line_no_year_with_timezone_by_format() {
+        let input = "04-04 11:52:50.229 +0200 D/oup.csc(  665): [728] MqttLogger";
+        let format = "MM-DD hh:mm:ss.s TZD";
+        match extract_posix_timestamp_by_format(input, format, Some(2017), Some(TWO_HOURS_IN_MS)) {
+            TimestampByFormatResult::Timestamp(tm) => {
+                assert_eq!(
+                    NaiveDate::from_ymd(2017, 4, 4)
+                        .and_hms(9, 52, 50) // UTC
+                        .timestamp()
+                        * 1000
+                        + 229,
+                        tm
+                );
+            },
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn test_parse_date_line_no_year_no_millis_by_format() {
+        let input = "04-04 11:52:50 +0200 D/oup.csc(  665): [728] MqttLogger";
+        let format = "MM-DD hh:mm:ss TZD";
+        match extract_posix_timestamp_by_format(input, format, Some(2017), Some(TWO_HOURS_IN_MS)) {
+            TimestampByFormatResult::Timestamp(tm) => {
+                assert_eq!(
+                    NaiveDate::from_ymd(2017, 4, 4)
+                        .and_hms(9, 52, 50) // UTC
+                        .timestamp()
+                        * 1000,
+                        tm
+                );
+            },
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn test_parse_date_line_year_no_timezone_by_format() {
+        let input = "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
+        let format = "MM-DD-YYYY hh:mm:ss.s";
+        match extract_posix_timestamp_by_format(input, format, None, Some(TWO_HOURS_IN_MS)) {
+            TimestampByFormatResult::Timestamp(tm) => {
+                assert_eq!(
+                    NaiveDate::from_ymd(2017, 4, 4)
+                        .and_hms(9, 52, 50) // UTC
+                        .timestamp()
+                        * 1000
+                        + 229,
+                        tm
+                );
+            },
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn test_parse_date_line_with_short_month_str_by_format() {
+        let input = "109.169.248.247 - - [04/Apr/2017:11:52:50 +0200] xyz";
+        let format = "DD/MMM/YYYY:hh:mm:ss TZD";
+        match extract_posix_timestamp_by_format(input, format, None, Some(TWO_HOURS_IN_MS)) {
+            TimestampByFormatResult::Timestamp(tm) => {
+                assert_eq!(
+                    NaiveDate::from_ymd(2017, 4, 4)
+                        .and_hms(9, 52, 50) // UTC
+                        .timestamp()
+                        * 1000,
+                        tm
+                );
+            },
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn test_parse_date_problem_case_by_format() {
+        let input = "[2019-07-30T10:08:02.555][DEBUG][indexing]: xyz";
+        let format = "YYYY-MM-DDThh:mm:ss.s";
+        match extract_posix_timestamp_by_format(input, format, None, Some(TWO_HOURS_IN_MS)) {
+            TimestampByFormatResult::Timestamp(tm) => {
+                assert_eq!(
+                    NaiveDate::from_ymd(2019, 7, 30)
+                        .and_hms(8, 8, 2) // UTC
+                        .timestamp()
+                        * 1000
+                        + 555,
+                    tm
+                );
+            },
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn test_parse_date_only_time_by_format() {
+        init();
+        let input = "2019-07-19 16:14:57.979: TIME: INFO: [TimeManagement] Timesync done: dt=1562948097296ms (flash=1562948095650ms, ble=2329ms";
+        let format = "YYYY-MM-DD hh:mm";
+        match extract_posix_timestamp_by_format(input, format, None, Some(0)) {
+            TimestampByFormatResult::Timestamp(tm) => {
+                assert_eq!(
+                    NaiveDate::from_ymd(2019, 7, 19)
+                        .and_hms(16, 14, 0)
+                        .timestamp()
+                        * 1000,
+                        tm
+                );
+            },
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn test_parse_date_line_only_millis_by_format() {
+        let input = "1559831467577 some logging here...";
+        let format = "sss";
+        match extract_posix_timestamp_by_format(input, format, None, Some(0)) {
+            TimestampByFormatResult::Timestamp(tm) => {
+                assert_eq!(1_559_831_467_577, tm);
+            },
+            _ => (),
+        }
+    }
+
     macro_rules! derive_format_and_check {
         ($input:expr, $exp:expr) => {
             match detect_timeformat_in_string($input, None) {

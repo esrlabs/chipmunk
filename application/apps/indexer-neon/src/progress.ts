@@ -22,11 +22,15 @@ export interface IFormatCheckResult {
     FormatRegex?: string,
     FormatInvalid?: string,
 }
+export interface ITimestampByFormatResult {
+    Timestamp?: number;
+    Error?: string;
+}
 export interface ITimestampFormatResult {
     path: string,
     format?: ITimestampFormat,
-    min_time?: string,
-    max_time?: string,
+    min_time?: number,
+    max_time?: number,
 }
 export interface IConcatenatorResult {
     file_cnt: number,

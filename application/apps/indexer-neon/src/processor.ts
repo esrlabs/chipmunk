@@ -8,9 +8,10 @@ import {
   ITimestampFormatResult,
   IDiscoverItem,
   IChunk,
-  IFormatCheckResult
+  IFormatCheckResult,
+  ITimestampByFormatResult,
 } from './progress';
-import { NativeEventEmitter, RustIndexerChannel, RustTimestampChannel, RustExportFileChannel, RustFormatVerificationChannel } from './emitter';
+import { NativeEventEmitter, RustIndexerChannel, RustTimestampChannel, RustExportFileChannel, RustFormatVerificationChannel, RustTimestampExtractChannel } from './emitter';
 import { TimeUnit } from './units';
 import { CancelablePromise } from './promise';
 import { IFileSaveParams } from '../../../common/interfaces/index';
@@ -183,6 +184,83 @@ export function checkFormat(
     }
   });
 }
+
+export type TTimestampExtractAsyncEvents = 'chunk' | 'progress' | 'notification';
+export type TTimestampExtractAsyncEventChunk = (event: ITimestampByFormatResult) => void;
+export type TTimestampExtractAsyncEventProgress = (event: ITicks) => void;
+export type TTimestampExtractAsyncEventNotification = (event: INeonNotification) => void;
+export type TTimestampExtractAsyncEventObject =
+  | TTimestampExtractAsyncEventChunk
+  | TTimestampExtractAsyncEventProgress
+  | TTimestampExtractAsyncEventNotification;
+
+/**
+  * Extracts timestamp from input-string by datetime format
+  * @param inputString 	the input string to check
+  * @param formatString 	the format string to use
+  *
+  * this function will deliever a positive result with a timestamp that was produced for the input
+  * in case the format was invalid, we deliever a negative result with the reason
+  */
+export function exctractTimestamp(
+  inputString: string,
+  formatString: string
+): CancelablePromise<void, void, TTimestampExtractAsyncEvents, TTimestampExtractAsyncEventObject> {
+  return new CancelablePromise<
+    void,
+    void,
+    TTimestampExtractAsyncEvents,
+    TTimestampExtractAsyncEventObject
+  >((resolve, reject, cancel, refCancelCB, self) => {
+    log(`exctractTimestamp called...`);
+    try {
+      // Add cancel callback
+      refCancelCB(() => {
+        // Cancelation is started, but not canceled
+        log(`Get command "cancel" operation. Start cancellation`);
+        emitter.requestShutdown();
+      });
+      const channel = new RustTimestampExtractChannel(inputString, formatString);
+      const emitter = new NativeEventEmitter(channel);
+      let totalTicks = 1;
+      emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: ITimestampByFormatResult) => {
+        self.emit('chunk', chunk);
+      });
+      emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+        totalTicks = ticks.total;
+        self.emit('progress', ticks);
+      });
+      emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+        emitter.shutdownAcknowledged(() => {
+          cancel();
+        });
+      });
+      emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+        self.emit('notification', notification);
+      });
+      emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+        self.emit('progress', {
+          ellapsed: totalTicks,
+          total: totalTicks
+        });
+        emitter.shutdownAcknowledged(() => {
+          resolve();
+        });
+      });
+    } catch (err) {
+      if (!(err instanceof Error)) {
+        log(`operation is stopped. Error isn't valid:`);
+        log(err);
+        err = new Error(`operation is stopped. Error isn't valid.`);
+      } else {
+        log(`operation is stopped due error: ${err.message}`);
+      }
+      // Operation is rejected
+      reject(err);
+    }
+  });
+}
+
 
 export type TDiscoverTimespanAsyncEvents = 'chunk' | 'progress' | 'notification';
 export type TDiscoverTimespanAsyncEventChunk = (event: ITimestampFormatResult) => void;

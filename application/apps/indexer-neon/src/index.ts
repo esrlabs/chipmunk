@@ -22,4 +22,5 @@ export default {
 	mergeFilesAsync: Merge.mergeFilesAsync,
 	concatFilesAsync: Merge.concatFilesAsync,
 	checkFormat: Processor.checkFormat,
+	exctractTimestamp: Processor.exctractTimestamp,
 };
