@@ -1,13 +1,6 @@
-<canvas id="view-measurement-canvas"></canvas>
-<!--
-<cdk-virtual-scroll-viewport *ngIf="_ng_ranges.length > 0" itemSize="52">
-    <app-views-measurement-entity
-        [range]="range"
-        [controller]="_ng_getController()"
-        [width]="_ng_width"
-        [type]="_ng_type"
-        [content]="_ng_content"
-        (contextmenu)="_ng_onContexMenu($event, range)"
-        *cdkVirtualFor="let range of _ng_ranges"></app-views-measurement-entity>
-</cdk-virtual-scroll-viewport>
--->
+<div class="bars">
+    <canvas id="view-measurement-canvas"></canvas>
+</div>
+<div class="formats">
+    <app-views-measurement-formats *ngIf="_ng_getController() !== undefined" [controller]="_ng_getController()"></app-views-measurement-formats>
+</div>
