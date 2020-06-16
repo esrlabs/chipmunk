@@ -241,16 +241,6 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         //       - [x] remove all / remove except
         //       - [x] bug with merge view: no scale higlighting (select first 10 files from examples, linux)
         //       - recent files dialog was empty
-        /*
-        return [{
-            barPercentage: 0.5,
-            barThickness: 8,
-            backgroundColor: colors,
-            hoverBackgroundColor: colors,
-            data: values,
-            stack: 'stack'
-        }];
-        */
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {

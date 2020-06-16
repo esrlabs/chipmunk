@@ -1,5 +1,6 @@
 // tslint:disable:max-classes-per-file
 import { CancelablePromise, Processor, Progress } from "indexer-neon";
+import { PCREToECMARegExp, isRegStrValid } from '../../../tools/tools.regexp';
 
 import Logger from "../../../tools/env.logger";
 import indexer from "indexer-neon";
@@ -14,17 +15,17 @@ export default class MergeFormat {
         this._format = format;
     }
 
-    public validate(): Promise<void> {
+    public validate(): Promise<string> {
         return new Promise((resolve, reject) => {
             const measure = this._logger.measure('Validate format');
             let error: string | undefined;
+            let format: string | undefined;
             this._task = indexer.checkFormat(this._format).then(() => {
                 measure();
                 if (error) {
                     reject(new Error(error));
-                } else {
-                    resolve();
                 }
+                resolve(format);
             }).catch((indxErr: Error) => {
                 reject(indxErr);
             }).finally(() => {
@@ -34,6 +35,13 @@ export default class MergeFormat {
                     error = event.FormatInvalid;
                 } else if (typeof event.FormatRegex !== 'string' || event.FormatRegex === '') {
                     error = `Fail to get regexp.`;
+                } else {
+                    event.FormatRegex = PCREToECMARegExp(event.FormatRegex);
+                    if (!isRegStrValid(event.FormatRegex)) {
+                        error = `Fail convert "${event.FormatRegex}" from PCRE to ECMA regexp.`;
+                    } else {
+                        format = event.FormatRegex;
+                    }
                 }
             }).on('progress', (event: Progress.ITicks) => {
                 this._logger.env(event);
