@@ -792,6 +792,28 @@ pub fn extract_posix_timestamp(
         )),
     }
 }
+
+#[derive(Serialize, Debug, PartialEq)]
+pub enum TimestampByFormatResult {
+    Timestamp(i64),
+    Error(String),
+}
+/// return the timestamp and wether the year was missing using format string only
+pub fn extract_posix_timestamp_by_format(
+    line: &str,
+    format_expr: &str,
+    year: Option<i32>,
+    time_offset: Option<i64>,
+) -> TimestampByFormatResult  {
+    match lookup_regex_for_format_str(format_expr) {
+        Err(e) => TimestampByFormatResult::Error(e.to_string()),
+        Ok(regex) => match extract_posix_timestamp(line, &regex, year, time_offset) {
+            Err(e) => TimestampByFormatResult::Error(e.to_string()),
+            Ok((tm, _res)) => TimestampByFormatResult::Timestamp(tm),
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn line_to_timed_line(
     line: &str,

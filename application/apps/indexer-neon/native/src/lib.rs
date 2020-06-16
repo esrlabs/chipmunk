@@ -23,6 +23,7 @@ mod indexer_channel;
 mod logging;
 mod merger_channel;
 mod timestamp_detector_channel;
+mod timestamp_extractor_channel;
 use crate::{
     dlt_pcap_channel::JsDltPcapEventEmitter, format_verify_channel::JsFormatVerificationEmitter,
 };
@@ -43,6 +44,7 @@ use merger_channel::JsMergerEmitter;
 use neon::prelude::*;
 use processor::parse::{self};
 use timestamp_detector_channel::JsTimestampFormatDetectionEmitter;
+use timestamp_extractor_channel::JsTimestampExtractEmitter;
 
 #[no_mangle]
 pub extern "C" fn __cxa_pure_virtual() {
@@ -119,6 +121,7 @@ register_module!(mut cx, {
     cx.export_class::<JsDltStatsEventEmitter>("RustDltStatsEventEmitter")?;
     cx.export_class::<JsDltSocketEventEmitter>("RustDltSocketEventEmitter")?;
     cx.export_class::<JsTimestampFormatDetectionEmitter>("RustTimestampFormatDetectionEmitter")?;
+    cx.export_class::<JsTimestampExtractEmitter>("RustTimestampExtractEmitter")?;
     cx.export_class::<JsConcatenatorEmitter>("RustConcatenatorEmitter")?;
     cx.export_class::<JsMergerEmitter>("RustMergerEmitter")?;
     cx.export_class::<JsExporterEventEmitter>("RustExporterEventEmitter")?;
