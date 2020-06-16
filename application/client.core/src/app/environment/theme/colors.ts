@@ -48,6 +48,9 @@ export function getContrastColor (hex: string, bw: boolean = false) {
         const zeros = new Array(len).join('0');
         return (zeros + str).slice(-len);
     }
+    if (hex.toLowerCase().indexOf('rgb') === 0) {
+        hex = rgbToHex(hex);
+    }
     if (hex.indexOf('#') === 0) {
         hex = hex.slice(1);
     }
@@ -79,4 +82,17 @@ export function hexToRgb(hex: string): { r: number, g: number, b: number} {
       g: parseInt(result[2], 16),
       b: parseInt(result[3], 16)
     } : null;
+}
+
+export function rgbToHex(color: string) {
+    const colors = color.replace(/[^\d,]/gi, '').split(',').map((c: string) => {
+        return parseInt(c, 10);
+    }).filter((c: number) => {
+        return !isNaN(c) && isFinite(c);
+    });
+    if (colors.length !== 3) {
+        return '#000000';
+    }
+    // tslint:disable-next-line: no-bitwise
+    return `#` + ((1 << 24) + (colors[0] << 16) + (colors[1] << 8) + colors[2]).toString(16).slice(1);
 }

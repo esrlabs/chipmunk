@@ -4,7 +4,7 @@ import { ControllerSessionTab } from '../../../controller/controller.session.tab
 import { ControllerSessionTabTimestamp, IRange } from '../../../controller/controller.session.tab.timestamp';
 import { EViewType, EViewContent } from './entity/component';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import { scheme_color_0 } from '../../../theme/colors';
+import { scheme_color_0, getContrastColor } from '../../../theme/colors';
 import { Chart } from 'chart.js';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -117,11 +117,12 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
 
     private _build() {
         if (this._chart === undefined) {
+            const data = this._getChartDataset();
             this._chart = new Chart('view-measurement-canvas', {
                 type: 'horizontalBar',
                 data: {
-                    datasets: this._getChartDataset(),
-                    labels: this._getChartLabels(),
+                    datasets: data.datasets,
+                    labels: data.labels,
                 },
                 options: {
                     onClick: this._onBarClick.bind(this),
@@ -157,14 +158,16 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                             const chartInstance = this.chart;
                             const ctx = chartInstance.ctx;
                             ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
-                            ctx.textAlign = 'left';
+                            ctx.textAlign = 'right';
                             ctx.textBaseline = 'middle';
                             this.data.datasets.forEach(function(dataset, i) {
                                 const meta = chartInstance.controller.getDatasetMeta(i);
                                 meta.data.forEach(function(bar, index) {
-                                    const data = `${dataset.data[index]} ms`;
-                                    ctx.fillStyle = scheme_color_0;
-                                    ctx.fillText(data, bar._model.x + 8, bar._model.y);
+                                    if (dataset.data[index] === 0) {
+                                        return;
+                                    }
+                                    ctx.fillStyle = getContrastColor(dataset.backgroundColor[index], true);
+                                    ctx.fillText(`${dataset.data[index]} ms`, bar._model.x - 4, bar._model.y);
                                 });
                             });
                         }
@@ -172,8 +175,9 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                 }
             });
         } else {
-            this._chart.data.datasets = this._getChartDataset();
-            this._chart.data.labels = this._getChartLabels();
+            const data = this._getChartDataset();
+            this._chart.data.datasets = data.datasets;
+            this._chart.data.labels = data.labels;
             !this._destroy && this._chart.update();
         }
     }
@@ -185,7 +189,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         if (!(elements instanceof Array)) {
             return;
         }
-        if (elements.length !== 1) {
+        if (elements.length === 0) {
             return;
         }
         if (typeof elements[0]._index !== 'number') {
@@ -198,21 +202,60 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         OutputRedirectionsService.select('measurement', this._session.getGuid(), position);
     }
 
-    private _getChartDataset(): any {
+    private _getChartDataset(): {
+        datasets: any[],
+        labels: string[],
+    } {
         this._refs = [];
         const colors: string[] = [];
         const values: number[] = [];
+        const groups: Map<number, IRange[]> = new Map();
+        const labels: string[] = [];
+        const datasets: any[] = [];
         this._getComplitedRanges().forEach((range: IRange) => {
-            colors.push(range.color);
-            values.push(range.duration);
-            this._refs.push(range.start.position < range.end.position ? range.start.position : range.end.position);
+            const ranges: IRange[] = groups.has(range.group) ? groups.get(range.group) : [];
+            ranges.push(range);
+            if (ranges.length > datasets.length) {
+                datasets.push({
+                    barPercentage: 0.5,
+                    barThickness: 16,
+                    backgroundColor: [],
+                    hoverBackgroundColor: [],
+                    data: [],
+                });
+            }
+            groups.set(range.group, ranges);
         });
+        datasets.forEach((dataset: any, index: number) => {
+            groups.forEach((group: IRange[]) => {
+                if (group[index] === undefined) {
+                    dataset.data.push(0);
+                    dataset.backgroundColor.push(scheme_color_0);
+                    dataset.hoverBackgroundColor.push(scheme_color_0);
+                } else {
+                    dataset.data.push(group[index].duration);
+                    dataset.backgroundColor.push(group[index].color);
+                    dataset.hoverBackgroundColor.push(group[index].color);
+                }
+            });
+            datasets[index] = dataset;
+        });
+        groups.forEach((group: IRange[]) => {
+            this._refs.push(Math.min(...group.map(range => range.start.position), ...group.map(range => range.end.position)));
+            labels.push(`${Math.min(...group.map(range => range.start.position))} - ${Math.max(...group.map(range => range.start.position))}`);
+        });
+        return {
+            datasets: datasets,
+            labels: labels,
+        };
         // TODO: - [x] use fixed height of bar. Check responsive view for this case.
         //       - [x] remove seconds from labels (left side)
         //       - sorting: by region; by duration;
-        //       - grouping (stacked): common start (first point) and different end points.
-        //       - swap bookmark column and time-range column
-        //       - highlight number when bookmarked
+        //       - [x] grouping (stacked): common start (first point) and different end points.
+        //       - [x] swap bookmark column and time-range column
+        //       - [x] highlight number when bookmarked
+        //       - [x] remove all / remove except
+        /*
         return [{
             barPercentage: 0.5,
             barThickness: 8,
@@ -221,13 +264,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
             data: values,
             stack: 'stack'
         }];
-    }
-
-    private _getChartLabels(): string[] {
-        return this._getComplitedRanges().map((range: IRange) => {
-            return range.start.position < range.end.position ? `${range.start.position} - ${range.end.position}` : `${range.end.position} - ${range.start.position}`;
-        });
-
+        */
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {
