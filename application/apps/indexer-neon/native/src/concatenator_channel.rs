@@ -1,13 +1,16 @@
 use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::progress::Notification;
-use indexer_base::progress::{IndexingProgress, Severity};
+use indexer_base::{
+    chunks::ChunkResults,
+    progress::{IndexingProgress, Notification, Severity},
+};
 use merging::concatenator::{concat_files, ConcatenatorInput};
 use neon::prelude::*;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct ConcatenatorEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,

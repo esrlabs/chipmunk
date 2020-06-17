@@ -34,11 +34,12 @@ mod tests {
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
         create_index_and_mapping(
             IndexingConfig {
-                tag: tag_name,
+                tag: tag_name.to_owned(),
                 chunk_size: chunksize,
                 in_file: test_file_path,
-                out_path: &out_file_path,
+                out_path: out_file_path.clone(),
                 append: tmp_file_name.is_some(),
+                watch: false,
             },
             source_file_size,
             false,
@@ -48,7 +49,7 @@ mod tests {
         .await
         .unwrap();
         let out_file_content: String =
-            fs::read_to_string(out_file_path).expect("could not read file");
+            fs::read_to_string(&out_file_path).expect("could not read file");
 
         // cleanup
         let _ = tmp_dir.close();
@@ -120,11 +121,12 @@ mod tests {
             .len();
         create_index_and_mapping(
             IndexingConfig {
-                tag: "tag",
+                tag: "tag".to_owned(),
                 chunk_size: 1,
                 in_file: empty_file_path,
-                out_path: &out_path,
+                out_path: out_path.clone(),
                 append: false,
+                watch: false,
             },
             source_file_size,
             false,
@@ -183,11 +185,12 @@ mod tests {
             .len();
         create_index_and_mapping(
             IndexingConfig {
-                tag: "tag",
+                tag: "tag".to_owned(),
                 chunk_size: 1,
                 in_file: nonempty_file_path,
-                out_path: &out_path,
+                out_path: out_path.clone(),
                 append: true,
+                watch: true,
             },
             source_file_size,
             false,
@@ -324,11 +327,12 @@ mod tests {
         async_std::task::block_on(async {
             create_index_and_mapping(
                 IndexingConfig {
-                    tag: "TAG",
+                    tag: "TAG".to_owned(),
                     chunk_size: 1,
                     in_file: in_path.clone(),
-                    out_path: &out_file_path,
+                    out_path: out_file_path.clone(),
                     append: append_use_case,
+                    watch: false,
                 },
                 fs::metadata(&in_path).expect("metadata not found").len(),
                 false,

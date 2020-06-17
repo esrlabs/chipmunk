@@ -1,12 +1,16 @@
 use crate::channels::{EventEmitterTask, IndexingThreadConfig};
 use crossbeam_channel as cc;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::config::IndexingConfig;
-use indexer_base::progress::{Notification, Severity};
+use indexer_base::{
+    chunks::ChunkResults,
+    config::IndexingConfig,
+    progress::{Notification, Severity},
+};
 use neon::prelude::*;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct IndexingEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
@@ -28,11 +32,12 @@ impl IndexingEventEmitter {
         self.task_thread = Some(thread::spawn(move || {
             let index_future = index_file_with_progress(
                 IndexingConfig {
-                    tag: thread_conf.tag.as_str(),
+                    tag: thread_conf.tag,
                     chunk_size,
                     in_file: thread_conf.in_file,
-                    out_path: &thread_conf.out_path,
+                    out_path: thread_conf.out_path,
                     append,
+                    watch: false,
                 },
                 thread_conf.timestamps,
                 chunk_result_sender.clone(),
@@ -48,7 +53,7 @@ impl IndexingEventEmitter {
 }
 
 async fn index_file_with_progress(
-    config: IndexingConfig<'_>,
+    config: IndexingConfig,
     timestamps: bool,
     tx: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,

@@ -1,13 +1,13 @@
 use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
 use failure::{err_msg, Error};
-use indexer_base::chunks::ChunkResults;
-use indexer_base::config::SectionConfig;
-use indexer_base::export::export_file_line_based;
+use indexer_base::{chunks::ChunkResults, config::SectionConfig, export::export_file_line_based};
 use neon::prelude::*;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 static DLT_SESSION_ID: &str = "session";
 static DLT_SOURCE_FILE: &str = "file";

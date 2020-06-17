@@ -238,3 +238,18 @@ desc 'rebuid ts files'
 task :ts_build do
   sh 'tsc -p ./tsconfig.json'
 end
+
+desc 'Format code with nightly cargo fmt'
+task :format do
+  cd 'native' do
+    sh 'cargo +nightly fmt'
+  end
+end
+
+desc 'Check'
+task :check do
+  cd 'native' do
+    sh 'cargo +nightly fmt -- --color=always --check'
+    sh 'cargo clippy'
+  end
+end

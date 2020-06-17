@@ -20,11 +20,12 @@ mod tests {
         let tag_string = "TAG".to_string();
         let _res = create_index_and_mapping_dlt(
             IndexingConfig {
-                tag: tag_string.as_str(),
+                tag: tag_string,
                 chunk_size,
                 in_file: in_path,
-                out_path: &out_path,
+                out_path,
                 append: false,
+                watch: false,
             },
             source_file_size,
             None,

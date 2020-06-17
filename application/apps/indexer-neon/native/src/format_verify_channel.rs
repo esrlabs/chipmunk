@@ -3,8 +3,10 @@ use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
 use processor::parse::{check_format, FormatCheckResult};
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
 type FormatResult = IndexingResults<FormatCheckResult>;
 pub struct FormatVerifyEmitter {

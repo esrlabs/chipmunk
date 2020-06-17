@@ -289,7 +289,7 @@ pub fn index_dlt_content(
     let mut last_byte_index = 0usize;
     let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
     let mut line_nr = if config.append {
-        utils::next_line_nr(config.out_path)?
+        utils::next_line_nr(&config.out_path)?
     } else {
         0
     };
@@ -316,7 +316,7 @@ pub fn index_dlt_content(
             Ok(ParsedMessage::Item(msg)) => {
                 trace!("[line:{}] next was Ok(ParsedMessage::Item(msg))", line_nr);
                 let written_bytes_len =
-                    utils::create_tagged_line_d(config.tag, &mut buf_writer, &msg, line_nr, true)?;
+                    utils::create_tagged_line_d(&config.tag, &mut buf_writer, &msg, line_nr, true)?;
                 // tmp_writer.write_all(&msg.as_bytes())?;
                 line_nr += 1;
                 if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {

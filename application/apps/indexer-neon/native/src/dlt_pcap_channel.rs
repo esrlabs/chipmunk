@@ -1,16 +1,19 @@
-use crate::channels::EventEmitterTask;
-use crate::channels::IndexingThreadConfig;
-use crate::fibex_utils::gather_fibex_data;
+use crate::{
+    channels::{EventEmitterTask, IndexingThreadConfig},
+    fibex_utils::gather_fibex_data,
+};
 use crossbeam_channel as cc;
-use dlt::fibex::FibexMetadata;
-use dlt::filtering;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::config::FibexConfig;
-use indexer_base::config::IndexingConfig;
+use dlt::{fibex::FibexMetadata, filtering};
+use indexer_base::{
+    chunks::ChunkResults,
+    config::{FibexConfig, IndexingConfig},
+};
 use neon::prelude::*;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct PcapDltEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
@@ -35,11 +38,12 @@ impl PcapDltEventEmitter {
             let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
             match dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
                 IndexingConfig {
-                    tag: thread_conf.tag.as_str(),
+                    tag: thread_conf.tag,
                     chunk_size,
                     in_file: thread_conf.in_file,
-                    out_path: &thread_conf.out_path,
+                    out_path: thread_conf.out_path,
                     append: thread_conf.append,
+                    watch: false,
                 },
                 filter_conf,
                 &chunk_result_sender,
