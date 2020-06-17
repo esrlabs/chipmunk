@@ -23,7 +23,7 @@
             [classList]="'recent-requests'"
             [disableRipple]="true">
             <mat-option *ngFor="let recent of _ng_recent | async" [value]="recent" [attr.title]="recent" class="recent-requests small t-console t-small">
-                {{recent}}
+				<span class="filename" [innerHTML]="_ng_getSafeHTML(recent.tdescription)"></span>
             </mat-option>
         </mat-autocomplete>
       </mat-form-field>

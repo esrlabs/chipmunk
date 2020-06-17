@@ -15,6 +15,8 @@ import { MatInput } from '@angular/material/input';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { IPCMessages } from '../../../services/service.electron.ipc';
 import { EChartType } from '../chart/charts/charts';
+import { sortPairs, IPair } from '../../../thirdparty/code/engine';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
@@ -69,7 +71,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     // Out of state (stored in controller)
     public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
     public _ng_inputCtrl = new FormControl();
-    public _ng_recent: Observable<string[]>;
+    public _ng_recent: Observable<IPair[]>;
     public _ng_flags: {
         casesensitive: boolean,
         wholeword: boolean,
@@ -84,7 +86,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
     private _sessionSubscriptions: { [key: string]: Subscription } = { };
     private _prevRequest: string = '';
-    private _recent: string[] = [ ];
+    private _recent: IPair[] = [ ];
     private _fakeInputKeyEvent: boolean = false;
     private _selectedTextOnInputClick: boolean = false;
     private _filtersStorage: FiltersStorage | undefined;
@@ -92,7 +94,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
-                private _notifications: NotificationsService) {
+                private _notifications: NotificationsService,
+                private _sanitizer: DomSanitizer) {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInput.bind(this));
         this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
@@ -112,7 +115,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._loadRecentFilters();
         this._ng_recent = this._ng_inputCtrl.valueChanges.pipe(
             startWith(''),
-            map(value => this._filterRecentRequest(value))
+            map(value => this._filter(value))
         );
     }
 
@@ -350,6 +353,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         } else {
             return rankedNumberAsString(this._ng_read);
         }
+    }
+
+    public _ng_getSafeHTML(input: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(input);
     }
 
     private _getCurrentFilter(): FilterRequest | Error {
@@ -641,14 +648,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._forceUpdate();
     }
 
-    private _filterRecentRequest(value: string): string[] {
+    private _filter(value: string): IPair[] {
         if (typeof value !== 'string') {
             return;
         }
-        const filted = value.toLowerCase();
-        return this._recent.filter((recent: string) => {
-            return recent.includes(filted) && recent !== filted;
-        });
+        const scored = sortPairs(this._recent, value, value !== '', 'span');
+        return scored;
     }
 
     private _loadRecentFilters() {
@@ -657,7 +662,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 return this._logger.error(`Fail to parse recent filters due error: ${response.error}`);
             }
             this._recent = response.requests.map((recent: IPCMessages.IRecentSearchRequest) => {
-                return recent.request;
+                return {
+                    id: '',
+                    caption: ' ',
+                    description: recent.request,
+                    tcaption: ' ',
+                    tdescription: recent.request,
+                };
             });
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: Error) => {
