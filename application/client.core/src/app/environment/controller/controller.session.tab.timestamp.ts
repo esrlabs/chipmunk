@@ -3,9 +3,9 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 
 import ElectronIpcService from '../services/service.electron.ipc';
+import OutputParsersService from '../services/standalone/service.output.parsers';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import * as moment from 'moment';
 
 export interface IRow {
     position: number;
@@ -34,6 +34,22 @@ export interface IFormat {
     regexp: RegExp;
 }
 
+class TimestampRowParser extends Toolkit.RowCommonParser {
+
+    private _parser: (str: string) => string;
+
+    constructor(parser: (str: string) => string) {
+        super();
+        this._parser = parser;
+    }
+    public parse(str: string, themeTypeRef: Toolkit.EThemeType, row: Toolkit.IRowInfo): string {
+        return this._parser(str);
+    }
+
+}
+
+const ROW_PARSER_ID = 'timestamps-row-parser';
+
 export class ControllerSessionTabTimestamp {
 
     private _guid: string;
@@ -44,6 +60,7 @@ export class ControllerSessionTabTimestamp {
     private _state: IState = { min: Infinity, max: -1, duration: 0 };
     private _sequence: number = 0;
     private _open: IRange | undefined;
+    private _parser: TimestampRowParser;
     private _subjects: {
         change: Subject<IRange>,
         update: Subject<IRange[]>,
@@ -57,6 +74,8 @@ export class ControllerSessionTabTimestamp {
     constructor(guid: string) {
         this._guid = guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabTimestamp: ${guid}`);
+        this._parser = new TimestampRowParser(this._injectHighlightFormat.bind(this));
+        OutputParsersService.setSessionParser(ROW_PARSER_ID, this._parser, this._guid);
     }
 
     public destroy(): Promise<void> {
@@ -134,6 +153,7 @@ export class ControllerSessionTabTimestamp {
                 this._setState();
                 this._subjects.change.next(Toolkit.copy(this._ranges[index]));
             }
+            OutputParsersService.updateRowsView();
         }).catch((err: Error) => {
             this._logger.error(`setPoint:: Fail get timestamp due error: ${err.message}`);
         });
@@ -168,6 +188,7 @@ export class ControllerSessionTabTimestamp {
             });
             this._setState();
             this._subjects.update.next(this.getRanges());
+            OutputParsersService.updateRowsView();
         }).catch((err: Error) => {
             this._logger.error(`addRange:: Fail get timestamp due error: ${err.message}`);
         });
@@ -182,6 +203,7 @@ export class ControllerSessionTabTimestamp {
         this._open = undefined;
         this._setState();
         this._subjects.update.next(this.getRanges());
+        OutputParsersService.updateRowsView();
     }
 
     public drop(exceptions: number[] = []) {
@@ -191,6 +213,7 @@ export class ControllerSessionTabTimestamp {
         this._open = undefined;
         this._setState();
         this._subjects.update.next(this.getRanges());
+        OutputParsersService.updateRowsView();
     }
 
     public getTimestamp(str: string): Promise<number | undefined> {
@@ -264,6 +287,7 @@ export class ControllerSessionTabTimestamp {
                     regexp: regexp,
                 });
                 this._subjects.formats.next();
+                OutputParsersService.updateRowsView();
                 resolve();
             }).catch((disErr: Error) => {
                 this._logger.error(`Fail to discover files due error: ${disErr.message}`);
@@ -402,6 +426,7 @@ export class ControllerSessionTabTimestamp {
         return color;
     }
 
+/*
     public injectHighlight(str: string): Promise<string> {
         return new Promise((resolve, reject) => {
             if (this._open === undefined) {
@@ -419,15 +444,34 @@ export class ControllerSessionTabTimestamp {
             });
         });
     }
+*/
 
+/*
+TODO:
+ - add run-time hihglight of new format matches (on add popup)
+*/
     public removeFormatDef(format: string) {
         this._format = this._format.filter(f => f.format !== format);
         this._subjects.formats.next();
+        OutputParsersService.updateRowsView();
     }
 
     public addFormat(format: IFormat) {
         this._format.push(format);
         this._subjects.formats.next();
+        OutputParsersService.updateRowsView();
+    }
+
+    private _injectHighlightFormat(str: string): string {
+        if (this._open === undefined) {
+            return str;
+        }
+        this._format.forEach((format: IFormat) => {
+            str = str.replace(format.regexp, (_match: string) => {
+                return `<span class="tooltip timestampmatch">${_match}</span>`;
+            });
+        });
+        return str;
     }
 
     private _getColor(): string {
