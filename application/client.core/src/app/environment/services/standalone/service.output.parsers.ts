@@ -24,13 +24,17 @@ export interface IRow {
     hasOwnStyles?: boolean;
 }
 
+export interface ITooltip {
+    id: string;
+    getContent(str: string, position: number, selection: string): Promise<string | undefined>;
+}
+
 interface ICachedKey {
     key: string;
     regExp: RegExp;
 }
 
 const TOOLTIP_ATTR_NAME = 'data-row-tooltip';
-const TOOLTIP_ATTR_VALUE = 'true';
 
 export class OutputParsersService {
 
@@ -39,12 +43,14 @@ export class OutputParsersService {
         bound: Map<number, Toolkit.ARowBoundParser>,
         common: Map<number, Toolkit.ARowCommonParser>,
         typed: Map<number, Toolkit.ARowTypedParser>,
-        session: Map<string, Map<string, Toolkit.ARowCommonParser>>
+        session: Map<string, Map<string, Toolkit.ARowCommonParser>>,
+        tooltips: Map<string, Map<string, ITooltip>>,
     } = {
         bound: new Map(),
         common: new Map(),
         typed: new Map(),
         session: new Map(),
+        tooltips: new Map(),
     };
     private _search: Map<string, IRequest[]> = new Map();
     private _charts: Map<string, IRequest[]> = new Map();
@@ -285,14 +291,47 @@ export class OutputParsersService {
         this._parsers.session.set(session, parsers);
     }
 
-    /*
-    public getTooltip(target: HTMLElement) {
-        if (target === undefined || target === null) {
+    public setSessionTooltip(tooltip: ITooltip, session?: string) {
+        if (this._session === undefined && session === undefined) {
             return;
         }
-        if (target.getAttribute())
+        session = session === undefined ? this._session : session;
+        let tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(session);
+        if (tooltips === undefined) {
+            tooltips = new Map();
+        }
+        tooltips.set(tooltip.id, tooltip);
+        this._parsers.tooltips.set(session, tooltips);
     }
-    */
+
+    public getTooltipHook(id: string): string {
+        return ` ${TOOLTIP_ATTR_NAME}="${id}" `;
+    }
+
+    public getTooltipContent(target: HTMLElement, str: string, position: number): Promise<string | undefined> {
+        return new Promise((resolve) => {
+            const tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(this._session);
+            if (tooltips === undefined) {
+                return resolve(undefined);
+            }
+            if (target === undefined || target === null) {
+                return resolve(undefined);
+            }
+            const id: string | null | undefined = target.getAttribute(TOOLTIP_ATTR_NAME);
+            if (id === null || id === undefined) {
+                return resolve(undefined);
+            }
+            const tooltip: ITooltip | undefined = tooltips.get(id);
+            if (tooltip === undefined) {
+                return resolve(undefined);
+            }
+            tooltip.getContent(str, position, target.innerHTML).then((out: string) => {
+                resolve(out);
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail get tooltip value due error: ${err.message}`);
+            });
+        });
+    }
 
     private _setBoundParsers(exports: Toolkit.IPluginExports, pluginId: number): boolean {
         if (pluginId === undefined || this._parsers.bound.has(pluginId)) {
@@ -316,11 +355,15 @@ export class OutputParsersService {
         if (!this._parsers.session.has(controller.getGuid())) {
             this._parsers.session.set(controller.getGuid(), new Map());
         }
+        if (!this._parsers.tooltips.has(controller.getGuid())) {
+            this._parsers.tooltips.set(controller.getGuid(), new Map());
+        }
         this._session = controller.getGuid();
     }
 
     private _onSessionClosed(guid: string) {
         this._parsers.session.delete(guid);
+        this._parsers.tooltips.delete(guid);
     }
 
     private _setCommonParsers(exports: Toolkit.IPluginExports, pluginId: number) {

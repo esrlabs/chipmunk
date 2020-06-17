@@ -11,6 +11,16 @@
     min-width: 100%;
     user-select: text;
     cursor: text;
+    & span.tooltip{
+        position: absolute;
+        display: block;
+        background: @scheme-color-accent;
+        color: @scheme-color-0;
+        padding: 3px 6px;
+        border-radius: 2px;
+        z-index: 10;
+        margin-top: -24px;
+    }
     & div.wrapper{
         position: relative;
         white-space: nowrap;

@@ -49,6 +49,7 @@ class TimestampRowParser extends Toolkit.RowCommonParser {
 }
 
 const ROW_PARSER_ID = 'timestamps-row-parser';
+const ROW_TOOLTIP_ID = 'timestamps-row-tooltip';
 
 export class ControllerSessionTabTimestamp {
 
@@ -76,6 +77,7 @@ export class ControllerSessionTabTimestamp {
         this._logger = new Toolkit.Logger(`ControllerSessionTabTimestamp: ${guid}`);
         this._parser = new TimestampRowParser(this._injectHighlightFormat.bind(this));
         OutputParsersService.setSessionParser(ROW_PARSER_ID, this._parser, this._guid);
+        OutputParsersService.setSessionTooltip({ id: ROW_TOOLTIP_ID, getContent: this._getTooltipContent.bind(this)}, this._guid);
     }
 
     public destroy(): Promise<void> {
@@ -222,7 +224,7 @@ export class ControllerSessionTabTimestamp {
                 return resolve(undefined);
             }
             let inputStr: string | undefined;
-            let formatStr: string | undefined; 
+            let formatStr: string | undefined;
             this._format.forEach((format: IFormat) => {
                 if (inputStr !== undefined) {
                     return;
@@ -462,13 +464,27 @@ TODO:
         OutputParsersService.updateRowsView();
     }
 
+    private _getTooltipContent(row: string, position: number, selection: string): Promise<string | undefined> {
+        return new Promise((resolve) => {
+            if (this._open === undefined) {
+                return resolve(selection);
+            }
+            this.getTimestamp(selection).then((tm: number | undefined) => {
+                resolve(`${tm}ms`);
+            }).catch((err: Error) => {
+                this._logger.error(`injectHighlight:: Fail get timestamp due error: ${err.message}`);
+                resolve(undefined);
+            });
+        });
+    }
+
     private _injectHighlightFormat(str: string): string {
         if (this._open === undefined) {
             return str;
         }
         this._format.forEach((format: IFormat) => {
             str = str.replace(format.regexp, (_match: string) => {
-                return `<span class="tooltip timestampmatch">${_match}</span>`;
+                return `<span class="tooltip timestampmatch" ${OutputParsersService.getTooltipHook(ROW_TOOLTIP_ID)}>${_match}</span>`;
             });
         });
         return str;
