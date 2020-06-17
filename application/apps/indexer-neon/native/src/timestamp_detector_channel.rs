@@ -1,12 +1,12 @@
 use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
-use indexer_base::progress::Notification;
-use indexer_base::progress::{IndexingResults, Severity};
+use indexer_base::progress::{IndexingResults, Notification, Severity};
 use neon::prelude::*;
-use processor::parse::DiscoverItem;
-use processor::parse::{timespan_in_files, TimestampFormatResult};
-use std::sync::{Arc, Mutex};
-use std::thread;
+use processor::parse::{timespan_in_files, DiscoverItem, TimestampFormatResult};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct TimestampDetectorEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<IndexingResults<TimestampFormatResult>>>>,

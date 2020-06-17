@@ -1,15 +1,16 @@
-use crate::channels::EventEmitterTask;
-use crate::fibex_utils::gather_fibex_data;
+use crate::{channels::EventEmitterTask, fibex_utils::gather_fibex_data};
 use crossbeam_channel as cc;
-use dlt::fibex::FibexMetadata;
-use dlt::filtering;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::config::FibexConfig;
-use indexer_base::config::SocketConfig;
+use dlt::{fibex::FibexMetadata, filtering};
+use indexer_base::{
+    chunks::ChunkResults,
+    config::{FibexConfig, SocketConfig},
+};
 use neon::prelude::*;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 #[derive(Debug)]
 pub struct SocketThreadConfig {

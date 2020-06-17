@@ -1,14 +1,16 @@
 use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::progress::Notification;
-use indexer_base::progress::{IndexingProgress, Severity};
-use merging::merger::merge_files_use_config;
-use merging::merger::FileMergeOptions;
+use indexer_base::{
+    chunks::ChunkResults,
+    progress::{IndexingProgress, Notification, Severity},
+};
+use merging::merger::{merge_files_use_config, FileMergeOptions};
 use neon::prelude::*;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct MergerEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,

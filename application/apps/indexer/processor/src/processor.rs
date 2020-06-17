@@ -31,13 +31,13 @@ use std::{
 };
 
 pub async fn create_index_and_mapping(
-    config: IndexingConfig<'_>,
+    config: IndexingConfig,
     source_file_size: u64,
     parse_timestamps: bool,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<()> {
-    let initial_line_nr = match utils::next_line_nr(config.out_path) {
+    let initial_line_nr = match utils::next_line_nr(&config.out_path) {
         Ok(nr) => nr,
         Err(e) => {
             let c = format!(
@@ -78,7 +78,7 @@ pub async fn create_index_and_mapping(
     let read_from = decode_builder.build_with_buffer(in_file, &mut *decode_buffer)?;
     index_file(
         read_from,
-        config.tag,
+        &config.tag,
         out_file,
         current_out_file_size,
         config.chunk_size,

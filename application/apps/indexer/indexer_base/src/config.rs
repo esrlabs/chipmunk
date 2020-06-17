@@ -27,12 +27,13 @@ pub struct SectionConfig {
 }
 
 #[derive(Debug)]
-pub struct IndexingConfig<'a> {
-    pub tag: &'a str,
+pub struct IndexingConfig {
+    pub tag: String,
     pub chunk_size: usize,
     pub in_file: path::PathBuf,
-    pub out_path: &'a path::PathBuf,
+    pub out_path: path::PathBuf,
     pub append: bool,
+    pub watch: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

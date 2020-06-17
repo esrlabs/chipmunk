@@ -202,8 +202,8 @@ impl futures::Stream for PcapMessageProducer {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn index_from_pcap<'a>(
-    config: IndexingConfig<'a>,
+pub fn index_from_pcap(
+    config: IndexingConfig,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     initial_line_nr: usize,
     update_channel: cc::Sender<ChunkResults>,
@@ -211,7 +211,7 @@ pub fn index_from_pcap<'a>(
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), DltParseError> {
     trace!("index_from_pcap for  conf: {:?}", config);
-    let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, config.out_path)?;
+    let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, &config.out_path)?;
     // let out_file_name = format!("{:?}", out_file);
     let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
     let mut line_nr = initial_line_nr;
@@ -249,7 +249,7 @@ pub fn index_from_pcap<'a>(
                 }
                 Event::Msg(Ok(MessageStreamItem::Item(msg))) => {
                     let written_bytes_len = utils::create_tagged_line_d(
-                        config.tag,
+                        &config.tag,
                         &mut buf_writer,
                         &msg,
                         line_nr,
@@ -304,15 +304,15 @@ pub fn index_from_pcap<'a>(
     })
 }
 
-pub fn create_index_and_mapping_dlt_from_pcap<'a>(
-    config: IndexingConfig<'a>,
+pub fn create_index_and_mapping_dlt_from_pcap(
+    config: IndexingConfig,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: async_std::sync::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), DltParseError> {
     trace!("create_index_and_mapping_dlt_from_pcap");
-    match utils::next_line_nr(config.out_path) {
+    match utils::next_line_nr(&config.out_path) {
         Ok(initial_line_nr) => {
             let filter_config: Option<filtering::ProcessedDltFilterConfig> =
                 dlt_filter.map(filtering::process_filter_config);

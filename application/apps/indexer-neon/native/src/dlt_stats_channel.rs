@@ -3,9 +3,11 @@ use crossbeam_channel as cc;
 use dlt::dlt_parse::StatisticsResults;
 use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct DltStatsEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<StatisticsResults>>>,

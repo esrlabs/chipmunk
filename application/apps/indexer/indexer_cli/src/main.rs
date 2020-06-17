@@ -132,6 +132,12 @@ fn main() {
                         .help("append to file if exists"),
                 )
                 .arg(
+                    Arg::with_name("watch")
+                        .short("w")
+                        .long("watch")
+                        .help("tail the file (keep watching for updates)"),
+                )
+                .arg(
                     Arg::with_name("stdout")
                         .short("s")
                         .long("stdout")
@@ -503,6 +509,7 @@ fn main() {
                 }
             };
             let append: bool = matches.is_present("append");
+            let watch: bool = matches.is_present("watch");
             let timestamps: bool = matches.is_present("timestamp");
             let (tx, rx): (
                 cc::Sender<IndexingResults<Chunk>>,
@@ -512,11 +519,12 @@ fn main() {
             let _h = task::spawn(async move {
                 match processor::processor::create_index_and_mapping(
                     IndexingConfig {
-                        tag: tag_string.as_str(),
+                        tag: tag_string,
                         chunk_size,
                         in_file: file_path,
-                        out_path: &out_path,
+                        out_path,
                         append,
+                        watch,
                     },
                     source_file_size,
                     timestamps,
@@ -827,11 +835,12 @@ fn main() {
             thread::spawn(move || {
                 if let Err(why) = dlt::dlt_file::create_index_and_mapping_dlt(
                     IndexingConfig {
-                        tag: tag_string.as_str(),
+                        tag: tag_string,
                         chunk_size,
                         in_file: file_path,
-                        out_path: &out_path,
+                        out_path,
                         append,
+                        watch: false,
                     },
                     source_file_size,
                     filter_conf,
@@ -940,11 +949,12 @@ fn main() {
                 thread::spawn(move || {
                     let why = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
                         IndexingConfig {
-                            tag: tag_string.as_str(),
+                            tag: tag_string,
                             chunk_size,
                             in_file: file_path,
-                            out_path: &out_path,
+                            out_path,
                             append,
+                            watch: false,
                         },
                         filter_conf,
                         &tx,

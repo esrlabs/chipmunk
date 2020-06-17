@@ -1,16 +1,20 @@
-use crate::channels::{EventEmitterTask, IndexingThreadConfig};
-use crate::fibex_utils::gather_fibex_data;
+use crate::{
+    channels::{EventEmitterTask, IndexingThreadConfig},
+    fibex_utils::gather_fibex_data,
+};
 use crossbeam_channel as cc;
-use dlt::fibex::FibexMetadata;
-use dlt::filtering;
-use indexer_base::chunks::ChunkResults;
-use indexer_base::config::FibexConfig;
-use indexer_base::config::IndexingConfig;
-use indexer_base::progress::{Notification, Severity};
+use dlt::{fibex::FibexMetadata, filtering};
+use indexer_base::{
+    chunks::ChunkResults,
+    config::{FibexConfig, IndexingConfig},
+    progress::{Notification, Severity},
+};
 use neon::prelude::*;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{
+    path,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct IndexingDltEventEmitter {
     pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
@@ -34,11 +38,12 @@ impl IndexingDltEventEmitter {
             let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
             index_dlt_file_with_progress(
                 IndexingConfig {
-                    tag: thread_conf.tag.as_str(),
+                    tag: thread_conf.tag,
                     chunk_size,
                     in_file: thread_conf.in_file,
-                    out_path: &thread_conf.out_path,
+                    out_path: thread_conf.out_path,
                     append: thread_conf.append,
+                    watch: false,
                 },
                 filter_conf,
                 chunk_result_sender.clone(),

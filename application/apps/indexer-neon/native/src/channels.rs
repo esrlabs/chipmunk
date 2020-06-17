@@ -1,12 +1,13 @@
 use crossbeam_channel as cc;
-use indexer_base::progress::Notification;
-use indexer_base::progress::{IndexingProgress, IndexingResults};
+use indexer_base::progress::{IndexingProgress, IndexingResults, Notification};
 use neon::prelude::*;
 use serde::Serialize;
-use std::fmt::Debug;
-use std::path;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::{
+    fmt::Debug,
+    path,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 // Reading from a channel `Receiver` is a blocking operation. This struct
 // wraps the data required to perform a read asynchronously from a libuv

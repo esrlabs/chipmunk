@@ -23,8 +23,9 @@ mod indexer_channel;
 mod logging;
 mod merger_channel;
 mod timestamp_detector_channel;
-use crate::dlt_pcap_channel::JsDltPcapEventEmitter;
-use crate::format_verify_channel::JsFormatVerificationEmitter;
+use crate::{
+    dlt_pcap_channel::JsDltPcapEventEmitter, format_verify_channel::JsFormatVerificationEmitter,
+};
 use concatenator_channel::JsConcatenatorEmitter;
 use dlt_indexer_channel::JsDltIndexerEventEmitter;
 use dlt_socket_channel::JsDltSocketEventEmitter;
@@ -33,9 +34,11 @@ use dlt_stats_channel::JsDltStatsEventEmitter;
 use export_channel::JsExporterEventEmitter;
 use indexer_channel::JsIndexerEventEmitter;
 use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::config::{Appender, Config, Root};
-use log4rs::encode::pattern::PatternEncoder;
+use log4rs::{
+    append::file::FileAppender,
+    config::{Appender, Config, Root},
+    encode::pattern::PatternEncoder,
+};
 use merger_channel::JsMergerEmitter;
 use neon::prelude::*;
 use processor::parse::{self};
