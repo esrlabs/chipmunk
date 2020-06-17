@@ -57,4 +57,5 @@
     </div>
     <p class="row pending"><span></span></p>
 </div>
+<span *ngIf="_ng_tooltip !== undefined" class="t-small tooltip" [ngStyle]="_ng_getTooltipStyle()">{{_ng_tooltip.content}}</span>
     

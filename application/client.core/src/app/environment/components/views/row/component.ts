@@ -1,20 +1,21 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/controller.session.tab.scope';
 import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamp';
+import { IComponentDesc } from 'chipmunk-client-material';
+import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
+import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
+import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
 
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
 import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
 import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
-import { IComponentDesc } from 'chipmunk-client-material';
-import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
-import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
-import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
 
  enum ERenderType {
     standard = 'standard',
@@ -25,6 +26,12 @@ import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.
 export interface IScope { [key: string]: any; }
 
 export const CRowLengthLimit = 10000;
+
+interface ITooltip {
+    content: string;
+    top: number;
+    left: number;
+}
 
 @Component({
     selector: 'app-views-output-row',
@@ -60,24 +67,35 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     public _ng_render_api: any;
     public _ng_numberDelimiter: string = '\u0008';
     public _ng_error: string | undefined;
+    public _ng_tooltip: ITooltip | undefined;
 
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _sourceMeta: string | undefined;
     private _destroyed: boolean = false;
-    private _subjects: {
-        update: Subject<{ [key: string]: any }>
-    } = {
-        update: new Subject<{ [key: string]: any }>()
-    };
+    private _logger: Toolkit.Logger = new Toolkit.Logger(`RowWrapper`);
 
-    @HostListener('mouseover', ['$event.target']) onMouseIn(target: HTMLElement) {
+    @HostListener('mouseover', ['$event', '$event.target']) onMouseIn(event: MouseEvent, target: HTMLElement) {
         if (target === undefined || target === null) {
             return;
         }
-        // if (target.getAttribute())
+        OutputParsersService.getTooltipContent(target, this.str, this._getPosition()).then((content: string | undefined) => {
+            if (content === undefined) {
+                return;
+            }
+            this._ng_tooltip = {
+                content: content,
+                top: event.offsetX,
+                left: event.offsetY,
+            };
+            this._forceUpdate();
+        }).catch((err: Error) => {
+            this._logger.debug(`Fail get tooltip content due error: ${err.message}`);
+        });
     }
 
     @HostListener('mouseout', ['$event.target']) onMouseOut() {
+        this._ng_tooltip = undefined;
+        this._forceUpdate();
     }
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -221,8 +239,14 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         };
     }
 
+    public _ng_getTooltipStyle() {
+        return this._ng_tooltip === undefined ? {} : {
+            top: `${this._ng_tooltip.top}px`,
+            left: `${this._ng_tooltip.left}px`,
+        };
+    }
+
     private _onRowWasSelected(sender: string, selection: number[], clicked: number) {
-        const position: number | undefined = this._getPosition();
         this._forceUpdate();
     }
 
