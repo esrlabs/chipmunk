@@ -21,7 +21,6 @@ use anyhow::anyhow;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use futures::stream::StreamExt;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
     config::*,
@@ -158,7 +157,7 @@ impl Iterator for FileMessageProducer {
     type Item = ParsedMessage;
     fn next(&mut self) -> Option<ParsedMessage> {
         match self.produce_next_message() {
-            (s, Ok(parsed_msg)) => Some(parsed_msg),
+            (_s, Ok(parsed_msg)) => Some(parsed_msg),
             _ => None,
         }
     }
@@ -228,19 +227,6 @@ impl FileMessageProducer {
                                     "read_one_dlt_message: parsing failure for dlt messages: {}",
                                     cause
                                 ),
-                                }),
-                            );
-                        }
-                        Err(e) => {
-                            warn!("other parsing error");
-                            self.stats.no_parse += 1;
-                            break (
-                                0,
-                                Err(DltParseError::Unrecoverable {
-                                    cause: format!(
-                                        "read_one_dlt_message: parsing error for dlt messages: {}",
-                                        e
-                                    ),
                                 }),
                             );
                         }
