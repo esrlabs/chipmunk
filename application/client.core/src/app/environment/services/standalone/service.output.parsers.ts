@@ -5,7 +5,6 @@ import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
 import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
 import { FilterRequest } from '../../controller/controller.session.tab.search.filters.request';
-import { ControllerSessionTabTimestamp, IRange } from '../../controller/controller.session.tab.timestamp';
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
 
@@ -30,6 +29,9 @@ interface ICachedKey {
     regExp: RegExp;
 }
 
+const TOOLTIP_ATTR_NAME = 'data-row-tooltip';
+const TOOLTIP_ATTR_VALUE = 'true';
+
 export class OutputParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputParsersService');
@@ -37,10 +39,12 @@ export class OutputParsersService {
         bound: Map<number, Toolkit.ARowBoundParser>,
         common: Map<number, Toolkit.ARowCommonParser>,
         typed: Map<number, Toolkit.ARowTypedParser>,
+        session: Map<string, Map<string, Toolkit.ARowCommonParser>>
     } = {
         bound: new Map(),
         common: new Map(),
         typed: new Map(),
+        session: new Map(),
     };
     private _search: Map<string, IRequest[]> = new Map();
     private _charts: Map<string, IRequest[]> = new Map();
@@ -48,7 +52,7 @@ export class OutputParsersService {
     private _typedRowRenders: Map<string, Toolkit.ATypedRowRender<any>> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
-    private _timestamp: ControllerSessionTabTimestamp | undefined;
+    private _session: string;
     private _typedRowRendersHistory: {
         sources: string[],
         aliases: Map<string, string>,
@@ -68,6 +72,9 @@ export class OutputParsersService {
     constructor() {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
+        );
+        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(
+            this._onSessionClosed.bind(this),
         );
     }
 
@@ -168,10 +175,19 @@ export class OutputParsersService {
         this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
             row.str = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
         });
+        // Apply session parsers
+        const parsers: Map<string, Toolkit.ARowCommonParser> | undefined = this._parsers.session.get(this._session);
+        if (parsers !== undefined) {
+            parsers.forEach((parser: Toolkit.ARowCommonParser) => {
+                row.str = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+            });
+        }
+        /*
         // Inject timestamps highlight
         if (this._timestamp !== undefined) {
-            // row.str = this._timestamp.injectHighlight(row.str);
+            row.str = this._timestamp.injectHighlightFormat(row.str);
         }
+        */
         return row.str;
     }
 
@@ -256,7 +272,29 @@ export class OutputParsersService {
         return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
     }
 
-    public _setBoundParsers(exports: Toolkit.IPluginExports, pluginId: number): boolean {
+    public setSessionParser(id: string, parser: Toolkit.RowCommonParser, session?: string) {
+        if (this._session === undefined && session === undefined) {
+            return;
+        }
+        session = session === undefined ? this._session : session;
+        let parsers: Map<string, Toolkit.RowCommonParser> | undefined = this._parsers.session.get(session);
+        if (parsers === undefined) {
+            parsers = new Map();
+        }
+        parsers.set(id, parser);
+        this._parsers.session.set(session, parsers);
+    }
+
+    /*
+    public getTooltip(target: HTMLElement) {
+        if (target === undefined || target === null) {
+            return;
+        }
+        if (target.getAttribute())
+    }
+    */
+
+    private _setBoundParsers(exports: Toolkit.IPluginExports, pluginId: number): boolean {
         if (pluginId === undefined || this._parsers.bound.has(pluginId)) {
             return false;
         }
@@ -275,9 +313,14 @@ export class OutputParsersService {
         if (controller === undefined) {
             return;
         }
-        this._timestamp = controller.getTimestamp();
-        this._timestamp.getObservable().change.subscribe(this.updateRowsView.bind(this));
-        this._timestamp.getObservable().update.subscribe(this.updateRowsView.bind(this));
+        if (!this._parsers.session.has(controller.getGuid())) {
+            this._parsers.session.set(controller.getGuid(), new Map());
+        }
+        this._session = controller.getGuid();
+    }
+
+    private _onSessionClosed(guid: string) {
+        this._parsers.session.delete(guid);
     }
 
     private _setCommonParsers(exports: Toolkit.IPluginExports, pluginId: number) {

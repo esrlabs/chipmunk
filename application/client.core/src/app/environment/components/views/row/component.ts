@@ -1,5 +1,5 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
@@ -69,6 +69,16 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     } = {
         update: new Subject<{ [key: string]: any }>()
     };
+
+    @HostListener('mouseover', ['$event.target']) onMouseIn(target: HTMLElement) {
+        if (target === undefined || target === null) {
+            return;
+        }
+        // if (target.getAttribute())
+    }
+
+    @HostListener('mouseout', ['$event.target']) onMouseOut() {
+    }
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
