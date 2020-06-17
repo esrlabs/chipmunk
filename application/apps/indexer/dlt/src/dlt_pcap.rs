@@ -16,7 +16,6 @@ use std::{
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
-use thiserror::Error;
 
 pub fn convert_to_dlt_file(
     pcap_path: std::path::PathBuf,
@@ -66,7 +65,6 @@ struct PcapMessageProducer {
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
 }
 
-use std::error::Error;
 impl PcapMessageProducer {
     #![allow(dead_code)]
     pub fn new(
@@ -331,7 +329,7 @@ pub fn create_index_and_mapping_dlt_from_pcap<'a>(
                     let content = format!("{}", e);
                     let _ = update_channel.send(Err(Notification {
                         severity: Severity::ERROR,
-                        content: content.clone(),
+                        content,
                         line: None,
                     }));
                     Err(e)
@@ -345,7 +343,7 @@ pub fn create_index_and_mapping_dlt_from_pcap<'a>(
             );
             let _ = update_channel.send(Err(Notification {
                 severity: Severity::ERROR,
-                content: content.clone(),
+                content,
                 line: None,
             }));
             Err(e.into())

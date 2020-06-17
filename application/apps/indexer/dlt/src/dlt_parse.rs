@@ -14,7 +14,6 @@ use crossbeam_channel as cc;
 use indexer_base::{chunks::ChunkResults, error_reporter::*, progress::*, utils};
 use serde::Serialize;
 
-use anyhow;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use byteorder::{BigEndian, LittleEndian};
 use nom::{

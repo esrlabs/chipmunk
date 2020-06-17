@@ -1,5 +1,4 @@
 use crate::dlt::{FloatWidth, StringCoding, TypeInfo, TypeInfoKind, TypeLength};
-use anyhow;
 use derive_more::{Deref, Display};
 use quick_xml::{
     events::{attributes::Attributes, BytesStart, Event as XmlEvent},
@@ -13,7 +12,6 @@ use std::{
     path::{Path, PathBuf},
     rc::Rc,
 };
-use thiserror::Error;
 
 type Result<T = ()> = std::result::Result<T, anyhow::Error>;
 

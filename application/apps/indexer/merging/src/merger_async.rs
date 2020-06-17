@@ -1,10 +1,10 @@
-use crate::merger::FileLogEntryProducer;
-use crate::merger::FileMergeOptions;
-use crate::merger::IndexOutput;
-use anyhow::{anyhow, Result};
+use crate::merger::{FileLogEntryProducer, FileMergeOptions, IndexOutput};
+use anyhow::Result;
 use crossbeam_channel as cc;
-use futures::pin_mut;
-use futures::stream::{Peekable, StreamExt};
+use futures::{
+    pin_mut,
+    stream::{Peekable, StreamExt},
+};
 use indexer_base::{
     chunks::ChunkResults, error_reporter::*, progress::IndexingProgress, timedline::*, utils,
 };
@@ -15,7 +15,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub(crate) async fn merge_inputs_with_writer_async(
+pub(crate) async fn _merge_inputs_with_writer_async(
     parent_dir: Option<&Path>,
     writer: &mut IndexOutput,
     merger_inputs: Vec<FileMergeOptions>,
@@ -110,9 +110,11 @@ pub(crate) async fn merge_inputs_with_writer_async(
 mod test {
 
     use anyhow::{anyhow, Result};
-    use futures::executor::block_on;
-    use futures::pin_mut;
-    use futures::stream::{self, Peekable, StreamExt};
+    use futures::{
+        executor::block_on,
+        pin_mut,
+        stream::{self, Peekable, StreamExt},
+    };
 
     #[derive(PartialEq, Debug)]
     pub struct Item {
