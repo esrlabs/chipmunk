@@ -10,8 +10,10 @@ export class ViewsEventsService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewsEventsService');
     private _subjects: {
         onResize: Subject<ISize>,
+        onRowHover: Subject<number>,
     } = {
-        onResize: new Subject<ISize>()
+        onResize: new Subject<ISize>(),
+        onRowHover: new Subject<number>(),
     };
 
     constructor() {
@@ -24,18 +26,22 @@ export class ViewsEventsService {
     }
 
     public getObservable(): {
-        onResize: Observable<ISize>
+        onResize: Observable<ISize>,
+        onRowHover: Observable<number>
     } {
         return {
             onResize: this._subjects.onResize.asObservable(),
+            onRowHover: this._subjects.onRowHover.asObservable(),
         };
     }
 
     public fire(): {
-        onResize: () => void
+        onResize: () => void,
+        onRowHover: (position: number) => void
     } {
         return {
-            onResize: () => { this._onWindowResize(); }
+            onResize: () => { this._onWindowResize(); },
+            onRowHover: (position: number) => { this._subjects.onRowHover.next(position); }
         };
     }
 

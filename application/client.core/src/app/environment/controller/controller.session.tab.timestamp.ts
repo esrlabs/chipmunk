@@ -470,7 +470,7 @@ TODO:
                 return resolve(selection);
             }
             this.getTimestamp(selection).then((tm: number | undefined) => {
-                resolve(`${tm}ms`);
+                resolve(`${Math.abs(this._open.start.timestamp - tm)}ms`);
             }).catch((err: Error) => {
                 this._logger.error(`injectHighlight:: Fail get timestamp due error: ${err.message}`);
                 resolve(undefined);

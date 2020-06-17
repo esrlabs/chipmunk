@@ -15,6 +15,7 @@ import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
 import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
 import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
+import ViewsEventsService from '../../../services/standalone/service.views.events';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 
  enum ERenderType {
@@ -78,14 +79,15 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (target === undefined || target === null) {
             return;
         }
+        ViewsEventsService.fire().onRowHover(this._getPosition());
         OutputParsersService.getTooltipContent(target, this.str, this._getPosition()).then((content: string | undefined) => {
             if (content === undefined) {
                 return;
             }
             this._ng_tooltip = {
                 content: content,
-                top: event.offsetX,
-                left: event.offsetY,
+                top: 0,
+                left: event.clientX,
             };
             this._forceUpdate();
         }).catch((err: Error) => {
@@ -94,7 +96,28 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     @HostListener('mouseout', ['$event.target']) onMouseOut() {
+        if (this._ng_tooltip === undefined) {
+            return;
+        }
+        ViewsEventsService.fire().onRowHover(-1);
         this._ng_tooltip = undefined;
+        this._forceUpdate();
+    }
+
+    @HostListener('mouseleave', ['$event.target']) onMouseLeave() {
+        if (this._ng_tooltip === undefined) {
+            return;
+        }
+        ViewsEventsService.fire().onRowHover(-1);
+        this._ng_tooltip = undefined;
+        this._forceUpdate();
+    }
+
+    @HostListener('mousemove', ['$event']) onMouseMove(event: MouseEvent) {
+        if (this._ng_tooltip === undefined) {
+            return;
+        }
+        this._ng_tooltip.left = event.clientX;
         this._forceUpdate();
     }
 
@@ -103,6 +126,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._onRankChanged = this._onRankChanged.bind(this);
         this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch.bind(this));
         this._subscriptions.onRepain = OutputParsersService.getObservable().onRepain.subscribe(this._onRepain.bind(this));
+        this._subscriptions.onRowHover = ViewsEventsService.getObservable().onRowHover.subscribe(this._onRowHover.bind(this));
     }
 
     public ngOnDestroy() {
@@ -334,6 +358,17 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             return;
         }
         this._render();
+        this._forceUpdate();
+    }
+
+    private _onRowHover(position: number) {
+        if (this._ng_tooltip === undefined) {
+            return;
+        }
+        if (this._getPosition() === position) {
+            return;
+        }
+        this._ng_tooltip = undefined;
         this._forceUpdate();
     }
 

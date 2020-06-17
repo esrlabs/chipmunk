@@ -13,13 +13,19 @@
     cursor: text;
     & span.tooltip{
         position: absolute;
-        display: block;
+        display: none;
         background: @scheme-color-accent;
         color: @scheme-color-0;
         padding: 3px 6px;
         border-radius: 2px;
         z-index: 10;
-        margin-top: -24px;
+        margin-top: -28px;
+        animation: row-tooltip-animation ease-in-out 300ms forwards;
+    }
+    &:hover {
+        & span.tooltip{
+            display: block;
+        }
     }
     & div.wrapper{
         position: relative;
@@ -191,6 +197,14 @@
                 height: 10px;
                 max-height: 10px;
             }
+        }
+    }
+    @keyframes row-tooltip-animation{
+        0%{
+            opacity: 0;
+        }
+        100%{
+            opacity: 1;
         }
     }
 }
