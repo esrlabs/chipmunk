@@ -63,7 +63,6 @@ local/**/*
 application/apps/indexer-neon/native/artifacts.json
 *portable.tgz
 **/*.metadata.json
-application/client.libs/chipmunk.client.toolkit/package-lock.json
 application/apps/indexer-neon/out/
 application/sandbox/serial/render/lib/views/dialog/port.available
 sandbox
