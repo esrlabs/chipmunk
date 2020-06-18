@@ -618,7 +618,7 @@ pub enum FormatCheckResult {
     FormatInvalid(String),
 }
 
-pub fn check_format(format: &str) -> FormatCheckResult {
+pub fn check_format(format: &str, miss_year: bool) -> FormatCheckResult {
     match lookup_regex_for_format_str(format) {
         Err(e) => FormatCheckResult::FormatInvalid(format!("format invalid: {}", e)),
         Ok(regex) => {
@@ -631,7 +631,7 @@ pub fn check_format(format: &str) -> FormatCheckResult {
             if s.contains(ABSOLUTE_MS_TAG) {
                 FormatCheckResult::FormatRegex(regex.as_str().to_string())
             } else {
-                if !s.contains(YEAR_GROUP) && !s.contains(YEAR_SHORT_GROUP) {
+                if !miss_year && !s.contains(YEAR_GROUP) && !s.contains(YEAR_SHORT_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
                         "missing long or short year ({} or {})",
                         YEAR_FORMAT_TAG, YEAR_SHORT_FORMAT_TAG,
