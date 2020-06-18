@@ -24,6 +24,7 @@ export interface IOptions {
      * this property comes from INotifications and should be removed from popup interfaces
      */
     once?: boolean;
+
 }
 
 /**

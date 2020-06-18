@@ -226,7 +226,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         });
         groups.forEach((group: IRange[]) => {
             this._refs.push(Math.min(...group.map(range => range.start.position), ...group.map(range => range.end.position)));
-            labels.push(`${Math.min(...group.map(range => range.start.position))} - ${Math.max(...group.map(range => range.start.position))}`);
+            labels.push(`${Math.min(...group.map(range => range.start.position), ...group.map(range => range.end.position))} - ${Math.max(...group.map(range => range.start.position), ...group.map(range => range.end.position))}`);
         });
         return {
             datasets: datasets,
@@ -241,6 +241,12 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         //       - [x] remove all / remove except
         //       - [x] bug with merge view: no scale higlighting (select first 10 files from examples, linux)
         //       - recent files dialog was empty
+        //       - [x] add run-time hihglight of new format matches (on add popup)
+        //       - [x] bug with merge view
+        //       - [x] fix row number on left axis-time
+        //       - format - just timestamp should be supported (reg: /s/)
+        //       - global YEAR definition per session? as default -> current
+
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {

@@ -312,6 +312,9 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
         const values: { [key: string]: string } = {};
         const styles: { [key: string]: string } = {};
         const exec: RegExpExecArray = regexp.exec(str);
+        if (exec === null) {
+            return str;
+        }
         Object.keys(exec.groups).forEach((group: string) => {
             values[sValue] = exec.groups[group];
             styles[sStyle] = cb(group);

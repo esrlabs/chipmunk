@@ -3,7 +3,27 @@ import { IFormat, ControllerSessionTabTimestamp } from '../../../controller/cont
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { ErrorStateMatcher } from '@angular/material/core';
 
+import OutputParsersService from '../../../services/standalone/service.output.parsers';
+
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+class TimestampRowMatchParser extends Toolkit.RowCommonParser {
+
+    static id: string = 'runtime-timestamp-matcher';
+
+    private _regexp: RegExp;
+
+    constructor(regexp: RegExp) {
+        super();
+        this._regexp = regexp;
+    }
+    public parse(str: string, themeTypeRef: Toolkit.EThemeType, row: Toolkit.IRowInfo): string {
+        return str.replace(this._regexp, (_match: string) => {
+            return `<span class="accent">${_match}</span>`;
+        });
+    }
+
+}
 
 export class ForamtErrorStateMatcher implements ErrorStateMatcher {
     private _controller: ControllerSessionTabTimestamp;
@@ -21,12 +41,14 @@ export class ForamtErrorStateMatcher implements ErrorStateMatcher {
         const valid = this._valid;
         if (this._last_checked !== control.value) {
             this._last_checked = control.value;
-            this._controller.validate(control.value).then(() => {
+            this._controller.validate(control.value).then((regexp: RegExp) => {
                 this._valid = true;
                 this._error = undefined;
+                OutputParsersService.setSessionParser(TimestampRowMatchParser.id, new TimestampRowMatchParser(regexp), undefined, true);
             }).catch((error: Error) => {
                 this._valid = false;
                 this._error = error.message;
+                OutputParsersService.removeSessionParser(TimestampRowMatchParser.id, undefined, true);
             }).finally(() => {
                 if (valid !== this._valid) {
                     this._update();
@@ -77,7 +99,7 @@ export class DialogsMeasurementAddFormatComponent implements AfterViewInit, Afte
     }
 
     ngOnDestroy() {
-
+        OutputParsersService.removeSessionParser(TimestampRowMatchParser.id, undefined, true);
     }
 
     public _ng_onFormatChange() {
