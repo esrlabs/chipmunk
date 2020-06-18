@@ -188,12 +188,6 @@ export class OutputParsersService {
                 row.str = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
             });
         }
-        /*
-        // Inject timestamps highlight
-        if (this._timestamp !== undefined) {
-            row.str = this._timestamp.injectHighlightFormat(row.str);
-        }
-        */
         return row.str;
     }
 
@@ -278,7 +272,7 @@ export class OutputParsersService {
         return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
     }
 
-    public setSessionParser(id: string, parser: Toolkit.RowCommonParser, session?: string) {
+    public setSessionParser(id: string, parser: Toolkit.RowCommonParser, session?: string, update: boolean = false) {
         if (this._session === undefined && session === undefined) {
             return;
         }
@@ -289,6 +283,25 @@ export class OutputParsersService {
         }
         parsers.set(id, parser);
         this._parsers.session.set(session, parsers);
+        if (update) {
+            this.updateRowsView();
+        }
+    }
+
+    public removeSessionParser(id: string, session?: string, update: boolean = false) {
+        if (this._session === undefined && session === undefined) {
+            return;
+        }
+        session = session === undefined ? this._session : session;
+        const parsers: Map<string, Toolkit.RowCommonParser> | undefined = this._parsers.session.get(session);
+        if (parsers === undefined) {
+            return;
+        }
+        parsers.delete(id);
+        this._parsers.session.set(session, parsers);
+        if (update) {
+            this.updateRowsView();
+        }
     }
 
     public setSessionTooltip(tooltip: ITooltip, session?: string) {

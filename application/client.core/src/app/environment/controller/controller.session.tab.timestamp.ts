@@ -428,30 +428,6 @@ export class ControllerSessionTabTimestamp {
         return color;
     }
 
-/*
-    public injectHighlight(str: string): Promise<string> {
-        return new Promise((resolve, reject) => {
-            if (this._open === undefined) {
-                return resolve(str);
-            }
-            this.getTimestamp(str).then((tm: number | undefined) => {
-                this._format.forEach((format: IFormat) => {
-                    str = str.replace(format.regexp, (_match: string) => {
-                        return `<span class="timestampmatch" data-duration="${tm === undefined ? '-' : Math.abs(tm - this._open.start.timestamp)}">${_match}</span>`;
-                    });
-                });
-                resolve(str);
-            }).catch((err: Error) => {
-                this._logger.error(`injectHighlight:: Fail get timestamp due error: ${err.message}`);
-            });
-        });
-    }
-*/
-
-/*
-TODO:
- - add run-time hihglight of new format matches (on add popup)
-*/
     public removeFormatDef(format: string) {
         this._format = this._format.filter(f => f.format !== format);
         this._subjects.formats.next();
