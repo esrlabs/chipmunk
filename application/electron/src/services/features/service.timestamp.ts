@@ -92,7 +92,7 @@ class ServiceTimestamp implements IService {
     private _onTimestampTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.TimestampTestRequest = request as IPCMessages.TimestampTestRequest;
         const controller: MergeFormat = new MergeFormat(req.format);
-        controller.validate().then((regexp: string) => {
+        controller.validate(true).then((regexp: string) => {
             if (regexp === undefined) {
                 response(new IPCMessages.TimestampTestResponse({
                     id: req.id,

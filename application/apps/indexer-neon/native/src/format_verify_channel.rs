@@ -18,11 +18,12 @@ impl FormatVerifyEmitter {
     pub fn start_format_verification_in_thread(
         self: &mut FormatVerifyEmitter,
         format_string: String,
+        miss_year: bool,
         result_sender: cc::Sender<FormatResult>,
         shutdown_rx: cc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
-            verify_format_with_progress(format_string, result_sender, Some(shutdown_rx));
+            verify_format_with_progress(format_string, miss_year, result_sender, Some(shutdown_rx));
             debug!("back format verification finished!",);
         }));
     }
@@ -30,11 +31,12 @@ impl FormatVerifyEmitter {
 
 fn verify_format_with_progress(
     format_string: String,
+    miss_year: bool,
     tx: cc::Sender<FormatResult>,
     _shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("verify format");
-    let res = check_format(&format_string);
+    let res = check_format(&format_string, miss_year);
     match tx.send(Ok(IndexingProgress::GotItem { item: res })) {
         Ok(()) => (),
         Err(_) => warn!("could not communicate errors to js"),
@@ -47,6 +49,7 @@ pub class JsFormatVerificationEmitter for FormatVerifyEmitter {
     init(mut cx) {
         trace!("-> JsFormatVerificationEmitter");
         let format_string = cx.argument::<JsString>(0)?.value();
+        let miss_year = cx.argument::<JsBoolean>(1)?.value();
         trace!("{:?}", format_string);
         let chunk_result_channel: (cc::Sender<FormatResult>, cc::Receiver<FormatResult>) = cc::unbounded();
         let shutdown_channel = cc::unbounded();
@@ -57,6 +60,7 @@ pub class JsFormatVerificationEmitter for FormatVerifyEmitter {
         };
         emitter.start_format_verification_in_thread(
             format_string,
+            miss_year,
             chunk_result_channel.0,
             shutdown_channel.1,
         );

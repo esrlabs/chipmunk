@@ -128,7 +128,8 @@ export type TFormatVerificationAsyncEventObject =
   * in case the input was invalid, we deliever a negative result with the reason
   */
 export function checkFormat(
-  formatString: string
+  formatString: string,
+  missYear: boolean = false,
 ): CancelablePromise<void, void, TFormatVerificationAsyncEvents, TFormatVerificationAsyncEventObject> {
   return new CancelablePromise<
     void,
@@ -144,7 +145,7 @@ export function checkFormat(
         log(`Get command "cancel" operation. Start cancellation`);
         emitter.requestShutdown();
       });
-      const channel = new RustFormatVerificationChannel(formatString);
+      const channel = new RustFormatVerificationChannel(formatString, missYear);
       const emitter = new NativeEventEmitter(channel);
       let totalTicks = 1;
       emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: IFormatCheckResult) => {

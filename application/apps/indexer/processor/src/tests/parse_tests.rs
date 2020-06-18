@@ -799,15 +799,16 @@ mod tests {
                 _ => false,
             }
         }
-        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ssTZD")));
-        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ss"))); // OK without timezone
-        assert!(!format_was_ok(check_format("MM-DDThh:mm:ss"))); // no year
-        assert!(!format_was_ok(check_format("YYYY-DDThh:mm:ss"))); // no month
-        assert!(format_was_ok(check_format("YYYY-DD(MMM)Thh:mm:ss"))); // short month
-        assert!(!format_was_ok(check_format("YYYY-MMThh:mm:ss"))); // no days
-        assert!(!format_was_ok(check_format("YYYY-DD-MMTmm:ss"))); // no hours
-        assert!(!format_was_ok(check_format("YYYY-DD-MMThh:ss"))); // no minutes
-        assert!(format_was_ok(check_format("YYYY-DD-MMThh:mm"))); // no seconds should be ok
+        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ssTZD", false)));
+        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ss", false))); // OK without timezone
+        assert!(!format_was_ok(check_format("MM-DDThh:mm:ss", false))); // no year - false
+        assert!(!format_was_ok(check_format("MM-DDThh:mm:ss", true))); // no year - true
+        assert!(!format_was_ok(check_format("YYYY-DDThh:mm:ss", false))); // no month
+        assert!(format_was_ok(check_format("YYYY-DD(MMM)Thh:mm:ss", false))); // short month
+        assert!(!format_was_ok(check_format("YYYY-MMThh:mm:ss", false))); // no days
+        assert!(!format_was_ok(check_format("YYYY-DD-MMTmm:ss", false))); // no hours
+        assert!(!format_was_ok(check_format("YYYY-DD-MMThh:ss", false))); // no minutes
+        assert!(format_was_ok(check_format("YYYY-DD-MMThh:mm", false))); // no seconds should be ok
     }
 
     #[test]

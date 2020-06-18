@@ -156,7 +156,7 @@ export function testCallConcatFiles(concatConfig: string, out: string, chunk_siz
 		}
 	});
 }
-export function testCheckFormatString(input: string) {
+export function testCheckFormatString(input: string, missYear: boolean = false) {
 	log.setDefaultLevel(log.levels.DEBUG);
 	log.debug(`calling testCheckFormatString with ${input}`);
 	const hrstart = process.hrtime();
@@ -167,7 +167,7 @@ export function testCheckFormatString(input: string) {
 		let onNotification = (notification: INeonNotification) => {
 			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
 		};
-		checkFormat(input)
+		checkFormat(input, missYear)
 			.then(() => {
 				const hrend = process.hrtime(hrstart);
 				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
