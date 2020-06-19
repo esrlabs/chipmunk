@@ -105,7 +105,7 @@ export class ServiceFileRecent implements IService {
     }
 
     public get(): Promise<IStorageScheme.IRecentFile[]> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
             const checked: IStorageScheme.IRecentFile[] = [];
             Promise.all(stored.recentFiles.map((file: IStorageScheme.IRecentFile) => {
@@ -128,6 +128,8 @@ export class ServiceFileRecent implements IService {
                 });
                 ServiceElectron.updateMenu();
                 resolve(checked);
+            }).catch((error: Error) => {
+                reject(new Error(`Fail to get recent file list due to error: ${error.message}`));
             });
         });
     }
@@ -147,11 +149,13 @@ export class ServiceFileRecent implements IService {
             response(new IPCMessages.FilesRecentResponse({
                 files: files,
             }));
+        }).catch((error: Error) => {
+            this._logger.warn(error.message);
         });
     }
 
     private _validate(): Promise<IStorageScheme.IRecentFilterFile[]> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
             const files: IStorageScheme.IRecentFilterFile[] = [];
             Promise.all(stored.recentFiltersFiles.map((file: IStorageScheme.IRecentFilterFile) => {
@@ -173,6 +177,8 @@ export class ServiceFileRecent implements IService {
                 });
                 ServiceElectron.updateMenu();
                 resolve(files);
+            }).catch((error: Error) => {
+                reject(new Error(`Fail to validate recnt files due to error: ${error.message}`));
             });
         });
     }
@@ -185,6 +191,8 @@ export class ServiceFileRecent implements IService {
             response(new IPCMessages.FiltersFilesRecentResponse({
                 files: files,
             }));
+        }).catch((error: Error) => {
+            this._logger.warn(error.message);
         });
     }
 
