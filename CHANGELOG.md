@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.4.1] - 06/19/2020
+* [](fix) fix recent filter saving
+
 ### [2.4.0] - 06/19/2020
 * [#821](fix) fix notifications minimal width
 * [#821](fix) prevent notification on timestamp discover
