@@ -677,11 +677,11 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _addRecentFilter() {
-        if (this._ng_inputComRef.value.trim() === '') {
+        if (this._ng_inputCtrl.value.trim() === '') {
             return;
         }
         ElectronIpcService.request(new IPCMessages.SearchRecentAddRequest({
-            request: this._ng_inputComRef.value,
+            request: this._ng_inputCtrl.value,
         }), IPCMessages.SearchRecentAddResponse).then((response: IPCMessages.SearchRecentAddResponse) => {
             if (response.error) {
                 return this._logger.error(`Fail to add a recent filter due error: ${response.error}`);
