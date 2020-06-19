@@ -69,7 +69,7 @@ class ServiceTimestamp implements IService {
             }));
         }
         const controller: MergeDiscover = new MergeDiscover([{ file: filedata.file }]);
-        controller.discover().then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
+        controller.discover(undefined, true).then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
             response(new IPCMessages.TimestampDiscoverResponse({
                 id: req.id,
                 format: processed[0].format,
