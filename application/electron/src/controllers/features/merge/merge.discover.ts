@@ -1,4 +1,5 @@
 // tslint:disable:max-classes-per-file
+// tslint:disable: no-unused-expression
 import { CancelablePromise, Processor, Progress, Units } from "indexer-neon";
 import { Subscription } from "../../../tools/index";
 import { PCREToECMARegExp, isRegStrValid } from '../../../tools/tools.regexp';
@@ -40,7 +41,7 @@ export default class MergeDiscover {
         this._session = session === undefined ? ServiceStreams.getActiveStreamId() : session;
     }
 
-    public discover(onProgress?: (ticks: Progress.ITicks) => void): Promise<IPCMessages.IMergeFilesDiscoverResult[]> {
+    public discover(onProgress?: (ticks: Progress.ITicks) => void, silence: boolean = false): Promise<IPCMessages.IMergeFilesDiscoverResult[]> {
         const results: IPCMessages.IMergeFilesDiscoverResult[] = [];
         return new Promise((resolve, reject) => {
             // Remember active session
@@ -65,7 +66,7 @@ export default class MergeDiscover {
                 if (this._closed) {
                     return resolve([]);
                 }
-                ServiceNotifications.notify({
+                !silence && ServiceNotifications.notify({
                     message:
                         error.message.length > 1500
                             ? `${error.message.substr(0, 1500)}...`
@@ -104,7 +105,7 @@ export default class MergeDiscover {
                     onProgress(event);
                 }
             }).on('notification', (event: Progress.INeonNotification) => {
-                ServiceNotifications.notifyFromNeon(
+                !silence && ServiceNotifications.notifyFromNeon(
                     event,
                     "discover timestamps",
                     this._session,
