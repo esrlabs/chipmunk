@@ -256,6 +256,20 @@ class ServiceFileOpener implements IService {
                         }
                         if (stats.isFile()) {
                             // File
+                            if (stats.size === 0) {
+                                return resolved(allFiles.push({
+                                    hasParser: false,
+                                    isHidden: false,
+                                    lastModified: stats.mtimeMs,
+                                    lastModifiedDate: stats.mtime,
+                                    name: path.basename(file),
+                                    path: file,
+                                    size: stats.size,
+                                    type: 'file',
+                                    checked: false,
+                                    disabled: true,
+                                }));
+                            }
                             Promise.all([getParserForFile(file), isHidden(file)]).then((values: [AFileParser | undefined, boolean | undefined]) => {
                                 const parser = values[0];
                                 const hideStatus = (values[1] === undefined) ? false : values[1];
