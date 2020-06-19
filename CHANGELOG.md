@@ -1,5 +1,47 @@
 # Changelog
 
+### [2.4.0] - 06/19/2020
+* [#821](fix) fix notifications minimal width
+* [#821](fix) prevent notification on timestamp discover
+* [#821](feat) allow miss year in format
+* [#821](feat) runtime format match highlight
+* [#821](fix) fix toolkit on timestamp selection
+* [#821](feat) tooltip API (without plugins support)
+* [#821](feat) add session parser for rows
+* [#821](feat) addition IPC
+* [#821](feat)indexer: addition API
+* [#821](feat) multiple formats support
+* [#821](feat) manage formats (UI)
+* [#821](feat) support stacked charts
+* [#821](feat) addition functions into context menu
+* [#821](feat) switch to chart.js
+* [#821](feat) ranges in main view
+* [#821](feat) correct IPC messages format
+* [#821](feat) template of measurement view and controller
+* [#821](feat) new service to detect a timestamps
+* [](chore): version bump from 2.3.0 => 2.3.1
+* [#825](fix) Color only on search term not all span
+* [#825] Apply requested changes
+* [#706](feat) New search algorithm; blue highlight
+* [#707](refact) Apply requested changes
+* [#707](refact) Service for recent files
+* [#707](feat) Add exporting file to recent files
+* Updated package-lock files
+* Indexing datastructure refacturing
+  * simplify indexing config with owned data
+  * fix neon bindings for updated indexing config type
+* Format code & remove warnings
+* Dismiss deprecated failure library in favor of anyhow
+  Rework error-handling: Use anyhow and thiserror instead
+* Introduce async apis
+* Restructuring of merger
+  * adjust api for merging
+  * Refactoring of merger to make it testable
+  * add merger functionality in main
+  * neon indexer changes for new API for merging
+  * iterator for dlt
+  * simpler data types for merging
+
 ### [2.3.1] - 06/10/2020
 * [#822](feat) Context menu
 * [#822](refact) No selected no action
