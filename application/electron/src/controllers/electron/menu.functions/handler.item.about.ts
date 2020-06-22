@@ -8,7 +8,8 @@ import * as os from 'os';
 const logger: Logger = new Logger('HandlerItemAbout');
 
 export default function about() {
-    if (os.platform() === 'darwin') {
+    const platform: string = os.platform();
+    if (platform === 'darwin' || platform === 'linux') {
         return exec('uname -v', (error: ExecException | null, stdout: string, stderr: string) => {
             if (error) {
                 logger.error(error.message);
