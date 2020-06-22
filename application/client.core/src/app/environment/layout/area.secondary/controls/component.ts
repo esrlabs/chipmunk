@@ -2,7 +2,11 @@ import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef } from
 import { AreaState } from '../../state';
 import { Observable, Subscription } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-material';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { ITab } from '../../../services/service.sessions.sidebar';
 
+import ToolbarSessionsService from '../../../services/service.sessions.toolbar';
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
 
 @Component({
     selector: 'app-layout-area-secondary-controls',
@@ -42,6 +46,29 @@ export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, O
         event.preventDefault();
         event.stopImmediatePropagation();
         return false;
+    }
+
+    public _ng_onAdd(event: MouseEvent) {
+        const tabs: ITab[] | undefined = ToolbarSessionsService.getInactiveTabs();
+        if (tabs === undefined || tabs.length === 0) {
+            return;
+        }
+        const items: IMenuItem[] = tabs.map((tab: ITab) => {
+            return {
+                caption: tab.name,
+                handler: () => {
+                    this.state.maximize();
+                    ToolbarSessionsService.addByGuid(tab.guid);
+                }
+            };
+        });
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
     private _onInjecton(injection: IComponentDesc) {

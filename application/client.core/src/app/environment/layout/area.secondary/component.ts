@@ -3,8 +3,10 @@ import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-ma
 import { AreaState } from '../state';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { LayoutSecondaryAreaControlsComponent } from './controls/component';
-import ToolbarSessionsService from '../../services/service.sessions.toolbar';
 import { IComponentDesc } from 'chipmunk-client-material';
+import { IChangeEvent } from '../../services/service.sessions.toolbar';
+
+import ToolbarSessionsService from '../../services/service.sessions.toolbar';
 
 @Component({
     selector: 'app-layout-area-secondary',
@@ -16,15 +18,9 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
 
     @Input() public state: AreaState;
 
-    public tabsService: TabsService;
+    public _ng_tabsService: TabsService;
 
-    private _subscriptions: {
-        minimized: Subscription | null,
-        updated: Subscription | null,
-    } = {
-        minimized: null,
-        updated: null,
-    };
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     private _subjects: {
         injectionIntoTitleBar: Subject<IComponentDesc>,
@@ -33,7 +29,11 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
     };
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this.tabsService = ToolbarSessionsService.getTabsService();
+        // Add common inputs for all tabs
+        ToolbarSessionsService.setCommonInputs({
+            injectionIntoTitleBar: this._subjects.injectionIntoTitleBar,
+        });
+        this._subscriptions.onTabServiceChange = ToolbarSessionsService.getObservable().change.subscribe(this._onTabServiceChange.bind(this));
     }
 
     ngAfterViewInit() {
@@ -41,20 +41,7 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.state.maximize();
-        // Add common inputs for all tabs
-        ToolbarSessionsService.setCommonInputs({
-            injectionIntoTitleBar: this._subjects.injectionIntoTitleBar,
-        });
-        // Set options area
-        this.tabsService.setOptions(new TabsOptions({ injections: { bar: {
-            factory: LayoutSecondaryAreaControlsComponent,
-            inputs: {
-                state: this.state,
-                injection: this._getObservable().injectionIntoTitleBar
-            }
-        }}}));
-        // Create default session
-        ToolbarSessionsService.create();
+        this._setService(ToolbarSessionsService.getTabsService());
         this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
         this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));
     }
@@ -72,6 +59,27 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
             return;
         }
         this.state.maximize();
+    }
+
+    private _onTabServiceChange(event: IChangeEvent) {
+        this._setService(event.service);
+    }
+
+    private _setService(service: TabsService | undefined) {
+        if (service === undefined) {
+            return;
+        }
+        // Set options area
+        service.setOptions(new TabsOptions({ injections: { bar: {
+            factory: LayoutSecondaryAreaControlsComponent,
+            inputs: {
+                state: this.state,
+                injection: this._getObservable().injectionIntoTitleBar
+            }
+        }}}));
+        this._ng_tabsService = service;
+        this._cdRef.detectChanges();
+
     }
 
     private _getObservable(): {

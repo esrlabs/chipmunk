@@ -23,8 +23,16 @@ export const CDefaultTabsGuids: IDefaultTabsGuids = {
     timemeasurement: Toolkit.guid(),
 };
 
+export interface IDefaultView {
+    name: string;
+    guid: string;
+    factory: any;
+    tabCaptionInjection?: any;
+    inputs: { [key: string]: any };
+    default?: boolean;
+}
 
-export const DefaultViews = [
+export const DefaultViews: IDefaultView[] = [
     {
         name: 'Time Measurement',
         guid: CDefaultTabsGuids.timemeasurement,
@@ -54,6 +62,7 @@ export const DefaultViews = [
         name: 'Search',
         guid: CDefaultTabsGuids.search,
         factory: ViewSearchComponent,
-        inputs: { }
+        inputs: { },
+        default: true,
     },
 ];
