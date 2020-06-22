@@ -1,8 +1,11 @@
 import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import SidebarSessionsService, { ITab } from '../../../services/service.sessions.sidebar';
+import { Subscription } from 'rxjs';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { AreaState } from '../../state';
+import { ITab } from '../../../services/service.sessions.sidebar';
+
+import SidebarSessionsService from '../../../services/service.sessions.sidebar';
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
 
 @Component({
     selector: 'app-layout-area-secondary-controls',
