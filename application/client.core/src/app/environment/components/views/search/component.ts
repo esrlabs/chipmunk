@@ -134,6 +134,14 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._ng_searchRequestId !== undefined;
     }
 
+    public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
+        if (event.key === 'Tab') {
+            this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
+            return false;
+        }
+        return true;
+    }
+
     public _ng_onKeyUpRequestInput(event?: KeyboardEvent) {
         if (this._fakeInputKeyEvent) {
             // We need fake flag to allow selecting item from popup by keyboard.
