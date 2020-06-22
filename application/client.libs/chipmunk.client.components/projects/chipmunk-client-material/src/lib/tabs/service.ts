@@ -74,6 +74,7 @@ export class TabsService {
     private _options: TabsOptions = new TabsOptions();
     private _minimized: boolean = false;
     private _history: ControllerSessionsHistroy = new ControllerSessionsHistroy();
+    private _guid: string = Tools.guid();
 
     constructor(params?: {
         tabs?: Map<string, ITabInternal>,
@@ -234,6 +235,10 @@ export class TabsService {
         this._tabs.set(guid, tab);
         this._subjects.updated.next(tab);
 
+    }
+
+    public getServiceGuid(): string {
+        return this._guid;
     }
 
     private _normalize(tab: ITab): ITabInternal | null {

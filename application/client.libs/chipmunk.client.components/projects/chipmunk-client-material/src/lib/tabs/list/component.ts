@@ -1,4 +1,4 @@
-import { Component, OnDestroy, Input, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, ViewChildren, QueryList } from '@angular/core';
+import { Component, OnDestroy, Input, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, ViewChildren, QueryList, OnChanges } from '@angular/core';
 import { ITabInternal, TabsService } from '../service';
 import { TabsOptions } from '../options';
 import { Subscription } from 'rxjs';
@@ -9,7 +9,7 @@ import { Subscription } from 'rxjs';
     styleUrls: ['./styles.less']
 })
 
-export class TabsListComponent implements OnDestroy, AfterViewInit {
+export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     @ViewChild('holdernode', {static: false}) _ng_holderNode: ElementRef;
     @ViewChild('tabsnode', {static: false}) _ng_tabsNode: ElementRef;
@@ -64,6 +64,12 @@ export class TabsListComponent implements OnDestroy, AfterViewInit {
             }
         });
         this._unsubscribeToWinEvents();
+    }
+
+    ngOnChanges() {
+        this._tabs = this.service.getTabs();
+        this.tabs = Array.from(this._tabs.values());
+        this._forceUpdate();
     }
 
     public _ng_onClick(tabkey: string) {

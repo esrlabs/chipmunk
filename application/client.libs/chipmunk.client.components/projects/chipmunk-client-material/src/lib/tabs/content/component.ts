@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterViewInit, OnChanges } from '@angular/core';
 import { ITab, TabsService } from '../service';
 import { Subscription } from 'rxjs';
 import { IComponentDesc } from '../../dynamic/component';
@@ -9,7 +9,7 @@ import { IComponentDesc } from '../../dynamic/component';
     styleUrls: ['./styles.less']
 })
 
-export class TabContentComponent implements OnDestroy, AfterViewInit {
+export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     @Input() public service: TabsService = null;
 
@@ -39,6 +39,10 @@ export class TabContentComponent implements OnDestroy, AfterViewInit {
                 this._subscriptions[key].unsubscribe();
             }
         });
+    }
+
+    ngOnChanges() {
+        this._getDefaultTab();
     }
 
     private async _getDefaultTab() {
