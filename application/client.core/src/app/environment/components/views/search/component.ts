@@ -136,7 +136,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
         if (event.key === 'Tab') {
-            this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
+            if (this._ng_autoComRef.activeOption) {
+                this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
+            }
             return false;
         }
         return true;
