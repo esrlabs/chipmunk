@@ -2,7 +2,7 @@ use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
-use processor::parse::{extract_posix_timestamp_by_format, TimestampByFormatResult};
+use processor::parse::{extract_posix_timestamp_by_format, TimestampByFormatResult, DateTimeReplacements};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -19,11 +19,12 @@ impl TimestampExtractEmitter {
         self: &mut TimestampExtractEmitter,
         input_string: String,
         format_string: String,
+        replacements: DateTimeReplacements,
         result_sender: cc::Sender<ExtractResult>,
         shutdown_rx: cc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
-            extract_timestamp_with_progress(input_string, format_string, result_sender, Some(shutdown_rx));
+            extract_timestamp_with_progress(input_string, format_string, replacements, result_sender, Some(shutdown_rx));
             debug!("back format verification finished!",);
         }));
     }
@@ -32,11 +33,12 @@ impl TimestampExtractEmitter {
 fn extract_timestamp_with_progress(
     input_string: String,
     format_string: String,
+    replacements: DateTimeReplacements,
     tx: cc::Sender<ExtractResult>,
     _shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("extracting timestamp");
-    let res = extract_posix_timestamp_by_format(&input_string, &format_string, None, Some(0));
+    let res = extract_posix_timestamp_by_format(&input_string, &format_string, replacements);
     match tx.send(Ok(IndexingProgress::GotItem { item: res })) {
         Ok(()) => (),
         Err(_) => warn!("could not communicate errors to js"),
@@ -51,6 +53,40 @@ pub class JsTimestampExtractEmitter for TimestampExtractEmitter {
         trace!("-> JsTimestampExtractEmitter");
         let input_string = cx.argument::<JsString>(0)?.value();
         let format_string = cx.argument::<JsString>(1)?.value();
+        let replacements_handle_day: Handle<JsValue> = cx.argument::<JsObject>(2)?.get(&mut cx, "day")?;
+        let replacements_handle_month: Handle<JsValue> = cx.argument::<JsObject>(2)?.get(&mut cx, "month")?;
+        let replacements_handle_year: Handle<JsValue> = cx.argument::<JsObject>(2)?.get(&mut cx, "year")?;
+        let replacements_handle_offset: Handle<JsValue> = cx.argument::<JsObject>(2)?.get(&mut cx, "offset")?;
+        let mut replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: Some(0),
+        };
+        if replacements_handle_day.is_a::<JsNumber>() {
+            replacements.day = Some(replacements_handle_day
+                .downcast::<JsNumber>()
+                .or_throw(&mut cx)?
+                .value() as u32);
+        }
+        if replacements_handle_month.is_a::<JsNumber>() {
+            replacements.month = Some(replacements_handle_month
+                .downcast::<JsNumber>()
+                .or_throw(&mut cx)?
+                .value() as u32);
+        }
+        if replacements_handle_year.is_a::<JsNumber>() {
+            replacements.year = Some(replacements_handle_year
+                .downcast::<JsNumber>()
+                .or_throw(&mut cx)?
+                .value() as i32);
+        }
+        if replacements_handle_offset.is_a::<JsNumber>() {
+            replacements.offset = Some(replacements_handle_offset
+                .downcast::<JsNumber>()
+                .or_throw(&mut cx)?
+                .value() as i64);
+        }
         trace!("{:?}/{:?}", input_string, format_string);
         let chunk_result_channel: (cc::Sender<ExtractResult>, cc::Receiver<ExtractResult>) = cc::unbounded();
         let shutdown_channel = cc::unbounded();
@@ -62,6 +98,7 @@ pub class JsTimestampExtractEmitter for TimestampExtractEmitter {
         emitter.start_extracting_timestamp_in_thread(
             input_string,
             format_string,
+            replacements,
             chunk_result_channel.0,
             shutdown_channel.1,
         );

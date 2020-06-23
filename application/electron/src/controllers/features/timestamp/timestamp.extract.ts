@@ -22,7 +22,11 @@ export default class TimestampExtract {
             const measure = this._logger.measure('Validate format');
             let error: string | undefined;
             let timestamp: number | undefined;
-            this._task = indexer.exctractTimestamp(this._input, this._format).then(() => {
+            this._task = indexer.exctractTimestamp(this._input, this._format, {
+                day: (new Date()).getDate(),
+                month: (new Date()).getMonth() + 1,
+                year: (new Date()).getFullYear(),
+            }).then(() => {
                 measure();
                 if (error) {
                     reject(new Error(error));

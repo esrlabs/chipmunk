@@ -369,8 +369,8 @@ pub struct FormatTestOptions {
 #[derive(Clone)]
 pub struct DateTimeReplacements {
     pub year: Option<i32>,
-    pub month: Option<i32>,
-    pub day: Option<i32>,
+    pub month: Option<u32>,
+    pub day: Option<u32>,
     pub offset: Option<i64>,
 }
 pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions> {
@@ -702,10 +702,10 @@ pub fn extract_posix_timestamp(
             return Ok((absolute_ms - replacements.offset.unwrap_or(0), false));
         }
     }
-    let day_capt = caps
-        .name(DAY_GROUP)
-        .ok_or_else(|| anyhow!("no group for days found in regex"))?;
-    let day: u32 = day_capt.as_str().parse()?;
+    let day: u32 = match caps.name(DAY_GROUP) {
+        Some(day_str) => day_str.as_str().parse().map_err(|e| anyhow!("fail parse day: {}", e)),
+        None => replacements.day.ok_or(anyhow!("no group for days found in regex")),
+    }?;
     let month = match caps.name(MONTH_GROUP) {
         Some(month_capt) => month_capt
             .as_str()
@@ -713,7 +713,7 @@ pub fn extract_posix_timestamp(
             .map_err(|e| anyhow!("could not parse month: {}", e)),
         None => match caps.name(MONTH_SHORT_NAME_GROUP) {
             Some(month_short_name) => parse_from_month(month_short_name.as_str()),
-            None => Err(anyhow!("no group for month found in regex")),
+            None => replacements.month.ok_or(anyhow!("no group for month found in regex")),
         },
     }?;
     let hour_capt = caps
@@ -820,15 +820,8 @@ pub enum TimestampByFormatResult {
 pub fn extract_posix_timestamp_by_format(
     line: &str,
     format_expr: &str,
-    year: Option<i32>,
-    time_offset: Option<i64>,
+    replacements: DateTimeReplacements,
 ) -> TimestampByFormatResult  {
-    let replacements: DateTimeReplacements = DateTimeReplacements {
-        day: None,
-        month: None,
-        year: year,
-        offset: time_offset,
-    };
     match lookup_regex_for_format_str(format_expr) {
         Err(e) => TimestampByFormatResult::Error(e.to_string()),
         Ok(regex) => match extract_posix_timestamp(line, &regex, replacements) {

@@ -34,8 +34,14 @@ fn parse_benchmark(c: &mut Criterion) {
             "109.169.248.247 - - no match here, not in the whole line 12/Dec/2015 is not enough",
             "31.202.233.212 - - [12/Dec/2015:18:46:21 +0100] GET /administrator",
         ];
+        let replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: None,
+        };
         for sample in samples.iter() {
-            b.iter(|| extract_posix_timestamp(sample, &regex, None, None))
+            b.iter(|| extract_posix_timestamp(sample, &regex, replacements.clone()))
         }
     });
     c.bench_function("parse_full_timestamp", move |b| {
