@@ -3,7 +3,7 @@
         [expanded]="true"
         [hideToggle]="true">
         <mat-expansion-panel-header>
-            <mat-panel-title>Available/detected formats:</mat-panel-title>
+            <mat-panel-title>Formats:</mat-panel-title>
         </mat-expansion-panel-header>
         <p class="t-small color-scheme-2" *ngIf="_ng_formats.length === 0">No formats are detected</p>
         <app-views-measurement-format *ngFor="let format of _ng_formats"
