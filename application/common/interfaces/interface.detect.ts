@@ -7,3 +7,8 @@ export interface ITimestampFormatOk {
     regex: string;
     flags: string[];
 }
+export interface ICheckFormatFlags {
+    miss_day: boolean,
+    miss_month: boolean,
+    miss_year: boolean,
+}

@@ -618,7 +618,14 @@ pub enum FormatCheckResult {
     FormatInvalid(String),
 }
 
-pub fn check_format(format: &str, miss_year: bool) -> FormatCheckResult {
+#[derive(Clone, Debug)]
+pub struct FormatCheckFlags {
+    pub miss_year: bool,
+    pub miss_month: bool,
+    pub miss_day: bool,
+}
+
+pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult {
     match lookup_regex_for_format_str(format) {
         Err(e) => FormatCheckResult::FormatInvalid(format!("format invalid: {}", e)),
         Ok(regex) => {
@@ -631,19 +638,19 @@ pub fn check_format(format: &str, miss_year: bool) -> FormatCheckResult {
             if s.contains(ABSOLUTE_MS_TAG) {
                 FormatCheckResult::FormatRegex(regex.as_str().to_string())
             } else {
-                if !miss_year && !s.contains(YEAR_GROUP) && !s.contains(YEAR_SHORT_GROUP) {
+                if !flags.miss_year && !s.contains(YEAR_GROUP) && !s.contains(YEAR_SHORT_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
                         "missing long or short year ({} or {})",
                         YEAR_FORMAT_TAG, YEAR_SHORT_FORMAT_TAG,
                     ));
                 }
-                if !s.contains(MONTH_GROUP) && !s.contains(MONTH_SHORT_NAME_GROUP) {
+                if !flags.miss_month && !s.contains(MONTH_GROUP) && !s.contains(MONTH_SHORT_NAME_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
                         "missing numeric or short month ({} or {})",
                         MONTH_FORMAT_TAG, MONTH_FORMAT_SHORT_NAME_TAG,
                     ));
                 }
-                if !s.contains(DAY_GROUP) {
+                if !flags.miss_day && !s.contains(DAY_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
                         "missing days ({})",
                         DAY_FORMAT_TAG

@@ -1,9 +1,13 @@
 
+import { ICheckFormatFlags } from '../../interfaces/interface.detect';
+
+export { ICheckFormatFlags };
 
 export interface ITimestampTestRequest {
     id: string;
     session: string;
     format: string;
+    flags?: ICheckFormatFlags;
 }
 
 export class TimestampTestRequest {
@@ -13,7 +17,7 @@ export class TimestampTestRequest {
     public id: string = '';
     public session: string = '';
     public format: string = '';
-
+    public flags: ICheckFormatFlags;
 
     constructor(params: ITimestampTestRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -27,6 +31,11 @@ export class TimestampTestRequest {
         }
         if (typeof params.format !== 'string' || params.format.trim() === '') {
             throw new Error(`format should be defined.`);
+        }
+        if (typeof params.flags === 'object' && params.flags !== null) {
+            this.flags = params.flags;
+        } else {
+            this.flags = { miss_day: false, miss_month: false, miss_year: false };
         }
         this.id = params.id;
         this.session = params.session;

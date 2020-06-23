@@ -310,6 +310,7 @@ export class ControllerSessionTabTimestamp {
                 session: this._guid,
                 format: format,
                 id: id,
+                flags: { miss_year: true, miss_month: true, miss_day: true }
             }), IPCMessages.TimestampTestResponse).then((response: IPCMessages.TimestampTestResponse) => {
                 if (typeof response.error === 'string') {
                     this._logger.error(`Fail to test files due error: ${response.error}`);

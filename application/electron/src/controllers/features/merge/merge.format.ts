@@ -15,12 +15,12 @@ export default class MergeFormat {
         this._format = format;
     }
 
-    public validate(missYear: boolean = false): Promise<string> {
+    public validate(flags: Processor.ICheckFormatFlags = { miss_year: false, miss_month: false, miss_day: false}): Promise<string> {
         return new Promise((resolve, reject) => {
             const measure = this._logger.measure('Validate format');
             let error: string | undefined;
             let format: string | undefined;
-            this._task = indexer.checkFormat(this._format, missYear).then(() => {
+            this._task = indexer.checkFormat(this._format, flags).then(() => {
                 measure();
                 if (error) {
                     reject(new Error(error));
