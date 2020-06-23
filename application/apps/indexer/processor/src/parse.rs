@@ -366,7 +366,13 @@ pub struct FormatTestOptions {
     pub lines_to_test: i64,
     pub format: String,
 }
-
+#[derive(Clone)]
+pub struct DateTimeReplacements {
+    pub year: Option<i32>,
+    pub month: Option<i32>,
+    pub day: Option<i32>,
+    pub offset: Option<i64>,
+}
 pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
@@ -417,7 +423,13 @@ pub(crate) fn scan_lines(
                 let trimmed = line.trim();
                 if !trimmed.is_empty() {
                     inspected_lines += 1;
-                    match extract_posix_timestamp(trimmed, &regex, year, Some(0)) {
+                    let replacements: DateTimeReplacements = DateTimeReplacements {
+                        day: None,
+                        month: None,
+                        year: year,
+                        offset: Some(0),
+                    };
+                    match extract_posix_timestamp(trimmed, &regex, replacements) {
                         // TODO work on fast parsers to replace regex parsing
                         // match parse_full_timestamp(trimmed, &regex) {
                         Ok((timestamp, _)) => {
@@ -678,8 +690,7 @@ pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult 
 pub fn extract_posix_timestamp(
     line: &str,
     regex: &Regex,
-    year: Option<i32>,
-    time_offset: Option<i64>,
+    replacements: DateTimeReplacements,
 ) -> Result<(i64, bool)> {
     let caps = regex
         .captures(line)
@@ -688,7 +699,7 @@ pub fn extract_posix_timestamp(
     if caps.len() == 1 + 1 {
         if let Some(abs_ms_capt) = caps.name(ABSOLUTE_MS_GROUP) {
             let absolute_ms: i64 = abs_ms_capt.as_str().parse()?;
-            return Ok((absolute_ms - time_offset.unwrap_or(0), false));
+            return Ok((absolute_ms - replacements.offset.unwrap_or(0), false));
         }
     }
     let day_capt = caps
@@ -745,13 +756,13 @@ pub fn extract_posix_timestamp(
     let millis = second_fractions;
 
     let timezone_n = caps.name(TIMEZONE_GROUP);
-    if time_offset.is_none() && timezone_n.is_none() {
+    if replacements.offset.is_none() && timezone_n.is_none() {
         return Err(anyhow!("timestamp cannot be applied, timezone not known"));
     }
-    let offset_result = if time_offset.is_none() {
+    let offset_result = if replacements.offset.is_none() {
         parse_timezone(&caps[TIMEZONE_GROUP])
     } else {
-        time_offset.ok_or_else(|| anyhow!("could not detect timestamp in (line {})"))
+        replacements.offset.ok_or_else(|| anyhow!("could not detect timestamp in (line {})"))
     };
 
     // for the year first try YYYY, then yy, then fallback on the supplied year
@@ -764,7 +775,7 @@ pub fn extract_posix_timestamp(
                 .parse()
                 .map(|ys: i32| ys + 2000i32)
                 .ok(),
-            None => year.or_else(|| Some(Utc::now().year())),
+            None => replacements.year.or_else(|| Some(Utc::now().year())),
         },
     };
 
@@ -812,9 +823,15 @@ pub fn extract_posix_timestamp_by_format(
     year: Option<i32>,
     time_offset: Option<i64>,
 ) -> TimestampByFormatResult  {
+    let replacements: DateTimeReplacements = DateTimeReplacements {
+        day: None,
+        month: None,
+        year: year,
+        offset: time_offset,
+    };
     match lookup_regex_for_format_str(format_expr) {
         Err(e) => TimestampByFormatResult::Error(e.to_string()),
-        Ok(regex) => match extract_posix_timestamp(line, &regex, year, time_offset) {
+        Ok(regex) => match extract_posix_timestamp(line, &regex, replacements) {
             Err(e) => TimestampByFormatResult::Error(e.to_string()),
             Ok((tm, _res)) => TimestampByFormatResult::Timestamp(tm),
         }
@@ -832,7 +849,13 @@ pub fn line_to_timed_line(
     line_nr: usize,
     reporter: &mut Reporter,
 ) -> Result<TimedLine> {
-    match extract_posix_timestamp(line, regex, year, time_offset) {
+    let replacements: DateTimeReplacements = DateTimeReplacements {
+        day: None,
+        month: None,
+        year: year,
+        offset: time_offset,
+    };
+    match extract_posix_timestamp(line, regex, replacements) {
         Ok((posix_timestamp, year_was_missing)) => Ok(TimedLine {
             timestamp: posix_timestamp,
             content: line.to_string(),
@@ -944,7 +967,13 @@ pub fn detect_timestamp_in_string(input: &str, offset: Option<i64>) -> Result<(i
     for format in AVAILABLE_FORMATS.iter() {
         let regex = &FORMAT_REGEX_MAPPING[format];
         if regex.is_match(trimmed) {
-            match extract_posix_timestamp(trimmed, regex, None, offset) {
+            let replacements: DateTimeReplacements = DateTimeReplacements {
+                day: None,
+                month: None,
+                year: None,
+                offset: offset,
+            };
+            match extract_posix_timestamp(trimmed, regex, replacements) {
                 Ok((timestamp, year_missing)) => {
                     return Ok((timestamp, year_missing, (*format).to_string()))
                 }
