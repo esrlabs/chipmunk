@@ -5,19 +5,23 @@ import { ScrollingModule                            } from '@angular/cdk/scrolli
 import { ViewMeasurementComponent                   } from './component';
 import { ViewMeasurementFormatsComponent            } from './formats/component';
 import { ViewMeasurementFormatComponent             } from './format/component';
+import { ViewMeasurementDefaultsComponent           } from './defaults/component';
 import { PrimitiveModule, ContainersModule          } from 'chipmunk-client-material';
 import { MatButtonModule                            } from '@angular/material/button';
 import { MatIconModule                              } from '@angular/material/icon';
 import { MatInputModule                             } from '@angular/material/input';
 import { MatFormFieldModule                         } from '@angular/material/form-field';
 import { MatProgressBarModule                       } from '@angular/material/progress-bar';
+import { MatExpansionModule                         } from '@angular/material/expansion';
+
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 const entryComponents = [
     ViewMeasurementComponent,
     ViewMeasurementFormatsComponent,
-    ViewMeasurementFormatComponent
+    ViewMeasurementFormatComponent,
+    ViewMeasurementDefaultsComponent
 ];
 
 const components = [ ...entryComponents ];
@@ -34,6 +38,7 @@ const components = [ ...entryComponents ];
         MatIconModule,
         MatFormFieldModule,
         MatProgressBarModule,
+        MatExpansionModule,
         FormsModule,
         ReactiveFormsModule ],
     declarations    : [ ...components ],
