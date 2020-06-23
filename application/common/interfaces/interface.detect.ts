@@ -12,3 +12,9 @@ export interface ICheckFormatFlags {
     miss_month: boolean,
     miss_year: boolean,
 }
+export interface DateTimeReplacements {
+    day?: number;
+    month?: number;
+    year?: number;
+    offset?: number;
+}

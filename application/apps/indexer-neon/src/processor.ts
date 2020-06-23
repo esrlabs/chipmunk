@@ -15,9 +15,9 @@ import { NativeEventEmitter, RustIndexerChannel, RustTimestampChannel, RustExpor
 import { TimeUnit } from './units';
 import { CancelablePromise } from './promise';
 import { IFileSaveParams } from '../../../common/interfaces/index';
-import { ICheckFormatFlags } from '../../../common/interfaces/interface.detect';
+import { ICheckFormatFlags, DateTimeReplacements } from '../../../common/interfaces/interface.detect';
 
-export { ICheckFormatFlags }
+export { ICheckFormatFlags, DateTimeReplacements }
 
 export interface IIndexerParams {
   file: string;
@@ -206,13 +206,15 @@ export type TTimestampExtractAsyncEventObject =
   * Extracts timestamp from input-string by datetime format
   * @param inputString 	the input string to check
   * @param formatString 	the format string to use
+  * @param {DateTimeReplacements} replacements definitions for DD, MM, YYYY and offset if something is missed
   *
   * this function will deliever a positive result with a timestamp that was produced for the input
   * in case the format was invalid, we deliever a negative result with the reason
   */
 export function exctractTimestamp(
   inputString: string,
-  formatString: string
+  formatString: string,
+  replacements: DateTimeReplacements,
 ): CancelablePromise<void, void, TTimestampExtractAsyncEvents, TTimestampExtractAsyncEventObject> {
   return new CancelablePromise<
     void,
@@ -228,7 +230,7 @@ export function exctractTimestamp(
         log(`Get command "cancel" operation. Start cancellation`);
         emitter.requestShutdown();
       });
-      const channel = new RustTimestampExtractChannel(inputString, formatString);
+      const channel = new RustTimestampExtractChannel(inputString, formatString, replacements);
       const emitter = new NativeEventEmitter(channel);
       let totalTicks = 1;
       emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: ITimestampByFormatResult) => {
