@@ -1,0 +1,38 @@
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Year</mat-label>
+    <input  type="number" 
+            aria-label="Year"
+            [(ngModel)]="_ng_year"
+            (ngModelChange)="_ng_onChange()"
+            [errorStateMatcher]="_ng_year_error"
+            matInput>
+    <mat-error *ngIf="!_ng_year_error.isValid()">
+        {{_ng_year_error.getError()}}
+    </mat-error>
+</mat-form-field>
+
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Month</mat-label>
+    <input  type="number" 
+            aria-label="Month"
+            [(ngModel)]="_ng_month"
+            (ngModelChange)="_ng_onChange()"
+            [errorStateMatcher]="_ng_month_error"
+            matInput>
+    <mat-error *ngIf="!_ng_month_error.isValid()">
+        {{_ng_month_error.getError()}}
+    </mat-error>
+</mat-form-field>
+
+<mat-form-field class="outline-native" appearance="outline">
+    <mat-label>Day</mat-label>
+    <input  type="number" 
+            aria-label="Day"
+            [(ngModel)]="_ng_day"
+            (ngModelChange)="_ng_onChange()"
+            [errorStateMatcher]="_ng_day_error"
+            matInput>
+    <mat-error *ngIf="!_ng_day_error.isValid()">
+        {{_ng_day_error.getError()}}
+    </mat-error>
+</mat-form-field>
