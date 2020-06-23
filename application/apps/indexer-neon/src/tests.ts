@@ -22,6 +22,8 @@ import {
 import * as log from 'loglevel';
 import { IConcatFilesParams, ConcatenatorInput } from './merger';
 import { StdoutController } from 'custom.stdout';
+import { Detect } from '../../../common/interfaces/index';
+
 import * as fs from 'fs';
 
 const stdout = new StdoutController(process.stdout, { handleStdoutGlobal: true });
@@ -156,7 +158,7 @@ export function testCallConcatFiles(concatConfig: string, out: string, chunk_siz
 		}
 	});
 }
-export function testCheckFormatString(input: string, missYear: boolean = false) {
+export function testCheckFormatString(input: string, flags: Detect.ICheckFormatFlags = { miss_year: false, miss_month: false, miss_day: false }) {
 	log.setDefaultLevel(log.levels.DEBUG);
 	log.debug(`calling testCheckFormatString with ${input}`);
 	const hrstart = process.hrtime();
@@ -167,7 +169,7 @@ export function testCheckFormatString(input: string, missYear: boolean = false) 
 		let onNotification = (notification: INeonNotification) => {
 			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
 		};
-		checkFormat(input, missYear)
+		checkFormat(input, flags)
 			.then(() => {
 				const hrend = process.hrtime(hrstart);
 				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);

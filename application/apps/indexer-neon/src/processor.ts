@@ -15,6 +15,9 @@ import { NativeEventEmitter, RustIndexerChannel, RustTimestampChannel, RustExpor
 import { TimeUnit } from './units';
 import { CancelablePromise } from './promise';
 import { IFileSaveParams } from '../../../common/interfaces/index';
+import { ICheckFormatFlags } from '../../../common/interfaces/interface.detect';
+
+export { ICheckFormatFlags }
 
 export interface IIndexerParams {
   file: string;
@@ -26,6 +29,7 @@ export interface IIndexerParams {
   timestamps: boolean;
   statusUpdates: boolean;
 }
+
 export interface IFilePath {
   path: string;
 }
@@ -35,6 +39,7 @@ export interface IIndexOptions {
   append?: boolean;
   timestamps?: boolean;
 }
+
 export interface IIndexOptionsChecked {
   chunkSize: number;
   append: boolean;
@@ -120,16 +125,18 @@ export type TFormatVerificationAsyncEventObject =
   | TFormatVerificationAsyncEventProgress
   | TFormatVerificationAsyncEventNotification;
 
+
 /**
   * Check a format string if it is generally valid
-  * @param formatString 	the format string to check
+  * @param {string} formatString 	the format string to check
+  * @param {ICheckFormatFlags} flags define possobility to skip checking of data parts (DD, MM, YYYY)
   *
   * this function will deliever a positive result with a regex that was produced for the input
   * in case the input was invalid, we deliever a negative result with the reason
   */
 export function checkFormat(
   formatString: string,
-  missYear: boolean = false,
+  flags: ICheckFormatFlags = { miss_day: false, miss_month: false, miss_year: false },
 ): CancelablePromise<void, void, TFormatVerificationAsyncEvents, TFormatVerificationAsyncEventObject> {
   return new CancelablePromise<
     void,
@@ -145,7 +152,7 @@ export function checkFormat(
         log(`Get command "cancel" operation. Start cancellation`);
         emitter.requestShutdown();
       });
-      const channel = new RustFormatVerificationChannel(formatString, missYear);
+      const channel = new RustFormatVerificationChannel(formatString, flags);
       const emitter = new NativeEventEmitter(channel);
       let totalTicks = 1;
       emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: IFormatCheckResult) => {

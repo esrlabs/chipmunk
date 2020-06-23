@@ -799,16 +799,26 @@ mod tests {
                 _ => false,
             }
         }
-        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ssTZD", false)));
-        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ss", false))); // OK without timezone
-        assert!(!format_was_ok(check_format("MM-DDThh:mm:ss", false))); // no year - false
-        assert!(!format_was_ok(check_format("MM-DDThh:mm:ss", true))); // no year - true
-        assert!(!format_was_ok(check_format("YYYY-DDThh:mm:ss", false))); // no month
-        assert!(format_was_ok(check_format("YYYY-DD(MMM)Thh:mm:ss", false))); // short month
-        assert!(!format_was_ok(check_format("YYYY-MMThh:mm:ss", false))); // no days
-        assert!(!format_was_ok(check_format("YYYY-DD-MMTmm:ss", false))); // no hours
-        assert!(!format_was_ok(check_format("YYYY-DD-MMThh:ss", false))); // no minutes
-        assert!(format_was_ok(check_format("YYYY-DD-MMThh:mm", false))); // no seconds should be ok
+        const flags: FormatCheckFlags = FormatCheckFlags {
+            miss_day: false,
+            miss_year: false,
+            miss_month: false,
+        };
+        const flags_miss_year: FormatCheckFlags = FormatCheckFlags {
+            miss_day: false,
+            miss_year: true,
+            miss_month: false,
+        };
+        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ssTZD", flags.clone())));
+        assert!(format_was_ok(check_format("YYYY-MM-DDThh:mm:ss", flags.clone()))); // OK without timezone
+        assert!(!format_was_ok(check_format("MM-DDThh:mm:ss", flags.clone()))); // no year - false
+        assert!(format_was_ok(check_format("MM-DDThh:mm:ss", flags_miss_year.clone()))); // no year - true
+        assert!(!format_was_ok(check_format("YYYY-DDThh:mm:ss", flags.clone()))); // no month
+        assert!(format_was_ok(check_format("YYYY-DD(MMM)Thh:mm:ss", flags.clone()))); // short month
+        assert!(!format_was_ok(check_format("YYYY-MMThh:mm:ss", flags.clone()))); // no days
+        assert!(!format_was_ok(check_format("YYYY-DD-MMTmm:ss", flags.clone()))); // no hours
+        assert!(!format_was_ok(check_format("YYYY-DD-MMThh:ss", flags.clone()))); // no minutes
+        assert!(format_was_ok(check_format("YYYY-DD-MMThh:mm", flags.clone()))); // no seconds should be ok
     }
 
     #[test]
