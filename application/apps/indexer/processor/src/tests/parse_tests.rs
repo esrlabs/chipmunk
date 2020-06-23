@@ -188,9 +188,14 @@ mod tests {
         let input = "04-04 11:52:50.229 +0200 D/oup.csc(  665): [728] MqttLogger";
         let regex = lookup_regex_for_format_str("MM-DD hh:mm:ss.s TZD")
             .expect("format string should produce regex");
-
+        let replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: Some(2017),
+            offset: Some(TWO_HOURS_IN_MS),
+        };
         let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, Some(2017), Some(TWO_HOURS_IN_MS))
+            extract_posix_timestamp(input, &regex, replacements)
                 .expect("convert to limed line should work");
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
@@ -206,8 +211,14 @@ mod tests {
         let input = "04-04 11:52:50 +0200 D/oup.csc(  665): [728] MqttLogger";
         let regex_to_use =
             lookup_regex_for_format_str("MM-DD hh:mm:ss TZD").expect("should be parsed");
+        let replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: Some(2017),
+            offset: Some(TWO_HOURS_IN_MS),
+        };
         let (timestamp, _) =
-            extract_posix_timestamp(input, &regex_to_use, Some(2017), Some(TWO_HOURS_IN_MS))
+            extract_posix_timestamp(input, &regex_to_use, replacements)
                 .expect("convert to limed line should work");
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
@@ -227,8 +238,14 @@ mod tests {
             "04-04-2017 11:52:50.229 0 0.764564113869644 0.7033032911158661 0.807587397462308";
         let regex = lookup_regex_for_format_str("MM-DD-YYYY hh:mm:ss.s")
             .expect("format string should produce regex");
+        let replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: Some(TWO_HOURS_IN_MS),
+        };
         let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+            extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
                 .and_hms(9, 52, 50) // UTC
@@ -243,8 +260,14 @@ mod tests {
         let input = "109.169.248.247 - - [04/Apr/2017:11:52:50 +0200] xyz";
         let regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD")
             .expect("format string should produce regex");
+        let replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: Some(TWO_HOURS_IN_MS),
+        };
         let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+            extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
             NaiveDate::from_ymd(2017, 4, 4)
                 .and_hms(9, 52, 50) // UTC
@@ -259,8 +282,14 @@ mod tests {
         let input = "[2019-07-30T10:08:02.555][DEBUG][indexing]: xyz";
         let regex = lookup_regex_for_format_str("YYYY-MM-DDThh:mm:ss.s")
             .expect("format string should produce regex");
+        let replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: Some(TWO_HOURS_IN_MS),
+        };
         let (timestamp, _) =
-            extract_posix_timestamp(input, &regex, None, Some(TWO_HOURS_IN_MS)).unwrap();
+            extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
             NaiveDate::from_ymd(2019, 7, 30)
                 .and_hms(8, 8, 2) // UTC
@@ -277,7 +306,13 @@ mod tests {
         let input = "2019-07-19 16:14:57.979: TIME: INFO: [TimeManagement] Timesync done: dt=1562948097296ms (flash=1562948095650ms, ble=2329ms";
         let regex = lookup_regex_for_format_str("YYYY-MM-DD hh:mm")
             .expect("format string should produce regex");
-        let (timestamp, _) = extract_posix_timestamp(input, &regex, None, Some(0)).unwrap();
+        let replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: Some(0),
+        };
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
             NaiveDate::from_ymd(2019, 7, 19)
                 .and_hms(16, 14, 0)
@@ -291,10 +326,22 @@ mod tests {
     fn test_parse_date_line_only_millis() {
         let input = "1559831467577 some logging here...";
         let regex = lookup_regex_for_format_str("sss").expect("format string should produce regex");
-        let (timestamp, _) = extract_posix_timestamp(input, &regex, None, None).unwrap();
+        let mut replacements: DateTimeReplacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: None,
+        };
+        let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements.clone()).unwrap();
         assert_eq!(1_559_831_467_577, timestamp);
+        replacements = DateTimeReplacements {
+            day: None,
+            month: None,
+            year: None,
+            offset: Some(-TWO_HOURS_IN_MS),
+        };
         let (timestamp_with_offset, _) =
-            extract_posix_timestamp(input, &regex, None, Some(-TWO_HOURS_IN_MS)).unwrap();
+            extract_posix_timestamp(input, &regex, replacements.clone()).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
 
