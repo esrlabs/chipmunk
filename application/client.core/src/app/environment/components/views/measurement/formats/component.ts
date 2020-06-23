@@ -50,6 +50,12 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
         this._subscribe();
     }
 
+    public _ng_getDefaultsTitle(): string {
+        const defaults = this.controller.getDefaults();
+        const value: string = `${defaults.year === undefined ? 'YYYY' : `${defaults.year}`}.${defaults.month === undefined ? 'MM' : `${defaults.month} `}.${defaults.day === undefined ? 'DD' : `${defaults.day} `}`;
+        return value === '' ? `No defaults` : value;
+    }
+
     public _ng_onContexMenu(event: MouseEvent, selection?: IFormat) {
         const items: IMenuItem[] = [
             {
@@ -105,6 +111,7 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
 
     private _subscribe() {
         this._subscriptions._onFormatsChange = this.controller.getObservable().formats.subscribe(this._onFormatsChange.bind(this));
+        this._subscriptions._onDefaultsChange = this.controller.getObservable().defaults.subscribe(this._onDefaultsChange.bind(this));
     }
 
     private _unsubscribe() {
@@ -115,6 +122,10 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
 
     private _onFormatsChange() {
         this._ng_formats = this.controller.getFormats();
+        this._forceUpdate();
+    }
+
+    private _onDefaultsChange() {
         this._forceUpdate();
     }
 
