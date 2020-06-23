@@ -1,4 +1,4 @@
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 
@@ -51,6 +51,12 @@ class TimestampRowParser extends Toolkit.RowCommonParser {
 const ROW_PARSER_ID = 'timestamps-row-parser';
 const ROW_TOOLTIP_ID = 'timestamps-row-tooltip';
 
+export interface DefaultDateParts {
+    day: number | undefined;
+    month: number | undefined;
+    year: number | undefined;
+}
+
 export class ControllerSessionTabTimestamp {
 
     private _guid: string;
@@ -62,14 +68,21 @@ export class ControllerSessionTabTimestamp {
     private _sequence: number = 0;
     private _open: IRange | undefined;
     private _parser: TimestampRowParser;
+    private _defaults: DefaultDateParts = {
+        day: undefined,
+        month: undefined,
+        year: undefined,
+    };
     private _subjects: {
         change: Subject<IRange>,
         update: Subject<IRange[]>,
         formats: Subject<void>,
+        defaults: Subject<DefaultDateParts>
     } = {
         change: new Subject(),
         update: new Subject(),
         formats: new Subject(),
+        defaults: new Subject(),
     };
 
     constructor(guid: string) {
@@ -105,11 +118,13 @@ export class ControllerSessionTabTimestamp {
         change: Observable<IRange>,
         update: Observable<IRange[]>,
         formats: Observable<void>,
+        defaults: Observable<DefaultDateParts>,
     } {
         return {
             change: this._subjects.change.asObservable(),
             update: this._subjects.update.asObservable(),
             formats: this._subjects.formats.asObservable(),
+            defaults: this._subjects.defaults.asObservable(),
         };
     }
 
@@ -439,6 +454,15 @@ export class ControllerSessionTabTimestamp {
         this._format.push(format);
         this._subjects.formats.next();
         OutputParsersService.updateRowsView();
+    }
+
+    public setDefaults(replacements: DefaultDateParts) {
+        this._defaults = replacements;
+        this._subjects.defaults.next(replacements);
+    }
+
+    public getDefaults(): DefaultDateParts {
+        return this._defaults;
     }
 
     private _getTooltipContent(row: string, position: number, selection: string): Promise<string | undefined> {
