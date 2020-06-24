@@ -37,9 +37,6 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
     }
 
     ngAfterViewInit() {
-        if (!(this.state)) {
-            return;
-        }
         this.state.maximize();
         this._setService(ToolbarSessionsService.getTabsService());
         this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
@@ -48,9 +45,7 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
 
     ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            if (this._subscriptions[key] !== null) {
-                this._subscriptions[key].unsubscribe();
-            }
+            this._subscriptions[key].unsubscribe();
         });
     }
 
