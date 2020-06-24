@@ -502,8 +502,8 @@ export { ITimestampTestRequest, TimestampTestRequest }
 import { ITimestampTestResponse, TimestampTestResponse } from './timestamp.test.response';
 export { ITimestampTestResponse, TimestampTestResponse }
 
-import { ITimestampExtractRequest, TimestampExtractRequest } from './timestamp.extract.request';
-export { ITimestampExtractRequest, TimestampExtractRequest }
+import { ITimestampExtractRequest, TimestampExtractRequest, DateTimeReplacements } from './timestamp.extract.request';
+export { ITimestampExtractRequest, TimestampExtractRequest, DateTimeReplacements }
 
 import { ITimestampExtractResponse, TimestampExtractResponse } from './timestamp.extract.response';
 export { ITimestampExtractResponse, TimestampExtractResponse }
