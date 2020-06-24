@@ -135,6 +135,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
+        // Need additional event handler for keydown
+        // If Tab is clicked focus on input is lost and event cannot be handled
+        // That's why it's necessary to check for keydown even instead
         if (event.key === 'Tab') {
             if (this._ng_autoComRef.activeOption) {
                 this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
