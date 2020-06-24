@@ -25,7 +25,7 @@ export default function about() {
     const platform: string = os.platform();
     if (platform === 'darwin' || platform === 'linux') {
         return exec('uname -v', (error: ExecException | null, stdout: string, stderr: string) => {
-            if (error || stderr.trim() === '') {
+            if (error || stderr.trim() !== '') {
                 error ? logger.error(error.message) : logger.error(stderr);
                 return _send('');
             }
