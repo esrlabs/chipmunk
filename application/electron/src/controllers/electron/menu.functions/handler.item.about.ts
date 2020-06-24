@@ -17,7 +17,7 @@ function _send(release: string) {
     ServiceElectron.IPC.send(new IPCMessages.TabCustomAbout({
         version: ServicePackage.get().version,
         dependencies: ServicePackage.get().chipmunk.versions,
-        platform: `${os.platform()}(${os.arch()}) / ${os.type()} / ${release}`,
+        platform: `${os.platform()}(${os.arch()}) / ${os.type()}${(release === '') ? '' : ` / ${release}`}`,
     }));
 }
 
