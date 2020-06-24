@@ -59,6 +59,7 @@ export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, O
                 handler: () => {
                     this.state.maximize();
                     ToolbarSessionsService.addByGuid(tab.guid);
+                    ToolbarSessionsService.setActive(tab.guid);
                 }
             };
         });

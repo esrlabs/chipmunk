@@ -211,7 +211,7 @@ export class ToolbarSessionsService implements IService {
         }
         let service: TabsService | undefined = this._sessions.get(controller.getGuid());
         if (service === undefined) {
-            service = new TabsService();
+            service = new TabsService({ guid: `toolbar: ${controller.getGuid()}` });
             this._getAvailableTabs().map((tab: ITab) => {
                 if (!this._isTabVisibleByDefault(tab.guid)) {
                     return;
