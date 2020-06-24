@@ -119,7 +119,7 @@ class ServiceTimestamp implements IService {
     private _onTimestampExtractRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.TimestampExtractRequest = request as IPCMessages.TimestampExtractRequest;
         const controller: TimestampExtract = new TimestampExtract(req.str, req.format);
-        controller.extract().then((timestamp: number) => {
+        controller.extract(req.replacements).then((timestamp: number) => {
             if (timestamp === undefined) {
                 response(new IPCMessages.TimestampExtractResponse({
                     id: req.id,
