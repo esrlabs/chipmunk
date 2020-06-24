@@ -1,10 +1,15 @@
 
 
+import { DateTimeReplacements } from '../../interfaces/interface.detect';
+
+export { DateTimeReplacements };
+
 export interface ITimestampExtractRequest {
     id: string;
     session: string;
     format: string;
     str: string;
+    replacements: DateTimeReplacements;
 }
 
 export class TimestampExtractRequest {
@@ -15,6 +20,7 @@ export class TimestampExtractRequest {
     public session: string = '';
     public format: string = '';
     public str: string = '';
+    public replacements: DateTimeReplacements;
 
 
     constructor(params: ITimestampExtractRequest) {
@@ -32,6 +38,11 @@ export class TimestampExtractRequest {
         }
         if (typeof params.str !== 'string' || params.str.trim() === '') {
             throw new Error(`str should be defined.`);
+        }
+        if (typeof params.replacements === 'object' && params.replacements !== null) {
+            this.replacements = params.replacements;
+        } else {
+            this.replacements = {};
         }
         this.id = params.id;
         this.session = params.session;
