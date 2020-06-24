@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, OnDestroy, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { TabsService } from './service';
 import { TabsOptions } from './options';
@@ -9,9 +9,9 @@ import { TabsOptions } from './options';
     styleUrls: ['./styles.less']
 })
 
-export class TabsComponent implements OnDestroy, AfterViewInit {
+export class TabsComponent implements OnDestroy, AfterViewInit, OnChanges {
 
-    @Input() public service: TabsService;
+    @Input() public service: TabsService | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -22,28 +22,47 @@ export class TabsComponent implements OnDestroy, AfterViewInit {
     }
 
     ngAfterViewInit() {
-        if (!this.service) {
-            return;
-        }
-        this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
+        this._subscribe();
         this._getDefaultOptions();
     }
 
     ngOnDestroy() {
         this._destroyed = true;
+        this._unsubscribe();
+    }
+
+    ngOnChanges(changes: SimpleChanges) {
+        this._subscribe();
+        this._getDefaultOptions();
+        this._forceUpdate();
+    }
+
+    private _subscribe() {
+        this._unsubscribe();
+        if (this.service === undefined) {
+            return;
+        }
+        this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
+    }
+
+    private _unsubscribe() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            if (this._subscriptions[key] !== null) {
-                this._subscriptions[key].unsubscribe();
-            }
+            this._subscriptions[key].unsubscribe();
         });
     }
 
     private async _getDefaultOptions() {
+        if (this.service === undefined) {
+            return;
+        }
         this._options = await this.service.getOptions();
         this._forceUpdate();
     }
 
     private async _onOptionsUpdated(options: TabsOptions) {
+        if (this.service === undefined) {
+            return;
+        }
         this._options = await options;
         this._forceUpdate();
     }

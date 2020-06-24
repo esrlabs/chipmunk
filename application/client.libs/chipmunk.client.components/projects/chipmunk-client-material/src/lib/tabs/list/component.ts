@@ -42,33 +42,18 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
     }
 
     ngAfterViewInit() {
-        if (!this.service) {
-            return;
-        }
-        this._subscriptions.new = this.service.getObservable().new.subscribe(this.onNewTab.bind(this));
-        this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
-        this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
-        this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
-        this._subscriptions.updated = this.service.getObservable().updated.subscribe(this._onTabUpdated.bind(this));
-        this._tabs = this.service.getTabs();
-        this.tabs = Array.from(this._tabs.values());
-        this._getDefaultOptions();
+        this._apply();
         this._onWindowResize(null);
     }
 
     ngOnDestroy() {
         this._destroyed = true;
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            if (this._subscriptions[key] !== null) {
-                this._subscriptions[key].unsubscribe();
-            }
-        });
+        this._unsubscribe();
         this._unsubscribeToWinEvents();
     }
 
     ngOnChanges() {
-        this._tabs = this.service.getTabs();
-        this.tabs = Array.from(this._tabs.values());
+        this._apply();
         this._forceUpdate();
     }
 
@@ -133,6 +118,28 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     public _ng_onContextMenu(event: MouseEvent, tab: ITabInternal) {
         tab.subjects.onTitleContextMenu.next(event);
+    }
+
+    private _subscribe() {
+        this._unsubscribe();
+        this._subscriptions.new = this.service.getObservable().new.subscribe(this.onNewTab.bind(this));
+        this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
+        this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
+        this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
+        this._subscriptions.updated = this.service.getObservable().updated.subscribe(this._onTabUpdated.bind(this));
+    }
+
+    private _unsubscribe() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
+    }
+
+    private _apply() {
+        this._subscribe();
+        this._tabs = this.service.getTabs();
+        this.tabs = Array.from(this._tabs.values());
+        this._getDefaultOptions();
     }
 
     private _subscribeToWinEvents() {
