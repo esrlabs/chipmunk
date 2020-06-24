@@ -1,6 +1,6 @@
 // tslint:disable:max-classes-per-file
 import { CancelablePromise, Processor, Progress } from "indexer-neon";
-import { PCREToECMARegExp, isRegStrValid } from '../../../tools/tools.regexp';
+import { IPCMessages } from '../../../services/service.electron';
 
 import Logger from "../../../tools/env.logger";
 import indexer from "indexer-neon";
@@ -17,16 +17,12 @@ export default class TimestampExtract {
         this._format = format;
     }
 
-    public extract(): Promise<number> {
+    public extract(replacements: IPCMessages.DateTimeReplacements): Promise<number> {
         return new Promise((resolve, reject) => {
             const measure = this._logger.measure('Validate format');
             let error: string | undefined;
             let timestamp: number | undefined;
-            this._task = indexer.exctractTimestamp(this._input, this._format, {
-                day: (new Date()).getDate(),
-                month: (new Date()).getMonth() + 1,
-                year: (new Date()).getFullYear(),
-            }).then(() => {
+            this._task = indexer.exctractTimestamp(this._input, this._format, this._serializeReplacements(replacements)).then(() => {
                 measure();
                 if (error) {
                     reject(new Error(error));
@@ -65,5 +61,30 @@ export default class TimestampExtract {
                 resolve();
             }).abort();
         });
+    }
+
+    private _serializeReplacements(replacements: IPCMessages.DateTimeReplacements): IPCMessages.DateTimeReplacements {
+        function getValue(num: any, scheme: 'YYYY' | 'MM' | 'DD' | 'OF'): number | undefined {
+            let valid: boolean = true;
+            if (typeof num !== 'number' || isNaN(num) || !isFinite(num)) {
+                valid = false;
+            }
+            switch (scheme) {
+                case 'YYYY':
+                    return valid ? ((num >= 1974 && num <= 9999) ? num : (new Date()).getFullYear()) : (new Date()).getFullYear();
+                case 'MM':
+                    return valid ? ((num >= 1 && num <= 12) ? num : ((new Date()).getMonth() + 1)) : ((new Date()).getMonth() + 1);
+                case 'DD':
+                    return valid ? ((num >= 1 && num <= 31) ? num : (new Date()).getDate()) : (new Date()).getDate();
+                case 'OF':
+                    return valid ? num : 0;
+            }
+        }
+        return {
+            year: getValue(replacements.year, 'YYYY'),
+            month: getValue(replacements.month, 'MM'),
+            day: getValue(replacements.day, 'DD'),
+            offset: getValue(replacements.offset, 'OF'),
+        };
     }
 }
