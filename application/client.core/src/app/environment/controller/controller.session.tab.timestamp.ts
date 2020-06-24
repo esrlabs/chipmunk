@@ -357,6 +357,11 @@ export class ControllerSessionTabTimestamp {
                 str: str,
                 format: format,
                 id: id,
+                replacements: {
+                    year: this.getDefaults().year,
+                    month: this.getDefaults().month,
+                    day: this.getDefaults().day,
+                },
             }), IPCMessages.TimestampExtractResponse).then((response: IPCMessages.TimestampExtractResponse) => {
                 if (typeof response.error === 'string') {
                     this._logger.error(`Fail to extract timestamp due error: ${response.error}`);
