@@ -72,17 +72,18 @@ export class TabsService {
 
     private _tabs: Map<string, ITabInternal> = new Map();
     private _options: TabsOptions = new TabsOptions();
-    private _minimized: boolean = false;
     private _history: ControllerSessionsHistroy = new ControllerSessionsHistroy();
     private _guid: string = Tools.guid();
 
     constructor(params?: {
         tabs?: Map<string, ITabInternal>,
-        options?: TabsOptions
+        options?: TabsOptions,
+        guid?: string,
     }) {
         params = params ? params : {};
         if (params.tabs !== void 0) { this._tabs = params.tabs; }
         if (params.options !== void 0) { this._options = params.options; }
+        if (typeof params.guid === 'string' && params.guid.trim() !== '') { this._guid = params.guid; }
     }
 
     public destroy() {
@@ -93,6 +94,10 @@ export class TabsService {
             this._subjects[key].unsubscribe();
         });
         */
+    }
+
+    public getGuid(): string {
+        return this._guid;
     }
 
     public getObservable(): {

@@ -23,25 +23,33 @@ export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges 
     }
 
     ngAfterViewInit() {
-        if (!this.service) {
-            return;
-        }
-        this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
-        this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
-        this._ng_noTabContent = this.service.getOptions().noTabsContent;
-        this._getDefaultTab();
+        this._apply();
     }
 
     ngOnDestroy() {
         this._destroyed = true;
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            if (this._subscriptions[key] !== null) {
-                this._subscriptions[key].unsubscribe();
-            }
-        });
+        this._unsubscribe();
     }
 
     ngOnChanges() {
+        this._apply();
+    }
+
+    private _subscribe() {
+        this._unsubscribe();
+        this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
+        this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
+    }
+
+    private _unsubscribe() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
+    }
+
+    private _apply() {
+        this._subscribe();
+        this._ng_noTabContent = this.service.getOptions().noTabsContent;
         this._getDefaultTab();
     }
 
