@@ -1,10 +1,11 @@
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { ControllerSessionTabTimestamp, IRange } from '../../../controller/controller.session.tab.timestamp';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { scheme_color_0, getContrastColor } from '../../../theme/colors';
 import { Chart } from 'chart.js';
+import { DataService } from './service.data';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -22,16 +23,16 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
-    public _ng_ranges: IRange[] = [];
+    @ViewChild('canvas', { static: true }) _ng_canvas: ElementRef<HTMLCanvasElement>;
+
     public _ng_width: number = 0;
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementComponent');
     private _session: ControllerSessionTab | undefined;
     private _destroy: boolean = false;
     private _chart: Chart | undefined;
-    private _refs: number[] = [];
+    private _service: DataService | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -42,22 +43,34 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        Object.keys(this._sessionSubscriptions).forEach((key: string) => {
-            this._sessionSubscriptions[key].unsubscribe();
-        });
+        if (this._chart !== undefined) {
+            this._chart.destroy();
+            this._chart = undefined;
+        }
+        if (this._service !== undefined) {
+            this._service.destroy();
+            this._service = undefined;
+        }
     }
 
     public ngAfterContentInit() {
-
     }
 
     public ngAfterViewInit() {
+        this._service = new DataService();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
+        );
+        this._subscriptions.onSessionChange = this._service.getObservable().update.subscribe(
+            this._onChartDataUpdate.bind(this),
+        );
+        this._subscriptions.onSessionChange = this._service.getObservable().change.subscribe(
+            this._onChartDataChange.bind(this),
         );
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
             this._onResize.bind(this),
         );
+        this._build();
         this._onResize();
         this._onSessionChange(TabsSessionsService.getActive());
     }
@@ -102,9 +115,12 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
     }
 
     private _build() {
+        if (this._ng_canvas === undefined || this._service === undefined) {
+            return;
+        }
         if (this._chart === undefined) {
-            const data = this._getChartDataset();
-            this._chart = new Chart('view-measurement-canvas', {
+            const data = this._service.getChartDataset();
+            this._chart = new Chart(this._ng_canvas.nativeElement, {
                 type: 'horizontalBar',
                 data: {
                     datasets: data.datasets,
@@ -161,7 +177,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                 }
             });
         } else {
-            const data = this._getChartDataset();
+            const data = this._service.getChartDataset();
             this._chart.data.datasets = data.datasets;
             this._chart.data.labels = data.labels;
             !this._destroy && this._chart.update();
@@ -169,7 +185,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
     }
 
     private _onBarClick(event?: MouseEvent, elements?: any[]) {
-        if (this._session === undefined) {
+        if (this._session === undefined || this._service === undefined) {
             return;
         }
         if (!(elements instanceof Array)) {
@@ -181,99 +197,30 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         if (typeof elements[0]._index !== 'number') {
             return;
         }
-        const position: number = this._refs[elements[0]._index];
+        const position: number = this._service.getRefs()[elements[0]._index];
         if (isNaN(position) || !isFinite(position)) {
             return;
         }
         OutputRedirectionsService.select('measurement', this._session.getGuid(), position);
     }
 
-    private _getChartDataset(): {
-        datasets: any[],
-        labels: string[],
-    } {
-        this._refs = [];
-        const groups: Map<number, IRange[]> = new Map();
-        const labels: string[] = [];
-        const datasets: any[] = [];
-        this._getComplitedRanges().forEach((range: IRange) => {
-            const ranges: IRange[] = groups.has(range.group) ? groups.get(range.group) : [];
-            ranges.push(range);
-            if (ranges.length > datasets.length) {
-                datasets.push({
-                    barPercentage: 0.5,
-                    barThickness: 16,
-                    backgroundColor: [],
-                    hoverBackgroundColor: [],
-                    data: [],
-                });
-            }
-            groups.set(range.group, ranges);
-        });
-        datasets.forEach((dataset: any, index: number) => {
-            groups.forEach((group: IRange[]) => {
-                if (group[index] === undefined) {
-                    dataset.data.push(0);
-                    dataset.backgroundColor.push(scheme_color_0);
-                    dataset.hoverBackgroundColor.push(scheme_color_0);
-                } else {
-                    dataset.data.push(group[index].duration);
-                    dataset.backgroundColor.push(group[index].color);
-                    dataset.hoverBackgroundColor.push(group[index].color);
-                }
-            });
-            datasets[index] = dataset;
-        });
-        groups.forEach((group: IRange[]) => {
-            this._refs.push(Math.min(...group.map(range => range.start.position), ...group.map(range => range.end.position)));
-            labels.push(`${Math.min(...group.map(range => range.start.position), ...group.map(range => range.end.position))} - ${Math.max(...group.map(range => range.start.position), ...group.map(range => range.end.position))}`);
-        });
-        return {
-            datasets: datasets,
-            labels: labels,
-        };
-        // TODO: - [x] use fixed height of bar. Check responsive view for this case.
-        //       - [x] remove seconds from labels (left side)
-        //       - sorting: by region; by duration;
-        //       - [x] grouping (stacked): common start (first point) and different end points.
-        //       - [x] swap bookmark column and time-range column
-        //       - [x] highlight number when bookmarked
-        //       - [x] remove all / remove except
-        //       - [x] bug with merge view: no scale higlighting (select first 10 files from examples, linux)
-        //       - recent files dialog was empty
-        //       - [x] add run-time hihglight of new format matches (on add popup)
-        //       - [x] bug with merge view
-        //       - [x] fix row number on left axis-time
-        //       - format - just timestamp should be supported (reg: /s/)
-        //       - global YEAR definition per session? as default -> current
-
-    }
-
     private _onSessionChange(controller?: ControllerSessionTab) {
-        Object.keys(this._sessionSubscriptions).forEach((key: string) => {
-            this._sessionSubscriptions[key].unsubscribe();
-        });
         if (controller === undefined) {
             return;
         }
-        this._sessionSubscriptions.change = controller.getTimestamp().getObservable().change.subscribe(this._onRangeChange.bind(this));
-        this._sessionSubscriptions.update = controller.getTimestamp().getObservable().update.subscribe(this._onRangesUpdated.bind(this));
         this._session = controller;
-        this._refresh();
     }
 
-    private _refresh(ranges?: IRange[]) {
-        this._ng_ranges = ranges instanceof Array ? ranges : this._session.getTimestamp().getRanges();
+    private _onChartDataUpdate() {
         this._build();
-        this._forceUpdate();
     }
 
-    private _onRangeChange(range: IRange) {
-        this._refresh();
-    }
-
-    private _onRangesUpdated(ranges: IRange[]) {
-        this._refresh(ranges);
+    private _onChartDataChange() {
+        if (this._chart !== undefined) {
+            this._chart.destroy();
+            this._chart = undefined;
+        }
+        this._build();
     }
 
     private _onResize() {
@@ -281,12 +228,6 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         if (this._chart !== undefined && !this._destroy) {
             this._chart.update();
         }
-    }
-
-    private _getComplitedRanges(): IRange[] {
-        return this._ng_ranges.filter((range: IRange) => {
-            return range.end !== undefined;
-        });
     }
 
     private _forceUpdate() {
