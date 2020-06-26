@@ -1,12 +1,17 @@
 import { Subscription, Subject, Observable } from 'rxjs';
-import { ControllerSessionTabTimestamp, IRange } from '../../../controller/controller.session.tab.timestamp';
-import { scheme_color_0, getContrastColor } from '../../../theme/colors';
+import { IRange, EChartMode } from '../../../controller/controller.session.tab.timestamp';
+import { scheme_color_0 } from '../../../theme/colors';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+const MAX_BAR_HEIGHT = 16;
+const MIN_BAR_HEIGHT = 4;
+const MAX_FONT_SIZE = 12;
+const MIN_FONT_SIZE = 8;
 
 export class DataService {
 
@@ -16,6 +21,10 @@ export class DataService {
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('MeasurementDataService');
     private _session: ControllerSessionTab | undefined;
+    private _mode: EChartMode = EChartMode.aligned;
+    private _height: number = 0;
+    private _barHeight: number = MAX_BAR_HEIGHT;
+    private _fontSize: number = MAX_FONT_SIZE;
     private _subjects: {
         update: Subject<void>,  // Updates happens in scope of session
         change: Subject<void>, // Session was changed
@@ -50,9 +59,88 @@ export class DataService {
         };
     }
 
+    public getMode(): EChartMode {
+        return this._mode;
+    }
+
+    public toggleMode() {
+        if (this._session === undefined) {
+            return;
+        }
+        this._session.getTimestamp().setMode(this._mode === EChartMode.aligned ? EChartMode.scaled : EChartMode.aligned);
+    }
+
     public getChartDataset(): {
         datasets: any[],
         labels: string[],
+        maxY?: number
+    } {
+        this._setSizes();
+        switch (this._mode) {
+            case EChartMode.aligned:
+                return this._getChartDatasetModeAlign();
+            case EChartMode.scaled:
+                return this._getChartDatasetModeScale();
+        }
+    }
+
+    public getRefs(): number[] {
+        return this._refs;
+    }
+
+    public getMinTimestamp(): number {
+        return this._session === undefined ? 0 : this._session.getTimestamp().getMinTimestamp();
+    }
+
+    public getMaxTimestamp(): number {
+        return this._session === undefined ? 0 : this._session.getTimestamp().getMaxTimestamp();
+    }
+
+    public setHeight(height: number) {
+        this._height = height;
+        this._setSizes();
+    }
+
+    public updateViewRelatedProps(chart: Chart) {
+        this._setSizes();
+        switch (this._mode) {
+            case EChartMode.aligned:
+                break;
+            case EChartMode.scaled:
+                chart.data.datasets = chart.data.datasets.map((dataset) => {
+                    if (dataset.borderWidth !== 1) {
+                        dataset.borderWidth = this._barHeight;
+                    }
+                    return dataset;
+                });
+                break;
+        }
+    }
+
+    public getOptimalFontSize() {
+        return this._fontSize;
+    }
+
+    private _setSizes(count?: number) {
+        if (count === undefined) {
+            count = this._getGroups().size;
+        }
+        if (count === 0 || this._height === 0) {
+            this._barHeight = MAX_BAR_HEIGHT;
+        } else {
+            this._barHeight = (this._height / 2) / count;
+            this._barHeight = (isNaN(this._barHeight) && !isFinite(this._barHeight)) ? MAX_BAR_HEIGHT : this._barHeight;
+            this._barHeight = this._barHeight > MAX_BAR_HEIGHT ? MAX_BAR_HEIGHT : (this._barHeight < MIN_BAR_HEIGHT ? MIN_BAR_HEIGHT : this._barHeight);
+        }
+        this._fontSize = (this._barHeight / MAX_BAR_HEIGHT) * MAX_FONT_SIZE;
+        this._fontSize = (isNaN(this._fontSize) && !isFinite(this._fontSize)) ? MAX_FONT_SIZE : this._fontSize;
+        this._fontSize = this._fontSize > MAX_FONT_SIZE ? MAX_FONT_SIZE : (this._fontSize < MIN_FONT_SIZE ? MIN_FONT_SIZE : this._fontSize);
+}
+
+    private _getChartDatasetModeAlign(): {
+        datasets: any[],
+        labels: string[],
+        maxY?: number
     } {
         this._refs = [];
         const groups: Map<number, IRange[]> = new Map();
@@ -96,8 +184,99 @@ export class DataService {
         };
     }
 
-    public getRefs(): number[] {
-        return this._refs;
+    private _getChartDatasetModeScale(): {
+        datasets: any[],
+        labels: string[],
+        maxY?: number
+    } {
+        const labels: string[] = [];
+        const datasets: any[] = [];
+        const groups: Map<number, IRange[]> = this._getGroups();
+        let y: number = 1;
+        let prev: { min: number, max: number } | undefined = undefined;
+        groups.forEach((ranges: IRange[]) => {
+            ranges.sort((a: IRange, b: IRange) => {
+                return a.duration > b.duration ? 1 : -1;
+            });
+            if (prev !== undefined && ranges.length > 0) {
+                const range = ranges[ranges.length - 1];
+                const next: { min: number, max: number } = {
+                    min: range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp,
+                    max: range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp
+                };
+                const min: number = prev.max < next.min ? prev.max : next.max;
+                const max: number = prev.max < next.min ? next.min : prev.min;
+                const values: Array<{ x: number, y: number, duration?: number }> = [{
+                    x: min < max ? min : max,
+                    y: y - 0.5,
+                },
+                {
+                    x: min > max ? min : max,
+                    y: y - 0.5,
+                    duration: Math.abs(max - min),
+                }];
+                datasets.push({
+                    data: values,
+                    borderColor: '#999999',
+                    borderWidth: 1,
+                    pointBackgroundColor: ['#999999', '#999999'],
+                    pointBorderColor: ['#999999', '#999999'],
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    showLine: true
+                });
+            }
+            ranges.forEach((range: IRange, index: number) => {
+                const rMin: number = range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp;
+                const rMax: number = range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp;
+                // y += 1;
+                const values: Array<{ x: number, y: number, duration?: number, range?: boolean, row?: number }> = [{
+                    x: rMin,
+                    y: y,
+                },
+                {
+                    x: rMax,
+                    y: y,
+                    duration: Math.abs(rMax - rMin),
+                    row: range.start.position < range.end.position ? range.start.position : range.end.position,
+                    range: true,
+                }];
+                datasets.push({
+                    data: values,
+                    borderColor: range.color,
+                    borderWidth: this._barHeight,
+                    pointBackgroundColor: [range.color, range.color],
+                    pointBorderColor: [range.color, range.color],
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    showLine: true
+                });
+                prev = {
+                    min: range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp,
+                    max: range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp
+                };
+            });
+            y += 1;
+        });
+        return {
+            datasets: datasets,
+            labels: labels,
+            maxY: y,
+        };
+    }
+
+    private _getGroups(): Map<number, IRange[]> {
+        const groups: Map<number, IRange[]> = new Map();
+        this._getComplitedRanges().forEach((range: IRange) => {
+            const ranges: IRange[] = groups.has(range.group) ? groups.get(range.group) : [];
+            ranges.push(range);
+            groups.set(range.group, ranges);
+        });
+        return groups;
     }
 
     private _getComplitedRanges(): IRange[] {
@@ -121,7 +300,9 @@ export class DataService {
         });
         if (controller !== undefined) {
             this._sessionSubscriptions.change = controller.getTimestamp().getObservable().change.subscribe(this._onRangeChange.bind(this));
-            this._sessionSubscriptions.update = controller.getTimestamp().getObservable().update.subscribe(this._onRangesUpdated.bind(this));
+            this._sessionSubscriptions.update = controller.getTimestamp().getObservable().update.subscribe(this._onRangesUpdate.bind(this));
+            this._sessionSubscriptions.mode = controller.getTimestamp().getObservable().mode.subscribe(this._onModeChange.bind(this));
+            this._mode = controller.getTimestamp().getMode();
             this._session = controller;
         } else {
             this._session = undefined;
@@ -133,8 +314,13 @@ export class DataService {
         this._refresh();
     }
 
-    private _onRangesUpdated(ranges: IRange[]) {
+    private _onRangesUpdate(ranges: IRange[]) {
         this._refresh(ranges);
+    }
+
+    private _onModeChange(mode: EChartMode) {
+        this._mode = mode;
+        this._refresh(undefined, true);
     }
 
 }
