@@ -57,6 +57,11 @@ export interface DefaultDateParts {
     year: number | undefined;
 }
 
+export enum EChartMode {
+    aligned = 'aligned',
+    scaled = 'scaled'
+}
+
 export class ControllerSessionTabTimestamp {
 
     private _guid: string;
@@ -68,6 +73,7 @@ export class ControllerSessionTabTimestamp {
     private _sequence: number = 0;
     private _open: IRange | undefined;
     private _parser: TimestampRowParser;
+    private _mode: EChartMode = EChartMode.aligned;
     private _defaults: DefaultDateParts = {
         day: undefined,
         month: undefined,
@@ -77,12 +83,14 @@ export class ControllerSessionTabTimestamp {
         change: Subject<IRange>,
         update: Subject<IRange[]>,
         formats: Subject<void>,
-        defaults: Subject<DefaultDateParts>
+        defaults: Subject<DefaultDateParts>,
+        mode: Subject<EChartMode>
     } = {
         change: new Subject(),
         update: new Subject(),
         formats: new Subject(),
         defaults: new Subject(),
+        mode: new Subject(),
     };
 
     constructor(guid: string) {
@@ -119,12 +127,14 @@ export class ControllerSessionTabTimestamp {
         update: Observable<IRange[]>,
         formats: Observable<void>,
         defaults: Observable<DefaultDateParts>,
+        mode: Observable<EChartMode>,
     } {
         return {
             change: this._subjects.change.asObservable(),
             update: this._subjects.update.asObservable(),
             formats: this._subjects.formats.asObservable(),
             defaults: this._subjects.defaults.asObservable(),
+            mode: this._subjects.mode.asObservable(),
         };
     }
 
@@ -468,6 +478,35 @@ export class ControllerSessionTabTimestamp {
 
     public getDefaults(): DefaultDateParts {
         return this._defaults;
+    }
+
+    public setMode(mode: EChartMode) {
+        this._mode = mode;
+        this._subjects.mode.next(mode);
+    }
+
+    public getMode(): EChartMode {
+        return this._mode;
+    }
+
+    public getMinTimestamp(): number {
+        return Math.min(...this._ranges.map((range: IRange) => {
+            if (range.end !== undefined) {
+                return range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp;
+            } else {
+                return range.start.timestamp;
+            }
+        }));
+    }
+
+    public getMaxTimestamp(): number {
+        return Math.max(...this._ranges.map((range: IRange) => {
+            if (range.end !== undefined) {
+                return range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp;
+            } else {
+                return range.start.timestamp;
+            }
+        }));
     }
 
     private _getTooltipContent(row: string, position: number, selection: string): Promise<string | undefined> {

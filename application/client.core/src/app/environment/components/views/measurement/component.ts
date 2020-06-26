@@ -1,9 +1,9 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabTimestamp, IRange } from '../../../controller/controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp, IRange, EChartMode } from '../../../controller/controller.session.tab.timestamp';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import { scheme_color_0, getContrastColor } from '../../../theme/colors';
+import { scheme_color_2, getContrastColor } from '../../../theme/colors';
 import { Chart } from 'chart.js';
 import { DataService } from './service.data';
 
@@ -27,6 +27,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
 
     public _ng_width: number = 0;
 
+    private _height: number = 0;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementComponent');
     private _session: ControllerSessionTab | undefined;
@@ -75,32 +76,27 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         this._onSessionChange(TabsSessionsService.getActive());
     }
 
-    public _ng_getController(): ControllerSessionTabTimestamp | undefined {
-        if (this._session === undefined) {
-            return undefined;
-        }
-        return this._session.getTimestamp();
-    }
-
-    public _ng_onContexMenu(event: MouseEvent, range: IRange | undefined) {
+    public _ng_onChartContexMenu(event: MouseEvent) {
         if (this._session === undefined) {
             event.stopImmediatePropagation();
             event.preventDefault();
             return;
         }
         const items: IMenuItem[] = [
+            {
+                caption: `Switch to: ${this._service.getMode() === EChartMode.aligned ? 'scaled' : 'aligned'}`,
+                handler: () => {
+                    this._service.toggleMode();
+                },
+            },
             { /* Delimiter */},
             {
-                caption: `Remove`,
+                caption: `Remove All Ranges`,
                 handler: () => {
-                    this._forceUpdate();
-                },
-                disabled: range === undefined,
-            },
-            {
-                caption: `Remove All`,
-                handler: () => {
-                    this._forceUpdate();
+                    if (this._session === undefined) {
+                        return;
+                    }
+                    this._session.getTimestamp().drop();
                 },
                 disabled: this._session.getTimestamp().getCount() === 0,
             },
@@ -114,12 +110,30 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         event.preventDefault();
     }
 
+    public _ng_getController(): ControllerSessionTabTimestamp | undefined {
+        if (this._session === undefined) {
+            return undefined;
+        }
+        return this._session.getTimestamp();
+    }
+
     private _build() {
         if (this._ng_canvas === undefined || this._service === undefined) {
             return;
         }
+        switch (this._service.getMode()) {
+            case EChartMode.aligned:
+                this._buildAlignChart();
+                break;
+            case EChartMode.scaled:
+                this._buildScaleChart();
+                break;
+        }
+    }
+
+    private _buildAlignChart() {
+        const data = this._service.getChartDataset();
         if (this._chart === undefined) {
-            const data = this._service.getChartDataset();
             this._chart = new Chart(this._ng_canvas.nativeElement, {
                 type: 'horizontalBar',
                 data: {
@@ -127,7 +141,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                     labels: data.labels,
                 },
                 options: {
-                    onClick: this._onBarClick.bind(this),
+                    onClick: this._onAlignChartClick.bind(this),
                     tooltips: {
                         enabled: false,
                     },
@@ -169,7 +183,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                                         return;
                                     }
                                     ctx.fillStyle = getContrastColor(dataset.backgroundColor[index], true);
-                                    ctx.fillText(`${dataset.data[index]} ms`, bar._model.x - 4, bar._model.y);
+                                    ctx.fillText(`${dataset.data[index]} ms`, bar._model.x - 4, bar._model.y + 1);
                                 });
                             });
                         }
@@ -177,14 +191,96 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                 }
             });
         } else {
-            const data = this._service.getChartDataset();
             this._chart.data.datasets = data.datasets;
             this._chart.data.labels = data.labels;
             !this._destroy && this._chart.update();
         }
     }
 
-    private _onBarClick(event?: MouseEvent, elements?: any[]) {
+    private _buildScaleChart() {
+        const data = this._service.getChartDataset();
+        if (this._chart === undefined) {
+            const self = this;
+            this._chart = new Chart(this._ng_canvas.nativeElement, {
+                type: 'scatter',
+                data: {
+                    datasets: data.datasets,
+                },
+                options: {
+                    onClick: this._onScaleChartClick.bind(this),
+                    tooltips: {
+                        enabled: false,
+                    },
+                    title: {
+                        display: false,
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    hover: {
+                        animationDuration: 0
+                    },
+                    responsiveAnimationDuration: 0,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        xAxes: [{
+                            gridLines: {
+                                offsetGridLines: true
+                            },
+                            ticks: {
+                                display: false,
+                                min: this._service.getMinTimestamp(),
+                                max: this._service.getMaxTimestamp()
+                            },
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                display: false,
+                                min: 0,
+                                max: data.maxY + 1,
+                                beginAtZero: true,
+                            },
+                        }],
+                    },
+                    animation: {
+                        duration: 1,
+                        onComplete: function() {
+                            if (self._service === undefined) {
+                                return;
+                            }
+                            const chartInstance = this.chart;
+                            const ctx = chartInstance.ctx;
+                            ctx.font = Chart.helpers.fontString(self._service.getOptimalFontSize(), Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                            ctx.textAlign = 'right';
+                            this.data.datasets.forEach(function(dataset, i) {
+                                const meta = chartInstance.controller.getDatasetMeta(i);
+                                const duration: number = dataset.data[1].duration;
+                                if (dataset.data[1].range === true) {
+                                    ctx.font = Chart.helpers.fontString(self._service.getOptimalFontSize(), Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                                    ctx.fillStyle = getContrastColor(dataset.borderColor, true);
+                                    ctx.textBaseline = 'middle';
+                                } else {
+                                    ctx.font = Chart.helpers.fontString(self._service.getOptimalFontSize() * 0.8, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                                    ctx.fillStyle = scheme_color_2;
+                                    ctx.textBaseline = 'top';
+                                }
+                                ctx.fillText(`${duration} ms`, meta.data[1]._model.x - 4, meta.data[1]._model.y + 1);
+                            });
+                        }
+                    }
+                }
+            });
+        } else {
+            this._chart.data.datasets = data.datasets;
+            this._chart.options.scales.xAxes[0].ticks.min = this._service.getMinTimestamp();
+            this._chart.options.scales.xAxes[0].ticks.max = this._service.getMaxTimestamp();
+            this._chart.options.scales.yAxes[0].ticks.max = data.maxY + 1;
+            !this._destroy && this._chart.update();
+        }
+    }
+
+    private _onAlignChartClick(event?: MouseEvent, elements?: any[]) {
         if (this._session === undefined || this._service === undefined) {
             return;
         }
@@ -202,6 +298,14 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
             return;
         }
         OutputRedirectionsService.select('measurement', this._session.getGuid(), position);
+    }
+
+    private _onScaleChartClick(event?: MouseEvent, elements?: any[]) {
+        if (this._session === undefined || this._service === undefined) {
+            return;
+        }
+        const el = this._chart.getElementsAtEvent(event);
+        // console.log(el);
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {
@@ -224,8 +328,12 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
     }
 
     private _onResize() {
-        this._ng_width = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect().width;
-        if (this._chart !== undefined && !this._destroy) {
+        const size = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        this._ng_width = size.width;
+        this._height = size.height;
+        if (this._service !== undefined && this._chart !== undefined && !this._destroy) {
+            this._service.setHeight(this._height);
+            this._service.updateViewRelatedProps(this._chart);
             this._chart.update();
         }
     }
