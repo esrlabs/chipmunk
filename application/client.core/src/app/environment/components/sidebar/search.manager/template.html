@@ -11,6 +11,7 @@
     </mat-expansion-panel-header>
     <app-sidebar-app-searchmanager-filters *ngIf="_ng_filters.length > 0"
         (onContextMenu)="_ng_onContextListsMenu('filters', $event)"
+        (onDoubleClick)="_ng_onDoubleClick('filters', $event)"
         [offset]="0"
         [reorder]="_ng_reorder"
         [selected]="_ng_selected"
@@ -36,6 +37,7 @@
     </mat-expansion-panel-header>
     <app-sidebar-app-searchmanager-charts *ngIf="_ng_charts.length > 0"
         (onContextMenu)="_ng_onContextListsMenu('charts', $event)"
+        (onDoubleClick)="_ng_onDoubleClick('charts', $event)"
         [offset]="_ng_filters.length"
         [reorder]="_ng_reorder"
         [selected]="_ng_selected"

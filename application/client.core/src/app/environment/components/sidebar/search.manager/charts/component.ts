@@ -2,7 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, Event
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { IReorderEvent, IContextMenuEvent } from '../component';
+import { IReorderEvent, IRequestEvent } from '../component';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 
 @Component({
@@ -20,8 +20,9 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     @Input() reorder: Subject<IReorderEvent>;
     @Input() selected: Subject<string>;
 
-    // tslint:disable-next-line:no-output-on-prefix
-    @Output() onContextMenu: EventEmitter<IContextMenuEvent> = new EventEmitter();
+    // tslint:disable:no-output-on-prefix
+    @Output() onContextMenu: EventEmitter<IRequestEvent> = new EventEmitter();
+    @Output() onDoubleClick: EventEmitter<IRequestEvent> = new EventEmitter();
 
     public _ng_observables: {
         select: Observable<string>,
@@ -65,6 +66,14 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
         this.reorder.next({
             ddEvent: event,
             target: 'charts',
+        });
+    }
+
+    public _ng_onDoubleClick(event: MouseEvent, request: ChartRequest, index: number) {
+        this.onDoubleClick.emit({
+            event: event,
+            request: request,
+            index: index,
         });
     }
 

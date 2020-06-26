@@ -1,6 +1,7 @@
 <div cdkDropList (cdkDropListDropped)="_ng_onItemDragged($event)" class="charts">
     <app-sidebar-app-searchmanager-chart
         (contextmenu)="_ng_onContexMenu($event, request, i)"
+        (dblclick)="_ng_onDoubleClick($event, request, i)"
         appSidebarSearchManagerItem
         cdkDrag
         [request]="request"

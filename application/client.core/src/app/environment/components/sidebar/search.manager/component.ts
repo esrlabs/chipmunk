@@ -14,7 +14,7 @@ import EventsSessionService from '../../../services/standalone/service.events.se
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export interface IContextMenuEvent {
+export interface IRequestEvent {
     event: MouseEvent;
     request: FilterRequest | ChartRequest;
     index: number;
@@ -58,6 +58,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _click: number = 0;
 
     @HostBinding('attr.tabindex') get tabindex() { return 0; }
     @HostListener('focus', ['$event.target']) onFocus() {
@@ -141,7 +142,18 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._forceUpdate();
     }
 
-    public _ng_onContextListsMenu(target: 'filters' | 'charts', event: IContextMenuEvent) {
+    public _ng_onDoubleClick(target: 'filters' | 'charts', event: IRequestEvent) {
+        if (this._session === undefined) {
+            return;
+        }
+        const request: FilterRequest = target === 'filters' ? event.request as FilterRequest : new FilterRequest({
+            request: event.request.asDesc().request,
+            flags: event.request.asDesc().flags,
+        });
+        this._session.getSessionSearch().search(request);
+    }
+
+    public _ng_onContextListsMenu(target: 'filters' | 'charts', event: IRequestEvent) {
         const items: IMenuItem[] = [
             {
                 caption: 'Edit',
@@ -380,18 +392,25 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     }
 
     private _setCurrent() {
-        this._ng_filter = undefined;
-        this._ng_chart = undefined;
-        if (this._selected < this._ng_filters.length && this._ng_filters[this._selected] !== undefined) {
-            this._ng_filter = this._ng_filters[this._selected];
-        } else if (this._ng_charts[this._selected - this._ng_filters.length] !== undefined) {
-            this._ng_chart = this._ng_charts[this._selected - this._ng_filters.length];
-        }
-        if (this._session !== undefined) {
-            this._session.getSessionSearch().getChartsAPI().selectBySource(this._ng_chart === undefined ? undefined : this._ng_chart.asRegExp().source);
-        }
-        this._forceUpdate();
-        this._focus();
+        this._click++;
+        // Differentiate between click and doubleclick
+        setTimeout(() => {
+            if (this._click === 1) {
+                this._ng_filter = undefined;
+                this._ng_chart = undefined;
+                if (this._selected < this._ng_filters.length && this._ng_filters[this._selected] !== undefined) {
+                    this._ng_filter = this._ng_filters[this._selected];
+                } else if (this._ng_charts[this._selected - this._ng_filters.length] !== undefined) {
+                    this._ng_chart = this._ng_charts[this._selected - this._ng_filters.length];
+                }
+                if (this._session !== undefined) {
+                    this._session.getSessionSearch().getChartsAPI().selectBySource(this._ng_chart === undefined ? undefined : this._ng_chart.asRegExp().source);
+                }
+                this._forceUpdate();
+                this._focus();
+            }
+            this._click = 0;
+        }, 150);
     }
 
     private _onSessionChange(session: ControllerSessionTab | undefined) {

@@ -2,7 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, Outpu
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { IReorderEvent, IContextMenuEvent } from '../component';
+import { IReorderEvent, IRequestEvent } from '../component';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-filters',
@@ -19,8 +19,9 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
     @Input() reorder: Subject<IReorderEvent>;
     @Input() selected: Subject<string>;
 
-    // tslint:disable-next-line:no-output-on-prefix
-    @Output() onContextMenu: EventEmitter<IContextMenuEvent> = new EventEmitter();
+    // tslint:disable:no-output-on-prefix
+    @Output() onContextMenu: EventEmitter<IRequestEvent> = new EventEmitter();
+    @Output() onDoubleClick: EventEmitter<IRequestEvent> = new EventEmitter();
 
     public _ng_observables: {
         select: Observable<string>,
@@ -64,6 +65,14 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         this.reorder.next({
             ddEvent: event,
             target: 'filters',
+        });
+    }
+
+    public _ng_onDoubleClick(event: MouseEvent, request: FilterRequest, index: number) {
+        this.onDoubleClick.emit({
+            event: event,
+            request: request,
+            index: index,
         });
     }
 
