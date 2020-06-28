@@ -139,7 +139,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
         const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
-        const row: IStreamPacket | undefined = contextRowNumber !== -1 ? this._output.getRowByPosition(contextRowNumber) : undefined;
+        const current: IStreamPacket | undefined = contextRowNumber !== -1 ? this._output.getRowByPosition(contextRowNumber) : undefined;
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
@@ -152,13 +152,13 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         if (selection === undefined) {
             window.getSelection().removeAllRanges();
         }
-        if (row !== undefined) {
+        if (current !== undefined) {
             items.push(...[
                 { /* delimiter */ },
                 {
                     caption: `Show row #${contextRowNumber}`,
                     handler: () => {
-                        SelectionParsersService.memo(row.str, `Row #${contextRowNumber}`);
+                        SelectionParsersService.memo(current.str, `Row #${contextRowNumber}`);
                     },
                 },
             ]);
@@ -197,41 +197,66 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             this._logger.warn(`Fail detect timestamp due error: ${error.message}`);
         }).finally(() => {
             let tm: number | undefined;
-            this.session.getTimestamp().getTimestamp(row.str).then((_tm: number | undefined) => {
-                tm = _tm;
-            }).catch((err: Error) => {
-                this._logger.error(`Fail extract timestamp due error: ${err.message}`);
-            }).finally(() => {
-                const start: number | undefined = this.session.getTimestamp().getOpenRangeStart();
+            let prev: {
+                tm?: number,
+                pos?: number,
+                row?: { position: number, str: string },
+            } | undefined;
+            if (this.session.getTimestamp().getLastPointPosition() !== undefined) {
+                const prevPos: number = this.session.getTimestamp().getLastPointPosition() + 1;
+                const streamPkg = this._output.getRowByPosition(prevPos);
+                if (streamPkg !== undefined) {
+                    prev = {
+                        pos: prevPos,
+                        row: { position: streamPkg.position, str: streamPkg.str },
+                    };
+                }
+            }
+            Promise.all([
+                this.session.getTimestamp().getTimestamp(current.str).then((_tm: number | undefined) => {
+                    tm = _tm;
+                }).catch((err: Error) => {
+                    this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                }),
+                this.session.getTimestamp().getTimestamp(prev === undefined ? undefined : prev.row.str).then((_tm: number | undefined) => {
+                    prev.tm = _tm;
+                }).catch((err: Error) => {
+                    if (prev !== undefined) {
+                        // Issue error, only if "prev" was defined
+                        this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                    }
+                }),
+            ]).finally(() => {
                 if (tm !== undefined) {
                     items.push(...[
                         { /* delimiter */ },
                     ]);
-                    if (start !== undefined) {
+                    if (prev !== undefined) {
                         items.push(...[
                             {
-                                caption: `Add time range: ${this.session.getTimestamp().getOpenRangePosition()} - ${row.position}`,
+                                caption: `Add time range: ${prev.pos} - ${current.position}`,
                                 handler: () => {
-                                    this.session.getTimestamp().addRange(this.session.getTimestamp().getOpenRangeRow(), {
-                                        position: row.position,
-                                        str: row.str,
+                                    this.session.getTimestamp().addRange(prev.row, {
+                                        position: current.position,
+                                        str: current.str,
                                     });
                                 },
                             },
                         ]);
-                    }
-                    items.push(...[
-                        {
-                            caption: `${start === undefined ? `New time range` : `Add time range: ${this.session.getTimestamp().getOpenRangePosition()} - ${row.position} and close` }`,
-                            handler: () => {
-                                this.session.getTimestamp().setPoint({
-                                    position: row.position,
-                                    str: row.str,
-                                });
-                            },
+                        if (prev.pos !== current.position) {
+                            items.push(...[
+                                {
+                                    caption: `Add time range: ${prev.pos} - ${current.position} and close`,
+                                    handler: () => {
+                                        this.session.getTimestamp().addRange(prev.row, {
+                                            position: current.position,
+                                            str: current.str,
+                                        });
+                                        this.session.getTimestamp().dropOpenRange();
+                                    },
+                                }
+                            ]);
                         }
-                    ]);
-                    if (start !== undefined) {
                         items.push(...[
                             {
                                 caption: `Drop start point`,
@@ -240,12 +265,32 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                 },
                             }
                         ]);
+                    } else {
+                        items.push(...[
+                            {
+                                caption: `New time range`,
+                                handler: () => {
+                                    this.session.getTimestamp().dropOpenRange();
+                                    this.session.getTimestamp().setPoint({
+                                        position: current.position,
+                                        str: current.str,
+                                    });
+                                },
+                            }
+                        ]);
                     }
                 }
                 if (this.session.getTimestamp().getRanges().length > 0) {
-                    const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(row.position);
+                    const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(current.position);
                     items.push(...[
                         { /* delimiter */ },
+                        {
+                            caption: `Remove this range`,
+                            handler: () => {
+                                this.session.getTimestamp().removeRange(selected);
+                            },
+                            disabled: selected === undefined,
+                        },
                         {
                             caption: `Remove all ranges`,
                             handler: () => {
