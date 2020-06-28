@@ -124,9 +124,43 @@
                     display: block;
                     height: 100%;
                     width: 4px;
-                    background: @scheme-color-accent;
                     top:0;
                     right: -8px;
+                    border-style: solid;
+                    &.begin {
+                        border-left-width: 2px;
+                        border-top-width: 2px;
+                        border-right: none;
+                        border-bottom: none;
+                        height: 50%;
+                        width: 4px;
+                        top: 50%;
+                    }
+                    &.end {
+                        border-left-width: 2px;
+                        border-bottom-width: 2px;
+                        border-top: none;
+                        border-right: none;
+                        height: 50%;
+                        width: 4px;
+                        top: 0;
+                    }
+                    &.middle {
+                        border-left-width: 2px;
+                        border-top: none;
+                        border-right: none;
+                        border-bottom: none;
+                        height: 100%;
+                    }
+                    &.open {
+                        width: 0;
+                        height: 0;
+                        border-right: none;
+                        border-top: 4px solid transparent;
+                        border-left: 8px solid @scheme-color-accent;
+                        border-bottom: 4px solid transparent;
+                        top: 4px;
+                    }
                 }
                 &:hover::after{
                     position: absolute;

@@ -9,7 +9,7 @@
         <span   class="number"
                 (click)="_ng_onNumberClick()">
                     <span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}{{_ng_numberDelimiter}}
-                    <span class="range" *ngIf="_ng_getRangeColor() !== undefined" [ngStyle]="_ng_getRangeStyle()"></span>
+                    <span [attr.class]="'range ' + _ng_getRangeCssClass()" *ngIf="_ng_getRangeCssClass() !== ''" [ngStyle]="_ng_getRangeStyle()"></span>
                 </span>
         <span   class="error fas fa-exclamation-circle" 
                 *ngIf="_ng_error !== undefined"

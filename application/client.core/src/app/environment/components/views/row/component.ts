@@ -204,8 +204,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         return css;
     }
 
-    public _ng_getRangeColor(): string | undefined {
-        return this.timestamp.getRangeColorFor(this._getPosition());
+    public _ng_getRangeCssClass(): string {
+        const type = this.timestamp.getStatePositionInRange(this._getPosition());
+        return type === undefined ? '' : type;
+
     }
 
     public _ng_isPending() {
@@ -259,7 +261,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     public _ng_getRangeStyle(): { [key: string]: string } {
         return {
-            background: this._ng_getRangeColor(),
+            borderColor: this.timestamp.getRangeColorFor(this._getPosition()),
         };
     }
 
