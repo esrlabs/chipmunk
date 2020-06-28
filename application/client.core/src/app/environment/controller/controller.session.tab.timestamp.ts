@@ -393,21 +393,9 @@ export class ControllerSessionTabTimestamp {
         return this._format.length > 0;
     }
 
-    public getRangeIdByPosition(position: number): number {
-        let id: number | undefined;
-        this._ranges.forEach((r: IRange) => {
-            if (id !== undefined) {
-                return;
-            }
-            if (r.start.position === position) {
-                id = r.id;
-            } else if (r.end !== undefined && r.start.position < r.end.position && r.start.position <= position && r.end.position >= position) {
-                id = r.id;
-            } else if (r.end !== undefined && r.start.position > r.end.position && r.start.position >= position && r.end.position <= position) {
-                id = r.id;
-            }
-        });
-        return id;
+    public getRangeIdByPosition(position: number): number | undefined {
+        const range: IRange | undefined = this._getRangeByPosition(position);
+        return range === undefined ? undefined : range.id;
     }
 
     public getCurrentGroup(): number | undefined {
@@ -429,20 +417,25 @@ export class ControllerSessionTabTimestamp {
     }
 
     public getRangeColorFor(position: number): string | undefined {
-        let color: string | undefined;
-        this._ranges.forEach((r: IRange) => {
-            if (color !== undefined) {
-                return;
-            }
-            if (r.start.position === position) {
-                color = r.color;
-            } else if (r.end !== undefined && r.start.position < r.end.position && r.start.position <= position && r.end.position >= position) {
-                color = r.color;
-            } else if (r.end !== undefined && r.start.position > r.end.position && r.start.position >= position && r.end.position <= position) {
-                color = r.color;
-            }
-        });
-        return color;
+        const range: IRange | undefined = this._getRangeByPosition(position);
+        return range === undefined ? undefined : range.color;
+    }
+
+    public getStatePositionInRange(position: number): 'begin' | 'middle' | 'end' | 'open' | undefined {
+        if (this._open !== undefined && this._open.position === position) {
+            return 'open';
+        }
+        const range: IRange | undefined = this._getRangeByPosition(position);
+        if (range === undefined) {
+            return undefined;
+        }
+        if (range.start.position === position) {
+            return 'begin';
+        }
+        if (range.end.position === position) {
+            return 'end';
+        }
+        return 'middle';
     }
 
     public removeFormatDef(format: string) {
@@ -493,6 +486,23 @@ export class ControllerSessionTabTimestamp {
                 return range.start.timestamp;
             }
         }));
+    }
+
+    private _getRangeByPosition(position: number): IRange | undefined {
+        let range: IRange | undefined;
+        this._ranges.forEach((r: IRange) => {
+            if (range !== undefined) {
+                return;
+            }
+            if (r.start.position === position) {
+                range = r;
+            } else if (r.end !== undefined && r.start.position < r.end.position && r.start.position <= position && r.end.position >= position) {
+                range = r;
+            } else if (r.end !== undefined && r.start.position > r.end.position && r.start.position >= position && r.end.position <= position) {
+                range = r;
+            }
+        });
+        return range;
     }
 
     private _getTooltipContent(row: string, position: number, selection: string): Promise<string | undefined> {
