@@ -162,6 +162,11 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     },
                 },
             ]);
+
+
+
+
+            
         }
         if (selection !== undefined) {
             const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
@@ -196,85 +201,83 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this.session.getTimestamp().discover().catch((error: Error) => {
             this._logger.warn(`Fail detect timestamp due error: ${error.message}`);
         }).finally(() => {
-            let tm: number | undefined;
-            let prev: {
+            const curr: {
                 tm?: number,
                 pos?: number,
                 row?: { position: number, str: string },
-            } | undefined;
-            if (this.session.getTimestamp().getLastPointPosition() !== undefined) {
-                const prevPos: number = this.session.getTimestamp().getLastPointPosition() + 1;
-                const streamPkg = this._output.getRowByPosition(prevPos);
+            } | undefined = current !== undefined ? {
+                tm: undefined,
+                pos: current.position,
+                row: { position: current.position, str: current.str },
+            } : undefined;
+            let next: {
+                tm?: number,
+                pos?: number,
+                row?: { position: number, str: string },
+            } | undefined = (curr !== undefined && this.session.getTimestamp().getOpenRow() !== undefined) ? {
+                pos: current.position + 1,
+            } : undefined;
+            if (next !== undefined) {
+                const streamPkg = this._output.getRowByPosition(next.pos);
                 if (streamPkg !== undefined) {
-                    prev = {
-                        pos: prevPos,
-                        row: { position: streamPkg.position, str: streamPkg.str },
-                    };
+                    next.row = { position: streamPkg.position, str: streamPkg.str };
+                } else {
+                    next = undefined;
                 }
             }
             Promise.all([
-                this.session.getTimestamp().getTimestamp(current.str).then((_tm: number | undefined) => {
-                    tm = _tm;
+                this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
+                    curr.tm = _tm;
                 }).catch((err: Error) => {
                     this._logger.error(`Fail extract timestamp due error: ${err.message}`);
                 }),
-                this.session.getTimestamp().getTimestamp(prev === undefined ? undefined : prev.row.str).then((_tm: number | undefined) => {
-                    prev.tm = _tm;
+                this.session.getTimestamp().getTimestamp(next !== undefined ? next.row.str : undefined).then((_tm: number | undefined) => {
+                    next.tm = _tm;
                 }).catch((err: Error) => {
-                    if (prev !== undefined) {
+                    if (next !== undefined) {
                         // Issue error, only if "prev" was defined
                         this._logger.error(`Fail extract timestamp due error: ${err.message}`);
                     }
                 }),
             ]).finally(() => {
-                if (tm !== undefined) {
+                if (curr !== undefined) {
                     items.push(...[
                         { /* delimiter */ },
                     ]);
-                    if (prev !== undefined) {
-                        items.push(...[
+                    const opened = this.session.getTimestamp().getOpenRow();
+                    if (opened !== undefined) {
+                        (opened.position !== curr.pos && next !== undefined) && items.push(...[
                             {
-                                caption: `Add time range: ${prev.pos} - ${current.position}`,
+                                caption: `Add time range ${opened.position} - ${curr.row.position}`,
                                 handler: () => {
-                                    this.session.getTimestamp().addRange(prev.row, {
-                                        position: current.position,
-                                        str: current.str,
+                                    this.session.getTimestamp().close(curr.row).catch((err: Error) => {
+                                        this._logger.warn(`Error during time range close: ${err.message}`);
+                                    }).finally(() => {
+                                        this.session.getTimestamp().open(next.row, true);
                                     });
                                 },
                             },
+                            {
+                                caption: `Close time range ${opened.position} - ${curr.row.position}`,
+                                handler: () => {
+                                    this.session.getTimestamp().close(curr.row);
+                                },
+                            },
                         ]);
-                        if (prev.pos !== current.position) {
-                            items.push(...[
-                                {
-                                    caption: `Add time range: ${prev.pos} - ${current.position} and close`,
-                                    handler: () => {
-                                        this.session.getTimestamp().addRange(prev.row, {
-                                            position: current.position,
-                                            str: current.str,
-                                        });
-                                        this.session.getTimestamp().dropOpenRange();
-                                    },
-                                }
-                            ]);
-                        }
                         items.push(...[
                             {
-                                caption: `Drop start point`,
+                                caption: `Drop opened time range`,
                                 handler: () => {
-                                    this.session.getTimestamp().dropOpenRange();
+                                    this.session.getTimestamp().drop();
                                 },
                             }
                         ]);
                     } else {
                         items.push(...[
                             {
-                                caption: `New time range`,
+                                caption: `Open time range`,
                                 handler: () => {
-                                    this.session.getTimestamp().dropOpenRange();
-                                    this.session.getTimestamp().setPoint({
-                                        position: current.position,
-                                        str: current.str,
-                                    });
+                                    this.session.getTimestamp().open(curr.row);
                                 },
                             }
                         ]);
@@ -300,7 +303,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                         {
                             caption: `Remove all except selected`,
                             handler: () => {
-                                this.session.getTimestamp().drop([selected]);
+                                this.session.getTimestamp().clear([selected]);
                             },
                             disabled: selected === undefined
                         }

@@ -154,7 +154,7 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public open(row: IRow) {
+    public open(row: IRow, join?: boolean) {
         if (this._open !== undefined) {
             // Range already opened
             return;
@@ -170,7 +170,9 @@ export class ControllerSessionTabTimestamp {
             // Store opened point
             this._open = row;
             // Update group
-            this._sequences.group += 1;
+            if (!join) {
+                this._sequences.group += 1;
+            }
             // Redraw rows (to show matches)
             OutputParsersService.updateRowsView();
         }).catch((err: Error) => {
@@ -178,38 +180,39 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public addRange(start: IRow, end: IRow) {
-        Promise.all([
-            this.getTimestamp(start.str),
-            this.getTimestamp(end.str),
-        ]).then((timestamps: Array<number | undefined>) => {
-            start.timestamp = timestamps[0];
-            end.timestamp = timestamps[1];
-            if (start.timestamp === undefined || end.timestamp === undefined) {
-                return;
+    public close(row: IRow): Promise<void> {
+        return new Promise((resolve) => {
+            if (this._open === undefined) {
+                return resolve();
             }
-            [start, end].forEach((row: IRow) => {
+            this.getTimestamp(row.str).then((tm: number) => {
+                row.timestamp = tm;
+                if (row.timestamp === undefined) {
+                    return resolve();
+                }
                 row.match = this.getMatch(row.str);
+                if (this._open.timestamp > row.timestamp) {
+                    const backup = this._open;
+                    this._open = row;
+                    row = backup;
+                }
+                this._ranges.push({
+                    id: ++this._sequences.range,
+                        start: this._open,
+                        end: row,
+                        duration: Math.abs(row.timestamp - this._open.timestamp),
+                        color: this._getColor(),
+                        group: this.getCurrentGroup(),
+                });
+                this._open = undefined;
+                this._setState();
+                this._subjects.update.next(this.getRanges());
+                OutputParsersService.updateRowsView();
+                return resolve();
+            }).catch((err: Error) => {
+                this._logger.error(`addRange:: Fail get timestamp due error: ${err.message}`);
+                return resolve();
             });
-            if (end.timestamp < start.timestamp) {
-                const backup = end;
-                end = start;
-                start = backup;
-            }
-            this._ranges.push({
-                id: ++this._sequences.range,
-                    start: start,
-                    end: end,
-                    duration: Math.abs(end.timestamp - start.timestamp),
-                    color: this._getColor(),
-                    group: this.getCurrentGroup(),
-            });
-            this._last = Object.assign({}, end);
-            this._setState();
-            this._subjects.update.next(this.getRanges());
-            OutputParsersService.updateRowsView();
-        }).catch((err: Error) => {
-            this._logger.error(`addRange:: Fail get timestamp due error: ${err.message}`);
         });
     }
 
@@ -220,23 +223,21 @@ export class ControllerSessionTabTimestamp {
         this._subjects.update.next(this.getRanges());
     }
 
-    public dropOpenRange() {
-        const index: number | undefined = this.getOpenRangeIndex();
-        if (index === undefined) {
+    public drop() {
+        if (this._open === undefined) {
             return;
         }
-        this._ranges.splice(index, 1);
-        this._last = undefined;
+        this._open = undefined;
         this._setState();
         this._subjects.update.next(this.getRanges());
         OutputParsersService.updateRowsView();
     }
 
-    public drop(exceptions: number[] = []) {
+    public clear(exceptions: number[] = []) {
         this._ranges = this._ranges.filter((row: IRange) => {
             return exceptions.indexOf(row.id) !== -1;
         });
-        this._last = undefined;
+        this._open = undefined;
         this._setState();
         this._subjects.update.next(this.getRanges());
         OutputParsersService.updateRowsView();
@@ -409,20 +410,12 @@ export class ControllerSessionTabTimestamp {
         return id;
     }
 
-    public getLastPointTimestamp(): number | undefined {
-        return this._last === undefined ? undefined : this._last.timestamp;
-    }
-
-    public getLastPointPosition(): number | undefined {
-        return this._last === undefined ? undefined : this._last.position;
-    }
-
     public getCurrentGroup(): number | undefined {
         return this._sequences.group;
     }
 
-    public getLastPointRow(): IRow | undefined {
-        return this._last === undefined ? undefined : this._last;
+    public getOpenRow(): IRow | undefined {
+        return this._open === undefined ? undefined : Object.assign({}, this._open);
     }
 
     public getRanges(): IRange[] {
@@ -504,11 +497,11 @@ export class ControllerSessionTabTimestamp {
 
     private _getTooltipContent(row: string, position: number, selection: string): Promise<string | undefined> {
         return new Promise((resolve) => {
-            if (this._last === undefined) {
+            if (this._open === undefined) {
                 return resolve(selection);
             }
             this.getTimestamp(selection).then((tm: number | undefined) => {
-                resolve(`${Math.abs(this._last.timestamp - tm)}ms`);
+                resolve(`${Math.abs(this._open.timestamp - tm)}ms`);
             }).catch((err: Error) => {
                 this._logger.error(`injectHighlight:: Fail get timestamp due error: ${err.message}`);
                 resolve(undefined);
@@ -517,7 +510,7 @@ export class ControllerSessionTabTimestamp {
     }
 
     private _injectHighlightFormat(str: string): string {
-        if (this._last === undefined) {
+        if (this._open === undefined) {
             return str;
         }
         this._format.forEach((format: IFormat) => {
