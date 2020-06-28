@@ -62,14 +62,12 @@ export enum EChartMode {
     scaled = 'scaled'
 }
 
-export class ControllerSessionTabTimestamp {
+export class ControllerSessionTabTimestampRanges {
 
     private _guid: string;
     private _logger: Toolkit.Logger;
-    private _tasks: Map<string, CancelablePromise<any, any, any, any>> = new Map();
     private _format: IFormat[] = [];
     private _ranges: IRange[] = [];
-    private _open: IRow | undefined;
     private _state: IState = { min: Infinity, max: -1, duration: 0 };
     private _sequences: {
         range: number,
@@ -78,6 +76,7 @@ export class ControllerSessionTabTimestamp {
         range: 0,
         group: 0,
     };
+    private _last: IRow | undefined;
     private _parser: TimestampRowParser;
     private _mode: EChartMode = EChartMode.aligned;
     private _defaults: DefaultDateParts = {
@@ -101,7 +100,7 @@ export class ControllerSessionTabTimestamp {
 
     constructor(guid: string) {
         this._guid = guid;
-        this._logger = new Toolkit.Logger(`ControllerSessionTabTimestamp: ${guid}`);
+        this._logger = new Toolkit.Logger(`ControllerSessionTabTimestampRanges: ${guid}`);
         this._parser = new TimestampRowParser(this._injectHighlightFormat.bind(this));
         OutputParsersService.setSessionParser(ROW_PARSER_ID, this._parser, this._guid);
         OutputParsersService.setSessionTooltip({ id: ROW_TOOLTIP_ID, getContent: this._getTooltipContent.bind(this)}, this._guid);
@@ -154,27 +153,42 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public open(row: IRow) {
-        if (this._open !== undefined) {
-            // Range already opened
-            return;
-        }
+    public setPoint(row: IRow) {
         this.getTimestamp(row.str).then((tm: number | undefined) => {
             if (tm === undefined) {
                 return;
             }
-            // Store timestamp
+            const index: number = this.getOpenRangeIndex();
             row.timestamp = tm;
-            // Detect matches
             row.match = this.getMatch(row.str);
-            // Store opened point
-            this._open = row;
-            // Update group
-            this._sequences.group += 1;
-            // Redraw rows (to show matches)
+            if (index === -1) {
+                this._ranges.push({
+                    id: ++this._sequences.range,
+                    start: row,
+                    end: undefined,
+                    duration: -1,
+                    color: this._getColor(),
+                    group: ++this._sequences.group,
+                });
+                this._last = this._ranges[this._ranges.length - 1].start;
+                this._setState();
+                this._subjects.update.next(this.getRanges());
+            } else {
+                this._ranges[index].start = this._last;
+                this._ranges[index].end = row;
+                this._ranges[index].duration = Math.abs(this._ranges[index].start.timestamp - this._ranges[index].end.timestamp);
+                if (this._ranges[index].end.timestamp < this._ranges[index].start.timestamp) {
+                    const backup = this._ranges[index].end;
+                    this._ranges[index].end = this._ranges[index].start;
+                    this._ranges[index].start = backup;
+                }
+                this._last = undefined;
+                this._setState();
+                this._subjects.change.next(Toolkit.copy(this._ranges[index]));
+            }
             OutputParsersService.updateRowsView();
         }).catch((err: Error) => {
-            this._logger.error(`open:: Fail get timestamp due error: ${err.message}`);
+            this._logger.error(`setPoint:: Fail get timestamp due error: ${err.message}`);
         });
     }
 
@@ -284,110 +298,6 @@ export class ControllerSessionTabTimestamp {
         return match;
     }
 
-    public discover(update: boolean = false): CancelablePromise<void> {
-        const id: string = Toolkit.guid();
-        const task: CancelablePromise<void> = new CancelablePromise<void>(
-            (resolve, reject, cancel, refCancelCB, self) => {
-            if (this._format.length > 0 && !update) {
-                return resolve();
-            }
-            this._format = [];
-            ElectronIpcService.request(new IPCMessages.TimestampDiscoverRequest({
-                session: this._guid,
-                id: id,
-            }), IPCMessages.TimestampDiscoverResponse).then((response: IPCMessages.TimestampDiscoverResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to discover files due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                if (response.format === undefined) {
-                    return reject(new Error(`Format isn't detected.`));
-                }
-                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(response.format.regex, response.format.flags.join(''));
-                if (regexp instanceof Error) {
-                    this._logger.warn(`Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`);
-                    return reject(regexp);
-                }
-                this._format.push({
-                    format: response.format.format,
-                    regexp: regexp,
-                });
-                this._subjects.formats.next();
-                OutputParsersService.updateRowsView();
-                resolve();
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to discover files due error: ${disErr.message}`);
-                return reject(disErr);
-            });
-        }).finally(() => {
-            this._tasks.delete(id);
-        });
-        this._tasks.set(id, task);
-        return task;
-    }
-
-    public validate(format: string): CancelablePromise<RegExp> {
-        const id: string = Toolkit.guid();
-        const task: CancelablePromise<RegExp> = new CancelablePromise<RegExp>(
-            (resolve, reject, cancel, refCancelCB, self) => {
-            ElectronIpcService.request(new IPCMessages.TimestampTestRequest({
-                session: this._guid,
-                format: format,
-                id: id,
-                flags: { miss_year: true, miss_month: true, miss_day: true }
-            }), IPCMessages.TimestampTestResponse).then((response: IPCMessages.TimestampTestResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to test files due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(response.format.regex, response.format.flags.join(''));
-                if (regexp instanceof Error) {
-                    this._logger.warn(`Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`);
-                    return reject(regexp);
-                }
-                resolve(regexp);
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to test files due error: ${disErr.message}`);
-                return reject(disErr);
-            });
-        }).finally(() => {
-            this._tasks.delete(id);
-        });
-        this._tasks.set(id, task);
-        return task;
-    }
-
-    public extract(str: string, format: string): CancelablePromise<number> {
-        const id: string = Toolkit.guid();
-        const task: CancelablePromise<number> = new CancelablePromise<number>(
-            (resolve, reject, cancel, refCancelCB, self) => {
-            ElectronIpcService.request(new IPCMessages.TimestampExtractRequest({
-                session: this._guid,
-                str: str,
-                format: format,
-                id: id,
-                replacements: {
-                    year: this.getDefaults().year,
-                    month: this.getDefaults().month,
-                    day: this.getDefaults().day,
-                },
-            }), IPCMessages.TimestampExtractResponse).then((response: IPCMessages.TimestampExtractResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to extract timestamp due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                resolve(response.timestamp);
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to test files due error: ${disErr.message}`);
-                return reject(disErr);
-            });
-        }).finally(() => {
-            this._tasks.delete(id);
-        });
-        this._tasks.set(id, task);
-        return task;
-    }
-
     public isDetected(): boolean {
         return this._format.length > 0;
     }
@@ -407,6 +317,12 @@ export class ControllerSessionTabTimestamp {
             }
         });
         return id;
+    }
+
+    public getOpenRangeIndex(): number {
+        return this._ranges.findIndex((r: IRange) => {
+            return r.end === undefined;
+        });
     }
 
     public getLastPointTimestamp(): number | undefined {
