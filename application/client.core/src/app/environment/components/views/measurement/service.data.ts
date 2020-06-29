@@ -22,7 +22,6 @@ export class DataService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('MeasurementDataService');
     private _session: ControllerSessionTab | undefined;
     private _mode: EChartMode = EChartMode.aligned;
-    private _height: number = 0;
     private _barHeight: number = MAX_BAR_HEIGHT;
     private _fontSize: number = MAX_FONT_SIZE;
     private _subjects: {
@@ -95,10 +94,6 @@ export class DataService {
         return this._session === undefined ? 0 : this._session.getTimestamp().getMaxTimestamp();
     }
 
-    public setHeight(height: number) {
-        this._height = height;
-    }
-
     private _getChartDatasetModeAlign(): {
         datasets: any[],
         labels: string[],
@@ -155,7 +150,7 @@ export class DataService {
         const datasets: any[] = [];
         const groups: Map<number, IRange[]> = this._getGroups();
         let y: number = 1;
-        let prev: { min: number, max: number } | undefined = undefined;
+        let prev: { min: number, max: number } | undefined;
         groups.forEach((ranges: IRange[]) => {
             ranges.sort((a: IRange, b: IRange) => {
                 return a.duration > b.duration ? 1 : -1;

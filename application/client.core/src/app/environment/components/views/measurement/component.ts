@@ -221,7 +221,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                         animationDuration: 0
                     },
                     responsiveAnimationDuration: 0,
-                    responsive: true,
+                    responsive: false,
                     maintainAspectRatio: false,
                     scales: {
                         xAxes: [{
@@ -240,6 +240,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                                 min: 0,
                                 max: data.maxY + 1,
                                 beginAtZero: true,
+                                stepSize: 1,
                             },
                         }],
                     },
@@ -332,9 +333,10 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         this._ng_width = size.width;
         this._height = size.height;
         if (this._service !== undefined && this._chart !== undefined && !this._destroy) {
-            this._service.setHeight(this._height);
             this._chart.update();
+            this._chart.resize();
         }
+        this._forceUpdate();
     }
 
     private _forceUpdate() {

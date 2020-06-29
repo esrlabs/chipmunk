@@ -136,8 +136,9 @@
                         width: 4px;
                         top: 50%;
                         &.nested{
-                            height: 100%;
-                            top:0;
+                            border-top-width: 0;
+                            height: 150%;
+                            top: ~"calc(-50% + 2px)";
                         }
                     }
                     &.end {
@@ -149,7 +150,7 @@
                         width: 4px;
                         top: 0;
                         &.nested{
-                            height: ~"calc(100% - 2px)";
+
                         }
                     }
                     &.middle {

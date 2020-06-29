@@ -545,7 +545,7 @@ export class ControllerSessionTabTimestamp {
     }
 
     private _getColor(): string {
-        return `rgb(${Math.round(Math.random() * 154) + 100}, ${Math.round(Math.random() * 154) + 100}, ${Math.round(Math.random() * 154) + 100})`;
+        return `rgb(${Math.round(Math.random() * 204) + 50}, ${Math.round(Math.random() * 204) + 50}, ${Math.round(Math.random() * 204) + 50})`;
     }
 
     private _setState() {
