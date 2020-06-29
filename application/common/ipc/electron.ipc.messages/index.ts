@@ -22,6 +22,12 @@ export { IRenderMountPlugin, RenderMountPlugin, IRenderMountPluginInfo };
 import { IRenderState, RenderState, ERenderState } from './render.state';
 export { IRenderState, RenderState, ERenderState };
 
+import { OSInfoRequest } from './os.info.request';
+export { OSInfoRequest };
+
+import { IOSInfoResponse, OSInfoResponse } from './os.info.response';
+export { IOSInfoResponse, OSInfoResponse };
+
 import { PluginsInstalledRequest } from './plugins.installed.request';
 export { PluginsInstalledRequest };
 
@@ -162,12 +168,6 @@ export { IStreamPtyResizeResponse, StreamPtyResizeResponse };
 
 import { ISearchResultMap, SearchResultMap, ISearchResultMapData } from './search.results.map';
 export { ISearchResultMap, SearchResultMap, ISearchResultMapData };
-
-import { SearchOSRequest } from './search.os.request';
-export { SearchOSRequest };
-
-import { SearchOSResponse, ISearchOSResponse } from './search.os.response';
-export { SearchOSResponse, ISearchOSResponse};
 
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
@@ -541,6 +541,8 @@ export type TMessage =  AppRestartRequest |
                         HostTaskHistory |
                         RenderMountPlugin |
                         RenderState |
+                        OSInfoRequest |
+                        OSInfoResponse |
                         PluginInternalMessage |
                         PluginError |
                         PluginsInstalledRequest |
@@ -594,8 +596,6 @@ export type TMessage =  AppRestartRequest |
                         SearchRequestResults |
                         SearchResultMapState |
                         SearchUpdated |
-                        SearchOSRequest |
-                        SearchOSResponse |
                         SearchChunk |
                         SearchRecentRequest |
                         SearchRecentResponse |
@@ -716,14 +716,17 @@ export const Map = {
 
     [AppRestartRequest.signature                ]: AppRestartRequest,
     [AppRestartResponse.signature               ]: AppRestartResponse,
-
+    
     [HostState.signature                        ]: HostState,
     [HostStateHistory.signature                 ]: HostStateHistory,
     [HostTask.signature                         ]: HostTask,
     [HostTaskHistory.signature                  ]: HostTaskHistory,
-
+    
     [RenderMountPlugin.signature                ]: RenderMountPlugin,
     [RenderState.signature                      ]: RenderState,
+    
+    [OSInfoRequest.signature                    ]: OSInfoRequest,
+    [OSInfoResponse.signature                   ]: OSInfoResponse,
 
     [PluginInternalMessage.signature            ]: PluginInternalMessage,
     [PluginError.signature                      ]: PluginError,
@@ -779,8 +782,6 @@ export const Map = {
     [SearchRequestCancelResponse.signature      ]: SearchRequestCancelResponse,
     [SearchRequestResults.signature             ]: SearchRequestResults,
     [SearchResultMapState.signature             ]: SearchResultMapState,
-    [SearchOSRequest.signature                  ]: SearchOSRequest,
-    [SearchOSResponse.signature                 ]: SearchOSResponse,
     [SearchChunk.signature                      ]: SearchChunk,
     [SearchUpdated.signature                    ]: SearchUpdated,
     [SearchRecentRequest.signature              ]: SearchRecentRequest,
