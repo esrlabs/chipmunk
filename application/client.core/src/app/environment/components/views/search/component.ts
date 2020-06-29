@@ -18,6 +18,7 @@ import { EChartType } from '../chart/charts/charts';
 import { sortPairs, IPair } from '../../../thirdparty/code/engine';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
+import ServiceOS from '../../../services/standalone/service.os';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
 import SidebarSessionsService from '../../../services/service.sessions.sidebar';
@@ -118,7 +119,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             startWith(''),
             map(value => this._filter(value))
         );
-        this._getOS();
+        ServiceOS.getOS().then((os: string) => {
+            this._os = os;
+        });
     }
 
     public ngOnDestroy() {
@@ -383,17 +386,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         this._addRecentFilter();
         this._search();
-    }
-
-    private _getOS() {
-        ElectronIpcService.request(new IPCMessages.SearchOSRequest(), IPCMessages.SearchOSResponse).then((response: IPCMessages.SearchOSResponse) => {
-            if (response.error) {
-                return this._logger.error(`Fail to get OS due error: ${response.error}`);
-            }
-            this._os = response.os;
-        }).catch((error: Error) => {
-            return this._logger.error(`Fail send request to get OS due error: ${error.message}`);
-        });
     }
 
     private _getCurrentFilter(): FilterRequest | Error {

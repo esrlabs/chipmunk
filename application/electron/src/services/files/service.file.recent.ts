@@ -46,11 +46,6 @@ export class ServiceFileRecent implements IService {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "SearchRecentAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
-            ServiceElectron.IPC.subscribe(IPCMessages.SearchOSRequest, this._ipc_onSearchOSRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscriptions.SearchOSRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to "SearchOSRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
             resolve();
         });
     }
@@ -221,12 +216,6 @@ export class ServiceFileRecent implements IService {
             recentSearchRequests: [],
         });
         response(new IPCMessages.SearchRecentClearResponse({ }));
-    }
-
-    private _ipc_onSearchOSRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
-        response(new IPCMessages.SearchOSResponse({
-            os: os.platform(),
-        }));
     }
 
     private _ipc_onSearchRecentAddRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
