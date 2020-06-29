@@ -147,9 +147,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return false;
         }
         if (this._os === 'darwin' && event.metaKey && event.key === 'Enter') {
-            this._saveSearchFilter();
+            this._onStoreFilter();
         } else if ((this._os === 'linux' || 'win32') && event.ctrlKey && event.key === 'Enter') {
-            this._saveSearchFilter();
+            this._onStoreFilter();
         } else if (event.shiftKey && event.key === 'Enter') {
             this._ng_onStoreChart();
         }
@@ -189,7 +189,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             }
             return;
         }
-        this._saveSearchFilter();
+        this._onStoreFilter();
     }
 
     public _ng_onFocusRequestInput() {
@@ -363,7 +363,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._sanitizer.bypassSecurityTrustHtml(input);
     }
 
-    private _saveSearchFilter() {
+    private _onStoreFilter() {
         if (this._ng_inputCtrl.value === undefined || this._ng_inputCtrl.value.trim() === '') {
             // Drop results
             return this._ng_onDropRequest(true);
