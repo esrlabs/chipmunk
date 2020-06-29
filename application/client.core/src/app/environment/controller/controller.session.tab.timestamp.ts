@@ -421,19 +421,32 @@ export class ControllerSessionTabTimestamp {
         return range === undefined ? undefined : range.color;
     }
 
-    public getStatePositionInRange(position: number): 'begin' | 'middle' | 'end' | 'open' | undefined {
+    public getStatePositionInRange(position: number): 'begin' | 'begin nested' | 'middle' | 'end' | 'end nested' | 'open' | undefined {
         if (this._open !== undefined && this._open.position === position) {
             return 'open';
         }
         const range: IRange | undefined = this._getRangeByPosition(position);
+        const start: number | undefined = range === undefined ? undefined : (range.start.position < range.end.position ? range.start.position : range.end.position);
+        const end: number | undefined = range === undefined ? undefined : (range.start.position > range.end.position ? range.start.position : range.end.position);
+        const before: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(start - 1);
+        const after: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(end + 1);
         if (range === undefined) {
             return undefined;
         }
         if (range.start.position === position) {
-            return 'begin';
+            if (before !== undefined && before.group === range.group) {
+                return 'begin nested';
+
+            } else {
+                return 'begin';
+            }
         }
         if (range.end.position === position) {
-            return 'end';
+            if (after !== undefined && after.group === range.group) {
+                return 'end nested';
+            } else {
+                return 'end';
+            }
         }
         return 'middle';
     }
