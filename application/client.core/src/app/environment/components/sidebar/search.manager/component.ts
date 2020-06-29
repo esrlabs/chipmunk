@@ -8,6 +8,7 @@ import { EChartType } from '../../views/chart/charts/charts';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
+import ToolbarSessionsService from '../../../services/service.sessions.toolbar';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -59,6 +60,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
     private _click: number = 0;
+    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchManagerComponent');
 
     @HostBinding('attr.tabindex') get tabindex() { return 0; }
     @HostListener('focus', ['$event.target']) onFocus() {
@@ -146,11 +148,15 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         if (this._session === undefined) {
             return;
         }
-        const request: FilterRequest = target === 'filters' ? event.request as FilterRequest : new FilterRequest({
-            request: event.request.asDesc().request,
-            flags: event.request.asDesc().flags,
+        this._setToolbarSearch().then(() => {
+            const request: FilterRequest = target === 'filters' ? event.request as FilterRequest : new FilterRequest({
+                request: event.request.asDesc().request,
+                flags: event.request.asDesc().flags,
+            });
+            this._session.getSessionSearch().search(request);
+        }).catch((error: Error) => {
+            this._logger.error(`Failed to set toolbar to search due error: ${error.message}`);
         });
-        this._session.getSessionSearch().search(request);
     }
 
     public _ng_onContextListsMenu(target: 'filters' | 'charts', event: IRequestEvent) {
@@ -237,6 +243,16 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         });
         event.event.stopImmediatePropagation();
         event.event.preventDefault();
+    }
+
+    private _setToolbarSearch(): Promise<void> {
+        return new Promise((resolve) => {
+            if (ToolbarSessionsService.setActive === undefined || ToolbarSessionsService.getDefaultsGuids === undefined) {
+                return;
+            }
+            ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
+            resolve();
+        });
     }
 
     private _toggleAllInList(target: 'filters' | 'charts', state: boolean, exception?: number) {
