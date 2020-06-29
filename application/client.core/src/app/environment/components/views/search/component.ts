@@ -92,6 +92,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _filtersStorage: FiltersStorage | undefined;
     private _chartsStorage: ChartsStorage | undefined;
     private _destroyed: boolean = false;
+    private _os: string = '';
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService,
@@ -117,6 +118,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             startWith(''),
             map(value => this._filter(value))
         );
+        this._getOS();
     }
 
     public ngOnDestroy() {
@@ -143,6 +145,13 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
             }
             return false;
+        }
+        if (this._os === 'darwin' && event.metaKey && event.key === 'Enter') {
+            this._saveSearchFilter();
+        } else if ((this._os === 'linux' || 'win32') && event.ctrlKey && event.key === 'Enter') {
+            this._saveSearchFilter();
+        } else if (event.shiftKey && event.key === 'Enter') {
+            this._ng_onStoreChart();
         }
         return true;
     }
@@ -180,25 +189,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             }
             return;
         }
-        if (this._ng_inputCtrl.value === undefined || this._ng_inputCtrl.value.trim() === '') {
-            // Drop results
-            return this._ng_onDropRequest(true);
-        }
-        if (!this._ng_isRequestValid) {
-            return this._notifications.add({
-                caption: 'Search',
-                message: `Regular expresion isn't valid. Please correct it.`
-            });
-        }
-        if (this._prevRequest.trim() !== '' && this._ng_inputCtrl.value === this._prevRequest) {
-            if (this._ng_isRequestSaved) {
-                return;
-            }
-            this._ng_onStoreRequest();
-            return;
-        }
-        this._addRecentFilter();
-        this._search();
+        this._saveSearchFilter();
     }
 
     public _ng_onFocusRequestInput() {
@@ -370,6 +361,39 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_getSafeHTML(input: string): SafeHtml {
         return this._sanitizer.bypassSecurityTrustHtml(input);
+    }
+
+    private _saveSearchFilter() {
+        if (this._ng_inputCtrl.value === undefined || this._ng_inputCtrl.value.trim() === '') {
+            // Drop results
+            return this._ng_onDropRequest(true);
+        }
+        if (!this._ng_isRequestValid) {
+            return this._notifications.add({
+                caption: 'Search',
+                message: `Regular expresion isn't valid. Please correct it.`
+            });
+        }
+        if (this._prevRequest.trim() !== '' && this._ng_inputCtrl.value === this._prevRequest) {
+            if (this._ng_isRequestSaved) {
+                return;
+            }
+            this._ng_onStoreRequest();
+            return;
+        }
+        this._addRecentFilter();
+        this._search();
+    }
+
+    private _getOS() {
+        ElectronIpcService.request(new IPCMessages.SearchOSRequest(), IPCMessages.SearchOSResponse).then((response: IPCMessages.SearchOSResponse) => {
+            if (response.error) {
+                return this._logger.error(`Fail to get OS due error: ${response.error}`);
+            }
+            this._os = response.os;
+        }).catch((error: Error) => {
+            return this._logger.error(`Fail send request to get OS due error: ${error.message}`);
+        });
     }
 
     private _getCurrentFilter(): FilterRequest | Error {
