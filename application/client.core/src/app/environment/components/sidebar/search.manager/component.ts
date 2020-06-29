@@ -10,6 +10,7 @@ import { ProviderCharts } from './charts/provider';
 import { ProviderRanges } from './ranges/provider';
 import { ProviderDisabled } from './disabled/provider';
 
+import ToolbarSessionsService from '../../../services/service.sessions.toolbar';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
