@@ -251,17 +251,17 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                             }
                             const chartInstance = this.chart;
                             const ctx = chartInstance.ctx;
-                            ctx.font = Chart.helpers.fontString(self._service.getOptimalFontSize(), Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                            ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
                             ctx.textAlign = 'right';
                             this.data.datasets.forEach(function(dataset, i) {
                                 const meta = chartInstance.controller.getDatasetMeta(i);
                                 const duration: number = dataset.data[1].duration;
                                 if (dataset.data[1].range === true) {
-                                    ctx.font = Chart.helpers.fontString(self._service.getOptimalFontSize(), Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                                    ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
                                     ctx.fillStyle = getContrastColor(dataset.borderColor, true);
                                     ctx.textBaseline = 'middle';
                                 } else {
-                                    ctx.font = Chart.helpers.fontString(self._service.getOptimalFontSize() * 0.8, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                                    ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize * 0.8, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
                                     ctx.fillStyle = scheme_color_2;
                                     ctx.textBaseline = 'top';
                                 }
@@ -333,7 +333,6 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         this._height = size.height;
         if (this._service !== undefined && this._chart !== undefined && !this._destroy) {
             this._service.setHeight(this._height);
-            this._service.updateViewRelatedProps(this._chart);
             this._chart.update();
         }
     }

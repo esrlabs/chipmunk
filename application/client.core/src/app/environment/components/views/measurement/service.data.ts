@@ -75,7 +75,6 @@ export class DataService {
         labels: string[],
         maxY?: number
     } {
-        this._setSizes();
         switch (this._mode) {
             case EChartMode.aligned:
                 return this._getChartDatasetModeAlign();
@@ -98,44 +97,7 @@ export class DataService {
 
     public setHeight(height: number) {
         this._height = height;
-        this._setSizes();
     }
-
-    public updateViewRelatedProps(chart: Chart) {
-        this._setSizes();
-        switch (this._mode) {
-            case EChartMode.aligned:
-                break;
-            case EChartMode.scaled:
-                chart.data.datasets = chart.data.datasets.map((dataset) => {
-                    if (dataset.borderWidth !== 1) {
-                        dataset.borderWidth = this._barHeight;
-                    }
-                    return dataset;
-                });
-                break;
-        }
-    }
-
-    public getOptimalFontSize() {
-        return this._fontSize;
-    }
-
-    private _setSizes(count?: number) {
-        if (count === undefined) {
-            count = this._getGroups().size;
-        }
-        if (count === 0 || this._height === 0) {
-            this._barHeight = MAX_BAR_HEIGHT;
-        } else {
-            this._barHeight = (this._height / 2) / count;
-            this._barHeight = (isNaN(this._barHeight) && !isFinite(this._barHeight)) ? MAX_BAR_HEIGHT : this._barHeight;
-            this._barHeight = this._barHeight > MAX_BAR_HEIGHT ? MAX_BAR_HEIGHT : (this._barHeight < MIN_BAR_HEIGHT ? MIN_BAR_HEIGHT : this._barHeight);
-        }
-        this._fontSize = (this._barHeight / MAX_BAR_HEIGHT) * MAX_FONT_SIZE;
-        this._fontSize = (isNaN(this._fontSize) && !isFinite(this._fontSize)) ? MAX_FONT_SIZE : this._fontSize;
-        this._fontSize = this._fontSize > MAX_FONT_SIZE ? MAX_FONT_SIZE : (this._fontSize < MIN_FONT_SIZE ? MIN_FONT_SIZE : this._fontSize);
-}
 
     private _getChartDatasetModeAlign(): {
         datasets: any[],

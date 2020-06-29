@@ -136,15 +136,8 @@
                         width: 4px;
                         top: 50%;
                         &.nested{
-                            &::after{
-                                position: absolute;
-                                content: '';
-                                height: ~"calc(100% + 2px)";
-                                width: 100%;
-                                top: -100%;
-                                left: -2px;
-                                border-left: 2px solid var(--range-color);
-                            }
+                            height: 100%;
+                            top:0;
                         }
                     }
                     &.end {
@@ -156,15 +149,7 @@
                         width: 4px;
                         top: 0;
                         &.nested{
-                            &::after{
-                                position: absolute;
-                                content: '';
-                                height: ~"calc(100% + 2px)";
-                                width: 100%;
-                                top: 100%;
-                                border-left: 2px solid var(--range-color);
-                                left: -2px;
-                            }
+                            height: ~"calc(100% - 2px)";
                         }
                     }
                     &.middle {
