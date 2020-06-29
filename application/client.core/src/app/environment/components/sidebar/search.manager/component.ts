@@ -174,11 +174,15 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                     if (this._session === undefined) {
                         return;
                     }
-                    const request: FilterRequest = target === 'filters' ? event.request as FilterRequest : new FilterRequest({
-                        request: event.request.asDesc().request,
-                        flags: event.request.asDesc().flags,
+                    this._setToolbarSearch().then(() => {
+                        const request: FilterRequest = target === 'filters' ? event.request as FilterRequest : new FilterRequest({
+                            request: event.request.asDesc().request,
+                            flags: event.request.asDesc().flags,
+                        });
+                        this._session.getSessionSearch().search(request);
+                    }).catch((error: Error) => {
+                        this._logger.error(`Failed to set toolbar to search due error: ${error.message}`);
                     });
-                    this._session.getSessionSearch().search(request);
                 },
             },
             { /* delimiter */ },
