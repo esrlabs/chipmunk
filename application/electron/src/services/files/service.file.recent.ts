@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import Logger from '../../tools/env.logger';
 import { Subscription } from '../../tools/index';
 import ServiceElectron, { IPCMessages } from '../service.electron';
@@ -44,6 +45,11 @@ export class ServiceFileRecent implements IService {
                 this._subscriptions.SearchRecentAddRequest = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "SearchRecentAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.SearchOSRequest, this._ipc_onSearchOSRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.SearchOSRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to "SearchOSRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
             resolve();
         });
@@ -215,6 +221,12 @@ export class ServiceFileRecent implements IService {
             recentSearchRequests: [],
         });
         response(new IPCMessages.SearchRecentClearResponse({ }));
+    }
+
+    private _ipc_onSearchOSRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
+        response(new IPCMessages.SearchOSResponse({
+            os: os.platform(),
+        }));
     }
 
     private _ipc_onSearchRecentAddRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
