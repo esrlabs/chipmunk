@@ -265,6 +265,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         };
     }
 
+    public _ng_getRangeColor(): string | undefined {
+        return this.timestamp.getRangeColorFor(this._getPosition());
+    }
+
     public _ng_getTooltipStyle() {
         return this._ng_tooltip === undefined ? {} : {
             top: `${this._ng_tooltip.top}px`,

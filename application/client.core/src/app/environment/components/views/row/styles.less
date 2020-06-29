@@ -135,6 +135,17 @@
                         height: 50%;
                         width: 4px;
                         top: 50%;
+                        &.nested{
+                            &::after{
+                                position: absolute;
+                                content: '';
+                                height: ~"calc(100% + 2px)";
+                                width: 100%;
+                                top: -100%;
+                                left: -2px;
+                                border-left: 2px solid var(--range-color);
+                            }
+                        }
                     }
                     &.end {
                         border-left-width: 2px;
@@ -144,6 +155,17 @@
                         height: 50%;
                         width: 4px;
                         top: 0;
+                        &.nested{
+                            &::after{
+                                position: absolute;
+                                content: '';
+                                height: ~"calc(100% + 2px)";
+                                width: 100%;
+                                top: 100%;
+                                border-left: 2px solid var(--range-color);
+                                left: -2px;
+                            }
+                        }
                     }
                     &.middle {
                         border-left-width: 2px;
