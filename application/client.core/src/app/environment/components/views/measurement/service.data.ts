@@ -8,12 +8,10 @@ import EventsSessionService from '../../../services/standalone/service.events.se
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-const MAX_BAR_HEIGHT = 16;
-const MIN_BAR_HEIGHT = 4;
-const MAX_FONT_SIZE = 12;
-const MIN_FONT_SIZE = 8;
-
 export class DataService {
+
+    public readonly SCALED_ROW_HEIGHT: number = 50;
+    public readonly MAX_BAR_HEIGHT: number = 16;
 
     private _refs: number[] = [];
     private _ranges: IRange[] = [];
@@ -22,8 +20,6 @@ export class DataService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('MeasurementDataService');
     private _session: ControllerSessionTab | undefined;
     private _mode: EChartMode = EChartMode.aligned;
-    private _barHeight: number = MAX_BAR_HEIGHT;
-    private _fontSize: number = MAX_FONT_SIZE;
     private _subjects: {
         update: Subject<void>,  // Updates happens in scope of session
         change: Subject<void>, // Session was changed
@@ -92,6 +88,10 @@ export class DataService {
 
     public getMaxTimestamp(): number {
         return this._session === undefined ? 0 : this._session.getTimestamp().getMaxTimestamp();
+    }
+
+    public getRangesCount(): number {
+        return this._getComplitedRanges().length;
     }
 
     private _getChartDatasetModeAlign(): {
@@ -203,7 +203,7 @@ export class DataService {
                 datasets.push({
                     data: values,
                     borderColor: range.color,
-                    borderWidth: this._barHeight,
+                    borderWidth: this.MAX_BAR_HEIGHT,
                     pointBackgroundColor: [range.color, range.color],
                     pointBorderColor: [range.color, range.color],
                     pointRadius: 0,

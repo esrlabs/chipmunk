@@ -27,12 +27,28 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
 
     public _ng_width: number = 0;
 
-    private _height: number = 0;
+    readonly CHART_UPDATE_DURATION: number = 75;
+
+    private _heights: {
+        container: number,
+        charts: number,
+    } = {
+        container: 0,
+        charts: 0,
+    };
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementComponent');
     private _session: ControllerSessionTab | undefined;
     private _destroy: boolean = false;
-    private _chart: Chart | undefined;
+    private _chart: {
+        instance?: Chart,
+        update: number,
+        timer: any,
+    } = {
+        instance: undefined,
+        update: 0,
+        timer: undefined,
+    };
     private _service: DataService | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -44,9 +60,9 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        if (this._chart !== undefined) {
-            this._chart.destroy();
-            this._chart = undefined;
+        if (this._chart.instance !== undefined) {
+            this._chart.instance.destroy();
+            this._chart.instance = undefined;
         }
         if (this._service !== undefined) {
             this._service.destroy();
@@ -62,17 +78,16 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
         );
-        this._subscriptions.onSessionChange = this._service.getObservable().update.subscribe(
+        this._subscriptions.update = this._service.getObservable().update.subscribe(
             this._onChartDataUpdate.bind(this),
         );
-        this._subscriptions.onSessionChange = this._service.getObservable().change.subscribe(
+        this._subscriptions.change = this._service.getObservable().change.subscribe(
             this._onChartDataChange.bind(this),
         );
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
-            this._onResize.bind(this),
+            this._resize.bind(this),
         );
         this._build();
-        this._onResize();
         this._onSessionChange(TabsSessionsService.getActive());
     }
 
@@ -117,6 +132,22 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         return this._session.getTimestamp();
     }
 
+    public _ng_getChartsHeight(): string {
+        if (this._service === undefined) {
+            return;
+        }
+        if (isNaN(this._heights.container) || !isFinite(this._heights.container)) {
+            this._resize();
+        }
+        let height: number = this._service.getRangesCount() * this._service.SCALED_ROW_HEIGHT;
+        height = height < this._heights.container ? this._heights.container : height;
+        if (height !== this._heights.charts) {
+            this._heights.charts = height;
+            this._chartResizeUpdate();
+        }
+        return `${this._heights.charts}px`;
+    }
+
     private _build() {
         if (this._ng_canvas === undefined || this._service === undefined) {
             return;
@@ -129,12 +160,13 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                 this._buildScaleChart();
                 break;
         }
+        this._resize();
     }
 
     private _buildAlignChart() {
         const data = this._service.getChartDataset();
-        if (this._chart === undefined) {
-            this._chart = new Chart(this._ng_canvas.nativeElement, {
+        if (this._chart.instance === undefined) {
+            this._chart.instance = new Chart(this._ng_canvas.nativeElement, {
                 type: 'horizontalBar',
                 data: {
                     datasets: data.datasets,
@@ -191,17 +223,16 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                 }
             });
         } else {
-            this._chart.data.datasets = data.datasets;
-            this._chart.data.labels = data.labels;
-            !this._destroy && this._chart.update();
+            this._chart.instance.data.datasets = data.datasets;
+            this._chart.instance.data.labels = data.labels;
         }
     }
 
     private _buildScaleChart() {
         const data = this._service.getChartDataset();
-        if (this._chart === undefined) {
+        if (this._chart.instance === undefined) {
             const self = this;
-            this._chart = new Chart(this._ng_canvas.nativeElement, {
+            this._chart.instance = new Chart(this._ng_canvas.nativeElement, {
                 type: 'scatter',
                 data: {
                     datasets: data.datasets,
@@ -241,6 +272,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                                 max: data.maxY + 1,
                                 beginAtZero: true,
                                 stepSize: 1,
+                                maxTicksLimit: 100,
                             },
                         }],
                     },
@@ -273,11 +305,10 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                 }
             });
         } else {
-            this._chart.data.datasets = data.datasets;
-            this._chart.options.scales.xAxes[0].ticks.min = this._service.getMinTimestamp();
-            this._chart.options.scales.xAxes[0].ticks.max = this._service.getMaxTimestamp();
-            this._chart.options.scales.yAxes[0].ticks.max = data.maxY + 1;
-            !this._destroy && this._chart.update();
+            this._chart.instance.data.datasets = data.datasets;
+            this._chart.instance.options.scales.xAxes[0].ticks.min = this._service.getMinTimestamp();
+            this._chart.instance.options.scales.xAxes[0].ticks.max = this._service.getMaxTimestamp();
+            this._chart.instance.options.scales.yAxes[0].ticks.max = data.maxY + 1;
         }
     }
 
@@ -305,7 +336,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         if (this._session === undefined || this._service === undefined) {
             return;
         }
-        const el = this._chart.getElementsAtEvent(event);
+        const el = this._chart.instance.getElementsAtEvent(event);
         // console.log(el);
     }
 
@@ -321,22 +352,38 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
     }
 
     private _onChartDataChange() {
-        if (this._chart !== undefined) {
-            this._chart.destroy();
-            this._chart = undefined;
+        if (this._chart.instance !== undefined) {
+            this._chart.instance.destroy();
+            this._chart.instance = undefined;
         }
         this._build();
     }
 
-    private _onResize() {
+    private _resize() {
         const size = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         this._ng_width = size.width;
-        this._height = size.height;
-        if (this._service !== undefined && this._chart !== undefined && !this._destroy) {
-            this._chart.update();
-            this._chart.resize();
-        }
+        this._heights.container = size.height;
+        this._chartResizeUpdate();
         this._forceUpdate();
+    }
+
+    private _chartResizeUpdate() {
+        if (this._service === undefined || this._chart.instance === undefined || this._destroy) {
+            return;
+        }
+        clearTimeout(this._chart.timer);
+        if (this._chart.update === 0) {
+            this._chart.update = Date.now();
+        }
+        const duration: number = this.CHART_UPDATE_DURATION - Math.abs(Date.now() - this._chart.update);
+        if (duration <= 0) {
+            this._chart.instance.update();
+            this._chart.instance.resize();
+            this._chart.update = 0;
+            this._chart.timer = undefined;
+        } else {
+            this._chart.timer = setTimeout(this._chartResizeUpdate.bind(this), duration);
+        }
     }
 
     private _forceUpdate() {

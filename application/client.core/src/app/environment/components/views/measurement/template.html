@@ -1,5 +1,5 @@
 <div class="bars" (contextmenu)="_ng_onChartContexMenu($event)">
-    <div class="bars-wrapper">
+    <div class="bars-wrapper" [ngStyle]="{'height': _ng_getChartsHeight()}">
         <canvas #canvas></canvas>
     </div>
 </div>
