@@ -1,5 +1,7 @@
 <div class="bars" (contextmenu)="_ng_onChartContexMenu($event)">
-    <canvas #canvas></canvas>
+    <div class="bars-wrapper">
+        <canvas #canvas></canvas>
+    </div>
 </div>
 <div class="formats">
     <app-views-measurement-formats *ngIf="_ng_getController() !== undefined" [controller]="_ng_getController()"></app-views-measurement-formats>
