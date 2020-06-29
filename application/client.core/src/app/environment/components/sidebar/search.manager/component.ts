@@ -251,9 +251,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
 
     private _setToolbarSearch(): Promise<void> {
         return new Promise((resolve) => {
-            if (ToolbarSessionsService.setActive === undefined || ToolbarSessionsService.getDefaultsGuids === undefined) {
-                return;
-            }
             ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
             resolve();
         });
