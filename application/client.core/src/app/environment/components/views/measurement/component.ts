@@ -152,83 +152,6 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         if (this._ng_canvas === undefined || this._service === undefined) {
             return;
         }
-        switch (this._service.getMode()) {
-            case EChartMode.aligned:
-                this._buildAlignChart();
-                break;
-            case EChartMode.scaled:
-                this._buildScaleChart();
-                break;
-        }
-        this._resize();
-    }
-
-    private _buildAlignChart() {
-        const data = this._service.getChartDataset();
-        if (this._chart.instance === undefined) {
-            this._chart.instance = new Chart(this._ng_canvas.nativeElement, {
-                type: 'horizontalBar',
-                data: {
-                    datasets: data.datasets,
-                    labels: data.labels,
-                },
-                options: {
-                    onClick: this._onAlignChartClick.bind(this),
-                    tooltips: {
-                        enabled: false,
-                    },
-                    title: {
-                        display: false,
-                    },
-                    legend: {
-                        display: false,
-                    },
-                    hover: {
-                        animationDuration: 0
-                    },
-                    responsiveAnimationDuration: 0,
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        xAxes: [{
-                            gridLines: {
-                                offsetGridLines: true
-                            },
-                            stacked: true
-                        }],
-                        yAxes: [{
-                            stacked: true
-                        }],
-                    },
-                    animation: {
-                        duration: 1,
-                        onComplete: function() {
-                            const chartInstance = this.chart;
-                            const ctx = chartInstance.ctx;
-                            ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
-                            ctx.textAlign = 'right';
-                            ctx.textBaseline = 'middle';
-                            this.data.datasets.forEach(function(dataset, i) {
-                                const meta = chartInstance.controller.getDatasetMeta(i);
-                                meta.data.forEach(function(bar, index) {
-                                    if (dataset.data[index] === 0) {
-                                        return;
-                                    }
-                                    ctx.fillStyle = getContrastColor(dataset.backgroundColor[index], true);
-                                    ctx.fillText(`${dataset.data[index]} ms`, bar._model.x - 4, bar._model.y + 1);
-                                });
-                            });
-                        }
-                    }
-                }
-            });
-        } else {
-            this._chart.instance.data.datasets = data.datasets;
-            this._chart.instance.data.labels = data.labels;
-        }
-    }
-
-    private _buildScaleChart() {
         const data = this._service.getChartDataset();
         if (this._chart.instance === undefined) {
             const self = this;
@@ -261,8 +184,8 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
                             },
                             ticks: {
                                 display: false,
-                                min: this._service.getMinTimestamp(),
-                                max: this._service.getMaxTimestamp()
+                                min: this._service.getMode() === EChartMode.aligned ? 0 : this._service.getMinTimestamp(),
+                                max: this._service.getMode() === EChartMode.aligned ? this._service.getMaxDuration() : this._service.getMaxTimestamp()
                             },
                         }],
                         yAxes: [{
@@ -306,38 +229,63 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
             });
         } else {
             this._chart.instance.data.datasets = data.datasets;
-            this._chart.instance.options.scales.xAxes[0].ticks.min = this._service.getMinTimestamp();
-            this._chart.instance.options.scales.xAxes[0].ticks.max = this._service.getMaxTimestamp();
+            this._chart.instance.options.scales.xAxes[0].ticks.min = this._service.getMode() === EChartMode.aligned ? 0 : this._service.getMinTimestamp();
+            this._chart.instance.options.scales.xAxes[0].ticks.max = this._service.getMode() === EChartMode.aligned ? this._service.getMaxDuration() : this._service.getMaxTimestamp();
             this._chart.instance.options.scales.yAxes[0].ticks.max = data.maxY + 1;
         }
+        this._resize();
     }
 
-    private _onAlignChartClick(event?: MouseEvent, elements?: any[]) {
+    private _onScaleChartClick(event?: MouseEvent) {
         if (this._session === undefined || this._service === undefined) {
             return;
         }
-        if (!(elements instanceof Array)) {
+        if (this._chart.instance.data === undefined || !(this._chart.instance.data.datasets instanceof Array)) {
             return;
         }
-        if (elements.length === 0) {
+        const target = this._getDatasetOnClick(event);
+        if (target === undefined) {
             return;
         }
-        if (typeof elements[0]._index !== 'number') {
-            return;
-        }
-        const position: number = this._service.getRefs()[elements[0]._index];
-        if (isNaN(position) || !isFinite(position)) {
-            return;
-        }
-        OutputRedirectionsService.select('measurement', this._session.getGuid(), position);
+        console.log(`${target.range.start.position} - ${target.range.end.position} / ${target.range.duration}`);
     }
 
-    private _onScaleChartClick(event?: MouseEvent, elements?: any[]) {
-        if (this._session === undefined || this._service === undefined) {
-            return;
+    private _getDatasetOnClick(event?: MouseEvent): {
+        range: IRange,
+        x: number,
+        y: number
+    } | undefined {
+        if (event === undefined) {
+            return undefined;
         }
-        const el = this._chart.instance.getElementsAtEvent(event);
-        // console.log(el);
+        let match;
+        this._chart.instance.data.datasets.forEach((dataset, index: number) => {
+            if (match !== undefined) {
+                return;
+            }
+            if ((dataset as any).range === undefined) {
+                // It might be distance range, which has to be ignored
+                return;
+            }
+            const meta = this._chart.instance.getDatasetMeta(index);
+            if (meta.data.length !== 2) {
+                return;
+            }
+            const rect = {
+                x1: meta.data[0]._view.x,
+                y1: meta.data[0]._view.y - this._service.MAX_BAR_HEIGHT / 2,
+                x2: meta.data[1]._view.x,
+                y2: meta.data[1]._view.y + this._service.MAX_BAR_HEIGHT / 2,
+            };
+            if (event.offsetX >= rect.x1 && event.offsetX <= rect.x2 && event.offsetY >= rect.y1 && event.offsetY <= rect.y2) {
+                match = {
+                    range: (dataset as any).range,
+                    x: event.clientX,
+                    y: event.clientY
+                };
+            }
+        });
+        return match;
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {
