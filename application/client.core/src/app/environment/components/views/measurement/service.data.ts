@@ -90,10 +90,67 @@ export class DataService {
         return this._session === undefined ? 0 : this._session.getTimestamp().getMaxTimestamp();
     }
 
+    public getMaxDuration(): number {
+        return this._session === undefined ? 0 : this._getMaxDurationPerGroups();
+    }
+
     public getRangesCount(): number {
         return this._getComplitedRanges().length;
     }
 
+    private _getChartDatasetModeAlign(): {
+        datasets: any[],
+        labels: string[],
+        maxY?: number
+    } {
+        const labels: string[] = [];
+        const datasets: any[] = [];
+        const groups: Map<number, IRange[]> = this._getGroups();
+        let y: number = 1;
+        groups.forEach((ranges: IRange[], groupId: number) => {
+            const borders = this._getGroupBorders(groupId);
+            ranges.sort((a: IRange, b: IRange) => {
+                return a.end.timestamp > b.end.timestamp ? 1 : -1;
+            });
+            let offset: number = 0;
+            ranges.forEach((range: IRange, index: number) => {
+                const normalized = this._getNormalizedRange(range);
+                // y += 1;
+                const values: Array<{ x: number, y: number, duration?: number, range?: boolean, row?: number }> = [{
+                    x: offset,
+                    y: y,
+                },
+                {
+                    x: offset + normalized.duration,
+                    y: y,
+                    duration: normalized.duration,
+                    row: range.start.position < range.end.position ? range.start.position : range.end.position,
+                    range: true,
+                }];
+                datasets.push({
+                    data: values,
+                    borderColor: range.color,
+                    borderWidth: this.MAX_BAR_HEIGHT,
+                    pointBackgroundColor: [range.color, range.color],
+                    pointBorderColor: [range.color, range.color],
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: true,
+                    tension: 0,
+                    showLine: true,
+                    range: range,
+                });
+                offset += normalized.duration;
+            });
+            y += 1;
+        });
+        return {
+            datasets: datasets,
+            labels: labels,
+            maxY: y,
+        };
+    }
+/*
     private _getChartDatasetModeAlign(): {
         datasets: any[],
         labels: string[],
@@ -140,7 +197,7 @@ export class DataService {
             labels: labels,
         };
     }
-
+*/
     private _getChartDatasetModeScale(): {
         datasets: any[],
         labels: string[],
@@ -151,9 +208,10 @@ export class DataService {
         const groups: Map<number, IRange[]> = this._getGroups();
         let y: number = 1;
         let prev: { min: number, max: number } | undefined;
-        groups.forEach((ranges: IRange[]) => {
+        groups.forEach((ranges: IRange[], groupId: number) => {
+            const borders = this._getGroupBorders(groupId);
             ranges.sort((a: IRange, b: IRange) => {
-                return a.duration > b.duration ? 1 : -1;
+                return a.end.timestamp > b.end.timestamp ? 1 : -1;
             });
             if (prev !== undefined && ranges.length > 0) {
                 const range = ranges[ranges.length - 1];
@@ -185,18 +243,18 @@ export class DataService {
                     showLine: true
                 });
             }
+            let offset: number = borders.min;
             ranges.forEach((range: IRange, index: number) => {
-                const rMin: number = range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp;
-                const rMax: number = range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp;
+                const normalized = this._getNormalizedRange(range);
                 // y += 1;
                 const values: Array<{ x: number, y: number, duration?: number, range?: boolean, row?: number }> = [{
-                    x: rMin,
+                    x: offset,
                     y: y,
                 },
                 {
-                    x: rMax,
+                    x: offset + normalized.duration,
                     y: y,
-                    duration: Math.abs(rMax - rMin),
+                    duration: normalized.duration,
                     row: range.start.position < range.end.position ? range.start.position : range.end.position,
                     range: true,
                 }];
@@ -210,12 +268,20 @@ export class DataService {
                     pointHoverRadius: 0,
                     fill: false,
                     tension: 0,
-                    showLine: true
+                    showLine: true,
+                    range: range,
                 });
-                prev = {
-                    min: range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp,
-                    max: range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp
-                };
+                if (prev === undefined) {
+                    prev = normalized;
+                } else {
+                    if (prev.min > offset) {
+                        prev.max = offset;
+                    }
+                    if (prev.max < offset + normalized.duration) {
+                        prev.max = offset + normalized.duration;
+                    }
+                }
+                offset += normalized.duration;
             });
             y += 1;
         });
@@ -236,10 +302,55 @@ export class DataService {
         return groups;
     }
 
+    private _getGroupBorders(group: number): { min: number, max: number, duration: number } {
+        let min: number = Infinity;
+        let max: number = -1;
+        this._getComplitedRanges().forEach((range: IRange) => {
+            if (range.group !== group) {
+                return;
+            }
+            if (range.end.timestamp < min) {
+                min = range.end.timestamp;
+            }
+            if (range.start.timestamp < min) {
+                min = range.start.timestamp;
+            }
+            if (range.end.timestamp > max) {
+                max = range.end.timestamp;
+            }
+            if (range.start.timestamp > max) {
+                max = range.start.timestamp;
+            }
+        });
+        return { min: min, max: max, duration: Math.abs(max - min) };
+    }
+
+    private _getMaxDurationPerGroups(): number {
+        const groups = this._getGroups();
+        let duration = -1;
+        groups.forEach((_, groupId: number) => {
+            const borders = this._getGroupBorders(groupId);
+            if (duration < borders.duration) {
+                duration = borders.duration;
+            }
+        });
+        return duration;
+    }
+
     private _getComplitedRanges(): IRange[] {
         return this._ranges.filter((range: IRange) => {
             return range.end !== undefined;
         });
+    }
+
+    private _getNormalizedRange(range: IRange): { min: number, max: number, duration: number  } {
+        const result = {
+            min: range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp,
+            max: range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp,
+            duration: 0,
+        };
+        result.duration = Math.abs(result.max - result.min);
+        return result;
     }
 
     private _refresh(ranges?: IRange[], change: boolean = false) {
