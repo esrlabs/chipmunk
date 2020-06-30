@@ -17,13 +17,22 @@
         top:0;
         bottom: 0;
         right: 16rem;
-        overflow-x: hidden;
-        overflow-y: auto;
-        & div.bars-wrapper{
+        overflow: hidden;
+        & div.main {
             position: absolute;
-            top:0;
-            bottom: 0;
-            width: 100%;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 3rem;
+            overflow: hidden;
+        }
+        & div.overview {
+            position: absolute;
+            height: 3rem;
+            left: 0;
+            right: 0;
+            bottom: 0rem;
+            overflow: hidden;
         }
     }
     & div.formats{

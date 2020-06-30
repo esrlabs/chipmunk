@@ -1,6 +1,9 @@
-<div class="bars" (contextmenu)="_ng_onChartContexMenu($event)">
-    <div class="bars-wrapper" [ngStyle]="{'height': _ng_getChartsHeight()}">
-        <canvas #canvas></canvas>
+<div class="bars">
+    <div class="main">
+        <app-views-measurement-chart *ngIf="_ng_service !== undefined" [service]="_ng_service"></app-views-measurement-chart>
+    </div>
+    <div class="overview">
+        <app-views-measurement-overview *ngIf="_ng_service !== undefined" [service]="_ng_service"></app-views-measurement-overview>
     </div>
 </div>
 <div class="formats">
