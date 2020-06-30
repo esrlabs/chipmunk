@@ -6,6 +6,8 @@ import { ViewMeasurementComponent                   } from './component';
 import { ViewMeasurementFormatsComponent            } from './formats/component';
 import { ViewMeasurementFormatComponent             } from './format/component';
 import { ViewMeasurementDefaultsComponent           } from './defaults/component';
+import { ViewMeasurementChartComponent              } from './charts/component';
+import { ViewMeasurementOverviewComponent           } from './overview/component';
 import { PrimitiveModule, ContainersModule          } from 'chipmunk-client-material';
 import { MatButtonModule                            } from '@angular/material/button';
 import { MatIconModule                              } from '@angular/material/icon';
@@ -21,7 +23,9 @@ const entryComponents = [
     ViewMeasurementComponent,
     ViewMeasurementFormatsComponent,
     ViewMeasurementFormatComponent,
-    ViewMeasurementDefaultsComponent
+    ViewMeasurementDefaultsComponent,
+    ViewMeasurementChartComponent,
+    ViewMeasurementOverviewComponent,
 ];
 
 const components = [ ...entryComponents ];

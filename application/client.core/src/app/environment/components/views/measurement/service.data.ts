@@ -12,6 +12,7 @@ export class DataService {
 
     public readonly SCALED_ROW_HEIGHT: number = 50;
     public readonly MAX_BAR_HEIGHT: number = 16;
+    public readonly MIN_BAR_HEIGHT: number = 2;
 
     private _refs: number[] = [];
     private _ranges: IRange[] = [];
@@ -65,16 +66,20 @@ export class DataService {
         this._session.getTimestamp().setMode(this._mode === EChartMode.aligned ? EChartMode.scaled : EChartMode.aligned);
     }
 
-    public getChartDataset(): {
+    public getChartDataset(overview: boolean = false): {
         datasets: any[],
         labels: string[],
         maxY?: number
     } {
-        switch (this._mode) {
-            case EChartMode.aligned:
-                return this._getChartDatasetModeAlign();
-            case EChartMode.scaled:
-                return this._getChartDatasetModeScale();
+        if (overview) {
+            return this._getChartDatasetModeScale(true);
+        } else {
+            switch (this._mode) {
+                case EChartMode.aligned:
+                    return this._getChartDatasetModeAlign();
+                case EChartMode.scaled:
+                    return this._getChartDatasetModeScale();
+            }
         }
     }
 
@@ -108,7 +113,6 @@ export class DataService {
         const groups: Map<number, IRange[]> = this._getGroups();
         let y: number = 1;
         groups.forEach((ranges: IRange[], groupId: number) => {
-            const borders = this._getGroupBorders(groupId);
             ranges.sort((a: IRange, b: IRange) => {
                 return a.end.timestamp > b.end.timestamp ? 1 : -1;
             });
@@ -135,7 +139,7 @@ export class DataService {
                     pointBorderColor: [range.color, range.color],
                     pointRadius: 0,
                     pointHoverRadius: 0,
-                    fill: true,
+                    fill: false,
                     tension: 0,
                     showLine: true,
                     range: range,
@@ -150,55 +154,8 @@ export class DataService {
             maxY: y,
         };
     }
-/*
-    private _getChartDatasetModeAlign(): {
-        datasets: any[],
-        labels: string[],
-        maxY?: number
-    } {
-        this._refs = [];
-        const groups: Map<number, IRange[]> = new Map();
-        const labels: string[] = [];
-        const datasets: any[] = [];
-        this._getComplitedRanges().forEach((range: IRange) => {
-            const ranges: IRange[] = groups.has(range.group) ? groups.get(range.group) : [];
-            ranges.push(range);
-            if (ranges.length > datasets.length) {
-                datasets.push({
-                    barPercentage: 0.5,
-                    barThickness: 16,
-                    backgroundColor: [],
-                    hoverBackgroundColor: [],
-                    data: [],
-                });
-            }
-            groups.set(range.group, ranges);
-        });
-        datasets.forEach((dataset: any, index: number) => {
-            groups.forEach((group: IRange[]) => {
-                if (group[index] === undefined) {
-                    dataset.data.push(0);
-                    dataset.backgroundColor.push(scheme_color_0);
-                    dataset.hoverBackgroundColor.push(scheme_color_0);
-                } else {
-                    dataset.data.push(group[index].duration);
-                    dataset.backgroundColor.push(group[index].color);
-                    dataset.hoverBackgroundColor.push(group[index].color);
-                }
-            });
-            datasets[index] = dataset;
-        });
-        groups.forEach((group: IRange[]) => {
-            this._refs.push(Math.min(...group.map(range => range.start.position), ...group.map(range => range.end.position)));
-            labels.push(`${Math.min(...group.map(range => range.start.position), ...group.map(range => range.end.position))} - ${Math.max(...group.map(range => range.start.position), ...group.map(range => range.end.position))}`);
-        });
-        return {
-            datasets: datasets,
-            labels: labels,
-        };
-    }
-*/
-    private _getChartDatasetModeScale(): {
+
+    private _getChartDatasetModeScale(overview: boolean = false): {
         datasets: any[],
         labels: string[],
         maxY?: number
@@ -213,7 +170,7 @@ export class DataService {
             ranges.sort((a: IRange, b: IRange) => {
                 return a.end.timestamp > b.end.timestamp ? 1 : -1;
             });
-            if (prev !== undefined && ranges.length > 0) {
+            if (!overview && prev !== undefined && ranges.length > 0) {
                 const range = ranges[ranges.length - 1];
                 const next: { min: number, max: number } = {
                     min: range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp,
@@ -261,7 +218,7 @@ export class DataService {
                 datasets.push({
                     data: values,
                     borderColor: range.color,
-                    borderWidth: this.MAX_BAR_HEIGHT,
+                    borderWidth: overview ? this.MIN_BAR_HEIGHT : this.MAX_BAR_HEIGHT,
                     pointBackgroundColor: [range.color, range.color],
                     pointBorderColor: [range.color, range.color],
                     pointRadius: 0,
@@ -271,14 +228,16 @@ export class DataService {
                     showLine: true,
                     range: range,
                 });
-                if (prev === undefined) {
-                    prev = normalized;
-                } else {
-                    if (prev.min > offset) {
-                        prev.max = offset;
-                    }
-                    if (prev.max < offset + normalized.duration) {
-                        prev.max = offset + normalized.duration;
+                if (overview) {
+                    if (prev === undefined) {
+                        prev = normalized;
+                    } else {
+                        if (prev.min > offset) {
+                            prev.max = offset;
+                        }
+                        if (prev.max < offset + normalized.duration) {
+                            prev.max = offset + normalized.duration;
+                        }
                     }
                 }
                 offset += normalized.duration;
