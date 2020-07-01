@@ -8,6 +8,12 @@ import EventsSessionService from '../../../services/standalone/service.events.se
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export interface IZoomEvent {
+    x: number;
+    width: number;
+    change: number;
+}
+
 export class DataService {
 
     public readonly SCALED_ROW_HEIGHT: number = 50;
@@ -24,9 +30,18 @@ export class DataService {
     private _subjects: {
         update: Subject<void>,  // Updates happens in scope of session
         change: Subject<void>, // Session was changed
+        zoom: Subject<void>,
     } = {
         update: new Subject(),
         change: new Subject(),
+        zoom: new Subject(),
+    };
+    private _zoom: {
+        left: number,
+        right: number,
+    } = {
+        left: 0,
+        right: 0,
     };
 
     constructor() {
@@ -48,10 +63,12 @@ export class DataService {
     public getObservable(): {
         update: Observable<void>,
         change: Observable<void>,
+        zoom: Observable<void>,
     } {
         return {
             update: this._subjects.update.asObservable(),
             change: this._subjects.change.asObservable(),
+            zoom: this._subjects.zoom.asObservable(),
         };
     }
 
@@ -99,8 +116,60 @@ export class DataService {
         return this._session === undefined ? 0 : this._getMaxDurationPerGroups();
     }
 
+    public getMinXAxe(): number {
+        const min = this.getMinTimestamp();
+        return min + this._zoom.left;
+    }
+
+    public getMaxXAxe(): number {
+        const max = this.getMaxTimestamp();
+        return max - this._zoom.right;
+    }
+
     public getRangesCount(): number {
         return this._getComplitedRanges().length;
+    }
+
+    public zoom(event: IZoomEvent) {
+        const point: number = event.x / event.width;
+        const minT = this.getMinTimestamp();
+        const maxT = this.getMaxTimestamp();
+        const min = minT + this._zoom.left;
+        const max = maxT - this._zoom.right;
+        const step = Math.abs(max - min) / event.width;
+        this._zoom.left = Math.abs(this._zoom.left + event.change * point * step);
+        this._zoom.right = Math.abs(this._zoom.right + event.change * (1 - point) * step);
+        if (minT + this._zoom.left < minT) {
+            this._zoom.left = 0;
+        }
+        if (maxT - this._zoom.right > maxT) {
+            this._zoom.right = 0;
+        }
+        this._subjects.zoom.next();
+    }
+
+    public setZoomOffsets(left: number, right: number) {
+        this._zoom.left = left < 0 ? 0 : left;
+        this._zoom.right = right < 0 ? 0 : right;
+        this._subjects.zoom.next();
+    }
+
+    public getCursorState(): {
+        left: number,
+        right: number,
+        duration: number,
+        min: number,
+        max: number,
+    } {
+        const minT = this.getMinTimestamp();
+        const maxT = this.getMaxTimestamp();
+        return {
+            left: this._zoom.left,
+            right: this._zoom.right,
+            duration: Math.abs(maxT - minT),
+            min: minT,
+            max: maxT,
+        };
     }
 
     private _getChartDatasetModeAlign(): {
@@ -228,7 +297,7 @@ export class DataService {
                     showLine: true,
                     range: range,
                 });
-                if (overview) {
+                if (!overview) {
                     if (prev === undefined) {
                         prev = normalized;
                     } else {

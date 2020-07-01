@@ -1,3 +1,4 @@
-<div class="wrapper" [ngStyle]="{'height': _ng_getChartsHeight()}" (contextmenu)="_ng_onChartContexMenu($event)">
-    <canvas #canvas></canvas>
+<div class="wrapper" [ngStyle]="{'height': _ng_getChartsHeight()}">
+    <canvas #canvas (contextmenu)="_ng_onChartContexMenu($event)"></canvas>
 </div>
+<span class="cursor" [ngStyle]="{'left': _ng_getCursorPosition()}"></span>

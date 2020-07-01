@@ -1,0 +1,65 @@
+@import '../../../../../theme/variables.less';
+
+:host {
+    position: absolute;
+    display: block;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    top: 0;
+    & div.shadow{
+        position: absolute;
+        display: block;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        top: 0;
+        background: fade(@scheme-color-7, 60%);
+        pointer-events: none;
+        &.left{
+            left: 0;
+        }
+        &.right{
+            right: 0;
+        }
+    }
+    & div.cursor{
+        position: absolute;
+        display: block;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        top: 0;
+        div.l-border,
+        div.r-border{
+            position: absolute;
+            height: 100%;
+            top:0;
+            width: 2px;
+            cursor: col-resize;
+            background: @scheme-color-1;
+            &:after{
+                position: absolute;
+                content: '';
+                height: 50%;
+                width: 5px;
+                top:0;
+                cursor: col-resize;
+                background: @scheme-color-1;
+            }
+        }
+        div.l-border{
+            left:0;
+            &:after{
+                left:0;
+            }
+        }
+        div.r-border{
+            right:0;
+            &:after{
+                left:-3px;
+            }
+        }
+    }
+}
