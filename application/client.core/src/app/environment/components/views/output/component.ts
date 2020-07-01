@@ -297,7 +297,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                         {
                             caption: `Remove all ranges`,
                             handler: () => {
-                                this.session.getTimestamp().drop();
+                                this.session.getTimestamp().clear();
                             },
                         },
                         {

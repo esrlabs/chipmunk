@@ -17,4 +17,18 @@
         bottom: 0;
         width: 100%;
     }
+    & span.cursor{
+        position: absolute;
+        display: none;
+        top: 0;
+        height: 100%;
+        width: 0;
+        border-left: 1px solid @scheme-color-4;
+        pointer-events: none;
+    }
+    &:hover{
+        & span.cursor{
+            display: block;
+        }
+    }
 }

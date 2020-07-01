@@ -1,11 +1,11 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef, Input } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef, Input, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabTimestamp, IRange, EChartMode } from '../../../../controller/controller.session.tab.timestamp';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { scheme_color_2, getContrastColor } from '../../../../theme/colors';
 import { Chart } from 'chart.js';
-import { DataService } from '../service.data';
+import { DataService, IZoomEvent } from '../service.data';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
@@ -14,6 +14,11 @@ import ContextMenuService from '../../../../services/standalone/service.contextm
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+enum EScrollingMode {
+    scrolling = 'scrolling',
+    zooming = 'zooming',
+}
 
 @Component({
     selector: 'app-views-measurement-chart',
@@ -28,13 +33,24 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
     @ViewChild('canvas', { static: true }) _ng_canvas: ElementRef<HTMLCanvasElement>;
 
     readonly CHART_UPDATE_DURATION: number = 60;
+    readonly CHART_LEN_PX = 8;
 
-    private _heights: {
-        container: number,
-        charts: number,
+    private _sizes: {
+        container: {
+            width: number,
+            height: number,
+        },
+        charts: {
+            height: number,
+        },
     } = {
-        container: 0,
-        charts: 0,
+        container: {
+            width: 0,
+            height: 0,
+        },
+        charts: {
+            height: 0,
+        },
     };
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementChartComponent');
@@ -49,9 +65,37 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         update: 0,
         timer: undefined,
     };
+    private _cursor: {
+        left: number,
+    } = {
+        left: -1,
+    };
+    private _scrolling: EScrollingMode = EScrollingMode.scrolling;
+
+    @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
+        if (this._scrolling === EScrollingMode.scrolling) {
+            return;
+        }
+        this.service.zoom({
+            x: event.offsetX,
+            change: event.deltaY,
+            width: this._sizes.container.width,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
+    }
+
+    @HostListener('mousemove', ['$event']) _ng_onMouseMove(event: MouseEvent) {
+        this._cursor.left = event.offsetX;
+        this._forceUpdate();
+    }
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
+        this._onWinKeyDown = this._onWinKeyDown.bind(this);
+        this._onWinKeyUp = this._onWinKeyUp.bind(this);
+        window.addEventListener('keydown', this._onWinKeyDown);
+        window.addEventListener('keyup', this._onWinKeyUp);
     }
 
     public ngOnDestroy() {
@@ -63,6 +107,8 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             this._chart.instance.destroy();
             this._chart.instance = undefined;
         }
+        window.removeEventListener('keydown', this._onWinKeyDown);
+        window.removeEventListener('keyup', this._onWinKeyUp);
     }
 
     public ngAfterContentInit() {
@@ -78,6 +124,9 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         this._subscriptions.change = this.service.getObservable().change.subscribe(
             this._onChartDataChange.bind(this),
         );
+        this._subscriptions.zoom = this.service.getObservable().zoom.subscribe(
+            this._onChartDataZoom.bind(this),
+        );
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
             this._resize.bind(this),
         );
@@ -91,6 +140,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             event.preventDefault();
             return;
         }
+        const target = this._getDatasetOnClick(event);
         const items: IMenuItem[] = [
             {
                 caption: `Switch to: ${this.service.getMode() === EChartMode.aligned ? 'scaled' : 'aligned'}`,
@@ -100,16 +150,59 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             },
             { /* Delimiter */},
             {
+                caption: target === undefined ? 'Remove this range' : `Remove this range: ${target.range.start.position} - ${target.range.end.position} / ${target.range.duration}`,
+                handler: () => {
+                    if (this._session === undefined) {
+                        return;
+                    }
+                    this._session.getTimestamp().clear();
+                },
+                disabled: target === undefined,
+            },
+            {
+                caption: `Remove all except this`,
+                handler: () => {
+                    if (this._session === undefined) {
+                        return;
+                    }
+                    this._session.getTimestamp().clear([target.range.id]);
+                },
+                disabled: target === undefined,
+            },
+            {
                 caption: `Remove All Ranges`,
                 handler: () => {
                     if (this._session === undefined) {
                         return;
                     }
-                    this._session.getTimestamp().drop();
+                    this._session.getTimestamp().clear();
                 },
                 disabled: this._session.getTimestamp().getCount() === 0,
             },
         ];
+        if (target !== undefined) {
+            items.push(...[
+                { /* Delimiter */},
+                {
+                    caption: `Go to row: ${target.range.start.position}`,
+                    handler: () => {
+                        if (this._session === undefined) {
+                            return;
+                        }
+                        OutputRedirectionsService.select('timemeasurement', this._session.getGuid(), target.range.start.position);
+                    },
+                },
+                {
+                    caption: `Go to row: ${target.range.end.position}`,
+                    handler: () => {
+                        if (this._session === undefined) {
+                            return;
+                        }
+                        OutputRedirectionsService.select('timemeasurement', this._session.getGuid(), target.range.end.position);
+                    },
+                }
+            ]);
+        }
         ContextMenuService.show({
             items: items,
             x: event.pageX,
@@ -123,16 +216,18 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this.service === undefined) {
             return;
         }
-        if (isNaN(this._heights.container) || !isFinite(this._heights.container)) {
-            this._resize();
-        }
+        this._checkSizes();
         let height: number = this.service.getRangesCount() * this.service.SCALED_ROW_HEIGHT;
-        height = height < this._heights.container ? this._heights.container : height;
-        if (height !== this._heights.charts) {
-            this._heights.charts = height;
+        height = height < this._sizes.container.height ? this._sizes.container.height : height;
+        if (height !== this._sizes.charts.height) {
+            this._sizes.charts.height = height;
             this._chartResizeUpdate();
         }
-        return `${this._heights.charts}px`;
+        return `${this._sizes.charts.height}px`;
+    }
+
+    public _ng_getCursorPosition(): string | undefined {
+        return `${this._cursor.left}px`;
     }
 
     private _build() {
@@ -171,8 +266,8 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                             },
                             ticks: {
                                 display: false,
-                                min: this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinTimestamp(),
-                                max: this.service.getMode() === EChartMode.aligned ? this.service.getMaxDuration() : this.service.getMaxTimestamp()
+                                min: this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinXAxe(),
+                                max: this.service.getMode() === EChartMode.aligned ? this.service.getMaxDuration() : this.service.getMaxXAxe()
                             },
                         }],
                         yAxes: [{
@@ -196,19 +291,25 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                             const ctx = chartInstance.ctx;
                             ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
                             ctx.textAlign = 'right';
+                            ctx.textBaseline = 'top';
                             this.data.datasets.forEach(function(dataset, i) {
-                                const meta = chartInstance.controller.getDatasetMeta(i);
+                                const rect = self._getBarRect(chartInstance.controller.getDatasetMeta(i));
+                                if (rect === undefined) {
+                                    return;
+                                }
                                 const duration: number = dataset.data[1].duration;
+                                const label: string = `${duration} ms`;
+                                if (label.length * self.CHART_LEN_PX > rect.w) {
+                                    return;
+                                }
                                 if (dataset.data[1].range === true) {
                                     ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
                                     ctx.fillStyle = getContrastColor(dataset.borderColor, true);
-                                    ctx.textBaseline = 'middle';
                                 } else {
                                     ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize * 0.8, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
                                     ctx.fillStyle = scheme_color_2;
-                                    ctx.textBaseline = 'top';
                                 }
-                                ctx.fillText(`${duration} ms`, meta.data[1]._model.x - 4, meta.data[1]._model.y + 1);
+                                ctx.fillText(`${duration} ms`, rect.x2 - 4, dataset.data[1].range === true ? rect.y1 + 3 : rect.y1 - 2);
                             });
                         }
                     }
@@ -216,8 +317,8 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             });
         } else {
             this._chart.instance.data.datasets = data.datasets;
-            this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinTimestamp();
-            this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMode() === EChartMode.aligned ? this.service.getMaxDuration() : this.service.getMaxTimestamp();
+            this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinXAxe();
+            this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMode() === EChartMode.aligned ? this.service.getMaxDuration() : this.service.getMaxXAxe();
             this._chart.instance.options.scales.yAxes[0].ticks.max = data.maxY + 1;
         }
         this._resize();
@@ -254,16 +355,10 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                 // It might be distance range, which has to be ignored
                 return;
             }
-            const meta = this._chart.instance.getDatasetMeta(index);
-            if (meta.data.length !== 2) {
+            const rect = this._getBarRect(this._chart.instance.getDatasetMeta(index));
+            if (rect === undefined) {
                 return;
             }
-            const rect = {
-                x1: meta.data[0]._view.x,
-                y1: meta.data[0]._view.y - this.service.MAX_BAR_HEIGHT / 2,
-                x2: meta.data[1]._view.x,
-                y2: meta.data[1]._view.y + this.service.MAX_BAR_HEIGHT / 2,
-            };
             if (event.offsetX >= rect.x1 && event.offsetX <= rect.x2 && event.offsetY >= rect.y1 && event.offsetY <= rect.y2) {
                 match = {
                     range: (dataset as any).range,
@@ -273,6 +368,22 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             }
         });
         return match;
+    }
+
+    private _getBarRect(meta: any): undefined | { x1: number, y1: number, x2: number, y2: number, w: number, h: number } {
+        if (meta.data.length !== 2) {
+            return undefined;
+        }
+        const y1 = meta.data[0]._view.y - this.service.MAX_BAR_HEIGHT / 2;
+        const y2 = meta.data[1]._view.y + this.service.MAX_BAR_HEIGHT / 2;
+        return {
+            x1: meta.data[0]._view.x,
+            y1: y1,
+            x2: meta.data[1]._view.x,
+            y2: y2,
+            w: meta.data[1]._view.x - meta.data[0]._view.x,
+            h: y2 - y1,
+        };
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {
@@ -294,8 +405,29 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         this._build();
     }
 
+    private _onChartDataZoom() {
+        if (this.service === undefined || this._chart === undefined) {
+            return;
+        }
+        if (this.service.getMode() === EChartMode.aligned) {
+            return;
+        }
+        this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe();
+        this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe();
+        this._chart.instance.update();
+    }
+
+    private _checkSizes() {
+        if (this._sizes.container.height !== 0 && !isNaN(this._sizes.container.height) && isFinite(this._sizes.container.height)) {
+            return;
+        }
+        this._resize();
+    }
+
     private _resize() {
-        this._heights.container = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect().height;
+        const rect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        this._sizes.container.height = rect.height;
+        this._sizes.container.width = rect.width;
         this._chartResizeUpdate();
         this._forceUpdate();
     }
@@ -317,6 +449,18 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         } else {
             this._chart.timer = setTimeout(this._chartResizeUpdate.bind(this), duration);
         }
+    }
+
+    private _onWinKeyDown(event: KeyboardEvent) {
+        if (!event.ctrlKey) {
+            return;
+        }
+        this._scrolling = EScrollingMode.zooming;
+        console.log(event);
+    }
+
+    private _onWinKeyUp(event: KeyboardEvent) {
+        this._scrolling = EScrollingMode.scrolling;
     }
 
     private _forceUpdate() {
