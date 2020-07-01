@@ -162,11 +162,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     },
                 },
             ]);
-
-
-
-
-            
         }
         if (selection !== undefined) {
             const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
