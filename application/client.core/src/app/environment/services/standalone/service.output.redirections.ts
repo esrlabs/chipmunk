@@ -11,6 +11,7 @@ enum EKey {
 
 interface IState {
     selection: Selection;
+    cache: Map<number, string>;
     last: number;
 }
 
@@ -18,6 +19,12 @@ export { ISelectionAccessor, IRange };
 
 export type THandler = (sender: string, selection: ISelectionAccessor, clicked: number) => void;
 
+export interface IRangeExtended extends IRange {
+    content?: {
+        start: string;
+        end: string;
+    };
+}
 export class OutputRedirectionsService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputRedirectionsService');
@@ -38,11 +45,12 @@ export class OutputRedirectionsService {
         window.addEventListener('blur', this._onGlobalKeyUp);
     }
 
-    public select(sender: string, sessionId: string, row: number) {
+    public select(sender: string, sessionId: string, row: number, str?: string) {
         let state: IState | undefined = this._state.get(sessionId);
         if (this._keyHolded === undefined || state === undefined) {
             state = {
                 selection: new Selection(),
+                cache: new Map(),
                 last: -1,
             };
             state.selection.add(row);
@@ -59,6 +67,9 @@ export class OutputRedirectionsService {
                     state.selection.add(row < state.last ? row : state.last, row > state.last ? row : state.last);
                     break;
             }
+        }
+        if (!state.cache.has(row) && typeof str === 'string') {
+            state.cache.set(row, str);
         }
         state.last = row;
         this._state.set(sessionId, state);
@@ -92,9 +103,17 @@ export class OutputRedirectionsService {
         return state === undefined ? undefined : state.selection;
     }
 
-    public getSelectionRanges(sessionId: string): IRange[] | undefined {
+    public getSelectionRanges(sessionId: string): IRangeExtended[] | undefined {
         const state: IState | undefined = this._state.get(sessionId);
-        return state === undefined ? undefined : state.selection.getSelections();
+        return state === undefined ? undefined : state.selection.getSelections().map((range: IRange) => {
+            const sstr: string | undefined = state.cache.get(range.start);
+            const estr: string | undefined = state.cache.get(range.end);
+            if (sstr === undefined || estr === undefined) {
+                return range;
+            } else {
+                return Object.assign({ content: { start: sstr, end: estr }}, range);
+            }
+        });
     }
 
     private _unsubscribe(sessionId: string, handlerId: string) {
@@ -120,7 +139,8 @@ export class OutputRedirectionsService {
         }
         this._state.set(this._sessionId, {
             selection: new Selection(),
-            last: -1
+            cache: new Map(),
+            last: -1,
         });
     }
 

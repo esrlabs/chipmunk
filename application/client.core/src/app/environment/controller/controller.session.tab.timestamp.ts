@@ -212,11 +212,11 @@ export class ControllerSessionTabTimestamp {
                 }
                 this._ranges.push({
                     id: ++this._sequences.range,
-                        start: this._open,
-                        end: row,
-                        duration: Math.abs(row.timestamp - this._open.timestamp),
-                        color: this._getColor(),
-                        group: this.getCurrentGroup(),
+                    start: this._open,
+                    end: row,
+                    duration: Math.abs(row.timestamp - this._open.timestamp),
+                    color: this._getColor(),
+                    group: this._sequences.group,
                 });
                 this._open = undefined;
                 this._setState();
@@ -227,6 +227,45 @@ export class ControllerSessionTabTimestamp {
                 this._logger.error(`addRange:: Fail get timestamp due error: ${err.message}`);
                 return resolve();
             });
+        });
+    }
+
+    public addRange(from: IRow, to: IRow) {
+        Promise.all([
+            this.getTimestamp(from.str).then((tm: number) => {
+                from.timestamp = tm;
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
+            }),
+            this.getTimestamp(to.str).then((tm: number) => {
+                to.timestamp = tm;
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
+            })
+        ]).then(() => {
+            if (from.timestamp === undefined || to.timestamp === undefined) {
+                return;
+            }
+            from.match = this.getMatch(from.str);
+            to.match = this.getMatch(to.str);
+            if (from.timestamp > to.timestamp) {
+                const backup = from;
+                from = to;
+                to = backup;
+            }
+            this._ranges.push({
+                id: ++this._sequences.range,
+                start: from,
+                end: to,
+                duration: Math.abs(to.timestamp - from.timestamp),
+                color: this._getColor(),
+                group: ++this._sequences.group,
+            });
+            this._setState();
+            this._subjects.update.next(this.getRanges());
+            OutputParsersService.updateRowsView();
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail to detect time range due error: ${err.message}`);
         });
     }
 
@@ -420,10 +459,6 @@ export class ControllerSessionTabTimestamp {
     public getRangeIdByPosition(position: number): number | undefined {
         const range: IRange | undefined = this._getRangeByPosition(position);
         return range === undefined ? undefined : range.id;
-    }
-
-    public getCurrentGroup(): number | undefined {
-        return this._sequences.group;
     }
 
     public getOpenRow(): IRow | undefined {

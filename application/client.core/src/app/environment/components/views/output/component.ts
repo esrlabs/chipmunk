@@ -24,6 +24,7 @@ import ViewsEventsService from '../../../services/standalone/service.views.event
 import FileOpenerService from '../../../services/service.file.opener';
 import EventsHubService from '../../../services/standalone/service.eventshub';
 import ToolbarSessionsService from '../../../services/service.sessions.toolbar';
+import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -212,12 +213,66 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 pos: current.position,
                 row: { position: current.position, str: current.str },
             } : undefined;
-            this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
-                curr.tm = _tm;
-            }).catch((err: Error) => {
-                curr = undefined;
-                this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+            let selRanges = OutputRedirectionsService.getSelectionRanges(this.session.getGuid());
+            if (selRanges === undefined) {
+                selRanges = [];
+            }
+            selRanges = selRanges.filter((range) => {
+                return range.content !== undefined && range.start !== range.end;
+            }).map((range: any) => {
+                range.tm = {
+                    start: undefined,
+                    end: undefined,
+                };
+                return range;
+            });
+            Promise.all([
+                this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
+                    curr.tm = _tm;
+                }).catch((err: Error) => {
+                    curr = undefined;
+                    this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                }),
+                ...selRanges.map((range: any) => {
+                    return this.session.getTimestamp().getTimestamp(range.content.start).then((_tm: number | undefined) => {
+                        range.tm.start = _tm;
+                    }).catch((err: Error) => {
+                        this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                    });
+                }),
+                ...selRanges.map((range: any) => {
+                    return this.session.getTimestamp().getTimestamp(range.content.end).then((_tm: number | undefined) => {
+                        range.tm.end = _tm;
+                    }).catch((err: Error) => {
+                        this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                    });
+                }),
+            ]).catch((err: Error) => {
+                this._logger.error(`Detection of timestams wend with error: ${err.message}`);
             }).finally(() => {
+                selRanges = selRanges.filter((range: any) => {
+                    return range.tm.start !== undefined && range.tm.end !== undefined;
+                });
+                if (selRanges.length > 0) {
+                    items.push(...[
+                        { /* delimiter */ },
+                        {
+                            caption: `Create range${selRanges.length > 1 ? 's' : ''} by ${selRanges.length > 1 ? `${selRanges.length} ` : ''}selection${selRanges.length > 1 ? 's' : ''}.`,
+                            handler: () => {
+                                if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
+                                    ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
+                                }
+                                this.session.getTimestamp().drop();
+                                selRanges.forEach((range) => {
+                                    this.session.getTimestamp().addRange(
+                                        { position: range.start, str: range.content.start },
+                                        { position: range.end, str: range.content.end },
+                                    );
+                                });
+                            },
+                        }
+                    ]);
+                }
                 if (curr !== undefined) {
                     const opened = this.session.getTimestamp().getOpenRow();
                     if (opened !== undefined || curr.tm !== undefined) {

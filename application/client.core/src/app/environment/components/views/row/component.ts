@@ -219,7 +219,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             event.stopImmediatePropagation();
             event.preventDefault();
         } else {
-            OutputRedirectionsService.select(this.parent, this.sessionId, this._getPosition());
+            OutputRedirectionsService.select(this.parent, this.sessionId, this._getPosition(), this.str);
             if (this.pluginId === -1) {
                 return;
             }
