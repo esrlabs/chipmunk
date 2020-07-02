@@ -7,18 +7,25 @@ import { ControllerComponentsDragDropFiles } from '../../../controller/component
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
 import { ViewOutputRowComponent, IScope } from '../row/component';
 import { ViewOutputControlsComponent, IButton } from './controls/component';
+import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
+import { cleanupOutput } from '../row/helpers';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
+import { IExportAction } from '../../../services/standalone/service.output.exports';
+import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
+import { IPCMessages } from '../../../interfaces/interface.ipc';
+import { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
+
+import PluginsService from '../../../services/service.plugins';
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
+import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
+import OutputExportsService from '../../../services/standalone/service.output.exports';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import FileOpenerService from '../../../services/service.file.opener';
 import EventsHubService from '../../../services/standalone/service.eventshub';
-import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
-import PluginsService from '../../../services/service.plugins';
+import ToolbarSessionsService from '../../../services/service.sessions.toolbar';
+
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { cleanupOutput } from '../row/helpers';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import SelectionParsersService, { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
-import OutputExportsService, { IExportAction } from '../../../services/standalone/service.output.exports';
-import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
-import { IPCMessages } from '../../../interfaces/interface.ipc';
 
 const CSettings: {
     preloadCount: number,
@@ -250,6 +257,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                             {
                                 caption: `Open time range`,
                                 handler: () => {
+                                    if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
+                                        ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
+                                    }
                                     this.session.getTimestamp().open(curr.row);
                                 },
                             }

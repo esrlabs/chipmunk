@@ -189,6 +189,14 @@ export class ControllerSessionTabTimestamp {
             }
             // Redraw rows (to show matches)
             OutputParsersService.updateRowsView();
+            // Open tab
+            /*
+            if (ToolbarSessionsService.has('CDefaultTabsGuids.timemeasurement')) {
+                return;
+            } else {
+                ToolbarSessionsService.setActive('CDefaultTabsGuids.timemeasurement');
+            }
+            */
         }).catch((err: Error) => {
             this._logger.error(`open:: Fail get timestamp due error: ${err.message}`);
         });
