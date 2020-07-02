@@ -253,25 +253,18 @@ export class DataService {
         const datasets: any[] = [];
         const groups: Map<number, IRange[]> = this.getGroups();
         let y: number = 1;
-        let prev: { min: number, max: number } | undefined;
+        let prev;
         groups.forEach((ranges: IRange[], groupId: number) => {
             const borders = this._getGroupBorders(groupId);
             if (!overview && prev !== undefined && ranges.length > 0) {
-                const range = ranges[ranges.length - 1];
-                const next: { min: number, max: number } = {
-                    min: range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp,
-                    max: range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp
-                };
-                const min: number = prev.max < next.min ? prev.max : next.max;
-                const max: number = prev.max < next.min ? next.min : prev.min;
                 const values: Array<{ x: number, y: number, duration?: number }> = [{
-                    x: min < max ? min : max,
+                    x: borders.max,
                     y: y - 0.5,
                 },
                 {
-                    x: min > max ? min : max,
+                    x: prev.min,
                     y: y - 0.5,
-                    duration: Math.abs(max - min),
+                    duration: Math.abs(borders.max - prev.min),
                 }];
                 datasets.push({
                     data: values,
@@ -314,20 +307,11 @@ export class DataService {
                     showLine: true,
                     range: range,
                 });
-                if (!overview) {
-                    if (prev === undefined) {
-                        prev = normalized;
-                    } else {
-                        if (prev.min > offset) {
-                            prev.max = offset;
-                        }
-                        if (prev.max < offset + normalized.duration) {
-                            prev.max = offset + normalized.duration;
-                        }
-                    }
-                }
                 offset += normalized.duration;
             });
+            if (!overview) {
+                prev = borders;
+            }
             y += 1;
         });
         return {
