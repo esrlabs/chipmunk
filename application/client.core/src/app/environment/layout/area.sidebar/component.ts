@@ -68,45 +68,37 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
     }
 
     private _onSessionChange(session: ControllerSessionTab | undefined) {
-        if (session === undefined) {
-            return;
-        }
-        // Drop old service
-        this._ng_tabsService = undefined;
-        this._cdRef.detectChanges();
-        // Set new service
         this._setActiveTabsService(session);
-        this._cdRef.detectChanges();
     }
 
     private _setActiveTabsService(session?: ControllerSessionTab | undefined) {
         if (session === undefined || session === null) {
             session = TabsSessionsService.getActive();
         }
-        if (session === undefined || session === null) {
-            this._ng_tabsService = undefined;
-            return;
+        this._ng_tabsService = undefined;
+        if (session !== undefined && session !== null) {
+            // Get tabs service
+            const service: TabsService | Error = SidebarSessionsService.getTabsService(session.getGuid());
+            if (service !== undefined) {
+                this._ng_tabsService = service;
+                // Change layout of tabs in sidebar
+                this._ng_tabsService.setOptions(new TabsOptions({
+                    injections: {
+                        bar: {
+                            factory: LayoutSessionSidebarControlsComponent,
+                            inputs: {
+                                state: this.state,
+                            }
+                        }
+                    },
+                    direction: ETabsListDirection.left,
+                    minimized: true
+                }));
+            } else {
+                this._logger.warn(`Fail to init sidebar because no tab's service available.`);
+            }
         }
-        // Get tabs service
-        const service: TabsService | Error = SidebarSessionsService.getTabsService(session.getGuid());
-        if (service === undefined) {
-            this._logger.warn(`Fail to init sidebar because no tab's service available.`);
-            return;
-        }
-        this._ng_tabsService = service;
-        // Change layout of tabs in sidebar
-        this._ng_tabsService.setOptions(new TabsOptions({
-            injections: {
-                bar: {
-                    factory: LayoutSessionSidebarControlsComponent,
-                    inputs: {
-                        state: this.state,
-                    }
-                }
-            },
-            direction: ETabsListDirection.left,
-            minimized: true
-        }));
+        this._cdRef.detectChanges();
     }
 
 }
