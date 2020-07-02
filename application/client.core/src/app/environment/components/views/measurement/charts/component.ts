@@ -217,7 +217,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             return;
         }
         this._checkSizes();
-        let height: number = this.service.getRangesCount() * this.service.SCALED_ROW_HEIGHT;
+        let height: number = this.service.getGroups().size * this.service.SCALED_ROW_HEIGHT;
         height = height < this._sizes.container.height ? this._sizes.container.height : height;
         if (height !== this._sizes.charts.height) {
             this._sizes.charts.height = height;
