@@ -189,14 +189,6 @@ export class ControllerSessionTabTimestamp {
             }
             // Redraw rows (to show matches)
             OutputParsersService.updateRowsView();
-            // Open tab
-            /*
-            if (ToolbarSessionsService.has('CDefaultTabsGuids.timemeasurement')) {
-                return;
-            } else {
-                ToolbarSessionsService.setActive('CDefaultTabsGuids.timemeasurement');
-            }
-            */
         }).catch((err: Error) => {
             this._logger.error(`open:: Fail get timestamp due error: ${err.message}`);
         });
@@ -460,7 +452,6 @@ export class ControllerSessionTabTimestamp {
         const range: IRange | undefined = this._getRangeByPosition(position);
         const start: number | undefined = range === undefined ? undefined : (range.start.position < range.end.position ? range.start.position : range.end.position);
         const end: number | undefined = range === undefined ? undefined : (range.start.position > range.end.position ? range.start.position : range.end.position);
-        const before: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(start, range.id);
         const after: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(end, range.id);
         if (range === undefined) {
             return undefined;
