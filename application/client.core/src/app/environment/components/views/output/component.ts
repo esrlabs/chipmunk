@@ -205,50 +205,25 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 pos: current.position,
                 row: { position: current.position, str: current.str },
             } : undefined;
-            let next: {
-                tm?: number,
-                pos?: number,
-                row?: { position: number, str: string },
-            } | undefined = (curr !== undefined && this.session.getTimestamp().getOpenRow() !== undefined) ? {
-                pos: current.position + 1,
-            } : undefined;
-            if (next !== undefined) {
-                const streamPkg = this._output.getRowByPosition(next.pos);
-                if (streamPkg !== undefined) {
-                    next.row = { position: streamPkg.position, str: streamPkg.str };
-                } else {
-                    next = undefined;
-                }
-            }
-            Promise.all([
-                this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
-                    curr.tm = _tm;
-                }).catch((err: Error) => {
-                    this._logger.error(`Fail extract timestamp due error: ${err.message}`);
-                }),
-                this.session.getTimestamp().getTimestamp(next !== undefined ? next.row.str : undefined).then((_tm: number | undefined) => {
-                    next.tm = _tm;
-                }).catch((err: Error) => {
-                    if (next !== undefined) {
-                        // Issue error, only if "prev" was defined
-                        this._logger.error(`Fail extract timestamp due error: ${err.message}`);
-                    }
-                }),
-            ]).finally(() => {
+            this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
+                curr.tm = _tm;
+            }).catch((err: Error) => {
+                this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+            }).finally(() => {
                 if (curr !== undefined) {
                     items.push(...[
                         { /* delimiter */ },
                     ]);
                     const opened = this.session.getTimestamp().getOpenRow();
                     if (opened !== undefined) {
-                        (opened.position !== curr.pos && next !== undefined) && items.push(...[
+                        opened.position !== curr.pos && items.push(...[
                             {
                                 caption: `Add time range ${opened.position} - ${curr.row.position}`,
                                 handler: () => {
                                     this.session.getTimestamp().close(curr.row).catch((err: Error) => {
                                         this._logger.warn(`Error during time range close: ${err.message}`);
                                     }).finally(() => {
-                                        this.session.getTimestamp().open(next.row, true);
+                                        this.session.getTimestamp().open(curr.row, true);
                                     });
                                 },
                             },

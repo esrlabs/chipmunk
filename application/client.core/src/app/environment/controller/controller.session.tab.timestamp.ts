@@ -48,9 +48,6 @@ class TimestampRowParser extends Toolkit.RowCommonParser {
 
 }
 
-const ROW_PARSER_ID = 'timestamps-row-parser';
-const ROW_TOOLTIP_ID = 'timestamps-row-tooltip';
-
 export interface DefaultDateParts {
     day: number | undefined;
     month: number | undefined;
@@ -63,6 +60,9 @@ export enum EChartMode {
 }
 
 export class ControllerSessionTabTimestamp {
+    readonly ROW_PARSER_ID: string = 'timestamps-row-parser';
+    readonly ROW_TOOLTIP_ID: string = 'timestamps-row-tooltip';
+    readonly ROW_HANDLER_ID: string = 'timestamps-row-handler';
 
     private _guid: string;
     private _logger: Toolkit.Logger;
@@ -112,8 +112,9 @@ export class ControllerSessionTabTimestamp {
         this._guid = guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabTimestamp: ${guid}`);
         this._parser = new TimestampRowParser(this._injectHighlightFormat.bind(this));
-        OutputParsersService.setSessionParser(ROW_PARSER_ID, this._parser, this._guid);
-        OutputParsersService.setSessionTooltip({ id: ROW_TOOLTIP_ID, getContent: this._getTooltipContent.bind(this)}, this._guid);
+        OutputParsersService.setSessionParser(this.ROW_PARSER_ID, this._parser, this._guid);
+        OutputParsersService.setSessionTooltip({ id: this.ROW_TOOLTIP_ID, getContent: this._getTooltipContent.bind(this)}, this._guid);
+        OutputParsersService.setSessionClickHandler(this.ROW_HANDLER_ID, this._handleRowClick.bind(this), this._guid);
     }
 
     public destroy(): Promise<void> {
@@ -553,6 +554,22 @@ export class ControllerSessionTabTimestamp {
         return range;
     }
 
+    private _handleRowClick(str: string, position: number): boolean {
+        if (this._open === undefined) {
+            return false;
+        }
+        const row: IRow = {
+            str: str,
+            position: position,
+        };
+        this.close(row).then(() => {
+            this.open(row, true);
+        }).catch((closeErr: Error) => {
+            this._logger.warn(`Fail close range due error: ${closeErr.message}`);
+        });
+        return true;
+    }
+
     private _getTooltipContent(row: string, position: number, selection: string): Promise<string | undefined> {
         return new Promise((resolve) => {
             if (this._open === undefined) {
@@ -573,7 +590,7 @@ export class ControllerSessionTabTimestamp {
         }
         this._format.forEach((format: IFormat) => {
             str = str.replace(format.regexp, (_match: string) => {
-                return `<span class="tooltip timestampmatch" ${OutputParsersService.getTooltipHook(ROW_TOOLTIP_ID)}>${_match}</span>`;
+                return `<span class="tooltip timestampmatch" ${OutputParsersService.getTooltipHook(this.ROW_TOOLTIP_ID)} ${OutputParsersService.getClickHandlerHook(this.ROW_HANDLER_ID)}>${_match}</span>`;
             });
         });
         return str;
