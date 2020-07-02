@@ -14,10 +14,6 @@ enum EChangeKind {
     undefined = 'undefined'
 }
 
-const CSettings = {
-    minSize: 20,
-};
-
 @Component({
     selector: 'app-views-measurement-overview-cursor',
     templateUrl: './template.html',
@@ -178,7 +174,7 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
             case EChangeKind.left:
                 if (this._ng_left + offset < 0) {
                     this._ng_left = 0;
-                } else if (this._ng_width - offset < CSettings.minSize) {
+                } else if (this._ng_width - offset < this.service.MIN_ZOOMING_PX) {
                     //
                 } else {
                     this._ng_left += offset;
@@ -186,8 +182,8 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
                 }
                 break;
             case EChangeKind.right:
-                if (this._ng_width + offset < CSettings.minSize) {
-                    this._ng_width = CSettings.minSize;
+                if (this._ng_width + offset < this.service.MIN_ZOOMING_PX) {
+                    this._ng_width = this.service.MIN_ZOOMING_PX;
                 } else if (this._ng_left + this._ng_width + offset > this._width) {
                     this._ng_width = this._width - this._ng_left;
                 } else {

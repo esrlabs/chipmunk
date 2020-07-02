@@ -20,6 +20,7 @@ export class DataService {
     public readonly SCALED_ROW_HEIGHT: number = 50;
     public readonly MAX_BAR_HEIGHT: number = 16;
     public readonly MIN_BAR_HEIGHT: number = 2;
+    public readonly MIN_ZOOMING_PX: number = 20;
 
     private _refs: number[] = [];
     private _ranges: IRange[] = [];
@@ -152,18 +153,24 @@ export class DataService {
             return;
         }
         const point: number = event.x / event.width;
+        const limit: number = (cursor.duration / event.width) * this.MIN_ZOOMING_PX;
         const minT = this.getMinTimestamp();
         const maxT = this.getMaxTimestamp();
         const min = minT + cursor.left;
         const max = maxT - cursor.right;
         const step = Math.abs(max - min) / event.width;
-        let left = Math.abs(cursor.left + event.change * point * step);
-        let right = Math.abs(cursor.right + event.change * (1 - point) * step);
+        let left = cursor.left + event.change * point * step;
+        let right = cursor.right + event.change * (1 - point) * step;
         if (minT + left < minT) {
             left = 0;
         }
         if (maxT - right > maxT) {
             right = 0;
+        }
+        if ((maxT - right) - (minT + left) < limit) {
+            const allowed = cursor.duration - limit;
+            right = allowed * (right / (right + left));
+            left = allowed - right;
         }
         this._session.getTimestamp().setZoomOffsets(left, right);
     }

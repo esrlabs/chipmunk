@@ -76,6 +76,9 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this._scrolling === EScrollingMode.scrolling) {
             return;
         }
+        if (this.service.getMode() === EChartMode.aligned) {
+            return;
+        }
         this.service.zoom({
             x: event.offsetX,
             change: event.deltaY,
@@ -335,7 +338,6 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (target === undefined) {
             return;
         }
-        console.log(`${target.range.start.position} - ${target.range.end.position} / ${target.range.duration}`);
     }
 
     private _getDatasetOnClick(event?: MouseEvent): {
@@ -456,7 +458,6 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             return;
         }
         this._scrolling = EScrollingMode.zooming;
-        console.log(event);
     }
 
     private _onWinKeyUp(event: KeyboardEvent) {
