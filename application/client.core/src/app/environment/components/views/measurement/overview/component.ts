@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
-import { DataService } from '../service.data';
+import { DataService, EChartMode } from '../service.data';
 
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 
@@ -20,6 +20,8 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
     @ViewChild('canvas', { static: true }) _ng_canvas: ElementRef<HTMLCanvasElement>;
 
     readonly CHART_UPDATE_DURATION: number = 60;
+
+    public _ng_mode: EChartMode;
 
     private _heights: {
         container: number,
@@ -66,9 +68,13 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
         this._subscriptions.change = this.service.getObservable().change.subscribe(
             this._onChartDataChange.bind(this),
         );
+        this._subscriptions.mode = this.service.getObservable().mode.subscribe(
+            this._setChartMode.bind(this),
+        );
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
             this._resize.bind(this),
         );
+        this._setChartMode();
         this._build();
     }
 
@@ -148,6 +154,11 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
             this._chart.instance = undefined;
         }
         this._build();
+    }
+
+    private _setChartMode() {
+        this._ng_mode = this.service.getMode();
+        this._forceUpdate();
     }
 
     private _resize() {

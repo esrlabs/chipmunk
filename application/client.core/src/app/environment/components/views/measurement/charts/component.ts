@@ -155,7 +155,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                     if (this._session === undefined) {
                         return;
                     }
-                    this._session.getTimestamp().clear();
+                    this._session.getTimestamp().removeRange(target.range.id);
                 },
                 disabled: target === undefined,
             },

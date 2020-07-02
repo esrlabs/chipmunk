@@ -1,6 +1,6 @@
 import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, EventEmitter, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { DataService } from '../../service.data';
+import { DataService, EChartMode } from '../../service.data';
 
 import ViewsEventsService from '../../../../../services/standalone/service.views.events';
 import EventsSessionService from '../../../../../services/standalone/service.events.session';
@@ -116,7 +116,7 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
     }
 
     private _onSessionChange() {
-
+        this._update();
     }
 
     private _onChartDataZoom() {
@@ -135,54 +135,13 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         const state = this.service.getCursorState();
         const r = state.duration / this._width;
         if (isNaN(r) || !isFinite(r)) {
-            return;
+            return this._forceUpdate();
         }
         this._ng_left = state.left / r;
         this._ng_width = Math.abs(state.duration - state.left - state.right) / r;
         this._forceUpdate();
     }
-/*
-    private _resize() {
-        if (this._vcRef === undefined) {
-            return;
-        }
-        if (!this.serviceData.hasData()) {
-            this._ng_width = -1;
-            this._width = -1;
-            this._forceUpdate();
-            return;
-        }
-        const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
-        const width: number = size.width - this.getLeftOffset();
-        if (width <= 0 || isNaN(width) || !isFinite(width)) {
-            return;
-        }
-        if (this._ng_width === -1) {
-            this._ng_width = width;
-            this._ng_left = 0;
-        }
-        if (this._width === width) {
-            this._emitChanges();
-            return;
-        }
-        if (this._width === -1) {
-            this._width = Math.round(width);
-        }
-        if (this._ng_left < this.getLeftOffset()) {
-            this._ng_left = this.getLeftOffset();
-        }
-        const change: number = this._width / width;
-        // Get rate for current values
-        const rate: number = this._ng_width / this._width;
-        // Update width
-        this._width = Math.round(width);
-        // Calculate updated width of cursor
-        this._ng_width = width * rate;
-        this._ng_left = (this._ng_left - this.getLeftOffset()) / change + this.getLeftOffset();
-        this._emitChanges();
-        this._forceUpdate();
-    }
-*/
+
     private _onWindowMousemove(event: MouseEvent) {
         if (this._mouse.x === -1) {
             return;
