@@ -1,12 +1,13 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IRange, EChartMode } from '../../../controller/controller.session.tab.timestamp';
-import { scheme_color_0 } from '../../../theme/colors';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+export { EChartMode };
 
 export interface IZoomEvent {
     x: number;
@@ -31,10 +32,12 @@ export class DataService {
         update: Subject<void>,  // Updates happens in scope of session
         change: Subject<void>, // Session was changed
         zoom: Subject<void>,
+        mode: Subject<void>,
     } = {
         update: new Subject(),
         change: new Subject(),
         zoom: new Subject(),
+        mode: new Subject(),
     };
     private _zoom: {
         left: number,
@@ -64,11 +67,13 @@ export class DataService {
         update: Observable<void>,
         change: Observable<void>,
         zoom: Observable<void>,
+        mode: Observable<void>,
     } {
         return {
             update: this._subjects.update.asObservable(),
             change: this._subjects.change.asObservable(),
             zoom: this._subjects.zoom.asObservable(),
+            mode: this._subjects.mode.asObservable(),
         };
     }
 
@@ -170,6 +175,19 @@ export class DataService {
             min: minT,
             max: maxT,
         };
+    }
+
+    private _updateCursorState() {
+        if (this._mode === EChartMode.aligned) {
+            return;
+        }
+        const minT = this.getMinTimestamp();
+        const maxT = this.getMaxTimestamp();
+        if ((maxT - this._zoom.right) - (minT + this._zoom.left) < 0) {
+            this._zoom.left = 0;
+            this._zoom.right = 0;
+            this._subjects.zoom.next();
+        }
     }
 
     private _getChartDatasetModeAlign(): {
@@ -388,6 +406,7 @@ export class DataService {
         } else {
             this._subjects.change.next();
         }
+        this._updateCursorState();
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {
@@ -417,6 +436,7 @@ export class DataService {
     private _onModeChange(mode: EChartMode) {
         this._mode = mode;
         this._refresh(undefined, true);
+        this._subjects.mode.next();
     }
 
 }
