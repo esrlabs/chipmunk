@@ -62,17 +62,18 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
 
     private _setService(service: TabsService | undefined) {
         if (service === undefined) {
-            return;
+            this._ng_tabsService = undefined;
+        } else {
+            // Set options area
+            service.setOptions(new TabsOptions({ injections: { bar: {
+                factory: LayoutSecondaryAreaControlsComponent,
+                inputs: {
+                    state: this.state,
+                    injection: this._getObservable().injectionIntoTitleBar
+                }
+            }}}));
+            this._ng_tabsService = service;
         }
-        // Set options area
-        service.setOptions(new TabsOptions({ injections: { bar: {
-            factory: LayoutSecondaryAreaControlsComponent,
-            inputs: {
-                state: this.state,
-                injection: this._getObservable().injectionIntoTitleBar
-            }
-        }}}));
-        this._ng_tabsService = service;
         this._cdRef.detectChanges();
 
     }
