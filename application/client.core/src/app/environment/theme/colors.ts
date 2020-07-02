@@ -75,13 +75,13 @@ export function getContrastColor (hex: string, bw: boolean = false) {
     // https://stackoverflow.com/questions/35969656/how-can-i-generate-the-opposite-color-according-to-current-color
 }
 
-export function hexToRgb(hex: string): { r: number, g: number, b: number} {
+export function hexToRgb(hex: string): { r: number, g: number, b: number} | undefined {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
       r: parseInt(result[1], 16),
       g: parseInt(result[2], 16),
       b: parseInt(result[3], 16)
-    } : null;
+    } : undefined;
 }
 
 export function rgbToHex(color: string) {
@@ -95,4 +95,55 @@ export function rgbToHex(color: string) {
     }
     // tslint:disable-next-line: no-bitwise
     return `#` + ((1 << 24) + (colors[0] << 16) + (colors[1] << 8) + colors[2]).toString(16).slice(1);
+}
+
+export function rgbFromStr(color: string): { r: number, g: number, b: number} | undefined {
+    const colors = color.replace(/[^\d,]/gi, '').split(',').map((c: string) => {
+        return parseInt(c, 10);
+    }).filter((c: number) => {
+        return !isNaN(c) && isFinite(c);
+    });
+    if (colors.length !== 3) {
+        return undefined;
+    }
+    return {
+        r: colors[0],
+        g: colors[2],
+        b: colors[1]
+    };
+}
+
+export function getColorDiff(a: string, b: string): number | undefined {
+    let rgbA;
+    let rgbB;
+    if (a.indexOf('#') !== -1) { rgbA = hexToRgb(a); } else { rgbA = rgbFromStr(a); }
+    if (b.indexOf('#') !== -1) { rgbB = hexToRgb(b); } else { rgbB = rgbFromStr(b); }
+    if (rgbB === undefined || rgbA === undefined) {
+        return undefined;
+    }
+    const diffR = (rgbA.r - rgbB.r);
+    const diffG = (rgbA.g - rgbB.g);
+    const diffB = (rgbA.b - rgbB.b);
+    return Math.sqrt(diffR * diffR + diffG * diffG + diffB * diffB);
+}
+
+export function getUniqueColorTo(used: string[]): string {
+    const max: { rate: number, color: string } = { rate: -1, color: '' };
+    for (let i = 5; i >= 0; i -= 1) {
+        const color = `rgb(${Math.round(Math.random() * 204) + 50}, ${Math.round(Math.random() * 204) + 50}, ${Math.round(Math.random() * 204) + 50})`;
+        let rate = -1;
+        used.forEach((c: string) => {
+            const r = getColorDiff(c, color);
+            if (rate < r) {
+                rate = r;
+            }
+        });
+        if (rate > 100) {
+            return color;
+        } else if (max.rate < rate || max.color === '') {
+            max.color = color;
+            max.rate = rate;
+        }
+    }
+    return max.color;
 }

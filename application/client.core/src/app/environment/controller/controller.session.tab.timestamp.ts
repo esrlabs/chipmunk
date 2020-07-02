@@ -1,6 +1,7 @@
 import { Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
+import { getUniqueColorTo } from '../theme/colors';
 
 import ElectronIpcService from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
@@ -107,6 +108,7 @@ export class ControllerSessionTabTimestamp {
         left: 0,
         right: 0,
     };
+    private _colors: string[] = [];
 
     constructor(guid: string) {
         this._guid = guid;
@@ -230,6 +232,11 @@ export class ControllerSessionTabTimestamp {
 
     public removeRange(id: number) {
         this._ranges = this._ranges.filter((range: IRange) => {
+            if (range.id === id) {
+                this._colors = this._colors.filter((color: string) => {
+                    return color !== range.color;
+                });
+            }
             return range.id !== id;
         });
         this._subjects.update.next(this.getRanges());
@@ -246,8 +253,13 @@ export class ControllerSessionTabTimestamp {
     }
 
     public clear(exceptions: number[] = []) {
-        this._ranges = this._ranges.filter((row: IRange) => {
-            return exceptions.indexOf(row.id) !== -1;
+        this._ranges = this._ranges.filter((range: IRange) => {
+            if (exceptions.indexOf(range.id) === -1) {
+                this._colors = this._colors.filter((color: string) => {
+                    return color !== range.color;
+                });
+            }
+            return exceptions.indexOf(range.id) !== -1;
         });
         this._open = undefined;
         this._setState();
@@ -595,7 +607,12 @@ export class ControllerSessionTabTimestamp {
     }
 
     private _getColor(): string {
-        return `rgb(${Math.round(Math.random() * 204) + 50}, ${Math.round(Math.random() * 204) + 50}, ${Math.round(Math.random() * 204) + 50})`;
+        const color = getUniqueColorTo(this._colors);
+        if (this._colors.length > 50) {
+            this._colors.splice(0, 1);
+        }
+        this._colors.push(color);
+        return color;
     }
 
     private _setState() {
