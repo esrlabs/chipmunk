@@ -433,25 +433,20 @@ export class ControllerSessionTabTimestamp {
         return range === undefined ? undefined : range.color;
     }
 
-    public getStatePositionInRange(position: number): 'begin' | 'begin nested' | 'middle' | 'end' | 'end nested' | 'open' | undefined {
+    public getStatePositionInRange(position: number): 'begin' | 'middle' | 'end' | 'end nested' | 'open' | undefined {
         if (this._open !== undefined && this._open.position === position) {
             return 'open';
         }
         const range: IRange | undefined = this._getRangeByPosition(position);
         const start: number | undefined = range === undefined ? undefined : (range.start.position < range.end.position ? range.start.position : range.end.position);
         const end: number | undefined = range === undefined ? undefined : (range.start.position > range.end.position ? range.start.position : range.end.position);
-        const before: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(start - 1);
-        const after: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(end + 1);
+        const before: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(start, range.id);
+        const after: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(end, range.id);
         if (range === undefined) {
             return undefined;
         }
         if (range.start.position === position) {
-            if (before !== undefined && before.group === range.group) {
-                return 'begin nested';
-
-            } else {
-                return 'begin';
-            }
+            return 'begin';
         }
         if (range.end.position === position) {
             if (after !== undefined && after.group === range.group) {
@@ -537,10 +532,13 @@ export class ControllerSessionTabTimestamp {
         };
     }
 
-    private _getRangeByPosition(position: number): IRange | undefined {
+    private _getRangeByPosition(position: number, exception?: number): IRange | undefined {
         let range: IRange | undefined;
         this._ranges.forEach((r: IRange) => {
             if (range !== undefined) {
+                return;
+            }
+            if (r.id === exception) {
                 return;
             }
             if (r.start.position === position) {

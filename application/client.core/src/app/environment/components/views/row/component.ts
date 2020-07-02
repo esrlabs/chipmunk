@@ -266,7 +266,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     public _ng_getRangeStyle(): { [key: string]: string } {
         return {
-            borderColor: this.timestamp.getRangeColorFor(this._getPosition()),
+            borderColor: this._ng_getRangeCssClass() !== 'open' ? this.timestamp.getRangeColorFor(this._getPosition()) : undefined,
         };
     }
 
