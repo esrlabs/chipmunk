@@ -136,6 +136,16 @@ export class DataService {
         return this._getComplitedRanges().length;
     }
 
+    public getGroups(): Map<number, IRange[]> {
+        const groups: Map<number, IRange[]> = new Map();
+        this._getComplitedRanges().forEach((range: IRange) => {
+            const ranges: IRange[] = groups.has(range.group) ? groups.get(range.group) : [];
+            ranges.push(range);
+            groups.set(range.group, ranges);
+        });
+        return groups;
+    }
+
     public zoom(event: IZoomEvent) {
         const cursor = this.getCursorState();
         if (cursor === undefined) {
@@ -185,7 +195,7 @@ export class DataService {
     } {
         const labels: string[] = [];
         const datasets: any[] = [];
-        const groups: Map<number, IRange[]> = this._getGroups();
+        const groups: Map<number, IRange[]> = this.getGroups();
         let y: number = 1;
         groups.forEach((ranges: IRange[], groupId: number) => {
             ranges.sort((a: IRange, b: IRange) => {
@@ -237,7 +247,7 @@ export class DataService {
     } {
         const labels: string[] = [];
         const datasets: any[] = [];
-        const groups: Map<number, IRange[]> = this._getGroups();
+        const groups: Map<number, IRange[]> = this.getGroups();
         let y: number = 1;
         let prev: { min: number, max: number } | undefined;
         groups.forEach((ranges: IRange[], groupId: number) => {
@@ -326,16 +336,6 @@ export class DataService {
         };
     }
 
-    private _getGroups(): Map<number, IRange[]> {
-        const groups: Map<number, IRange[]> = new Map();
-        this._getComplitedRanges().forEach((range: IRange) => {
-            const ranges: IRange[] = groups.has(range.group) ? groups.get(range.group) : [];
-            ranges.push(range);
-            groups.set(range.group, ranges);
-        });
-        return groups;
-    }
-
     private _getGroupBorders(group: number): { min: number, max: number, duration: number } {
         let min: number = Infinity;
         let max: number = -1;
@@ -360,7 +360,7 @@ export class DataService {
     }
 
     private _getMaxDurationPerGroups(): number {
-        const groups = this._getGroups();
+        const groups = this.getGroups();
         let duration = -1;
         groups.forEach((_, groupId: number) => {
             const borders = this._getGroupBorders(groupId);
