@@ -133,12 +133,21 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
             return;
         }
         const state = this.service.getCursorState();
-        const r = state.duration / this._width;
-        if (isNaN(r) || !isFinite(r)) {
-            return this._forceUpdate();
+        if (state === undefined) {
+            return;
         }
-        this._ng_left = state.left / r;
-        this._ng_width = Math.abs(state.duration - state.left - state.right) / r;
+        if (state.left === 0 && state.right === 0) {
+            this._ng_left = 0;
+            this._ng_width = this._width;
+        } else {
+            const r = state.duration / this._width;
+            if (isNaN(r) || !isFinite(r)) {
+                return this._forceUpdate();
+            }
+            this._ng_left = state.left / r;
+            this._ng_width = Math.abs(state.duration - state.left - state.right) / r;
+        }
+
         this._forceUpdate();
     }
 
@@ -147,6 +156,12 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
             return;
         }
         const state = this.service.getCursorState();
+        if (state === undefined) {
+            return;
+        }
+        if (isNaN(state.max) || !isFinite(state.max) || isNaN(state.min) || !isFinite(state.min)) {
+            return;
+        }
         const r = state.duration / this._width;
         const offset: number = event.x - this._mouse.x;
         this._mouse.x = event.x;
