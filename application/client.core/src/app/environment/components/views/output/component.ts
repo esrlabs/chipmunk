@@ -196,7 +196,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this.session.getTimestamp().discover().catch((error: Error) => {
             this._logger.warn(`Fail detect timestamp due error: ${error.message}`);
         }).finally(() => {
-            const curr: {
+            let curr: {
                 tm?: number,
                 pos?: number,
                 row?: { position: number, str: string },
@@ -208,13 +208,16 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
                 curr.tm = _tm;
             }).catch((err: Error) => {
+                curr = undefined;
                 this._logger.error(`Fail extract timestamp due error: ${err.message}`);
             }).finally(() => {
                 if (curr !== undefined) {
-                    items.push(...[
-                        { /* delimiter */ },
-                    ]);
                     const opened = this.session.getTimestamp().getOpenRow();
+                    if (opened !== undefined || curr.tm !== undefined) {
+                        items.push(...[
+                            { /* delimiter */ },
+                        ]);
+                    }
                     if (opened !== undefined) {
                         opened.position !== curr.pos && items.push(...[
                             {
@@ -242,7 +245,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                 },
                             }
                         ]);
-                    } else {
+                    } else if (curr.tm !== undefined) {
                         items.push(...[
                             {
                                 caption: `Open time range`,
