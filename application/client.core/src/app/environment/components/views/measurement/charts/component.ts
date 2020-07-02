@@ -70,10 +70,11 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
     } = {
         left: -1,
     };
-    private _scrolling: EScrollingMode = EScrollingMode.scrolling;
+    private _scrolling: EScrollingMode = EScrollingMode.zooming;
 
     @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
         if (this._scrolling === EScrollingMode.scrolling) {
+            (this._vcRef.element.nativeElement as HTMLElement).scrollTop += event.deltaY;
             return;
         }
         if (this.service.getMode() === EChartMode.aligned) {
@@ -81,7 +82,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         }
         this.service.zoom({
             x: event.offsetX,
-            change: event.deltaY,
+            change: -event.deltaY,
             width: this._sizes.container.width,
         });
         event.stopImmediatePropagation();
@@ -457,11 +458,11 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (!event.ctrlKey) {
             return;
         }
-        this._scrolling = EScrollingMode.zooming;
+        this._scrolling = EScrollingMode.scrolling;
     }
 
     private _onWinKeyUp(event: KeyboardEvent) {
-        this._scrolling = EScrollingMode.scrolling;
+        this._scrolling = EScrollingMode.zooming;
     }
 
     private _forceUpdate() {
