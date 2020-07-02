@@ -34,9 +34,12 @@ interface ICachedKey {
     regExp: RegExp;
 }
 
-const TOOLTIP_ATTR_NAME = 'data-row-tooltip';
+export type TClickHandler = (str: string, position: number) => void;
 
 export class OutputParsersService {
+
+    readonly TOOLTIP_ATTR_NAME: string = 'data-row-tooltip';
+    readonly CLICK_HANDLER_ATTR_NAME: string = 'data-row-click-handler';
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputParsersService');
     private _parsers: {
@@ -45,12 +48,14 @@ export class OutputParsersService {
         typed: Map<number, Toolkit.ARowTypedParser>,
         session: Map<string, Map<string, Toolkit.ARowCommonParser>>,
         tooltips: Map<string, Map<string, ITooltip>>,
+        clicks: Map<string, Map<string, TClickHandler>>,
     } = {
         bound: new Map(),
         common: new Map(),
         typed: new Map(),
         session: new Map(),
         tooltips: new Map(),
+        clicks: new Map(),
     };
     private _search: Map<string, IRequest[]> = new Map();
     private _charts: Map<string, IRequest[]> = new Map();
@@ -318,7 +323,7 @@ export class OutputParsersService {
     }
 
     public getTooltipHook(id: string): string {
-        return ` ${TOOLTIP_ATTR_NAME}="${id}" `;
+        return ` ${this.TOOLTIP_ATTR_NAME}="${id}" `;
     }
 
     public getTooltipContent(target: HTMLElement, str: string, position: number): Promise<string | undefined> {
@@ -330,7 +335,7 @@ export class OutputParsersService {
             if (target === undefined || target === null) {
                 return resolve(undefined);
             }
-            const id: string | null | undefined = target.getAttribute(TOOLTIP_ATTR_NAME);
+            const id: string | null | undefined = target.getAttribute(this.TOOLTIP_ATTR_NAME);
             if (id === null || id === undefined) {
                 return resolve(undefined);
             }
@@ -344,6 +349,47 @@ export class OutputParsersService {
                 this._logger.warn(`Fail get tooltip value due error: ${err.message}`);
             });
         });
+    }
+
+    public setSessionClickHandler(id: string, handler: TClickHandler, session?: string) {
+        if (this._session === undefined && session === undefined) {
+            return;
+        }
+        session = session === undefined ? this._session : session;
+        let clicks: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(session);
+        if (clicks === undefined) {
+            clicks = new Map();
+        }
+        clicks.set(id, handler);
+        this._parsers.clicks.set(session, clicks);
+    }
+
+    public getClickHandlerHook(id: string): string {
+        return ` ${this.CLICK_HANDLER_ATTR_NAME}="${id}" `;
+    }
+
+    public emitClickHandler(target: HTMLElement, str: string, position: number): boolean {
+        const handlers: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(this._session);
+        if (handlers === undefined) {
+            return false;
+        }
+        if (target === undefined || target === null) {
+            return false;
+        }
+        const id: string | null | undefined = target.getAttribute(this.CLICK_HANDLER_ATTR_NAME);
+        if (id === null || id === undefined) {
+            return false;
+        }
+        const handler: TClickHandler | undefined = handlers.get(id);
+        if (handler === undefined) {
+            return false;
+        }
+        try {
+            handler(str, position);
+        } catch (e) {
+            this._logger.warn(`Fail execute handler on row ${position} due error: ${e.message}`);
+        }
+        return true;
     }
 
     private _setBoundParsers(exports: Toolkit.IPluginExports, pluginId: number): boolean {

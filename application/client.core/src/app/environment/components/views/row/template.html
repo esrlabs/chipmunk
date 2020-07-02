@@ -27,7 +27,7 @@
         [pluginId]="pluginId"
         [source]="_ng_sourceName"
         [scope]="scope"
-        (click)="_ng_onRowSelect()"></app-views-output-row-standard>
+        (click)="_ng_onRowSelect($event)"></app-views-output-row-standard>
     <app-views-output-row-columns
         #rendercomp  
         *ngIf="_ng_render === 'columns'"
@@ -39,7 +39,7 @@
         [scope]="scope"
         [output]="controller"
         [api]="_ng_render_api" 
-        (click)="_ng_onRowSelect()"></app-views-output-row-columns>
+        (click)="_ng_onRowSelect($event)"></app-views-output-row-columns>
     <app-views-output-row-external
         #rendercomp
         *ngIf="_ng_component !== undefined"
@@ -50,7 +50,7 @@
         [source]="_ng_sourceName"
         [scope]="scope"
         [component]="_ng_component"
-        (click)="_ng_onRowSelect()"></app-views-output-row-external>
+        (click)="_ng_onRowSelect($event)"></app-views-output-row-external>
 </div>
 <div *ngIf="_ng_isPending() === true" [attr.class]="'wrapper noreset ' + (_ng_bookmarked ? 'bookmarked' : '')">
     <div class="container">

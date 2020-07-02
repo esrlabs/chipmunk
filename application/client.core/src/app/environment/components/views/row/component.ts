@@ -214,23 +214,28 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         return this.str === undefined;
     }
 
-    public _ng_onRowSelect() {
-        OutputRedirectionsService.select(this.parent, this.sessionId, this._getPosition());
-        if (this.pluginId === -1) {
-            return;
+    public _ng_onRowSelect(event: MouseEvent) {
+        if (OutputParsersService.emitClickHandler(event.target as HTMLElement, this.str, this._getPosition())) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+        } else {
+            OutputRedirectionsService.select(this.parent, this.sessionId, this._getPosition());
+            if (this.pluginId === -1) {
+                return;
+            }
+            if (TabsSessionsService.getActive() === undefined) {
+                return;
+            }
+            TabsSessionsService.getPluginAPI(this.pluginId).getViewportEventsHub().getSubject().onRowSelected.emit({
+                session: this.sessionId,
+                source: {
+                    id: this.pluginId,
+                    name: this._ng_sourceName,
+                },
+                str: this.str,
+                row: this._getPosition(),
+            });
         }
-        if (TabsSessionsService.getActive() === undefined) {
-            return;
-        }
-        TabsSessionsService.getPluginAPI(this.pluginId).getViewportEventsHub().getSubject().onRowSelected.emit({
-            session: this.sessionId,
-            source: {
-                id: this.pluginId,
-                name: this._ng_sourceName,
-            },
-            str: this.str,
-            row: this._getPosition(),
-        });
     }
 
     public _ng_onNumberClick() {
