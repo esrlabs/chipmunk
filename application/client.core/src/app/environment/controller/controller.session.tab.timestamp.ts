@@ -602,7 +602,7 @@ export class ControllerSessionTabTimestamp {
             }
         });
         this._state.duration = Math.abs(this._state.min - this._state.max);
-        if (((this._state.max - this._cursor.right) - (this._state.min + this._cursor.left) < 0) || 
+        if (((this._state.max - this._cursor.right) - (this._state.min + this._cursor.left) < 0) ||
             (this._ranges.length === 0 && (this._cursor.left + this._cursor.right) !== 0)) {
             this._cursor.left = 0;
             this._cursor.right = 0;
