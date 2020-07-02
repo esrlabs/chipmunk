@@ -56,8 +56,8 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
         this.state.maximize();
     }
 
-    private _onTabServiceChange(event: IChangeEvent) {
-        this._setService(event.service);
+    private _onTabServiceChange(event: IChangeEvent | undefined) {
+        this._setService(event === undefined ? undefined : event.service);
     }
 
     private _setService(service: TabsService | undefined) {
