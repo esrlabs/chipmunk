@@ -90,13 +90,22 @@ export class ControllerSessionTabTimestamp {
         update: Subject<IRange[]>,
         formats: Subject<void>,
         defaults: Subject<DefaultDateParts>,
-        mode: Subject<EChartMode>
+        mode: Subject<EChartMode>,
+        zoom: Subject<void>,
     } = {
         change: new Subject(),
         update: new Subject(),
         formats: new Subject(),
         defaults: new Subject(),
         mode: new Subject(),
+        zoom: new Subject(),
+    };
+    private _cursor: {
+        left: number,
+        right: number,
+    } = {
+        left: 0,
+        right: 0,
     };
 
     constructor(guid: string) {
@@ -134,6 +143,7 @@ export class ControllerSessionTabTimestamp {
         formats: Observable<void>,
         defaults: Observable<DefaultDateParts>,
         mode: Observable<EChartMode>,
+        zoom: Observable<void>,
     } {
         return {
             change: this._subjects.change.asObservable(),
@@ -141,6 +151,7 @@ export class ControllerSessionTabTimestamp {
             formats: this._subjects.formats.asObservable(),
             defaults: this._subjects.defaults.asObservable(),
             mode: this._subjects.mode.asObservable(),
+            zoom: this._subjects.zoom.asObservable(),
         };
     }
 
@@ -501,6 +512,30 @@ export class ControllerSessionTabTimestamp {
         }));
     }
 
+    public setZoomOffsets(left: number, right: number) {
+        this._cursor.left = left < 0 ? 0 : left;
+        this._cursor.right = right < 0 ? 0 : right;
+        this._subjects.zoom.next();
+    }
+
+    public getCursorState(): {
+        left: number,
+        right: number,
+        duration: number,
+        min: number,
+        max: number,
+    } {
+        const minT = this.getMinTimestamp();
+        const maxT = this.getMaxTimestamp();
+        return {
+            left: this._cursor.left,
+            right: this._cursor.right,
+            duration: Math.abs(maxT - minT),
+            min: minT,
+            max: maxT,
+        };
+    }
+
     private _getRangeByPosition(position: number): IRange | undefined {
         let range: IRange | undefined;
         this._ranges.forEach((r: IRange) => {
@@ -567,6 +602,14 @@ export class ControllerSessionTabTimestamp {
             }
         });
         this._state.duration = Math.abs(this._state.min - this._state.max);
+        if (this._mode === EChartMode.aligned) {
+            return;
+        }
+        if ((this._state.max - this._cursor.right) - (this._state.min + this._cursor.left) < 0) {
+            this._cursor.left = 0;
+            this._cursor.right = 0;
+            this._subjects.zoom.next();
+        }
     }
 
 }

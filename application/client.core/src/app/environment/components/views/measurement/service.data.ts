@@ -39,13 +39,6 @@ export class DataService {
         zoom: new Subject(),
         mode: new Subject(),
     };
-    private _zoom: {
-        left: number,
-        right: number,
-    } = {
-        left: 0,
-        right: 0,
-    };
 
     constructor() {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
@@ -122,13 +115,21 @@ export class DataService {
     }
 
     public getMinXAxe(): number {
+        const cursor = this.getCursorState();
+        if (cursor === undefined) {
+            return undefined;
+        }
         const min = this.getMinTimestamp();
-        return min + this._zoom.left;
+        return min + cursor.left;
     }
 
     public getMaxXAxe(): number {
+        const cursor = this.getCursorState();
+        if (cursor === undefined) {
+            return undefined;
+        }
         const max = this.getMaxTimestamp();
-        return max - this._zoom.right;
+        return max - cursor.right;
     }
 
     public getRangesCount(): number {
@@ -136,58 +137,45 @@ export class DataService {
     }
 
     public zoom(event: IZoomEvent) {
+        const cursor = this.getCursorState();
+        if (cursor === undefined) {
+            return;
+        }
         const point: number = event.x / event.width;
         const minT = this.getMinTimestamp();
         const maxT = this.getMaxTimestamp();
-        const min = minT + this._zoom.left;
-        const max = maxT - this._zoom.right;
+        const min = minT + cursor.left;
+        const max = maxT - cursor.right;
         const step = Math.abs(max - min) / event.width;
-        this._zoom.left = Math.abs(this._zoom.left + event.change * point * step);
-        this._zoom.right = Math.abs(this._zoom.right + event.change * (1 - point) * step);
-        if (minT + this._zoom.left < minT) {
-            this._zoom.left = 0;
+        let left = Math.abs(cursor.left + event.change * point * step);
+        let right = Math.abs(cursor.right + event.change * (1 - point) * step);
+        if (minT + left < minT) {
+            left = 0;
         }
-        if (maxT - this._zoom.right > maxT) {
-            this._zoom.right = 0;
+        if (maxT - right > maxT) {
+            right = 0;
         }
-        this._subjects.zoom.next();
+        this._session.getTimestamp().setZoomOffsets(left, right);
     }
 
     public setZoomOffsets(left: number, right: number) {
-        this._zoom.left = left < 0 ? 0 : left;
-        this._zoom.right = right < 0 ? 0 : right;
-        this._subjects.zoom.next();
+        if (this._session === undefined) {
+            return;
+        }
+        this._session.getTimestamp().setZoomOffsets(left, right);
     }
 
-    public getCursorState(): {
+    public getCursorState(): undefined | {
         left: number,
         right: number,
         duration: number,
         min: number,
         max: number,
     } {
-        const minT = this.getMinTimestamp();
-        const maxT = this.getMaxTimestamp();
-        return {
-            left: this._zoom.left,
-            right: this._zoom.right,
-            duration: Math.abs(maxT - minT),
-            min: minT,
-            max: maxT,
-        };
-    }
-
-    private _updateCursorState() {
-        if (this._mode === EChartMode.aligned) {
-            return;
+        if (this._session === undefined) {
+            return undefined;
         }
-        const minT = this.getMinTimestamp();
-        const maxT = this.getMaxTimestamp();
-        if ((maxT - this._zoom.right) - (minT + this._zoom.left) < 0) {
-            this._zoom.left = 0;
-            this._zoom.right = 0;
-            this._subjects.zoom.next();
-        }
+        return this._session.getTimestamp().getCursorState();
     }
 
     private _getChartDatasetModeAlign(): {
@@ -406,7 +394,6 @@ export class DataService {
         } else {
             this._subjects.change.next();
         }
-        this._updateCursorState();
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {
@@ -417,6 +404,7 @@ export class DataService {
             this._sessionSubscriptions.change = controller.getTimestamp().getObservable().change.subscribe(this._onRangeChange.bind(this));
             this._sessionSubscriptions.update = controller.getTimestamp().getObservable().update.subscribe(this._onRangesUpdate.bind(this));
             this._sessionSubscriptions.mode = controller.getTimestamp().getObservable().mode.subscribe(this._onModeChange.bind(this));
+            this._sessionSubscriptions.zoom = controller.getTimestamp().getObservable().zoom.subscribe(this._onZoom.bind(this));
             this._mode = controller.getTimestamp().getMode();
             this._session = controller;
         } else {
@@ -437,6 +425,10 @@ export class DataService {
         this._mode = mode;
         this._refresh(undefined, true);
         this._subjects.mode.next();
+    }
+
+    private _onZoom() {
+        this._subjects.zoom.next();
     }
 
 }
