@@ -205,9 +205,6 @@ export class DataService {
         const groups: Map<number, IRange[]> = this.getGroups();
         let y: number = 1;
         groups.forEach((ranges: IRange[], groupId: number) => {
-            ranges.sort((a: IRange, b: IRange) => {
-                return a.end.timestamp > b.end.timestamp ? 1 : -1;
-            });
             let offset: number = 0;
             ranges.forEach((range: IRange, index: number) => {
                 const normalized = this._getNormalizedRange(range);
@@ -259,9 +256,6 @@ export class DataService {
         let prev: { min: number, max: number } | undefined;
         groups.forEach((ranges: IRange[], groupId: number) => {
             const borders = this._getGroupBorders(groupId);
-            ranges.sort((a: IRange, b: IRange) => {
-                return a.end.timestamp > b.end.timestamp ? 1 : -1;
-            });
             if (!overview && prev !== undefined && ranges.length > 0) {
                 const range = ranges[ranges.length - 1];
                 const next: { min: number, max: number } = {
@@ -381,6 +375,8 @@ export class DataService {
     private _getComplitedRanges(): IRange[] {
         return this._ranges.filter((range: IRange) => {
             return range.end !== undefined;
+        }).sort((a: IRange, b: IRange) => {
+            return a.start.timestamp < b.start.timestamp ? 1 : -1;
         });
     }
 
