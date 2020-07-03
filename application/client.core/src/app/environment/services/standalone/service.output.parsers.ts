@@ -7,8 +7,10 @@ import { CColors } from '../../conts/colors';
 import { FilterRequest } from '../../controller/controller.session.tab.search.filters.request';
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
+import { EKey } from '../../services/standalone/service.output.redirections';
 
 import EventsSessionService from '../../services/standalone/service.events.session';
+import OutputRedirectionsService from '../../services/standalone/service.output.redirections';
 
 export interface IRequest {
     reg: RegExp;
@@ -34,7 +36,7 @@ interface ICachedKey {
     regExp: RegExp;
 }
 
-export type TClickHandler = (str: string, position: number) => void;
+export type TClickHandler = (str: string, position: number, key?: EKey) => void;
 
 export class OutputParsersService {
 
@@ -385,7 +387,7 @@ export class OutputParsersService {
             return false;
         }
         try {
-            handler(str, position);
+            handler(str, position, OutputRedirectionsService.getHoldKey());
         } catch (e) {
             this._logger.warn(`Fail execute handler on row ${position} due error: ${e.message}`);
         }

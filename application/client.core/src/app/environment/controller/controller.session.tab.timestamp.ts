@@ -2,6 +2,7 @@ import { Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 import { getUniqueColorTo } from '../theme/colors';
+import { EKey } from '../services/standalone/service.output.redirections';
 
 import ElectronIpcService from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
@@ -598,7 +599,7 @@ export class ControllerSessionTabTimestamp {
         return range;
     }
 
-    private _handleRowClick(str: string, position: number): boolean {
+    private _handleRowClick(str: string, position: number, hold?: EKey): boolean {
         if (this._open === undefined) {
             return false;
         }
@@ -607,6 +608,9 @@ export class ControllerSessionTabTimestamp {
             position: position,
         };
         this.close(row).then(() => {
+            if (hold === EKey.ctrl) {
+                return;
+            }
             this.open(row, true);
         }).catch((closeErr: Error) => {
             this._logger.warn(`Fail close range due error: ${closeErr.message}`);

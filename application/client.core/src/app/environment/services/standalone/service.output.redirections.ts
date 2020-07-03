@@ -4,7 +4,7 @@ import { Selection, ISelectionAccessor, IRange } from '../../controller/helpers/
 
 import EventsSessionService from './service.events.session';
 
-enum EKey {
+export enum EKey {
     ctrl = 'ctrl',
     shift = 'shift'
 }
@@ -114,6 +114,10 @@ export class OutputRedirectionsService {
                 return Object.assign({ content: { start: sstr, end: estr }}, range);
             }
         });
+    }
+
+    public getHoldKey(): EKey | undefined {
+        return this._keyHolded;
     }
 
     private _unsubscribe(sessionId: string, handlerId: string) {
