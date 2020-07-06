@@ -1,7 +1,7 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/controller.session.tab.scope';
@@ -10,6 +10,7 @@ import { IComponentDesc } from 'chipmunk-client-material';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
+import { scheme_color_accent } from '../../../theme/colors';
 
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
@@ -74,6 +75,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     private _sourceMeta: string | undefined;
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger(`RowWrapper`);
+    private _hovered: number = -1;
 
     @HostListener('mouseover', ['$event', '$event.target']) onMouseIn(event: MouseEvent, target: HTMLElement) {
         if (target === undefined || target === null) {
@@ -204,12 +206,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         return css;
     }
 
-    public _ng_getRangeCssClass(): string {
-        const type = this.timestamp.getStatePositionInRange(this._getPosition());
-        return type === undefined ? '' : type;
-
-    }
-
     public _ng_isPending() {
         return this.str === undefined;
     }
@@ -264,9 +260,35 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition());
     }
 
+    public _ng_getRangeCssClass(): string {
+        const type = this.timestamp.getStatePositionInRange(this._getPosition());
+        return type === undefined ? (this.timestamp.getOpenRow() !== undefined ? 'opening' : '') : type;
+    }
+
     public _ng_getRangeStyle(): { [key: string]: string } {
+        const type = this.timestamp.getStatePositionInRange(this._getPosition());
+        if (type === 'open') {
+            return {};
+        }
+        const row = this.timestamp.getOpenRow();
+        const position: number = this._getPosition();
+        const color: string | undefined = this.timestamp.getRangeColorFor(position);
+        if (row === undefined) {
+            return {
+                borderColor: color,
+            };
+        }
+        if (color === undefined && this._hovered !== -1) {
+            if ((row.position < this._hovered && position >= row.position && position <= this._hovered) ||
+                (row.position > this._hovered && position <= row.position && position >= this._hovered)) {
+                return {
+                    borderColor: scheme_color_accent,
+                    borderWidth: '2px'
+                };
+            }
+        }
         return {
-            borderColor: this._ng_getRangeCssClass() !== 'open' ? this.timestamp.getRangeColorFor(this._getPosition()) : undefined,
+            borderColor: color,
         };
     }
 
@@ -279,6 +301,16 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             top: `${this._ng_tooltip.top}px`,
             left: `${this._ng_tooltip.left}px`,
         };
+    }
+
+    public _ng_isRangeVisible(): boolean {
+        if (this.timestamp.getOpenRow() !== undefined) {
+            return true;
+        }
+        if (this._ng_getRangeColor() !== undefined) {
+            return true;
+        }
+        return false;
     }
 
     private _onRowWasSelected(sender: string, selection: number[], clicked: number) {
@@ -373,12 +405,15 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _onRowHover(position: number) {
-        if (this._ng_tooltip === undefined) {
+        this._hovered = position;
+        if (this._ng_tooltip === undefined && this.timestamp.getOpenRow() === undefined) {
             return;
         }
+        /*
         if (this._getPosition() === position) {
             return;
         }
+        */
         this._ng_tooltip = undefined;
         this._forceUpdate();
     }

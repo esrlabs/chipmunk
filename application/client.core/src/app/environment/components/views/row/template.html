@@ -9,7 +9,7 @@
         <span   class="number"
                 (click)="_ng_onNumberClick()">
                     <span class="filler">{{_ng_number_filler}}</span>{{_ng_number}}{{_ng_numberDelimiter}}
-                    <span   *ngIf="_ng_getRangeCssClass() !== ''"
+                    <span   *ngIf="_ng_isRangeVisible()"
                             [attr.class]="'range ' + _ng_getRangeCssClass()"
                             [ngStyle]="_ng_getRangeStyle()"
                             [style.--range-color]="_ng_getRangeColor()"></span>
