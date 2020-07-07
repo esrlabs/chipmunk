@@ -8,6 +8,9 @@ import TimestampExtract from '../../controllers/features/timestamp/timestamp.ext
 import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
+import { dialog, SaveDialogReturnValue, OpenDialogReturnValue } from 'electron';
+
+import * as fs from 'fs';
 
 /**
  * @class ServiceTimestamp
@@ -35,6 +38,9 @@ class ServiceTimestamp implements IService {
                 }),
                 ServiceElectron.IPC.subscribe(IPCMessages.TimestampExtractRequest, this._onTimestampExtractRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.TimestampExtractRequest = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.TimestampExportCSVRequest, this._onTimestampExportCSVRequest.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.TimestampExportCSVRequest = subscription;
                 }),
             ]).then(() => {
                 this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
@@ -136,6 +142,32 @@ class ServiceTimestamp implements IService {
                 id: req.id,
                 error: error.message,
             }));
+        });
+    }
+
+    private _onTimestampExportCSVRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const req: IPCMessages.TimestampExportCSVRequest = request as IPCMessages.TimestampExportCSVRequest;
+        dialog.showSaveDialog({
+            title: 'Saving filters',
+            filters: [{ name: 'CSV Files', extensions: ['csv']}],
+        }).then((results: SaveDialogReturnValue) => {
+            if (typeof results.filePath !== 'string' || results.filePath.trim() === '') {
+                return response(new IPCMessages.TimestampExportCSVResponse({
+                    id: req.id,
+                }));
+            }
+            fs.writeFile(results.filePath, req.csv, (error: NodeJS.ErrnoException | null) => {
+                if (error) {
+                    response(new IPCMessages.TimestampExportCSVResponse({
+                        id: req.id,
+                        error: error.message,
+                    }));
+                } else {
+                    response(new IPCMessages.TimestampExportCSVResponse({
+                        id: req.id,
+                    }));
+                }
+            });
         });
     }
 
