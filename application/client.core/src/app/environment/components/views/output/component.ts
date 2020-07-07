@@ -283,7 +283,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     if (opened !== undefined) {
                         opened.position !== curr.pos && items.push(...[
                             {
-                                caption: `Start time range ${opened.position} - ${curr.row.position}`,
+                                caption: `Add time range ${opened.position} - ${curr.row.position}`,
                                 handler: () => {
                                     this.session.getTimestamp().close(curr.row).catch((err: Error) => {
                                         this._logger.warn(`Error during time range close: ${err.message}`);
@@ -310,7 +310,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     } else if (curr.tm !== undefined) {
                         items.push(...[
                             {
-                                caption: `Open time range`,
+                                caption: `Start time range`,
                                 handler: () => {
                                     if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
                                         ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
