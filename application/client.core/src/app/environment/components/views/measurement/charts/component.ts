@@ -350,6 +350,11 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (target === undefined) {
             return;
         }
+        OutputRedirectionsService.select(
+            '',
+            this._session.getGuid(),
+            target.range.start.position < target.range.end.position ? target.range.start.position : target.range.end.position,
+        );
     }
 
     private _getDatasetOnClick(event?: MouseEvent): {
