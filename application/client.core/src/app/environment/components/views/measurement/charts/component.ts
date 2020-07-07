@@ -16,7 +16,8 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 enum EScrollingMode {
-    scrolling = 'scrolling',
+    scrollingY = 'scrollingY',
+    scrollingX = 'scrollingX',
     zooming = 'zooming',
 }
 
@@ -73,18 +74,25 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
     private _scrolling: EScrollingMode = EScrollingMode.zooming;
 
     @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
-        if (this._scrolling === EScrollingMode.scrolling) {
+        if (this._scrolling === EScrollingMode.scrollingY) {
             (this._vcRef.element.nativeElement as HTMLElement).scrollTop += event.deltaY;
             return;
         }
         if (this.service.getMode() === EChartMode.aligned) {
             return;
         }
-        this.service.zoom({
-            x: event.offsetX,
-            change: -event.deltaY,
-            width: this._sizes.container.width,
-        });
+        if (this._scrolling === EScrollingMode.scrollingX) {
+            this.service.move({
+                change: -event.deltaY,
+                width: this._sizes.container.width,
+            });
+        } else {
+            this.service.zoom({
+                x: event.offsetX,
+                change: -event.deltaY,
+                width: this._sizes.container.width,
+            });
+        }
         event.stopImmediatePropagation();
         event.preventDefault();
     }
@@ -471,10 +479,13 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
     }
 
     private _onWinKeyDown(event: KeyboardEvent) {
-        if (!event.ctrlKey) {
-            return;
+        if (event.ctrlKey) {
+            this._scrolling = EScrollingMode.scrollingY;
+        } else if (event.shiftKey) {
+            this._scrolling = EScrollingMode.scrollingX;
+        } else {
+            this._scrolling = EScrollingMode.zooming;
         }
-        this._scrolling = EScrollingMode.scrolling;
     }
 
     private _onWinKeyUp(event: KeyboardEvent) {

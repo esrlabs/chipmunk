@@ -15,6 +15,11 @@ export interface IZoomEvent {
     change: number;
 }
 
+export interface IMoveEvent {
+    width: number;
+    change: number;
+}
+
 export class DataService {
 
     public readonly SCALED_ROW_HEIGHT: number = 50;
@@ -183,6 +188,30 @@ export class DataService {
             return;
         }
         this._session.getTimestamp().setZoomOffsets(left, right);
+    }
+
+    public move(event: IMoveEvent) {
+        const cursor = this.getCursorState();
+        if (cursor === undefined) {
+            return;
+        }
+        const minT = this.getMinTimestamp();
+        const maxT = this.getMaxTimestamp() - this._offset;
+        const min = minT + cursor.left;
+        const max = maxT - cursor.right;
+        const _left = cursor.left;
+        const _right = cursor.right;
+        const step = Math.abs(max - min) / event.width;
+        let left = cursor.left + event.change * step;
+        let right = cursor.right - event.change * step;
+        if (left < 0) {
+            left = 0;
+            right = cursor.right + _left;
+        } else if (maxT - right > maxT) {
+            right = 0;
+            left = cursor.left + _right;
+        }
+        this.setZoomOffsets(left, right);
     }
 
     public getCursorState(): undefined | {
