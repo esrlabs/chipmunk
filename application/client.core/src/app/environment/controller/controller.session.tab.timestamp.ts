@@ -82,25 +82,26 @@ export class ControllerSessionTabTimestamp {
     };
     private _parser: TimestampRowParser;
     private _mode: EChartMode = EChartMode.aligned;
+    private _optimization: boolean = true;
     private _defaults: DefaultDateParts = {
         day: undefined,
         month: undefined,
         year: undefined,
     };
     private _subjects: {
-        change: Subject<IRange>,
         update: Subject<IRange[]>,
         formats: Subject<void>,
         defaults: Subject<DefaultDateParts>,
         mode: Subject<EChartMode>,
         zoom: Subject<void>,
+        optimization: Subject<boolean>,
     } = {
-        change: new Subject(),
         update: new Subject(),
         formats: new Subject(),
         defaults: new Subject(),
         mode: new Subject(),
         zoom: new Subject(),
+        optimization: new Subject(),
     };
     private _cursor: {
         left: number,
@@ -142,20 +143,20 @@ export class ControllerSessionTabTimestamp {
     }
 
     public getObservable(): {
-        change: Observable<IRange>,
         update: Observable<IRange[]>,
         formats: Observable<void>,
         defaults: Observable<DefaultDateParts>,
         mode: Observable<EChartMode>,
         zoom: Observable<void>,
+        optimization: Observable<boolean>,
     } {
         return {
-            change: this._subjects.change.asObservable(),
             update: this._subjects.update.asObservable(),
             formats: this._subjects.formats.asObservable(),
             defaults: this._subjects.defaults.asObservable(),
             mode: this._subjects.mode.asObservable(),
             zoom: this._subjects.zoom.asObservable(),
+            optimization: this._subjects.optimization.asObservable(),
         };
     }
 
@@ -535,6 +536,16 @@ export class ControllerSessionTabTimestamp {
         return this._mode;
     }
 
+    public setOptimization(optimization: boolean) {
+        this._optimization = optimization;
+        this.setZoomOffsets(0, 0);
+        this._subjects.optimization.next(optimization);
+    }
+
+    public getOptimization(): boolean {
+        return this._optimization;
+    }
+
     public getMinTimestamp(): number {
         return Math.min(...this._ranges.map((range: IRange) => {
             if (range.end !== undefined) {
@@ -564,18 +575,10 @@ export class ControllerSessionTabTimestamp {
     public getCursorState(): {
         left: number,
         right: number,
-        duration: number,
-        min: number,
-        max: number,
     } {
-        const minT = this.getMinTimestamp();
-        const maxT = this.getMaxTimestamp();
         return {
             left: this._cursor.left,
             right: this._cursor.right,
-            duration: Math.abs(maxT - minT),
-            min: minT,
-            max: maxT,
         };
     }
 
