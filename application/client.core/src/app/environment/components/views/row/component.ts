@@ -409,11 +409,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this._ng_tooltip === undefined && this.timestamp.getOpenRow() === undefined) {
             return;
         }
-        /*
-        if (this._getPosition() === position) {
-            return;
-        }
-        */
         this._ng_tooltip = undefined;
         this._forceUpdate();
     }

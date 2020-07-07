@@ -184,6 +184,17 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                 disabled: this._session.getTimestamp().getCount() === 0,
             },
         ];
+        if (this.service.getMode() === EChartMode.scaled) {
+            items.push(...[
+                { /* Delimiter */},
+                {
+                    caption: this.service.getOptimizationState() ? `Do not optimize duration` : `Optimize duration`,
+                    handler: () => {
+                        this.service.toggleOptimizationState();
+                    },
+                },
+            ]);
+        }
         if (target !== undefined) {
             items.push(...[
                 { /* Delimiter */},

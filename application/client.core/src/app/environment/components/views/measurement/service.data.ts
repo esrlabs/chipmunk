@@ -21,6 +21,7 @@ export class DataService {
     public readonly MAX_BAR_HEIGHT: number = 16;
     public readonly MIN_BAR_HEIGHT: number = 2;
     public readonly MIN_ZOOMING_PX: number = 20;
+    public readonly MIN_DISTANCE_SCALE_RATE: number = 0.50;
 
     private _refs: number[] = [];
     private _ranges: IRange[] = [];
@@ -29,9 +30,10 @@ export class DataService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('MeasurementDataService');
     private _session: ControllerSessionTab | undefined;
     private _mode: EChartMode = EChartMode.aligned;
+    private _offset: number = 1;
     private _subjects: {
         update: Subject<void>,  // Updates happens in scope of session
-        change: Subject<void>, // Session was changed
+        change: Subject<void>,  // Session was changed
         zoom: Subject<void>,
         mode: Subject<void>,
     } = {
@@ -129,7 +131,7 @@ export class DataService {
         if (cursor === undefined) {
             return undefined;
         }
-        const max = this.getMaxTimestamp();
+        const max = this.getMaxTimestamp() - this._offset;
         return max - cursor.right;
     }
 
@@ -153,9 +155,10 @@ export class DataService {
             return;
         }
         const point: number = event.x / event.width;
-        const limit: number = (cursor.duration / event.width) * this.MIN_ZOOMING_PX;
+        const duration: number = this.getMaxTimestamp() - this._offset - this.getMinTimestamp();
+        const limit: number = (duration / event.width) * this.MIN_ZOOMING_PX;
         const minT = this.getMinTimestamp();
-        const maxT = this.getMaxTimestamp();
+        const maxT = this.getMaxTimestamp() - this._offset;
         const min = minT + cursor.left;
         const max = maxT - cursor.right;
         const step = Math.abs(max - min) / event.width;
@@ -168,7 +171,7 @@ export class DataService {
             right = 0;
         }
         if ((maxT - right) - (minT + left) < limit) {
-            const allowed = cursor.duration - limit;
+            const allowed = duration - limit;
             right = allowed * (right / (right + left));
             left = allowed - right;
         }
@@ -185,14 +188,29 @@ export class DataService {
     public getCursorState(): undefined | {
         left: number,
         right: number,
-        duration: number,
-        min: number,
-        max: number,
     } {
         if (this._session === undefined) {
             return undefined;
         }
         return this._session.getTimestamp().getCursorState();
+    }
+
+    public getDuration(): number {
+        return this.getMaxTimestamp() - this._offset - this.getMinTimestamp();
+    }
+
+    public getOptimizationState(): boolean {
+        if (this._session === undefined) {
+            return false;
+        }
+        return this._session.getTimestamp().getOptimization();
+    }
+
+    public toggleOptimizationState() {
+        if (this._session === undefined) {
+            return false;
+        }
+        this._session.getTimestamp().setOptimization(!this._session.getTimestamp().getOptimization());
     }
 
     private _getChartDatasetModeAlign(): {
@@ -249,14 +267,31 @@ export class DataService {
         labels: string[],
         maxY?: number
     } {
+        if (this._session === undefined) {
+            return { datasets: [], labels: [], maxY: 0 };
+        }
+        this._offset = 0;
         const labels: string[] = [];
-        const datasets: any[] = [];
+        let datasets: any[] = [];
         const groups: Map<number, IRange[]> = this.getGroups();
         let y: number = 1;
         let prev;
+        const params = {
+            distance: {
+                count: 0,
+                duration: 0,
+                middle: 0,
+            },
+            ranges: {
+                count: 0,
+                duration: 0,
+                middle: 0,
+            }
+        };
+        // Building datasets
         groups.forEach((ranges: IRange[], groupId: number) => {
             const borders = this._getGroupBorders(groupId);
-            if (!overview && prev !== undefined && ranges.length > 0) {
+            if (prev !== undefined && ranges.length > 0) {
                 const values: Array<{ x: number, y: number, duration?: number }> = [{
                     x: borders.max,
                     y: y - 0.5,
@@ -269,15 +304,17 @@ export class DataService {
                 datasets.push({
                     data: values,
                     borderColor: '#999999',
-                    borderWidth: 1,
+                    borderWidth: overview ? 0 : 1,
                     pointBackgroundColor: ['#999999', '#999999'],
                     pointBorderColor: ['#999999', '#999999'],
                     pointRadius: 0,
                     pointHoverRadius: 0,
                     fill: false,
                     tension: 0,
-                    showLine: true
+                    showLine: !overview
                 });
+                params.distance.count += 1;
+                params.distance.duration += values[1].duration;
             }
             let offset: number = borders.min;
             ranges.forEach((range: IRange, index: number) => {
@@ -308,12 +345,37 @@ export class DataService {
                     range: range,
                 });
                 offset += normalized.duration;
+                params.ranges.count += 1;
+                params.ranges.duration += values[1].duration;
             });
-            if (!overview) {
-                prev = borders;
-            }
+            prev = borders;
             y += 1;
         });
+        if (this._session.getTimestamp().getOptimization()) {
+            params.distance.middle = params.distance.duration / params.distance.count;
+            params.ranges.middle = params.ranges.duration / params.ranges.count;
+            const rate: number = params.ranges.middle / params.distance.middle;
+            if (rate < this.MIN_DISTANCE_SCALE_RATE) {
+                // Distances have to be optimized
+                const targetMiddle = params.ranges.middle / this.MIN_DISTANCE_SCALE_RATE;
+                const change = targetMiddle / params.distance.middle;
+                datasets.reverse();
+                datasets = datasets.map((dataset) => {
+                    if (dataset.range !== undefined) {
+                        dataset.data[0].x -= this._offset;
+                        dataset.data[1].x -= this._offset;
+                    } else {
+                        dataset.data[0].x -= this._offset;
+                        const move = Math.floor(dataset.data[1].duration * change);
+                        dataset.data[1].x = dataset.data[0].x + move;
+                        this._offset += (dataset.data[1].duration - move);
+                        dataset.optimized = true;
+                    }
+                    return dataset;
+                });
+                datasets.reverse();
+            }
+        }
         return {
             datasets: datasets,
             labels: labels,
@@ -388,20 +450,16 @@ export class DataService {
             this._sessionSubscriptions[key].unsubscribe();
         });
         if (controller !== undefined) {
-            this._sessionSubscriptions.change = controller.getTimestamp().getObservable().change.subscribe(this._onRangeChange.bind(this));
             this._sessionSubscriptions.update = controller.getTimestamp().getObservable().update.subscribe(this._onRangesUpdate.bind(this));
             this._sessionSubscriptions.mode = controller.getTimestamp().getObservable().mode.subscribe(this._onModeChange.bind(this));
             this._sessionSubscriptions.zoom = controller.getTimestamp().getObservable().zoom.subscribe(this._onZoom.bind(this));
+            this._sessionSubscriptions.optimization = controller.getTimestamp().getObservable().optimization.subscribe(this._onOptimization.bind(this));
             this._mode = controller.getTimestamp().getMode();
             this._session = controller;
         } else {
             this._session = undefined;
         }
         this._refresh(undefined, true);
-    }
-
-    private _onRangeChange(range: IRange) {
-        this._refresh();
     }
 
     private _onRangesUpdate(ranges: IRange[]) {
@@ -412,6 +470,10 @@ export class DataService {
         this._mode = mode;
         this._refresh(undefined, true);
         this._subjects.mode.next();
+    }
+
+    private _onOptimization() {
+        this._refresh(undefined, true);
     }
 
     private _onZoom() {
