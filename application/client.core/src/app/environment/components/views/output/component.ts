@@ -283,7 +283,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     if (opened !== undefined) {
                         opened.position !== curr.pos && items.push(...[
                             {
-                                caption: `Add time range ${opened.position} - ${curr.row.position}`,
+                                caption: `Start time range ${opened.position} - ${curr.row.position}`,
                                 handler: () => {
                                     this.session.getTimestamp().close(curr.row).catch((err: Error) => {
                                         this._logger.warn(`Error during time range close: ${err.message}`);
@@ -321,31 +321,33 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                         ]);
                     }
                 }
+                const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(current.position);
                 if (this.session.getTimestamp().getRanges().length > 0) {
-                    const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(current.position);
-                    items.push(...[
-                        { /* delimiter */ },
-                        {
-                            caption: `Remove this range`,
-                            handler: () => {
-                                this.session.getTimestamp().removeRange(selected);
+                    if (selected !== undefined) {
+                        items.push(...[
+                            { /* delimiter */ },
+                            {
+                                caption: `Remove this range`,
+                                handler: () => {
+                                    this.session.getTimestamp().removeRange(selected);
+                                },
                             },
-                            disabled: selected === undefined,
-                        },
-                        {
-                            caption: `Remove all ranges`,
-                            handler: () => {
-                                this.session.getTimestamp().clear();
+                            {
+                                caption: `Remove all except selected`,
+                                handler: () => {
+                                    this.session.getTimestamp().clear([selected]);
+                                },
+                            }
+                        ]);
+                        items.push(...[
+                            {
+                                caption: `Remove all ranges`,
+                                handler: () => {
+                                    this.session.getTimestamp().clear();
+                                },
                             },
-                        },
-                        {
-                            caption: `Remove all except selected`,
-                            handler: () => {
-                                this.session.getTimestamp().clear([selected]);
-                            },
-                            disabled: selected === undefined
-                        }
-                    ]);
+                        ]);
+                    }
                 }
                 OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
                     if (actions.length > 0) {
