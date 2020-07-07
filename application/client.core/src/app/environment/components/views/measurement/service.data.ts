@@ -154,6 +154,12 @@ export class DataService {
             ranges.push(range);
             groups.set(range.group, ranges);
         });
+        groups.forEach((ranges: IRange[], groupId: number) => {
+            ranges = ranges.sort((a, b) => {
+                return a.start.position < b.start.position ? -1 : 1;
+            });
+            groups.set(groupId, ranges);
+        });
         return groups;
     }
 
