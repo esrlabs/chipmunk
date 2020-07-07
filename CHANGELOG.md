@@ -1,5 +1,74 @@
 # Changelog
 
+### [2.5.0] - 07/07/2020
+* [#835](fix) fix ordering of rested ranges in group
+* [](feat) upgrade electron to 9.1.0
+* [#835](feat) export data into csv file
+* [#835](feat) wheel on cursor (zooming)
+* [#835](feat) shift + wheel: horizontal scrolling
+* [#835](fix) fix output context menu
+* [#835](feat) redirection to first row in range
+* [#835](feat) update context menu (main output)
+* [#835](feat) compress long durations
+* [#835](feat) onfly range border (main view)
+* [#835](feat) close range on ctrl + click (on time value)
+* [#835](feat) create range by selection(s)
+* [#835](feat) update zoom controlls
+* [#835](fix) correct distance lines
+* [#835](fix) fix order of ranges on chart
+* [#835](feat) auto open timemeasure tab
+* [#835](feat) zoom limitation on wheel
+* [#835](fix) fix calculation of chart's height
+* [#835](feat) get most suitable color for new range
+* [#835](fix) hide context menu if timestamp isn't detected
+* [#835](refact) change nested ranges logic
+* [#835](feat) support "add range" on time click
+* [#835](fix) lint
+* [](fix) correct remove sidebar on "no sessions" state
+* [](fix) destroy secondary area (toolbar) on "no sessions" state
+* [#835](fix) correct update cursor and zoom on remove range
+* [#835](fix) drop zoom if all ranges are removed
+* [](fix) fix error on "no sessions" state (tabs controller)
+* [#835](feat) remember cursor and zoom state per sessions
+* [#835](fix) correct removing ranges
+* [#835](fix) lint
+* [#835](feat) zooming and overview cursor
+* [#835](feat) timeline overview
+* [#835](feat) using scatter chart render for all modes
+* [#835](feat) time ranges charts: full support vertical scrolling
+* [#835](feat) time ranges chart: scrolling area
+* [#835](feat) change time range selection
+* [#835](feat) update time ranges render in the scope of row
+* [#835](refact) update times ranges render on row
+* [#835](refact) time ranges: multiple ranges support
+* [#835](refact) refactoring of timestamp controller (muliple ranges support)
+* [#835](feat) time measurement:: support scaled chart type
+* [#835](feat) move chart data processing into service
+* [](feat) core: dynamoc tab-service switching
+* [](feat) chipmunk-client-material:: support dynamic tab's service change
+* [](feat) update time measurement service
+* [](feat) update time measurement controller
+* [](feat) update IPC in scope of time measurement
+* [](fix) typo in panel caption
+* [](fix) cleanup colors scheme
+* [](feat) updated time measurement controller
+* [](feat) switching to panels (time measurement)
+* [](feat) UI to define a start point (time measurement)
+* [](feat) support extrating datetime with time only
+* [](feat) datetime replacement for indexing timestamp
+* [](feat) indexer: optionally skip MM, DD, YYYY for format check
+* [#672](feat) support "add tab" functionlity
+* [#672](fix) fix update service workflow
+* [#797](fix) Fix buggy output
+* [#665](refact) Comment about extra event handler
+* [#797](fix) Check for error message
+* [#797](refact) Apply review changes
+* [#797](fix) Add version detection for linux
+* [#797](fix) Fix release version in about tab
+* [#665](fix) Fix error on no suggestion
+* [#665](feat) Search input support TAB
+* [#745](fix) Mark empty file as 'problem file'
+
 ### [2.4.1] - 06/19/2020
 * [](fix) fix recent filter saving
 
