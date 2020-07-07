@@ -226,6 +226,20 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                 }
             ]);
         }
+        if (this._session.getTimestamp().getCount() > 0) {
+            items.push(...[
+                { /* Delimiter */},
+                {
+                    caption: `Export to CSV file`,
+                    handler: () => {
+                        if (this._session === undefined) {
+                            return;
+                        }
+                        this.service.exportToCSV();
+                    },
+                },
+            ]);
+        }
         ContextMenuService.show({
             items: items,
             x: event.pageX,

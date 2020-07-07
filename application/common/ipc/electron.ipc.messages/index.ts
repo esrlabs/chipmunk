@@ -508,6 +508,12 @@ export { ITimestampExtractRequest, TimestampExtractRequest, DateTimeReplacements
 import { ITimestampExtractResponse, TimestampExtractResponse } from './timestamp.extract.response';
 export { ITimestampExtractResponse, TimestampExtractResponse }
 
+import { ITimestampExportCSVRequest, TimestampExportCSVRequest } from './timestamp.exportcsv.request';
+export { ITimestampExportCSVRequest, TimestampExportCSVRequest }
+
+import { ITimestampExportCSVResponse, TimestampExportCSVResponse } from './timestamp.exportcsv.response';
+export { ITimestampExportCSVResponse, TimestampExportCSVResponse }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -675,7 +681,9 @@ export type TMessage =  AppRestartRequest |
                         TimestampTestRequest |
                         TimestampTestResponse |
                         TimestampExtractRequest |
-                        TimestampExtractResponse;
+                        TimestampExtractResponse |
+                        TimestampExportCSVRequest |
+                        TimestampExportCSVResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -872,4 +880,6 @@ export const Map = {
     [TimestampTestResponse.signature                ]: TimestampTestResponse,
     [TimestampExtractRequest.signature              ]: TimestampExtractRequest,
     [TimestampExtractResponse.signature             ]: TimestampExtractResponse,
+    [TimestampExportCSVRequest.signature            ]: TimestampExportCSVRequest,
+    [TimestampExportCSVResponse.signature           ]: TimestampExportCSVResponse,
 };

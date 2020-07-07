@@ -1,11 +1,14 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IRange, EChartMode } from '../../../controller/controller.session.tab.timestamp';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { IPCMessages } from '../../../services/service.electron.ipc';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
+import ElectronIpcService from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { IPC } from 'chipmunk.client.toolkit';
 
 export { EChartMode };
 
@@ -240,6 +243,49 @@ export class DataService {
             return false;
         }
         this._session.getTimestamp().setOptimization(!this._session.getTimestamp().getOptimization());
+    }
+
+    public exportToCSV() {
+        const id: string = Toolkit.guid();
+        ElectronIpcService.request(new IPCMessages.TimestampExportCSVRequest({
+            id: id,
+            csv: this._getRangesAsCSV(),
+        }), IPCMessages.TimestampExportCSVResponse).then((response: IPCMessages.TimestampExtractResponse) => {
+            if (response.error) {
+                this._logger.warn(`Fail to export time ranges data due error: ${response.error}`);
+            }
+        });
+    }
+
+    private _getRangesAsCSV(): string {
+        const VALUE_DIV = ',';
+        const content: string[] = [[
+            'Range #',
+            'Start Timestamp',
+            'End Timestamp',
+            'Duration',
+            'Start Row Number',
+            'End Row Number',
+            'Start Row',
+            'End Row',
+        ].join(VALUE_DIV)];
+        this.getGroups().forEach((ranges: IRange[], groupId: number) => {
+            ranges.forEach((range: IRange, index: number) => {
+                const values: string[] = [];
+                values.push(index === 0 ? groupId.toString() : '');
+                values.push(...[
+                    range.start.timestamp.toString(),
+                    range.end.timestamp.toString(),
+                    range.duration.toString(),
+                    range.start.position.toString(),
+                    range.end.position.toString(),
+                    `"${range.start.str.replace(/"/gi, '""')}"`,
+                    `"${range.end.str.replace(/"/gi, '""')}"`,
+                ]);
+                content.push(values.join(VALUE_DIV));
+            });
+        });
+        return content.join('\n');
     }
 
     private _getChartDatasetModeAlign(): {
