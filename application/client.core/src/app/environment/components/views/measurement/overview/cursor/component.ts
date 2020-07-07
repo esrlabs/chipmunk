@@ -11,6 +11,7 @@ enum EChangeKind {
     move = 'move',
     left = 'left',
     right = 'right',
+    zoom = 'zoom',
     undefined = 'undefined'
 }
 
@@ -48,8 +49,51 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
     }
 
     @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
-        this._forceUpdate();
-        this._ng_preventDefault(event);
+        if (this._ng_width === -1 || this._width === -1) {
+            return;
+        }
+        const r = this.service.getDuration() / this._width;
+        let width: number = this._ng_width;
+        let left: number = 0;
+        // Detect direction
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+            // Vertical scroll: zooming
+            if (event.deltaY < 0) {
+                // Zoom in
+                if (width + event.deltaY < this.service.MIN_ZOOMING_PX) {
+                    width = this.service.MIN_ZOOMING_PX;
+                } else {
+                    width += event.deltaY;
+                }
+            } else if (event.deltaY > 0) {
+                // Zoom out
+                if (width + event.deltaY > this._width) {
+                    width = this._width;
+                } else {
+                    width += event.deltaY;
+                }
+            }
+            left = this._ng_left - Math.round(event.deltaY / 2);
+            if (left < 0) {
+                left = 0;
+            }
+            if (left + width > this._width) {
+                left = this._width - width;
+            }
+        } else {
+            left = this._ng_left + event.deltaX;
+            if (left < 0) {
+                left = 0;
+            }
+            if (left + this._ng_width > this._width) {
+                left = this._width - this._ng_width;
+            }
+        }
+        this._ng_width = width;
+        this._ng_left = left;
+        this.service.setZoomOffsets(this._ng_left * r, (this._width - (this._ng_left + this._ng_width)) * r);
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
     @HostListener('click', ['$event']) _ng_onClick(event: MouseEvent) {
@@ -156,10 +200,26 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         if (state === undefined) {
             return;
         }
-        const r = this.service.getDuration() / this._width;
         const offset: number = event.x - this._mouse.x;
         this._mouse.x = event.x;
-        switch (this._mouse.kind) {
+        this._change(this._mouse.kind, offset);
+        // this._forceUpdate();
+    }
+
+    private _onWindowMouseup(event: MouseEvent) {
+        if (this._mouse.x === -1) {
+            return;
+        }
+        this._mouse.x = -1;
+        this._mouse.kind = EChangeKind.undefined;
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        event.preventDefault();
+    }
+
+    private _change(kind: EChangeKind, offset: number) {
+        const r = this.service.getDuration() / this._width;
+        switch (kind) {
             case EChangeKind.move:
                 if (this._ng_left + offset < 0) {
                     this._ng_left = 0;
@@ -190,18 +250,6 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
                 break;
         }
         this.service.setZoomOffsets(this._ng_left * r, (this._width - (this._ng_left + this._ng_width)) * r);
-        // this._forceUpdate();
-    }
-
-    private _onWindowMouseup(event: MouseEvent) {
-        if (this._mouse.x === -1) {
-            return;
-        }
-        this._mouse.x = -1;
-        this._mouse.kind = EChangeKind.undefined;
-        event.stopImmediatePropagation();
-        event.stopPropagation();
-        event.preventDefault();
     }
 
     private _forceUpdate() {
