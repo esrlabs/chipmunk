@@ -12,8 +12,8 @@ jobs:
       script: rake full_pipeline[mac]
       os: osx
       install:
-        - nvm install 10.16.3
-        - nvm use 10.16.3
+        - nvm install 12.14.0
+        - nvm use 12.14.0
         - npm install --global neon-cli
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
@@ -28,8 +28,8 @@ jobs:
     - script: rake full_pipeline[linux]
       os: linux
       install:
-        - nvm install 10.16.3
-        - nvm use 10.16.3
+        - nvm install 12.14.0
+        - nvm use 12.14.0
         - npm install --global neon-cli
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
@@ -43,7 +43,7 @@ jobs:
         - export PATH="$PATH:C:\Program Files\nodejs;C:\nodejs;"
         - choco install unzip
       install:
-        - choco install nodejs.install --version 10.16.3
+        - choco install nodejs.install --version 12.14.0
       before_deploy:
         - export CHIPMUNK_VERSION=$(cat application/electron/package.json | sed -n 3p | cut -d '"' -f 4)
       deploy:
