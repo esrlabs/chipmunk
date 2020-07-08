@@ -2,8 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { INotification, ENotificationType, INotificationButton as IButton } from 'chipmunk.client.toolkit';
+import { IPCMessages, Subscription } from '../services/service.electron.ipc';
 
-import ServiceElectronIpc, { IPCMessages, Subscription } from '../services/service.electron.ipc';
+import ServiceElectronIpc from '../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
