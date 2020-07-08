@@ -1,20 +1,14 @@
 <div [attr.class]="'wrapper ' + (funcBarState.minimized ? 'fb-minimized' : 'fb-maximized') + ' ' + funcLocation">
     <div class="output">
-        <div class="primary" [ngStyle]="{ 
-            'right': ((funcLocation === 'func-right' ? _ng_sizes.func.current : 0) + 'px'),  
-            'left': ((funcLocation === 'func-left' ? _ng_sizes.func.current : 0) + 'px'), 
-            'bottom': (_ng_sizes.sec.current + 'px') }">
+        <div [attr.class]="'primary ' + (_ng_hasActiveSession() ? '' : 'full')" 
+             [ngStyle]="_ng_getPrimaryStyle()">
             <app-layout-area-primary></app-layout-area-primary>
         </div>
-        <div class="secondary" [ngStyle]="{ 
-            'right': ((funcLocation === 'func-right' ? _ng_sizes.func.current : 0) + 'px'),  
-            'left': ((funcLocation === 'func-left' ? _ng_sizes.func.current : 0) + 'px'), 
-            'height': (_ng_sizes.sec.current + 'px') }">
+        <div *ngIf="_ng_hasActiveSession()" class="secondary" [ngStyle]="_ng_getSecondaryStyle()">
             <app-layout-area-secondary [state]="secAreaState"></app-layout-area-secondary>
         </div>
-        <div *ngIf="!secAreaState.minimized" class="resizer-sec" (mousedown)="_ng_onResizeFuncTrigger($event)" [ngStyle]="{ 
-            'margin-bottom': (_ng_sizes.sec.current + 'px') }" (mousedown)="_ng_onResizeSecAreaTrigger($event)"></div>
-        <div class="funcs" [ngStyle]="{'width': (_ng_sizes.func.current + 'px')}">
+        <div *ngIf="!secAreaState.minimized" class="resizer-sec" (mousedown)="_ng_onResizeFuncTrigger($event)" [ngStyle]="_ng_getToolsResizerStyle()" (mousedown)="_ng_onResizeSecAreaTrigger($event)"></div>
+        <div *ngIf="_ng_hasActiveSession()" class="funcs" [ngStyle]="_ng_getToolsStyle()">
             <div class="funcs-caption">
                 <div class="injections">
                     <app-layout-sidebar-caption></app-layout-sidebar-caption>
