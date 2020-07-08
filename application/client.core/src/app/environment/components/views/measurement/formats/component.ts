@@ -3,6 +3,7 @@ import { Subscription } from 'rxjs';
 import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamp';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { DialogsMeasurementAddFormatComponent } from '../../../dialogs/measurement.format.add/component';
+import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
 
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 import PopupsService from '../../../../services/standalone/service.popups';
@@ -20,13 +21,14 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
     @Input() controller: ControllerSessionTabTimestamp;
 
     public _ng_formats: IFormat[] = [];
+    public _ng_detecting: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementFormatsComponent');
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+        private _notifications: NotificationsService) {
 
     }
 
@@ -36,6 +38,9 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
     ngAfterViewInit() {
         this._onFormatsChange();
         this._subscribe();
+        if (!this.controller.isDetected()) {
+            this._ng_onResetAndDetect();
+        }
     }
 
     ngOnDestroy() {
@@ -104,8 +109,18 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
     }
 
     public _ng_onResetAndDetect() {
-        this.controller.discover(true).catch((err: Error) => {
-            this._logger.warn(`Fail to detect datetime format due error: ${err.message}`);
+        this._ng_detecting = true;
+        this.controller.discover(true).catch((error: Error) => {
+            this._notifications.add({
+                caption: 'Detecting timeformat',
+                message: `Fail to detect datetime format. Please define format manually. Error: ${error.message}`,
+                options: {
+                    type: ENotificationType.accent,
+                },
+            });
+        }).finally(() => {
+            this._ng_detecting = false;
+            this._forceUpdate();
         });
     }
 
