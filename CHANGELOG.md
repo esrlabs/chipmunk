@@ -1,5 +1,16 @@
 # Changelog
 
+### [2.5.1] - 07/08/2020
+* [#835](fix) correct error handling on time discover
+* [](feat) close button for tabs (toolbar)
+* [](feat) add notifications tab with first notification
+* [#835](fix) skip timestamp check on empty session
+* [#835](feat) check timestamp on active view
+* [](feat) upgrade node: 10.16.3 -> 12.14.0
+* [](fix) upgrade electron-notarize to 1.0.0
+* [](fix) downgrade electron-notarize to 0.2.1
+* [](chore): version bump from 2.4.1 => 2.5.0
+
 ### [2.5.0] - 07/07/2020
 * [#835](fix) fix ordering of rested ranges in group
 * [](feat) upgrade electron to 9.1.0
