@@ -30,6 +30,7 @@ export interface IDefaultView {
     tabCaptionInjection?: any;
     inputs: { [key: string]: any };
     default?: boolean;
+    closable: boolean;
 }
 
 export const DefaultViews: IDefaultView[] = [
@@ -37,26 +38,30 @@ export const DefaultViews: IDefaultView[] = [
         name: 'Time Measurement',
         guid: CDefaultTabsGuids.timemeasurement,
         factory: ViewMeasurementComponent,
-        inputs: { }
+        inputs: { },
+        closable: true,
     },
     {
         name: 'Terminal',
         guid: CDefaultTabsGuids.terminal,
         factory: ViewTerminalComponent,
-        inputs: { }
+        inputs: { },
+        closable: true,
     },
     {
         name: 'Charts',
         guid: CDefaultTabsGuids.charts,
         factory: ViewChartComponent,
-        inputs: { }
+        inputs: { },
+        closable: true,
     },
     {
         name: 'Notifications',
         guid: CDefaultTabsGuids.notification,
         factory: SidebarAppNotificationsComponent,
         tabCaptionInjection: SidebarAppNotificationsCounterComponent,
-        inputs: { }
+        inputs: { },
+        closable: true,
     },
     {
         name: 'Search',
@@ -64,5 +69,6 @@ export const DefaultViews: IDefaultView[] = [
         factory: ViewSearchComponent,
         inputs: { },
         default: true,
+        closable: false,
     },
 ];
