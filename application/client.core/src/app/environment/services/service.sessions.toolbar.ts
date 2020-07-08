@@ -240,7 +240,7 @@ export class ToolbarSessionsService implements IService {
                     inputs: Object.assign(defaultView.inputs, this._inputs),
                     resolved: false
                 },
-                closable: false,
+                closable: defaultView.closable,
                 content: {
                     factory: defaultView.factory,
                     inputs: Object.assign(defaultView.inputs, this._inputs),
