@@ -74,31 +74,45 @@ class ServiceTimestamp implements IService {
                 error: filedata.message,
             }));
         }
-        const controller: MergeDiscover = new MergeDiscover([{ file: filedata.file }]);
-        controller.discover(undefined, true).then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
-            if (typeof processed[0].format !== 'string' || typeof processed[0].minTime !== 'number' || typeof processed[0].maxTime !== 'number') {
+        fs.stat(filedata.file, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+            if (err) {
                 return response(new IPCMessages.TimestampDiscoverResponse({
                     id: req.id,
-                    error: typeof processed[0].error !== 'string' ? `Fail to detect datetime format` : processed[0].error,
+                    error: `Fail to get access to session file due error: ${err.message}`,
                 }));
             }
-            response(new IPCMessages.TimestampDiscoverResponse({
-                id: req.id,
-                format: processed[0].format,
-                error: processed[0].error,
-                minTime: processed[0].minTime,
-                maxTime: processed[0].maxTime,
-            }));
-        }).catch((error: Error) => {
-            response(new IPCMessages.TimestampDiscoverResponse({
-                id: req.id,
-                error: error.message,
-            }));
-        }).finally(() => {
-            this._removeTask(req.signature, req.id);
+            if (stats.size === 0) {
+                return response(new IPCMessages.TimestampDiscoverResponse({
+                    id: req.id,
+                    error: `Session is empty`,
+                }));
+            }
+            const controller: MergeDiscover = new MergeDiscover([{ file: filedata.file }]);
+            controller.discover(undefined, true).then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
+                if (typeof processed[0].format !== 'string' || typeof processed[0].minTime !== 'number' || typeof processed[0].maxTime !== 'number') {
+                    return response(new IPCMessages.TimestampDiscoverResponse({
+                        id: req.id,
+                        error: typeof processed[0].error !== 'string' ? `Fail to detect datetime format` : processed[0].error,
+                    }));
+                }
+                response(new IPCMessages.TimestampDiscoverResponse({
+                    id: req.id,
+                    format: processed[0].format,
+                    error: processed[0].error,
+                    minTime: processed[0].minTime,
+                    maxTime: processed[0].maxTime,
+                }));
+            }).catch((error: Error) => {
+                response(new IPCMessages.TimestampDiscoverResponse({
+                    id: req.id,
+                    error: error.message,
+                }));
+            }).finally(() => {
+                this._removeTask(req.signature, req.id);
+            });
+            // Store task
+            this._addTask(req.signature, req.id, controller);
         });
-        // Store task
-        this._addTask(req.signature, req.id, controller);
     }
 
     private _onTimestampTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
