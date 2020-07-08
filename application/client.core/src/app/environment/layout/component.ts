@@ -1,10 +1,13 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { AreaState } from './state';
 import { Subscription} from 'rxjs';
+import { ControllerSessionTab } from '../controller/controller.session.tab';
 
 import ViewsEventsService from '../services/standalone/service.views.events';
 import LayoutStateService from '../services/standalone/service.layout.state';
 import HotkeysService from '../services/service.hotkeys';
+import EventsSessionService from '../services/standalone/service.events.session';
+import TabsSessionsService from '../services/service.sessions.tabs';
 
 import * as ThemeParams from '../theme/sizes';
 
@@ -51,7 +54,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     };
 
     private _subscriptions: { [key: string]: Subscription } = {};
-
+    private _session: ControllerSessionTab;
     private _movement: {
         x: number,
         y: number,
@@ -70,6 +73,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         this._subscriptions.onToolbarMin = LayoutStateService.getObservable().onToolbarMin.subscribe(this._onToolbarServiceMin.bind(this));
         this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
         this._subscriptions.onSidebarToggle = HotkeysService.getObservable().sidebarToggle.subscribe(this._onSidebarToggle.bind(this));
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         LayoutStateService.setSideBarStateGetter(() => {
             return this.funcBarState.minimized;
         });
@@ -87,6 +91,11 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     }
 
     ngAfterViewInit() {
+        this._session = TabsSessionsService.getActive();
+    }
+
+    public _ng_hasActiveSession(): boolean {
+        return this._session !== undefined;
     }
 
     private _subscribeToWinEvents() {
@@ -177,6 +186,34 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         ViewsEventsService.fire().onResize();
     }
 
+    public _ng_getPrimaryStyle(): { [key: string]: string } {
+       return this._session === undefined ? {} : {
+            right: (this.funcLocation === 'func-right' ? this._ng_sizes.func.current : 0) + 'px',
+            left: (this.funcLocation === 'func-left' ? this._ng_sizes.func.current : 0) + 'px',
+            bottom: this._ng_sizes.sec.current + 'px',
+       };
+    }
+
+    public _ng_getSecondaryStyle(): { [key: string]: string } {
+        return this._session === undefined ? {} : {
+            right: (this.funcLocation === 'func-right' ? this._ng_sizes.func.current : 0) + 'px',
+            left: (this.funcLocation === 'func-left' ? this._ng_sizes.func.current : 0) + 'px',
+            height: this._ng_sizes.sec.current + 'px',
+       };
+    }
+
+    public _ng_getToolsResizerStyle(): { [key: string]: string } {
+        return this._session === undefined ? {} : {
+            marginBottom: this._ng_sizes.sec.current + 'px',
+       };
+    }
+
+    public _ng_getToolsStyle(): { [key: string]: string } {
+        return this._session === undefined ? {} : {
+            width: this._ng_sizes.func.current + 'px',
+       };
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Functions secondary area
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -261,6 +298,11 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         } else {
             this._onToolbarServiceMin();
         }
+    }
+
+    private _onSessionChange(controller?: ControllerSessionTab) {
+        this._session = controller;
+        this._cdRef.detectChanges();
     }
 
 }

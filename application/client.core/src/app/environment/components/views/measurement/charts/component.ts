@@ -253,13 +253,6 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this.service === undefined) {
             return;
         }
-        this._checkSizes();
-        let height: number = this.service.getGroups().size * this.service.SCALED_ROW_HEIGHT;
-        height = height < this._sizes.container.height ? this._sizes.container.height : height;
-        if (height !== this._sizes.charts.height) {
-            this._sizes.charts.height = height;
-            this._chartResizeUpdate();
-        }
         return `${this._sizes.charts.height}px`;
     }
 
@@ -358,7 +351,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMode() === EChartMode.aligned ? this.service.getMaxDuration() : this.service.getMaxXAxe();
             this._chart.instance.options.scales.yAxes[0].ticks.max = data.maxY + 1;
         }
-        this._resize();
+        this._resize(true);
     }
 
     private _onChartClick(event?: MouseEvent) {
@@ -458,17 +451,20 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         this._chart.instance.update();
     }
 
-    private _checkSizes() {
-        if (this._sizes.container.height !== 0 && !isNaN(this._sizes.container.height) && isFinite(this._sizes.container.height)) {
+    private _resize(force: boolean = false) {
+        if (!force && (this._sizes.container.height !== 0 && !isNaN(this._sizes.container.height) && isFinite(this._sizes.container.height))) {
             return;
         }
-        this._resize();
-    }
-
-    private _resize() {
+        // Container
         const rect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         this._sizes.container.height = rect.height;
         this._sizes.container.width = rect.width;
+        // Vertical chart size
+        let height: number = this.service.getGroups().size * this.service.SCALED_ROW_HEIGHT;
+        height = height < this._sizes.container.height ? this._sizes.container.height : height;
+        if (height !== this._sizes.charts.height) {
+            this._sizes.charts.height = height;
+        }
         this._chartResizeUpdate();
         this._forceUpdate();
     }

@@ -20,7 +20,11 @@
                 display: block;
                 top: 0;
                 left: 0;
-                right: @tabs-list-height;  
+                right: @tabs-list-height;
+                &.full{
+                    right: 0;
+                    bottom: 0;
+                }
             }
             & div.secondary{
                 position: absolute;
