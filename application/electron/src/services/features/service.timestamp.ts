@@ -76,6 +76,12 @@ class ServiceTimestamp implements IService {
         }
         const controller: MergeDiscover = new MergeDiscover([{ file: filedata.file }]);
         controller.discover(undefined, true).then((processed: IPCMessages.IMergeFilesDiscoverResult[]) => {
+            if (typeof processed[0].format !== 'string' || typeof processed[0].minTime !== 'number' || typeof processed[0].maxTime !== 'number') {
+                return response(new IPCMessages.TimestampDiscoverResponse({
+                    id: req.id,
+                    error: typeof processed[0].error !== 'string' ? `Fail to detect datetime format` : processed[0].error,
+                }));
+            }
             response(new IPCMessages.TimestampDiscoverResponse({
                 id: req.id,
                 format: processed[0].format,

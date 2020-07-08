@@ -201,176 +201,189 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 disabled: selection === undefined || this._getFilterFromStr(selection.selection) === undefined
             }
         ]);
-        this.session.getTimestamp().discover().catch((error: Error) => {
-            this._logger.warn(`Fail detect timestamp due error: ${error.message}`);
-        }).finally(() => {
-            let curr: {
-                tm?: number,
-                pos?: number,
-                row?: { position: number, str: string },
-            } | undefined = current !== undefined ? {
-                tm: undefined,
-                pos: current.position,
-                row: { position: current.position, str: current.str },
-            } : undefined;
-            let selRanges = OutputRedirectionsService.getSelectionRanges(this.session.getGuid());
-            if (selRanges === undefined) {
-                selRanges = [];
+        OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
+            if (actions.length > 0) {
+                items.push(...[
+                    { /* delimiter */ },
+                    ...actions.map((action: IExportAction) => {
+                        return {
+                            caption: action.caption,
+                            handler: action.caller
+                        };
+                    })
+                ]);
             }
-            selRanges = selRanges.filter((range) => {
-                return range.content !== undefined && range.start !== range.end;
-            }).map((range: any) => {
-                range.tm = {
-                    start: undefined,
-                    end: undefined,
-                };
-                return range;
-            });
-            Promise.all([
-                this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
-                    curr.tm = _tm;
-                }).catch((err: Error) => {
-                    curr = undefined;
-                    this._logger.error(`Fail extract timestamp due error: ${err.message}`);
-                }),
-                ...selRanges.map((range: any) => {
-                    return this.session.getTimestamp().getTimestamp(range.content.start).then((_tm: number | undefined) => {
-                        range.tm.start = _tm;
-                    }).catch((err: Error) => {
-                        this._logger.error(`Fail extract timestamp due error: ${err.message}`);
-                    });
-                }),
-                ...selRanges.map((range: any) => {
-                    return this.session.getTimestamp().getTimestamp(range.content.end).then((_tm: number | undefined) => {
-                        range.tm.end = _tm;
-                    }).catch((err: Error) => {
-                        this._logger.error(`Fail extract timestamp due error: ${err.message}`);
-                    });
-                }),
-            ]).catch((err: Error) => {
-                this._logger.error(`Detection of timestams wend with error: ${err.message}`);
-            }).finally(() => {
-                selRanges = selRanges.filter((range: any) => {
-                    return range.tm.start !== undefined && range.tm.end !== undefined;
-                });
-                if (selRanges.length > 0) {
-                    items.push(...[
-                        { /* delimiter */ },
-                        {
-                            caption: `Create range${selRanges.length > 1 ? 's' : ''} by ${selRanges.length > 1 ? `${selRanges.length} ` : ''}selection${selRanges.length > 1 ? 's' : ''}.`,
-                            handler: () => {
-                                if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
-                                    ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
-                                }
-                                this.session.getTimestamp().drop();
-                                selRanges.forEach((range) => {
-                                    this.session.getTimestamp().addRange(
-                                        { position: range.start, str: range.content.start },
-                                        { position: range.end, str: range.content.end },
-                                    );
-                                });
-                            },
-                        }
-                    ]);
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail get actions due error: ${err.message}`);
+        }).finally(() => {
+            if (this.session.getTimestamp().isDetected()) {
+                let curr: {
+                    tm?: number,
+                    pos?: number,
+                    row?: { position: number, str: string },
+                } | undefined = current !== undefined ? {
+                    tm: undefined,
+                    pos: current.position,
+                    row: { position: current.position, str: current.str },
+                } : undefined;
+                let selRanges = OutputRedirectionsService.getSelectionRanges(this.session.getGuid());
+                if (selRanges === undefined) {
+                    selRanges = [];
                 }
-                if (curr !== undefined) {
-                    const opened = this.session.getTimestamp().getOpenRow();
-                    if (opened !== undefined || curr.tm !== undefined) {
+                selRanges = selRanges.filter((range) => {
+                    return range.content !== undefined && range.start !== range.end;
+                }).map((range: any) => {
+                    range.tm = {
+                        start: undefined,
+                        end: undefined,
+                    };
+                    return range;
+                });
+                Promise.all([
+                    this.session.getTimestamp().getTimestamp(curr !== undefined ? curr.row.str : undefined).then((_tm: number | undefined) => {
+                        curr.tm = _tm;
+                    }).catch((err: Error) => {
+                        curr = undefined;
+                        this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                    }),
+                    ...selRanges.map((range: any) => {
+                        return this.session.getTimestamp().getTimestamp(range.content.start).then((_tm: number | undefined) => {
+                            range.tm.start = _tm;
+                        }).catch((err: Error) => {
+                            this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                        });
+                    }),
+                    ...selRanges.map((range: any) => {
+                        return this.session.getTimestamp().getTimestamp(range.content.end).then((_tm: number | undefined) => {
+                            range.tm.end = _tm;
+                        }).catch((err: Error) => {
+                            this._logger.error(`Fail extract timestamp due error: ${err.message}`);
+                        });
+                    }),
+                ]).catch((err: Error) => {
+                    this._logger.error(`Detection of timestams wend with error: ${err.message}`);
+                }).finally(() => {
+                    selRanges = selRanges.filter((range: any) => {
+                        return range.tm.start !== undefined && range.tm.end !== undefined;
+                    });
+                    if (selRanges.length > 0) {
                         items.push(...[
                             { /* delimiter */ },
-                        ]);
-                    }
-                    if (opened !== undefined) {
-                        opened.position !== curr.pos && items.push(...[
                             {
-                                caption: `Add time range ${opened.position} - ${curr.row.position}`,
-                                handler: () => {
-                                    this.session.getTimestamp().close(curr.row).catch((err: Error) => {
-                                        this._logger.warn(`Error during time range close: ${err.message}`);
-                                    }).finally(() => {
-                                        this.session.getTimestamp().open(curr.row, true);
-                                    });
-                                },
-                            },
-                            {
-                                caption: `Close time range ${opened.position} - ${curr.row.position}`,
-                                handler: () => {
-                                    this.session.getTimestamp().close(curr.row);
-                                },
-                            },
-                        ]);
-                        items.push(...[
-                            {
-                                caption: `Drop opened time range`,
-                                handler: () => {
-                                    this.session.getTimestamp().drop();
-                                },
-                            }
-                        ]);
-                    } else if (curr.tm !== undefined) {
-                        items.push(...[
-                            {
-                                caption: `Start time range`,
+                                caption: `Create range${selRanges.length > 1 ? 's' : ''} by ${selRanges.length > 1 ? `${selRanges.length} ` : ''}selection${selRanges.length > 1 ? 's' : ''}.`,
                                 handler: () => {
                                     if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
                                         ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
                                     }
-                                    this.session.getTimestamp().open(curr.row);
+                                    this.session.getTimestamp().drop();
+                                    selRanges.forEach((range) => {
+                                        this.session.getTimestamp().addRange(
+                                            { position: range.start, str: range.content.start },
+                                            { position: range.end, str: range.content.end },
+                                        );
+                                    });
                                 },
                             }
                         ]);
                     }
-                }
-                const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(current.position);
-                if (this.session.getTimestamp().getRanges().length > 0) {
-                    if (selected !== undefined) {
-                        items.push(...[
-                            { /* delimiter */ },
-                            {
-                                caption: `Remove this range`,
-                                handler: () => {
-                                    this.session.getTimestamp().removeRange(selected);
+                    if (curr !== undefined) {
+                        const opened = this.session.getTimestamp().getOpenRow();
+                        if (opened !== undefined || curr.tm !== undefined) {
+                            items.push(...[
+                                { /* delimiter */ },
+                            ]);
+                        }
+                        if (opened !== undefined) {
+                            opened.position !== curr.pos && items.push(...[
+                                {
+                                    caption: `Add time range ${opened.position} - ${curr.row.position}`,
+                                    handler: () => {
+                                        this.session.getTimestamp().close(curr.row).catch((err: Error) => {
+                                            this._logger.warn(`Error during time range close: ${err.message}`);
+                                        }).finally(() => {
+                                            this.session.getTimestamp().open(curr.row, true);
+                                        });
+                                    },
                                 },
-                            },
-                            {
-                                caption: `Remove all except selected`,
-                                handler: () => {
-                                    this.session.getTimestamp().clear([selected]);
+                                {
+                                    caption: `Close time range ${opened.position} - ${curr.row.position}`,
+                                    handler: () => {
+                                        this.session.getTimestamp().close(curr.row);
+                                    },
                                 },
-                            }
-                        ]);
-                        items.push(...[
-                            {
-                                caption: `Remove all ranges`,
-                                handler: () => {
-                                    this.session.getTimestamp().clear();
-                                },
-                            },
-                        ]);
+                            ]);
+                            items.push(...[
+                                {
+                                    caption: `Drop opened time range`,
+                                    handler: () => {
+                                        this.session.getTimestamp().drop();
+                                    },
+                                }
+                            ]);
+                        } else if (curr.tm !== undefined) {
+                            items.push(...[
+                                {
+                                    caption: `Start time range`,
+                                    handler: () => {
+                                        if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
+                                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
+                                        }
+                                        this.session.getTimestamp().open(curr.row);
+                                    },
+                                }
+                            ]);
+                        }
                     }
-                }
-                OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
-                    if (actions.length > 0) {
-                        items.push(...[
-                            { /* delimiter */ },
-                            ...actions.map((action: IExportAction) => {
-                                return {
-                                    caption: action.caption,
-                                    handler: action.caller
-                                };
-                            })
-                        ]);
+                    const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(current.position);
+                    if (this.session.getTimestamp().getRanges().length > 0) {
+                        if (selected !== undefined) {
+                            items.push(...[
+                                { /* delimiter */ },
+                                {
+                                    caption: `Remove this range`,
+                                    handler: () => {
+                                        this.session.getTimestamp().removeRange(selected);
+                                    },
+                                },
+                                {
+                                    caption: `Remove all except selected`,
+                                    handler: () => {
+                                        this.session.getTimestamp().clear([selected]);
+                                    },
+                                }
+                            ]);
+                            items.push(...[
+                                {
+                                    caption: `Remove all ranges`,
+                                    handler: () => {
+                                        this.session.getTimestamp().clear();
+                                    },
+                                },
+                            ]);
+                        }
                     }
-                }).catch((err: Error) => {
-                    this._logger.warn(`Fail get actions due error: ${err.message}`);
-                }).finally(() => {
                     ContextMenuService.show({
                         items: items,
                         x: event.pageX,
                         y: event.pageY,
                     });
                 });
-            });
+            } else {
+                items.push(...[
+                    { /* delimiter */ },
+                    {
+                        caption: 'Open time measurement view',
+                        handler: () => {
+                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
+                        },
+                    }
+                ]);
+                ContextMenuService.show({
+                    items: items,
+                    x: event.pageX,
+                    y: event.pageY,
+                });
+            }
         });
     }
 

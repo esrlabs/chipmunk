@@ -20,10 +20,11 @@
     </mat-expansion-panel>
 </div>
 <div class="controlls">
-    <button mat-icon-button color="primary" aria-label="Add Format" (click)="_ng_onAddFormat()">
+    <button mat-icon-button color="primary" aria-label="Add Format" (click)="_ng_onAddFormat()" [disabled]="_ng_detecting">
         <mat-icon>add</mat-icon>
     </button>
-    <button mat-icon-button color="primary" aria-label="Reset & Detect" (click)="_ng_onResetAndDetect()">
+    <button mat-icon-button color="primary" aria-label="Reset & Detect" (click)="_ng_onResetAndDetect()" [disabled]="_ng_detecting">
+        <mat-spinner *ngIf="_ng_detecting" [diameter]="32" mode="indeterminate"></mat-spinner>
         <mat-icon>refresh</mat-icon>
     </button>
 </div>

@@ -15,6 +15,7 @@ import { MatIconModule                              } from '@angular/material/ic
 import { MatInputModule                             } from '@angular/material/input';
 import { MatFormFieldModule                         } from '@angular/material/form-field';
 import { MatProgressBarModule                       } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule                   } from '@angular/material/progress-spinner';
 import { MatExpansionModule                         } from '@angular/material/expansion';
 
 import {
@@ -44,6 +45,7 @@ const components = [ ...entryComponents ];
         MatIconModule,
         MatFormFieldModule,
         MatProgressBarModule,
+        MatProgressSpinnerModule,
         MatExpansionModule,
         FormsModule,
         ReactiveFormsModule ],
