@@ -692,9 +692,9 @@ task :create_release do
   current_tag = `git describe --tags`
   versioner = Versioner.for(:package_json, ELECTRON_DIR)
   current_electron_app_version = versioner.get_current_version
-  unless current_tag.start_with?(current_electron_app_version)
-    raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
-  end
+  #unless current_tag.start_with?(current_electron_app_version)
+  #  raise "current tag #{current_tag} does not match with current electron app version: #{current_electron_app_version}"
+  #end
   do_create_release(versioner)
 end
 # same task but do not check previous version
