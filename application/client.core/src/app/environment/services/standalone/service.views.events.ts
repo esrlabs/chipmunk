@@ -5,6 +5,7 @@ export interface ISize {
     width: number;
     height: number;
 }
+
 export class ViewsEventsService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewsEventsService');
@@ -27,11 +28,31 @@ export class ViewsEventsService {
 
     public getObservable(): {
         onResize: Observable<ISize>,
-        onRowHover: Observable<number>
+        onRowHover: Observable<number>,
     } {
         return {
             onResize: this._subjects.onResize.asObservable(),
             onRowHover: this._subjects.onRowHover.asObservable(),
+        };
+    }
+
+    public once(): {
+        onResize: (handler: (size: ISize) => void) => void,
+        onRowHover: (handler: (row: number) => void) => void,
+    } {
+        return {
+            onResize: (handler: (size: ISize) => void) => {
+                const subscription = this._subjects.onResize.asObservable().subscribe((size: ISize) => {
+                    subscription.unsubscribe();
+                    handler(size);
+                });
+            },
+            onRowHover: (handler: (row: number) => void) => {
+                const subscription = this._subjects.onRowHover.asObservable().subscribe((row: number) => {
+                    subscription.unsubscribe();
+                    handler(row);
+                });
+            }
         };
     }
 
