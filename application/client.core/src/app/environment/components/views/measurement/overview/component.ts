@@ -112,8 +112,8 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
                             },
                             ticks: {
                                 display: false,
-                                min: this.service.getMinXAxe(),
-                                max: this.service.getMaxXAxe(),
+                                min: this.service.getMinXAxe(false),
+                                max: this.service.getMaxXAxe(false),
                             },
                         }],
                         yAxes: [{
@@ -137,8 +137,8 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
             });
         } else {
             this._chart.instance.data.datasets = data.datasets;
-            this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe();
-            this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe();
+            this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe(false);
+            this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe(false);
             this._chart.instance.options.scales.yAxes[0].ticks.max = data.maxY + 1;
         }
         this._resize();

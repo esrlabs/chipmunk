@@ -125,22 +125,22 @@ export class DataService {
         return this._session === undefined ? 0 : this._getMaxDurationPerGroups();
     }
 
-    public getMinXAxe(): number {
+    public getMinXAxe(applyCursorOffset: boolean = true): number {
         const cursor = this.getCursorState();
         if (cursor === undefined) {
             return undefined;
         }
         const min = this.getMinTimestamp();
-        return min + cursor.left;
+        return min + (applyCursorOffset ? cursor.left : 0);
     }
 
-    public getMaxXAxe(): number {
+    public getMaxXAxe(applyCursorOffset: boolean = true): number {
         const cursor = this.getCursorState();
         if (cursor === undefined) {
             return undefined;
         }
         const max = this.getMaxTimestamp() - this._offset;
-        return max - cursor.right;
+        return max - (applyCursorOffset ? cursor.right : 0);
     }
 
     public getRangesCount(): number {
