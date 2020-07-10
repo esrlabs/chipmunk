@@ -81,9 +81,10 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this.service.getMode() === EChartMode.aligned) {
             return;
         }
-        if (this._scrolling === EScrollingMode.scrollingX) {
+        const horizontal: boolean = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+        if (this._scrolling === EScrollingMode.scrollingX || horizontal) {
             this.service.move({
-                change: -event.deltaY,
+                change: horizontal ? event.deltaX : -event.deltaY,
                 width: this._sizes.container.width,
             });
         } else {
