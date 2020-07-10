@@ -3,7 +3,6 @@ import { CommonModule                           } from '@angular/common';
 import { ScrollingModule                        } from '@angular/cdk/scrolling';
 import { ViewRowModule                          } from '../row/module';
 import { ViewOutputComponent                    } from './component';
-import { ViewOutputControlsComponent            } from './controls/component';
 import { ViewContentMapComponent                } from './map/component';
 
 import {
@@ -11,7 +10,7 @@ import {
     PrimitiveModule,
     ContainersModule                            } from 'chipmunk-client-material';
 
-const entryComponents = [ ViewOutputComponent, ViewOutputControlsComponent, ViewContentMapComponent ];
+const entryComponents = [ ViewOutputComponent, ViewContentMapComponent ];
 const components = [ ViewOutputComponent, ...entryComponents ];
 
 @NgModule({

@@ -1,12 +1,10 @@
-import { TabsService, DockingComponent, DockDef, DocksService, ITab, ITabAPI } from 'chipmunk-client-material';
+import { TabsService, ITab, ITabAPI } from 'chipmunk-client-material';
 import { Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView } from '../states/state.default';
 import { IAPI, IPopup, IComponentDesc, ISettingsAPI } from 'chipmunk.client.toolkit';
-import { LayoutPrimiryAreaTabTitleControlsComponent } from '../layout/area.primary/tab-title-controls/component';
-import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
 
 import EventsSessionService from './standalone/service.events.session';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
@@ -31,14 +29,12 @@ export type TNotificationOpener = (notification: Toolkit.INotification) => void;
 export interface IServiceSubjects {
     onSessionChange: Subject<ControllerSessionTab | undefined>;
     onSessionClosed: Subject<string>;
-    onSidebarTitleInjection: Subject<IComponentDesc | undefined>;
 }
 
 export interface ICustomTab {
     id: string;
     title: string;
     component: IComponentDesc;
-    tabCaptionInjection?: IComponentDesc;
 }
 
 export class TabsSessionsService implements IService {
@@ -118,12 +114,10 @@ export class TabsSessionsService implements IService {
             if (this._sessions.has(guid)) {
                 return reject(new Error(`Tab guid "${guid}" already exist`));
             }
-            const tabTitleContentService: TabTitleContentService = new TabTitleContentService(guid);
             if (custom === undefined) {
                 const session = new ControllerSessionTab({
                     guid: guid,
                     sessionsEventsHub: this._sessionsEventsHub,
-                    tabTitleContentService: tabTitleContentService,
                 });
                 session.init().then(() => {
                     this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
@@ -132,31 +126,13 @@ export class TabsSessionsService implements IService {
                         guid: guid,
                         name: 'New',
                         active: true,
-                        tabCaptionInjection: {
-                            factory: LayoutPrimiryAreaTabTitleControlsComponent,
-                            inputs: {
-                                service: tabTitleContentService
-                            },
-                        },
                         content: {
-                            factory: DockingComponent,
+                            factory: this._defaults.views[0].component,
                             inputs: {
-                                service: new DocksService(guid, new DockDef.Container({
-                                    a: new DockDef.Dock({
-                                        caption: this._defaults.views[0].name,
-                                        closable: false,
-                                        component: {
-                                            factory: this._defaults.views[0].component,
-                                            inputs: {
-                                                session: session,
-                                                tabCaptionService: tabTitleContentService,
-                                                getTabAPI: (): ITabAPI => {
-                                                    return tabAPI;
-                                                }
-                                            }
-                                        }
-                                    })
-                                }))
+                                session: session,
+                                getTabAPI: (): ITabAPI => {
+                                    return tabAPI;
+                                }
                             }
                         }
                     });
@@ -177,18 +153,11 @@ export class TabsSessionsService implements IService {
                 custom.component.inputs.getTabAPI = (): ITabAPI => {
                     return tabAPI;
                 };
-                custom.component.inputs.tabCaptionService = tabTitleContentService;
                 this._sessions.set(guid, custom);
                 tabAPI = this._tabsService.add({
                     guid: guid,
                     name: custom.title,
                     active: true,
-                    tabCaptionInjection: custom.tabCaptionInjection === undefined ? {
-                        factory: LayoutPrimiryAreaTabTitleControlsComponent,
-                        inputs: {
-                            service: tabTitleContentService
-                        },
-                    } : custom.tabCaptionInjection,
                     content: custom.component
                 });
                 this.setActive(guid);
@@ -405,73 +374,3 @@ export class TabsSessionsService implements IService {
 }
 
 export default (new TabsSessionsService());
-
-
-        /*
-        this.tabsService.add({
-            name: 'Tab 2 (2)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' }),
-                        b: new DockDef.Dock({ caption: 'Dock 2' })
-                    }))
-                }
-            }
-        });
-        this.tabsService.add({
-            name: 'Tab 3 (4)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: '1' }),
-                            b: new DockDef.Dock({ caption: '2' })
-                        }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: '3' }),
-                            b: new DockDef.Dock({ caption: '4' })
-                        })
-                    }))
-                }
-            }
-        });
-        this.tabsService.add({
-            name: 'Tab 4 (5)',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 1' }),
-                            b: new DockDef.Dock({ caption: 'Dock 2' })
-                        }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 3' }),
-                            b: new DockDef.Container({
-                                a: new DockDef.Dock({ caption: 'Dock 4' }),
-                                b: new DockDef.Dock({ caption: 'Dock 5' })
-                            })
-                        })
-                    }))
-                }
-            }
-        });
-        this.tabsService.add({
-            name: 'Tab 5',
-            active: false,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' })
-                    }))
-                }
-            }
-        });
-        */

@@ -17,7 +17,6 @@ import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.st
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTabTitleContextMenu } from './controller.session.tab.titlemenu';
 import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
-import { TabTitleContentService } from '../layout/area.primary/tab-title-controls/service';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -26,7 +25,6 @@ export { IStreamState };
 export interface IControllerSession {
     guid: string;
     sessionsEventsHub: Toolkit.ControllerSessionsEvents;
-    tabTitleContentService: TabTitleContentService;
 }
 
 export interface IInjectionAddEvent {
@@ -50,7 +48,6 @@ export class ControllerSessionTab {
     private _timestamp: ControllerSessionTabTimestamp;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _tabAPI: ITabAPI | undefined;
-    private _tabTitleContentService: TabTitleContentService;
     private _sourceInfo: IPCMessages.IStreamSourceNew | undefined;
     private _openSourceOptions: any;
     private _titleContextMenu: ControllerSessionTabTitleContextMenu | undefined;
@@ -88,7 +85,6 @@ export class ControllerSessionTab {
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
-        this._tabTitleContentService = params.tabTitleContentService;
         this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(
             this._onOpenSearchFiltersTab.bind(this),
         );
@@ -228,10 +224,6 @@ export class ControllerSessionTab {
             });
         });
         return injections;
-    }
-
-    public getTabTitleContentService(): TabTitleContentService {
-        return this._tabTitleContentService;
     }
 
     public getTabTitleContextMenuService(): ControllerSessionTabTitleContextMenu | undefined {

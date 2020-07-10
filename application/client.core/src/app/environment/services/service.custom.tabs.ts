@@ -102,10 +102,6 @@ export class TabsCustomService implements IService {
                     factory: TabPluginsComponent,
                     inputs: { }
                 },
-                tabCaptionInjection: {
-                    factory: TabPluginsCounterComponent,
-                    inputs: { }
-                }
             }).catch((error: Error) => {
                 this._logger.warn(`Fail add plugins tab due error: ${error.message}`);
             });

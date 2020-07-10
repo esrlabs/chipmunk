@@ -6,7 +6,6 @@ import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedR
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
 import { ViewOutputRowComponent, IScope } from '../row/component';
-import { ViewOutputControlsComponent, IButton } from './controls/component';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { cleanupOutput } from '../row/helpers';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
@@ -45,8 +44,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
 
     @Input() public session: ControllerSessionTab | undefined;
-    @Input() public injectTitleContent: (content: DockDef.IDockTitleContent) => Error | undefined;
-    @Input() public rejectTitleContent: (id: string | number) => void;
 
     public _ng_outputAPI: IDataAPI;
     public _ng_injections: {
@@ -64,10 +61,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewOutputComponent');
     private _controls: {
-        update: Subject<IButton[]>,
         keepScrollDown: boolean,
     } = {
-        update: new Subject<IButton[]>(),
         keepScrollDown: true,
     };
 
@@ -101,8 +96,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
         this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
-        // Inject controls to caption of dock
-        this._ctrl_inject();
         // Set focus
         this._scrollBoxCom.setFocus();
     }
@@ -132,7 +125,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public ngOnDestroy() {
         this._destroyed = true;
-        this._ctrl_reject();
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -155,7 +147,16 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     this._scrollBoxCom.copySelection();
                 },
                 disabled: selection === undefined,
-            }
+            },
+            { /* delimiter */ },
+            {
+                caption: `Clear output`,
+                handler: this._ctrl_onCleanOutput.bind(this),
+            },
+            {
+                caption: `Keep scrolling: ${this._controls.keepScrollDown ? 'enabled' : 'disabled'}`,
+                handler: this._ctrl_onScrollDown.bind(this),
+            },
         ];
         if (selection === undefined) {
             window.getSelection().removeAllRanges();
@@ -471,10 +472,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         const last: number = this._output.getRowsCount() - 1;
         if (range.end === last && !this._controls.keepScrollDown) {
             this._controls.keepScrollDown = true;
-            this._controls.update.next(this._ctrl_getButtons());
         } else if (range.end < last && this._controls.keepScrollDown) {
             this._controls.keepScrollDown = false;
-            this._controls.update.next(this._ctrl_getButtons());
         }
     }
 
@@ -496,7 +495,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _onKeepScrollPrevent() {
         this._controls.keepScrollDown = false;
-        this._controls.update.next(this._ctrl_getButtons());
     }
 
     private _keepScrollDown() {
@@ -526,49 +524,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         });
     }
 
-    private _ctrl_inject() {
-        if (this.injectTitleContent === undefined) {
-            return;
-        }
-        this.injectTitleContent({
-            id: this.session.getGuid(),
-            component: {
-                inputs: {
-                    getButtons: this._ctrl_getButtons.bind(this),
-                    onUpdate: this._controls.update.asObservable()
-                },
-                factory: ViewOutputControlsComponent,
-            },
-        });
-    }
-
-    private _ctrl_reject() {
-        if (this.rejectTitleContent === undefined) {
-            return;
-        }
-        this.rejectTitleContent(this.session.getGuid());
-    }
-
-    private _ctrl_getButtons(): IButton[] {
-        return [
-            {
-                alias: 'clean',
-                icon: `small-icon-button fas fa-eraser`,
-                disabled: false,
-                handler: this._ctrl_onCleanOutput.bind(this)
-            },
-            {
-                alias: 'scroll',
-                icon: `small-icon-button fa-arrow-alt-circle-down ${this._controls.keepScrollDown ? 'fas' : 'far'}`,
-                disabled: false,
-                handler: this._ctrl_onScrollDown.bind(this)
-            },
-        ];
-    }
-
-    private _ctrl_onScrollDown(button: IButton) {
+    private _ctrl_onScrollDown() {
         this._controls.keepScrollDown = !this._controls.keepScrollDown;
-        this._controls.update.next(this._ctrl_getButtons());
         if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
             return;
         }
@@ -578,7 +535,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         }
     }
 
-    private _ctrl_onCleanOutput(button: IButton) {
+    private _ctrl_onCleanOutput() {
         if (this.session === undefined) {
             return;
         }
