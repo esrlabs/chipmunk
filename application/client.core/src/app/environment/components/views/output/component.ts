@@ -4,7 +4,7 @@ import { ControllerSessionTab, IInjectionAddEvent, IInjectionRemoveEvent } from 
 import { ControllerSessionTabMap } from '../../../controller/controller.session.tab.map';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, DockDef, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
+import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
 import { ViewOutputRowComponent, IScope } from '../row/component';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { cleanupOutput } from '../row/helpers';
