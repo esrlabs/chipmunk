@@ -44,31 +44,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
         TabsSessionsService.add().catch((error: Error) => {
             this._logger.error(`Fail to create default tab due error: ${error.message}`);
         });
-        /*
-        const options = this.tabsService.getOptions();
-        options.injections.bar = {
-            factory: null,
-            inputs: {},
-        };
-        this.tabsService.setOptions(options);*/
-        /*
-        this.tabsService.add({
-            name: 'Tab 1 (3)',
-            active: true,
-            content: {
-                factory: DockingComponent,
-                inputs: {
-                    service: new DocksService('1', new DockDef.Container({
-                        a: new DockDef.Dock({ caption: 'Dock 1' }),
-                        b: new DockDef.Container({
-                            a: new DockDef.Dock({ caption: 'Dock 2' }),
-                            b: new DockDef.Dock({ caption: 'Dock 3' })
-                        })
-                    }))
-                }
-            }
-        });
-        */
+
     }
 
     ngAfterViewInit() {

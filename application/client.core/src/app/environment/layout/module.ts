@@ -11,7 +11,6 @@ import { LayoutSessionSidebarCaptionComponent           } from './area.sidebar.c
 import { LayoutSessionSidebarControlsComponent          } from './area.sidebar/controls/component';
 import { LayoutPrimaryAreaComponent                     } from './area.primary/component';
 import { LayoutPrimiryAreaControlsComponent             } from './area.primary/controls/component';
-import { LayoutPrimiryAreaTabTitleControlsComponent     } from './area.primary/tab-title-controls/component';
 import { LayoutPrimiryAreaNoTabsComponent               } from './area.primary/no-tabs-content/component';
 import { LayoutSecondaryAreaComponent                   } from './area.secondary/component';
 import { LayoutSecondaryAreaControlsComponent           } from './area.secondary/controls/component';
@@ -29,7 +28,6 @@ const entryComponents = [
     LayoutSessionSidebarControlsComponent,
     LayoutPrimaryAreaComponent,
     LayoutPrimiryAreaControlsComponent,
-    LayoutPrimiryAreaTabTitleControlsComponent,
     LayoutPrimiryAreaNoTabsComponent,
     LayoutSecondaryAreaComponent,
     LayoutSecondaryAreaControlsComponent

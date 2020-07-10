@@ -4,7 +4,6 @@ import { IComponentDesc } from 'chipmunk-client-material';
 import { IPlugin, IViewState } from '../../../controller/controller.plugins.manager';
 import { Storage } from '../../../controller/helpers/virtualstorage';
 import { ITabAPI } from '../../../services/service.sessions.tabs';
-import { TabTitleContentService } from '../../../layout/area.primary/tab-title-controls/service';
 
 import PluginsService from '../../../services/service.plugins';
 
@@ -25,7 +24,6 @@ export class TabPluginsComponent implements OnDestroy, AfterViewInit {
     @Input() public getDefaultsTabGuids: () => { charts: string };
     @Input() public onTitleContextMenu: Observable<MouseEvent>;
     @Input() public getTabAPI: ITabAPI;
-    @Input() public tabCaptionService: TabTitleContentService;
 
     public _ng_selected: Subject<IPlugin> = new Subject<IPlugin>();
     public _ng_recent: Observable<string[]>;
