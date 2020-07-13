@@ -8,6 +8,7 @@
     margin: 0;
     padding: 0;
     top: 0;
+    cursor: text;
     & div.shadow{
         position: absolute;
         display: block;
@@ -61,5 +62,28 @@
                 left:-3px;
             }
         }
+        div.area-move{
+            position: absolute;
+            top:0;
+            height: 50%;
+            width: 100%;
+            left: 0;
+            cursor: move;
+        }
+        div.area-select{
+            position: absolute;
+            top:50%;
+            height: 50%;
+            width: 100%;
+            left: 0;
+            cursor: text;
+        }
+    }
+    & div.selection{
+        position: absolute;
+        top: 0;
+        height: 100%;
+        background: fade(@scheme-color-accent, 60%);
+        cursor: text;
     }
 }

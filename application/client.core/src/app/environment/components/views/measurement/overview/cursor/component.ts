@@ -12,6 +12,7 @@ enum EChangeKind {
     left = 'left',
     right = 'right',
     zoom = 'zoom',
+    set = 'set',
     undefined = 'undefined'
 }
 
@@ -27,15 +28,17 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
 
     public _ng_width: number = -1;
     public _ng_left: number = 0;
+    public _ng_selection_left: number | undefined;
+    public _ng_selection_width: number | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementOverviewCursorComponent');
     private _width: number = -1;
     private _mouse: {
-        x: number,
+        x: number | undefined,
         kind: EChangeKind,
     } = {
-        x: -1,
+        x: undefined,
         kind: EChangeKind.undefined,
     };
     private _destroyed: boolean = false;
@@ -96,7 +99,14 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         event.preventDefault();
     }
 
-    @HostListener('click', ['$event']) _ng_onClick(event: MouseEvent) {
+    @HostListener('mousedown', ['$event']) _ng_onClick(event: MouseEvent) {
+        if ((event.target as HTMLElement).nodeName.toLowerCase() !== 'app-views-measurement-overview-cursor' &&
+            (event.target as HTMLElement).className.indexOf('select') === -1) {
+            return;
+        }
+        this._mouse.x = event.x;
+        this._ng_selection_left = event.clientX;
+        this._ng_selection_width = 1;
         this._forceUpdate();
     }
 
@@ -155,6 +165,13 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         return false;
     }
 
+    public _ng_getSelectionStyle(): { [key: string]: string } {
+        return {
+            left: `${this._ng_selection_width < 0 ? (this._ng_selection_left + this._ng_selection_width) : this._ng_selection_left}px`,
+            width: `${Math.abs(this._ng_selection_width)}px`,
+        };
+    }
+
     private _onSessionChange() {
         this._update();
     }
@@ -192,25 +209,46 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
     }
 
     private _onWindowMousemove(event: MouseEvent) {
-        if (this._mouse.x === -1) {
+        if (this._mouse.x === undefined) {
             return;
         }
         const state = this.service.getCursorState();
         if (state === undefined) {
             return;
         }
+        if (event.x < 0) {
+            this._mouse.x = 0;
+            return;
+        }
         const offset: number = event.x - this._mouse.x;
         this._mouse.x = event.x;
-        this._change(this._mouse.kind, offset);
-        // this._forceUpdate();
+        if (this._ng_selection_left === undefined) {
+            this._change(this._mouse.kind, offset);
+        } else {
+            this._ng_selection_width += offset;
+            if (this._ng_selection_width + this._ng_selection_left < 0) {
+                this._ng_selection_width = -this._ng_selection_left;
+            }
+            if (this._ng_selection_width + this._ng_selection_left > this._width) {
+                this._ng_selection_width = this._width - this._ng_selection_left;
+            }
+            this._forceUpdate();
+        }
     }
 
     private _onWindowMouseup(event: MouseEvent) {
-        if (this._mouse.x === -1) {
+        if (this._mouse.x === undefined) {
             return;
         }
-        this._mouse.x = -1;
+        this._mouse.x = undefined;
         this._mouse.kind = EChangeKind.undefined;
+        if (this._ng_selection_left !== undefined) {
+            this._ng_left = this._ng_selection_width < 0 ? (this._ng_selection_left + this._ng_selection_width) : this._ng_selection_left;
+            this._change(EChangeKind.set, Math.abs(this._ng_selection_width));
+            this._ng_selection_left = undefined;
+            this._ng_selection_width = undefined;
+            this._forceUpdate();
+        }
         event.stopImmediatePropagation();
         event.stopPropagation();
         event.preventDefault();
@@ -245,6 +283,15 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
                     this._ng_width = this._width - this._ng_left;
                 } else {
                     this._ng_width += offset;
+                }
+                break;
+            case EChangeKind.set:
+                if (offset < this.service.MIN_ZOOMING_PX) {
+                    offset = this.service.MIN_ZOOMING_PX;
+                }
+                this._ng_width = offset;
+                if (this._ng_left + this._ng_width > this._width) {
+                    this._ng_left = this._width - this._ng_width;
                 }
                 break;
         }
