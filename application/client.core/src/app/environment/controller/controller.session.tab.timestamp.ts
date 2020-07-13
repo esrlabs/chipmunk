@@ -221,8 +221,8 @@ export class ControllerSessionTabTimestamp {
                     group: this._sequences.group,
                 });
                 this._open = undefined;
-                this._setState();
                 this._subjects.update.next(this.getRanges());
+                this._setState();
                 OutputParsersService.updateRowsView();
                 return resolve();
             }).catch((err: Error) => {
@@ -263,8 +263,8 @@ export class ControllerSessionTabTimestamp {
                 color: this._getColor(),
                 group: ++this._sequences.group,
             });
-            this._setState();
             this._subjects.update.next(this.getRanges());
+            this._setState();
             OutputParsersService.updateRowsView();
         }).catch((err: Error) => {
             this._logger.warn(`Fail to detect time range due error: ${err.message}`);
@@ -280,8 +280,9 @@ export class ControllerSessionTabTimestamp {
             }
             return range.id !== id;
         });
-        this._setState();
         this._subjects.update.next(this.getRanges());
+        this._setState();
+        OutputParsersService.updateRowsView();
     }
 
     public drop() {
@@ -289,8 +290,8 @@ export class ControllerSessionTabTimestamp {
             return;
         }
         this._open = undefined;
-        this._setState();
         this._subjects.update.next(this.getRanges());
+        this._setState();
         OutputParsersService.updateRowsView();
     }
 
@@ -304,8 +305,8 @@ export class ControllerSessionTabTimestamp {
             return exceptions.indexOf(range.id) !== -1;
         });
         this._open = undefined;
-        this._setState();
         this._subjects.update.next(this.getRanges());
+        this._setState();
         OutputParsersService.updateRowsView();
     }
 
@@ -549,21 +550,13 @@ export class ControllerSessionTabTimestamp {
 
     public getMinTimestamp(): number {
         return Math.min(...this._ranges.map((range: IRange) => {
-            if (range.end !== undefined) {
-                return range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp;
-            } else {
-                return range.start.timestamp;
-            }
+            return range.end === undefined ? range.start.timestamp : Math.min(range.start.timestamp, range.end.timestamp);
         }));
     }
 
     public getMaxTimestamp(): number {
         return Math.max(...this._ranges.map((range: IRange) => {
-            if (range.end !== undefined) {
-                return range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp;
-            } else {
-                return range.start.timestamp;
-            }
+            return range.end === undefined ? range.start.timestamp : Math.max(range.start.timestamp, range.end.timestamp);
         }));
     }
 
@@ -658,31 +651,30 @@ export class ControllerSessionTabTimestamp {
     }
 
     private _setState() {
-        this._state = { min: Infinity, max: -1, duration: 0 };
-        this._ranges.forEach((r: IRange) => {
-            if (this._state.min > r.start.timestamp) {
-                this._state.min = r.start.timestamp;
-            }
-            if (this._state.max < r.start.timestamp) {
-                this._state.max = r.start.timestamp;
-            }
-            if (r.end !== undefined) {
-                if (this._state.min > r.end.timestamp) {
-                    this._state.min = r.end.timestamp;
-                }
-                if (this._state.max < r.end.timestamp) {
-                    this._state.max = r.end.timestamp;
-                }
-            }
-        });
+        const duration: number = this._state.duration;
+        this._state = {
+            min: Math.min(...this._ranges.map((r) => {
+                return r.end === undefined ? r.start.timestamp : Math.min(r.start.timestamp, r.end.timestamp);
+            })),
+            max: Math.max(...this._ranges.map((r) => {
+                return r.end === undefined ? r.start.timestamp : Math.max(r.start.timestamp, r.end.timestamp);
+            })),
+            duration: 0,
+        };
         this._state.duration = Math.abs(this._state.min - this._state.max);
+        if (this._cursor.left !== 0) {
+            this._cursor.left = (this._cursor.left / duration) * this._state.duration;
+        }
+        if (this._cursor.right !== 0) {
+            this._cursor.right = (this._cursor.right / duration) * this._state.duration;
+        }
         if (((this._state.max - this._cursor.right) - (this._state.min + this._cursor.left) < 0) ||
             (this._ranges.length === 0 && (this._cursor.left + this._cursor.right) !== 0)) {
             this._cursor.left = 0;
             this._cursor.right = 0;
-            if (this._mode !== EChartMode.aligned) {
-                this._subjects.zoom.next();
-            }
+        }
+        if (this._mode !== EChartMode.aligned) {
+            this._subjects.zoom.next();
         }
     }
 

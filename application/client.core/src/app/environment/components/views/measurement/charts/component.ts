@@ -454,7 +454,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         }
         this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe();
         this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe();
-        this._chart.instance.update();
+        this._chartResizeUpdate();
     }
 
     private _resize(force: boolean = false) {
