@@ -8,7 +8,6 @@ import EventsSessionService from '../../../services/standalone/service.events.se
 import ElectronIpcService from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { IPC } from 'chipmunk.client.toolkit';
 
 export { EChartMode };
 

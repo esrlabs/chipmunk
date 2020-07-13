@@ -161,28 +161,34 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                     this.service.toggleMode();
                 },
             },
-            { /* Delimiter */},
-            {
-                caption: target === undefined ? 'Remove this range' : `Remove this range: ${target.range.start.position} - ${target.range.end.position} / ${target.range.duration}`,
-                handler: () => {
-                    if (this._session === undefined) {
-                        return;
-                    }
-                    this._session.getTimestamp().removeRange(target.range.id);
+        ];
+        if (target !== undefined || this._session.getTimestamp().getCount() !== 0) {
+            items.push({ /* Delimiter */});
+        }
+        if (target !== undefined) {
+            items.push(...[
+                {
+                    caption: target === undefined ? 'Remove this range' : `Remove this range: ${target.range.start.position} - ${target.range.end.position} / ${target.range.duration}`,
+                    handler: () => {
+                        if (this._session === undefined) {
+                            return;
+                        }
+                        this._session.getTimestamp().removeRange(target.range.id);
+                    },
                 },
-                disabled: target === undefined,
-            },
-            {
-                caption: `Remove all except this`,
-                handler: () => {
-                    if (this._session === undefined) {
-                        return;
-                    }
-                    this._session.getTimestamp().clear([target.range.id]);
+                {
+                    caption: `Remove all except this`,
+                    handler: () => {
+                        if (this._session === undefined) {
+                            return;
+                        }
+                        this._session.getTimestamp().clear([target.range.id]);
+                    },
                 },
-                disabled: target === undefined,
-            },
-            {
+            ]);
+        }
+        if (this._session.getTimestamp().getCount() !== 0) {
+            items.push({
                 caption: `Remove All Ranges`,
                 handler: () => {
                     if (this._session === undefined) {
@@ -190,9 +196,8 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                     }
                     this._session.getTimestamp().clear();
                 },
-                disabled: this._session.getTimestamp().getCount() === 0,
-            },
-        ];
+            });
+        }
         if (this.service.getMode() === EChartMode.scaled) {
             items.push(...[
                 { /* Delimiter */},

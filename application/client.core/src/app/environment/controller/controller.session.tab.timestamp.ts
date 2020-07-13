@@ -280,6 +280,7 @@ export class ControllerSessionTabTimestamp {
             }
             return range.id !== id;
         });
+        this._setState();
         this._subjects.update.next(this.getRanges());
     }
 
