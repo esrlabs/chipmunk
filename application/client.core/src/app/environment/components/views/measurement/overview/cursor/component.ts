@@ -188,7 +188,6 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
             this._ng_left = state.left / r;
             this._ng_width = Math.abs(duration - state.left - state.right) / r;
         }
-
         this._forceUpdate();
     }
 
