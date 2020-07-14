@@ -124,7 +124,6 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
 
     public ngAfterViewInit() {
         this._resize();
-        this._update();
     }
 
     public ngOnDestroy() {
@@ -183,6 +182,7 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
     private _resize() {
         const rect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         this._width = rect.width;
+        this._update();
     }
 
     private _update() {
