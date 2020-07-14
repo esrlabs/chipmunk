@@ -1,5 +1,18 @@
 # Changelog
 
+### [2.5.2] - 07/14/2020
+* [](fix) time measurement chart: fix resize on sidebar on/off
+* [](feat) time measurement chart: selection in overview
+* [](fix) update zoom/cursor state without active view
+* [](fix) time measurement: fix scale restoring on range removing
+* [](fix) fix security npm issues
+* [](feat) time measurement chart: support horizontal scrolling on mac-touch pad
+* [](fix) time measurement: correct restore scale in overview
+* [#844](refact) remove docker from chipmunk.client.components
+* [#844](refact) get rid of docker usage (client)
+* [](fix) resolve npm security issues
+* [](feat) add once-executable event's handle
+
 ### [2.5.1] - 07/08/2020
 * [#835](fix) correct error handling on time discover
 * [](feat) close button for tabs (toolbar)
