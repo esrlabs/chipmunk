@@ -1,5 +1,9 @@
 # Changelog
 
+### [2.5.3] - 07/15/2020
+* [](fix) fix fsevent module issue (mac, client.core)
+* [](fix) fix node-gym and fsevent errors related (mac)
+
 ### [2.5.2] - 07/14/2020
 * [](fix) time measurement chart: fix resize on sidebar on/off
 * [](feat) time measurement chart: selection in overview
