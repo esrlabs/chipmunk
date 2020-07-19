@@ -35,6 +35,19 @@ export class DynamicComponent {
         if (desc.inputs === void 0) {
             desc.inputs = {};
         }
+        if (this._component) {
+            // Component already was created
+            if (typeof this._component.componentType === 'function' && typeof desc.factory === 'function' && this._component.componentType.name === desc.factory.name) {
+                // No need to recreate component. Update inputs
+                Object.keys(desc.inputs).forEach((key: string) => {
+                    this._component.instance[key] = desc.inputs[key];
+                });
+                this._component.hostView.detectChanges();
+                return;
+            } else {
+                this._component.destroy();
+            }
+        }
         let component;
         if (!desc.resolved) {
             // Factory of component isn't resolved
@@ -68,9 +81,6 @@ export class DynamicComponent {
             Object.keys(desc.inputs).forEach((inputName) => {
                 component.instance[inputName] = desc.inputs[inputName];
             });
-        }
-        if (this._component) {
-            this._component.destroy();
         }
         this._component = component;
     }
