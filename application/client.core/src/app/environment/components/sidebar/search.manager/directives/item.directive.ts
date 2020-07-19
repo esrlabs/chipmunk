@@ -1,6 +1,7 @@
-import { Directive, ChangeDetectorRef, OnInit, OnDestroy, Input, HostBinding, HostListener, Host, Self, Optional, NgZone, ViewContainerRef } from '@angular/core';
+import { Directive, ChangeDetectorRef, OnInit, OnDestroy, Input, HostBinding, HostListener, NgZone, ViewContainerRef } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { MatInput } from '@angular/material/input';
+import { Entity } from '../providers/entity';
+import { Provider, ISelectEvent } from '../providers/provider';
 
 @Directive({
     selector: '[appSidebarSearchManagerItem]',
@@ -8,16 +9,13 @@ import { MatInput } from '@angular/material/input';
 
 export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
 
-    @Input() select: Observable<string>;
-    @Input() edit: Observable<string>;
-    @Input() selected: Subject<string>;
-    @Input() input: MatInput;
+    @Input() provider: Provider<any>;
+    @Input() entity: Entity<any>;
 
     public _ng_edit: boolean = false;
     public _ng_selected: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _guid: string | undefined;
     private _destroyed: boolean = false;
     private _ignore: boolean = false;
 
@@ -36,7 +34,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
             return;
         }
         this._zone.run(() => {
-            this.selected.next(this._guid);
+            this.provider.setSelection(this.entity.getGUID());
             this._forceUpdate();
         });
     }
@@ -45,7 +43,8 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         private _cdRef: ChangeDetectorRef,
         private _zone: NgZone,
         private _view: ViewContainerRef,
-    ) { }
+    ) {
+    }
 
     public ngOnDestroy() {
         this._destroyed = true;
@@ -55,71 +54,24 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     }
 
     public ngOnInit() {
-        this._subscriptions.edit = this.edit.subscribe(this._onEditIn.bind(this));
-        this._subscriptions.select = this.select.subscribe(this._onSelected.bind(this));
-    }
-
-    public setGuid(guid: string) {
-        this._guid = guid;
-    }
-
-    public setEditFlag(flag: boolean) {
-        this._zone.run(() => {
-            this._ng_edit = flag;
-            this._forceUpdate();
-        });
-    }
-
-    public setSelectFlag(flag: boolean) {
-        this._zone.run(() => {
-            this._ng_selected = flag;
-            this._forceUpdate();
-        });
-    }
-
-    public getEditFlag(): boolean {
-        return this._ng_edit;
-    }
-
-    public getSelectFlag(): boolean {
-        return this._ng_selected;
+        this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
+        this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));
     }
 
     public ignoreMouseClick(event: MouseEvent) {
         this._ignore = true;
     }
 
-    private _getInputRef(): MatInput | undefined {
-        if ((this._view as any)._data === undefined) {
-            return undefined;
-        }
-        if ((this._view as any)._data.componentView === undefined) {
-            return undefined;
-        }
-        if ((this._view as any)._data.componentView.component === undefined) {
-            return undefined;
-        }
-        return (this._view as any)._data.componentView.component.getInputRef();
-    }
-
-    private _onEditIn(guid: string) {
+    private _onEditIn(guid: string | undefined) {
         this._zone.run(() => {
-            this._ng_edit = this._guid === guid;
-            if (this._ng_edit) {
-                setTimeout(() => {
-                    if (this._getInputRef() === undefined) {
-                        return;
-                    }
-                    this._getInputRef().focus();
-                });
-            }
+            this._ng_edit = this.entity.getGUID() === guid;
             this._forceUpdate();
         });
     }
 
-    private _onSelected(guid: string) {
+    private _onSelected(event: ISelectEvent) {
         this._zone.run(() => {
-            this._ng_selected = this._guid === guid ? !this._ng_selected : false;
+            this._ng_selected = event.guids.indexOf(this.entity.getGUID()) !== -1;
             if (!this._ng_selected) {
                 this._ng_edit = false;
             }

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef, Input, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { ControllerSessionTabTimestamp, IRange, EChartMode } from '../../../../controller/controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp, IRange, EChartMode } from '../../../../controller/controller.session.tab.timestamps';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { scheme_color_2, getContrastColor } from '../../../../theme/colors';
 import { Chart } from 'chart.js';

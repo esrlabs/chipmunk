@@ -3,9 +3,7 @@
         (contextmenu)="_ng_onContexMenu($event, request, i)"
         appSidebarSearchManagerItem
         cdkDrag
-        [request]="request"
-        [selected]="selected"
-        [select]="_ng_observables.select"
-        [edit]="_ng_observables.edit"
-        *ngFor="let request of requests; let i = index"></app-sidebar-app-searchmanager-filter>
+        [provider]="provider"
+        [entity]="entity"
+        *ngFor="let entity of _ng_entries; let i = index"></app-sidebar-app-searchmanager-filter>
 </div>

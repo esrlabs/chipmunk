@@ -1,6 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabTimestamp } from '../../../../controller/controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp } from '../../../../controller/controller.session.tab.timestamps';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 

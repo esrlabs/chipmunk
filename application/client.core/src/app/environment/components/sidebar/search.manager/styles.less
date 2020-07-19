@@ -13,10 +13,13 @@
     overflow-x: hidden;
     overflow-y: auto;
     outline: none;
-    & span.slitter{
+    & div.wrapper{
         position: relative;
         display: block;
-        height: 8px;
+        margin-top: 8px;
+        &:first-child{
+            margin-top: 0;
+        }
     }
     & .controlls{
         text-align: right;

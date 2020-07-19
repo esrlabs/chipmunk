@@ -1,9 +1,11 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild } from '@angular/core';
-import { ChartRequest, IChartUpdateEvent } from '../../../../controller/controller.session.tab.search.charts.request';
+import { ChartRequest, IChartUpdateEvent } from '../../../../../controller/controller.session.tab.search.charts.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
-import { SidebarAppSearchManagerItemDirective } from '../directives/item.directive';
+import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
+import { ProviderCharts } from '../provider';
+import { Entity } from '../../providers/entity';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-chart',
@@ -19,7 +21,8 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
 
     @ViewChild(MatInput) _inputRefCom: MatInput;
 
-    @Input() request: ChartRequest;
+    @Input() entity: Entity<ChartRequest>;
+    @Input() provider: ProviderCharts;
 
     public _ng_request: string;
     public _ng_color: string;
@@ -41,12 +44,16 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
     }
 
     public ngAfterContentInit() {
-        if (this.request === undefined) {
-            return;
-        }
+        this._subscriptions.edit = this.provider.getObservable().edit.subscribe((guid: string | undefined) => {
+            if (this.entity.getGUID() === guid) {
+                this._forceUpdate();
+                if (this._inputRefCom !== undefined) {
+                    this._inputRefCom.focus();
+                }
+            }
+        });
         this._init();
-        this._directive.setGuid(this.request.getGUID());
-        this.request.onUpdated(this._onRequestChanged.bind(this));
+        this.entity.getEntity().onUpdated(this._onRequestUpdated.bind(this));
     }
 
     public getInputRef(): MatInput | undefined {
@@ -54,7 +61,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
     }
 
     public _ng_onStateChange(event: MatCheckboxChange) {
-        this.request.setState(event.checked);
+        this.entity.getEntity().setState(event.checked);
         this._forceUpdate();
     }
 
@@ -69,19 +76,19 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         switch (event.code) {
             case 'Escape':
                 this._zone.run(() => {
-                    this._ng_request = this.request.asDesc().request;
-                    this._ng_directive.setEditFlag(false);
+                    this._ng_request = this.entity.getEntity().asDesc().request;
+                    this.provider.editOut();
                     this._forceUpdate();
                 });
                 break;
             case 'Enter':
                 this._zone.run(() => {
                     if (ChartRequest.isValid(this._ng_request)) {
-                        this.request.setRequest(this._ng_request);
+                        this.entity.getEntity().setRequest(this._ng_request);
                     } else {
-                        this._ng_request = this.request.asDesc().request;
+                        this._ng_request = this.entity.getEntity().asDesc().request;
                     }
-                    this._ng_directive.setEditFlag(false);
+                    this.provider.editOut();
                     this._forceUpdate();
                 });
                 break;
@@ -90,23 +97,23 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
 
     public _ng_onRequestInputBlur() {
         this._zone.run(() => {
-            this._ng_request = this.request.asDesc().request;
-            this._ng_directive.setEditFlag(false);
+            this._ng_request = this.entity.getEntity().asDesc().request;
+            this.provider.editOut();
             this._forceUpdate();
         });
     }
 
     private _init() {
         this._zone.run(() => {
-            const desc = this.request.asDesc();
+            const desc = this.entity.getEntity().asDesc();
             this._ng_request = desc.request;
             this._ng_color = desc.color;
             this._ng_state = desc.active;
         });
     }
 
-    private _onRequestChanged(event: IChartUpdateEvent) {
-        this.request = event.filter;
+    private _onRequestUpdated(event: IChartUpdateEvent) {
+        this.entity.setEntity(event.filter);
         this._init();
         this._forceUpdate();
     }

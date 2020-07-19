@@ -1,79 +1,46 @@
-<mat-expansion-panel
-    [disabled]="true"
-    [hideToggle]="true"
-    [expanded]="true"
-    (click)="_ng_onPanelClick()">
-    <mat-expansion-panel-header>
-        <mat-panel-title>
-            Filters
-        </mat-panel-title>
-        <mat-panel-description *ngIf="_ng_filters.length > 0">{{_ng_filters.length}} filter{{_ng_filters.length > 0 ? 's' : ''}}</mat-panel-description>
-    </mat-expansion-panel-header>
-    <app-sidebar-app-searchmanager-filters *ngIf="_ng_filters.length > 0"
-        (onContextMenu)="_ng_onContextListsMenu('filters', $event)"
-        [offset]="0"
-        [reorder]="_ng_reorder"
-        [selected]="_ng_selected"
-        [requests]="_ng_filters"
-        [edit]="_ng_observables.edit"
-        [select]="_ng_observables.select">
-    </app-sidebar-app-searchmanager-filters>
-    <p class="t-small" *ngIf="_ng_filters.length === 0">No filters stored</p>
-</mat-expansion-panel>
+<div class="wrapper" *ngFor="let provider of _ng_providers | keyvalue">
+    <mat-expansion-panel
+        *ngIf="!provider.value.isEmpty() || provider.value.getContentIfEmpty() !== undefined"
+        [disabled]="true"
+        [hideToggle]="true"
+        [expanded]="true"
+        (click)="_ng_onPanelClick()">
+        <mat-expansion-panel-header>
+            <mat-panel-title>{{provider.value.getPanelName()}}</mat-panel-title>
+            <mat-panel-description>{{provider.value.getPanelDesc()}}</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div *ngIf="!provider.value.isEmpty()">
+            <lib-containers-dynamic [detectChanges]="false" [component]="provider.value.getListComp()"></lib-containers-dynamic>
+        </div>
+        <p class="t-small" *ngIf="provider.value.isEmpty()">{{provider.value.getContentIfEmpty()}}</p>
+    </mat-expansion-panel>
+</div>
 
-<span class="slitter"></span>
+<div class="wrapper" *ngIf="_ng_selected">
+    <mat-expansion-panel
+        [disabled]="true"
+        [hideToggle]="true"
+        [expanded]="true"
+        (click)="_ng_onPanelClick()">
+        <mat-expansion-panel-header>
+            <mat-panel-title>{{_ng_selected.getDetailsPanelName()}}</mat-panel-title>
+            <mat-panel-description>{{_ng_selected.getDetailsPanelDesc()}}</mat-panel-description>
+        </mat-expansion-panel-header>
+        <lib-containers-dynamic [detectChanges]="false" [component]="_ng_selected.getDetailsComp()"></lib-containers-dynamic>
+    </mat-expansion-panel>
+</div>
 
-<mat-expansion-panel
-    [disabled]="true"
-    [hideToggle]="true"
-    [expanded]="true"
-    (click)="_ng_onPanelClick()">
-    <mat-expansion-panel-header>
-        <mat-panel-title>
-            Charts
-        </mat-panel-title>
-        <mat-panel-description *ngIf="_ng_charts.length > 0">{{_ng_charts.length}} chart{{_ng_charts.length > 0 ? 's' : ''}}</mat-panel-description>
-    </mat-expansion-panel-header>
-    <app-sidebar-app-searchmanager-charts *ngIf="_ng_charts.length > 0"
-        (onContextMenu)="_ng_onContextListsMenu('charts', $event)"
-        [offset]="_ng_filters.length"
-        [reorder]="_ng_reorder"
-        [selected]="_ng_selected"
-        [requests]="_ng_charts"
-        [edit]="_ng_observables.edit"
-        [select]="_ng_observables.select">
-    </app-sidebar-app-searchmanager-charts>
-    <p class="t-small" *ngIf="_ng_charts.length === 0">No charts stored</p>
-</mat-expansion-panel>
+<div class="wrapper">
+    <mat-expansion-panel
+        [expanded]="true"
+        (click)="_ng_onPanelClick()">
+        <mat-expansion-panel-header>
+            <mat-panel-title>
+                Manage
+            </mat-panel-title>
+            <mat-panel-description class="limited" *ngIf="_ng_filename !== ''">{{_ng_filename}}</mat-panel-description>
+        </mat-expansion-panel-header>
+        <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls>
+    </mat-expansion-panel>
+</div>
 
-<span class="slitter" *ngIf="_ng_filter || _ng_chart"></span>
-
-<mat-expansion-panel *ngIf="_ng_filter || _ng_chart"
-    [disabled]="true"
-    [hideToggle]="true"
-    [expanded]="true"
-    (click)="_ng_onPanelClick()">
-    <mat-expansion-panel-header>
-        <mat-panel-title>
-            Details
-        </mat-panel-title>
-        <mat-panel-description *ngIf="_ng_filter">{{_ng_filter.asDesc().request}}</mat-panel-description>
-        <mat-panel-description *ngIf="_ng_chart">{{_ng_chart.asDesc().request}}</mat-panel-description>
-    </mat-expansion-panel-header>
-    <app-sidebar-app-searchmanager-filter-details *ngIf="_ng_filter" [request]="_ng_filter"></app-sidebar-app-searchmanager-filter-details>
-    <app-sidebar-app-searchmanager-chart-details *ngIf="_ng_chart" [request]="_ng_chart"></app-sidebar-app-searchmanager-chart-details>
-</mat-expansion-panel>
-
-<span class="slitter"></span>
-
-<mat-expansion-panel
-    [expanded]="true"
-    (click)="_ng_onPanelClick()">
-    <mat-expansion-panel-header>
-        <mat-panel-title>
-            Manage
-        </mat-panel-title>
-        <mat-panel-description class="limited" *ngIf="_ng_filename !== ''">{{_ng_filename}}</mat-panel-description>
-    </mat-expansion-panel-header>
-    <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls>
-</mat-expansion-panel>

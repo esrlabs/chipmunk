@@ -1,0 +1,9 @@
+<div cdkDropList (cdkDropListDropped)="_ng_onItemDragged($event)" class="charts">
+    <app-sidebar-app-searchmanager-chart
+        (contextmenu)="_ng_onContexMenu($event, request, i)"
+        appSidebarSearchManagerItem
+        cdkDrag
+        [provider]="provider"
+        [entity]="entity"
+        *ngFor="let entity of _ng_entries; let i = index"></app-sidebar-app-searchmanager-chart>
+</div>

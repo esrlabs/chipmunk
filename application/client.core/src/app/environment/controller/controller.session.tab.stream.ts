@@ -3,7 +3,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState } from './controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
 import { IQueueController } from '../services/standalone/service.queue';
 
 import QueueService from '../services/standalone/service.queue';
