@@ -1,9 +1,11 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, NgZone, ViewChild, OnChanges, SimpleChanges } from '@angular/core';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, NgZone, ViewChild } from '@angular/core';
+import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
-
-import { CColors } from '../../../../conts/colors';
-import { getContrastColor } from '../../../../theme/colors';
+import { Provider } from '../../providers/provider';
+import { Entity } from '../../providers/entity';
+import { Subject, Observable, Subscription } from 'rxjs';
+import { CColors } from '../../../../../conts/colors';
+import { getContrastColor } from '../../../../../theme/colors';
 
 type TColorType = 'color' | 'background';
 
@@ -18,11 +20,11 @@ interface IColorOption {
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy, AfterContentInit, OnChanges {
+export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy, AfterContentInit {
 
     @ViewChild(MatSelect) _refSelect: MatSelect;
 
-    @Input() request: FilterRequest;
+    @Input() provider: Provider<FilterRequest>;
 
     public _ng_request: string;
     public _ng_color: string;
@@ -35,7 +37,9 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
     public _ng_currentColor: string;
     public _ng_colors: string[] = [];
 
+    private _entity: Entity<FilterRequest> | undefined;
     private _destroyed: boolean = false;
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
 
@@ -43,16 +47,13 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
 
     public ngOnDestroy() {
         this._destroyed = true;
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public ngAfterContentInit() {
-        if (this.request === undefined) {
-            return;
-        }
-        this._init();
-    }
-
-    public ngOnChanges(changes: SimpleChanges) {
+        this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._init.bind(this));
         this._init();
     }
 
@@ -74,6 +75,9 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
     }
 
     public _ng_onColorChange(color: string) {
+        if (this._entity === undefined) {
+            return;
+        }
         switch (this._ng_colorType) {
             case 'color':
                 this._ng_color = color;
@@ -84,8 +88,8 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
                 this._ng_color = getContrastColor(color, true);
                 break;
         }
-        this.request.setBackground(this._ng_background);
-        this.request.setColor(this._ng_color);
+        this._entity.getEntity().setBackground(this._ng_background);
+        this._entity.getEntity().setColor(this._ng_color);
         this._ng_currentColor = color;
         this._forceUpdate();
     }
@@ -109,13 +113,21 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
     }
 
     private _init() {
-        const desc = this.request.asDesc();
-        this._ng_request = desc.request;
-        this._ng_color = desc.color;
-        this._ng_background = desc.background;
-        this._ng_currentColor = desc.background;
-        this._ng_colorType = 'background';
-        this._setColors();
+        this._entity = this.provider.getSingleSelection();
+        if (this._entity === undefined) {
+            this._ng_request = undefined;
+            this._ng_color = undefined;
+            this._ng_background = undefined;
+            this._ng_currentColor = undefined;
+        } else {
+            const desc = this._entity.getEntity().asDesc();
+            this._ng_request = desc.request;
+            this._ng_color = desc.color;
+            this._ng_background = desc.background;
+            this._ng_currentColor = desc.background;
+            this._ng_colorType = 'background';
+            this._setColors();
+        }
     }
 
     private _forceUpdate() {

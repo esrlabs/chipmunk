@@ -2,7 +2,7 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
 import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
 
 import OutputRedirectionsService, { ISelectionAccessor } from '../services/standalone/service.output.redirections';

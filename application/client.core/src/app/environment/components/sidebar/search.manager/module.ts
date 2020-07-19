@@ -21,15 +21,18 @@ import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 
-import { SidebarAppSearchManagerChartsComponent         } from './charts/component';
-import { SidebarAppSearchManagerFiltersComponent        } from './filters/component';
-import { SidebarAppSearchManagerChartComponent          } from './chart/component';
-import { SidebarAppSearchManagerFilterComponent         } from './filter/component';
-import { SidebarAppSearchManagerChartDetailsComponent   } from './chart.details/component';
-import { SidebarAppSearchManagerFilterDetailsComponent  } from './filter.details/component';
-import { SidebarAppSearchManagerComponent               } from './component';
-import { SidebarAppSearchManagerItemDirective           } from './directives/item.directive';
-import { SidebarAppSearchManagerControlsComponent       } from './manager/component';
+import { SidebarAppSearchManagerChartsComponent             } from './charts/list/component';
+import { SidebarAppSearchManagerFiltersComponent            } from './filters/list/component';
+import { SidebarAppSearchManagerChartComponent              } from './charts/chart/component';
+import { SidebarAppSearchManagerFilterComponent             } from './filters/filter/component';
+import { SidebarAppSearchManagerChartDetailsComponent       } from './charts/details/component';
+import { SidebarAppSearchManagerFilterDetailsComponent      } from './filters/details/component';
+import { SidebarAppSearchManagerTimeRangeComponent          } from './ranges/range/component';
+import { SidebarAppSearchManagerTimeRangesComponent         } from './ranges/list/component';
+import { SidebarAppSearchManagerComponent                   } from './component';
+import { SidebarAppSearchManagerItemDirective               } from './directives/item.directive';
+import { SidebarAppSearchManagerControlsComponent           } from './controls/component';
+import { SidebarAppSearchManagerTimerangeDetailsComponent   } from './ranges/details/component';
 
 const entryComponents = [
     SidebarAppSearchManagerComponent,
@@ -40,6 +43,9 @@ const entryComponents = [
     SidebarAppSearchManagerChartDetailsComponent,
     SidebarAppSearchManagerFilterDetailsComponent,
     SidebarAppSearchManagerControlsComponent,
+    SidebarAppSearchManagerTimeRangeComponent,
+    SidebarAppSearchManagerTimeRangesComponent,
+    SidebarAppSearchManagerTimerangeDetailsComponent,
 ];
 const components = [ ...entryComponents ];
 const modules = [

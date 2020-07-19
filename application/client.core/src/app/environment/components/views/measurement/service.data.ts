@@ -1,5 +1,5 @@
 import { Subscription, Subject, Observable } from 'rxjs';
-import { IRange, EChartMode } from '../../../controller/controller.session.tab.timestamp';
+import { IRange, EChartMode } from '../../../controller/controller.session.tab.timestamps';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { IPCMessages } from '../../../services/service.electron.ipc';
 

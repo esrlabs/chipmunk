@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamps';
 import { DataService } from './service.data';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';

@@ -1,0 +1,12 @@
+<app-sidebar-app-searchmanager-filter
+    appSidebarSearchManagerItem
+    cdkDrag
+    [request]="request"
+    [selected]="_ng_selected"
+    [select]="_ng_select"
+    [edit]="_ng_edit"
+    *ngFor="let request of _ng_requests; let i = index"></app-sidebar-app-searchmanager-filter>
+
+<span class="slitter"></span>
+
+<app-com-color-selector [colors]="_ng_colors" [color]="_ng_currentColor"></app-com-color-selector>

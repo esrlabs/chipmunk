@@ -1,10 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, NgZone, ViewChild, ViewEncapsulation, SimpleChanges, OnChanges } from '@angular/core';
-import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
-import ChartControllers, { AChart, IOption, EOptionType, EChartType } from '../../../views/chart/charts/charts';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, NgZone, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
+import ChartControllers, { AChart, IOption, EOptionType, EChartType } from '../../../../views/chart/charts/charts';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { MatSlider, MatSliderChange } from '@angular/material/slider';
+import { Provider } from '../../providers/provider';
+import { Entity } from '../../providers/entity';
 import { Subject, Observable, Subscription } from 'rxjs';
-import { CColors } from '../../../../conts/colors';
+import { CColors } from '../../../../../conts/colors';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
 
 interface IOptionComponent {
@@ -35,11 +37,11 @@ const CComponentsInputs = {
     encapsulation: ViewEncapsulation.None
 })
 
-export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, AfterContentInit, OnChanges {
+export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, AfterContentInit {
 
     @ViewChild(MatSelect) _refSelect: MatSelect;
 
-    @Input() request: ChartRequest;
+    @Input() provider: Provider<ChartRequest>;
 
     public _ng_request: string = '';
     public _ng_color: string = '';
@@ -53,6 +55,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _entity: Entity<ChartRequest> | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
 
@@ -66,23 +69,26 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     }
 
     public ngAfterContentInit() {
-        this._init();
-    }
-
-    public ngOnChanges(changes: SimpleChanges) {
+        this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._init.bind(this));
         this._init();
     }
 
     public _ng_onColorChange(color: string) {
+        if (this._entity === undefined) {
+            return;
+        }
         this._ng_color = color;
-        this.request.setColor(this._ng_color);
+        this._entity.getEntity().setColor(this._ng_color);
         this._forceUpdate();
     }
 
     public _ng_onChartTypeChange(event: MatSelectChange) {
         this._zone.run(() => {
+            if (this._entity === undefined) {
+                return;
+            }
             this._ng_type = event.value;
-            this.request.setType(event.value);
+            this._entity.getEntity().setType(event.value);
             this._refSelect.close();
             this._ng_options = this._getOptions();
             this._forceUpdate();
@@ -90,12 +96,20 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     }
 
     private _init() {
-        const desc = this.request.asDesc();
-        this._ng_request = desc.request;
-        this._ng_color = desc.color;
-        this._ng_type = desc.type;
-        this._ng_options = this._getOptions();
-        this._setColors();
+        this._entity = this.provider.getSingleSelection();
+        if (this._entity === undefined) {
+            this._ng_request = undefined;
+            this._ng_color = undefined;
+            this._ng_type = undefined;
+            this._ng_options = [];
+        } else {
+            const desc = this._entity.getEntity().asDesc();
+            this._ng_request = desc.request;
+            this._ng_color = desc.color;
+            this._ng_type = desc.type;
+            this._ng_options = this._getOptions();
+            this._setColors();
+        }
     }
 
     private _setColors() {
@@ -108,14 +122,14 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     }
 
     private _getOptions(): IOptionComponent[] {
-        if (this.request === undefined) {
+        if (this._entity === undefined) {
             return [];
         }
-        const controller: AChart | undefined = ChartControllers[this.request.getType()];
+        const controller: AChart | undefined = ChartControllers[this._entity.getEntity().getType()];
         if (controller === undefined) {
             return;
         }
-        return controller.getOptions(this.request.getOptions()).map((option: IOption) => {
+        return controller.getOptions(this._entity.getEntity().getOptions()).map((option: IOption) => {
             // Create emitter
             const emitter: EventEmitter<MatSliderChange> = new EventEmitter<MatSliderChange>();
             // Create defaults inputs
@@ -137,9 +151,12 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     }
 
     private _onOptionChange(controller: AChart, option: IOption, event: MatSliderChange) {
+        if (this._entity === undefined) {
+            return;
+        }
         option.value = event.value;
         // event.source.blur();
-        this.request.setOptions(controller.setOption(this.request.getOptions(), option));
+        this._entity.getEntity().setOptions(controller.setOption(this._entity.getEntity().getOptions(), option));
         this._forceUpdate();
     }
 

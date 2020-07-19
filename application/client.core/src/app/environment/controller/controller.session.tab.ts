@@ -16,7 +16,7 @@ import { ControllerSessionTabMap } from './controller.session.tab.map';
 import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTabTitleContextMenu } from './controller.session.tab.titlemenu';
-import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 

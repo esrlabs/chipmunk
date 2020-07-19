@@ -1,4 +1,4 @@
-@import '../../../../theme/variables.less';
+@import '../../../../../theme/variables.less';
 
 
 :host {
@@ -21,24 +21,26 @@
         transition: padding-right 150ms ease-in-out;
         overflow: hidden;
     }
-    span.color {
+    span.type{
         flex: 0;
-        width: 8px;
-        max-width: 8px;
-        min-width: 8px;
+        width: 16px;
+        max-width: 16px;
+        min-width: 16px;
         display: block;
         position: relative;
-        margin: 3px 0 2px 0;
+        margin: 3px 4px 1px 0;
+        color: @scheme-color-0;
         transition: all 150ms ease-in-out;
+        overflow: hidden;
     }
-    span.background {
+    span.color{
         flex: 0;
         width: 8px;
         max-width: 8px;
         min-width: 8px;
         display: block;
         position: relative;
-        margin: 3px 0 2px 0;
+        margin: 3px 0 1px 0;
         transition: all 150ms ease-in-out;
     }
     span.request{
@@ -57,26 +59,6 @@
         flex: auto;
         white-space: nowrap;
         color: @scheme-color-0;
-    }
-    span.flags {
-        flex: 0;
-        white-space: nowrap;
-        width: 60px;
-        transition: all 150ms ease-in-out;
-        padding-right: 8px;
-        & span {
-            font-size: 14px;
-            line-height: 14px;
-            padding: 0px 4px 2px 4px;
-            vertical-align: bottom;
-            cursor: default;
-            &.active{
-                color: @scheme-color-0;
-            }
-            &.inactive{
-                color: @scheme-color-3;
-            }
-        }
     }
     &.notvalid {
         input.request {
@@ -98,15 +80,11 @@
             min-width: 0;
             margin-right: 0;
         }
-        span.background {
+        span.type {
             width: 0;
             max-width: 0;
             min-width: 0;
             margin-right: 0;
-        }
-        span.flags {
-            width: 0;
-            padding-right: 0;
         }
     }
     &.cdk-drag-preview {

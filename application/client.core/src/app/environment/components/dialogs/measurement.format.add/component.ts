@@ -1,5 +1,5 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit } from '@angular/core';
-import { IFormat, ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamp';
+import { IFormat, ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamps';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { ErrorStateMatcher } from '@angular/material/core';
 

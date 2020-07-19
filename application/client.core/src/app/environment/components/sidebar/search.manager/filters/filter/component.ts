@@ -1,9 +1,11 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild } from '@angular/core';
-import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../controller/controller.session.tab.search.filters.request';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild, Provider } from '@angular/core';
+import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
-import { SidebarAppSearchManagerItemDirective } from '../directives/item.directive';
+import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
+import { ProviderFilters } from '../provider';
+import { Entity } from '../../providers/entity';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-filter',
@@ -19,7 +21,8 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
 
     @ViewChild(MatInput) _inputRefCom: MatInput;
 
-    @Input() request: FilterRequest;
+    @Input() entity: Entity<FilterRequest>;
+    @Input() provider: ProviderFilters;
 
     public _ng_flags: IFlags;
     public _ng_request: string;
@@ -43,12 +46,16 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     }
 
     public ngAfterContentInit() {
-        if (this.request === undefined) {
-            return;
-        }
+        this._subscriptions.edit = this.provider.getObservable().edit.subscribe((guid: string | undefined) => {
+            if (this.entity.getGUID() === guid) {
+                this._forceUpdate();
+                if (this._inputRefCom !== undefined) {
+                    this._inputRefCom.focus();
+                }
+            }
+        });
         this._init();
-        this._directive.setGuid(this.request.getGUID());
-        this.request.onUpdated(this._onRequestUpdated.bind(this));
+        this.entity.getEntity().onUpdated(this._onRequestUpdated.bind(this));
     }
 
     public getInputRef(): MatInput | undefined {
@@ -56,7 +63,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     }
 
     public _ng_onStateChange(event: MatCheckboxChange) {
-        this.request.setState(event.checked);
+        this.entity.getEntity().setState(event.checked);
         this._forceUpdate();
     }
 
@@ -66,7 +73,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
 
     public _ng_flagsToggle(event: MouseEvent, flag: 'casesensitive' | 'wholeword' | 'regexp') {
         this._ng_flags[flag] = !this._ng_flags[flag];
-        this.request.setFlags(this._ng_flags);
+        this.entity.getEntity().setFlags(this._ng_flags);
         event.preventDefault();
         event.stopImmediatePropagation();
     }
@@ -78,19 +85,19 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         switch (event.code) {
             case 'Escape':
                 this._zone.run(() => {
-                    this._ng_request = this.request.asDesc().request;
-                    this._ng_directive.setEditFlag(false);
+                    this._ng_request = this.entity.getEntity().asDesc().request;
+                    this.provider.editOut();
                     this._forceUpdate();
                 });
                 break;
             case 'Enter':
                 this._zone.run(() => {
                     if (FilterRequest.isValid(this._ng_request)) {
-                        this.request.setRequest(this._ng_request);
+                        this.entity.getEntity().setRequest(this._ng_request);
                     } else {
-                        this._ng_request = this.request.asDesc().request;
+                        this._ng_request = this.entity.getEntity().asDesc().request;
                     }
-                    this._ng_directive.setEditFlag(false);
+                    this.provider.editOut();
                     this._forceUpdate();
                 });
                 break;
@@ -99,15 +106,15 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
 
     public _ng_onRequestInputBlur() {
         this._zone.run(() => {
-            this._ng_request = this.request.asDesc().request;
-            this._ng_directive.setEditFlag(false);
+            this._ng_request = this.entity.getEntity().asDesc().request;
+            this.provider.editOut();
             this._forceUpdate();
         });
     }
 
     private _init() {
         this._zone.run(() => {
-            const desc = this.request.asDesc();
+            const desc = this.entity.getEntity().asDesc();
             this._ng_flags = desc.flags;
             this._ng_request = desc.request;
             this._ng_color = desc.color;
@@ -117,7 +124,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     }
 
     private _onRequestUpdated(event: IFilterUpdateEvent) {
-        this.request = event.filter;
+        this.entity.setEntity(event.filter);
         this._init();
         this._forceUpdate();
     }

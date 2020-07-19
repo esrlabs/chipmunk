@@ -1,6 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, OnChanges, SimpleChanges, SimpleChange } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamps';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { DialogsMeasurementAddFormatComponent } from '../../../dialogs/measurement.format.add/component';
 import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';

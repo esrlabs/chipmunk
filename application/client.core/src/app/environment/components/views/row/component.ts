@@ -5,7 +5,7 @@ import { Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
 import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamps';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';

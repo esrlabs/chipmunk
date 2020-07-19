@@ -3,7 +3,7 @@ import { ControllerSessionTabSearchOutput } from './controller.session.tab.searc
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamp';
+import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
 import {
     FilterRequest,
     IFilterFlags,

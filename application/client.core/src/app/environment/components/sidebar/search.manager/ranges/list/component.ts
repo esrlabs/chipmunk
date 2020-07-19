@@ -1,22 +1,22 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, Output, EventEmitter } from '@angular/core';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, Output } from '@angular/core';
+import { TimeRange } from '../../../../../controller/controller.session.tab.timestamps.range';
+import { Subscription, Observable, Subject } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { IReorderEvent, IContextMenuEvent } from '../component';
+import { IContextMenuEvent } from '../../component';
+import { MatCheckboxChange } from '@angular/material/checkbox';
 
 @Component({
-    selector: 'app-sidebar-app-searchmanager-filters',
+    selector: 'app-sidebar-app-searchmanager-timerangehooks',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less'],
+    styleUrls: ['./styles.less']
 })
 
-export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, AfterContentInit {
+export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, AfterContentInit {
 
     @Input() select: Observable<number>;
-    @Input() edit: Observable<FilterRequest | undefined>;
-    @Input() requests: FilterRequest[] = [];
+    @Input() edit: Observable<TimeRange | undefined>;
+    @Input() ranges: TimeRange[] = [];
     @Input() offset: number = 0;
-    @Input() reorder: Subject<IReorderEvent>;
     @Input() selected: Subject<string>;
 
     // tslint:disable-next-line:no-output-on-prefix
@@ -60,36 +60,40 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         this._subscriptions.edit = this.edit.subscribe(this._onEditIn.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<FilterRequest[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<TimeRange[]>) {
+        /*
         this.reorder.next({
             ddEvent: event,
-            target: 'filters',
+            target: 'charts',
         });
+        */
     }
 
-    public _ng_onContexMenu(event: MouseEvent, request: FilterRequest, index: number) {
+    public _ng_onContexMenu(event: MouseEvent, request: TimeRange, index: number) {
+        /*
         this.onContextMenu.emit({
             event: event,
             request: request,
             index: index,
         });
+        */
     }
 
     private _onSelect(index: number) {
-        if (this.requests.length === 0 || this.requests[index - this.offset] === undefined) {
+        if (this.ranges.length === 0 || this.ranges[index - this.offset] === undefined) {
             this._selected = -1;
         } else {
             this._selected = index - this.offset;
         }
-        this._subjects.select.next(this._selected === -1 ? '' : this.requests[this._selected].getGUID());
+        this._subjects.select.next(this._selected === -1 ? '' : this.ranges[this._selected].getGUID());
     }
 
-    private _onEditIn(request: FilterRequest | undefined) {
+    private _onEditIn(request: TimeRange | undefined) {
         if (request === undefined) {
-            if (this._selected === -1 || this.requests[this._selected] === undefined) {
+            if (this._selected === -1 || this.ranges[this._selected] === undefined) {
                 return;
             }
-            this._subjects.edit.next(this.requests[this._selected].getGUID());
+            this._subjects.edit.next(this.ranges[this._selected].getGUID());
         } else {
             this._subjects.edit.next(request.getGUID());
         }
