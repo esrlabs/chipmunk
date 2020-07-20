@@ -57,51 +57,116 @@ export abstract class Provider<T> {
         this._keyboard = listener;
     }
 
-    public setSelection(guid: string, sender?: string) {
-        const index: number = this._selection.indexOf(guid);
-        if (this._keyboard.ctrl()) {
-            if (index === -1) {
-                this._selection.push(guid);
+    public select(): {
+        first: () => void,
+        last: () => void,
+        next: () => boolean,
+        prev: () => boolean,
+        drop: (sender?: string) => void,
+        get: () => string[],
+        set: (guid: string, sender?: string) => void,
+        single: () => Entity<T> | undefined,
+    } {
+        const setSelection: (guid: string, sender?: string) => void = (guid: string, sender?: string) => {
+            const index: number = this._selection.indexOf(guid);
+            if (this._keyboard.ctrl()) {
+                if (index === -1) {
+                    this._selection.push(guid);
+                } else {
+                    this._selection.splice(index, 1);
+                }
             } else {
-                this._selection.splice(index, 1);
+                if (index === -1) {
+                    this._selection = [guid];
+                } else {
+                    this._selection = [];
+                }
             }
-        } else {
-            if (index === -1) {
-                this._selection = [guid];
-            } else {
+            this._subjects.selection.next({
+                provider: this,
+                guids: this._selection,
+                sender: sender,
+            });
+        };
+        return {
+            first: () => {
+                const entities = this.get();
+                if (entities.length === 0) {
+                    return;
+                }
+                setSelection(entities[0].getGUID(), 'self.fisrt');
+            },
+            last: () => {
+                const entities = this.get();
+                if (entities.length === 0) {
+                    return;
+                }
+                setSelection(entities[entities.length - 1].getGUID(), 'self.last');
+            },
+            next: () => {
+                if (this._selection.length !== 1) {
+                    return false;
+                }
+                const entities = this.get();
+                let index: number = -1;
+                entities.forEach((entity, i) => {
+                    if (entity.getGUID() === this._selection[0]) {
+                        index = i;
+                    }
+                });
+                if (index === -1) {
+                    return false;
+                }
+                if (index + 1 > entities.length - 1) {
+                    return false;
+                }
+                setSelection(entities[index + 1].getGUID(), 'self.next');
+                return true;
+            },
+            prev: () => {
+                if (this._selection.length !== 1) {
+                    return false;
+                }
+                const entities = this.get();
+                let index: number = -1;
+                entities.forEach((entity, i) => {
+                    if (entity.getGUID() === this._selection[0]) {
+                        index = i;
+                    }
+                });
+                if (index === -1) {
+                    return false;
+                }
+                if (index - 1 < 0) {
+                    return false;
+                }
+                setSelection(entities[index - 1].getGUID(), 'self.next');
+                return true;
+            },
+            drop: (sender?: string) => {
+                if (this._selection.length === 0) {
+                    return;
+                }
                 this._selection = [];
-            }
-        }
-        this._subjects.selection.next({
-            provider: this,
-            guids: this._selection,
-            sender: sender,
-        });
-    }
-
-    public dropSelection(sender?: string) {
-        if (this._selection.length === 0) {
-            return;
-        }
-        this._selection = [];
-        this._subjects.selection.next({
-            provider: this,
-            guids: this._selection,
-            sender: sender,
-        });
-    }
-
-    public getSelection(): string[] {
-        return this._selection.slice();
-    }
-
-    public getSingleSelection(): Entity<T> | undefined {
-        if (this._selection.length !== 1) {
-            return undefined;
-        }
-        return this.get().find((entity: Entity<T>) => {
-            return entity.getGUID() === this._selection[0];
-        });
+                this._subjects.selection.next({
+                    provider: this,
+                    guids: this._selection,
+                    sender: sender,
+                });
+            },
+            get: () => {
+                return this._selection.slice();
+            },
+            set: setSelection,
+            single: () => {
+                if (this._selection.length !== 1) {
+                    return undefined;
+                }
+                return this.get().find((entity: Entity<T>) => {
+                    return entity.getGUID() === this._selection[0];
+                });
+            },
+        };
     }
 
     public editIn() {

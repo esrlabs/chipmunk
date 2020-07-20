@@ -96,7 +96,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     }
 
     private _init() {
-        this._entity = this.provider.getSingleSelection();
+        this._entity = this.provider.select().single();
         if (this._entity === undefined) {
             this._ng_request = undefined;
             this._ng_color = undefined;
