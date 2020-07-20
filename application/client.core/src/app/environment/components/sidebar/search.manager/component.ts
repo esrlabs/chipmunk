@@ -45,20 +45,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
         const items: IMenuItem[] = [
             {
-                caption: 'Remove All',
-                handler: () => {
-                    if (this._session === undefined) {
-                        return;
-                    }
-                    // Drop filters file if it wqs definened
-                    this._session.getSessionSearch().getRecentAPI().setCurrentFile('');
-                    // Clean all
-                    //this._removeFromList('filters', undefined);
-                    //this._removeFromList('charts', undefined);
-                },
-            },
-            { /* delimiter */ },
-            {
                 caption: `Clear recent history`,
                 handler: () => {
                     this._session.getSessionSearch().getRecentAPI().clear().catch((error: Error) => {
