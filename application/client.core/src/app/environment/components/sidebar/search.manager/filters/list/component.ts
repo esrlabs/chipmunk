@@ -2,7 +2,6 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, Outpu
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { IContextMenuEvent } from '../../component';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
@@ -15,9 +14,6 @@ import { Entity } from '../../providers/entity';
 export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, AfterContentInit {
 
     @Input() provider: Provider<FilterRequest>;
-
-    // tslint:disable-next-line:no-output-on-prefix
-    @Output() onContextMenu: EventEmitter<IContextMenuEvent> = new EventEmitter();
 
     public _ng_entries: Array<Entity<FilterRequest>> = [];
 
@@ -43,12 +39,8 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         this.provider.reorder({ prev: event.previousIndex, curt: event.currentIndex });
     }
 
-    public _ng_onContexMenu(event: MouseEvent, request: FilterRequest, index: number) {
-        this.onContextMenu.emit({
-            event: event,
-            request: request,
-            index: index,
-        });
+    public _ng_onContexMenu(event: MouseEvent, entity: Entity<FilterRequest>) {
+        this.provider.select().context(event, entity);
     }
 
     private _onDataUpdate() {

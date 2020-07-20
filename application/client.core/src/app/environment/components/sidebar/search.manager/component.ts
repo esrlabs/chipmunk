@@ -2,14 +2,11 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, Ho
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { IFiltersStorageUpdated, FilterRequest } from 'src/app/environment/controller/controller.session.tab.search.filters.storage';
-import { IChartsStorageUpdated, ChartRequest } from 'src/app/environment/controller/controller.session.tab.search.charts.storage';
-import { EChartType } from '../../views/chart/charts/charts';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import { TimeRange } from '../../../controller/controller.session.tab.timestamps.range';
 import { Providers } from './providers/holder';
-import { Provider, EProviders, ISelectEvent } from './providers/provider';
+import { Provider, EProviders, ISelectEvent, IContextMenuEvent } from './providers/provider';
+import { Entity } from './providers/entity';
 import { ProviderFilters } from './filters/provider';
 import { ProviderCharts } from './charts/provider';
 
@@ -18,12 +15,6 @@ import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-
-export interface IContextMenuEvent {
-    event: MouseEvent;
-    request: FilterRequest | ChartRequest;
-    index: number;
-}
 
 @Component({
     selector: 'app-sidebar-app-searchmanager',
@@ -116,7 +107,8 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._providers.add(EProviders.charts, new ProviderCharts());
         this._providers.add(EProviders.filters, new ProviderFilters());
         this._ng_providers = this._providers.list();
-        this._subscriptions.singleSelection = this._providers.getObservable().singleSelection.subscribe(this._onSingleSelection.bind(this));
+        this._subscriptions.select = this._providers.getObservable().select.subscribe(this._onSingleSelection.bind(this));
+        this._subscriptions.context = this._providers.getObservable().context.subscribe(this._onContextMenu.bind(this));
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         window.addEventListener('keyup', this._onGlobalKeyUp);
         this._onSessionChange(undefined);
@@ -127,7 +119,8 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._forceUpdate();
     }
 
-    public _ng_onContextListsMenu(target: 'filters' | 'charts', event: IContextMenuEvent) {
+    private _onContextMenu(event: IContextMenuEvent) {
+        /*
         const items: IMenuItem[] = [
             {
                 caption: 'Edit',
@@ -135,7 +128,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                     // this._subjects.edit.next(event.request);
                 },
             },
-            { /* delimiter */ },
             {
                 caption: `Show matches`,
                 handler: () => {
@@ -149,40 +141,37 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                     this._session.getSessionSearch().search(request);
                 },
             },
-            { /* delimiter */ },
             {
-                caption: event.request.getState() ? 'Deactivate' : 'Activate',
+                caption: event.entity.getEntity().getState() ? 'Deactivate' : 'Activate',
                 handler: () => {
-                    event.request.setState(!event.request.getState());
+                    event.entity.getEntity().setState(!event.entity.getEntity().getState());
                     this._forceUpdate();
                 },
             },
-            { /* delimiter */ },
             {
                 caption: `Deactivate all`,
                 handler: () => {
-                    this._toggleAllInList(target, false);
+                    // this._toggleAllInList(target, false);
                 },
             },
             {
                 caption: `Activate all`,
                 handler: () => {
-                    this._toggleAllInList(target, true);
+                    // this._toggleAllInList(target, true);
                 },
             },
             {
                 caption: `Deactivate all except this`,
                 handler: () => {
-                    this._toggleAllInList(target, false, event.index);
+                    // this._toggleAllInList(target, false, event.index);
                 },
             },
             {
                 caption: `Activate all except this`,
                 handler: () => {
-                    this._toggleAllInList(target, true, event.index);
+                    // this._toggleAllInList(target, true, event.index);
                 },
             },
-            { /* delimiter */ },
             {
                 caption: `Remove`,
                 handler: () => {
@@ -195,7 +184,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                     //this._removeFromList(target, undefined);
                 },
             },
-            { /* delimiter */ },
             {
                 caption: `Convert to ${event.request instanceof FilterRequest ? 'chart' : 'filter'}`,
                 disabled: event.request instanceof FilterRequest ? !ChartRequest.isValid(event.request.asDesc().request) : false,
@@ -204,8 +192,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                 },
             },
         ];
+        */
         ContextMenuService.show({
-            items: items,
+            items: event.items,
             x: event.event.pageX,
             y: event.event.pageY,
         });
@@ -213,80 +202,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         event.event.preventDefault();
     }
 
-    private _toggleAllInList(target: 'filters' | 'charts', state: boolean, exception?: number) {
-        if (['filters', 'charts'].indexOf(target) === -1) {
-            return;
-        }
-        if (exception === undefined) {
-            (this as any)[`_ng_${target}`] = (this as any)[`_ng_${target}`].map((request: FilterRequest | ChartRequest) => {
-                request.setState(state);
-                return request;
-            });
-        } else {
-            (this as any)[`_ng_${target}`] = (this as any)[`_ng_${target}`].map((request: FilterRequest | ChartRequest, i: number) => {
-                if (exception !== i) {
-                    request.setState(state);
-                } else {
-                    request.setState(!state);
-                }
-                return request;
-            });
-        }
-    }
-
-    /*
-    private _convertEntryTo(request: FilterRequest | ChartRequest) {
-        // Drop selected
-        this._onSelectedInList(undefined);
-        if (request instanceof FilterRequest) {
-            // From filter to chart
-            this._session.getSessionSearch().getFiltersAPI().getStorage().remove(request);
-            this._session.getSessionSearch().getChartsAPI().getStorage().add({
-                request: request.asDesc().request,
-                type: EChartType.smooth,
-            });
-        } else if (request instanceof ChartRequest) {
-            // From filter to chart
-            this._session.getSessionSearch().getChartsAPI().getStorage().remove(request);
-            this._session.getSessionSearch().getFiltersAPI().getStorage().add({
-                request: request.asDesc().request,
-                flags: {
-                    casesensitive: true,
-                    wholeword: true,
-                    regexp: true,
-                }
-            });
-        }
-    }
-
-    private _removeFromList(target: 'filters' | 'charts', request: FilterRequest | ChartRequest | undefined) {
-        if (['filters', 'charts'].indexOf(target) === -1) {
-            return;
-        }
-        if (this._session === undefined) {
-            return;
-        }
-        // Drop selected
-        this._onSelectedInList(undefined);
-        // Remove all or one request
-        switch (target) {
-            case 'filters':
-                if (request instanceof FilterRequest) {
-                    this._session.getSessionSearch().getFiltersAPI().getStorage().remove(request);
-                } else {
-                    this._session.getSessionSearch().getFiltersAPI().getStorage().clear();
-                }
-                break;
-            case 'charts':
-                if (request instanceof ChartRequest) {
-                    this._session.getSessionSearch().getChartsAPI().getStorage().remove(request);
-                } else {
-                    this._session.getSessionSearch().getChartsAPI().getStorage().clear();
-                }
-                break;
-        }
-    }
-    */
     private _onGlobalKeyUp(event: KeyboardEvent) {
         if (!this._focused) {
             return;
@@ -299,7 +214,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                 this._providers.select().next();
                 break;
             case 'Enter':
-                this._providers.editIn();
+                this._providers.edit().in();
                 break;
         }
     }

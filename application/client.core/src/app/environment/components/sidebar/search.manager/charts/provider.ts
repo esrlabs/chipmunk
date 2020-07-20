@@ -1,11 +1,14 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
-import { ChartRequest, IChartsStorageUpdated } from '../../../../controller/controller.session.tab.search.charts.storage';
+import { ChartRequest, IChartsStorageUpdated,  } from '../../../../controller/controller.session.tab.search.charts.storage';
+import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerChartsComponent } from './list/component';
 import { SidebarAppSearchManagerChartDetailsComponent } from './details/component';
+import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import { EChartType } from '../../../../components/views/chart/charts/charts';
 
 export class ProviderCharts extends Provider<ChartRequest> {
 
@@ -111,6 +114,93 @@ export class ProviderCharts extends Provider<ChartRequest> {
             inputs: {
                 provider: this,
             },
+        };
+    }
+
+    public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
+        if (selected.length !== 1) {
+            return [];
+        }
+        const entity: FilterRequest = selected[0].getEntity();
+        const items: IMenuItem[] = [];
+        if (entity instanceof FilterRequest && ChartRequest.isValid(entity.asDesc().request)) {
+            items.push({
+                caption: `Conver To Chart`,
+                handler: () => {
+                    super.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(entity);
+                    super.getSession().getSessionSearch().getChartsAPI().getStorage().add({
+                        request: entity.asDesc().request,
+                        type: EChartType.smooth,
+                    });
+                },
+            });
+        }
+        if (entity instanceof ChartRequest) {
+            items.push({
+                caption: `Show Matches`,
+                handler: () => {
+                    super.getSession().getSessionSearch().search(new FilterRequest({
+                        request: (entity as ChartRequest).asDesc().request,
+                        flags: {
+                            casesensitive: false,
+                            wholeword: false,
+                            regexp: true,
+                        }
+                    }));
+                },
+            });
+        }
+        return items;
+    }
+
+    public actions(target: Entity<any>, selected: Array<Entity<any>>): {
+        enable?: () => void,
+        disable?: () => void,
+        activate?: () => void,
+        deactivate?: () => void,
+        remove?: () => void,
+        edit?: () => void,
+    } {
+        return {
+            enable: () => {},
+            disable: () => {},
+            activate: () => {
+                selected.forEach((entity: Entity<any>) => {
+                    if (entity.getEntity() instanceof ChartRequest) {
+                        (entity.getEntity() as ChartRequest).setState(true);
+                    }
+                });
+            },
+            deactivate: () => {
+                selected.forEach((entity: Entity<any>) => {
+                    if (entity.getEntity() instanceof ChartRequest) {
+                        (entity.getEntity() as ChartRequest).setState(false);
+                    }
+                });
+            },
+            remove: () => {
+                const entities = selected.filter((entity: Entity<any>) => {
+                    return entity.getEntity() instanceof ChartRequest;
+                });
+                if (entities.length === this.get().length) {
+                    super.getSession().getSessionSearch().getChartsAPI().getStorage().clear();
+                    super.update();
+                } else {
+                    entities.forEach((entity: Entity<ChartRequest>) => {
+                        super.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity.getEntity());
+                    });
+                }
+            },
+            edit: () => {
+                if (selected.length !== 1) {
+                    return;
+                }
+                // View should be focused to switch to edit-mode, but while context
+                // menu is open, there are no focus. Well, that's why settimer here.
+                setTimeout(() => {
+                    this.edit().in();
+                });
+            }
         };
     }
 

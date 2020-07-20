@@ -86,7 +86,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
             case 'Escape':
                 this._zone.run(() => {
                     this._ng_request = this.entity.getEntity().asDesc().request;
-                    this.provider.editOut();
+                    this.provider.edit().out();
                     this._forceUpdate();
                 });
                 break;
@@ -97,7 +97,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
                     } else {
                         this._ng_request = this.entity.getEntity().asDesc().request;
                     }
-                    this.provider.editOut();
+                    this.provider.edit().out();
                     this._forceUpdate();
                 });
                 break;
@@ -107,7 +107,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     public _ng_onRequestInputBlur() {
         this._zone.run(() => {
             this._ng_request = this.entity.getEntity().asDesc().request;
-            this.provider.editOut();
+            this.provider.edit().out();
             this._forceUpdate();
         });
     }

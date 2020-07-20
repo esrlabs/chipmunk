@@ -3,6 +3,7 @@ import { Entity } from './entity';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { KeyboardListener } from './keyboard.listener';
+import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
@@ -20,16 +21,34 @@ export interface ISelectEvent {
     sender?: string;
 }
 
+export interface IContextMenuEvent {
+    event: MouseEvent;
+    provider: Provider<any>;
+    entity: Entity<any>;
+    items?: IMenuItem[];
+}
+
+export enum EActions {
+    enable = 'enable',
+    disable = 'disable',
+    remove = 'remove',
+    activate = 'activate',
+    deactivate = 'deactivate',
+    edit = 'edit',
+}
+
 export abstract class Provider<T> {
 
     private _subjects: {
         change: Subject<void>,
         selection: Subject<ISelectEvent>,
         edit: Subject<string | undefined>,
+        context: Subject<IContextMenuEvent>,
     } = {
         change: new Subject(),
         selection: new Subject(),
         edit: new Subject(),
+        context: new Subject(),
     };
     private _session: ControllerSessionTab | undefined;
     private _selection: string[] = [];
@@ -64,8 +83,10 @@ export abstract class Provider<T> {
         prev: () => boolean,
         drop: (sender?: string) => void,
         get: () => string[],
+        getEntities: () => Array<Entity<T>>,
         set: (guid: string, sender?: string) => void,
         single: () => Entity<T> | undefined,
+        context: (event: MouseEvent, entity: Entity<T>) => void,
     } {
         const setSelection: (guid: string, sender?: string) => void = (guid: string, sender?: string) => {
             const index: number = this._selection.indexOf(guid);
@@ -157,6 +178,16 @@ export abstract class Provider<T> {
             get: () => {
                 return this._selection.slice();
             },
+            getEntities: () => {
+                const entities = [];
+                this.get().forEach((entity: Entity<T>) => {
+                    if (this._selection.indexOf(entity.getGUID()) === -1) {
+                        return;
+                    }
+                    entities.push(entity);
+                });
+                return entities;
+            },
             set: setSelection,
             single: () => {
                 if (this._selection.length !== 1) {
@@ -166,40 +197,55 @@ export abstract class Provider<T> {
                     return entity.getGUID() === this._selection[0];
                 });
             },
+            context: (event: MouseEvent, entity: Entity<T>) => {
+                this._subjects.context.next({
+                    event: event,
+                    entity: entity,
+                    provider: this,
+                });
+            },
         };
     }
 
-    public editIn() {
-        if (this._selection.length !== 1) {
-            return;
-        }
-        const guid: string = this._selection[0];
-        this.get().forEach((entity: Entity<any>) => {
-            if (entity.getGUID() === guid) {
-                entity.getEditState().in();
-            } else {
-                entity.getEditState().out();
-            }
-        });
-        this._subjects.edit.next(guid);
-    }
-
-    public editOut() {
-        this.get().forEach((entity: Entity<any>) => {
-            entity.getEditState().out();
-        });
-        this._subjects.edit.next(undefined);
+    public edit(): {
+        in: () => void,
+        out: () => void,
+    } {
+        return {
+            in: () => {
+                if (this._selection.length !== 1) {
+                    return;
+                }
+                const guid: string = this._selection[0];
+                this.get().forEach((entity: Entity<any>) => {
+                    if (entity.getGUID() === guid) {
+                        entity.getEditState().in();
+                    } else {
+                        entity.getEditState().out();
+                    }
+                });
+                this._subjects.edit.next(guid);
+            },
+            out: () => {
+                this.get().forEach((entity: Entity<any>) => {
+                    entity.getEditState().out();
+                });
+                this._subjects.edit.next(undefined);
+            },
+        };
     }
 
     public getObservable(): {
         change: Observable<void>,
         selection: Observable<ISelectEvent>,
         edit: Observable<string | undefined>,
+        context: Observable<IContextMenuEvent>,
     } {
         return {
             change: this._subjects.change.asObservable(),
             selection: this._subjects.selection.asObservable(),
             edit: this._subjects.edit.asObservable(),
+            context: this._subjects.context.asObservable(),
         };
     }
 
@@ -236,7 +282,6 @@ export abstract class Provider<T> {
 
     public abstract getDetailsComp(): IComponentDesc;
 
-
     /**
      * Should called in inherit class in constructor
      * @param session
@@ -247,6 +292,17 @@ export abstract class Provider<T> {
      * Should return undefined to hide panel in case of empty list
      */
     public abstract getContentIfEmpty(): string | undefined;
+
+    public abstract getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[];
+
+    public abstract actions(target: Entity<any> | undefined, selected: Array<Entity<any>>): {
+        enable?: () => void,
+        disable?: () => void,
+        activate?: () => void,
+        deactivate?: () => void,
+        remove?: () => void,
+        edit?: () => void,
+    };
 
     private _onSessionChange(session: ControllerSessionTab | undefined) {
         this._session = session;

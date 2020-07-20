@@ -77,7 +77,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
             case 'Escape':
                 this._zone.run(() => {
                     this._ng_request = this.entity.getEntity().asDesc().request;
-                    this.provider.editOut();
+                    this.provider.edit().out();
                     this._forceUpdate();
                 });
                 break;
@@ -88,7 +88,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
                     } else {
                         this._ng_request = this.entity.getEntity().asDesc().request;
                     }
-                    this.provider.editOut();
+                    this.provider.edit().out();
                     this._forceUpdate();
                 });
                 break;
@@ -98,7 +98,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
     public _ng_onRequestInputBlur() {
         this._zone.run(() => {
             this._ng_request = this.entity.getEntity().asDesc().request;
-            this.provider.editOut();
+            this.provider.edit().out();
             this._forceUpdate();
         });
     }

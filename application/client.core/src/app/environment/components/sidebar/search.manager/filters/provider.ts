@@ -1,11 +1,13 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
 import { FilterRequest, IFiltersStorageUpdated } from '../../../../controller/controller.session.tab.search.filters.storage';
+import { ChartRequest  } from '../../../../controller/controller.session.tab.search.charts.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerFiltersComponent } from './list/component';
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
+import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 
 export class ProviderFilters extends Provider<FilterRequest> {
 
@@ -111,6 +113,93 @@ export class ProviderFilters extends Provider<FilterRequest> {
             inputs: {
                 provider: this,
             },
+        };
+    }
+
+    /*
+
+    */
+    public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
+        if (selected.length !== 1) {
+            return [];
+        }
+        const entity: ChartRequest = selected[0].getEntity();
+        const items: IMenuItem[] = [];
+        if (entity instanceof ChartRequest && FilterRequest.isValid(entity.asDesc().request)) {
+            items.push({
+                caption: `Conver To Filter`,
+                handler: () => {
+                    super.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity);
+                    super.getSession().getSessionSearch().getFiltersAPI().getStorage().add({
+                        request: entity.asDesc().request,
+                        flags: {
+                            casesensitive: true,
+                            wholeword: true,
+                            regexp: true,
+                        }
+                    });
+                },
+            });
+        }
+        if (entity instanceof FilterRequest) {
+            items.push({
+                caption: `Show Matches`,
+                handler: () => {
+                    super.getSession().getSessionSearch().search(entity);
+                },
+            });
+        }
+        return items;
+    }
+
+    public actions(target: Entity<any>, selected: Array<Entity<any>>): {
+        enable?: () => void,
+        disable?: () => void,
+        activate?: () => void,
+        deactivate?: () => void,
+        remove?: () => void,
+        edit?: () => void,
+    } {
+        return {
+            enable: () => {},
+            disable: () => {},
+            activate: () => {
+                selected.forEach((entity: Entity<any>) => {
+                    if (entity.getEntity() instanceof FilterRequest) {
+                        (entity.getEntity() as FilterRequest).setState(true);
+                    }
+                });
+            },
+            deactivate: () => {
+                selected.forEach((entity: Entity<any>) => {
+                    if (entity.getEntity() instanceof FilterRequest) {
+                        (entity.getEntity() as FilterRequest).setState(false);
+                    }
+                });
+            },
+            remove: () => {
+                const entities = selected.filter((entity: Entity<any>) => {
+                    return entity.getEntity() instanceof FilterRequest;
+                });
+                if (entities.length === this.get().length) {
+                    super.getSession().getSessionSearch().getFiltersAPI().getStorage().clear();
+                    super.update();
+                } else {
+                    entities.forEach((entity: Entity<FilterRequest>) => {
+                        super.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(entity.getEntity());
+                    });
+                }
+            },
+            edit: () => {
+                if (selected.length !== 1) {
+                    return;
+                }
+                // View should be focused to switch to edit-mode, but while context
+                // menu is open, there are no focus. Well, that's why settimer here.
+                setTimeout(() => {
+                    this.edit().in();
+                });
+            }
         };
     }
 
