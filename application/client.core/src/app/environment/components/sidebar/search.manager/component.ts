@@ -293,10 +293,10 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         }
         switch (event.code) {
             case 'ArrowUp':
-                
+                this._providers.select().prev();
                 break;
             case 'ArrowDown':
-                
+                this._providers.select().next();
                 break;
             case 'Enter':
                 this._providers.editIn();

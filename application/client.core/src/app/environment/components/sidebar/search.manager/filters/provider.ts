@@ -86,10 +86,10 @@ export class ProviderFilters extends Provider<FilterRequest> {
     }
 
     public getDetailsPanelDesc(): string {
-        if (this.getSelection().length !== 1) {
+        if (this.select().get().length !== 1) {
             return '';
         }
-        const selection = this._entities.get(this.getSelection()[0]);
+        const selection = this._entities.get(this.select().get()[0]);
         if (selection === undefined) {
             return '';
         }

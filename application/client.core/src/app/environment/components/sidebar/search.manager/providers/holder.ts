@@ -57,16 +57,112 @@ export class Providers {
         return this._providers;
     }
 
+    public select(): {
+        next: () => void,
+        prev: () => void,
+        drop: () => void,
+        first: () => void,
+        last: () => void,
+        single: () => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined,
+    } {
+        const single: () => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined = () => {
+            if (this._providers.size === 0) {
+                return undefined;
+            }
+            const providers = [];
+            let next;
+            let prev;
+            Array.from(this._providers.values()).forEach((provider: Provider<any>, i: number, all: Array<Provider<any>>) => {
+                if (provider.select().single() !== undefined) {
+                    providers.push(provider);
+                    if (i + 1 <= all.length - 1) {
+                        next = all[i + 1];
+                    }
+                    if (i - 1 >= 0) {
+                        prev = all[i - 1];
+                    }
+                }
+            });
+            if (providers.length !== 1) {
+                return undefined;
+            }
+            return { provider: providers[0], next: next, prev: prev, guid: (providers[0] as Provider<any>).select().single().getGUID() };
+        };
+        const drop: () => void = () => {
+            this._providers.forEach((provider: Provider<any>) => {
+                provider.select().drop(this.SENDER);
+            });
+        };
+        const first: () => void = () => {
+            if (this._providers.size === 0) {
+                return;
+            }
+            (Array.from(this._providers.values())[0] as Provider<any>).select().first();
+        };
+        const last: () => void = () => {
+            if (this._providers.size === 0) {
+                return;
+            }
+            const entities = Array.from(this._providers.values());
+            (entities[entities.length - 1] as Provider<any>).select().last();
+        };
+        return {
+            next: () => {
+                if (this._providers.size === 0) {
+                    return;
+                }
+                const sel = single();
+                if (sel === undefined) {
+                    drop();
+                    first();
+                } else {
+                    if (!sel.provider.select().next()) {
+                        sel.provider.select().drop();
+                        if (sel.next !== undefined) {
+                            sel.next.select().first();
+                        } else {
+                            first();
+                        }
+                    }
+                }
+            },
+            prev: () => {
+                if (this._providers.size === 0) {
+                    return;
+                }
+                const sel = single();
+                if (sel === undefined) {
+                    drop();
+                    last();
+                } else {
+                    if (!sel.provider.select().prev()) {
+                        sel.provider.select().drop();
+                        if (sel.prev !== undefined) {
+                            sel.prev.select().last();
+                        } else {
+                            last();
+                        }
+                    }
+                }
+
+            },
+            drop: drop,
+            first: first,
+            last: last,
+            single: single,
+        };
+    }
+
     public editIn() {
         let count: number = 0;
         this._providers.forEach((provider: Provider<any>) => {
-            count += provider.getSelection().length;
+            count += provider.select().get().length;
         });
         if (count !== 1) {
             return;
         }
         this._providers.forEach((provider: Provider<any>) => {
-            if (provider.getSelection().length === 1) {
+            if (provider.select().get().length === 1) {
                 provider.editIn();
             }
         });
@@ -81,20 +177,20 @@ export class Providers {
             this._providers.forEach((provider: Provider<any>) => {
                 // Drop selection on all others providers
                 if (provider.getGuid() !== event.provider.getGuid()) {
-                    provider.dropSelection(this.SENDER);
+                    provider.select().drop(this.SENDER);
                 }
             });
         }
         let guids: string[] = [];
         this._providers.forEach((provider: Provider<any>) => {
-            guids = guids.concat(provider.getSelection());
+            guids = guids.concat(provider.select().get());
         });
         if (guids.length === 1) {
             this._providers.forEach((provider: Provider<any>) => {
-                if (provider.getSelection().length === 1) {
+                if (provider.select().get().length === 1) {
                     this._subjects.singleSelection.next({
                         provider: provider,
-                        guids: provider.getSelection(),
+                        guids: provider.select().get(),
                     });
                 }
             });
