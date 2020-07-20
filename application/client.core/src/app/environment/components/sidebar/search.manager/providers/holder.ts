@@ -1,8 +1,10 @@
-import { Provider, EProviders, ISelectEvent } from './provider';
+import { Provider, EProviders, ISelectEvent, IContextMenuEvent, EActions } from './provider';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { KeyboardListener } from './keyboard.listener';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { IMenuItem } from 'src/app/environment/services/standalone/service.contextmenu';
+import { Entity } from './entity';
 
 export class Providers {
 
@@ -13,14 +15,19 @@ export class Providers {
     private _selsubs: { [key: string]: Subscription } = {};
     private _keyboard: KeyboardListener = new KeyboardListener();
     private _subjects: {
-        singleSelection: Subject<ISelectEvent | undefined>,
+        select: Subject<ISelectEvent | undefined>,
+        context: Subject<IContextMenuEvent>,
     } = {
-        singleSelection: new Subject(),
+        select: new Subject(),
+        context: new Subject(),
     };
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
+        });
+        Object.keys(this._selsubs).forEach((key: string) => {
+            this._selsubs[key].unsubscribe();
         });
         this._providers.forEach((provider: Provider<any>) => {
             provider.destroy();
@@ -29,10 +36,12 @@ export class Providers {
     }
 
     public getObservable(): {
-        singleSelection: Observable<ISelectEvent | undefined>,
+        select: Observable<ISelectEvent | undefined>,
+        context: Observable<IContextMenuEvent>,
     } {
         return {
-            singleSelection: this._subjects.singleSelection.asObservable(),
+            select: this._subjects.select.asObservable(),
+            context: this._subjects.context.asObservable(),
         };
     }
 
@@ -41,7 +50,8 @@ export class Providers {
             return false;
         }
         provider.setKeyboardListener(this._keyboard);
-        this._selsubs[name] = provider.getObservable().selection.subscribe(this._onSelectionEntity.bind(this));
+        this._selsubs[`selection_${name}`] = provider.getObservable().selection.subscribe(this._onSelectionEntity.bind(this));
+        this._selsubs[`context_${name}`] = provider.getObservable().context.subscribe(this._onContextMenuEvent.bind(this));
         this._providers.set(name, provider);
     }
 
@@ -64,6 +74,8 @@ export class Providers {
         first: () => void,
         last: () => void,
         single: () => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined,
+        getEntities: () => Array<Entity<any>>,
+        getProviders: () => Array<Provider<any>>,
     } {
         const single: () => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined = () => {
             if (this._providers.size === 0) {
@@ -150,22 +162,50 @@ export class Providers {
             first: first,
             last: last,
             single: single,
+            getEntities: () => {
+                let entities = [];
+                this._providers.forEach((provider: Provider<any>) => {
+                    entities = entities.concat(provider.select().getEntities());
+                });
+                return entities;
+            },
+            getProviders: () => {
+                const providers = [];
+                this._providers.forEach((provider: Provider<any>) => {
+                    if (provider.select().getEntities().length !== 0) {
+                        providers.push(provider);
+                    }
+                });
+                return providers;
+            },
         };
     }
 
-    public editIn() {
-        let count: number = 0;
-        this._providers.forEach((provider: Provider<any>) => {
-            count += provider.select().get().length;
-        });
-        if (count !== 1) {
-            return;
-        }
-        this._providers.forEach((provider: Provider<any>) => {
-            if (provider.select().get().length === 1) {
-                provider.editIn();
-            }
-        });
+    public edit(): {
+        in: () => void,
+        out: () => void,
+    } {
+        return {
+            in: () => {
+                let count: number = 0;
+                this._providers.forEach((provider: Provider<any>) => {
+                    count += provider.select().get().length;
+                });
+                if (count !== 1) {
+                    return;
+                }
+                this._providers.forEach((provider: Provider<any>) => {
+                    if (provider.select().get().length === 1) {
+                        provider.edit().in();
+                    }
+                });
+            },
+            out: () => {
+                this._providers.forEach((provider: Provider<any>) => {
+                    provider.edit().out();
+                });
+            },
+        };
     }
 
     private _onSelectionEntity(event: ISelectEvent) {
@@ -188,15 +228,143 @@ export class Providers {
         if (guids.length === 1) {
             this._providers.forEach((provider: Provider<any>) => {
                 if (provider.select().get().length === 1) {
-                    this._subjects.singleSelection.next({
+                    this._subjects.select.next({
                         provider: provider,
                         guids: provider.select().get(),
                     });
                 }
             });
         } else {
-            this._subjects.singleSelection.next(undefined);
+            this._subjects.select.next(undefined);
         }
+    }
+
+    private _onContextMenuEvent(event: IContextMenuEvent) {
+        const isActionAvailable = (action: EActions, insel: Array<Provider<any>>) => {
+            let count: number = 0;
+            insel.forEach((provider: Provider<any>) => {
+                provider.actions(undefined, [])[action] !== undefined && (count += 1);
+            });
+            return count === insel.length;
+        };
+        let entities = this.select().getEntities();
+        if (entities.length === 0) {
+            // Context menu is called without active selection
+            // Set selection to target element
+            event.provider.select().set(event.entity.getGUID());
+            entities = [event.entity];
+        } else if (entities.length === 1) {
+            if (entities[0].getGUID() !== event.entity.getGUID()) {
+                this.select().drop();
+                event.provider.select().set(event.entity.getGUID());
+                entities = [event.entity];
+            }
+        } else if (entities.length > 1) {
+            if (entities.map((entity) => entity.getGUID()).indexOf(event.entity.getGUID()) === -1) {
+                // Context menu is called out of selection
+                this.select().drop();
+                event.provider.select().set(event.entity.getGUID());
+                entities = [event.entity];
+            }
+        }
+        const providers = this.select().getProviders();
+        const actions: {
+            disable: boolean,
+            activate: boolean,
+            deactivate: boolean,
+            remove: boolean,
+            edit: boolean,
+        } = {
+            disable: isActionAvailable(EActions.disable, providers),
+            activate: isActionAvailable(EActions.activate, providers),
+            deactivate: isActionAvailable(EActions.deactivate, providers),
+            remove: isActionAvailable(EActions.remove, providers),
+            edit: isActionAvailable(EActions.edit, providers),
+        };
+        event.items = [];
+        if (providers.length === 1 && entities.length === 1 && actions.edit) {
+            event.items.push({
+                caption: 'Edit',
+                handler: () => {
+                    providers[0].actions(event.entity, entities).edit();
+                },
+            });
+        }
+
+        event.items.length > 0 && event.items.push({ /* Delimiter */});
+
+        actions.disable && event.items.push({
+            caption: 'Disable',
+            handler: () => {
+
+            },
+        });
+        actions.activate && event.items.push({
+            caption: 'Activate',
+            handler: () => {
+                providers.forEach((provider: Provider<any>) => {
+                    provider.actions(event.entity, entities).activate();
+                });
+            },
+        });
+        actions.deactivate && event.items.push({
+            caption: 'Deactivate',
+            handler: () => {
+                providers.forEach((provider: Provider<any>) => {
+                    provider.actions(event.entity, entities).deactivate();
+                });
+            },
+        });
+        actions.remove && event.items.push({
+            caption: 'Remove',
+            handler: () => {
+                providers.forEach((provider: Provider<any>) => {
+                    provider.actions(event.entity, entities).remove();
+                });
+            },
+        });
+
+        event.items.length > 0 && event.items.push({ /* Delimiter */});
+
+        actions.disable && event.items.push({
+            caption: 'Disable All',
+            handler: () => {
+
+            },
+        });
+        actions.activate && event.items.push({
+            caption: 'Activate All',
+            handler: () => {
+                providers.forEach((provider: Provider<any>) => {
+                    provider.actions(event.entity, provider.get()).activate();
+                });
+            },
+        });
+        actions.deactivate && event.items.push({
+            caption: 'Deactivate All',
+            handler: () => {
+                providers.forEach((provider: Provider<any>) => {
+                    provider.actions(event.entity, provider.get()).deactivate();
+                });
+            },
+        });
+        actions.remove && event.items.push({
+            caption: 'Remove All',
+            handler: () => {
+                providers.forEach((provider: Provider<any>) => {
+                    provider.actions(event.entity, provider.get()).remove();
+                });
+            },
+        });
+        let custom: IMenuItem[] = [];
+        this._providers.forEach((provider: Provider<any>) => {
+            custom = custom.concat(provider.getContextMenuItems(event.entity, this.select().getEntities()));
+        });
+        if (custom.length > 0) {
+            event.items.push({ /* Delimiter */});
+            event.items = event.items.concat(custom);
+        }
+        this._subjects.context.next(event);
     }
 
 }

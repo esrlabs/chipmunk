@@ -2,7 +2,6 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, Event
 import { TimeRange } from '../../../../../controller/controller.session.tab.timestamps.range';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { IContextMenuEvent } from '../../component';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 
 @Component({
@@ -18,9 +17,6 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     @Input() ranges: TimeRange[] = [];
     @Input() offset: number = 0;
     @Input() selected: Subject<string>;
-
-    // tslint:disable-next-line:no-output-on-prefix
-    @Output() onContextMenu: EventEmitter<IContextMenuEvent> = new EventEmitter();
 
     public _ng_observables: {
         select: Observable<string>,
