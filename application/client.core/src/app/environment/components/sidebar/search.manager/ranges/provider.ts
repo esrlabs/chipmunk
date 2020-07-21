@@ -1,6 +1,7 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
-import { TimeRange } from '../../../../controller/controller.session.tab.timestamps.range';
+import { RangeRequest } from '../../../../controller/controller.session.tab.search.ranges.request';
+import { IRangesStorageUpdated } from '../../../../controller/controller.session.tab.search.ranges.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { Subject, Observable, Subscription } from 'rxjs';
@@ -8,10 +9,10 @@ import { SidebarAppSearchManagerTimeRangesComponent } from './list/component';
 import { SidebarAppSearchManagerTimerangeDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 
-export class ProviderRanges extends Provider<TimeRange> {
+export class ProviderRanges extends Provider<RangeRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
-    private _entities: Map<string, Entity<TimeRange>> = new Map();
+    private _entities: Map<string, Entity<RangeRequest>> = new Map();
 
     constructor() {
         super();
@@ -29,24 +30,20 @@ export class ProviderRanges extends Provider<TimeRange> {
         if (session === undefined) {
             return;
         }
-        /*
-        this._subs.updated = session.getSessionSearch().getFiltersAPI().getStorage().getObservable().updated.subscribe((event?: IFiltersStorageUpdated) => {
+        this._subs.updated = session.getSessionSearch().getRangesAPI().getStorage().getObservable().updated.subscribe((event?: IRangesStorageUpdated) => {
             super.update();
-            if (event === undefined || !(event.added instanceof TimeRange)) {
+            if (event === undefined || !(event.added instanceof RangeRequest)) {
                 // this._selectFilter(event.added); // SELECT
             }
         });
-        */
     }
 
-    public get(): Array<Entity<TimeRange>> {
-        return [];
-        /*
+    public get(): Array<Entity<RangeRequest>> {
         const guids: string[] = [];
-        const entities = super.getSession() === undefined ? [] : super.getSession().getSessionSearch().getFiltersAPI().getStorage().get().map((filter: TimeRange) => {
+        const entities = super.getSession() === undefined ? [] : super.getSession().getSessionSearch().getRangesAPI().getStorage().get().map((filter: RangeRequest) => {
             let entity = this._entities.get(filter.getGUID());
             if (entity === undefined) {
-                entity = new Entity<TimeRange>(filter, filter.getGUID());
+                entity = new Entity<RangeRequest>(filter, filter.getGUID());
             } else {
                 entity.setEntity(filter);
             }
@@ -60,7 +57,6 @@ export class ProviderRanges extends Provider<TimeRange> {
             }
         });
         return entities;
-        */
     }
 
     public reorder(params: {
@@ -75,20 +71,20 @@ export class ProviderRanges extends Provider<TimeRange> {
     }
 
     public getContentIfEmpty(): string | undefined {
-        return `No filters are stored`;
+        return undefined;
     }
 
     public getPanelName(): string {
-        return `Filters`;
+        return `Time Ranges`;
     }
 
     public getPanelDesc(): string {
         const count = this.get().length;
-        return `${count} filter${count > 1 ? 's' : ''}`;
+        return `${count} range${count > 1 ? 's' : ''}`;
     }
 
     public getDetailsPanelName(): string {
-        return `Filter Details`;
+        return `Time Range Details`;
     }
 
     public getDetailsPanelDesc(): string {

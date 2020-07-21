@@ -56,10 +56,6 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         this.entity.getEntity().onUpdated(this._onRequestUpdated.bind(this));
     }
 
-    public getInputRef(): MatInput | undefined {
-        return this._inputRefCom;
-    }
-
     public _ng_onStateChange(event: MatCheckboxChange) {
         this.entity.getEntity().setState(event.checked);
         this._forceUpdate();
@@ -67,9 +63,6 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
 
     public _ng_onStateClick(event: MouseEvent) {
         this._ng_directive.ignoreMouseClick(event);
-    }
-
-    public _ng_onRequestInputChange(request: string) {
     }
 
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {

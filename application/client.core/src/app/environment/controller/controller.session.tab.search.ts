@@ -1,5 +1,6 @@
 import { ControllerSessionTabSearchFilters, FilterRequest } from './controller.session.tab.search.filters';
 import { ControllerSessionTabSearchCharts } from './controller.session.tab.search.charts';
+import { ControllerSessionTabSearchRanges } from './controller.session.tab.search.ranges';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchRecent } from './controller.session.tab.search.recent';
@@ -22,6 +23,7 @@ export class ControllerSessionTabSearch {
     private _logger: Toolkit.Logger;
     private _filters: ControllerSessionTabSearchFilters;
     private _charts: ControllerSessionTabSearchCharts;
+    private _ranges: ControllerSessionTabSearchRanges;
     private _recent: ControllerSessionTabSearchRecent;
     private _subjects: {
         search: Subject<FilterRequest>,
@@ -35,6 +37,7 @@ export class ControllerSessionTabSearch {
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearch: ${params.guid}`);
         this._filters = new ControllerSessionTabSearchFilters(params);
         this._charts = new ControllerSessionTabSearchCharts(params);
+        this._ranges = new ControllerSessionTabSearchRanges(params);
         this._recent = new ControllerSessionTabSearchRecent(
             params.guid,
             this._filters.getStorage(),
@@ -47,6 +50,7 @@ export class ControllerSessionTabSearch {
             Promise.all([
                 this._filters.destroy(),
                 this._charts.destroy(),
+                this._ranges.destroy(),
                 this._recent.destroy(),
             ]).then(() => {
                 resolve();
@@ -76,6 +80,10 @@ export class ControllerSessionTabSearch {
 
     public getChartsAPI(): ControllerSessionTabSearchCharts {
         return this._charts;
+    }
+
+    public getRangesAPI(): ControllerSessionTabSearchRanges {
+        return this._ranges;
     }
 
     public getRecentAPI(): ControllerSessionTabSearchRecent {

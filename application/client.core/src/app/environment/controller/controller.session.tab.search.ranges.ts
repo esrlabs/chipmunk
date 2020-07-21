@@ -33,7 +33,7 @@ export interface ISubjects {
     dropped: Subject<void>;
 }
 
-export class ControllerSessionTabSearchFilters {
+export class ControllerSessionTabSearchRanges {
 
     private _logger: Toolkit.Logger;
     private _guid: string;

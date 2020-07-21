@@ -1,11 +1,9 @@
-<div cdkDropList (cdkDropListDropped)="_ng_onItemDragged($event)" class="charts">
+<div cdkDropList (cdkDropListDropped)="_ng_onItemDragged($event)" class="ranges">
     <app-sidebar-app-searchmanager-timerangehook
-        (contextmenu)="_ng_onContexMenu($event, request, i)"
-        appSidebarSearchManagerItem
-        cdkDrag
-        [range]="range"
-        [selected]="selected"
-        [select]="_ng_observables.select"
-        [edit]="_ng_observables.edit"
-        *ngFor="let range of ranges"></app-sidebar-app-searchmanager-timerangehook>
+    (contextmenu)="_ng_onContexMenu($event, entity)"
+    appSidebarSearchManagerItem
+    cdkDrag
+    [provider]="provider"
+    [entity]="entity"
+    *ngFor="let entity of _ng_entries;"></app-sidebar-app-searchmanager-timerangehook>
 </div>
