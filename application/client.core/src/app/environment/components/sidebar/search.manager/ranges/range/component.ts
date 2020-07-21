@@ -1,9 +1,13 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild } from '@angular/core';
-import { TimeRange } from '../../../../../controller/controller.session.tab.timestamps.range';
+import { RangeRequest, IRangeUpdateEvent } from '../../../../../controller/controller.session.tab.search.ranges.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
+import { ProviderRanges } from '../provider';
+import { Provider } from '../../providers/provider';
+import { Entity } from '../../providers/entity';
+import { RangesStorage } from 'src/app/environment/controller/controller.session.tab.search.ranges';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-timerangehook',
@@ -13,13 +17,19 @@ import { SidebarAppSearchManagerItemDirective } from '../../directives/item.dire
 
 export class SidebarAppSearchManagerTimeRangeComponent implements OnDestroy, AfterContentInit {
 
+    @HostBinding('class.notvalid') get cssClassNotValid() {
+        return !RangeRequest.isValidAlias(this._ng_alias);
+    }
+
     @ViewChild(MatInput) _inputRefCom: MatInput;
 
-    @Input() range: TimeRange;
+    @Input() entity: Entity<RangeRequest>;
+    @Input() provider: ProviderRanges;
 
-    public _ng_request: string = 'initialization';
-    public _ng_color: string = '#431223';
+    public _ng_alias: string;
+    public _ng_color: string;
     public _ng_state: boolean;
+    public _ng_directive: SidebarAppSearchManagerItemDirective;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -35,33 +45,70 @@ export class SidebarAppSearchManagerTimeRangeComponent implements OnDestroy, Aft
     }
 
     public ngAfterContentInit() {
-        if (this.range === undefined) {
-            return;
-        }
+        this._subscriptions.edit = this.provider.getObservable().edit.subscribe((guid: string | undefined) => {
+            if (this.entity.getGUID() === guid) {
+                this._forceUpdate();
+                if (this._inputRefCom !== undefined) {
+                    this._inputRefCom.focus();
+                }
+            }
+        });
         this._init();
-    }
-
-    public getInputRef(): MatInput | undefined {
-        return this._inputRefCom;
+        this.entity.getEntity().onUpdated(this._onRequestUpdated.bind(this));
     }
 
     public _ng_onStateChange(event: MatCheckboxChange) {
+        this.entity.getEntity().setState(event.checked);
         this._forceUpdate();
     }
 
     public _ng_onStateClick(event: MouseEvent) {
+        this._ng_directive.ignoreMouseClick(event);
     }
 
-    public _ng_onRequestInputChange(request: string) {
+    public _ng_onRequestInputKeyUp(event: KeyboardEvent) {
+        switch (event.code) {
+            case 'Escape':
+                this._zone.run(() => {
+                    this._ng_alias = this.entity.getEntity().asDesc().alias;
+                    this.provider.edit().out();
+                    this._forceUpdate();
+                });
+                break;
+            case 'Enter':
+                this._zone.run(() => {
+                    if (RangeRequest.isValidAlias(this._ng_alias)) {
+                        this.entity.getEntity().setAlias(this._ng_alias);
+                    } else {
+                        this._ng_alias = this.entity.getEntity().asDesc().alias;
+                    }
+                    this.provider.edit().out();
+                    this._forceUpdate();
+                });
+                break;
+        }
+    }
+
+    public _ng_onRequestInputBlur() {
+        this._zone.run(() => {
+            this._ng_alias = this.entity.getEntity().asDesc().alias;
+            this.provider.edit().out();
+            this._forceUpdate();
+        });
+    }
+
+    private _onRequestUpdated(event: IRangeUpdateEvent) {
+        this.entity.setEntity(event.range);
+        this._init();
+        this._forceUpdate();
     }
 
     private _init() {
         this._zone.run(() => {
-            /*
-            this._ng_request = desc.request;
+            const desc = this.entity.getEntity().asDesc();
+            this._ng_alias = desc.alias;
             this._ng_color = desc.color;
             this._ng_state = desc.active;
-            */
         });
     }
 

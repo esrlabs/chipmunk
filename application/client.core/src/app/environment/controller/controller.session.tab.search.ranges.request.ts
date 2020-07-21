@@ -8,6 +8,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IDesc {
     guid: string;
+    alias: string;
     start: FilterRequest;
     end: FilterRequest;
     active: boolean;
@@ -16,6 +17,7 @@ export interface IDesc {
 
 export interface IDescOptional {
     guid?: string;
+    alias?: string;
     start: FilterRequest;
     end: FilterRequest;
     active?: boolean;
@@ -23,6 +25,7 @@ export interface IDescOptional {
 }
 
 export interface IDescUpdating {
+    alias?: string;
     start?: FilterRequest;
     end?: FilterRequest;
     active?: boolean;
@@ -35,6 +38,7 @@ export interface IRangeUpdateEvent {
         borders: boolean;
         state: boolean;
         color: boolean;
+        alias: boolean;
     };
 }
 
@@ -44,6 +48,7 @@ export class RangeRequest {
     private _end: FilterRequest;
     private _color: string;
     private _active: boolean;
+    private _alias: string;
     private _guid: string;
     private _subscriptions: {
         updated: Subscription[],
@@ -55,6 +60,13 @@ export class RangeRequest {
     } = {
         updated: new Subject<IRangeUpdateEvent>(),
     };
+
+    public static isValidAlias(alias: string): boolean {
+        if (typeof alias !== 'string' || alias.trim() === '') {
+            return false;
+        }
+        return true;
+    }
 
     constructor(desc: IDescOptional) {
         if (!(desc.start instanceof FilterRequest) || !(desc.end instanceof FilterRequest)) {
@@ -77,6 +89,9 @@ export class RangeRequest {
         } else {
             this._active = true;
         }
+        if (typeof desc.alias !== 'string' || desc.alias.trim() === '') {
+            this._alias = `Time range`;
+        }
     }
 
     public destroy() {
@@ -95,8 +110,13 @@ export class RangeRequest {
         return this._color;
     }
 
+    public getAlias(): string {
+        return this._alias;
+    }
+
     public asDesc(): IDesc {
         return {
+            alias: this.getAlias(),
             guid: this.getGUID(),
             start: this._start,
             end: this._end,
@@ -111,6 +131,7 @@ export class RangeRequest {
                 borders: false,
                 color: false,
                 state: false,
+                alias: false,
             },
             range: this,
         };
@@ -118,6 +139,7 @@ export class RangeRequest {
         if (desc.end instanceof FilterRequest                                               ) { event.updated.borders = true; }
         if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
         if (typeof desc.color       === 'string'    && this.setColor(desc.color)            ) { event.updated.color = true;  }
+        if (typeof desc.alias       === 'string'    && this.setAlias(desc.alias)            ) { event.updated.alias = true;  }
         const hasToBeEmitted: boolean = event.updated.borders || event.updated.state || event.updated.color;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
@@ -136,6 +158,7 @@ export class RangeRequest {
                     borders: false,
                     color: true,
                     state: false,
+                    alias: false,
                 },
                 range: this,
             });
@@ -154,6 +177,7 @@ export class RangeRequest {
                     borders: false,
                     color: false,
                     state: true,
+                    alias: false,
                 },
                 range: this,
             });
@@ -161,6 +185,24 @@ export class RangeRequest {
         return true;
     }
 
+    public setAlias(alias: string, silence: boolean = false): boolean {
+        if (this._alias === alias) {
+            return false;
+        }
+        this._alias = alias;
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    borders: false,
+                    color: false,
+                    state: true,
+                    alias: true,
+                },
+                range: this,
+            });
+        }
+        return true;
+    }
 
     public setStart(filter: FilterRequest, silence: boolean = false): boolean {
         return this._setBorder('start', filter, silence);
@@ -190,6 +232,7 @@ export class RangeRequest {
                     borders: true,
                     color: false,
                     state: false,
+                    alias: false,
                 },
                 range: this,
             });

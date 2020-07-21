@@ -1,10 +1,13 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, NgZone, ViewChild, OnChanges, SimpleChanges } from '@angular/core';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
-import { TimeRange } from '../../../../../controller/controller.session.tab.timestamps.range';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CColors } from '../../../../../conts/colors';
 import { getContrastColor } from '../../../../../theme/colors';
+import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { Provider } from '../../providers/provider';
+import { Entity } from '../../providers/entity';
 
 type TColorType = 'color' | 'background';
 
@@ -23,7 +26,7 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
 
     @ViewChild(MatSelect) _refSelect: MatSelect;
 
-    @Input() range: TimeRange;
+    @Input() provider: Provider<FilterRequest>;
 
     public _ng_select: Observable<number[]> = new Observable();
     public _ng_edit: Observable<FilterRequest | undefined> = new Observable();
@@ -51,7 +54,6 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
     }
 
     public ngAfterContentInit() {
-        this._ng_requests = this.range.getFilters();
     }
 
     public ngOnChanges(changes: SimpleChanges) {

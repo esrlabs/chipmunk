@@ -58,10 +58,6 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         this.entity.getEntity().onUpdated(this._onRequestUpdated.bind(this));
     }
 
-    public getInputRef(): MatInput | undefined {
-        return this._inputRefCom;
-    }
-
     public _ng_onStateChange(event: MatCheckboxChange) {
         this.entity.getEntity().setState(event.checked);
         this._forceUpdate();
@@ -76,9 +72,6 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         this.entity.getEntity().setFlags(this._ng_flags);
         event.preventDefault();
         event.stopImmediatePropagation();
-    }
-
-    public _ng_onRequestInputChange(request: string) {
     }
 
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {
