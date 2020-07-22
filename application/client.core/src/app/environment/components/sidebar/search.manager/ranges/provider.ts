@@ -1,5 +1,6 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
+import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
 import { RangeRequest } from '../../../../controller/controller.session.tab.search.ranges.request';
 import { IRangesStorageUpdated } from '../../../../controller/controller.session.tab.search.ranges.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
@@ -66,7 +67,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
         if (super.getSession() === undefined) {
             return;
         }
-        super.getSession().getSessionSearch().getFiltersAPI().getStorage().reorder(params);
+        super.getSession().getSessionSearch().getRangesAPI().getStorage().reorder(params);
         super.update();
     }
 
@@ -109,11 +110,20 @@ export class ProviderRanges extends Provider<RangeRequest> {
         };
     }
 
-    /*
-
-    */
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
-        return [];
+        const items: IMenuItem[] = [];
+        if (selected.length === 2 && selected.filter(entity => (entity.getEntity() instanceof FilterRequest)).length === 2) {
+            items.push({
+                caption: `Create Time Range`,
+                handler: () => {
+                    super.getSession().getSessionSearch().getRangesAPI().getStorage().add(new RangeRequest({
+                        start: selected[0].getEntity(),
+                        end: selected[1].getEntity(),
+                    }));
+                }
+            });
+        }
+        return items;
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {

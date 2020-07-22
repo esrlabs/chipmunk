@@ -1,4 +1,12 @@
-<p>Test</p>
+<div class="filters" *ngIf="_ng_start !== undefined && _ng_end !== undefined">
+    <app-sidebar-app-searchmanager-filter-mini [entity]="_ng_start"></app-sidebar-app-searchmanager-filter-mini>
+    <app-sidebar-app-searchmanager-filter-mini [entity]="_ng_end"></app-sidebar-app-searchmanager-filter-mini>
+    <span class="icon">
+        <mat-icon>alarm</mat-icon>
+    </span>
+    <span class="icon-top"></span>
+    <span class="icon-bottom"></span>
+</div>
 
 <span class="slitter"></span>
 

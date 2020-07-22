@@ -9,6 +9,7 @@ import { Provider, EProviders, ISelectEvent, IContextMenuEvent } from './provide
 import { Entity } from './providers/entity';
 import { ProviderFilters } from './filters/provider';
 import { ProviderCharts } from './charts/provider';
+import { ProviderRanges } from './ranges/provider';
 
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -90,8 +91,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     }
 
     public ngAfterViewInit() {
-        this._providers.add(EProviders.charts, new ProviderCharts());
         this._providers.add(EProviders.filters, new ProviderFilters());
+        this._providers.add(EProviders.charts, new ProviderCharts());
+        this._providers.add(EProviders.ranges, new ProviderRanges());
         this._ng_providers = this._providers.list();
         this._subscriptions.select = this._providers.getObservable().select.subscribe(this._onSingleSelection.bind(this));
         this._subscriptions.context = this._providers.getObservable().context.subscribe(this._onContextMenu.bind(this));
@@ -106,79 +108,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     }
 
     private _onContextMenu(event: IContextMenuEvent) {
-        /*
-        const items: IMenuItem[] = [
-            {
-                caption: 'Edit',
-                handler: () => {
-                    // this._subjects.edit.next(event.request);
-                },
-            },
-            {
-                caption: `Show matches`,
-                handler: () => {
-                    if (this._session === undefined) {
-                        return;
-                    }
-                    const request: FilterRequest = target === 'filters' ? event.request as FilterRequest : new FilterRequest({
-                        request: event.request.asDesc().request,
-                        flags: event.request.asDesc().flags,
-                    });
-                    this._session.getSessionSearch().search(request);
-                },
-            },
-            {
-                caption: event.entity.getEntity().getState() ? 'Deactivate' : 'Activate',
-                handler: () => {
-                    event.entity.getEntity().setState(!event.entity.getEntity().getState());
-                    this._forceUpdate();
-                },
-            },
-            {
-                caption: `Deactivate all`,
-                handler: () => {
-                    // this._toggleAllInList(target, false);
-                },
-            },
-            {
-                caption: `Activate all`,
-                handler: () => {
-                    // this._toggleAllInList(target, true);
-                },
-            },
-            {
-                caption: `Deactivate all except this`,
-                handler: () => {
-                    // this._toggleAllInList(target, false, event.index);
-                },
-            },
-            {
-                caption: `Activate all except this`,
-                handler: () => {
-                    // this._toggleAllInList(target, true, event.index);
-                },
-            },
-            {
-                caption: `Remove`,
-                handler: () => {
-                    //this._removeFromList(target, event.request);
-                },
-            },
-            {
-                caption: `Remove All`,
-                handler: () => {
-                    //this._removeFromList(target, undefined);
-                },
-            },
-            {
-                caption: `Convert to ${event.request instanceof FilterRequest ? 'chart' : 'filter'}`,
-                disabled: event.request instanceof FilterRequest ? !ChartRequest.isValid(event.request.asDesc().request) : false,
-                handler: () => {
-                    //this._convertEntryTo(event.request);
-                },
-            },
-        ];
-        */
         ContextMenuService.show({
             items: event.items,
             x: event.event.pageX,
@@ -203,6 +132,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
                 this._providers.edit().in();
                 break;
         }
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        return false;
     }
 
     private _focus() {

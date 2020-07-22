@@ -22,7 +22,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     @ViewChild(MatInput) _inputRefCom: MatInput;
 
     @Input() entity: Entity<FilterRequest>;
-    @Input() provider: ProviderFilters;
+    @Input() provider: ProviderFilters | undefined;
 
     public _ng_flags: IFlags;
     public _ng_request: string;
@@ -46,14 +46,16 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.edit = this.provider.getObservable().edit.subscribe((guid: string | undefined) => {
-            if (this.entity.getGUID() === guid) {
-                this._forceUpdate();
-                if (this._inputRefCom !== undefined) {
-                    this._inputRefCom.focus();
+        if (this.provider !== undefined) {
+            this._subscriptions.edit = this.provider.getObservable().edit.subscribe((guid: string | undefined) => {
+                if (this.entity.getGUID() === guid) {
+                    this._forceUpdate();
+                    if (this._inputRefCom !== undefined) {
+                        this._inputRefCom.focus();
+                    }
                 }
-            }
-        });
+            });
+        }
         this._init();
         this.entity.getEntity().onUpdated(this._onRequestUpdated.bind(this));
     }
@@ -75,6 +77,9 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     }
 
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {
+        if (this.provider === undefined) {
+            return;
+        }
         switch (event.code) {
             case 'Escape':
                 this._zone.run(() => {
@@ -98,6 +103,9 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     }
 
     public _ng_onRequestInputBlur() {
+        if (this.provider === undefined) {
+            return;
+        }
         this._zone.run(() => {
             this._ng_request = this.entity.getEntity().asDesc().request;
             this.provider.edit().out();
