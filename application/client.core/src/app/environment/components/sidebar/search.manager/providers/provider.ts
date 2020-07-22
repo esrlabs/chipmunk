@@ -13,6 +13,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export enum EProviders {
     filters = 'filters',
     charts = 'charts',
+    ranges = 'ranges',
 }
 
 export interface ISelectEvent {

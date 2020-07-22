@@ -9,13 +9,34 @@
         display: block;
         height: 8px;
     }
-    & p.sample{
+    & div.filters{
         position: relative;
-        display: block;
-        margin: 0 4px;
-        padding: 2px 4px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        margin-left: 28px;
+        & span.icon {
+            position: absolute;
+            top: 16px;
+            width: 16px;
+            height: 16px;
+            left: -28px;
+        }
+        & span.icon-top{
+            position: absolute;
+            top: 9px;
+            left: -16px;
+            width: 8px;
+            height: 5px;
+            border-left: 1px solid @scheme-color-1;
+            border-top: 1px solid @scheme-color-1;
+        }
+        & span.icon-bottom{
+            position: absolute;
+            bottom: 10px;
+            left: -16px;
+            width: 8px;
+            height: 5px;
+            border-left: 1px solid @scheme-color-1;
+            border-bottom: 1px solid @scheme-color-1;
+        }
+    
     }
 }

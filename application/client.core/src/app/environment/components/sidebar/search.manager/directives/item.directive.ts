@@ -9,7 +9,7 @@ import { Provider, ISelectEvent } from '../providers/provider';
 
 export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
 
-    @Input() provider: Provider<any>;
+    @Input() provider: Provider<any> | undefined;
     @Input() entity: Entity<any>;
 
     public _ng_edit: boolean = false;
@@ -34,7 +34,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
             return;
         }
         this._zone.run(() => {
-            this.provider.select().set(this.entity.getGUID());
+            this.provider !== undefined && this.provider.select().set(this.entity.getGUID());
             this._forceUpdate();
         });
     }
@@ -54,8 +54,10 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     }
 
     public ngOnInit() {
-        this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
-        this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));
+        if (this.provider !== undefined) {
+            this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
+            this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));    
+        }
     }
 
     public ignoreMouseClick(event: MouseEvent) {

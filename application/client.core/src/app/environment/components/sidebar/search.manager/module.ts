@@ -17,6 +17,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSliderModule, MatSlider } from '@angular/material/slider';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
+import { MatIconModule } from '@angular/material/icon';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
@@ -29,6 +30,7 @@ import { SidebarAppSearchManagerChartDetailsComponent       } from './charts/det
 import { SidebarAppSearchManagerFilterDetailsComponent      } from './filters/details/component';
 import { SidebarAppSearchManagerTimeRangeComponent          } from './ranges/range/component';
 import { SidebarAppSearchManagerTimeRangesComponent         } from './ranges/list/component';
+import { SidebarAppSearchManagerFilterMiniComponent         } from './ranges/filter/component';
 import { SidebarAppSearchManagerComponent                   } from './component';
 import { SidebarAppSearchManagerItemDirective               } from './directives/item.directive';
 import { SidebarAppSearchManagerControlsComponent           } from './controls/component';
@@ -46,6 +48,7 @@ const entryComponents = [
     SidebarAppSearchManagerTimeRangeComponent,
     SidebarAppSearchManagerTimeRangesComponent,
     SidebarAppSearchManagerTimerangeDetailsComponent,
+    SidebarAppSearchManagerFilterMiniComponent,
 ];
 const components = [ ...entryComponents ];
 const modules = [
@@ -67,6 +70,7 @@ const modules = [
     AppDirectiviesModule,
     MatExpansionModule,
     MatSliderModule,
+    MatIconModule,
     DragDropModule,
     EnvironmentCommonModule
 ];

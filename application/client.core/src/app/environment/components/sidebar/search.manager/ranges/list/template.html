@@ -7,3 +7,8 @@
     [entity]="entity"
     *ngFor="let entity of _ng_entries;"></app-sidebar-app-searchmanager-timerangehook>
 </div>
+<div class="controlls">
+    <button mat-icon-button color="primary" aria-label="Apply" [disabled]="_ng_entries.length === 0">
+        <mat-icon>refresh</mat-icon>
+    </button>
+</div>

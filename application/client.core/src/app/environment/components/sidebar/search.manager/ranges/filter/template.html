@@ -1,0 +1,6 @@
+<span class="request">{{_ng_request}}</span>
+<span class="flags">
+    <span [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (_ng_flags.casesensitive ? 'active' : 'inactive')"></span>
+    <span [attr.class]="'small-icon-button codicon codicon-whole-word ' + (_ng_flags.wholeword ? 'active' : 'inactive')"></span>
+    <span [attr.class]="'small-icon-button codicon codicon-regex ' + (_ng_flags.regexp ? 'active' : 'inactive')"></span>
+</span>

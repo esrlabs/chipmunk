@@ -1,5 +1,4 @@
 <mat-checkbox [(ngModel)]="_ng_state" (change)="_ng_onStateChange($event)" (click)="_ng_onStateClick($event)"></mat-checkbox>
-<span class="type far fa-clock"></span>
 <span class="color" [ngStyle]="{'background': _ng_color}"></span>
 <span class="request" *ngIf="!entity.getEditState().state()">{{_ng_alias}}</span>
 <input #requestInput *ngIf="entity.getEditState().state()"
