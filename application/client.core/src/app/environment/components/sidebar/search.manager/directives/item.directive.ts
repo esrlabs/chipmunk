@@ -56,7 +56,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     public ngOnInit() {
         if (this.provider !== undefined) {
             this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
-            this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));    
+            this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));
         }
     }
 

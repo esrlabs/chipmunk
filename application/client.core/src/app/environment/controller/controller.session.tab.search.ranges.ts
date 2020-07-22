@@ -90,7 +90,6 @@ export class ControllerSessionTabSearchRanges {
     }
 
     private _onStorageUpdated(event: IRangesStorageUpdated | undefined) {
-        
     }
 
     private _onStorageChanged(event: IRangeUpdateEvent) {
