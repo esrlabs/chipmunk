@@ -7,15 +7,7 @@ import { ViewChartComponent } from '../components/views/chart/component';
 import { ViewTerminalComponent } from '../components/views/terminal/component';
 import { ViewMeasurementComponent } from '../components/views/measurement/component';
 
-export interface IDefaultTabsGuids {
-    search: string;
-    charts: string;
-    notification: string;
-    terminal: string;
-    timemeasurement: string;
-}
-
-export const CDefaultTabsGuids: IDefaultTabsGuids = {
+export const CDefaultTabsGuids: Toolkit.IDefaultTabsGuids = {
     search: Toolkit.guid(),
     charts: Toolkit.guid(),
     notification: Toolkit.guid(),

@@ -204,6 +204,15 @@ export class RangeRequest {
         return true;
     }
 
+
+    public getStart(): FilterRequest {
+        return this._start;
+    }
+
+    public getEnd(): FilterRequest {
+        return this._end;
+    }
+
     public setStart(filter: FilterRequest, silence: boolean = false): boolean {
         return this._setBorder('start', filter, silence);
     }

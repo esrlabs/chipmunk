@@ -3,18 +3,21 @@ import * as fs from 'fs';
 import * as Net from 'net';
 import * as FS from '../tools/fs';
 import * as Stream from 'stream';
+import * as Tools from '../tools/index';
+
 import ServicePaths from './service.paths';
 import ServicePlugins from './service.plugins';
-import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
+import ServiceElectron from './service.electron';
 import Logger from '../tools/env.logger';
 import ControllerStreamSearch from '../controllers/stream.search/controller';
 import ControllerStreamCharts from '../controllers/stream.charts/controller';
+import ControllerStreamRanges from '../controllers/stream.ranges/controller';
 import ControllerStreamProcessor from '../controllers/stream.main/controller';
 import ControllerStreamPty from '../controllers/stream.pty/controller';
-import { EventsHub } from '../controllers/stream.common/events';
 
+import { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
+import { EventsHub } from '../controllers/stream.common/events';
 import { IService } from '../interfaces/interface.service';
-import * as Tools from '../tools/index';
 import { IMapItem } from '../controllers/stream.main/file.map';
 
 export interface IStreamInfo {
@@ -29,6 +32,7 @@ export interface IStreamInfo {
     processor: ControllerStreamProcessor;
     search: ControllerStreamSearch;
     charts: ControllerStreamCharts;
+    ranges: ControllerStreamRanges;
     pty: ControllerStreamPty;
     received: number;
 }
@@ -301,6 +305,7 @@ class ServiceStreams implements IService  {
                 const streamController: ControllerStreamProcessor   = new ControllerStreamProcessor(guid, streamFile, events);
                 const searchController: ControllerStreamSearch      = new ControllerStreamSearch(guid, streamFile, searchFile, streamController, events);
                 const chartsController: ControllerStreamCharts      = new ControllerStreamCharts(guid, streamFile, searchFile, streamController, events);
+                const rangesController: ControllerStreamRanges      = new ControllerStreamRanges(guid, streamFile, streamController);
                 const ptyController: ControllerStreamPty            = new ControllerStreamPty(guid, streamController);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
@@ -323,6 +328,7 @@ class ServiceStreams implements IService  {
                     processor: streamController,
                     search: searchController,
                     charts: chartsController,
+                    ranges: rangesController,
                     pty: ptyController,
                     received: 0,
                 };
@@ -376,6 +382,7 @@ class ServiceStreams implements IService  {
                 return Promise.all([
                     stream.processor.destroy(),
                     stream.search.destroy(),
+                    stream.ranges.destroy(),
                     stream.pty.destroy(),
                 ]);
             };

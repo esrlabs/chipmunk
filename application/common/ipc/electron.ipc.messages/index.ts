@@ -514,6 +514,15 @@ export { ITimestampExportCSVRequest, TimestampExportCSVRequest }
 import { ITimestampExportCSVResponse, TimestampExportCSVResponse } from './timestamp.exportcsv.response';
 export { ITimestampExportCSVResponse, TimestampExportCSVResponse }
 
+import { ITimerangeSearchRequest, TimerangeSearchRequest } from './timerange.search.request';
+export { ITimerangeSearchRequest, TimerangeSearchRequest }
+
+import { ITimerangeSearchResponse, TimerangeSearchResponse } from './timerange.search.response';
+export { ITimerangeSearchResponse, TimerangeSearchResponse }
+
+import { ITimerangeSearchProgress, TimerangeSearchProgress } from './timerange.search.progress';
+export { ITimerangeSearchProgress, TimerangeSearchProgress }
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -683,7 +692,10 @@ export type TMessage =  AppRestartRequest |
                         TimestampExtractRequest |
                         TimestampExtractResponse |
                         TimestampExportCSVRequest |
-                        TimestampExportCSVResponse;
+                        TimestampExportCSVResponse |
+                        TimerangeSearchRequest |
+                        TimerangeSearchResponse |
+                        TimerangeSearchProgress;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -882,4 +894,8 @@ export const Map = {
     [TimestampExtractResponse.signature             ]: TimestampExtractResponse,
     [TimestampExportCSVRequest.signature            ]: TimestampExportCSVRequest,
     [TimestampExportCSVResponse.signature           ]: TimestampExportCSVResponse,
+
+    [TimerangeSearchRequest.signature               ]: TimerangeSearchRequest,
+    [TimerangeSearchResponse.signature              ]: TimerangeSearchResponse,
+    [TimerangeSearchProgress.signature              ]: TimerangeSearchProgress,
 };

@@ -49,6 +49,7 @@ export class TabsSessionsService implements IService {
     private _sidebarTabOpener: TSidebarTabOpener | undefined;
     private _toolbarTabOpener: TToolbarTabOpener | undefined;
     private _notificationOpener: TNotificationOpener | undefined;
+    private _defaultToolbarApps: Toolkit.IDefaultTabsGuids | undefined;
 
     private _defaults: {
         views: IDefaultView[],
@@ -92,7 +93,8 @@ export class TabsSessionsService implements IService {
         this._sidebarTabOpener = opener;
     }
 
-    public setToolbarTabOpener(opener: TToolbarTabOpener) {
+    public setToolbarTabOpener(opener: TToolbarTabOpener, defaults: Toolkit.IDefaultTabsGuids) {
+        this._defaultToolbarApps = defaults;
         this._toolbarTabOpener = opener;
     }
 
@@ -117,6 +119,7 @@ export class TabsSessionsService implements IService {
             if (custom === undefined) {
                 const session = new ControllerSessionTab({
                     guid: guid,
+                    api: this.getPluginAPI(undefined),
                     sessionsEventsHub: this._sessionsEventsHub,
                 });
                 session.init().then(() => {
@@ -230,9 +233,9 @@ export class TabsSessionsService implements IService {
         return this._sessionsEventsHub;
     }
 
-    public getPluginAPI(pluginId: number): IAPI {
+    public getPluginAPI(pluginId: number | undefined): IAPI {
         return {
-            getIPC: () => {
+            getIPC: pluginId === undefined ? () => undefined : () => {
                 const plugin = PluginsService.getPluginById(pluginId);
                 if (plugin === undefined) {
                     return undefined;
@@ -283,6 +286,9 @@ export class TabsSessionsService implements IService {
                 }
                 LayoutStateService.toolbarMax();
                 this._toolbarTabOpener(appId, undefined, silence);
+            },
+            getDefaultToolbarAppsIds: (): Toolkit.IDefaultTabsGuids => {
+                return Object.assign({}, this._defaultToolbarApps);
             },
             addNotification: (notification: Toolkit.INotification) => {
                 if (this._notificationOpener === undefined) {

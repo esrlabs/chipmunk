@@ -17,9 +17,10 @@ export default class TimestampExtract {
         this._format = format;
     }
 
-    public extract(replacements: IPCMessages.DateTimeReplacements): Promise<number> {
+    public extract(replacements: IPCMessages.DateTimeReplacements, silence: boolean = false): Promise<number> {
         return new Promise((resolve, reject) => {
-            const measure = this._logger.measure('Validate format');
+            // tslint:disable-next-line: no-empty
+            const measure = !silence ? this._logger.measure('Validate format') : () => {};
             let error: string | undefined;
             let timestamp: number | undefined;
             this._task = indexer.exctractTimestamp(this._input, this._format, this._serializeReplacements(replacements)).then(() => {

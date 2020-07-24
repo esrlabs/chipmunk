@@ -101,6 +101,8 @@ export class OperationAppend extends EventEmitter {
                 process.stdout.unpipe();
                 process.stdout.destroy();
                 process.kill();
+                // Stop writer
+                writer.removeAllListeners();
                 // Remove cleaner
                 this._cleaners.delete(taskId);
                 // Measure spent time

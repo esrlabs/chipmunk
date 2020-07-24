@@ -8,6 +8,7 @@ import ServiceElectronIpc, {
 } from '../services/service.electron.ipc';
 
 import { ITabAPI } from 'chipmunk-client-material';
+import { IAPI } from 'chipmunk.client.toolkit';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTabStream, IStreamState } from './controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './controller.session.tab.search';
@@ -24,6 +25,7 @@ export { IStreamState };
 
 export interface IControllerSession {
     guid: string;
+    api: IAPI;
     sessionsEventsHub: Toolkit.ControllerSessionsEvents;
 }
 
@@ -52,6 +54,7 @@ export class ControllerSessionTab {
     private _openSourceOptions: any;
     private _titleContextMenu: ControllerSessionTabTitleContextMenu | undefined;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = {};
+    private _api: IAPI;
     private _subjects: {
         onOutputInjectionAdd: Subject<IInjectionAddEvent>;
         onOutputInjectionRemove: Subject<IInjectionRemoveEvent>;
@@ -62,6 +65,7 @@ export class ControllerSessionTab {
 
     constructor(params: IControllerSession) {
         this._sessionId = params.guid;
+        this._api = params.api;
         this._scope = new ControllerSessionScope(this._sessionId, params.sessionsEventsHub);
         this._timestamp = new ControllerSessionTabTimestamp(params.guid);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
@@ -176,6 +180,10 @@ export class ControllerSessionTab {
 
     public getGuid(): string {
         return this._sessionId;
+    }
+
+    public getAPI(): IAPI {
+        return this._api;
     }
 
     public getTimestamp(): ControllerSessionTabTimestamp {
