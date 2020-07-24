@@ -33,6 +33,14 @@ export interface ISettingsAPI {
 
 }
 
+export interface IDefaultTabsGuids {
+    search: string;
+    charts: string;
+    notification: string;
+    terminal: string;
+    timemeasurement: string;
+}
+
 /**
  * Plugin's API. Gives access to:
  * - major core events
@@ -121,6 +129,11 @@ export interface IAPI {
      * @param {boolean} silence - do not make tab active
      */
     openToolbarApp: (appId: string, silence: boolean) => void;
+
+    /**
+     * Returns list of IDs of available toolbar apps.
+     */
+    getDefaultToolbarAppsIds: () => IDefaultTabsGuids;
 
     /**
      * Adds new notification

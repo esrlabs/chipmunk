@@ -1,6 +1,6 @@
 {
   "name": "chipmunk.client.toolkit",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "description": "Toolkit for developing render part of plugin of logviewer ",
   "main": "./dist/toolkit.js",
   "types": "./dist/client.libs/chipmunk.client.toolkit/src/toolkit.d.ts",
@@ -40,6 +40,7 @@
     "minimist": ">=0.2.1",
     "acorn": ">=6.4.1",
     "kind-of": ">=6.0.3",
-    "mem": ">=4.0.0"
+    "mem": ">=4.0.0",
+    "lodash": ">=4.17.19"
   }
 }
