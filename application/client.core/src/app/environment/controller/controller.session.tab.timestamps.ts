@@ -217,7 +217,7 @@ export class ControllerSessionTabTimestamp {
                     start: this._open,
                     end: row,
                     duration: Math.abs(row.timestamp - this._open.timestamp),
-                    color: this._getColor(),
+                    color: this.getColor(),
                     group: this._sequences.group,
                 });
                 this._open = undefined;
@@ -232,18 +232,18 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public addRange(from: IRow, to: IRow) {
+    public addRange(from: IRow, to: IRow, options: { color?: string, id?: number } = {}) {
         Promise.all([
-            this.getTimestamp(from.str).then((tm: number) => {
+            from.timestamp === undefined ? this.getTimestamp(from.str).then((tm: number) => {
                 from.timestamp = tm;
             }).catch((err: Error) => {
                 this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
-            }),
-            this.getTimestamp(to.str).then((tm: number) => {
+            }) : new Promise((resolve) => resolve()),
+            to.timestamp === undefined ? this.getTimestamp(to.str).then((tm: number) => {
                 to.timestamp = tm;
             }).catch((err: Error) => {
                 this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
-            })
+            }) : new Promise((resolve) => resolve()),
         ]).then(() => {
             if (from.timestamp === undefined || to.timestamp === undefined) {
                 return;
@@ -256,11 +256,11 @@ export class ControllerSessionTabTimestamp {
                 to = backup;
             }
             this._ranges.push({
-                id: ++this._sequences.range,
+                id: options.id === undefined ? (++this._sequences.range) : options.id,
                 start: from,
                 end: to,
                 duration: Math.abs(to.timestamp - from.timestamp),
-                color: this._getColor(),
+                color: options.color === undefined ? this.getColor() : options.color,
                 group: ++this._sequences.group,
             });
             this._subjects.update.next(this.getRanges());
@@ -576,6 +576,15 @@ export class ControllerSessionTabTimestamp {
         };
     }
 
+    public getColor(): string {
+        const color = getUniqueColorTo(this._colors);
+        if (this._colors.length > 50) {
+            this._colors.splice(0, 1);
+        }
+        this._colors.push(color);
+        return color;
+    }
+
     private _getRangeByPosition(position: number, exception?: number): IRange | undefined {
         let range: IRange | undefined;
         this._ranges.forEach((r: IRange) => {
@@ -639,15 +648,6 @@ export class ControllerSessionTabTimestamp {
             });
         });
         return str;
-    }
-
-    private _getColor(): string {
-        const color = getUniqueColorTo(this._colors);
-        if (this._colors.length > 50) {
-            this._colors.splice(0, 1);
-        }
-        this._colors.push(color);
-        return color;
     }
 
     private _setState() {

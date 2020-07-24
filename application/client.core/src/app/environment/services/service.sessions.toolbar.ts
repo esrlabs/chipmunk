@@ -1,7 +1,7 @@
 import { TabsService, IComponentDesc, ITab } from 'chipmunk-client-material';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
-import { DefaultViews, CDefaultTabsGuids, IDefaultTabsGuids } from '../states/state.default.toolbar.apps';
+import { DefaultViews, CDefaultTabsGuids } from '../states/state.default.toolbar.apps';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 
 import EventsSessionService from './standalone/service.events.session';
@@ -13,7 +13,7 @@ import LayoutStateService from './standalone/service.layout.state';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export { CDefaultTabsGuids, IDefaultTabsGuids };
+export { CDefaultTabsGuids };
 
 export interface ISidebarPluginInfo {
     id: number;
@@ -60,7 +60,7 @@ export class ToolbarSessionsService implements IService {
             this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInputHotkey.bind(this));
             this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
             this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-            TabsSessionsService.setSidebarTabOpener(this.setActive.bind(this));
+            TabsSessionsService.setToolbarTabOpener(this.setActive.bind(this), CDefaultTabsGuids);
             resolve();
         });
     }
@@ -166,7 +166,7 @@ export class ToolbarSessionsService implements IService {
         service.setActive(guid);
     }
 
-    public getDefaultsGuids(): IDefaultTabsGuids {
+    public getDefaultsGuids(): Toolkit.IDefaultTabsGuids {
         return CDefaultTabsGuids;
     }
 

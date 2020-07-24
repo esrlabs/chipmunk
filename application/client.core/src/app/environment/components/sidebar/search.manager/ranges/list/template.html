@@ -8,7 +8,8 @@
     *ngFor="let entity of _ng_entries;"></app-sidebar-app-searchmanager-timerangehook>
 </div>
 <div class="controlls">
-    <button mat-icon-button color="primary" aria-label="Apply" [disabled]="_ng_entries.length === 0">
-        <mat-icon>refresh</mat-icon>
+    <button mat-icon-button color="primary" aria-label="Apply" (click)="_ng_onApply()" [disabled]="_ng_entries.length === 0 || _ng_progress">
+        <mat-icon *ngIf="!_ng_progress">refresh</mat-icon>
+        <mat-spinner *ngIf="_ng_progress" [diameter]="32" mode="indeterminate"></mat-spinner>
     </button>
 </div>

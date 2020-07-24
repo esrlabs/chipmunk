@@ -108,6 +108,8 @@ export class OperationInspecting extends EventEmitter {
                     // Stop transform
                     transform.stop();
                     transform.removeAllListeners();
+                    // Stop writer
+                    writer.removeAllListeners();
                     // Remove cleaner
                     this._cleaners.delete(taskId);
                     // Measure spent time
