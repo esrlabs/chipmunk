@@ -1,4 +1,4 @@
-<div class="wrapper" [ngStyle]="{'height': _ng_getChartsHeight()}">
+<div class="wrapper" [ngStyle]="{'height': _ng_getChartsHeight()}" (mousemove)="_ng_onMouseMove($event)">
     <canvas #canvas (contextmenu)="_ng_onChartContexMenu($event)"></canvas>
     <span class="cursor" [ngStyle]="{'left': _ng_getCursorPosition()}"></span>
 </div>
