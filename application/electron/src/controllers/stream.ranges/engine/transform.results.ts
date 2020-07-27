@@ -14,6 +14,7 @@ export interface IProgressChunkEvent {
 
 export interface IRangeDefinition {
     points: RegExp[];
+    strict: boolean;
 }
 
 export type TResultCallback = (ranges: CommonInterfaces.TimeRanges.IRange[]) => void;
@@ -109,17 +110,55 @@ export default class Transform extends Stream.Transform {
     }
 
     private _getRanges(rows: string[]) {
+        function getMatchIndex(str: string): number {
+            let res: number = -1;
+            self._definition.points.forEach((reg: RegExp, index: number) => {
+                if (res !== -1) {
+                    return;
+                }
+                res = str.search(reg) !== -1 ? index : -1;
+            });
+            return res;
+        }
+        const self = this;
         rows.forEach((row: string) => {
-            if (row.search(this._definition.points[this._pending.index]) === -1) {
-                return;
+            const matchIndex: number = getMatchIndex(row);
+            if (this._definition.strict) {
+                // Strict mode = ON
+                // Pattern should be match completely
+                if (matchIndex !== this._pending.index) {
+                    if (matchIndex === -1) {
+                        return;
+                    }
+                    // Row has match with some other hook in chain -> pattern is broken -> drop
+                    this._pending.index = matchIndex === 0 ? 1 : 0;
+                    this._pending.points = matchIndex === 0 ? [row] : [];
+                } else {
+                    this._pending.points.push(row);
+                    this._pending.index += 1;
+                    if (this._pending.index === this._definition.points.length) {
+                        this._extract(this._pending.points);
+                        this._pending.index = 0;
+                        this._pending.points = [];
+                    }
+                }
+            } else {
+                // Strict mode = OFF
+                // Pattern is flexible. Only 1st hook and last hooks are checked to close and open range.
+                if (matchIndex === 0) {
+                    // First hook
+                    this._pending.points = [row];
+                } else if (matchIndex === this._definition.points.length - 1) {
+                    // Last hook
+                    this._pending.points.push(row);
+                    this._extract(this._pending.points);
+                    this._pending.points = [];
+                } else if (matchIndex !== -1) {
+                    // Some hook in a middle
+                    this._pending.points.push(row);
+                }
             }
-            this._pending.points.push(row);
-            this._pending.index += 1;
-            if (this._pending.index === this._definition.points.length) {
-                this._extract(this._pending.points);
-                this._pending.index = 0;
-                this._pending.points = [];
-            }
+
         });
         this._done();
     }
