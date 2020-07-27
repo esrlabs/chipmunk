@@ -79,7 +79,7 @@ export class OperationSearch extends EventEmitter {
                 // Create writer
                 const writer: NullWritableStream = new NullWritableStream();
                 // Create process
-                const process: ChildProcess = spawn(ServicePaths.getRG(), this._getProcArgs([definition.start, definition.end], this._streamFile), {
+                const process: ChildProcess = spawn(ServicePaths.getRG(), this._getProcArgs(definition.points, this._streamFile), {
                     cwd: path.dirname(this._streamFile),
                     stdio: [ 'pipe', 'pipe', 'pipe' ],
                 });

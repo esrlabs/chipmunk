@@ -1,7 +1,7 @@
 import { Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
-import { getUniqueColorTo } from '../theme/colors';
+import { getUniqueColorTo, getColorHolder } from '../theme/colors';
 import { EKey } from '../services/standalone/service.output.redirections';
 
 import ElectronIpcService from '../services/service.electron.ipc';
@@ -55,6 +55,19 @@ export interface DefaultDateParts {
     day: number | undefined;
     month: number | undefined;
     year: number | undefined;
+}
+
+export interface IRangeOptions {
+    color?: string;
+    id?: number;
+    alias?: string;
+    group?: number;
+}
+
+export interface IAddRange {
+    from: IRow;
+    to: IRow;
+    options: IRangeOptions;
 }
 
 export enum EChartMode {
@@ -233,8 +246,8 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public addRange(range: Array<{from: IRow, to: IRow}> | { from: IRow, to: IRow }, options: { color?: string, id?: number, alias?: string } = {}) {
-        let ranges: Array<{from: IRow, to: IRow}> = !(range instanceof Array) ? [range] : range;
+    public addRange(range: IAddRange[] | IAddRange) {
+        let ranges: IAddRange[] = !(range instanceof Array) ? [range] : range;
         if (ranges.length === 0) {
             return;
         }
@@ -255,7 +268,7 @@ export class ControllerSessionTabTimestamp {
                 this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
             });
         })).then(() => {
-            ranges = ranges.map((r: {from: IRow, to: IRow}) => {
+            ranges = ranges.map((r: IAddRange) => {
                 if (r.from.timestamp === undefined) {
                     r.from.timestamp = cache_tm[r.from.str];
                 }
@@ -276,15 +289,15 @@ export class ControllerSessionTabTimestamp {
                 }
                 return r;
             });
-            this._ranges = this._ranges.concat(ranges.map((r: {from: IRow, to: IRow}) => {
+            this._ranges = this._ranges.concat(ranges.map((r: IAddRange) => {
                 return {
-                    id: options.id === undefined ? (++this._sequences.range) : options.id,
+                    id: r.options.id === undefined ? (++this._sequences.range) : r.options.id,
                     start: r.from,
                     end: r.to,
-                    alias: options.alias === undefined ? undefined : options.alias,
+                    alias: r.options.alias === undefined ? undefined : r.options.alias,
                     duration: Math.abs(r.to.timestamp - r.from.timestamp),
-                    color: options.color === undefined ? this.getColor() : options.color,
-                    group: ++this._sequences.group,
+                    color: r.options.color === undefined ? this.getColor() : r.options.color,
+                    group: r.options.group === undefined ? ++this._sequences.group : r.options.group,
                 };
             }));
             this._subjects.update.next(this.getRanges());
@@ -323,11 +336,20 @@ export class ControllerSessionTabTimestamp {
     }
 
     public setRangeColor(target: number | string, color: string) {
+        const getColor: (index: number) => string = getColorHolder(color);
+        let groupCursor: number = 0;
+        let prevGroup: number = -1;
         this._ranges = this._ranges.map((range: IRange) => {
             if (typeof target === 'number' && range.id === target) {
                 range.color = color;
             } else if (typeof target === 'string' && range.alias === target) {
-                range.color = color;
+                if (prevGroup !== range.group) {
+                    groupCursor = 0;
+                } else {
+                    groupCursor += 1;
+                }
+                prevGroup = range.group;
+                range.color = getColor(groupCursor);
             }
             return range;
         });
@@ -634,6 +656,10 @@ export class ControllerSessionTabTimestamp {
         }
         this._colors.push(color);
         return color;
+    }
+
+    public getNextGroup(): number {
+        return ++this._sequences.group;
     }
 
     private _getRangeByPosition(position: number, exception?: number): IRange | undefined {

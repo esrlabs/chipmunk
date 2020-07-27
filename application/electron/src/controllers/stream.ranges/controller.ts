@@ -55,15 +55,10 @@ export default class ControllerStreamRanges {
         }
         // Store starting time
         const measure = this._logger.measure(`searching`);
-        const regs: {
-            start: RegExp | Error,
-            end: RegExp | Error,
-        } = {
-            start: getSearchRegExp(request.start.request, request.start.flags),
-            end: getSearchRegExp(request.end.request, request.end.flags),
-        };
-        if (regs.start instanceof Error || regs.end instanceof Error) {
-            const error: Error = new Error(`${regs.start instanceof Error ? regs.start.message : ''} / ${regs.end instanceof Error ? regs.end.message : ''}`);
+        const regs = request.points.map(_ => getSearchRegExp(_.request, _.flags));
+        const errors: Error[] = (regs as any[]).filter(_ => _ instanceof Error);
+        if (errors.length !== 0) {
+            const error: Error = new Error(`${errors.map(_ => _.message)}`);
             return response(new IPCElectronMessages.TimerangeSearchResponse({
                 session: this._streamGuid,
                 ranges: [],
@@ -74,7 +69,7 @@ export default class ControllerStreamRanges {
         this._searching.search(
             request.id,
             request.format,
-            { start: regs.start, end: regs.end },
+            { points: regs },
         ).then((ranges: IRange[]) => {
             response(new IPCElectronMessages.TimerangeSearchResponse({
                 session: this._streamGuid,

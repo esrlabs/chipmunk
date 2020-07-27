@@ -1,5 +1,5 @@
 import { Observable, Subject, Subscription } from 'rxjs';
-import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
+import { ControllerSessionTabTimestamp, IAddRange } from './controller.session.tab.timestamps';
 import { CommonInterfaces } from '../interfaces/interface.common';
 import {
     RangeRequest,
@@ -11,7 +11,7 @@ import {
 import { FilterRequest } from './controller.session.tab.search.filters.request';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 import { IPCMessages } from '../services/service.electron.ipc';
-
+import { shadeColor, getColorHolder } from '../theme/colors';
 import ServiceElectronIpc from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
 
@@ -100,40 +100,49 @@ export class ControllerSessionTabSearchRanges {
             ServiceElectronIpc.request(new IPCMessages.TimerangeSearchRequest({
                 session: this._guid,
                 id: range.getGUID(),
-                start: {
-                    request: range.getStart().asDesc().request,
-                    flags: range.getStart().asDesc().flags,
-                },
-                end: {
-                    request: range.getEnd().asDesc().request,
-                    flags: range.getEnd().asDesc().flags,
-                },
+                points: range.getPoints().map((filter: FilterRequest) => {
+                    return {
+                        request: filter.asDesc().request,
+                        flags: filter.asDesc().flags,
+                    };
+                }),
+                strict: range.getStrictState(),
                 format: format,
                 replacements: {},
             }), IPCMessages.TimerangeSearchResponse).then((response: IPCMessages.TimerangeSearchResponse) => {
+                const getColor: (index: number) => string = getColorHolder(range.getColor());
                 if (response.error !== undefined) {
                     return reject(new Error(this._logger.error(`search request id ${range.getGUID()} was finished with error: ${response.error}`)));
                 }
-                this._timestamp.addRange(
-                    response.ranges.map((item) => {
-                        return {
+                const ranges: IAddRange[] = [];
+                response.ranges.forEach((item) => {
+                    const group = this._timestamp.getNextGroup();
+                    const alias = range.getGUID();
+                    item.points.forEach((point, index) => {
+                        if (item.points[index + 1] === undefined) {
+                            return;
+                        }
+                        const next = item.points[index + 1];
+                        ranges.push({
                             from: {
-                                str: item.start.str,
-                                position: item.start.position,
-                                timestamp: item.start.timestamp,
+                                str: point.str,
+                                position: point.position,
+                                timestamp: point.timestamp,
                             },
                             to: {
-                                str: item.end.str,
-                                position: item.end.position,
-                                timestamp: item.end.timestamp,
+                                str: next.str,
+                                position: next.position,
+                                timestamp: next.timestamp,
                             },
-                        };
-                    }),
-                    {
-                        color: range.getColor(),
-                        alias: range.getGUID(),
-                    },
-                );
+                            options: {
+                                alias: alias,
+                                group: group,
+                                color: getColor(index),
+                            },
+                        });
+                    });
+                });
+                this._timestamp.addRange(ranges);
                 resolve(response.ranges);
             }).catch((error: Error) => {
                 reject(new Error(this._logger.error(`search request id ${range.getGUID()} was finished with error: ${error.message}`)));

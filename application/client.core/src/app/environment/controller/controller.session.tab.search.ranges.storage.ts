@@ -83,7 +83,7 @@ export class RangesStorage {
                     const range: RangeRequest = desc instanceof RangeRequest ? desc : new RangeRequest(desc);
                     // Check request
                     if (this.has(range)) {
-                        throw new Error(`Range "${range.asDesc().start.asDesc().request}/${range.asDesc().end.asDesc().request}" already exist`);
+                        throw new Error(`Range already exist`);
                     }
                     // Add request
                     this._stored.push(range);

@@ -5,6 +5,5 @@ export interface IRow {
 }
 
 export interface IRange {
-    start: IRow;
-    end: IRow;
+    points: IRow[];
 }

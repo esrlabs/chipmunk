@@ -13,8 +13,7 @@ export interface IProgressChunkEvent {
 }
 
 export interface IRangeDefinition {
-    start: RegExp;
-    end: RegExp;
+    points: RegExp[];
 }
 
 export type TResultCallback = (ranges: CommonInterfaces.TimeRanges.IRange[]) => void;
@@ -43,13 +42,13 @@ export default class Transform extends Stream.Transform {
     private _ranges: CommonInterfaces.TimeRanges.IRange[] = [];
     private _definition: IRangeDefinition;
     private _pending: {
-        start: string | undefined,
-        end: string | undefined,
+        points: string[],
+        index: number,
         tasks: Map<string, CancelablePromise>,
         callback: TResultCallback | undefined,
     } = {
-        start: undefined,
-        end: undefined,
+        points: [],
+        index: 0,
         tasks: new Map(),
         callback: undefined,
     };
@@ -110,48 +109,30 @@ export default class Transform extends Stream.Transform {
     }
 
     private _getRanges(rows: string[]) {
-        let start: string | undefined = this._pending.start;
-        let end: string | undefined = this._pending.end;
         rows.forEach((row: string) => {
-            if (start === undefined) {
-                if (row.search(this._definition.start) === -1) {
-                    return;
-                }
-                start = row;
-            } else if (end === undefined) {
-                if (row.search(this._definition.end) === -1) {
-                    return;
-                }
-                end = row;
+            if (row.search(this._definition.points[this._pending.index]) === -1) {
+                return;
             }
-            if (start !== undefined && end !== undefined) {
-                this._extract(start, end);
-                start = undefined;
-                end = undefined;
+            this._pending.points.push(row);
+            this._pending.index += 1;
+            if (this._pending.index === this._definition.points.length) {
+                this._extract(this._pending.points);
+                this._pending.index = 0;
+                this._pending.points = [];
             }
         });
-        this._pending.start = start;
-        this._pending.end = start;
         this._done();
     }
 
-    private _extract(start: string, end: string) {
+    private _extract(points: string[]) {
         const guid: string = Toolkit.guid();
-        const extractors: {
-            start: TimestampExtract,
-            end: TimestampExtract,
-        } = {
-            start: new TimestampExtract(start, this._format),
-            end: new TimestampExtract(end, this._format),
-        };
+        const extractors: TimestampExtract[] = points.map((str: string) => new TimestampExtract(str, this._format));
         const task: CancelablePromise = new CancelablePromise((resolve, reject) => {
-            Promise.all([
-                extractors.start.extract({}, true),
-                extractors.end.extract({}, true),
-            ]).then((timestamps: number[]) => {
+            Promise.all(extractors.map(_ => _.extract({}, true))).then((timestamps: number[]) => {
                 const range: CommonInterfaces.TimeRanges.IRange = {
-                    start: { position: this._extractRowPosition(start), timestamp: timestamps[0], str: start },
-                    end: { position: this._extractRowPosition(end), timestamp: timestamps[1], str: end },
+                    points: points.map((str: string, index: number) => {
+                        return { position: this._extractRowPosition(str), timestamp: timestamps[index], str: str };
+                    }),
                 };
                 this._ranges.push(range);
                 this.emit(Transform.Events.range, range);
@@ -161,8 +142,7 @@ export default class Transform extends Stream.Transform {
                 resolve();
             });
         }).canceled(() => {
-            extractors.start.abort();
-            extractors.end.abort();
+            extractors.forEach((inst) => inst.abort());
         }).finally(() => {
             this._pending.tasks.delete(guid);
             this._done();

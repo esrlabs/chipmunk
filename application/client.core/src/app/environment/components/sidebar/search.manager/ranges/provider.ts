@@ -112,13 +112,13 @@ export class ProviderRanges extends Provider<RangeRequest> {
 
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
         const items: IMenuItem[] = [];
-        if (selected.length === 2 && selected.filter(entity => (entity.getEntity() instanceof FilterRequest)).length === 2) {
+        if (selected.length >= 2 && selected.filter(entity => (entity.getEntity() instanceof FilterRequest)).length >= 2) {
             items.push({
                 caption: `Create Time Range`,
                 handler: () => {
                     super.getSession().getSessionSearch().getRangesAPI().getStorage().add(new RangeRequest({
-                        start: selected[0].getEntity(),
-                        end: selected[1].getEntity(),
+                        points: selected.map(_ => _.getEntity()),
+                        alias: `Time range #${super.getSession().getSessionSearch().getRangesAPI().getStorage().get().length + 1}`
                     }));
                 }
             });

@@ -13,7 +13,15 @@ export const scheme_search_match = '#AA0000';
 
 const colorsCache: Map<string, string> = new Map();
 
-export function shadeColor(color: string, percent: number) {
+export function getColorHolder(color: string): (index: number) => string {
+    return function(colors: { [key: string]: string }, index: number) {
+        if (colors[index] === undefined) {
+            colors[index] = index === 0 ? color : shadeColor(colors[index - 1], 40, true);
+        }
+        return colors[index];
+    }.bind(this, {});
+}
+export function shadeColor(color: string, percent: number, reverse: boolean = false) {
     // source: https://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
 
     const key: string = `${color}${percent}`;
@@ -21,21 +29,27 @@ export function shadeColor(color: string, percent: number) {
     if (cached !== undefined) {
         return cached;
     }
-    let R = parseInt(color.substring(1, 3), 16);
-    let G = parseInt(color.substring(3, 5), 16);
-    let B = parseInt(color.substring(5, 7), 16);
+    const R = parseInt(color.substring(1, 3), 16);
+    const G = parseInt(color.substring(3, 5), 16);
+    const B = parseInt(color.substring(5, 7), 16);
 
-    R = R * (100 + percent) / 100;
-    G = G * (100 + percent) / 100;
-    B = B * (100 + percent) / 100;
+    let rR = R * (100 + percent) / 100;
+    let rG = G * (100 + percent) / 100;
+    let rB = B * (100 + percent) / 100;
 
-    R = (R < 255) ? R : 255;
-    G = (G < 255) ? G : 255;
-    B = (B < 255) ? B : 255;
+    if (reverse) {
+        rR = (rR < 255) ? rR : (R * (100 - percent) / 100);
+        rG = (rG < 255) ? rG : (G * (100 - percent) / 100);
+        rB = (rB < 255) ? rB : (B * (100 - percent) / 100);
+    }
 
-    const RR = ((R.toString(16).length === 1) ? '0' + R.toString(16) : R.toString(16));
-    const GG = ((G.toString(16).length === 1) ? '0' + G.toString(16) : G.toString(16));
-    const BB = ((B.toString(16).length === 1) ? '0' + B.toString(16) : B.toString(16));
+    rR = (rR < 255) ? rR : 255;
+    rG = (rG < 255) ? rG : 255;
+    rB = (rB < 255) ? rB : 255;
+
+    const RR = ((rR.toString(16).length === 1) ? '0' + rR.toString(16) : rR.toString(16));
+    const GG = ((rG.toString(16).length === 1) ? '0' + rG.toString(16) : rG.toString(16));
+    const BB = ((rB.toString(16).length === 1) ? '0' + rB.toString(16) : rB.toString(16));
 
     const result: string = '#' + RR.substr(0, 2) + GG.substr(0, 2) + BB.substr(0, 2);
     colorsCache.set(key, result);
