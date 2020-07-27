@@ -232,37 +232,59 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public addRange(from: IRow, to: IRow, options: { color?: string, id?: number } = {}) {
-        Promise.all([
-            from.timestamp === undefined ? this.getTimestamp(from.str).then((tm: number) => {
-                from.timestamp = tm;
+    public addRange(range: Array<{from: IRow, to: IRow}> | { from: IRow, to: IRow }, options: { color?: string, id?: number } = {}) {
+        let ranges: Array<{from: IRow, to: IRow}> = !(range instanceof Array) ? [range] : range;
+        if (ranges.length === 0) {
+            return;
+        }
+        const cache_tm: {[key: string]: number } = {};
+        const cache_match: {[key: string]: string } = {};
+        ranges.forEach((r: {from: IRow, to: IRow}) => {
+            if (cache_tm[r.from.str] === undefined && r.from.timestamp === undefined) {
+                cache_tm[r.from.str] = -1;
+            }
+            if (cache_tm[r.to.str] === undefined && r.to.timestamp === undefined) {
+                cache_tm[r.to.str] = -1;
+            }
+        });
+        Promise.all(Object.keys(cache_tm).map((str: string) => {
+            return this.getTimestamp(str).then((tm: number) => {
+                cache_tm[str] = tm;
             }).catch((err: Error) => {
                 this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
-            }) : new Promise((resolve) => resolve()),
-            to.timestamp === undefined ? this.getTimestamp(to.str).then((tm: number) => {
-                to.timestamp = tm;
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
-            }) : new Promise((resolve) => resolve()),
-        ]).then(() => {
-            if (from.timestamp === undefined || to.timestamp === undefined) {
-                return;
-            }
-            from.match = this.getMatch(from.str);
-            to.match = this.getMatch(to.str);
-            if (from.timestamp > to.timestamp) {
-                const backup = from;
-                from = to;
-                to = backup;
-            }
-            this._ranges.push({
-                id: options.id === undefined ? (++this._sequences.range) : options.id,
-                start: from,
-                end: to,
-                duration: Math.abs(to.timestamp - from.timestamp),
-                color: options.color === undefined ? this.getColor() : options.color,
-                group: ++this._sequences.group,
             });
+        })).then(() => {
+            ranges = ranges.map((r: {from: IRow, to: IRow}) => {
+                if (r.from.timestamp === undefined) {
+                    r.from.timestamp = cache_tm[r.from.str];
+                }
+                if (r.to.timestamp === undefined) {
+                    r.to.timestamp = cache_tm[r.from.str];
+                }
+                [r.from.str, r.to.str].forEach((str: string) => {
+                    if (cache_match[str] === undefined) {
+                        cache_match[str] = this.getMatch(str);
+                    }
+                });
+                r.from.match = cache_match[r.from.str];
+                r.to.match = cache_match[r.to.str];
+                if (r.from.timestamp > r.to.timestamp) {
+                    const backup = r.from;
+                    r.from = r.to;
+                    r.to = backup;
+                }
+                return r;
+            });
+            this._ranges = this._ranges.concat(ranges.map((r: {from: IRow, to: IRow}) => {
+                return {
+                    id: options.id === undefined ? (++this._sequences.range) : options.id,
+                    start: r.from,
+                    end: r.to,
+                    duration: Math.abs(r.to.timestamp - r.from.timestamp),
+                    color: options.color === undefined ? this.getColor() : options.color,
+                    group: ++this._sequences.group,
+                };
+            }));
             this._subjects.update.next(this.getRanges());
             this._setState();
             OutputParsersService.updateRowsView();
