@@ -115,25 +115,26 @@ export class ControllerSessionTabSearchRanges {
                     return reject(new Error(this._logger.error(`search request id ${range.getGUID()} was finished with error: ${response.error}`)));
                 }
                 const color: string = this._timestamp.getColor();
-                response.ranges.forEach((item) => {
-                    setTimeout(() => {
-                        this._timestamp.addRange(
-                            {
+                this._timestamp.addRange(
+                    response.ranges.map((item) => {
+                        return {
+                            from: {
                                 str: item.start.str,
                                 position: item.start.position,
                                 timestamp: item.start.timestamp,
                             },
-                            {
+                            to: {
                                 str: item.end.str,
                                 position: item.end.position,
                                 timestamp: item.end.timestamp,
                             },
-                            {
-                                color: color,
-                            }
-                        );
-                    });
-                });
+                        };
+                    }),
+                    {
+                        color: color,
+                    }
+                );
+            
                 resolve(response.ranges);
             }).catch((error: Error) => {
                 reject(new Error(this._logger.error(`search request id ${range.getGUID()} was finished with error: ${error.message}`)));
