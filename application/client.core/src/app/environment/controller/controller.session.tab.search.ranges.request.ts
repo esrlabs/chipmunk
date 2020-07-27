@@ -13,6 +13,7 @@ export interface IDesc {
     end: FilterRequest;
     active: boolean;
     color: string;
+    strict: boolean;
 }
 
 export interface IDescOptional {
@@ -22,6 +23,7 @@ export interface IDescOptional {
     end: FilterRequest;
     active?: boolean;
     color?: string;
+    strict?: boolean;
 }
 
 export interface IDescUpdating {
@@ -30,6 +32,7 @@ export interface IDescUpdating {
     end?: FilterRequest;
     active?: boolean;
     color?: string;
+    strict?: boolean;
 }
 
 export interface IRangeUpdateEvent {
@@ -39,6 +42,7 @@ export interface IRangeUpdateEvent {
         state: boolean;
         color: boolean;
         alias: boolean;
+        strict: boolean;
     };
 }
 
@@ -49,6 +53,7 @@ export class RangeRequest {
     private _color: string;
     private _active: boolean;
     private _alias: string;
+    private _strict: boolean;
     private _guid: string;
     private _subscriptions: {
         updated: Subscription[],
@@ -89,6 +94,11 @@ export class RangeRequest {
         } else {
             this._active = true;
         }
+        if (typeof desc.strict === 'boolean') {
+            this._strict = desc.strict;
+        } else {
+            this._strict = true;
+        }
         if (typeof desc.alias !== 'string' || desc.alias.trim() === '') {
             this._alias = `Time range`;
         }
@@ -114,6 +124,10 @@ export class RangeRequest {
         return this._alias;
     }
 
+    public getStrictState(): boolean {
+        return this._strict;
+    }
+
     public asDesc(): IDesc {
         return {
             alias: this.getAlias(),
@@ -122,6 +136,7 @@ export class RangeRequest {
             end: this._end,
             active: this.getState(),
             color: this.getColor(),
+            strict: this.getStrictState(),
         };
     }
 
@@ -132,15 +147,17 @@ export class RangeRequest {
                 color: false,
                 state: false,
                 alias: false,
+                strict: false,
             },
             range: this,
         };
         if (desc.start instanceof FilterRequest                                             ) { event.updated.borders = true; }
         if (desc.end instanceof FilterRequest                                               ) { event.updated.borders = true; }
         if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
+        if (typeof desc.strict      === 'boolean'   && this.setState(desc.strict, true)     ) { event.updated.strict = true; }
         if (typeof desc.color       === 'string'    && this.setColor(desc.color)            ) { event.updated.color = true;  }
         if (typeof desc.alias       === 'string'    && this.setAlias(desc.alias)            ) { event.updated.alias = true;  }
-        const hasToBeEmitted: boolean = event.updated.borders || event.updated.state || event.updated.color;
+        const hasToBeEmitted: boolean = event.updated.borders || event.updated.state || event.updated.color || event.updated.strict;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
         }
@@ -159,6 +176,7 @@ export class RangeRequest {
                     color: true,
                     state: false,
                     alias: false,
+                    strict: false,
                 },
                 range: this,
             });
@@ -178,6 +196,7 @@ export class RangeRequest {
                     color: false,
                     state: true,
                     alias: false,
+                    strict: false,
                 },
                 range: this,
             });
@@ -197,6 +216,7 @@ export class RangeRequest {
                     color: false,
                     state: true,
                     alias: true,
+                    strict: false,
                 },
                 range: this,
             });
@@ -242,6 +262,7 @@ export class RangeRequest {
                     color: false,
                     state: false,
                     alias: false,
+                    strict: false,
                 },
                 range: this,
             });

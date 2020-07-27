@@ -135,12 +135,34 @@ export class ProviderRanges extends Provider<RangeRequest> {
         edit?: () => void,
     } {
         return {
-            enable: () => {},
             disable: () => {},
-            activate: () => {},
-            deactivate: () => {},
-            remove: () => {},
-            edit: () => {}
+            activate: () => {
+                selected.forEach((entity: Entity<any>) => {
+                    if (entity.getEntity() instanceof RangeRequest) {
+                        (entity.getEntity() as RangeRequest).setState(true);
+                    }
+                });
+            },
+            deactivate: () => {
+                selected.forEach((entity: Entity<any>) => {
+                    if (entity.getEntity() instanceof RangeRequest) {
+                        (entity.getEntity() as RangeRequest).setState(false);
+                    }
+                });
+            },
+            remove: () => {
+                const entities = selected.filter((entity: Entity<any>) => {
+                    return entity.getEntity() instanceof RangeRequest;
+                });
+                if (entities.length === this.get().length) {
+                    super.getSession().getSessionSearch().getRangesAPI().getStorage().clear();
+                    super.update();
+                } else {
+                    entities.forEach((entity: Entity<RangeRequest>) => {
+                        super.getSession().getSessionSearch().getRangesAPI().getStorage().remove(entity.getEntity());
+                    });
+                }
+            },
         };
     }
 

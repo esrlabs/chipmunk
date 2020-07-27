@@ -134,7 +134,6 @@ export class ControllerSessionTabSearchRanges {
                         color: color,
                     }
                 );
-            
                 resolve(response.ranges);
             }).catch((error: Error) => {
                 reject(new Error(this._logger.error(`search request id ${range.getGUID()} was finished with error: ${error.message}`)));

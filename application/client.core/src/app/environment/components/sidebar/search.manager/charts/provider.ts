@@ -162,7 +162,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
         edit?: () => void,
     } {
         return {
-            enable: () => {},
             disable: () => {},
             activate: () => {
                 selected.forEach((entity: Entity<any>) => {
