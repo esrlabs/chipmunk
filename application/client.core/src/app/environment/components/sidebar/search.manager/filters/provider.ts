@@ -161,7 +161,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
         edit?: () => void,
     } {
         return {
-            enable: () => {},
             disable: () => {},
             activate: () => {
                 selected.forEach((entity: Entity<any>) => {
