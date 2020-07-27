@@ -142,6 +142,7 @@ export class ControllerSessionTabSearchRanges {
                         });
                     });
                 });
+                this._timestamp.removeRange(range.getGUID());
                 this._timestamp.addRange(ranges);
                 resolve(response.ranges);
             }).catch((error: Error) => {

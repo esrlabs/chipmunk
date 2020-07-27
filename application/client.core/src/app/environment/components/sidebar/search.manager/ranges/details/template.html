@@ -12,7 +12,7 @@
 <span class="slitter"></span>
 <p class="caption t-small">Pattern settings</p>
 
-<mat-checkbox (change)="_ng_onStrcitStateChange()" [checked]="_ng_strict" [disabled]="_ng_points.length <= 2">Strict mode</mat-checkbox>
+<mat-checkbox [(ngModel)]="_ng_strict" (change)="_ng_onStrcitStateChange()" [disabled]="_ng_points.length <= 2">Strict mode</mat-checkbox>
 
 <span class="slitter"></span>
 <p class="caption t-small">Color</p>

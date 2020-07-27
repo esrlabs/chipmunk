@@ -112,7 +112,9 @@ export class ProviderRanges extends Provider<RangeRequest> {
 
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
         const items: IMenuItem[] = [];
-        if (selected.length >= 2 && selected.filter(entity => (entity.getEntity() instanceof FilterRequest)).length >= 2) {
+        const filters: Entity<FilterRequest>[] = selected.filter(entity => (entity.getEntity() instanceof FilterRequest));
+        const ranges: Entity<RangeRequest>[] = selected.filter(entity => (entity.getEntity() instanceof RangeRequest));
+        if (selected.length >= 2 && filters.length >= 2) {
             items.push({
                 caption: `Create Time Range`,
                 handler: () => {
@@ -120,6 +122,16 @@ export class ProviderRanges extends Provider<RangeRequest> {
                         points: selected.map(_ => _.getEntity()),
                         alias: `Time range #${super.getSession().getSessionSearch().getRangesAPI().getStorage().get().length + 1}`
                     }));
+                }
+            });
+        }
+        if (ranges.length > 0) {
+            items.push({
+                caption: `Remove bars from chart`,
+                handler: () => {
+                    ranges.forEach((entity: Entity<RangeRequest>) => {
+                        super.getSession().getTimestamp().removeRange(entity.getEntity().getGUID());
+                    });
                 }
             });
         }

@@ -69,7 +69,7 @@ export default class ControllerStreamRanges {
         this._searching.search(
             request.id,
             request.format,
-            { points: regs },
+            { points: regs, strict: request.strict },
         ).then((ranges: IRange[]) => {
             response(new IPCElectronMessages.TimerangeSearchResponse({
                 session: this._streamGuid,
