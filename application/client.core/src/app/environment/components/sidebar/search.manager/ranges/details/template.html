@@ -1,8 +1,7 @@
 <p class="caption t-small">Search pattern</p>
 <span class="slitter"></span>
-<div class="filters" *ngIf="_ng_start !== undefined && _ng_end !== undefined">
-    <app-sidebar-app-searchmanager-filter-mini [entity]="_ng_start"></app-sidebar-app-searchmanager-filter-mini>
-    <app-sidebar-app-searchmanager-filter-mini [entity]="_ng_end"></app-sidebar-app-searchmanager-filter-mini>
+<div class="filters" *ngIf="_ng_points.length > 0">
+    <app-sidebar-app-searchmanager-filter-mini *ngFor="let point of _ng_points" [entity]="point"></app-sidebar-app-searchmanager-filter-mini>
     <span class="icon">
         <mat-icon>alarm</mat-icon>
     </span>
@@ -13,7 +12,7 @@
 <span class="slitter"></span>
 <p class="caption t-small">Pattern settings</p>
 
-<mat-checkbox (change)="_ng_onStrcitStateChange()" [checked]="_ng_strict" [disabled]="_ng_strict">Strict mode</mat-checkbox>
+<mat-checkbox (change)="_ng_onStrcitStateChange()" [checked]="_ng_strict" [disabled]="_ng_points.length <= 2">Strict mode</mat-checkbox>
 
 <span class="slitter"></span>
 <p class="caption t-small">Color</p>

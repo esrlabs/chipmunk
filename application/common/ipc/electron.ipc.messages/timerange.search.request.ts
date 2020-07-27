@@ -7,8 +7,8 @@ export interface ITimerangeSearchRequest {
     id: string;
     session: string;
     format: string;
-    start: ISearchExpression;
-    end: ISearchExpression;
+    points: ISearchExpression[];
+    strict: boolean;
     replacements: DateTimeReplacements;
 }
 
@@ -19,8 +19,8 @@ export class TimerangeSearchRequest {
     public id: string = '';
     public session: string = '';
     public format: string = '';
-    public start: ISearchExpression;
-    public end: ISearchExpression;
+    public points: ISearchExpression[];
+    public strict: boolean;
     public replacements: DateTimeReplacements;
 
     constructor(params: ITimerangeSearchRequest) {
@@ -36,11 +36,11 @@ export class TimerangeSearchRequest {
         if (typeof params.format !== 'string' || params.format.trim() === '') {
             throw new Error(`format should be defined.`);
         }
-        if (typeof params.start !== 'object' || params.start === null) {
-            throw new Error(`start should be defined as ISearchExpression.`);
+        if (typeof params.strict !== 'boolean') {
+            throw new Error(`strict should be defined.`);
         }
-        if (typeof params.end !== 'object' || params.end === null) {
-            throw new Error(`end should be defined as ISearchExpression.`);
+        if (!(params.points instanceof Array) || params.points.length < 2) {
+            throw new Error(`points should be defined as Array<ISearchExpression>. Shoud be defined at least 2 points.`);
         }
         if (typeof params.replacements === 'object' && params.replacements !== null) {
             this.replacements = params.replacements;
@@ -50,7 +50,7 @@ export class TimerangeSearchRequest {
         this.id = params.id;
         this.session = params.session;
         this.format = params.format;
-        this.start = params.start;
-        this.end = params.end;
+        this.points = params.points;
+        this.strict = params.strict;
     }
 }

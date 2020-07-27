@@ -1,7 +1,5 @@
 import { Observable, Subject, Subscription, from } from 'rxjs';
-import { ISearchExpression, ISearchExpressionFlags } from '../interfaces/interface.ipc';
-import { getMarkerRegExp, getSearchRegExp } from '../../../../../common/functionlity/functions.search.requests';
-import {  getContrastColor, scheme_color_accent } from '../theme/colors';
+import { getContrastColor, scheme_color_accent } from '../theme/colors';
 import { FilterRequest } from './controller.session.tab.search.filters.request';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -9,8 +7,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export interface IDesc {
     guid: string;
     alias: string;
-    start: FilterRequest;
-    end: FilterRequest;
+    points: FilterRequest[];
     active: boolean;
     color: string;
     strict: boolean;
@@ -19,8 +16,7 @@ export interface IDesc {
 export interface IDescOptional {
     guid?: string;
     alias?: string;
-    start: FilterRequest;
-    end: FilterRequest;
+    points: FilterRequest[];
     active?: boolean;
     color?: string;
     strict?: boolean;
@@ -28,8 +24,7 @@ export interface IDescOptional {
 
 export interface IDescUpdating {
     alias?: string;
-    start?: FilterRequest;
-    end?: FilterRequest;
+    points?: FilterRequest[];
     active?: boolean;
     color?: string;
     strict?: boolean;
@@ -38,7 +33,7 @@ export interface IDescUpdating {
 export interface IRangeUpdateEvent {
     range: RangeRequest;
     updated: {
-        borders: boolean;
+        points: boolean;
         state: boolean;
         color: boolean;
         alias: boolean;
@@ -48,8 +43,7 @@ export interface IRangeUpdateEvent {
 
 export class RangeRequest {
 
-    private _start: FilterRequest;
-    private _end: FilterRequest;
+    private _points: FilterRequest[];
     private _color: string;
     private _active: boolean;
     private _alias: string;
@@ -74,15 +68,14 @@ export class RangeRequest {
     }
 
     constructor(desc: IDescOptional) {
-        if (!(desc.start instanceof FilterRequest) || !(desc.end instanceof FilterRequest)) {
-            throw new Error(`To create range should be defined 2 FilterRequest as start and end of range`);
+        if (!(desc.points instanceof Array) || desc.points.length < 2) {
+            throw new Error(`To create range should be defined at least 2 FilterRequest as start and end of range`);
         }
-        this._start = desc.start;
-        this._end = desc.end;
+        this._points = desc.points;
         if (typeof desc.guid === 'string') {
             this._guid = desc.guid;
         } else {
-            this._guid = `${this._start.getGUID()}:${this._end.getGUID()}`;
+            this._guid = Toolkit.hash(desc.points.map(_ => _.getHash()).join(''));
         }
         if (typeof desc.color === 'string') {
             this._color = desc.color;
@@ -101,6 +94,8 @@ export class RangeRequest {
         }
         if (typeof desc.alias !== 'string' || desc.alias.trim() === '') {
             this._alias = `Time range`;
+        } else {
+            this._alias = desc.alias;
         }
     }
 
@@ -132,8 +127,7 @@ export class RangeRequest {
         return {
             alias: this.getAlias(),
             guid: this.getGUID(),
-            start: this._start,
-            end: this._end,
+            points: this.getPoints(),
             active: this.getState(),
             color: this.getColor(),
             strict: this.getStrictState(),
@@ -143,7 +137,7 @@ export class RangeRequest {
     public update(desc: IDescUpdating): boolean {
         const event: IRangeUpdateEvent = {
             updated: {
-                borders: false,
+                points: false,
                 color: false,
                 state: false,
                 alias: false,
@@ -151,13 +145,12 @@ export class RangeRequest {
             },
             range: this,
         };
-        if (desc.start instanceof FilterRequest                                             ) { event.updated.borders = true; }
-        if (desc.end instanceof FilterRequest                                               ) { event.updated.borders = true; }
+        if (desc.points instanceof Array && desc.points.length >= 2                         ) { event.updated.points = true; }
         if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
         if (typeof desc.strict      === 'boolean'   && this.setState(desc.strict, true)     ) { event.updated.strict = true; }
         if (typeof desc.color       === 'string'    && this.setColor(desc.color)            ) { event.updated.color = true;  }
         if (typeof desc.alias       === 'string'    && this.setAlias(desc.alias)            ) { event.updated.alias = true;  }
-        const hasToBeEmitted: boolean = event.updated.borders || event.updated.state || event.updated.color || event.updated.strict;
+        const hasToBeEmitted: boolean = event.updated.points || event.updated.state || event.updated.color || event.updated.strict;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
         }
@@ -172,7 +165,7 @@ export class RangeRequest {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    borders: false,
+                    points: false,
                     color: true,
                     state: false,
                     alias: false,
@@ -192,7 +185,7 @@ export class RangeRequest {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    borders: false,
+                    points: false,
                     color: false,
                     state: true,
                     alias: false,
@@ -212,7 +205,7 @@ export class RangeRequest {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    borders: false,
+                    points: false,
                     color: false,
                     state: false,
                     alias: false,
@@ -232,7 +225,7 @@ export class RangeRequest {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    borders: false,
+                    points: false,
                     color: false,
                     state: true,
                     alias: true,
@@ -245,40 +238,19 @@ export class RangeRequest {
     }
 
 
-    public getStart(): FilterRequest {
-        return this._start;
+    public getPoints(): FilterRequest[] {
+        return this._points;
     }
 
-    public getEnd(): FilterRequest {
-        return this._end;
-    }
-
-    public setStart(filter: FilterRequest, silence: boolean = false): boolean {
-        return this._setBorder('start', filter, silence);
-    }
-
-    public setEnd(filter: FilterRequest, silence: boolean = false): boolean {
-        return this._setBorder('end', filter, silence);
-    }
-
-    public getGUID(): string {
-        return this._guid;
-    }
-
-    public getState(): boolean {
-        return this._active;
-    }
-
-    private _setBorder(dest: 'start' | 'end', filter: FilterRequest, silence: boolean = false): boolean {
-        if (dest === 'start') {
-            this._start = filter;
-        } else {
-            this._end = filter;
+    public setPoint(filter: FilterRequest, index: number, silence: boolean = false): boolean {
+        if (this._points[index] === undefined) {
+            return false;
         }
+        this._points[index] = filter;
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    borders: true,
+                    points: true,
                     color: false,
                     state: false,
                     alias: false,
@@ -288,6 +260,14 @@ export class RangeRequest {
             });
         }
         return true;
+    }
+
+    public getGUID(): string {
+        return this._guid;
+    }
+
+    public getState(): boolean {
+        return this._active;
     }
 
 }

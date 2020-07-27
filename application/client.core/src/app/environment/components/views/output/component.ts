@@ -282,6 +282,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                             {
                                                 from: { position: range.start, str: range.content.start },
                                                 to: { position: range.end, str: range.content.end },
+                                                options: {},
                                             },
                                         );
                                     });

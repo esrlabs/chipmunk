@@ -3,7 +3,6 @@ import { FilterRequest } from '../../../../../controller/controller.session.tab.
 import { MatSelectChange, MatSelect } from '@angular/material/select';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CColors } from '../../../../../conts/colors';
-import { getContrastColor } from '../../../../../theme/colors';
 import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
@@ -28,7 +27,7 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
 
     @Input() provider: Provider<RangeRequest>;
 
-    public _ng_start: Entity<FilterRequest>;
+    public _ng_points: Entity<FilterRequest>[] = [];
     public _ng_end: Entity<FilterRequest>;
     public _ng_reorder: Subject<void> = new Subject();
     public _ng_selected: Subject<string> = new Subject();
@@ -78,15 +77,16 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
     private _init() {
         this._entity = this.provider.select().single();
         if (this._entity === undefined) {
-            this._ng_start = undefined;
+            this._ng_points = [];
             this._ng_end = undefined;
             this._ng_color = undefined;
             this._ng_currentColor = undefined;
             this._ng_strict = undefined;
         } else {
             const desc = this._entity.getEntity().asDesc();
-            this._ng_start = new Entity<FilterRequest>(desc.start, desc.start.getGUID());
-            this._ng_end = new Entity<FilterRequest>(desc.end, desc.end.getGUID());
+            this._ng_points = this._entity.getEntity().asDesc().points.map((filter: FilterRequest) => {
+                return new Entity<FilterRequest>(filter, filter.getGUID())
+            });
             this._ng_color = desc.color;
             this._ng_currentColor = desc.color;
             this._ng_strict = desc.strict;
