@@ -18,6 +18,7 @@ export interface IRow {
 
 export interface IRange {
     id: number;
+    alias?: string;
     start: IRow;
     end: IRow | undefined;
     duration: number;
@@ -232,7 +233,7 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public addRange(range: Array<{from: IRow, to: IRow}> | { from: IRow, to: IRow }, options: { color?: string, id?: number } = {}) {
+    public addRange(range: Array<{from: IRow, to: IRow}> | { from: IRow, to: IRow }, options: { color?: string, id?: number, alias?: string } = {}) {
         let ranges: Array<{from: IRow, to: IRow}> = !(range instanceof Array) ? [range] : range;
         if (ranges.length === 0) {
             return;
@@ -280,6 +281,7 @@ export class ControllerSessionTabTimestamp {
                     id: options.id === undefined ? (++this._sequences.range) : options.id,
                     start: r.from,
                     end: r.to,
+                    alias: options.alias === undefined ? undefined : options.alias,
                     duration: Math.abs(r.to.timestamp - r.from.timestamp),
                     color: options.color === undefined ? this.getColor() : options.color,
                     group: ++this._sequences.group,
@@ -293,14 +295,41 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    public removeRange(id: number) {
-        this._ranges = this._ranges.filter((range: IRange) => {
-            if (range.id === id) {
-                this._colors = this._colors.filter((color: string) => {
-                    return color !== range.color;
-                });
+    public removeRange(smth: number | string) {
+        if (typeof smth === 'number') {
+            // Remove by ID
+            this._ranges = this._ranges.filter((range: IRange) => {
+                if (range.id === smth) {
+                    this._colors = this._colors.filter((color: string) => {
+                        return color !== range.color;
+                    });
+                }
+                return range.id !== smth;
+            });
+        } else if (typeof smth === 'string') {
+            // Remove by alias
+            this._ranges = this._ranges.filter((range: IRange) => {
+                if (range.alias === smth) {
+                    this._colors = this._colors.filter((color: string) => {
+                        return color !== range.color;
+                    });
+                }
+                return range.alias !== smth;
+            });
+        }
+        this._subjects.update.next(this.getRanges());
+        this._setState();
+        OutputParsersService.updateRowsView();
+    }
+
+    public setRangeColor(target: number | string, color: string) {
+        this._ranges = this._ranges.map((range: IRange) => {
+            if (typeof target === 'number' && range.id === target) {
+                range.color = color;
+            } else if (typeof target === 'string' && range.alias === target) {
+                range.color = color;
             }
-            return range.id !== id;
+            return range;
         });
         this._subjects.update.next(this.getRanges());
         this._setState();

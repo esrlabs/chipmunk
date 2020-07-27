@@ -151,6 +151,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
                 });
             },
             remove: () => {
+                // Remove request
                 const entities = selected.filter((entity: Entity<any>) => {
                     return entity.getEntity() instanceof RangeRequest;
                 });
@@ -162,6 +163,10 @@ export class ProviderRanges extends Provider<RangeRequest> {
                         super.getSession().getSessionSearch().getRangesAPI().getStorage().remove(entity.getEntity());
                     });
                 }
+                // Remove ranges
+                entities.forEach((entity: Entity<RangeRequest>) => {
+                    super.getSession().getTimestamp().removeRange(entity.getEntity().getGUID());
+                });
             },
         };
     }

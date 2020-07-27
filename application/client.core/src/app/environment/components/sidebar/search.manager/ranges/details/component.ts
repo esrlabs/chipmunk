@@ -34,6 +34,7 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
     public _ng_selected: Subject<string> = new Subject();
     public _ng_requests: FilterRequest[] = [];
     public _ng_color: string;
+    public _ng_strict: boolean;
 
     public _ng_currentColor: string;
     public _ng_colors: string[] = [];
@@ -58,6 +59,22 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
         this._init();
     }
 
+    public _ng_onColorChange(color: string) {
+        if (this._entity === undefined) {
+            return;
+        }
+        this._ng_color = color;
+        this._entity.getEntity().setColor(this._ng_color);
+        this.provider.getSession().getTimestamp().setRangeColor(this._entity.getGUID(), this._ng_color);
+        this._ng_currentColor = color;
+        this._forceUpdate();
+    }
+
+    public _ng_onStrcitStateChange() {
+        this._entity.getEntity().setStrictState(this._ng_strict);
+        this._forceUpdate();
+    }
+
     private _init() {
         this._entity = this.provider.select().single();
         if (this._entity === undefined) {
@@ -65,12 +82,14 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
             this._ng_end = undefined;
             this._ng_color = undefined;
             this._ng_currentColor = undefined;
+            this._ng_strict = undefined;
         } else {
             const desc = this._entity.getEntity().asDesc();
             this._ng_start = new Entity<FilterRequest>(desc.start, desc.start.getGUID());
             this._ng_end = new Entity<FilterRequest>(desc.end, desc.end.getGUID());
             this._ng_color = desc.color;
             this._ng_currentColor = desc.color;
+            this._ng_strict = desc.strict;
             this._setColors();
         }
     }
