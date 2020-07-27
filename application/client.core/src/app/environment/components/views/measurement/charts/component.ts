@@ -98,11 +98,6 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         event.preventDefault();
     }
 
-    @HostListener('mousemove', ['$event']) _ng_onMouseMove(event: MouseEvent) {
-        this._cursor.left = event.offsetX;
-        this._forceUpdate();
-    }
-
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
         this._onWinKeyDown = this._onWinKeyDown.bind(this);
@@ -145,6 +140,11 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         );
         this._build();
         this._onSessionChange(TabsSessionsService.getActive());
+    }
+
+    public _ng_onMouseMove(event: MouseEvent) {
+        this._cursor.left = event.offsetX;
+        this._forceUpdate();
     }
 
     public _ng_onChartContexMenu(event: MouseEvent) {
