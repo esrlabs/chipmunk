@@ -19,6 +19,7 @@ import { MatSliderModule, MatSlider } from '@angular/material/slider';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
@@ -73,6 +74,7 @@ const modules = [
     MatExpansionModule,
     MatSliderModule,
     MatIconModule,
+    MatTooltipModule,
     DragDropModule,
     EnvironmentCommonModule
 ];

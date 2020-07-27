@@ -1,3 +1,5 @@
+<p class="caption t-small">Search pattern</p>
+<span class="slitter"></span>
 <div class="filters" *ngIf="_ng_start !== undefined && _ng_end !== undefined">
     <app-sidebar-app-searchmanager-filter-mini [entity]="_ng_start"></app-sidebar-app-searchmanager-filter-mini>
     <app-sidebar-app-searchmanager-filter-mini [entity]="_ng_end"></app-sidebar-app-searchmanager-filter-mini>
@@ -9,5 +11,11 @@
 </div>
 
 <span class="slitter"></span>
+<p class="caption t-small">Pattern settings</p>
 
-<app-com-color-selector [colors]="_ng_colors" [color]="_ng_currentColor"></app-com-color-selector>
+<mat-checkbox (change)="_ng_onStrcitStateChange()" [checked]="_ng_strict" [disabled]="_ng_strict">Strict mode</mat-checkbox>
+
+<span class="slitter"></span>
+<p class="caption t-small">Color</p>
+
+<app-com-color-selector [colors]="_ng_colors" [color]="_ng_currentColor" (change)="_ng_onColorChange($event)"></app-com-color-selector>

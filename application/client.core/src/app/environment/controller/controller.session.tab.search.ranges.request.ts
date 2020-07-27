@@ -204,6 +204,26 @@ export class RangeRequest {
         return true;
     }
 
+    public setStrictState(strict: boolean, silence: boolean = false): boolean {
+        if (this._strict === strict) {
+            return false;
+        }
+        this._strict = strict;
+        if (!silence) {
+            this._subjects.updated.next({
+                updated: {
+                    borders: false,
+                    color: false,
+                    state: false,
+                    alias: false,
+                    strict: true,
+                },
+                range: this,
+            });
+        }
+        return true;
+    }
+
     public setAlias(alias: string, silence: boolean = false): boolean {
         if (this._alias === alias) {
             return false;

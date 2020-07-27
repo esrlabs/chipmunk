@@ -114,7 +114,6 @@ export class ControllerSessionTabSearchRanges {
                 if (response.error !== undefined) {
                     return reject(new Error(this._logger.error(`search request id ${range.getGUID()} was finished with error: ${response.error}`)));
                 }
-                const color: string = this._timestamp.getColor();
                 this._timestamp.addRange(
                     response.ranges.map((item) => {
                         return {
@@ -131,8 +130,9 @@ export class ControllerSessionTabSearchRanges {
                         };
                     }),
                     {
-                        color: color,
-                    }
+                        color: range.getColor(),
+                        alias: range.getGUID(),
+                    },
                 );
                 resolve(response.ranges);
             }).catch((error: Error) => {
