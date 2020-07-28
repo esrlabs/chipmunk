@@ -32,8 +32,14 @@ export class ProviderFilters extends Provider<FilterRequest> {
         }
         this._subs.updated = session.getSessionSearch().getFiltersAPI().getStorage().getObservable().updated.subscribe((event?: IFiltersStorageUpdated) => {
             super.update();
-            if (event === undefined || !(event.added instanceof FilterRequest)) {
-                // this._selectFilter(event.added); // SELECT
+            if (event === undefined) {
+                return;
+            }
+            if (event.added instanceof FilterRequest) {
+                this.select().set(event.added.getGUID());
+            }
+            if (event.removed instanceof FilterRequest || event.requests.length === 0) {
+                this.select().drop();
             }
         });
     }
