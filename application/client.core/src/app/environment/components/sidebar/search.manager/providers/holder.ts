@@ -9,6 +9,7 @@ import { Entity } from './entity';
 export class Providers {
 
     private readonly SENDER = Toolkit.guid();
+    private readonly PROVIDERS_ORDER: EProviders[] = [EProviders.filters, EProviders.charts, EProviders.ranges];
 
     private _providers: Map<EProviders, Provider<any>> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -57,14 +58,21 @@ export class Providers {
 
     public all(): any[] {
         let entries: any[] = [];
-        this._providers.forEach((provider: Provider<any>) => {
+        this.list().forEach((provider: Provider<any>) => {
             entries = entries.concat(provider.get());
         });
         return entries;
     }
 
-    public list(): Map<EProviders, Provider<any>> {
-        return this._providers;
+    public list(): Provider<any>[] {
+        const list: Provider<any>[] = [];
+        this.PROVIDERS_ORDER.forEach((ref: EProviders) => {
+            const provider: Provider<any> | undefined = this._providers.get(ref);
+            if (provider !== undefined) {
+                list.push(provider);
+            }
+        });
+        return list;
     }
 
     public select(): {

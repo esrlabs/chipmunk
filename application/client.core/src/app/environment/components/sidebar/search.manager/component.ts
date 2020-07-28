@@ -26,7 +26,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewInit {
 
     public _ng_filename: string = '';
-    public _ng_providers: Map<EProviders, Provider<any>> = new Map();
+    public _ng_providers: Provider<any>[] = [];
     public _ng_selected: Provider<any> | undefined;
 
     private _providers: Providers = new Providers();
