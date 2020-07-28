@@ -4,7 +4,7 @@ import { Subscription, Observable, Subject } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
-import { NotificationsService, INotification, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
+import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-timerangehooks',
@@ -49,9 +49,6 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
         if (this._ng_progress) {
             return;
         }
-        if (this._ng_entries.length !== 1) {
-            return;
-        }
         if (!this.provider.getSession().getTimestamp().isDetected()) {
             return this._notifications.add({
                 caption: 'No formats are found',
@@ -72,18 +69,9 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
                 ]
             });
         } else {
-            const task = this.provider.getSession().getSessionSearch().getRangesAPI().search(this._ng_entries[0].getEntity());
-            if (task instanceof Error) {
-                return this._notifications.add({
-                    caption: 'Error',
-                    message: task.message,
-                    options: {
-                        type: ENotificationType.warning,
-                    }
-                });
-            }
             this._ng_progress = true;
-            task.catch((err: Error) => this._notifications.add({
+            // Note: we can import ProviderRanges (and get rid of "any" here), but it will give us circle-dependency
+            (this.provider as any).apply().catch((err: Error) => this._notifications.add({
                 caption: 'Error',
                 message: err.message,
                 options: {

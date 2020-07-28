@@ -5,10 +5,14 @@ import { RangeRequest } from '../../../../controller/controller.session.tab.sear
 import { IRangesStorageUpdated } from '../../../../controller/controller.session.tab.search.ranges.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subject, Observable, Subscription, TimeoutError } from 'rxjs';
 import { SidebarAppSearchManagerTimeRangesComponent } from './list/component';
 import { SidebarAppSearchManagerTimerangeDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import { CancelablePromise } from 'chipmunk.client.toolkit';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
+import { IRange } from 'src/app/environment/controller/helpers/selection';
 
 export class ProviderRanges extends Provider<RangeRequest> {
 
@@ -173,6 +177,42 @@ export class ProviderRanges extends Provider<RangeRequest> {
                 });
             },
         };
+    }
+
+    public apply(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let entities = this.select().getEntities();
+            entities = entities.length === 0 ? Array.from(this._entities.values()) : entities;
+            if (entities.length === 0) {
+                return resolve();
+            }
+            const errors: Error[] = [];
+            const stack: Map<string, CancelablePromise<any>> = new Map();
+            entities.forEach((entity) => {
+                const task: CancelablePromise<any> | Error = this.getSession().getSessionSearch().getRangesAPI().search(entity.getEntity());
+                const id = Toolkit.guid();
+                if (task instanceof Error) {
+                    errors.push(task);
+                } else {
+                    stack.set(id, task);
+                    task.catch((err: Error) => {
+                        errors.push(err);
+                    }).finally(() => {
+                        stack.delete(id);
+                        if (stack.size === 0) {
+                            if (errors.length > 0) {
+                                reject(new Error(errors.map(e => e.message).join('\n')));
+                            } else {
+                                resolve();
+                            }
+                        }
+                    });
+                }
+            });
+            if (stack.size === 0 && errors.length > 0) {
+                reject(new Error(errors.map(e => e.message).join('\n')));
+            }
+        });
     }
 
 }
