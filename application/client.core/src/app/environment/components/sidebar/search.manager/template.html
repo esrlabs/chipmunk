@@ -1,18 +1,18 @@
-<div class="wrapper" *ngFor="let provider of _ng_providers | keyvalue">
+<div class="wrapper" *ngFor="let provider of _ng_providers">
     <mat-expansion-panel
-        *ngIf="!provider.value.isEmpty() || provider.value.getContentIfEmpty() !== undefined"
+        *ngIf="!provider.isEmpty() || provider.getContentIfEmpty() !== undefined"
         [disabled]="true"
         [hideToggle]="true"
         [expanded]="true"
         (click)="_ng_onPanelClick()">
         <mat-expansion-panel-header>
-            <mat-panel-title>{{provider.value.getPanelName()}}</mat-panel-title>
-            <mat-panel-description>{{provider.value.getPanelDesc()}}</mat-panel-description>
+            <mat-panel-title>{{provider.getPanelName()}}</mat-panel-title>
+            <mat-panel-description>{{provider.getPanelDesc()}}</mat-panel-description>
         </mat-expansion-panel-header>
-        <div *ngIf="!provider.value.isEmpty()">
-            <lib-containers-dynamic [detectChanges]="false" [component]="provider.value.getListComp()"></lib-containers-dynamic>
+        <div *ngIf="!provider.isEmpty()">
+            <lib-containers-dynamic [detectChanges]="false" [component]="provider.getListComp()"></lib-containers-dynamic>
         </div>
-        <p class="t-small" *ngIf="provider.value.isEmpty()">{{provider.value.getContentIfEmpty()}}</p>
+        <p class="t-small" *ngIf="provider.isEmpty()">{{provider.getContentIfEmpty()}}</p>
     </mat-expansion-panel>
 </div>
 
