@@ -33,8 +33,14 @@ export class ProviderCharts extends Provider<ChartRequest> {
         }
         this._subs.updated = session.getSessionSearch().getChartsAPI().getStorage().getObservable().updated.subscribe((event?: IChartsStorageUpdated) => {
             super.update();
-            if (event === undefined || !(event.added instanceof ChartRequest)) {
-                // this._selectFilter(event.added); // SELECT
+            if (event === undefined) {
+                return;
+            }
+            if (event.added instanceof ChartRequest) {
+                this.select().set(event.added.getGUID());
+            }
+            if (event.removed instanceof ChartRequest || event.requests.length === 0) {
+                this.select().drop();
             }
         });
     }

@@ -33,8 +33,14 @@ export class ProviderRanges extends Provider<RangeRequest> {
         }
         this._subs.updated = session.getSessionSearch().getRangesAPI().getStorage().getObservable().updated.subscribe((event?: IRangesStorageUpdated) => {
             super.update();
-            if (event === undefined || !(event.added instanceof RangeRequest)) {
-                // this._selectFilter(event.added); // SELECT
+            if (event === undefined) {
+                return;
+            }
+            if (event.added instanceof RangeRequest) {
+                this.select().set(event.added.getGUID());
+            }
+            if (event.removed instanceof RangeRequest || event.ranges.length === 0) {
+                this.select().drop();
             }
         });
     }
