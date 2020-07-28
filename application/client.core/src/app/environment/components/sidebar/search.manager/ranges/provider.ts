@@ -154,20 +154,6 @@ export class ProviderRanges extends Provider<RangeRequest> {
     } {
         return {
             disable: () => {},
-            activate: () => {
-                selected.forEach((entity: Entity<any>) => {
-                    if (entity.getEntity() instanceof RangeRequest) {
-                        (entity.getEntity() as RangeRequest).setState(true);
-                    }
-                });
-            },
-            deactivate: () => {
-                selected.forEach((entity: Entity<any>) => {
-                    if (entity.getEntity() instanceof RangeRequest) {
-                        (entity.getEntity() as RangeRequest).setState(false);
-                    }
-                });
-            },
             remove: () => {
                 // Remove request
                 const entities = selected.filter((entity: Entity<any>) => {

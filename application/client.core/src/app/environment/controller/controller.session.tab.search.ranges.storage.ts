@@ -129,10 +129,6 @@ export class RangesStorage {
         return this._stored;
     }
 
-    public getActive(): RangeRequest[] {
-        return this._stored.filter((request: RangeRequest) => request.getState());
-    }
-
     public reorder(params: IReorderParams) {
         const filter: RangeRequest = this._stored[params.prev];
         this._stored = this._stored.filter((i: RangeRequest, index: number) => {
