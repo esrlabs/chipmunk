@@ -58,6 +58,9 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
             this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
             this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));
         }
+        if (this.provider !== undefined && this.entity !== undefined) {
+            this._ng_selected = this.provider.select().get().indexOf(this.entity.getGUID()) !== -1;
+        }
     }
 
     public ignoreMouseClick(event: MouseEvent) {
