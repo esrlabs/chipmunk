@@ -24,6 +24,8 @@ export class DynamicComponent {
     private _component: any = null;
 
     @Input() detectChanges = true;
+    @Input() alwaysDrop = false;
+
 
     @Input() set component(desc: IComponentDesc) {
         if (typeof desc !== 'object' || desc === null) {
@@ -37,7 +39,7 @@ export class DynamicComponent {
         }
         if (this._component) {
             // Component already was created
-            if (typeof this._component.componentType === 'function' && typeof desc.factory === 'function' && this._component.componentType.name === desc.factory.name) {
+            if (!this.alwaysDrop && typeof this._component.componentType === 'function' && typeof desc.factory === 'function' && this._component.componentType.name === desc.factory.name) {
                 // No need to recreate component. Update inputs
                 Object.keys(desc.inputs).forEach((key: string) => {
                     this._component.instance[key] = desc.inputs[key];
@@ -72,7 +74,7 @@ export class DynamicComponent {
                 component.instance[key] = desc.inputs[key];
             });
             this.viewContainerRef.insert(component.hostView);
-            if (this.detectChanges === true)  {
+            if (this.detectChanges)  {
                 component.hostView.detectChanges();
             }
         } else {
