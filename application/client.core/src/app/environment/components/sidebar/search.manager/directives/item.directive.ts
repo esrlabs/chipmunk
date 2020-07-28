@@ -25,7 +25,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     @HostBinding('class.edited') get cssClassEdited() {
         return this._ng_edit;
     }
-    @HostListener('click', ['$event.target']) onClick() {
+    @HostListener('click', ['$event']) onClick(event: MouseEvent) {
         if (this._ignore) {
             this._ignore = false;
             return;

@@ -23,7 +23,13 @@ export class KeyboardListener {
     }
 
     private _keydown(event: KeyboardEvent) {
-        this._ctrl = event.ctrlKey;
+        if ([91, 93].indexOf(event.keyCode) !== -1 || ['MetaLeft', 'MetaRight'].indexOf(event.code) !== -1) {
+            // OSX
+            this._ctrl = true;
+        } else {
+            // Others
+            this._ctrl = event.ctrlKey;
+        }
     }
 
 }
