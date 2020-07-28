@@ -8,7 +8,6 @@ export interface IDesc {
     guid: string;
     alias: string;
     points: FilterRequest[];
-    active: boolean;
     color: string;
     strict: boolean;
 }
@@ -17,7 +16,6 @@ export interface IDescOptional {
     guid?: string;
     alias?: string;
     points: FilterRequest[];
-    active?: boolean;
     color?: string;
     strict?: boolean;
 }
@@ -25,7 +23,6 @@ export interface IDescOptional {
 export interface IDescUpdating {
     alias?: string;
     points?: FilterRequest[];
-    active?: boolean;
     color?: string;
     strict?: boolean;
 }
@@ -34,7 +31,6 @@ export interface IRangeUpdateEvent {
     range: RangeRequest;
     updated: {
         points: boolean;
-        state: boolean;
         color: boolean;
         alias: boolean;
         strict: boolean;
@@ -45,7 +41,6 @@ export class RangeRequest {
 
     private _points: FilterRequest[];
     private _color: string;
-    private _active: boolean;
     private _alias: string;
     private _strict: boolean;
     private _guid: string;
@@ -81,11 +76,6 @@ export class RangeRequest {
             this._color = desc.color;
         } else {
             this._color = getContrastColor(scheme_color_accent, true);
-        }
-        if (typeof desc.active === 'boolean') {
-            this._active = desc.active;
-        } else {
-            this._active = true;
         }
         if (typeof desc.strict === 'boolean') {
             this._strict = desc.strict;
@@ -128,7 +118,6 @@ export class RangeRequest {
             alias: this.getAlias(),
             guid: this.getGUID(),
             points: this.getPoints(),
-            active: this.getState(),
             color: this.getColor(),
             strict: this.getStrictState(),
         };
@@ -139,18 +128,16 @@ export class RangeRequest {
             updated: {
                 points: false,
                 color: false,
-                state: false,
                 alias: false,
                 strict: false,
             },
             range: this,
         };
-        if (desc.points instanceof Array && desc.points.length >= 2                         ) { event.updated.points = true; }
-        if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
-        if (typeof desc.strict      === 'boolean'   && this.setState(desc.strict, true)     ) { event.updated.strict = true; }
-        if (typeof desc.color       === 'string'    && this.setColor(desc.color)            ) { event.updated.color = true;  }
-        if (typeof desc.alias       === 'string'    && this.setAlias(desc.alias)            ) { event.updated.alias = true;  }
-        const hasToBeEmitted: boolean = event.updated.points || event.updated.state || event.updated.color || event.updated.strict;
+        if (desc.points instanceof Array && desc.points.length >= 2                             ) { event.updated.points = true; }
+        if (typeof desc.strict      === 'boolean'   && this.setStrictState(desc.strict, true)   ) { event.updated.strict = true; }
+        if (typeof desc.color       === 'string'    && this.setColor(desc.color)                ) { event.updated.color = true;  }
+        if (typeof desc.alias       === 'string'    && this.setAlias(desc.alias)                ) { event.updated.alias = true;  }
+        const hasToBeEmitted: boolean = event.updated.points || event.updated.color || event.updated.strict;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
         }
@@ -167,27 +154,6 @@ export class RangeRequest {
                 updated: {
                     points: false,
                     color: true,
-                    state: false,
-                    alias: false,
-                    strict: false,
-                },
-                range: this,
-            });
-        }
-        return true;
-    }
-
-    public setState(active: boolean, silence: boolean = false): boolean {
-        if (this._active === active) {
-            return false;
-        }
-        this._active = active;
-        if (!silence) {
-            this._subjects.updated.next({
-                updated: {
-                    points: false,
-                    color: false,
-                    state: true,
                     alias: false,
                     strict: false,
                 },
@@ -207,7 +173,6 @@ export class RangeRequest {
                 updated: {
                     points: false,
                     color: false,
-                    state: false,
                     alias: false,
                     strict: true,
                 },
@@ -227,7 +192,6 @@ export class RangeRequest {
                 updated: {
                     points: false,
                     color: false,
-                    state: true,
                     alias: true,
                     strict: false,
                 },
@@ -252,7 +216,6 @@ export class RangeRequest {
                 updated: {
                     points: true,
                     color: false,
-                    state: false,
                     alias: false,
                     strict: false,
                 },
@@ -264,10 +227,6 @@ export class RangeRequest {
 
     public getGUID(): string {
         return this._guid;
-    }
-
-    public getState(): boolean {
-        return this._active;
     }
 
 }
