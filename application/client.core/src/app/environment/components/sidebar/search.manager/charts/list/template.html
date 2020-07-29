@@ -1,4 +1,8 @@
-<div cdkDropList (cdkDropListDropped)="_ng_onItemDragged($event)" class="charts">
+<div cdkDropList
+    [cdkDropListConnectedTo]="['disabled-entities']"
+    [cdkDropListData]="_ng_entries"
+    (cdkDropListDropped)="_ng_onItemDragged($event)"
+    class="charts">
     <app-sidebar-app-searchmanager-chart
         (contextmenu)="_ng_onContexMenu($event, entity)"
         appSidebarSearchManagerItem

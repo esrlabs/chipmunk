@@ -1,11 +1,15 @@
-<div cdkDropList (cdkDropListDropped)="_ng_onItemDragged($event)" class="ranges">
+<div cdkDropList
+    [cdkDropListConnectedTo]="['disabled-entities']"
+    [cdkDropListData]="_ng_entries"
+    (cdkDropListDropped)="_ng_onItemDragged($event)"
+    class="ranges">
     <app-sidebar-app-searchmanager-timerangehook
-    (contextmenu)="_ng_onContexMenu($event, entity)"
-    appSidebarSearchManagerItem
-    cdkDrag
-    [provider]="provider"
-    [entity]="entity"
-    *ngFor="let entity of _ng_entries;"></app-sidebar-app-searchmanager-timerangehook>
+        (contextmenu)="_ng_onContexMenu($event, entity)"
+        appSidebarSearchManagerItem
+        cdkDrag
+        [provider]="provider"
+        [entity]="entity"
+        *ngFor="let entity of _ng_entries;"></app-sidebar-app-searchmanager-timerangehook>
 </div>
 <div class="controlls">
     <button mat-icon-button color="primary" aria-label="Apply" (click)="_ng_onApply()" [disabled]="_ng_entries.length === 0 || _ng_progress">

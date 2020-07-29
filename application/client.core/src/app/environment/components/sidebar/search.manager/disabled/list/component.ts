@@ -36,7 +36,26 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<DisabledRequest[]>) {
-        this.provider.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        const prev = event.previousContainer;
+        const index = event.previousIndex;
+        if (prev.data !== undefined) {
+            const outside: Entity<any> | undefined = (prev.data as any)[event.previousIndex] !== undefined ? (prev.data as any)[index] : undefined;
+            if (outside !== undefined) {
+                this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().add(
+                    new DisabledRequest(outside.getEntity()),
+                    event.currentIndex,
+                );
+                /*
+                this.provider.reorder({
+                    prev: this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().get().length - 1,
+                    curt: event.currentIndex,
+                });
+                */
+                outside.getEntity().remove(this.provider.getSession());
+            }
+        } else {
+            this.provider.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        }
     }
 
     public _ng_onContexMenu(event: MouseEvent, entity: Entity<DisabledRequest>) {
