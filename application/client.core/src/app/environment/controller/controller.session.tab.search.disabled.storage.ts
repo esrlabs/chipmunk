@@ -53,7 +53,7 @@ export class DisabledStorage {
         }) !== undefined;
     }
 
-    public add(descs: DisabledRequest | Array<DisabledRequest>): Error {
+    public add(descs: DisabledRequest | Array<DisabledRequest>, from?: number): Error {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -62,7 +62,11 @@ export class DisabledStorage {
         try {
             descs.forEach((request: DisabledRequest) => {
                 // Add request
-                this._stored.push(request);
+                if (typeof from === 'number' && from < this._stored.length) {
+                    this._stored.splice(from, 0, request);
+                } else {
+                    this._stored.push(request);
+                }
                 added.push(request);
             });
         } catch (err) {
