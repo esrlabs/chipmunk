@@ -149,15 +149,12 @@ export class ProviderRanges extends Provider<RangeRequest> {
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
-        enable?: () => void,
-        disable?: () => void,
         activate?: () => void,
         deactivate?: () => void,
         remove?: () => void,
         edit?: () => void,
     } {
         return {
-            disable: () => {},
             remove: () => {
                 // Remove request
                 const entities = selected.filter((entity: Entity<any>) => {

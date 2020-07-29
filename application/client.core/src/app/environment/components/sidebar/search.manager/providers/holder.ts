@@ -9,7 +9,7 @@ import { Entity } from './entity';
 export class Providers {
 
     private readonly SENDER = Toolkit.guid();
-    private readonly PROVIDERS_ORDER: EProviders[] = [EProviders.filters, EProviders.charts, EProviders.ranges];
+    private readonly PROVIDERS_ORDER: EProviders[] = [EProviders.filters, EProviders.charts, EProviders.ranges, EProviders.disabled];
 
     private _providers: Map<EProviders, Provider<any>> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -277,13 +277,11 @@ export class Providers {
         }
         const providers = this.select().getProviders();
         const actions: {
-            disable: boolean,
             activate: boolean,
             deactivate: boolean,
             remove: boolean,
             edit: boolean,
         } = {
-            disable: isActionAvailable(EActions.disable, providers),
             activate: isActionAvailable(EActions.activate, providers),
             deactivate: isActionAvailable(EActions.deactivate, providers),
             remove: isActionAvailable(EActions.remove, providers),
@@ -301,12 +299,6 @@ export class Providers {
 
         event.items.length > 0 && event.items.push({ /* Delimiter */});
 
-        actions.disable && event.items.push({
-            caption: 'Disable',
-            handler: () => {
-
-            },
-        });
         actions.activate && event.items.push({
             caption: 'Activate',
             handler: () => {
@@ -334,12 +326,6 @@ export class Providers {
 
         event.items.length > 0 && event.items.push({ /* Delimiter */});
 
-        actions.disable && event.items.push({
-            caption: 'Disable All',
-            handler: () => {
-
-            },
-        });
         actions.activate && event.items.push({
             caption: 'Activate All',
             handler: () => {
@@ -364,14 +350,13 @@ export class Providers {
                 });
             },
         });
-        let custom: IMenuItem[] = [];
         this._providers.forEach((provider: Provider<any>) => {
-            custom = custom.concat(provider.getContextMenuItems(event.entity, this.select().getEntities()));
+            const custom: IMenuItem[] = provider.getContextMenuItems(event.entity, this.select().getEntities());
+            if (custom.length > 0) {
+                event.items.push({ /* Delimiter */});
+                event.items = event.items.concat(custom);
+            }
         });
-        if (custom.length > 0) {
-            event.items.push({ /* Delimiter */});
-            event.items = event.items.concat(custom);
-        }
         this._subjects.context.next(event);
     }
 

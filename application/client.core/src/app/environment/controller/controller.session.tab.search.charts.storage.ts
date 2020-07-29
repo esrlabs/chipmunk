@@ -81,17 +81,17 @@ export class ChartsStorage {
         const added: ChartRequest[] = [];
         try {
             descs.forEach((desc: IChartDescOptional | ChartRequest) => {
-                    // Create search request
-                    const srchRqst: ChartRequest = desc instanceof ChartRequest ? desc : new ChartRequest(desc);
-                    // Check request
-                    if (this.has(srchRqst)) {
-                        throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
-                    }
-                    // Add request
-                    this._stored.push(srchRqst);
-                    added.push(srchRqst),
-                    // Subscribe on update event
-                    srchRqst.onUpdated(this._onRequestUpdated.bind(this));
+                // Create search request
+                const srchRqst: ChartRequest = desc instanceof ChartRequest ? new ChartRequest(desc.asDesc()) : new ChartRequest(desc);
+                // Check request
+                if (this.has(srchRqst)) {
+                    throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
+                }
+                // Add request
+                this._stored.push(srchRqst);
+                added.push(srchRqst),
+                // Subscribe on update event
+                srchRqst.onUpdated(this._onRequestUpdated.bind(this));
             });
         } catch (err) {
             return new Error(`Fail add request(s) due error: ${err.message}`);

@@ -159,15 +159,12 @@ export class ProviderFilters extends Provider<FilterRequest> {
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
-        enable?: () => void,
-        disable?: () => void,
         activate?: () => void,
         deactivate?: () => void,
         remove?: () => void,
         edit?: () => void,
     } {
         return {
-            disable: () => {},
             activate: () => {
                 selected.forEach((entity: Entity<any>) => {
                     if (entity.getEntity() instanceof FilterRequest) {

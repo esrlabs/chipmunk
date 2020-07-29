@@ -1,6 +1,7 @@
 import { ControllerSessionTabSearchFilters, FilterRequest } from './controller.session.tab.search.filters';
 import { ControllerSessionTabSearchCharts } from './controller.session.tab.search.charts';
 import { ControllerSessionTabSearchRanges } from './controller.session.tab.search.ranges';
+import { ControllerSessionTabSearchDisabled } from './controller.session.tab.search.disabled';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
 import { ControllerSessionTabSearchRecent } from './controller.session.tab.search.recent';
@@ -24,6 +25,7 @@ export class ControllerSessionTabSearch {
     private _filters: ControllerSessionTabSearchFilters;
     private _charts: ControllerSessionTabSearchCharts;
     private _ranges: ControllerSessionTabSearchRanges;
+    private _disabled: ControllerSessionTabSearchDisabled;
     private _recent: ControllerSessionTabSearchRecent;
     private _subjects: {
         search: Subject<FilterRequest>,
@@ -38,6 +40,7 @@ export class ControllerSessionTabSearch {
         this._filters = new ControllerSessionTabSearchFilters(params);
         this._charts = new ControllerSessionTabSearchCharts(params);
         this._ranges = new ControllerSessionTabSearchRanges(params);
+        this._disabled = new ControllerSessionTabSearchDisabled(params);
         this._recent = new ControllerSessionTabSearchRecent(
             params.guid,
             this._filters.getStorage(),
@@ -51,6 +54,7 @@ export class ControllerSessionTabSearch {
                 this._filters.destroy(),
                 this._charts.destroy(),
                 this._ranges.destroy(),
+                this._disabled.destroy(),
                 this._recent.destroy(),
             ]).then(() => {
                 resolve();
@@ -84,6 +88,10 @@ export class ControllerSessionTabSearch {
 
     public getRangesAPI(): ControllerSessionTabSearchRanges {
         return this._ranges;
+    }
+
+    public getDisabledAPI(): ControllerSessionTabSearchDisabled {
+        return this._disabled;
     }
 
     public getRecentAPI(): ControllerSessionTabSearchRecent {

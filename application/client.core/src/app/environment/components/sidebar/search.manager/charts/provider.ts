@@ -160,15 +160,12 @@ export class ProviderCharts extends Provider<ChartRequest> {
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
-        enable?: () => void,
-        disable?: () => void,
         activate?: () => void,
         deactivate?: () => void,
         remove?: () => void,
         edit?: () => void,
     } {
         return {
-            disable: () => {},
             activate: () => {
                 selected.forEach((entity: Entity<any>) => {
                     if (entity.getEntity() instanceof ChartRequest) {

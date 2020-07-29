@@ -25,18 +25,20 @@ import {
     ReactiveFormsModule } from '@angular/forms';
 
 import { SidebarAppSearchManagerChartsComponent             } from './charts/list/component';
-import { SidebarAppSearchManagerFiltersComponent            } from './filters/list/component';
 import { SidebarAppSearchManagerChartComponent              } from './charts/chart/component';
-import { SidebarAppSearchManagerFilterComponent             } from './filters/filter/component';
 import { SidebarAppSearchManagerChartDetailsComponent       } from './charts/details/component';
+import { SidebarAppSearchManagerFiltersComponent            } from './filters/list/component';
+import { SidebarAppSearchManagerFilterComponent             } from './filters/filter/component';
 import { SidebarAppSearchManagerFilterDetailsComponent      } from './filters/details/component';
 import { SidebarAppSearchManagerTimeRangeComponent          } from './ranges/range/component';
 import { SidebarAppSearchManagerTimeRangesComponent         } from './ranges/list/component';
 import { SidebarAppSearchManagerFilterMiniComponent         } from './ranges/filter/component';
+import { SidebarAppSearchManagerTimerangeDetailsComponent   } from './ranges/details/component';
+import { SidebarAppSearchManagerDisabledsComponent          } from './disabled/list/component';
+import { SidebarAppSearchManagerDisabledComponent           } from './disabled/entity/component';
 import { SidebarAppSearchManagerComponent                   } from './component';
 import { SidebarAppSearchManagerItemDirective               } from './directives/item.directive';
 import { SidebarAppSearchManagerControlsComponent           } from './controls/component';
-import { SidebarAppSearchManagerTimerangeDetailsComponent   } from './ranges/details/component';
 
 const entryComponents = [
     SidebarAppSearchManagerComponent,
@@ -51,6 +53,8 @@ const entryComponents = [
     SidebarAppSearchManagerTimeRangesComponent,
     SidebarAppSearchManagerTimerangeDetailsComponent,
     SidebarAppSearchManagerFilterMiniComponent,
+    SidebarAppSearchManagerDisabledsComponent,
+    SidebarAppSearchManagerDisabledComponent,
 ];
 const components = [ ...entryComponents ];
 const modules = [

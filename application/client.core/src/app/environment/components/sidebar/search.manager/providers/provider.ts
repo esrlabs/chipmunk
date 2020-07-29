@@ -14,6 +14,7 @@ export enum EProviders {
     filters = 'filters',
     charts = 'charts',
     ranges = 'ranges',
+    disabled = 'disabled',
 }
 
 export interface ISelectEvent {
@@ -297,8 +298,6 @@ export abstract class Provider<T> {
     public abstract getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[];
 
     public abstract actions(target: Entity<any> | undefined, selected: Array<Entity<any>>): {
-        enable?: () => void,
-        disable?: () => void,
         activate?: () => void,
         deactivate?: () => void,
         remove?: () => void,
