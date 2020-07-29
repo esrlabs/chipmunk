@@ -1,0 +1,9 @@
+<div cdkDropList (cdkDropListDropped)="_ng_onItemDragged($event)" class="filters">
+    <app-sidebar-app-searchmanager-disabled
+        (contextmenu)="_ng_onContexMenu($event, entity)"
+        appSidebarSearchManagerItem
+        cdkDrag
+        [provider]="provider"
+        [entity]="entity"
+        *ngFor="let entity of _ng_entries;"></app-sidebar-app-searchmanager-disabled>
+</div>

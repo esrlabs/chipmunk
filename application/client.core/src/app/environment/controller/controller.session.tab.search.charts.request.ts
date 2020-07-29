@@ -3,6 +3,9 @@ import { ISearchExpression, ISearchExpressionFlags } from '../interfaces/interfa
 import { getMarkerRegExp } from '../../../../../common/functionlity/functions.search.requests';
 import { AChart, IOptionsObj, EChartType } from '../components/views/chart/charts/charts';
 import { isObjSame } from '../controller/helpers/obj';
+import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
+import { FilterRequest } from './controller.session.tab.search.filters.request';
+import { ControllerSessionTab } from './controller.session.tab';
 
 import ChartControllers from '../components/views/chart/charts/charts';
 
@@ -49,7 +52,7 @@ export interface IChartUpdateEvent {
     };
 }
 
-export class ChartRequest {
+export class ChartRequest implements IDisabledEntitySupport {
 
     private _flags: ISearchExpressionFlags;
     private _request: string;
@@ -324,6 +327,33 @@ export class ChartRequest {
 
     public getState(): boolean {
         return this._active;
+    }
+
+    public getDisplayName(): string {
+        return this._request;
+    }
+
+    public getIcon(): string {
+        return 'timeline';
+    }
+
+    public remove(session: ControllerSessionTab) {
+        session.getSessionSearch().getChartsAPI().getStorage().remove(this);
+    }
+
+    public restore(session: ControllerSessionTab) {
+        session.getSessionSearch().getChartsAPI().getStorage().add(this);
+    }
+
+    public matches(session: ControllerSessionTab) {
+        session.getSessionSearch().search(new FilterRequest({
+            request: this.asDesc().request,
+            flags: {
+                casesensitive: false,
+                wholeword: false,
+                regexp: true,
+            }
+        }));
     }
 
     private _setRegExps(): boolean {

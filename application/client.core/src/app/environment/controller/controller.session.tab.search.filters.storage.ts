@@ -82,7 +82,7 @@ export class FiltersStorage {
         try {
             descs.forEach((desc: IFilterDescOptional | FilterRequest) => {
                     // Create search request
-                    const srchRqst: FilterRequest = desc instanceof FilterRequest ? desc : new FilterRequest(desc);
+                    const srchRqst: FilterRequest = desc instanceof FilterRequest ? new FilterRequest(desc.asDesc()) : new FilterRequest(desc);
                     // Check request
                     if (this.has(srchRqst)) {
                         throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);

@@ -16,7 +16,7 @@
     </mat-expansion-panel>
 </div>
 
-<div class="wrapper" *ngIf="_ng_selected">
+<div class="wrapper" *ngIf="_ng_selected && _ng_selected.getDetailsComp() !== undefined">
     <mat-expansion-panel
         [disabled]="true"
         [hideToggle]="true"

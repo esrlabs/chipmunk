@@ -1,6 +1,8 @@
 import { Observable, Subject, Subscription, from } from 'rxjs';
 import { getContrastColor, scheme_color_accent } from '../theme/colors';
 import { FilterRequest } from './controller.session.tab.search.filters.request';
+import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
+import { ControllerSessionTab } from './controller.session.tab';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -37,7 +39,7 @@ export interface IRangeUpdateEvent {
     };
 }
 
-export class RangeRequest {
+export class RangeRequest implements IDisabledEntitySupport {
 
     private _points: FilterRequest[];
     private _color: string;
@@ -227,6 +229,22 @@ export class RangeRequest {
 
     public getGUID(): string {
         return this._guid;
+    }
+
+    public getDisplayName(): string {
+        return this._alias;
+    }
+
+    public getIcon(): string {
+        return 'alarm';
+    }
+
+    public remove(session: ControllerSessionTab) {
+        session.getSessionSearch().getRangesAPI().getStorage().remove(this);
+    }
+
+    public restore(session: ControllerSessionTab) {
+        session.getSessionSearch().getRangesAPI().getStorage().add(this);
     }
 
 }

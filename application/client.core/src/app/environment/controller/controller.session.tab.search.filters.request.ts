@@ -1,10 +1,11 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ISearchExpression, ISearchExpressionFlags } from '../interfaces/interface.ipc';
 import { getMarkerRegExp, getSearchRegExp } from '../../../../../common/functionlity/functions.search.requests';
-import {  getContrastColor, scheme_color_accent } from '../theme/colors';
+import { getContrastColor, scheme_color_accent } from '../theme/colors';
+import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
+import { ControllerSessionTab } from './controller.session.tab';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import * as ColorScheme from '../theme/colors';
 
 export { ISearchExpressionFlags as IFlags };
 
@@ -43,7 +44,7 @@ export interface IFilterUpdateEvent {
     };
 }
 
-export class FilterRequest {
+export class FilterRequest implements IDisabledEntitySupport {
 
     private _flags: ISearchExpressionFlags;
     private _request: string;
@@ -266,6 +267,33 @@ export class FilterRequest {
 
     public getState(): boolean {
         return this._active;
+    }
+
+    public getDisplayName(): string {
+        return this._request;
+    }
+
+    public getIcon(): string {
+        return 'search';
+    }
+
+    public remove(session: ControllerSessionTab) {
+        session.getSessionSearch().getFiltersAPI().getStorage().remove(this);
+    }
+
+    public restore(session: ControllerSessionTab) {
+        session.getSessionSearch().getFiltersAPI().getStorage().add(this);
+    }
+
+    public matches(session: ControllerSessionTab) {
+        session.getSessionSearch().search(new FilterRequest({
+            request: this.asDesc().request,
+            flags: {
+                casesensitive: false,
+                wholeword: false,
+                regexp: true,
+            }
+        }));
     }
 
     private _setRegExps(): boolean {

@@ -1,15 +1,14 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, HostListener, ElementRef } from '@angular/core';
 import { Subject, Observable, Subscription } from 'rxjs';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { Providers } from './providers/holder';
 import { Provider, EProviders, ISelectEvent, IContextMenuEvent } from './providers/provider';
-import { Entity } from './providers/entity';
 import { ProviderFilters } from './filters/provider';
 import { ProviderCharts } from './charts/provider';
 import { ProviderRanges } from './ranges/provider';
+import { ProviderDisabled } from './disabled/provider';
 
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -94,6 +93,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._providers.add(EProviders.filters, new ProviderFilters());
         this._providers.add(EProviders.charts, new ProviderCharts());
         this._providers.add(EProviders.ranges, new ProviderRanges());
+        this._providers.add(EProviders.disabled, new ProviderDisabled());
         this._ng_providers = this._providers.list();
         this._subscriptions.select = this._providers.getObservable().select.subscribe(this._onSingleSelection.bind(this));
         this._subscriptions.context = this._providers.getObservable().context.subscribe(this._onContextMenu.bind(this));
