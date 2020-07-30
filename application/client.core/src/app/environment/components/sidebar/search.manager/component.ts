@@ -47,7 +47,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             {
                 caption: `Clear recent history`,
                 handler: () => {
-                    this._session.getSessionSearch().getRecentAPI().clear().catch((error: Error) => {
+                    this._session.getSessionSearch().getStoreAPI().clear().catch((error: Error) => {
                         this._notifications.add({
                             caption: 'Error',
                             message: `Fail to drop recent filters history due error: ${error.message}`
@@ -154,7 +154,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             return;
         }
         this._session = session;
-        this._subs.filename = session.getSessionSearch().getRecentAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
+        this._subs.filename = session.getSessionSearch().getStoreAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
     }
 
     private _onSingleSelection(event: ISelectEvent | undefined) {

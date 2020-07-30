@@ -5,53 +5,6 @@ import { IService } from '../interfaces/interface.service';
 import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
 import ServiceFileRecent from './files/service.file.recent';
 
-interface IStoredFileData {
-    filters: IPCMessages.IFilter[];
-    charts: IPCMessages.IChartSaveRequest[];
-}
-
-function normalizeStoredFilters(filters: any[]): IPCMessages.IFilter[] {
-    // back compatibility for filters
-    if (!(filters instanceof Array)) {
-        return [];
-    }
-    return filters.map((filter: any) => {
-        const expression: IPCMessages.ISearchExpression = {
-            request: typeof filter.reg === 'string' ? filter.reg : filter.expression.request,
-            flags: typeof filter.expression === 'object' ? filter.expression.flags : {
-                casesensitive: false,
-                wholeword: false,
-                regexp: true,
-            },
-        };
-        return {
-            expression: expression,
-            color: typeof filter.color === 'string' ? filter.color : '',
-            background: typeof filter.background === 'string' ? filter.background : '',
-            active: typeof filter.active === 'boolean' ? filter.active : true,
-        };
-    }).filter((filter: IPCMessages.IFilter) => {
-        return filter.expression.request !== '';
-    });
-}
-
-function normalizeStoredCharts(charts: any[]): IPCMessages.IChartSaveRequest[] {
-    // back compatibility for charts
-    if (!(charts instanceof Array)) {
-        return [];
-    }
-    return charts.map((chart: any) => {
-        return {
-            color: typeof chart.color === 'string' ? chart.color : '',
-            request: typeof chart.reg === 'string' ? chart.reg : chart.request,
-            active: typeof chart.active === 'boolean' ? chart.active : true,
-            options: typeof chart.options === 'object' ? chart.options : {},
-            type: typeof chart.type === 'string' ? chart.type : '',
-        };
-    }).filter((chart: IPCMessages.IChartSaveRequest) => {
-        return chart.request !== '' && (chart as any).type !== '';
-    });
-}
 
 /**
  * @class ServiceFilters
@@ -108,34 +61,28 @@ class ServiceFilters implements IService {
                     return;
                 }
                 const file: string = returnValue.filePaths[0];
-                this._loadFile(file).then((content: IStoredFileData) => {
-                    ServiceFileRecent.saveFilters(file, content.filters.length + content.charts.length);
+                this._loadFile(file).then((content: string) => {
+                    ServiceFileRecent.saveFilters(file, 0); // TODO: detect count of entities to save
                     response(new IPCMessages.FiltersLoadResponse({
-                        filters: normalizeStoredFilters(content.filters),
-                        charts: normalizeStoredCharts(content.charts),
+                        store: content,
                         file: file,
                     }));
                 }).catch((error: Error) => {
                     return response(new IPCMessages.FiltersLoadResponse({
-                        filters: [],
-                        charts: [],
                         file: file,
                         error: this._logger.warn(`Fail to open file "${file}" due error: ${error.message}`),
                     }));
                 });
             });
         } else {
-            this._loadFile(request.file).then((content: IStoredFileData) => {
-                ServiceFileRecent.saveFilters(request.file as string, content.filters.length + content.charts.length);
+            this._loadFile(request.file).then((content: string) => {
+                ServiceFileRecent.saveFilters(request.file as string, 0); // TODO: detect count of entities to save
                 response(new IPCMessages.FiltersLoadResponse({
-                    filters: normalizeStoredFilters(content.filters),
-                    charts: normalizeStoredCharts(content.charts),
+                    store: content,
                     file: request.file as string,
                 }));
             }).catch((error: Error) => {
                 return response(new IPCMessages.FiltersLoadResponse({
-                    filters: [],
-                    charts: [],
                     file: request.file as string,
                     error: this._logger.warn(`Fail to open file "${request.file}" due error: ${error.message}`),
                 }));
@@ -145,18 +92,14 @@ class ServiceFilters implements IService {
 
     private _ipc_onFiltersSaveRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
         const request: IPCMessages.FiltersSaveRequest = message as IPCMessages.FiltersSaveRequest;
-        const content: string = JSON.stringify({
-            filters: request.filters,
-            charts: request.charts,
-        });
         if (typeof request.file === 'string') {
             if (!fs.existsSync(request.file)) {
                 request.file = undefined;
             }
         }
         if (typeof request.file === 'string') {
-            this._saveFile(request.file, content).then(() => {
-                ServiceFileRecent.saveFilters(request.file as string, request.filters.length);
+            this._saveFile(request.file, request.store).then(() => {
+                ServiceFileRecent.saveFilters(request.file as string, request.count);
                 response(new IPCMessages.FiltersSaveResponse({
                     filename: request.file as string,
                 }));
@@ -172,8 +115,8 @@ class ServiceFilters implements IService {
                 title: 'Saving filters',
                 filters: [{ name: 'Text Files', extensions: ['txt']}],
             }).then((results: SaveDialogReturnValue) => {
-                this._saveFile(results.filePath, content).then(() => {
-                    ServiceFileRecent.saveFilters(results.filePath as string, request.filters.length);
+                this._saveFile(results.filePath, request.store).then(() => {
+                    ServiceFileRecent.saveFilters(results.filePath as string, request.count);
                     response(new IPCMessages.FiltersSaveResponse({
                         filename: results.filePath as string,
                     }));
@@ -188,7 +131,7 @@ class ServiceFilters implements IService {
         }
     }
 
-    private _loadFile(file: string): Promise<IStoredFileData> {
+    private _loadFile(file: string): Promise<string> {
         return new Promise((resolve, reject) => {
             fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (error) {
@@ -200,14 +143,11 @@ class ServiceFilters implements IService {
                     }
                     data = data.toString();
                     try {
-                        const content: IStoredFileData = JSON.parse(data);
+                        const content: any = JSON.parse(data);
                         if (typeof content !== 'object' || content === null) {
                             return reject(new Error(`Fail to parse file "${file}" because content isn't an object.`));
                         }
-                        if (!(content.filters instanceof Array) || !(content.charts instanceof Array)) {
-                            return reject(new Error(`Fail to parse file "${file}" because "filters" or "charts" aren't an Array.`));
-                        }
-                        resolve(content);
+                        resolve(data);
                     } catch (e) {
                         return reject(new Error(`Fail to parse file "${file}" due error: ${e.message}`));
                     }

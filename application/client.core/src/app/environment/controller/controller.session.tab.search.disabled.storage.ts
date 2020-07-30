@@ -1,5 +1,10 @@
 import { Observable, Subject } from 'rxjs';
-import { DisabledRequest } from './controller.session.tab.search.disabled.request';
+import { DisabledRequest, IDesc as IDisabledDesc } from './controller.session.tab.search.disabled.request';
+import { EEntityTypeRef } from './controller.session.tab.search.disabled.support';
+import { FilterRequest } from './controller.session.tab.search.filters.request';
+import { ChartRequest } from './controller.session.tab.search.charts.request';
+import { RangeRequest } from './controller.session.tab.search.ranges.request';
+import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.store.support';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -16,7 +21,12 @@ export interface IReorderParams {
 
 export { DisabledRequest };
 
-export class DisabledStorage {
+export class DisabledStorage implements IStore<IDisabledDesc[]> {
+    private readonly _refs = {
+        [EEntityTypeRef.chart]: ChartRequest,
+        [EEntityTypeRef.filter]: FilterRequest,
+        [EEntityTypeRef.range]: RangeRequest,
+    };
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -115,6 +125,45 @@ export class DisabledStorage {
         });
         this._stored.splice(params.curt, 0, request);
         this._subjects.updated.next({ requests: this._stored });
+    }
+
+    public store(): {
+        key(): EStoreKeys,
+        extract(): IStoreData,
+        upload(entities: IDisabledDesc[]): void,
+        getItemsCount(): number,
+    } {
+        const self = this;
+        return {
+            key() {
+                return EStoreKeys.disabled;
+            },
+            extract() {
+                return self._stored.map((disabled: DisabledRequest) => {
+                    return disabled.asDesc();
+                });
+            },
+            upload(entities: IDisabledDesc[]): void {
+                self._clear();
+                self.add(entities.map((entity: IDisabledDesc) => {
+                    const ref = self._refs[entity.type];
+                    if (ref === undefined) {
+                        return undefined;
+                    } else {
+                        try {
+                            const instance = new ref(entity.desc);
+                            return new DisabledRequest(instance);
+                        } catch (e) {
+                            this._logger.warn(`Fail create instance of entity due error: ${e.message}`);
+                            return undefined;
+                        }
+                    }
+                }).filter((smth) => smth !== undefined));
+            },
+            getItemsCount(): number {
+                return self._stored.length;
+            },
+        };
     }
 
     private _clear() {

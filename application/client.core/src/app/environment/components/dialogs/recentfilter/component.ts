@@ -59,7 +59,7 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
                         dirname: Toolkit.dirname(file.file),
                         tbasename: Toolkit.basename(file.file),
                         tdirname: Toolkit.dirname(file.file),
-                        filters: file.filters,
+                        filters: file.count,
                         timestamp: file.timestamp,
                     };
                 });

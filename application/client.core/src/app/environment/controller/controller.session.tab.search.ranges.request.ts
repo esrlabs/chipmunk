@@ -1,7 +1,7 @@
 import { Observable, Subject, Subscription, from } from 'rxjs';
 import { getContrastColor, scheme_color_accent } from '../theme/colors';
-import { FilterRequest } from './controller.session.tab.search.filters.request';
-import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
+import { FilterRequest, IDesc as IFilterDesc } from './controller.session.tab.search.filters.request';
+import { IDisabledEntitySupport, EEntityTypeRef } from './controller.session.tab.search.disabled.support';
 import { ControllerSessionTab } from './controller.session.tab';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -9,7 +9,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export interface IDesc {
     guid: string;
     alias: string;
-    points: FilterRequest[];
+    points: Array<FilterRequest | IFilterDesc>;
     color: string;
     strict: boolean;
 }
@@ -17,14 +17,14 @@ export interface IDesc {
 export interface IDescOptional {
     guid?: string;
     alias?: string;
-    points: FilterRequest[];
+    points: Array<FilterRequest | IFilterDesc>;
     color?: string;
     strict?: boolean;
 }
 
 export interface IDescUpdating {
     alias?: string;
-    points?: FilterRequest[];
+    points?: Array<FilterRequest | IFilterDesc>;
     color?: string;
     strict?: boolean;
 }
@@ -68,11 +68,13 @@ export class RangeRequest implements IDisabledEntitySupport {
         if (!(desc.points instanceof Array) || desc.points.length < 2) {
             throw new Error(`To create range should be defined at least 2 FilterRequest as start and end of range`);
         }
-        this._points = desc.points;
+        this._points = desc.points.map((filter: FilterRequest | IFilterDesc) => {
+            return filter instanceof FilterRequest ? filter : new FilterRequest(filter);
+        });
         if (typeof desc.guid === 'string') {
             this._guid = desc.guid;
         } else {
-            this._guid = Toolkit.hash(desc.points.map(_ => _.getHash()).join(''));
+            this._guid = Toolkit.hash(this._points.map(_ => _.getHash()).join(''));
         }
         if (typeof desc.color === 'string') {
             this._color = desc.color;
@@ -119,7 +121,9 @@ export class RangeRequest implements IDisabledEntitySupport {
         return {
             alias: this.getAlias(),
             guid: this.getGUID(),
-            points: this.getPoints(),
+            points: this.getPoints().map((filter: FilterRequest) => {
+                return filter.asDesc();
+            }),
             color: this.getColor(),
             strict: this.getStrictState(),
         };
@@ -237,6 +241,10 @@ export class RangeRequest implements IDisabledEntitySupport {
 
     public getIcon(): string {
         return 'alarm';
+    }
+
+    public getTypeRef(): EEntityTypeRef {
+        return EEntityTypeRef.range;
     }
 
     public remove(session: ControllerSessionTab) {

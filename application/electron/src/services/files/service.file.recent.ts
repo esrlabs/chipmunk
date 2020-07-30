@@ -83,7 +83,7 @@ export class ServiceFileRecent implements IService {
         ServiceElectron.updateMenu();
     }
 
-    public saveFilters(file: string, filters: number) {
+    public saveFilters(file: string, count: number) {
         const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
         const files: IStorageScheme.IRecentFilterFile[] = stored.recentFiltersFiles.filter((fileInfo: IStorageScheme.IRecentFilterFile) => {
             return fileInfo.file !== file;
@@ -96,7 +96,7 @@ export class ServiceFileRecent implements IService {
             filename: path.basename(file),
             folder: path.dirname(file),
             timestamp: Date.now(),
-            filters: filters,
+            count: count,
         });
         ServiceStorage.get().set({
             recentFiltersFiles: files,

@@ -3,6 +3,11 @@ import { ChartRequest } from './controller.session.tab.search.charts.request';
 import { RangeRequest } from './controller.session.tab.search.ranges.request';
 import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
 
+export interface IDesc {
+    type: string;
+    desc: any;
+}
+
 export class DisabledRequest {
 
     private _entity: IDisabledEntitySupport;
@@ -31,6 +36,13 @@ export class DisabledRequest {
 
     public getGUID(): string {
         return this._guid;
+    }
+
+    public asDesc(): IDesc {
+        return {
+            type: this.getEntity().getTypeRef(),
+            desc: this.getEntity().asDesc(),
+        };
     }
 
 }
