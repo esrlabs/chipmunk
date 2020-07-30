@@ -310,8 +310,8 @@ export { FiltersLoadRequest, IFiltersLoadRequest };
 import { IFiltersLoadResponse, FiltersLoadResponse } from './file.filters.load.response';
 export { IFiltersLoadResponse, FiltersLoadResponse };
 
-import { IFiltersSaveRequest, FiltersSaveRequest, IChart as IChartSaveRequest, IFilter } from './file.filters.save.request';
-export { IFiltersSaveRequest, FiltersSaveRequest, IChartSaveRequest, IFilter };
+import { IFiltersSaveRequest, FiltersSaveRequest } from './file.filters.save.request';
+export { IFiltersSaveRequest, FiltersSaveRequest };
 
 import { IFiltersSaveResponse, FiltersSaveResponse } from './file.filters.save.response';
 export { IFiltersSaveResponse, FiltersSaveResponse };

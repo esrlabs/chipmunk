@@ -2,7 +2,7 @@ export interface IRecentFilterFileInfo {
     file: string;
     filename: string;
     folder: string;
-    filters: number;
+    count: number;
     timestamp: number;
 }
 

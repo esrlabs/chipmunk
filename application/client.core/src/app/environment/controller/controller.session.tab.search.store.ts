@@ -1,14 +1,15 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { FiltersStorage, FilterRequest } from './controller.session.tab.search.filters.storage';
 import { ChartsStorage, ChartRequest } from './controller.session.tab.search.charts.storage';
-import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
-import { ControllerSessionScope } from './controller.session.tab.scope';
+import { RangesStorage, RangeRequest } from './controller.session.tab.search.ranges.storage';
+import { DisabledRequest, DisabledStorage } from './controller.session.tab.search.disabled.storage';
+import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.store.support';
 
 import ElectronIpcService, { IPCMessages } from '../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export class ControllerSessionTabSearchRecent {
+export class ControllerSessionTabSearchStore {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -21,16 +22,22 @@ export class ControllerSessionTabSearchRecent {
     private _filename: string = '';
     private _filters: FiltersStorage;
     private _charts: ChartsStorage;
+    private _ranges: RangesStorage;
+    private _disabled: DisabledStorage;
 
     constructor(
         guid: string,
         filters: FiltersStorage,
         charts: ChartsStorage,
+        ranges: RangesStorage,
+        disabled: DisabledStorage,
     ) {
         this._guid = guid;
         this._filters = filters;
         this._charts = charts;
-        this._logger = new Toolkit.Logger(`ControllerSessionTabSearchRecent: ${guid}`);
+        this._ranges = ranges;
+        this._disabled = disabled;
+        this._logger = new Toolkit.Logger(`ControllerSessionTabSearchStore: ${guid}`);
     }
 
     public destroy(): Promise<void> {
@@ -70,28 +77,19 @@ export class ControllerSessionTabSearchRecent {
                 if (response.error !== undefined) {
                     return reject(new Error(response.error));
                 }
-                // Drop data in storage
-                this._filters.clear();
-                this._charts.clear();
-                // Add new
-                this._filters.add(response.filters.map((filter: IPCMessages.IFilter) => {
-                    return {
-                        request: filter.expression.request,
-                        flags: filter.expression.flags,
-                        color: filter.color,
-                        background: filter.background,
-                        state: filter.active,
-                    };
-                }));
-                this._charts.add(response.charts.map((chart: IPCMessages.IChartSaveRequest) => {
-                    return {
-                        request: chart.request,
-                        type: chart.type,
-                        color: chart.color,
-                        state: chart.active,
-                        options: chart.options,
-                    };
-                }));
+                let store: IStoreData = {};
+                try {
+                    store = JSON.parse(response.store);
+                } catch (e) {
+                    this._logger.error(`Fail parse filters due error: ${e.message}`);
+                    return;
+                }
+                [this._filters, this._charts, this._ranges, this._disabled].forEach((storage: IStore<any>) => {
+                    if (typeof store[storage.store().key()] !== 'object' || store[storage.store().key()] === null) {
+                        return;
+                    }
+                    storage.store().upload(store[storage.store().key()]);
+                });
                 this.setCurrentFile(response.file);
                 resolve(response.file);
             }).catch((error: Error) => {
@@ -103,29 +101,15 @@ export class ControllerSessionTabSearchRecent {
 
     public save(filename: string): Promise<string> {
         return new Promise((resolve, reject) => {
+            const store: IStoreData = {};
+            let count: number = 0;
+            [this._filters, this._charts, this._ranges, this._disabled].forEach((storage: IStore<any>) => {
+                store[storage.store().key()] = storage.store().extract();
+                count += storage.store().getItemsCount();
+            });
             ElectronIpcService.request(new IPCMessages.FiltersSaveRequest({
-                filters: this._filters.get().map((filter: FilterRequest) => {
-                    const desc = filter.asDesc();
-                    return {
-                        expression: {
-                            request: desc.request,
-                            flags: desc.flags,
-                        },
-                        color: desc.color,
-                        background: desc.background,
-                        active: desc.active,
-                    };
-                }),
-                charts: this._charts.get().map((chart: ChartRequest) => {
-                    const desc = chart.asDesc();
-                    return {
-                        request: desc.request,
-                        color: desc.color,
-                        active: desc.active,
-                        type: desc.type,
-                        options: desc.options,
-                    };
-                }),
+                store: JSON.stringify(store),
+                count: count,
                 file: typeof filename === 'string' ? filename : undefined,
             }), IPCMessages.FiltersSaveResponse).then((response: IPCMessages.FiltersSaveResponse) => {
                 if (response.error !== undefined) {

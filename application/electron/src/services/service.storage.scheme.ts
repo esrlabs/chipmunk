@@ -15,7 +15,7 @@ export interface IRecentFilterFile {
     filename: string;
     folder: string;
     timestamp: number;
-    filters: number;
+    count: number;
 }
 
 export interface IRecentSearchRequest {

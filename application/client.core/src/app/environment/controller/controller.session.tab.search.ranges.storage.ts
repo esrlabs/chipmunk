@@ -6,6 +6,7 @@ import {
     IDescOptional as IRangeDescOptional,
     IDescUpdating as IRangeDescUpdating,
 } from './controller.session.tab.search.ranges.request';
+import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.store.support';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -30,7 +31,7 @@ export {
     IRangeDescUpdating
 };
 
-export class RangesStorage {
+export class RangesStorage implements IStore<IRangeDesc[]> {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -141,6 +142,32 @@ export class RangesStorage {
         });
         this._stored.splice(params.curt, 0, filter);
         this._subjects.updated.next({ ranges: this._stored, updated: undefined });
+    }
+
+    public store(): {
+        key(): EStoreKeys,
+        extract(): IStoreData,
+        upload(ranges: IRangeDesc[]): void,
+        getItemsCount(): number,
+    } {
+        const self = this;
+        return {
+            key() {
+                return EStoreKeys.ranges;
+            },
+            extract() {
+                return self._stored.map((range: RangeRequest) => {
+                    return range.asDesc();
+                });
+            },
+            upload(ranges: IRangeDesc[]): void {
+                self._clear();
+                self.add(ranges.map((desc: IRangeDesc) => new RangeRequest(desc)));
+            },
+            getItemsCount(): number {
+                return self._stored.length;
+            }
+        };
     }
 
     private _onRequestUpdated(event: IRangeUpdateEvent) {

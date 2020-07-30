@@ -3,7 +3,7 @@ import { ISearchExpression, ISearchExpressionFlags } from '../interfaces/interfa
 import { getMarkerRegExp } from '../../../../../common/functionlity/functions.search.requests';
 import { AChart, IOptionsObj, EChartType } from '../components/views/chart/charts/charts';
 import { isObjSame } from '../controller/helpers/obj';
-import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
+import { IDisabledEntitySupport, EEntityTypeRef } from './controller.session.tab.search.disabled.support';
 import { FilterRequest } from './controller.session.tab.search.filters.request';
 import { ControllerSessionTab } from './controller.session.tab';
 
@@ -335,6 +335,10 @@ export class ChartRequest implements IDisabledEntitySupport {
 
     public getIcon(): string {
         return 'timeline';
+    }
+
+    public getTypeRef(): EEntityTypeRef {
+        return EEntityTypeRef.chart;
     }
 
     public remove(session: ControllerSessionTab) {

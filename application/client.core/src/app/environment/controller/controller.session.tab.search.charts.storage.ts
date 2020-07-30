@@ -7,6 +7,7 @@ import {
     IDescOptional as IChartDescOptional,
     IDescUpdating as IChartDescUpdating,
 } from './controller.session.tab.search.charts.request';
+import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.store.support';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -32,7 +33,7 @@ export {
     IChartDescUpdating
 };
 
-export class ChartsStorage {
+export class ChartsStorage implements IStore<IChartDesc[]> {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -153,6 +154,32 @@ export class ChartsStorage {
         return this._stored.find((chart: ChartRequest) => {
             return chart.asRegExp().source === source;
         });
+    }
+
+    public store(): {
+        key(): EStoreKeys,
+        extract(): IStoreData,
+        upload(charts: IChartDesc[]): void,
+        getItemsCount(): number,
+    } {
+        const self = this;
+        return {
+            key() {
+                return EStoreKeys.charts;
+            },
+            extract() {
+                return self._stored.map((chart: ChartRequest) => {
+                    return chart.asDesc();
+                });
+            },
+            upload(charts: IChartDesc[]) {
+                self._clear();
+                self.add(charts.map((desc: IChartDesc) => new ChartRequest(desc)));
+            },
+            getItemsCount(): number {
+                return self._stored.length;
+            },
+        };
     }
 
     private _onRequestUpdated(event: IChartUpdateEvent) {

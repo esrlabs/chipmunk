@@ -7,6 +7,7 @@ import {
     IDescOptional as IFilterDescOptional,
     IDescUpdating as IFilterDescUpdating,
 } from './controller.session.tab.search.filters.request';
+import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.store.support';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -32,7 +33,7 @@ export {
     IFilterDescUpdating
 };
 
-export class FiltersStorage {
+export class FiltersStorage implements IStore<IFilterDesc[]> {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -153,6 +154,32 @@ export class FiltersStorage {
         return this._stored.find((filter: FilterRequest) => {
             return filter.asRegExp().source === source;
         });
+    }
+
+    public store(): {
+        key(): EStoreKeys,
+        extract(): IStoreData,
+        upload(filters: IFilterDesc[]): void,
+        getItemsCount(): number,
+    } {
+        const self = this;
+        return {
+            key() {
+                return EStoreKeys.filters;
+            },
+            extract() {
+                return self._stored.map((filter: FilterRequest) => {
+                    return filter.asDesc();
+                });
+            },
+            upload(filters: IFilterDesc[]) {
+                self._clear();
+                self.add(filters.map((desc: IFilterDesc) => new FilterRequest(desc)));
+            },
+            getItemsCount(): number {
+                return self._stored.length;
+            }
+        };
     }
 
     private _onRequestUpdated(event: IFilterUpdateEvent) {

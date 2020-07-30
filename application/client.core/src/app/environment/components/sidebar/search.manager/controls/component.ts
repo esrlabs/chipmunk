@@ -1,6 +1,6 @@
 import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef, EventEmitter, Output } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { ControllerSessionTabSearchRecent } from '../../../../controller/controller.session.tab.search.recent';
+import { ControllerSessionTabSearchStore } from '../../../../controller/controller.session.tab.search.store';
 import { DialogsRecentFitlersActionComponent } from '../../../dialogs/recentfilter/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
@@ -23,7 +23,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchManagerControlsComponent');
-    private _controller: ControllerSessionTabSearchRecent;
+    private _controller: ControllerSessionTabSearchStore;
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -114,7 +114,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (controller === undefined) {
             return;
         }
-        this._controller = controller.getSessionSearch().getRecentAPI();
+        this._controller = controller.getSessionSearch().getStoreAPI();
         // Restore filename
         this._setCurrentFile(this._controller.getCurrentFile());
         // Subscribe to any change

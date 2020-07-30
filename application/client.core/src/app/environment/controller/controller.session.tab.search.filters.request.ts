@@ -2,7 +2,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { ISearchExpression, ISearchExpressionFlags } from '../interfaces/interface.ipc';
 import { getMarkerRegExp, getSearchRegExp } from '../../../../../common/functionlity/functions.search.requests';
 import { getContrastColor, scheme_color_accent } from '../theme/colors';
-import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
+import { IDisabledEntitySupport, EEntityTypeRef } from './controller.session.tab.search.disabled.support';
 import { ControllerSessionTab } from './controller.session.tab';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -275,6 +275,10 @@ export class FilterRequest implements IDisabledEntitySupport {
 
     public getIcon(): string {
         return 'search';
+    }
+
+    public getTypeRef(): EEntityTypeRef {
+        return EEntityTypeRef.filter;
     }
 
     public remove(session: ControllerSessionTab) {

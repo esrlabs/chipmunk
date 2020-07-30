@@ -84,7 +84,7 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
             this._ng_strict = undefined;
         } else {
             const desc = this._entity.getEntity().asDesc();
-            this._ng_points = this._entity.getEntity().asDesc().points.map((filter: FilterRequest) => {
+            this._ng_points = this._entity.getEntity().getPoints().map((filter: FilterRequest) => {
                 return new Entity<FilterRequest>(filter, filter.getGUID());
             });
             this._ng_color = desc.color;

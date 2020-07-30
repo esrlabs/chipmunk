@@ -4,7 +4,7 @@ import { ControllerSessionTabSearchRanges } from './controller.session.tab.searc
 import { ControllerSessionTabSearchDisabled } from './controller.session.tab.search.disabled';
 import { ControllerSessionTabSearchOutput } from './controller.session.tab.search.output';
 import { ControllerSessionTabStreamOutput } from './controller.session.tab.stream.output';
-import { ControllerSessionTabSearchRecent } from './controller.session.tab.search.recent';
+import { ControllerSessionTabSearchStore } from './controller.session.tab.search.store';
 import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
 
 import { ControllerSessionScope } from './controller.session.tab.scope';
@@ -26,7 +26,7 @@ export class ControllerSessionTabSearch {
     private _charts: ControllerSessionTabSearchCharts;
     private _ranges: ControllerSessionTabSearchRanges;
     private _disabled: ControllerSessionTabSearchDisabled;
-    private _recent: ControllerSessionTabSearchRecent;
+    private _store: ControllerSessionTabSearchStore;
     private _subjects: {
         search: Subject<FilterRequest>,
     } = {
@@ -41,10 +41,12 @@ export class ControllerSessionTabSearch {
         this._charts = new ControllerSessionTabSearchCharts(params);
         this._ranges = new ControllerSessionTabSearchRanges(params);
         this._disabled = new ControllerSessionTabSearchDisabled(params);
-        this._recent = new ControllerSessionTabSearchRecent(
+        this._store = new ControllerSessionTabSearchStore(
             params.guid,
             this._filters.getStorage(),
             this._charts.getStorage(),
+            this._ranges.getStorage(),
+            this._disabled.getStorage(),
         );
     }
 
@@ -55,7 +57,7 @@ export class ControllerSessionTabSearch {
                 this._charts.destroy(),
                 this._ranges.destroy(),
                 this._disabled.destroy(),
-                this._recent.destroy(),
+                this._store.destroy(),
             ]).then(() => {
                 resolve();
             });
@@ -94,8 +96,8 @@ export class ControllerSessionTabSearch {
         return this._disabled;
     }
 
-    public getRecentAPI(): ControllerSessionTabSearchRecent {
-        return this._recent;
+    public getStoreAPI(): ControllerSessionTabSearchStore {
+        return this._store;
     }
 
     public search(request: FilterRequest) {
