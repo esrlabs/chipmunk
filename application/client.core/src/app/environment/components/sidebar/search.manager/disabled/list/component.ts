@@ -35,10 +35,10 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<DisabledRequest[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<{ disabled: DisabledRequest[] }>) {
         const prev = event.previousContainer;
         const index = event.previousIndex;
-        if (prev.data !== undefined) {
+        if (prev.data !== undefined && prev.data.disabled === undefined) {
             const outside: Entity<any> | undefined = (prev.data as any)[event.previousIndex] !== undefined ? (prev.data as any)[index] : undefined;
             if (outside !== undefined) {
                 this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().add(

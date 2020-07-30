@@ -2,7 +2,7 @@
     cdkDropList
     [cdkDropListConnectedTo]="['charts-entities', 'ranges-entities', 'filters-entities']"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
-    [cdkDropListData]="_ng_entries"
+    [cdkDropListData]="{ disabled: _ng_entries }"
     class="filters">
     <app-sidebar-app-searchmanager-disabled
         (contextmenu)="_ng_onContexMenu($event, entity)"
