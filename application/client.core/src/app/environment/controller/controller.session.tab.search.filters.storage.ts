@@ -73,7 +73,7 @@ export class FiltersStorage {
         }) !== undefined;
     }
 
-    public add(descs: IFilterDescOptional | FilterRequest | Array<IFilterDescOptional | FilterRequest>): Error {
+    public add(descs: IFilterDescOptional | FilterRequest | Array<IFilterDescOptional | FilterRequest>, from?: number): Error {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -81,17 +81,22 @@ export class FiltersStorage {
         const added: FilterRequest[] = [];
         try {
             descs.forEach((desc: IFilterDescOptional | FilterRequest) => {
-                    // Create search request
-                    const srchRqst: FilterRequest = desc instanceof FilterRequest ? new FilterRequest(desc.asDesc()) : new FilterRequest(desc);
-                    // Check request
-                    if (this.has(srchRqst)) {
-                        throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
-                    }
-                    // Add request
+                // Create search request
+                const srchRqst: FilterRequest = desc instanceof FilterRequest ? new FilterRequest(desc.asDesc()) : new FilterRequest(desc);
+                // Check request
+                if (this.has(srchRqst)) {
+                    throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
+                }
+                // Add request
+                if (typeof from === 'number' && from < this._stored.length) {
+                    this._stored.splice(from, 0, srchRqst);
+                } else {
                     this._stored.push(srchRqst);
-                    added.push(srchRqst);
-                    // Subscribe on update event
-                    srchRqst.onUpdated(this._onRequestUpdated.bind(this));            });
+                }
+                added.push(srchRqst);
+                // Subscribe on update event
+                srchRqst.onUpdated(this._onRequestUpdated.bind(this));
+            });
         } catch (err) {
             return new Error(`Fail add request(s) due error: ${err.message}`);
         }

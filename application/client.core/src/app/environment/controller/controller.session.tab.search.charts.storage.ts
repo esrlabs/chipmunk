@@ -73,7 +73,7 @@ export class ChartsStorage {
         }) !== undefined;
     }
 
-    public add(descs: IChartDescOptional | ChartRequest | Array<IChartDescOptional | ChartRequest>): Error {
+    public add(descs: IChartDescOptional | ChartRequest | Array<IChartDescOptional | ChartRequest>, from?: number): Error {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -88,7 +88,11 @@ export class ChartsStorage {
                     throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
                 }
                 // Add request
-                this._stored.push(srchRqst);
+                if (typeof from === 'number' && from < this._stored.length) {
+                    this._stored.splice(from, 0, srchRqst);
+                } else {
+                    this._stored.push(srchRqst);
+                }
                 added.push(srchRqst),
                 // Subscribe on update event
                 srchRqst.onUpdated(this._onRequestUpdated.bind(this));

@@ -45,12 +45,6 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
                     new DisabledRequest(outside.getEntity()),
                     event.currentIndex,
                 );
-                /*
-                this.provider.reorder({
-                    prev: this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().get().length - 1,
-                    curt: event.currentIndex,
-                });
-                */
                 outside.getEntity().remove(this.provider.getSession());
             }
         } else {

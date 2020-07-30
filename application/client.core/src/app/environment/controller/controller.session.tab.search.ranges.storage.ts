@@ -71,7 +71,7 @@ export class RangesStorage {
         }) !== undefined;
     }
 
-    public add(descs: IRangeDescOptional | RangeRequest | Array<IRangeDescOptional | RangeRequest>): Error {
+    public add(descs: IRangeDescOptional | RangeRequest | Array<IRangeDescOptional | RangeRequest>, from?: number): Error {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -79,17 +79,22 @@ export class RangesStorage {
         const added: RangeRequest[] = [];
         try {
             descs.forEach((desc: IRangeDescOptional | RangeRequest) => {
-                    // Create search request
-                    const range: RangeRequest = desc instanceof RangeRequest ? desc : new RangeRequest(desc);
-                    // Check request
-                    if (this.has(range)) {
-                        throw new Error(`Range already exist`);
-                    }
-                    // Add request
+                // Create search request
+                const range: RangeRequest = desc instanceof RangeRequest ? desc : new RangeRequest(desc);
+                // Check request
+                if (this.has(range)) {
+                    throw new Error(`Range already exist`);
+                }
+                // Add request
+                if (typeof from === 'number' && from < this._stored.length) {
+                    this._stored.splice(from, 0, range);
+                } else {
                     this._stored.push(range);
-                    added.push(range);
-                    // Subscribe on update event
-                    range.onUpdated(this._onRequestUpdated.bind(this));            });
+                }
+                added.push(range);
+                // Subscribe on update event
+                range.onUpdated(this._onRequestUpdated.bind(this));
+            });
         } catch (err) {
             return new Error(`Fail add request(s) due error: ${err.message}`);
         }
