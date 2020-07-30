@@ -38,8 +38,8 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
     public _ng_onItemDragged(event: CdkDragDrop<FilterRequest[]>) {
         const prev = event.previousContainer;
         const index = event.previousIndex;
-        if (prev.data !== undefined) {
-            const outside: Entity<any> | undefined = (prev.data as any)[event.previousIndex] !== undefined ? (prev.data as any)[index] : undefined;
+        if (prev.data !== undefined && (prev.data as any).disabled !== undefined) {
+            const outside: Entity<any> | undefined = (prev.data as any).disabled[event.previousIndex] !== undefined ? (prev.data as any).disabled[index] : undefined;
             if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof FilterRequest) {
                 this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
                 this.provider.getSession().getSessionSearch().getFiltersAPI().getStorage().add(outside.getEntity().getEntity(), event.currentIndex);

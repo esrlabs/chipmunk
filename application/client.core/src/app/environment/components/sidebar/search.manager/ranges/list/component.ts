@@ -40,8 +40,8 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     public _ng_onItemDragged(event: CdkDragDrop<RangeRequest[]>) {
         const prev = event.previousContainer;
         const index = event.previousIndex;
-        if (prev.data !== undefined) {
-            const outside: Entity<any> | undefined = (prev.data as any)[event.previousIndex] !== undefined ? (prev.data as any)[index] : undefined;
+        if (prev.data !== undefined && (prev.data as any).disabled !== undefined) {
+            const outside: Entity<any> | undefined = (prev.data as any).disabled[event.previousIndex] !== undefined ? (prev.data as any).disabled[index] : undefined;
             if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof RangeRequest) {
                 this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
                 this.provider.getSession().getSessionSearch().getRangesAPI().getStorage().add(outside.getEntity().getEntity(), event.currentIndex);
