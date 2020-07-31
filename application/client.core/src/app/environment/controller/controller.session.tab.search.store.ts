@@ -24,6 +24,7 @@ export class ControllerSessionTabSearchStore {
     private _charts: ChartsStorage;
     private _ranges: RangesStorage;
     private _disabled: DisabledStorage;
+    private _loading: boolean = false;
 
     constructor(
         guid: string,
@@ -38,6 +39,14 @@ export class ControllerSessionTabSearchStore {
         this._ranges = ranges;
         this._disabled = disabled;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchStore: ${guid}`);
+        [filters, charts, ranges, disabled].forEach((storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage, i: number) => {
+            if ((storage.getObservable() as any).updated !== undefined) {
+                this._subscriptions[Toolkit.guid()] = (storage.getObservable() as any).updated.subscribe(this._onChanges.bind(this));
+            }
+            if ((storage.getObservable() as any).changed !== undefined) {
+                this._subscriptions[Toolkit.guid()] = (storage.getObservable() as any).changed.subscribe(this._onChanges.bind(this));
+            }
+        });
     }
 
     public destroy(): Promise<void> {
@@ -61,16 +70,9 @@ export class ControllerSessionTabSearchStore {
         return this._filename;
     }
 
-    public getFiltersStorage(): FiltersStorage {
-        return this._filters;
-    }
-
-    public getChartsStorage(): ChartsStorage {
-        return this._charts;
-    }
-
     public load(file?: string): Promise<string> {
         return new Promise((resolve, reject) => {
+            this._loading = true;
             ElectronIpcService.request(new IPCMessages.FiltersLoadRequest({
                 file: file,
             }), IPCMessages.FiltersLoadResponse).then((response: IPCMessages.FiltersLoadResponse) => {
@@ -91,9 +93,11 @@ export class ControllerSessionTabSearchStore {
                     storage.store().upload(store[storage.store().key()]);
                 });
                 this.setCurrentFile(response.file);
+                this._loading = false;
                 resolve(response.file);
             }).catch((error: Error) => {
                 this._logger.error(`Fail to load filters due error: ${error.message}`);
+                this._loading = false;
                 reject(error);
             });
         });
@@ -142,6 +146,23 @@ export class ControllerSessionTabSearchStore {
     public setCurrentFile(filename: string) {
         this._filename = filename;
         this._subjects.filename.next(filename);
+    }
+
+    private _onChanges() {
+        if (this._loading) {
+            return;
+        }
+        if (this.getCurrentFile().trim() === '') {
+            return;
+        }
+        let count: number = 0;
+        [this._filters, this._charts, this._ranges, this._disabled].forEach((storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage) => {
+            count += storage.get().length;
+        });
+        if (count === 0) {
+            return;
+        }
+        this.save(this.getCurrentFile());
     }
 
 }

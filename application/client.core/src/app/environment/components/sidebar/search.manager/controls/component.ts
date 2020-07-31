@@ -1,5 +1,5 @@
-import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef, EventEmitter, Output } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
+import { Component, AfterContentInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ControllerSessionTabSearchStore } from '../../../../controller/controller.session.tab.search.store';
 import { DialogsRecentFitlersActionComponent } from '../../../dialogs/recentfilter/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
@@ -71,11 +71,8 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (this._controller === undefined) {
             return;
         }
-        // We should unsubscribe from session events during loading to prevent circle saving
-        this._unsubscribeSessionEvents();
         this._controller.load(file).then((filename: string) => {
             this._setCurrentFile(filename);
-            this._subscribeSessionEvents();
         }).catch((error: Error) => {
             this._notifications.add({
                 caption: 'Filters',
@@ -107,7 +104,6 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     }
 
     private _onSessionChange(controller?: ControllerSessionTab) {
-        this._unsubscribeSessionEvents();
         if (controller === undefined) {
             controller = TabsSessionsService.getActive();
         }
@@ -117,38 +113,6 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         this._controller = controller.getSessionSearch().getStoreAPI();
         // Restore filename
         this._setCurrentFile(this._controller.getCurrentFile());
-        // Subscribe to any change
-        this._subscribeSessionEvents();
-    }
-
-    private _unsubscribeSessionEvents() {
-        Object.keys(this._sessionSubscriptions).forEach((prop: string) => {
-            this._sessionSubscriptions[prop].unsubscribe();
-        });
-    }
-
-    private _subscribeSessionEvents() {
-        if (this._controller === undefined) {
-            return;
-        }
-        this._sessionSubscriptions.filtersStorageUpdate = this._controller.getFiltersStorage().getObservable().updated.subscribe(this._autoSave.bind(this));
-        this._sessionSubscriptions.chartsStorageUpdate = this._controller.getChartsStorage().getObservable().updated.subscribe(this._autoSave.bind(this));
-        this._sessionSubscriptions.filtersStorageChanged = this._controller.getFiltersStorage().getObservable().changed.subscribe(this._autoSave.bind(this));
-        this._sessionSubscriptions.chartsStorageChanged = this._controller.getChartsStorage().getObservable().changed.subscribe(this._autoSave.bind(this));
-    }
-
-    private _autoSave() {
-        if (this._controller === undefined) {
-            return;
-        }
-        if (this._controller.getCurrentFile() === '') {
-            return;
-        }
-        if (this._controller.getFiltersStorage().get().length === 0 && this._controller.getChartsStorage().get().length === 0) {
-            // Do not save if it was cleared
-            return;
-        }
-        this._ng_onSave(this._controller.getCurrentFile());
     }
 
     private _setCurrentFile(filename: string) {
