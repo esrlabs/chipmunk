@@ -42,6 +42,8 @@ export class OutputParsersService {
 
     readonly TOOLTIP_ATTR_NAME: string = 'data-row-tooltip';
     readonly CLICK_HANDLER_ATTR_NAME: string = 'data-row-click-handler';
+    readonly PLACEHOLDER_OPEN = '\u000A';
+    readonly PLACEHOLDER_CLOSE = '\u000B';
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputParsersService');
     private _parsers: {
@@ -66,6 +68,7 @@ export class OutputParsersService {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _session: string;
+    private _sequence: number = 0;
     private _typedRowRendersHistory: {
         sources: string[],
         aliases: Map<string, string>,
@@ -548,12 +551,11 @@ export class OutputParsersService {
 
     private _getCachedKeyForValue(value: string): ICachedKey {
         if (this._cache[value] === undefined) {
-            const key: string = Toolkit.guid();
+            const key: string = this.PLACEHOLDER_OPEN + (this._sequence++) + this.PLACEHOLDER_CLOSE;
             this._cache[value] = {
                 key: key,
                 regExp: new RegExp(key, 'gi'),
             };
-
         }
         return this._cache[value];
     }
