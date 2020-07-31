@@ -4,7 +4,7 @@
             [attr.class]="'tab ' + (tab.active ? 'active' : '')"
             (contextmenu)="_ng_onContextMenu($event, tab)"
             (click) = "_ng_onClick(tab.guid)">
-            <p class="title t-normal">{{tab.name}}</p>
+            <p class="title t-normal" [attr.title]="tab.name">{{tab.name}}</p>
             <div class="title-injection" *ngIf="tab.tabCaptionInjection !== undefined">
                 <lib-containers-dynamic [component]="tab.tabCaptionInjection"></lib-containers-dynamic>
             </div>
