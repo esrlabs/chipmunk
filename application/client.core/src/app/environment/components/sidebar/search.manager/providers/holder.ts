@@ -95,11 +95,15 @@ export class Providers {
             Array.from(this._providers.values()).forEach((provider: Provider<any>, i: number, all: Array<Provider<any>>) => {
                 if (provider.select().single() !== undefined) {
                     providers.push(provider);
-                    if (i + 1 <= all.length - 1) {
-                        next = all[i + 1];
+                    for (let k = i + 1; k <= all.length - 1; k += 1) {
+                        if (next === undefined && all[k].get().length > 0) {
+                            next = all[k];
+                        }
                     }
-                    if (i - 1 >= 0) {
-                        prev = all[i - 1];
+                    for (let k = i - 1; k >= 0; k -= 1) {
+                        if (prev === undefined && all[k].get().length > 0) {
+                            prev = all[k];
+                        }
                     }
                 }
             });
