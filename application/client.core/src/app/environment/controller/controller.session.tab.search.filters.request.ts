@@ -25,6 +25,7 @@ export interface IDescOptional {
     color?: string;
     background?: string;
     active?: boolean;
+    expression?: ISearchExpression;
 }
 
 export interface IDescUpdating {
@@ -73,6 +74,12 @@ export class FilterRequest implements IDisabledEntitySupport {
     }
 
     constructor(desc: IDescOptional) {
+        if (typeof desc.expression === 'object' && desc.flags === undefined) {
+            desc.flags = desc.expression.flags;
+        }
+        if (typeof desc.expression === 'object' && desc.request === undefined) {
+            desc.request = desc.expression.request;
+        }
         if (desc.flags.regexp && !Toolkit.regTools.isRegStrValid(desc.request)) {
             throw new Error(`Not valid RegExp: ${desc.request}`);
         }
