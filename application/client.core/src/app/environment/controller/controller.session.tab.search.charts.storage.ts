@@ -173,7 +173,7 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
                 });
             },
             upload(charts: IChartDesc[]) {
-                self._clear();
+                self.clear();
                 self.add(charts.map((desc: IChartDesc) => new ChartRequest(desc)));
             },
             getItemsCount(): number {
