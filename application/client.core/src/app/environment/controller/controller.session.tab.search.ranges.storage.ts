@@ -161,7 +161,7 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
                 });
             },
             upload(ranges: IRangeDesc[]): void {
-                self._clear();
+                self.clear();
                 self.add(ranges.map((desc: IRangeDesc) => new RangeRequest(desc)));
             },
             getItemsCount(): number {

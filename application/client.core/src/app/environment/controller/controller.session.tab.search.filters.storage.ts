@@ -173,7 +173,7 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
                 });
             },
             upload(filters: IFilterDesc[]) {
-                self._clear();
+                self.clear();
                 self.add(filters.map((desc: IFilterDesc) => new FilterRequest(desc)));
             },
             getItemsCount(): number {

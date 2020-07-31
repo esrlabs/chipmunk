@@ -1,4 +1,4 @@
-import { Observable, Subject, Subscription, from } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { getContrastColor, scheme_color_accent } from '../theme/colors';
 import { FilterRequest, IDesc as IFilterDesc } from './controller.session.tab.search.filters.request';
 import { IDisabledEntitySupport, EEntityTypeRef } from './controller.session.tab.search.disabled.support';
