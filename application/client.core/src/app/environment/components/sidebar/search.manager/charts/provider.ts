@@ -9,11 +9,14 @@ import { SidebarAppSearchManagerChartsComponent } from './list/component';
 import { SidebarAppSearchManagerChartDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../../../components/views/chart/charts/charts';
+import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
+import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderCharts extends Provider<ChartRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<ChartRequest>> = new Map();
+    private _logger: Logger = new Logger('ProviderCharts');
 
     constructor() {
         super();
@@ -131,7 +134,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
         const items: IMenuItem[] = [];
         if (entity instanceof FilterRequest && ChartRequest.isValid(entity.asDesc().request)) {
             items.push({
-                caption: `Conver To Chart`,
+                caption: `Convert To Chart`,
                 handler: () => {
                     super.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(entity);
                     super.getSession().getSessionSearch().getChartsAPI().getStorage().add({
@@ -145,14 +148,16 @@ export class ProviderCharts extends Provider<ChartRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    super.getSession().getSessionSearch().search(new FilterRequest({
-                        request: (entity as ChartRequest).asDesc().request,
-                        flags: {
-                            casesensitive: false,
-                            wholeword: false,
-                            regexp: true,
-                        }
-                    }));
+                    this._setToolbarSearch().then(() => {
+                        super.getSession().getSessionSearch().search(new FilterRequest({
+                            request: (entity as ChartRequest).asDesc().request,
+                            flags: {
+                                casesensitive: false,
+                                wholeword: false,
+                                regexp: true,
+                            }
+                        }));
+                    });
                 },
             });
         }
@@ -207,6 +212,13 @@ export class ProviderCharts extends Provider<ChartRequest> {
             }
         } : undefined;
         return actions;
+    }
+
+    private _setToolbarSearch(): Promise<void> {
+        return new Promise((resolve) => {
+            ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
+            resolve();
+        });
     }
 
 }
