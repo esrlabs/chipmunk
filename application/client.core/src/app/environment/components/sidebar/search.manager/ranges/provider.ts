@@ -175,6 +175,11 @@ export class ProviderRanges extends Provider<RangeRequest> {
         };
     }
 
+    public search(entity: Entity<RangeRequest>) {
+        // NOTE Implement abstract method no usage for ranges yet
+        return;
+    }
+
     public apply(): Promise<void> {
         return new Promise((resolve, reject) => {
             let entities = this.select().getEntities();

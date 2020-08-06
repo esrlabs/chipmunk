@@ -31,6 +31,12 @@ export interface IContextMenuEvent {
     items?: IMenuItem[];
 }
 
+export interface IDoubleclickEvent {
+    event: MouseEvent;
+    provider: Provider<any>;
+    entity: Entity<any>;
+}
+
 export enum EActions {
     enable = 'enable',
     disable = 'disable',
@@ -47,11 +53,13 @@ export abstract class Provider<T> {
         selection: Subject<ISelectEvent>,
         edit: Subject<string | undefined>,
         context: Subject<IContextMenuEvent>,
+        doubleclick: Subject<IDoubleclickEvent>,
     } = {
         change: new Subject(),
         selection: new Subject(),
         edit: new Subject(),
         context: new Subject(),
+        doubleclick: new Subject(),
     };
     private _session: ControllerSessionTab | undefined;
     private _selection: {
@@ -106,6 +114,7 @@ export abstract class Provider<T> {
         set: (guid: string, sender?: string) => void,
         single: () => Entity<T> | undefined,
         context: (event: MouseEvent, entity: Entity<T>) => void,
+        doubleclick: (event: MouseEvent, entity: Entity<T>) => void,
     } {
         const setSelection: (guid: string, sender?: string) => void = (guid: string, sender?: string) => {
             const index: number = this._selection.current.indexOf(guid);
@@ -250,6 +259,13 @@ export abstract class Provider<T> {
                     provider: this,
                 });
             },
+            doubleclick: (event: MouseEvent, entity: Entity<T>) => {
+                this._subjects.doubleclick.next({
+                    event: event,
+                    entity: entity,
+                    provider: this,
+                });
+            },
         };
     }
 
@@ -286,12 +302,14 @@ export abstract class Provider<T> {
         selection: Observable<ISelectEvent>,
         edit: Observable<string | undefined>,
         context: Observable<IContextMenuEvent>,
+        doubleclick: Observable<IDoubleclickEvent>,
     } {
         return {
             change: this._subjects.change.asObservable(),
             selection: this._subjects.selection.asObservable(),
             edit: this._subjects.edit.asObservable(),
             context: this._subjects.context.asObservable(),
+            doubleclick: this._subjects.doubleclick.asObservable(),
         };
     }
 
@@ -327,6 +345,8 @@ export abstract class Provider<T> {
     public abstract getListComp(): IComponentDesc;
 
     public abstract getDetailsComp(): IComponentDesc;
+
+    public abstract search(entity: Entity<T>): void;
 
     /**
      * Should called in inherit class in constructor
