@@ -39,7 +39,11 @@ export class ProviderFilters extends Provider<FilterRequest> {
                 return;
             }
             if (event.added instanceof FilterRequest) {
-                this.select().set(event.added.getGUID());
+                this.select().set({
+                    guid: event.added.getGUID(),
+                    sender: undefined,
+                    ignore: true
+                });
             }
             if (event.removed instanceof FilterRequest || event.requests.length === 0) {
                 this.select().drop();
