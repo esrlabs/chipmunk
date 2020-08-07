@@ -1,16 +1,10 @@
 import { Provider, EProviders, ISelectEvent, IContextMenuEvent, EActions, IDoubleclickEvent } from './provider';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { KeyboardListener } from './keyboard.listener';
-import { ProviderDisabled } from '../disabled/provider';
-import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
-import { ProviderCharts } from '../charts/provider';
-import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
-import { ProviderFilters } from '../filters/provider';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
-
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { IMenuItem } from 'src/app/environment/services/standalone/service.contextmenu';
 import { Entity } from './entity';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class Providers {
 
@@ -389,16 +383,7 @@ export class Providers {
     }
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {
-        this._providers.forEach((provider: Provider<any>) => {
-            if (event.entity.getEntity() instanceof DisabledRequest && provider instanceof ProviderDisabled) {
-                provider.search(event.entity);
-            } else if (event.entity.getEntity() instanceof ChartRequest && provider instanceof ProviderCharts) {
-                provider.search(event.entity);
-            } else if (event.entity.getEntity() instanceof FilterRequest && provider instanceof ProviderFilters) {
-                provider.search(event.entity);
-            }
-        });
-        this._subjects.context.next(event);
+        event.provider.search(event.entity);
     }
 
 }
