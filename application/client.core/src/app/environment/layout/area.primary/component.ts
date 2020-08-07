@@ -45,7 +45,7 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
         });
         // Create default session
         TabsSessionsService.add().then(() => {
-            RenderStateService.state().ready();RenderStateService
+            RenderStateService.state().ready();
         }).catch((error: Error) => {
             this._logger.error(`Fail to create default tab due error: ${error.message}`);
         });
