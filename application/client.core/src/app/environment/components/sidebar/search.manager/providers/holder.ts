@@ -51,6 +51,7 @@ export class Providers {
             return false;
         }
         provider.setKeyboardListener(this._keyboard);
+        provider.setProvidersGetter(this.list.bind(this));
         this._selsubs[`selection_${name}`] = provider.getObservable().selection.subscribe(this._onSelectionEntity.bind(this));
         this._selsubs[`context_${name}`] = provider.getObservable().context.subscribe(this._onContextMenuEvent.bind(this));
         this._providers.set(name, provider);
@@ -182,13 +183,14 @@ export class Providers {
                 return entities;
             },
             getProviders: () => {
-                const providers = [];
-                this._providers.forEach((provider: Provider<any>) => {
-                    if (provider.select().getEntities().length !== 0) {
-                        providers.push(provider);
+                const list: Provider<any>[] = [];
+                this.PROVIDERS_ORDER.forEach((ref: EProviders) => {
+                    const provider: Provider<any> | undefined = this._providers.get(ref);
+                    if (provider !== undefined && provider.select().getEntities().length !== 0) {
+                        list.push(provider);
                     }
                 });
-                return providers;
+                return list;
             },
         };
     }
@@ -225,12 +227,17 @@ export class Providers {
             // Ignore events triggered by holder
             return;
         }
-        if (!this._keyboard.ctrl()) {
+        if (!this._keyboard.ctrl() && !this._keyboard.shift()) {
             this._providers.forEach((provider: Provider<any>) => {
                 // Drop selection on all others providers
                 if (provider.getGuid() !== event.provider.getGuid()) {
                     provider.select().drop(this.SENDER);
                 }
+            });
+        } else if (this._keyboard.shift()) {
+            this._providers.forEach((provider: Provider<any>) => {
+                // Force selection
+                provider.select().apply(this.SENDER, event.guids);
             });
         }
         let guids: string[] = [];
@@ -241,6 +248,7 @@ export class Providers {
             this._providers.forEach((provider: Provider<any>) => {
                 if (provider.select().get().length === 1) {
                     this._subjects.select.next({
+                        entity: event.entity,
                         provider: provider,
                         guids: provider.select().get(),
                     });
@@ -249,6 +257,11 @@ export class Providers {
         } else {
             this._subjects.select.next(undefined);
         }
+        this._providers.forEach((provider: Provider<any>) => {
+            provider.setLastSelection(
+                guids.length > 0 ? { provider: event.provider, entity: event.entity } : undefined,
+            );
+        });
     }
 
     private _onContextMenuEvent(event: IContextMenuEvent) {
