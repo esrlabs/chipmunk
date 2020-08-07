@@ -19,6 +19,7 @@ export enum EProviders {
 
 export interface ISelectEvent {
     provider: Provider<any>;
+    entity: Entity<any>;
     guids: string[];
     sender?: string;
 }
@@ -53,10 +54,17 @@ export abstract class Provider<T> {
         context: new Subject(),
     };
     private _session: ControllerSessionTab | undefined;
-    private _selection: string[] = [];
+    private _selection: {
+        current: string[],
+        last: { provider: Provider<any>, entity: Entity<any> } | undefined,
+    } = {
+        current: [],
+        last: undefined,
+    };
     private _keyboard: KeyboardListener;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string = Toolkit.guid();
+    private _providers: () => Provider<any>[];
 
     constructor() {
         this._session = TabsSessionsService.getActive();
@@ -78,12 +86,21 @@ export abstract class Provider<T> {
         this._keyboard = listener;
     }
 
+    public setProvidersGetter(getter: () => Provider<any>[]) {
+        this._providers = getter;
+    }
+
+    public setLastSelection(selection: { provider: Provider<any>, entity: Entity<any> } | undefined) {
+        this._selection.last = selection;
+    }
+
     public select(): {
         first: () => void,
         last: () => void,
         next: () => boolean,
         prev: () => boolean,
         drop: (sender?: string) => void,
+        apply: (sender: string, guids: string[]) => void,
         get: () => string[],
         getEntities: () => Array<Entity<T>>,
         set: (guid: string, sender?: string) => void,
@@ -91,23 +108,39 @@ export abstract class Provider<T> {
         context: (event: MouseEvent, entity: Entity<T>) => void,
     } {
         const setSelection: (guid: string, sender?: string) => void = (guid: string, sender?: string) => {
-            const index: number = this._selection.indexOf(guid);
+            const index: number = this._selection.current.indexOf(guid);
+            let entity: Entity<T> | undefined;
             if (this._keyboard.ctrl()) {
                 if (index === -1) {
-                    this._selection.push(guid);
+                    this._selection.current.push(guid);
+                    entity = this.get().find(e => e.getGUID() === guid);
                 } else {
-                    this._selection.splice(index, 1);
+                    this._selection.current.splice(index, 1);
+                    entity = this._selection.last.entity;
                 }
+            } else if (this._keyboard.shift() && this._selection.last !== undefined) {
+                let guids: string[] = [].concat.apply([], this._providers().map(p => p.get().map(e => e.getGUID())));
+                const from: number = guids.findIndex(g => g === this._selection.last.entity.getGUID());
+                const to: number = guids.findIndex(g => g === guid);
+                if (from !== -1 && to !== -1) {
+                    guids = guids.slice((from < to ? from : to), (to > from ? to : from) + 1);
+                    this._selection.current = this._selection.current.concat(
+                        guids.filter(g => this._selection.current.indexOf(g) === -1),
+                    );
+                }
+                entity = this._selection.last.entity;
             } else {
                 if (index === -1) {
-                    this._selection = [guid];
+                    this._selection.current = [guid];
+                    entity = this.get().find(e => e.getGUID() === guid);
                 } else {
-                    this._selection = [];
+                    this._selection.current = [];
                 }
             }
             this._subjects.selection.next({
                 provider: this,
-                guids: this._selection,
+                entity: entity,
+                guids: this._selection.current,
                 sender: sender,
             });
         };
@@ -127,7 +160,7 @@ export abstract class Provider<T> {
                 setSelection(entities[entities.length - 1].getGUID(), 'self.last');
             },
             next: () => {
-                if (this._selection.length !== 1) {
+                if (this._selection.current.length !== 1) {
                     return false;
                 }
                 const entities = this.get();
@@ -147,7 +180,7 @@ export abstract class Provider<T> {
                 return true;
             },
             prev: () => {
-                if (this._selection.length !== 1) {
+                if (this._selection.current.length !== 1) {
                     return false;
                 }
                 const entities = this.get();
@@ -167,23 +200,34 @@ export abstract class Provider<T> {
                 return true;
             },
             drop: (sender?: string) => {
-                if (this._selection.length === 0) {
+                if (this._selection.current.length === 0) {
                     return;
                 }
-                this._selection = [];
+                this._selection.current = [];
                 this._subjects.selection.next({
                     provider: this,
-                    guids: this._selection,
+                    entity: undefined,
+                    guids: this._selection.current,
+                    sender: sender,
+                });
+            },
+            apply: (sender: string, guids: string[]) => {
+                const own: string[] = this.get().map(e => e.getGUID());
+                this._selection.current = guids.filter(g => own.indexOf(g) !== -1);
+                this._subjects.selection.next({
+                    provider: this,
+                    entity: undefined,
+                    guids: this._selection.current,
                     sender: sender,
                 });
             },
             get: () => {
-                return this._selection.slice();
+                return this._selection.current.slice();
             },
             getEntities: () => {
                 const entities = [];
                 this.get().forEach((entity: Entity<T>) => {
-                    if (this._selection.indexOf(entity.getGUID()) === -1) {
+                    if (this._selection.current.indexOf(entity.getGUID()) === -1) {
                         return;
                     }
                     entities.push(entity);
@@ -192,7 +236,7 @@ export abstract class Provider<T> {
             },
             set: setSelection,
             single: () => {
-                if (this._selection.length !== 1) {
+                if (this._selection.current.length !== 1) {
                     return undefined;
                 }
                 return this.get().find((entity: Entity<T>) => {
@@ -215,7 +259,7 @@ export abstract class Provider<T> {
     } {
         return {
             in: () => {
-                if (this._selection.length !== 1) {
+                if (this._selection.current.length !== 1) {
                     return;
                 }
                 const guid: string = this._selection[0];
