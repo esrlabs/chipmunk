@@ -1,13 +1,13 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
-import { DisabledStorage, DisabledRequest, IUpdateEvent } from '../../../../controller/controller.session.tab.search.disabled.storage';
+import { DisabledRequest, IUpdateEvent } from '../../../../controller/controller.session.tab.search.disabled.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerDisabledsComponent } from './list/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { IDisabledEntitySupport } from 'src/app/environment/controller/controller.session.tab.search.disabled.support';
-import SearchManagerService from '../service/service';
+import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
 import { Logger } from 'chipmunk.client.toolkit';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
@@ -159,34 +159,30 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    SearchManagerService.setToolbarSearch().then(() => {
-                        match.getEntity().matches(session);
-                    }).catch((error: Error) => {
-                        this._logger.error(`Failed to show matches due to error: ${error.message}`);
-                    });
+                    ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
+                    match.getEntity().matches(session);
                 },
             });
         }
         return items;
     }
 
-    public search(entity: Entity<any>) {
-        SearchManagerService.setToolbarSearch().then(() => {
-            if (entity.getEntity()._entity instanceof ChartRequest) {
-                super.getSession().getSessionSearch().search(new FilterRequest({
-                    request: (entity.getEntity()._entity as ChartRequest).asDesc().request,
-                    flags: {
-                        casesensitive: false,
-                        wholeword: false,
-                        regexp: true,
-                    }
-                }));
-            } else if (entity.getEntity()._entity instanceof FilterRequest) {
-                super.getSession().getSessionSearch().search(entity.getEntity()._entity);
-            }
-        }).catch((error: Error) => {
+    public async search(entity: Entity<any>) {
+        await this._setSearchActive().catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
         });
+        if (entity.getEntity()._entity instanceof ChartRequest) {
+            super.getSession().getSessionSearch().search(new FilterRequest({
+                request: (entity.getEntity()._entity as ChartRequest).asDesc().request,
+                flags: {
+                    casesensitive: false,
+                    wholeword: false,
+                    regexp: true,
+                }
+            }));
+        } else if (entity.getEntity()._entity instanceof FilterRequest) {
+            super.getSession().getSessionSearch().search(entity.getEntity()._entity);
+        }
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
@@ -208,6 +204,12 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 });
             } : undefined,
         };
+    }
+
+    private _setSearchActive(): Promise<boolean> {
+        return new Promise((resolve) => {
+            resolve(ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search));
+        });
     }
 
 }
