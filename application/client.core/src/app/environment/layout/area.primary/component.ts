@@ -4,7 +4,10 @@ import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
 import { LayoutPrimiryAreaControlsComponent } from './controls/component';
 import { LayoutPrimiryAreaNoTabsComponent } from './no-tabs-content/component';
+
 import TabsSessionsService from '../../services/service.sessions.tabs';
+import RenderStateService from '../../services/service.render.state';
+
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
@@ -41,7 +44,9 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
             }
         });
         // Create default session
-        TabsSessionsService.add().catch((error: Error) => {
+        TabsSessionsService.add().then(() => {
+            RenderStateService.state().ready();RenderStateService
+        }).catch((error: Error) => {
             this._logger.error(`Fail to create default tab due error: ${error.message}`);
         });
 

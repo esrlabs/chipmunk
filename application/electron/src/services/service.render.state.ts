@@ -15,12 +15,20 @@ export class ServiceRenderState implements IService {
 
     private _logger: Logger = new Logger('ServiceRenderState');
     private _subscriptions: { [key: string ]: Subscription } = { };
-    private _ready: boolean = false;
-    private _pending: Map<string, () => void> = new Map();
-    private _subjects: {
-        onRenderReady: Tools.Subject<void>,
+    private _state: IPCMessages.ERenderState | undefined;
+    private _pending: {
+        inited: Map<string, () => void>,
+        ready: Map<string, () => void>,
     } = {
-        onRenderReady: new Tools.Subject<void>('onRenderReady'),
+        inited: new Map(),
+        ready: new Map(),
+    };
+    private _subjects: {
+        inited: Tools.Subject<void>,
+        ready: Tools.Subject<void>,
+    } = {
+        inited: new Tools.Subject<void>('inited'),
+        ready: new Tools.Subject<void>('ready'),
     };
     /**
      * Initialization function
@@ -43,34 +51,48 @@ export class ServiceRenderState implements IService {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].destroy();
             });
-            this._subjects.onRenderReady.destroy();
+            Object.keys(this._subjects).forEach((key: string) => {
+                (this._subjects as any)[key].destroy();
+            });
             resolve();
         });
     }
 
     public getName(): string {
-        return 'ServicePackage';
+        return 'ServiceRenderState';
     }
 
     public getSubjects(): {
-        onRenderReady: Tools.Subject<void>,
+        inited: Tools.Subject<void>,
+        ready: Tools.Subject<void>,
     } {
         return this._subjects;
     }
 
     public ready(): boolean {
-        return this._ready;
+        return this._state === IPCMessages.ERenderState.ready;
     }
 
-    public do(id: string, task: () => void) {
-        if (!this.ready()) {
-            if (this._pending.has(id)) {
+    public doOnReady(id: string, task: () => void) {
+        if (this._state !== IPCMessages.ERenderState.ready) {
+            if (this._pending.ready.has(id)) {
                 return;
             }
-            this._pending.set(id, task);
-            return;
+            this._pending.ready.set(id, task);
+        } else {
+            this._execute(id, task);
         }
-        this._execute(id, task);
+    }
+
+    public doOnInit(id: string, task: () => void) {
+        if (this._state !== IPCMessages.ERenderState.ready && this._state !== IPCMessages.ERenderState.inited) {
+            if (this._pending.inited.has(id)) {
+                return;
+            }
+            this._pending.inited.set(id, task);
+        } else {
+            this._execute(id, task);
+        }
     }
 
     private _execute(id: string, task: () => void) {
@@ -89,18 +111,21 @@ export class ServiceRenderState implements IService {
         if (!(state instanceof IPCMessages.RenderState)) {
             return;
         }
-        if (state.state !== IPCMessages.ERenderState.ready) {
+        if (this._state === IPCMessages.ERenderState.ready) {
             return;
         }
-        if (this._ready) {
-            return;
+        if (state.state === IPCMessages.ERenderState.inited) {
+            this._pending.inited.forEach((task: () => void, id: string) => {
+                this._execute(id, task);
+            });
+            this._pending.inited.clear();
+        } else if (state.state === IPCMessages.ERenderState.ready) {
+            this._pending.ready.forEach((task: () => void, id: string) => {
+                this._execute(id, task);
+            });
+            this._subjects.ready.emit();
         }
-        this._ready = true;
-        this._subjects.onRenderReady.emit();
-        this._pending.forEach((task: () => void, id: string) => {
-            this._execute(id, task);
-        });
-        this._pending.clear();
+        this._state = state.state;
     }
 
 }
