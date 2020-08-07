@@ -1,8 +1,9 @@
 import Logger from '../tools/env.logger';
+import ServiceElectron from './service.electron';
+
 import * as Tools from '../tools/index';
 
-import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
-
+import { IPCMessages, Subscription } from './service.electron';
 import { IService } from '../interfaces/interface.service';
 
 /**
