@@ -29,7 +29,29 @@ class ServiceReleaseNotes implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            ServiceRenderState.getSubjects().onRenderReady.subscribe(this._onRenderReady.bind(this));
+            ServiceRenderState.doOnReady(Tools.guid(), () => {
+                this._store = new StateFile<IStore>(this.getName(), this._getDefaults(), this._filename);
+                this._store.init().then(() => {
+                    if (this._store === undefined) {
+                        return;
+                    }
+                    if (this._store.get().version === ServicePackage.get().version) {
+                        return;
+                    }
+                    ServiceElectron.IPC.send(new IPCMessages.TabCustomRelease()).then(() => {
+                        if (this._store === undefined) {
+                            return;
+                        }
+                        this._store.set({
+                            version: ServicePackage.get().version,
+                        });
+                    }).catch((error: Error) => {
+                        this._logger.warn(`Fail to send TabCustomRelease due error: ${error.message}`);
+                    });
+                }).catch(() => {
+                    this._store = undefined;
+                });
+            });
             resolve();
         });
     }
@@ -45,30 +67,6 @@ class ServiceReleaseNotes implements IService {
 
     public getName(): string {
         return 'ServiceReleaseNotes';
-    }
-
-    private _onRenderReady() {
-        this._store = new StateFile<IStore>(this.getName(), this._getDefaults(), this._filename);
-        this._store.init().then(() => {
-            if (this._store === undefined) {
-                return;
-            }
-            if (this._store.get().version === ServicePackage.get().version) {
-                return;
-            }
-            ServiceElectron.IPC.send(new IPCMessages.TabCustomRelease()).then(() => {
-                if (this._store === undefined) {
-                    return;
-                }
-                this._store.set({
-                    version: ServicePackage.get().version,
-                });
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to send TabCustomRelease due error: ${error.message}`);
-            });
-        }).catch(() => {
-            this._store = undefined;
-        });
     }
 
     private _getDefaults(): IStore {

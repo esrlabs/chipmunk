@@ -325,7 +325,7 @@ export default class ControllerPluginsManager {
         }).catch((error: Error) => {
             this._logger.env(`Fail to update plugin's state from remote store due error: ${error.message}`);
         }).finally(() => {
-            ServiceRenderState.do('ControllerPluginsManager: PluginsDataReady', () => {
+            ServiceRenderState.doOnReady('ControllerPluginsManager: PluginsDataReady', () => {
                 ServiceElectron.IPC.send(new IPCMessages.PluginsDataReady()).then(() => {
                     this._logger.env(`Notification about plugins data state was sent to render`);
                 }).catch((notifyErr: Error) => {

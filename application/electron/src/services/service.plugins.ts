@@ -56,7 +56,7 @@ export class ServicePlugins implements IService {
                             this._storage.runAllSingleProcess().catch((singleProcessRunErr: Error) => {
                                 this._logger.warn(`Fail to start single process plugins due error: ${singleProcessRunErr.message}`);
                             });
-                            ServiceRenderState.do('ServicePlugins: SendRenderPluginsData', this._sendRenderPluginsData.bind(this));
+                            ServiceRenderState.doOnInit('ServicePlugins: SendRenderPluginsData', this._sendRenderPluginsData.bind(this));
                             resolve();
                         });
                     }).catch((loadErr: Error) => {

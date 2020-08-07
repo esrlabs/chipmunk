@@ -8,6 +8,7 @@ import ServiceElectronIpc from './environment/services/service.electron.ipc';
 import PluginsService from './environment/services/service.plugins';
 import LoaderService from './environment/services/service.loader';
 import ToolbarSessionsService from './environment/services/service.sessions.toolbar';
+import RenderStateService from './environment/services/service.render.state';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -46,18 +47,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
                 this._ng_ready = true;
                 this._cdRef.detectChanges();
             });
-            // Send notification to host
-            ServiceElectronIpc.send(new IPCMessages.RenderState({
-                state: IPCMessages.ERenderState.ready
-            })).catch((sendingError: Error) => {
-                this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
-            });
             // Subscribe to notifications
             this._subscriptions.onNewNotification = this._notifications.getObservable().new.subscribe(() => {
                 if (!ToolbarSessionsService.has(CDefaultTabsGuids.notification)) {
                     ToolbarSessionsService.addByGuid(CDefaultTabsGuids.notification);
                 }
             });
+            RenderStateService.state().inited();
         });
     }
 

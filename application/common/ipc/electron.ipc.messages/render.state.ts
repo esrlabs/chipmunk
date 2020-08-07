@@ -1,7 +1,7 @@
 export enum ERenderState {
-    ready = 'ready',        // Render is ready. No any operations
-    busy = 'busy',          // Render isn't ready. Some blocked operations are going
-    working = 'working',    // Render isn't ready, but can be used, because host has background operations
+    inited = 'inited',      // Render is inited.
+    ready = 'ready',        // Render is ready. Default session is opened
+    pending = 'pending',    // Render isn't ready. Some blocked operations are going
 }
 
 export interface IRenderState {
@@ -15,7 +15,7 @@ export class RenderState {
     public static signature: string = 'RenderState';
     public signature: string = RenderState.signature;
     public message: string = '';
-    public state: ERenderState = ERenderState.ready;
+    public state: ERenderState;
 
     constructor(params: IRenderState) {
         if (typeof params !== 'object' || params === null) {

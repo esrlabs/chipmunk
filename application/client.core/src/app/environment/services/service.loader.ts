@@ -19,6 +19,7 @@ import SettingsService from './service.settings';
 import SettingsDefaultsService from './settings/settings.defaults';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import ReleaseNotesService from './service.release.notes';
+import RenderStateService from './service.render.state';
 
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -47,7 +48,8 @@ const InitializeStages = [
         MergeFilesService,
         ConcatFilesService,
         HotkeysService,
-        ConnectionsService ],
+        ConnectionsService,
+        RenderStateService ],
     // Stage #8
     [   TabSelectionParserService, ReleaseNotesService ]
 ];
