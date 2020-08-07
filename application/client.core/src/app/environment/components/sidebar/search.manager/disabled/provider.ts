@@ -40,7 +40,11 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 return;
             }
             if (event.added instanceof DisabledRequest) {
-                this.select().set(event.added.getGUID());
+                this.select().set({
+                    guid: event.added.getGUID(),
+                    sender: undefined,
+                    ignore: true
+                });
             }
             if (event.removed instanceof DisabledRequest || event.requests.length === 0) {
                 this.select().drop();

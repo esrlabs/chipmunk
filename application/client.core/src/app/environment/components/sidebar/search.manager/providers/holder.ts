@@ -281,19 +281,19 @@ export class Providers {
         if (entities.length === 0) {
             // Context menu is called without active selection
             // Set selection to target element
-            event.provider.select().set(event.entity.getGUID());
+            event.provider.select().set({ guid: event.entity.getGUID() });
             entities = [event.entity];
         } else if (entities.length === 1) {
             if (entities[0].getGUID() !== event.entity.getGUID()) {
                 this.select().drop();
-                event.provider.select().set(event.entity.getGUID());
+                event.provider.select().set({ guid: event.entity.getGUID() });
                 entities = [event.entity];
             }
         } else if (entities.length > 1) {
             if (entities.map((entity) => entity.getGUID()).indexOf(event.entity.getGUID()) === -1) {
                 // Context menu is called out of selection
                 this.select().drop();
-                event.provider.select().set(event.entity.getGUID());
+                event.provider.select().set({ guid: event.entity.getGUID() });
                 entities = [event.entity];
             }
         }
