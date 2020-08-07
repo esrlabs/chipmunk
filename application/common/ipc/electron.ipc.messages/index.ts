@@ -430,6 +430,9 @@ export { TabCustomPlugins };
 import { TabCustomSettings } from './tab.custom.settings';
 export { TabCustomSettings };
 
+import { TabCustomRelease } from './tab.custom.release';
+export { TabCustomRelease };
+
 import { ChipmunkLogsRequest } from './chipmunk.logs.request';
 export { ChipmunkLogsRequest }
 
@@ -666,6 +669,7 @@ export type TMessage =  AppRestartRequest |
                         TabCustomAbout |
                         TabCustomPlugins |
                         TabCustomSettings |
+                        TabCustomRelease |
                         ChipmunkLogsRequest |
                         ChipmunkLogsResponse |
                         ChipmunkLogLevelResponse |
@@ -863,6 +867,7 @@ export const Map = {
     [TabCustomAbout.signature                   ]: TabCustomAbout,
     [TabCustomPlugins.signature                 ]: TabCustomPlugins,
     [TabCustomSettings.signature                ]: TabCustomSettings,
+    [TabCustomRelease.signature                 ]: TabCustomRelease,
 
     [ChipmunkLogsRequest.signature              ]: ChipmunkLogsRequest,
     [ChipmunkLogsResponse.signature             ]: ChipmunkLogsResponse,

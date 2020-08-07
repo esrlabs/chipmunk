@@ -1,0 +1,7 @@
+<div *ngIf="_ng_body !== undefined">
+    <markdown [data]="_ng_body"></markdown>
+</div>
+<div *ngIf="_ng_body === undefined && _ng_error === undefined">
+    <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
+</div>
+<p *ngIf="_ng_error !== undefined" class="color-scheme-warning t-normal">{{_ng_error}}</p>

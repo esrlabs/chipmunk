@@ -43,6 +43,7 @@ import ServiceOutputExport from './services/output/service.output.export';
 import ServiceRenderState from './services/service.render.state';
 import ServiceLogs from './services/service.logs';
 import ServiceLogsExtractor from './services/service.logs.extractor';
+import ServiceReleaseNotes from './services/service.release.notes';
 
 enum EAppState {
     initing = 'initing',
@@ -90,8 +91,8 @@ const InitializeStages = [
         ServiceOutputExport, ServiceLogsExtractor,
         ServiceFileRecent, ServiceTimestamp,
     ],
-    // Stage #10. Init plugins
-    [   ServicePlugins ],
+    // Stage #10. Init plugins and current release data
+    [   ServicePlugins, ServiceReleaseNotes ],
     // (last service should startup service and should be single always)
     [   ServiceUpdate ],
 ];

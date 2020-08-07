@@ -18,6 +18,7 @@ import LogsService from './service.logs';
 import SettingsService from './service.settings';
 import SettingsDefaultsService from './settings/settings.defaults';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
+import ReleaseNotesService from './service.release.notes';
 
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -48,7 +49,7 @@ const InitializeStages = [
         HotkeysService,
         ConnectionsService ],
     // Stage #8
-    [   TabSelectionParserService ]
+    [   TabSelectionParserService, ReleaseNotesService ]
 ];
 
 // TODO: Destroy method, even dummy

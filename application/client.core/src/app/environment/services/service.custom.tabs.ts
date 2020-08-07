@@ -4,11 +4,14 @@ import { TabAboutComponent } from '../components/tabs/about/component';
 import { TabPluginsComponent } from '../components/tabs/plugins/component';
 import { TabPluginsCounterComponent } from '../components/tabs/plugins/counter/component';
 import { TabSettingsComponent } from '../components/tabs/settings/component';
+import { TabReleaseNotesComponent } from '../components/tabs/release.notes/component';
 
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import CustomTabsEventsService from './standalone/service.customtabs.events';
 import HotkeysService from './service.hotkeys';
+import ReleaseNotesService from './service.release.notes';
+
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -16,6 +19,7 @@ const GUIDs = {
     about: `AboutTab:${Toolkit.guid()}`,
     plugins: `PluginsTab:${Toolkit.guid()}`,
     settings: `SettingsTab:${Toolkit.guid()}`,
+    release: `ReleaseTab:${Toolkit.guid()}`,
 };
 
 export class TabsCustomService implements IService {
@@ -31,6 +35,7 @@ export class TabsCustomService implements IService {
             this._subscriptions.TabCustomAbout = ElectronIpcService.subscribe(IPCMessages.TabCustomAbout, this._onTabCustomAbout.bind(this));
             this._subscriptions.TabCustomSettings = ElectronIpcService.subscribe(IPCMessages.TabCustomSettings, this._onTabCustomSettings.bind(this));
             this._subscriptions.TabCustomPlugins = ElectronIpcService.subscribe(IPCMessages.TabCustomPlugins, this._onTabCustomPlugins.bind(this));
+            this._subscriptions.TabCustomRelease = ReleaseNotesService.getObservable().tab.subscribe(this._onTabCustomRelease.bind(this));
             this._subscriptions.plugins = CustomTabsEventsService.getObservable().plugins.subscribe(this._onTabCustomPlugins.bind(this));
             this._subscriptions.TabCustomSettingsHotKey = HotkeysService.getObservable().settings.subscribe(this._onTabCustomSettings.bind(this));
             resolve();
@@ -107,6 +112,23 @@ export class TabsCustomService implements IService {
             });
         }
     }
+
+    private _onTabCustomRelease() {
+        if (TabsSessionsService.isTabExist(GUIDs.release)) {
+            TabsSessionsService.setActive(GUIDs.release);
+        } else {
+            TabsSessionsService.add({
+                id: GUIDs.release,
+                title: 'Release Notes',
+                component: {
+                    factory: TabReleaseNotesComponent,
+                    inputs: { }
+                },
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail add release info tab due error: ${error.message}`);
+            });
+        }
+}
 
 }
 

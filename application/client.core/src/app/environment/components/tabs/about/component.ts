@@ -19,7 +19,7 @@ const CUrls = {
 };
 
 @Component({
-    selector: 'app-tabs-abbout',
+    selector: 'app-tabs-about',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
