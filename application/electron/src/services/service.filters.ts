@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { IService } from '../interfaces/interface.service';
 import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
 import ServiceFileRecent from './files/service.file.recent';
-
+import ServiceFileWriter from './files/service.file.writer';
 
 /**
  * @class ServiceFilters
@@ -61,7 +61,7 @@ class ServiceFilters implements IService {
                     return;
                 }
                 const file: string = returnValue.filePaths[0];
-                this._loadFile(file).then((content: string) => {
+                this._load(file).then((content: string) => {
                     ServiceFileRecent.saveFilters(file, 0); // TODO: detect count of entities to save
                     response(new IPCMessages.FiltersLoadResponse({
                         store: content,
@@ -75,7 +75,7 @@ class ServiceFilters implements IService {
                 });
             });
         } else {
-            this._loadFile(request.file).then((content: string) => {
+            this._load(request.file).then((content: string) => {
                 ServiceFileRecent.saveFilters(request.file as string, 0); // TODO: detect count of entities to save
                 response(new IPCMessages.FiltersLoadResponse({
                     store: content,
@@ -97,41 +97,33 @@ class ServiceFilters implements IService {
                 request.file = undefined;
             }
         }
-        if (typeof request.file === 'string') {
-            this._saveFile(request.file, request.store).then(() => {
-                ServiceFileRecent.saveFilters(request.file as string, request.count);
-                response(new IPCMessages.FiltersSaveResponse({
-                    filename: request.file as string,
-                }));
-            }).catch((error: Error) => {
-                this._logger.warn(`Error during saving filters into file "${request.file}": ${error.message}`);
-                response(new IPCMessages.FiltersSaveResponse({
-                    filename: request.file as string,
-                    error: error.message,
-                }));
-            });
+        if (typeof request.file === 'string' && request.file.trim() !== '') {
+            ServiceFileWriter.write(request.file, request.store);
+            ServiceFileRecent.saveFilters(request.file as string, request.count);
+            response(new IPCMessages.FiltersSaveResponse({
+                filename: request.file as string,
+            }));
         } else {
             dialog.showSaveDialog({
                 title: 'Saving filters',
                 filters: [{ name: 'Text Files', extensions: ['txt']}],
             }).then((results: SaveDialogReturnValue) => {
-                this._saveFile(results.filePath, request.store).then(() => {
-                    ServiceFileRecent.saveFilters(results.filePath as string, request.count);
+                if (typeof results.filePath === 'string' && results.filePath.trim() !== '') {
+                    ServiceFileWriter.write(results.filePath, request.store);
+                    ServiceFileRecent.saveFilters(results.filePath, request.count);
                     response(new IPCMessages.FiltersSaveResponse({
-                        filename: results.filePath as string,
+                        filename: results.filePath,
                     }));
-                }).catch((error: Error) => {
-                    this._logger.warn(`Error during saving filters into file "${results.filePath}": ${error.message}`);
+                } else {
                     response(new IPCMessages.FiltersSaveResponse({
-                        filename: results.filePath as string,
-                        error: error.message,
+                        filename: '',
                     }));
-                });
+                }
             });
         }
     }
 
-    private _loadFile(file: string): Promise<string> {
+    private _load(file: string): Promise<string> {
         return new Promise((resolve, reject) => {
             fs.stat(file, (error: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (error) {
@@ -156,20 +148,6 @@ class ServiceFilters implements IService {
         });
     }
 
-    private _saveFile(filename: string | undefined, content: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (filename === undefined) {
-                return reject(new Error(`Not valid name of file`));
-            }
-            fs.writeFile(filename, content, (error: NodeJS.ErrnoException | null) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve();
-                }
-            });
-        });
-    }
 }
 
 export default (new ServiceFilters());
