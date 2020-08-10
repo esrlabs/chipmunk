@@ -166,7 +166,7 @@ export abstract class Provider<T> {
                 const entities = this.get();
                 let index: number = -1;
                 entities.forEach((entity, i) => {
-                    if (entity.getGUID() === this._selection[0]) {
+                    if (entity.getGUID() === this._selection.current[0]) {
                         index = i;
                     }
                 });
@@ -186,7 +186,7 @@ export abstract class Provider<T> {
                 const entities = this.get();
                 let index: number = -1;
                 entities.forEach((entity, i) => {
-                    if (entity.getGUID() === this._selection[0]) {
+                    if (entity.getGUID() === this._selection.current[0]) {
                         index = i;
                     }
                 });
@@ -240,7 +240,7 @@ export abstract class Provider<T> {
                     return undefined;
                 }
                 return this.get().find((entity: Entity<T>) => {
-                    return entity.getGUID() === this._selection[0];
+                    return entity.getGUID() === this._selection.current[0];
                 });
             },
             context: (event: MouseEvent, entity: Entity<T>) => {
@@ -262,7 +262,7 @@ export abstract class Provider<T> {
                 if (this._selection.current.length !== 1) {
                     return;
                 }
-                const guid: string = this._selection[0];
+                const guid: string = this._selection.current[0];
                 this.get().forEach((entity: Entity<any>) => {
                     if (entity.getGUID() === guid) {
                         entity.getEditState().in();
