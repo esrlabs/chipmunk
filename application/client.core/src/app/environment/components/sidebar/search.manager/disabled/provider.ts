@@ -167,17 +167,18 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         remove?: () => void,
         edit?: () => void,
     } {
+        const self = this;
         const disableds: DisabledRequest[] = selected.filter((entity: Entity<any>) => {
             return entity.getEntity() instanceof DisabledRequest;
         }).map((entity: Entity<any>) => {
             return entity.getEntity();
         });
         return {
-            remove: () => {
+            remove: disableds.length !== 0 ? () => {
                 disableds.forEach((disabled: DisabledRequest) => {
-                    this.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(disabled);
+                    self.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(disabled);
                 });
-            },
+            } : undefined,
         };
     }
 

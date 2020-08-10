@@ -164,45 +164,48 @@ export class ProviderFilters extends Provider<FilterRequest> {
         remove?: () => void,
         edit?: () => void,
     } {
-        return {
-            activate: () => {
-                selected.forEach((entity: Entity<any>) => {
-                    if (entity.getEntity() instanceof FilterRequest) {
-                        (entity.getEntity() as FilterRequest).setState(true);
-                    }
-                });
-            },
-            deactivate: () => {
-                selected.forEach((entity: Entity<any>) => {
-                    if (entity.getEntity() instanceof FilterRequest) {
-                        (entity.getEntity() as FilterRequest).setState(false);
-                    }
-                });
-            },
-            remove: () => {
-                const entities = selected.filter((entity: Entity<any>) => {
-                    return entity.getEntity() instanceof FilterRequest;
-                });
-                if (entities.length === this.get().length) {
-                    super.getSession().getSessionSearch().getFiltersAPI().getStorage().clear();
-                    super.update();
-                } else {
-                    entities.forEach((entity: Entity<FilterRequest>) => {
-                        super.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(entity.getEntity());
-                    });
-                }
-            },
-            edit: () => {
-                if (selected.length !== 1) {
-                    return;
-                }
-                // View should be focused to switch to edit-mode, but while context
-                // menu is open, there are no focus. Well, that's why settimer here.
-                setTimeout(() => {
-                    this.edit().in();
+        const actions: {
+            activate?: () => void,
+            deactivate?: () => void,
+            remove?: () => void,
+            edit?: () => void
+        } = {};
+        const self = this;
+        const entities = selected.filter((entity: Entity<any>) => {
+            return entity.getEntity() instanceof FilterRequest;
+        });
+        actions.activate = entities.filter((entity: Entity<FilterRequest>) => {
+            return entity.getEntity().getState() === false;
+        }).length !== 0 ? () => {
+            entities.forEach((entity: Entity<FilterRequest>) => {
+                entity.getEntity().setState(true);
+            });
+        } : undefined;
+        actions.deactivate = entities.filter((entity: Entity<FilterRequest>) => {
+            return entity.getEntity().getState() === true;
+        }).length !== 0 ? () => {
+            entities.forEach((entity: Entity<FilterRequest>) => {
+                entity.getEntity().setState(false);
+            });
+        } : undefined;
+        actions.edit = (selected.length === 1 && entities.length === 1) ? () => {
+            // View should be focused to switch to edit-mode, but while context
+            // menu is open, there are no focus. Well, that's why settimer here.
+            setTimeout(() => {
+                self.edit().in();
+            });
+        } : undefined;
+        actions.remove = entities.length !== 0 ? () => {
+            if (entities.length === self.get().length) {
+                self.getSession().getSessionSearch().getFiltersAPI().getStorage().clear();
+                self.update();
+            } else {
+                entities.forEach((entity: Entity<FilterRequest>) => {
+                    self.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(entity.getEntity());
                 });
             }
-        };
+        } : undefined;
+        return actions;
     }
 
 }

@@ -13,6 +13,7 @@ import { CancelablePromise } from 'chipmunk.client.toolkit';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { IRange } from 'src/app/environment/controller/helpers/selection';
+import { filter } from 'rxjs/operators';
 
 export class ProviderRanges extends Provider<RangeRequest> {
 
@@ -124,7 +125,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
         const items: IMenuItem[] = [];
         const filters: Entity<FilterRequest>[] = selected.filter(entity => (entity.getEntity() instanceof FilterRequest));
         const ranges: Entity<RangeRequest>[] = selected.filter(entity => (entity.getEntity() instanceof RangeRequest));
-        if (selected.length >= 2 && filters.length >= 2) {
+        if (selected.length >= 2 && filters.length >= 2 && filters.length === selected.length) {
             items.push({
                 caption: `Create Time Range`,
                 handler: () => {
@@ -154,25 +155,25 @@ export class ProviderRanges extends Provider<RangeRequest> {
         remove?: () => void,
         edit?: () => void,
     } {
+        const self = this;
+        const entities = selected.filter((entity: Entity<any>) => {
+            return entity.getEntity() instanceof RangeRequest;
+        });
         return {
-            remove: () => {
-                // Remove request
-                const entities = selected.filter((entity: Entity<any>) => {
-                    return entity.getEntity() instanceof RangeRequest;
-                });
-                if (entities.length === this.get().length) {
-                    super.getSession().getSessionSearch().getRangesAPI().getStorage().clear();
-                    super.update();
+            remove: entities.length !== 0 ? () => {
+                if (entities.length === self.get().length) {
+                    self.getSession().getSessionSearch().getRangesAPI().getStorage().clear();
+                    self.update();
                 } else {
                     entities.forEach((entity: Entity<RangeRequest>) => {
-                        super.getSession().getSessionSearch().getRangesAPI().getStorage().remove(entity.getEntity());
+                        self.getSession().getSessionSearch().getRangesAPI().getStorage().remove(entity.getEntity());
                     });
                 }
                 // Remove ranges
                 entities.forEach((entity: Entity<RangeRequest>) => {
-                    super.getSession().getTimestamp().removeRange(entity.getEntity().getGUID());
+                    self.getSession().getTimestamp().removeRange(entity.getEntity().getGUID());
                 });
-            },
+            } : undefined,
         };
     }
 

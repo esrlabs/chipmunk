@@ -265,10 +265,10 @@ export class Providers {
     }
 
     private _onContextMenuEvent(event: IContextMenuEvent) {
-        const isActionAvailable = (action: EActions, insel: Array<Provider<any>>) => {
+        const isActionAvailable = (action: EActions, insel: Array<Provider<any>>, entities) => {
             let count: number = 0;
             insel.forEach((provider: Provider<any>) => {
-                provider.actions(undefined, [])[action] !== undefined && (count += 1);
+                provider.actions(event.entity, entities)[action] !== undefined && (count += 1);
             });
             return count === insel.length;
         };
@@ -299,10 +299,10 @@ export class Providers {
             remove: boolean,
             edit: boolean,
         } = {
-            activate: isActionAvailable(EActions.activate, providers),
-            deactivate: isActionAvailable(EActions.deactivate, providers),
-            remove: isActionAvailable(EActions.remove, providers),
-            edit: isActionAvailable(EActions.edit, providers),
+            activate: isActionAvailable(EActions.activate, providers, entities),
+            deactivate: isActionAvailable(EActions.deactivate, providers, entities),
+            remove: isActionAvailable(EActions.remove, providers, entities),
+            edit: isActionAvailable(EActions.edit, providers, entities),
         };
         event.items = [];
         if (providers.length === 1 && entities.length === 1 && actions.edit) {

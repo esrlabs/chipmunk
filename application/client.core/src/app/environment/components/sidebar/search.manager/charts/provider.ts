@@ -165,45 +165,48 @@ export class ProviderCharts extends Provider<ChartRequest> {
         remove?: () => void,
         edit?: () => void,
     } {
-        return {
-            activate: () => {
-                selected.forEach((entity: Entity<any>) => {
-                    if (entity.getEntity() instanceof ChartRequest) {
-                        (entity.getEntity() as ChartRequest).setState(true);
-                    }
-                });
-            },
-            deactivate: () => {
-                selected.forEach((entity: Entity<any>) => {
-                    if (entity.getEntity() instanceof ChartRequest) {
-                        (entity.getEntity() as ChartRequest).setState(false);
-                    }
-                });
-            },
-            remove: () => {
-                const entities = selected.filter((entity: Entity<any>) => {
-                    return entity.getEntity() instanceof ChartRequest;
-                });
-                if (entities.length === this.get().length) {
-                    super.getSession().getSessionSearch().getChartsAPI().getStorage().clear();
-                    super.update();
-                } else {
-                    entities.forEach((entity: Entity<ChartRequest>) => {
-                        super.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity.getEntity());
-                    });
-                }
-            },
-            edit: () => {
-                if (selected.length !== 1) {
-                    return;
-                }
-                // View should be focused to switch to edit-mode, but while context
-                // menu is open, there are no focus. Well, that's why settimer here.
-                setTimeout(() => {
-                    this.edit().in();
+        const actions: {
+            activate?: () => void,
+            deactivate?: () => void,
+            remove?: () => void,
+            edit?: () => void
+        } = {};
+        const self = this;
+        const entities = selected.filter((entity: Entity<any>) => {
+            return entity.getEntity() instanceof ChartRequest;
+        });
+        actions.activate = entities.filter((entity: Entity<ChartRequest>) => {
+            return entity.getEntity().getState() === false;
+        }).length !== 0 ? () => {
+            entities.forEach((entity: Entity<ChartRequest>) => {
+                entity.getEntity().setState(true);
+            });
+        } : undefined;
+        actions.deactivate = entities.filter((entity: Entity<ChartRequest>) => {
+            return entity.getEntity().getState() === true;
+        }).length !== 0 ? () => {
+            entities.forEach((entity: Entity<ChartRequest>) => {
+                entity.getEntity().setState(false);
+            });
+        } : undefined;
+        actions.edit = (selected.length === 1 && entities.length === 1) ? () => {
+            // View should be focused to switch to edit-mode, but while context
+            // menu is open, there are no focus. Well, that's why settimer here.
+            setTimeout(() => {
+                self.edit().in();
+            });
+        } : undefined;
+        actions.remove = entities.length !== 0 ? () => {
+            if (entities.length === self.get().length) {
+                self.getSession().getSessionSearch().getChartsAPI().getStorage().clear();
+                self.update();
+            } else {
+                entities.forEach((entity: Entity<ChartRequest>) => {
+                    self.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity.getEntity());
                 });
             }
-        };
+        } : undefined;
+        return actions;
     }
 
 }
