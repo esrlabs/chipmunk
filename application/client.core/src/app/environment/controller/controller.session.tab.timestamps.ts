@@ -95,7 +95,7 @@ export class ControllerSessionTabTimestamp {
         group: 0,
     };
     private _parser: TimestampRowParser;
-    private _mode: EChartMode = EChartMode.aligned;
+    private _mode: EChartMode = EChartMode.scaled;
     private _optimization: boolean = true;
     private _defaults: DefaultDateParts = {
         day: undefined,
