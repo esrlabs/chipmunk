@@ -20,6 +20,8 @@ export enum EHotkeyCategory {
 export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.newTab]:                  { shortkeys: ['⌘ + T', 'Ctrl + T'],                         description: 'Open new tab',                    category: EHotkeyCategory.Tabs },
     [IPCMessages.EHotkeyActionRef.closeTab]:                { shortkeys: ['⌘ + W', 'Ctrl + W'],                         description: 'Close active tab',                category: EHotkeyCategory.Tabs },
+    [IPCMessages.EHotkeyActionRef.nextTab]:                 { shortkeys: ['⌘ + Tab', 'Ctrl + Tab'],                     description: 'Next tab',                        category: EHotkeyCategory.Tabs },
+    [IPCMessages.EHotkeyActionRef.prevTab]:                 { shortkeys: ['Shift + ⌘ + Tab', 'Shift + Ctrl + Tab'],     description: 'Previous tab',                    category: EHotkeyCategory.Tabs },
     [IPCMessages.EHotkeyActionRef.recentFiles]:             { shortkeys: ['⌘ + J', 'Ctrl + P'],                         description: 'Open recent files',               category: EHotkeyCategory.Files },
     [IPCMessages.EHotkeyActionRef.recentFilters]:           { shortkeys: ['Shift + ⌘ + J', 'Shift + Ctrl + P'],         description: 'Open recent filtres',             category: EHotkeyCategory.Files },
     [IPCMessages.EHotkeyActionRef.openLocalFile]:           { shortkeys: ['⌘ + O', 'Ctrl + O'],                         description: 'Open local file',                 category: EHotkeyCategory.Files },
@@ -72,6 +74,8 @@ export class HotkeysService implements IService {
         recentFiles: new Subject<IHotkeyEvent>(),
         recentFilters: new Subject<IHotkeyEvent>(),
         settings: new Subject<IHotkeyEvent>(),
+        nextTab: new Subject<IHotkeyEvent>(),
+        prevTab: new Subject<IHotkeyEvent>(),
     };
 
     constructor() {
@@ -124,6 +128,8 @@ export class HotkeysService implements IService {
         recentFiles: Observable<IHotkeyEvent>,
         recentFilters: Observable<IHotkeyEvent>,
         settings: Observable<IHotkeyEvent>,
+        nextTab: Observable<IHotkeyEvent>,
+        prevTab: Observable<IHotkeyEvent>,
     } {
         return {
             newTab: this._subjects.newTab.asObservable(),
@@ -141,6 +147,8 @@ export class HotkeysService implements IService {
             recentFiles: this._subjects.recentFiles.asObservable(),
             recentFilters: this._subjects.recentFilters.asObservable(),
             settings: this._subjects.settings.asObservable(),
+            nextTab: this._subjects.nextTab.asObservable(),
+            prevTab: this._subjects.prevTab.asObservable(),
         };
     }
 

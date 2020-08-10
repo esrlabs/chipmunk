@@ -122,6 +122,38 @@ export class TabsService {
         this._history.add(guid);
     }
 
+    public next() {
+        const guids: string[] = Array.from(this._tabs.keys());
+        if (guids.length === 0) {
+            return;
+        }
+        const active = this.getActiveTab();
+        let curr: number = -1;
+        if (active !== undefined) {
+            curr = guids.findIndex(t => t === active.guid);
+        }
+        if (curr + 1 > guids.length - 1) {
+            curr = -1;
+        }
+        this.setActive(guids[curr + 1]);
+    }
+
+    public prev() {
+        const guids: string[] = Array.from(this._tabs.keys());
+        if (guids.length === 0) {
+            return;
+        }
+        const active = this.getActiveTab();
+        let curr: number = guids.length;
+        if (active !== undefined) {
+            curr = guids.findIndex(t => t === active.guid);
+        }
+        if (curr - 1 < 0) {
+            curr = guids.length;
+        }
+        this.setActive(guids[curr - 1]);
+    }
+
     public add(tab: ITab): ITabAPI | undefined {
         const _tab = this._normalize(tab);
         if (_tab === null) {

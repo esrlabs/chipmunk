@@ -73,6 +73,8 @@ export class TabsSessionsService implements IService {
             this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
             this._subscriptions.onNewTab = HotkeysService.getObservable().newTab.subscribe(this._onNewTab.bind(this));
             this._subscriptions.onCloseTab = HotkeysService.getObservable().closeTab.subscribe(this._onCloseTab.bind(this));
+            this._subscriptions.onNextTab = HotkeysService.getObservable().nextTab.subscribe(this._onNextTab.bind(this));
+            this._subscriptions.onPrevTab = HotkeysService.getObservable().prevTab.subscribe(this._onPrevTab.bind(this));
             this._subscriptions.RenderSessionAddRequest = ElectronIpcService.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
             OutputRedirectionsService.init(this._currentSessionGuid);
             resolve();
@@ -359,6 +361,14 @@ export class TabsSessionsService implements IService {
 
     private _onCloseTab() {
         this._tabsService.remove(this._currentSessionGuid);
+    }
+
+    private _onNextTab() {
+        this._tabsService.next();
+    }
+
+    private _onPrevTab() {
+        this._tabsService.prev();
     }
 
     private _ipc_RenderSessionAddRequest(message: IPCMessages.RenderSessionAddRequest, response: (message: IPCMessages.TMessage) => void) {
