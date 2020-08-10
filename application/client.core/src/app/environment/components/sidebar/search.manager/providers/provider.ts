@@ -126,7 +126,7 @@ export abstract class Provider<T> {
             const index: number = this._selection.current.indexOf(selection.guid);
             let entity: Entity<T> | undefined;
             if (selection.ignore) {
-                this._keyboard.ignore_ctrl();
+                this._keyboard.ignore_ctrl_shift();
             }
             if (this._keyboard.ctrl()) {
                 if (index === -1) {
