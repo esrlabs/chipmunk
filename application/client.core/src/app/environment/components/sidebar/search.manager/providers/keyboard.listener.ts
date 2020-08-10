@@ -23,7 +23,8 @@ export class KeyboardListener {
         return this._shift;
     }
 
-    public ignore_ctrl() {
+    public ignore_ctrl_shift() {
+        this._shift = false;
         this._ctrl = false;
     }
 
