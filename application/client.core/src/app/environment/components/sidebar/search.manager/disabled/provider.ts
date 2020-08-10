@@ -175,17 +175,17 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         await this._setSearchActive().catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
         });
-        if (entity.getEntity()._entity instanceof ChartRequest) {
+        if (entity.getEntity().entity instanceof ChartRequest) {
             super.getSession().getSessionSearch().search(new FilterRequest({
-                request: (entity.getEntity()._entity as ChartRequest).asDesc().request,
+                request: (entity.getEntity().entity as ChartRequest).asDesc().request,
                 flags: {
                     casesensitive: false,
                     wholeword: false,
                     regexp: true,
                 }
             }));
-        } else if (entity.getEntity()._entity instanceof FilterRequest) {
-            super.getSession().getSessionSearch().search(entity.getEntity()._entity);
+        } else if (entity.getEntity().entity instanceof FilterRequest) {
+            super.getSession().getSessionSearch().search(entity.getEntity().entity);
         }
     }
 
