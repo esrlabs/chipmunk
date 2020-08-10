@@ -12,8 +12,6 @@ import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { IRange } from 'src/app/environment/controller/helpers/selection';
-import { filter } from 'rxjs/operators';
 
 export class ProviderRanges extends Provider<RangeRequest> {
 

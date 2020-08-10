@@ -265,10 +265,10 @@ export class Providers {
     }
 
     private _onContextMenuEvent(event: IContextMenuEvent) {
-        const isActionAvailable = (action: EActions, insel: Array<Provider<any>>, entities) => {
+        const isActionAvailable = (action: EActions, insel: Array<Provider<any>>, _entities) => {
             let count: number = 0;
             insel.forEach((provider: Provider<any>) => {
-                provider.actions(event.entity, entities)[action] !== undefined && (count += 1);
+                provider.actions(event.entity, _entities)[action] !== undefined && (count += 1);
             });
             return count === insel.length;
         };
