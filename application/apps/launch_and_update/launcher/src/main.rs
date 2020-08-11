@@ -74,7 +74,7 @@ fn spawn(exe: &Path, args: &[&Path]) -> Result<Child> {
 }
 
 #[cfg(target_os = "windows")]
-fn spawn(exe: &Path, args: &[&str]) -> Result<Child> {
+fn spawn(exe: &Path, args: &[&Path]) -> Result<Child> {
     const DETACHED_PROCESS: u32 = 0x0000_0008;
     const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
     Command::new(exe)
