@@ -274,7 +274,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                 caption: `Create range${selRanges.length > 1 ? 's' : ''} by ${selRanges.length > 1 ? `${selRanges.length} ` : ''}selection${selRanges.length > 1 ? 's' : ''}.`,
                                 handler: () => {
                                     if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
-                                        ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
+                                        ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement).catch((error: Error) => {
+                                            this._logger.error(error.message);
+                                        });
                                     }
                                     this.session.getTimestamp().drop();
                                     selRanges.forEach((range) => {
@@ -330,7 +332,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                     caption: `Start time range`,
                                     handler: () => {
                                         if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
-                                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
+                                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement).catch((error: Error) => {
+                                                this._logger.error(error.message);
+                                            });
                                         }
                                         this.session.getTimestamp().open(curr.row);
                                     },
@@ -378,7 +382,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     {
                         caption: 'Open time measurement view',
                         handler: () => {
-                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement);
+                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement).catch((error: Error) => {
+                                this._logger.error(error.message);
+                            });
                         },
                     }
                 ]);

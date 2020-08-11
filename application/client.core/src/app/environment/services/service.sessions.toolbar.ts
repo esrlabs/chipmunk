@@ -3,6 +3,7 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { DefaultViews, CDefaultTabsGuids } from '../states/state.default.toolbar.apps';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { ControllerToolbarLifecircle } from '../controller/controller.toolbar.lifecircle';
 
 import EventsSessionService from './standalone/service.events.session';
 import PluginsService, { IPluginData } from './service.plugins';
@@ -36,12 +37,12 @@ export interface ITabInfo {
 export class ToolbarSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('ToolbarSessionsService');
-    private _plugins: ISidebarPluginInfo[] = [];
     private _guid: string = Toolkit.guid();
     private _active: string | undefined;
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _inputs: { [key: string]: any } = {};
     private _sessions: Map<string, TabsService> = new Map();
+    private _lifecircle: Map<string, ControllerToolbarLifecircle> = new Map();
     private _subjects: {
         change: Subject<IChangeEvent | undefined>,
         update: Subject<IChangeEvent | undefined>,
@@ -49,7 +50,6 @@ export class ToolbarSessionsService implements IService {
         change: new Subject<IChangeEvent | undefined>(),
         update: new Subject<IChangeEvent | undefined>(),
     };
-    private _tabs: ITab[] = [];
 
     constructor() {
         this.setCommonInputs({});
@@ -73,6 +73,10 @@ export class ToolbarSessionsService implements IService {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        this._lifecircle.forEach((lifecircle: ControllerToolbarLifecircle) => {
+            lifecircle.destroy();
+        });
+        this._lifecircle.clear();
     }
 
     public getObservable(): {
@@ -102,12 +106,15 @@ export class ToolbarSessionsService implements IService {
             return undefined;
         }
         guid = typeof guid !== 'string' ? Toolkit.guid() : guid;
-        service.add({
-            guid: guid,
-            name: name,
-            active: true,
-            content: content,
-        });
+        if (!service.has(guid)) {
+            content.inputs = this._injectLifecircleController(guid, content.inputs === undefined ? {} : content.inputs);
+            service.add({
+                guid: guid,
+                name: name,
+                active: true,
+                content: content,
+            });
+        }
         this._sessions.set(this._active, service);
         this._subjects.update.next({
             session: this._active,
@@ -135,6 +142,11 @@ export class ToolbarSessionsService implements IService {
         if (service === undefined) {
             return undefined;
         }
+        const controller: ControllerToolbarLifecircle | undefined = this._lifecircle.get(guid);
+        if (controller !== undefined) {
+            controller.destroy();
+            this._lifecircle.delete(guid);
+        }
         service.remove(guid);
         this._sessions.set(this._active, service);
         this._subjects.update.next({
@@ -151,19 +163,27 @@ export class ToolbarSessionsService implements IService {
         return service.has(guid);
     }
 
-    public setActive(guid: string) {
-        const service: TabsService | undefined = this._sessions.get(this._active);
-        if (service === undefined) {
-            return false;
-        }
-        if (!service.has(guid)) {
-            const tab: ITab | undefined = this._getTabByGuid(guid);
-            if (tab === undefined) {
-                return undefined;
+    public setActive(guid: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const service: TabsService | undefined = this._sessions.get(this._active);
+            if (service === undefined) {
+                return reject(new Error(this._logger.warn(`Fail to find tab's service`)));
             }
-            service.add(tab);
-        }
-        service.setActive(guid);
+            if (!service.has(guid)) {
+                const tab: ITab | undefined = this._getTabByGuid(guid);
+                if (tab === undefined) {
+                    return reject(new Error(this._logger.warn(`Fail to find tab "${guid}". Tab isn't added.`)));
+                }
+                service.add(tab);
+            }
+            service.setActive(guid);
+            const controller: ControllerToolbarLifecircle | undefined = this._lifecircle.get(guid);
+            if (controller === undefined) {
+                // This situation isn't possible, but... At least log message
+                return reject(new Error(this._logger.error(`Attention, ControllerToolbarLifecircle isn't created for "${guid}"`)));
+            }
+            controller.callOn().viewready(resolve);
+        });
     }
 
     public getDefaultsGuids(): Toolkit.IDefaultTabsGuids {
@@ -243,7 +263,7 @@ export class ToolbarSessionsService implements IService {
                 closable: defaultView.closable,
                 content: {
                     factory: defaultView.factory,
-                    inputs: Object.assign(defaultView.inputs, this._inputs),
+                    inputs: this._injectLifecircleController(defaultView.guid, Object.assign(defaultView.inputs, this._inputs)),
                     resolved: false
                 }
             });
@@ -264,12 +284,23 @@ export class ToolbarSessionsService implements IService {
                 active: false,
                 content: {
                     factory: plugin.factories[Toolkit.EViewsTypes.sidebarHorizontal],
-                    inputs: inputs,
+                    inputs: this._injectLifecircleController(guid, inputs),
                     resolved: true
                 }
             });
         });
         return tabs;
+    }
+
+    private _injectLifecircleController(guid: string, inputs: { [key: string]: any }): { [key: string]: any } {
+        let controller: ControllerToolbarLifecircle | undefined = this._lifecircle.get(guid);
+        if (controller === undefined) {
+            controller = new ControllerToolbarLifecircle(guid);
+            this._lifecircle.set(guid, controller);
+        }
+        return Object.assign({
+            lifecircle: controller,
+        }, inputs);
     }
 
     private _isTabVisibleByDefault(guid: string): boolean {
