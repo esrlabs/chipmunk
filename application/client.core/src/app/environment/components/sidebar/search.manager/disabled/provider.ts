@@ -174,18 +174,19 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
     }
 
     public search(entity: Entity<any>) {
+        const cEntity = entity.getEntity().getEntity();
         ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
-            if (entity.getEntity().entity instanceof ChartRequest) {
+            if (cEntity instanceof ChartRequest) {
                 super.getSession().getSessionSearch().search(new FilterRequest({
-                    request: (entity.getEntity().entity as ChartRequest).asDesc().request,
+                    request: (cEntity as ChartRequest).asDesc().request,
                     flags: {
                         casesensitive: false,
                         wholeword: false,
                         regexp: true,
                     }
                 }));
-            } else if (entity.getEntity().entity instanceof FilterRequest) {
-                super.getSession().getSessionSearch().search(entity.getEntity().entity);
+            } else if (cEntity instanceof FilterRequest) {
+                super.getSession().getSessionSearch().search(cEntity);
             }
         }).catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
