@@ -18,8 +18,6 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
     private _ignore: boolean = false;
-    private _click: number = 0;
-    private _timeout: any;
 
     @HostBinding('class.selected') get cssClassSelected() {
         return this._ng_selected;
@@ -35,19 +33,10 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         if (this._ng_edit) {
             return;
         }
-        this._click++;
-        if (this._click > 1) {
-            clearTimeout(this._timeout);
-            this._click = 0;
-        } else {
-            this._timeout = setTimeout(() => {
-                this._click = 0;
-                this._zone.run(() => {
-                    this.provider !== undefined && this.provider.select().set({ guid: this.entity.getGUID()});
-                    this._forceUpdate();
-                });
-            }, 150);
-        }
+        this._zone.run(() => {
+            this.provider !== undefined && this.provider.select().set({ guid: this.entity.getGUID()});
+            this._forceUpdate();
+        });
     }
 
     constructor(
