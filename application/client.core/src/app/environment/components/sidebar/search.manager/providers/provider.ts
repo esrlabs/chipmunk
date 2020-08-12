@@ -38,9 +38,12 @@ export interface IDoubleclickEvent {
 }
 
 export interface ISelection {
-    guid: string;
-    sender?: string;
-    ignore?: boolean;
+    guid: string;       // GUID of entity
+    sender?: string;    // Name of provider/controller/etc who emits actions (we need it to prevent loop in event circle)
+    ignore?: boolean;   // true - drops state of ctrl and shift; false - ctrl and shift would be considering
+    toggle?: boolean;   // used only with single selection
+                        // true - if entity already selected, selection would be dropped
+                        // false - defined entity would be selected in anyway
 }
 
 export enum EActions {
@@ -138,7 +141,7 @@ export abstract class Provider<T> {
                 const from: number = guids.findIndex(g => g === this._selection.last.entity.getGUID());
                 const to: number = guids.findIndex(g => g === selection.guid);
                 if (from !== -1 && to !== -1) {
-                    guids = guids.slice((from < to ? from : to), (to > from ? to : from) + 1);
+                    guids = guids.slice(Math.min(from, to), Math.max(from, to) + 1);
                     this._selection.current = this._selection.current.concat(
                         guids.filter(g => this._selection.current.indexOf(g) === -1),
                     );
@@ -149,7 +152,9 @@ export abstract class Provider<T> {
                     this._selection.current = [selection.guid];
                     entity = this.get().find(e => e.getGUID() === selection.guid);
                 } else {
-                    this._selection.current = [];
+                    if (selection.toggle !== false) {
+                        this._selection.current = [];
+                    }
                 }
             }
             this._subjects.selection.next({
@@ -282,6 +287,11 @@ export abstract class Provider<T> {
                     event: event,
                     entity: entity,
                     provider: this,
+                });
+                setSelection({
+                    guid: entity.getGUID(),
+                    sender: 'self.doubleclick',
+                    toggle: false,
                 });
             },
         };
