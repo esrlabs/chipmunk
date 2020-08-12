@@ -148,26 +148,22 @@ export class ProviderCharts extends Provider<ChartRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    this.search(selected[0]);
+                    SearchManagerService.setToolbarSearch().then(() => {
+                        super.getSession().getSessionSearch().search(new FilterRequest({
+                            request: (entity as ChartRequest).asDesc().request,
+                            flags: {
+                                casesensitive: false,
+                                wholeword: false,
+                                regexp: true,
+                            }
+                        }));
+                    }).catch((error: Error) => {
+                        this._logger.error(`Failed to show matches due to error: ${error.message}`);
+                    });
                 },
             });
         }
         return items;
-    }
-
-    public search(entity: Entity<ChartRequest>) {
-        SearchManagerService.setToolbarSearch().then(() => {
-            super.getSession().getSessionSearch().search(new FilterRequest({
-                request: (entity.getEntity() as ChartRequest).asDesc().request,
-                flags: {
-                    casesensitive: false,
-                    wholeword: false,
-                    regexp: true,
-                }
-            }));
-        }).catch((error: Error) => {
-            this._logger.error(`Failed to show matches due to error: ${error.message}`);
-        });
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
