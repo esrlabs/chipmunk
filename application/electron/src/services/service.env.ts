@@ -1,8 +1,5 @@
 import Logger from '../tools/env.logger';
 import { getEnvVar } from 'chipmunk.shell.env';
-import { Subscription } from '../tools/index';
-import ServiceElectron, { IPCMessages } from './service.electron';
-import * as os from 'os';
 
 import { IService } from '../interfaces/interface.service';
 // TODO:
@@ -153,7 +150,6 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
 class ServiceEnv implements IService {
 
     private _logger: Logger = new Logger('ServiceEnv');
-    private _subscriptions: { [key: string]: Subscription } = {};
     private _env: IChipmunkEnvVars = {
         CHIPMUNK_DEVELOPING_MODE: undefined,
         CHIPMUNK_NO_WEBDEVTOOLS: undefined,
@@ -171,11 +167,6 @@ class ServiceEnv implements IService {
      * @returns Promise<void>
      */
     public init(): Promise<void> {
-        ServiceElectron.IPC.subscribe(IPCMessages.OSInfoRequest, this._ipc_onSearchOSRequest.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.SearchOSRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to "SearchOSRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
         return new Promise((resolve, reject) => {
             const list = [
                 EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
@@ -224,11 +215,6 @@ class ServiceEnv implements IService {
         return Object.assign({}, this._env);
     }
 
-    private _ipc_onSearchOSRequest(_message: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        response(new IPCMessages.OSInfoResponse({
-            os: os.platform(),
-        }));
-    }
 }
 
 export default (new ServiceEnv());
