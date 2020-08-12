@@ -8,7 +8,7 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerFiltersComponent } from './list/component';
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
+import SearchManagerService from '../service/service';
 import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderFilters extends Provider<FilterRequest> {
@@ -158,11 +158,12 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return items;
     }
 
-    public async search(entity: Entity<FilterRequest>) {
-        await this._setSearchActive().catch((error: Error) => {
+    public search(entity: Entity<FilterRequest>) {
+        SearchManagerService.setToolbarSearch().then(() => {
+            super.getSession().getSessionSearch().search(entity.getEntity());
+        }).catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
         });
-        super.getSession().getSessionSearch().search(entity.getEntity());
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
@@ -213,12 +214,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
             }
         } : undefined;
         return actions;
-    }
-
-    private _setSearchActive(): Promise<boolean> {
-        return new Promise((resolve) => {
-            resolve(ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search));
-        });
     }
 
 }

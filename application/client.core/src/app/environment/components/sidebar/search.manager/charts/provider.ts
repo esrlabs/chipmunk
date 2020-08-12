@@ -9,7 +9,7 @@ import { SidebarAppSearchManagerChartsComponent } from './list/component';
 import { SidebarAppSearchManagerChartDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../../../components/views/chart/charts/charts';
-import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
+import SearchManagerService from '../service/service';
 import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderCharts extends Provider<ChartRequest> {
@@ -155,18 +155,19 @@ export class ProviderCharts extends Provider<ChartRequest> {
         return items;
     }
 
-    public async search(entity: Entity<ChartRequest>) {
-        await this._setSearchActive().catch((error: Error) => {
+    public search(entity: Entity<ChartRequest>) {
+        SearchManagerService.setToolbarSearch().then(() => {
+            super.getSession().getSessionSearch().search(new FilterRequest({
+                request: (entity.getEntity() as ChartRequest).asDesc().request,
+                flags: {
+                    casesensitive: false,
+                    wholeword: false,
+                    regexp: true,
+                }
+            }));
+        }).catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
         });
-        super.getSession().getSessionSearch().search(new FilterRequest({
-            request: (entity.getEntity() as ChartRequest).asDesc().request,
-            flags: {
-                casesensitive: false,
-                wholeword: false,
-                regexp: true,
-            }
-        }));
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
@@ -217,12 +218,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
             }
         } : undefined;
         return actions;
-    }
-
-    private _setSearchActive(): Promise<boolean> {
-        return new Promise((resolve) => {
-            resolve(ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search));
-        });
     }
 
 }
