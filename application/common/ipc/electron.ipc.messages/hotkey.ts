@@ -13,9 +13,7 @@ export enum EHotkeyActionRef {
     toolbarToggle = 'toolbarToggle',
     recentFiles = 'recentFiles',
     recentFilters = 'recentFilters',
-    settings = 'settings',
-    storeFilter = 'storeFilter',
-    storeChart = 'storeChart'
+    settings = 'settings'
 }
 
 export interface IHotkeyCall {

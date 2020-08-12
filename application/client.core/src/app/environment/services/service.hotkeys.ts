@@ -14,7 +14,6 @@ export enum EHotkeyCategory {
     Tabs = 'Tabs',
     Movement = 'Movement',
     Areas = 'Areas',
-    Search = 'Search',
     Other = 'Other'
 }
 
@@ -32,8 +31,6 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                         description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
     [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                         description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.storeChart]:              { shortkeys: ['Shift + Enter'],                               description: 'Store chart',                     category: EHotkeyCategory.Search},
-    [IPCMessages.EHotkeyActionRef.storeFilter]:             { shortkeys: ['⌘ + Enter', 'Ctrl + Enter'],                 description: 'Store filter',                     category: EHotkeyCategory.Search},
     [IPCMessages.EHotkeyActionRef.settings]:                { shortkeys: ['⌘ + ,', 'Ctrl + ,'],                         description: 'Show settings',                   category: EHotkeyCategory.Other },
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                          description: 'Show this dialog',                category: EHotkeyCategory.Other },
 };
