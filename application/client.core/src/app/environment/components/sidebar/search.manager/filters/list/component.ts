@@ -53,10 +53,6 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         this.provider.select().context(event, entity);
     }
 
-    public _ng_onDoubleClick(event: MouseEvent, entity: Entity<FilterRequest>) {
-        this.provider.select().doubleclick(event, entity);
-    }
-
     private _onDataUpdate() {
         this._ng_entries = this.provider.get();
         this._forceUpdate();

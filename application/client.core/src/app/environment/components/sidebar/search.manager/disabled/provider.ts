@@ -9,8 +9,6 @@ import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { IDisabledEntitySupport } from 'src/app/environment/controller/controller.session.tab.search.disabled.support';
 import SearchManagerService from '../service/service';
 import { Logger } from 'chipmunk.client.toolkit';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
-import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
 
@@ -168,25 +166,6 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             });
         }
         return items;
-    }
-
-    public search(entity: Entity<any>) {
-        SearchManagerService.setToolbarSearch().then(() => {
-            if (entity.getEntity()._entity instanceof ChartRequest) {
-                super.getSession().getSessionSearch().search(new FilterRequest({
-                    request: (entity.getEntity()._entity as ChartRequest).asDesc().request,
-                    flags: {
-                        casesensitive: false,
-                        wholeword: false,
-                        regexp: true,
-                    }
-                }));
-            } else if (entity.getEntity()._entity instanceof FilterRequest) {
-                super.getSession().getSessionSearch().search(entity.getEntity()._entity);
-            }
-        }).catch((error: Error) => {
-            this._logger.error(`Failed to show matches due to error: ${error.message}`);
-        });
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {

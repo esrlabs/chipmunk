@@ -125,6 +125,9 @@ export class ProviderFilters extends Provider<FilterRequest> {
         };
     }
 
+    /*
+
+    */
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
         if (selected.length !== 1) {
             return [];
@@ -151,19 +154,15 @@ export class ProviderFilters extends Provider<FilterRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    this.search(selected[0]);
+                    SearchManagerService.setToolbarSearch().then(() => {
+                        super.getSession().getSessionSearch().search(entity);
+                    }).catch((error: Error) => {
+                        this._logger.error(`Failed to show matches due to error: ${error.message}`);
+                    });
                 },
             });
         }
         return items;
-    }
-
-    public search(entity: Entity<FilterRequest>) {
-        SearchManagerService.setToolbarSearch().then(() => {
-            super.getSession().getSessionSearch().search(entity.getEntity());
-        }).catch((error: Error) => {
-            this._logger.error(`Failed to show matches due to error: ${error.message}`);
-        });
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
