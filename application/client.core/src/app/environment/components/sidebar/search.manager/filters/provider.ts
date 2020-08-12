@@ -162,12 +162,11 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return items;
     }
 
-    public search(entity: Entity<FilterRequest>) {
-        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
-            super.getSession().getSessionSearch().search(entity.getEntity());
-        }).catch((error: Error) => {
+    public async search(entity: Entity<FilterRequest>) {
+        await this._setSearchActive().catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
         });
+        super.getSession().getSessionSearch().search(entity.getEntity());
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
@@ -218,6 +217,12 @@ export class ProviderFilters extends Provider<FilterRequest> {
             }
         } : undefined;
         return actions;
+    }
+
+    private _setSearchActive(): Promise<boolean> {
+        return new Promise((resolve) => {
+            resolve(ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search));
+        });
     }
 
 }
