@@ -37,12 +37,6 @@ export interface IDoubleclickEvent {
     entity: Entity<any>;
 }
 
-export interface ISelection {
-    guid: string;
-    sender?: string;
-    ignore?: boolean;
-}
-
 export enum EActions {
     enable = 'enable',
     disable = 'disable',
@@ -117,26 +111,26 @@ export abstract class Provider<T> {
         apply: (sender: string, guids: string[]) => void,
         get: () => string[],
         getEntities: () => Array<Entity<T>>,
-        set: (selection: ISelection) => void,
+        set: (guid: string, sender?: string) => void,
         single: () => Entity<T> | undefined,
         context: (event: MouseEvent, entity: Entity<T>) => void,
         doubleclick: (event: MouseEvent, entity: Entity<T>) => void,
     } {
-        const setSelection: (selection: ISelection) => void = (selection: ISelection) => {
-            const index: number = this._selection.current.indexOf(selection.guid);
+        const setSelection: (guid: string, sender?: string) => void = (guid: string, sender?: string) => {
+            const index: number = this._selection.current.indexOf(guid);
             let entity: Entity<T> | undefined;
-            if (selection.ignore) {
-                this._keyboard.ignore_ctrl();
-            }
             if (this._keyboard.ctrl()) {
                 if (index === -1) {
-                    this._selection.current.push(selection.guid);
-                    entity = this.get().find(e => e.getGUID() === selection.guid);
+                    this._selection.current.push(guid);
+                    entity = this.get().find(e => e.getGUID() === guid);
+                } else {
+                    this._selection.current.splice(index, 1);
+                    entity = this._selection.last.entity;
                 }
             } else if (this._keyboard.shift() && this._selection.last !== undefined) {
                 let guids: string[] = [].concat.apply([], this._providers().map(p => p.get().map(e => e.getGUID())));
                 const from: number = guids.findIndex(g => g === this._selection.last.entity.getGUID());
-                const to: number = guids.findIndex(g => g === selection.guid);
+                const to: number = guids.findIndex(g => g === guid);
                 if (from !== -1 && to !== -1) {
                     guids = guids.slice((from < to ? from : to), (to > from ? to : from) + 1);
                     this._selection.current = this._selection.current.concat(
@@ -146,8 +140,8 @@ export abstract class Provider<T> {
                 entity = this._selection.last.entity;
             } else {
                 if (index === -1) {
-                    this._selection.current = [selection.guid];
-                    entity = this.get().find(e => e.getGUID() === selection.guid);
+                    this._selection.current = [guid];
+                    entity = this.get().find(e => e.getGUID() === guid);
                 } else {
                     this._selection.current = [];
                 }
@@ -156,7 +150,7 @@ export abstract class Provider<T> {
                 provider: this,
                 entity: entity,
                 guids: this._selection.current,
-                sender: selection.sender,
+                sender: sender,
             });
         };
         return {
@@ -165,20 +159,14 @@ export abstract class Provider<T> {
                 if (entities.length === 0) {
                     return;
                 }
-                setSelection({
-                    guid: entities[0].getGUID(),
-                    sender: 'self.first',
-                });
+                setSelection(entities[0].getGUID(), 'self.fisrt');
             },
             last: () => {
                 const entities = this.get();
                 if (entities.length === 0) {
                     return;
                 }
-                setSelection({
-                    guid: entities[entities.length - 1].getGUID(),
-                    sender: 'self.last'
-                });
+                setSelection(entities[entities.length - 1].getGUID(), 'self.last');
             },
             next: () => {
                 if (this._selection.current.length !== 1) {
@@ -197,10 +185,7 @@ export abstract class Provider<T> {
                 if (index + 1 > entities.length - 1) {
                     return false;
                 }
-                setSelection({
-                    guid: entities[index + 1].getGUID(),
-                    sender: 'self.next'
-                });
+                setSelection(entities[index + 1].getGUID(), 'self.next');
                 return true;
             },
             prev: () => {
@@ -220,10 +205,7 @@ export abstract class Provider<T> {
                 if (index - 1 < 0) {
                     return false;
                 }
-                setSelection({
-                    guid: entities[index - 1].getGUID(),
-                    sender: 'self.next'
-                });
+                setSelection(entities[index - 1].getGUID(), 'self.next');
                 return true;
             },
             drop: (sender?: string) => {

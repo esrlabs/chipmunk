@@ -40,11 +40,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
                 return;
             }
             if (event.added instanceof ChartRequest) {
-                this.select().set({
-                    guid: event.added.getGUID(),
-                    sender: undefined,
-                    ignore: true
-                });
+                this.select().set(event.added.getGUID());
             }
             if (event.removed instanceof ChartRequest || event.requests.length === 0) {
                 this.select().drop();
