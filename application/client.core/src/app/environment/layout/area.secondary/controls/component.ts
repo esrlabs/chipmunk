@@ -8,8 +8,6 @@ import { ITab } from '../../../services/service.sessions.sidebar';
 import ToolbarSessionsService from '../../../services/service.sessions.toolbar';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 
-import * as Toolkit from 'chipmunk.client.toolkit';
-
 @Component({
     selector: 'app-layout-area-secondary-controls',
     templateUrl: './template.html',
@@ -24,7 +22,6 @@ export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, O
     public _ng_injection: IComponentDesc | undefined = undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutSecondaryAreaControlsComponent');
 
     constructor(private _cdRef: ChangeDetectorRef) {
 
@@ -62,7 +59,7 @@ export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, O
                 handler: () => {
                     this.state.maximize();
                     ToolbarSessionsService.addByGuid(tab.guid);
-                    ToolbarSessionsService.setActive(tab.guid).catch((error: Error) => this._logger.error(error.message));
+                    ToolbarSessionsService.setActive(tab.guid);
                 }
             };
         });

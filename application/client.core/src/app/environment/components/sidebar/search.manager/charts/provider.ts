@@ -159,19 +159,18 @@ export class ProviderCharts extends Provider<ChartRequest> {
         return items;
     }
 
-    public search(entity: Entity<ChartRequest>) {
-        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
-            super.getSession().getSessionSearch().search(new FilterRequest({
-                request: (entity.getEntity() as ChartRequest).asDesc().request,
-                flags: {
-                    casesensitive: false,
-                    wholeword: false,
-                    regexp: true,
-                }
-            }));
-        }).catch((error: Error) => {
+    public async search(entity: Entity<ChartRequest>) {
+        await this._setSearchActive().catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
         });
+        super.getSession().getSessionSearch().search(new FilterRequest({
+            request: (entity.getEntity() as ChartRequest).asDesc().request,
+            flags: {
+                casesensitive: false,
+                wholeword: false,
+                regexp: true,
+            }
+        }));
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
@@ -222,6 +221,12 @@ export class ProviderCharts extends Provider<ChartRequest> {
             }
         } : undefined;
         return actions;
+    }
+
+    private _setSearchActive(): Promise<boolean> {
+        return new Promise((resolve) => {
+            resolve(ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search));
+        });
     }
 
 }

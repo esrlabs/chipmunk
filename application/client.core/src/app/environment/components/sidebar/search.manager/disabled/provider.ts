@@ -163,9 +163,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).catch((error: Error) => {
-                        this._logger.error(error.message);
-                    });
+                    ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
                     match.getEntity().matches(session);
                 },
             });
@@ -173,23 +171,22 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         return items;
     }
 
-    public search(entity: Entity<any>) {
-        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
-            if (entity.getEntity().entity instanceof ChartRequest) {
-                super.getSession().getSessionSearch().search(new FilterRequest({
-                    request: (entity.getEntity().entity as ChartRequest).asDesc().request,
-                    flags: {
-                        casesensitive: false,
-                        wholeword: false,
-                        regexp: true,
-                    }
-                }));
-            } else if (entity.getEntity().entity instanceof FilterRequest) {
-                super.getSession().getSessionSearch().search(entity.getEntity().entity);
-            }
-        }).catch((error: Error) => {
+    public async search(entity: Entity<any>) {
+        await this._setSearchActive().catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);
         });
+        if (entity.getEntity().entity instanceof ChartRequest) {
+            super.getSession().getSessionSearch().search(new FilterRequest({
+                request: (entity.getEntity().entity as ChartRequest).asDesc().request,
+                flags: {
+                    casesensitive: false,
+                    wholeword: false,
+                    regexp: true,
+                }
+            }));
+        } else if (entity.getEntity().entity instanceof FilterRequest) {
+            super.getSession().getSessionSearch().search(entity.getEntity().entity);
+        }
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {
@@ -211,6 +208,12 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 });
             } : undefined,
         };
+    }
+
+    private _setSearchActive(): Promise<boolean> {
+        return new Promise((resolve) => {
+            resolve(ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search));
+        });
     }
 
 }

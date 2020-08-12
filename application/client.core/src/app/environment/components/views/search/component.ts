@@ -8,7 +8,6 @@ import { FiltersStorage, FilterRequest } from '../../../controller/controller.se
 import { ChartsStorage, ChartRequest } from '../../../controller/controller.session.tab.search.charts.storage';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { rankedNumberAsString } from '../../../controller/helpers/ranks';
-import { ControllerToolbarLifecircle } from '../../../controller/controller.toolbar.lifecircle';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
@@ -58,7 +57,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     @Input() public setActiveTab: (guid: string) => void;
     @Input() public getDefaultsTabGuids: () => { charts: string };
     @Input() public onTitleContextMenu: Observable<MouseEvent>;
-    @Input() public lifecircle: ControllerToolbarLifecircle;
 
     @ViewChild('output') _ng_outputComponent: ViewSearchOutputComponent;
     @ViewChild(MatInput) _ng_inputComRef: MatInput;
@@ -111,7 +109,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     ngAfterViewInit() {
         this._loadState();
         this._focus(true);
-        this.lifecircle.emit().viewready();
     }
 
     ngAfterContentInit() {
