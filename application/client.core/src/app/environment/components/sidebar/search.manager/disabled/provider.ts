@@ -7,14 +7,11 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerDisabledsComponent } from './list/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { IDisabledEntitySupport } from 'src/app/environment/controller/controller.session.tab.search.disabled.support';
-import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
-import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<DisabledRequest>> = new Map();
-    private _logger: Logger = new Logger('ProviderDisabled');
 
     constructor() {
         super();
@@ -157,9 +154,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    this._setToolbarSearch().then(() => {
-                        match.getEntity().matches(session);
-                    });
+                    match.getEntity().matches(session);
                 },
             });
         }
@@ -185,13 +180,6 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 });
             } : undefined,
         };
-    }
-
-    private _setToolbarSearch(): Promise<void> {
-        return new Promise((resolve) => {
-            ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
-            resolve();
-        });
     }
 
 }

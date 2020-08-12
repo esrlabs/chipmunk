@@ -8,14 +8,11 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerFiltersComponent } from './list/component';
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
-import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderFilters extends Provider<FilterRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
-    private _logger: Logger = new Logger('ProviderFilters');
 
     constructor() {
         super();
@@ -136,7 +133,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         const items: IMenuItem[] = [];
         if (entity instanceof ChartRequest && FilterRequest.isValid(entity.asDesc().request)) {
             items.push({
-                caption: `Convert To Filter`,
+                caption: `Conver To Filter`,
                 handler: () => {
                     super.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity);
                     super.getSession().getSessionSearch().getFiltersAPI().getStorage().add({
@@ -154,9 +151,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    this._setToolbarSearch().then(() => {
-                        super.getSession().getSessionSearch().search(entity);
-                    });
+                    super.getSession().getSessionSearch().search(entity);
                 },
             });
         }
@@ -211,13 +206,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
             }
         } : undefined;
         return actions;
-    }
-
-    private _setToolbarSearch(): Promise<void> {
-        return new Promise((resolve) => {
-            ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
-            resolve();
-        });
     }
 
 }
