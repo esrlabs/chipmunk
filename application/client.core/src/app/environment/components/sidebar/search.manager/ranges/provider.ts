@@ -40,7 +40,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
                 return;
             }
             if (event.added instanceof RangeRequest) {
-                this.select().set({ guid: event.added.getGUID() });
+                this.select().set(event.added.getGUID());
             }
             if (event.removed instanceof RangeRequest || event.ranges.length === 0) {
                 this.select().drop();

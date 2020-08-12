@@ -34,7 +34,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
             return;
         }
         this._zone.run(() => {
-            this.provider !== undefined && this.provider.select().set({ guid: this.entity.getGUID()});
+            this.provider !== undefined && this.provider.select().set(this.entity.getGUID());
             this._forceUpdate();
         });
     }
