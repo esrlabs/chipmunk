@@ -82,7 +82,7 @@ pub fn init_logging() -> Result<()> {
             .replace("$HOME_DIR", &home_dir.to_string_lossy());
 
         match fs::write(&log_config_path, &log_config_content) {
-            Ok(_) => println!("Neon: replaced file with:\n{}", log_config_content),
+            Ok(_) => (),
             Err(e) => eprintln!("error while trying to write log config file: {}", e),
         }
     }
