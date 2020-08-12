@@ -7,7 +7,7 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerDisabledsComponent } from './list/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { IDisabledEntitySupport } from 'src/app/environment/controller/controller.session.tab.search.disabled.support';
-import SearchManagerService from '../service/service';
+import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
 import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
@@ -157,10 +157,8 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    SearchManagerService.setToolbarSearch().then(() => {
+                    this._setToolbarSearch().then(() => {
                         match.getEntity().matches(session);
-                    }).catch((error: Error) => {
-                        this._logger.error(`Failed to show matches due to error: ${error.message}`);
                     });
                 },
             });
@@ -187,6 +185,13 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 });
             } : undefined,
         };
+    }
+
+    private _setToolbarSearch(): Promise<void> {
+        return new Promise((resolve) => {
+            ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search);
+            resolve();
+        });
     }
 
 }
