@@ -31,6 +31,21 @@ export interface IContextMenuEvent {
     items?: IMenuItem[];
 }
 
+export interface IDoubleclickEvent {
+    event: MouseEvent;
+    provider: Provider<any>;
+    entity: Entity<any>;
+}
+
+export interface ISelection {
+    guid: string;       // GUID of entity
+    sender?: string;    // Name of provider/controller/etc who emits actions (we need it to prevent loop in event circle)
+    ignore?: boolean;   // true - drops state of ctrl and shift; false - ctrl and shift would be considering
+    toggle?: boolean;   // used only with single selection
+                        // true - if entity already selected, selection would be dropped
+                        // false - defined entity would be selected in anyway
+}
+
 export enum EActions {
     enable = 'enable',
     disable = 'disable',
@@ -47,11 +62,13 @@ export abstract class Provider<T> {
         selection: Subject<ISelectEvent>,
         edit: Subject<string | undefined>,
         context: Subject<IContextMenuEvent>,
+        doubleclick: Subject<IDoubleclickEvent>,
     } = {
         change: new Subject(),
         selection: new Subject(),
         edit: new Subject(),
         context: new Subject(),
+        doubleclick: new Subject(),
     };
     private _session: ControllerSessionTab | undefined;
     private _selection: {
@@ -103,27 +120,28 @@ export abstract class Provider<T> {
         apply: (sender: string, guids: string[]) => void,
         get: () => string[],
         getEntities: () => Array<Entity<T>>,
-        set: (guid: string, sender?: string) => void,
+        set: (selection: ISelection) => void,
         single: () => Entity<T> | undefined,
         context: (event: MouseEvent, entity: Entity<T>) => void,
+        doubleclick: (event: MouseEvent, entity: Entity<T>) => void,
     } {
-        const setSelection: (guid: string, sender?: string) => void = (guid: string, sender?: string) => {
-            const index: number = this._selection.current.indexOf(guid);
+        const setSelection: (selection: ISelection) => void = (selection: ISelection) => {
+            const index: number = this._selection.current.indexOf(selection.guid);
             let entity: Entity<T> | undefined;
+            if (selection.ignore) {
+                this._keyboard.ignore_ctrl_shift();
+            }
             if (this._keyboard.ctrl()) {
                 if (index === -1) {
-                    this._selection.current.push(guid);
-                    entity = this.get().find(e => e.getGUID() === guid);
-                } else {
-                    this._selection.current.splice(index, 1);
-                    entity = this._selection.last.entity;
+                    this._selection.current.push(selection.guid);
+                    entity = this.get().find(e => e.getGUID() === selection.guid);
                 }
             } else if (this._keyboard.shift() && this._selection.last !== undefined) {
                 let guids: string[] = [].concat.apply([], this._providers().map(p => p.get().map(e => e.getGUID())));
                 const from: number = guids.findIndex(g => g === this._selection.last.entity.getGUID());
-                const to: number = guids.findIndex(g => g === guid);
+                const to: number = guids.findIndex(g => g === selection.guid);
                 if (from !== -1 && to !== -1) {
-                    guids = guids.slice((from < to ? from : to), (to > from ? to : from) + 1);
+                    guids = guids.slice(Math.min(from, to), Math.max(from, to) + 1);
                     this._selection.current = this._selection.current.concat(
                         guids.filter(g => this._selection.current.indexOf(g) === -1),
                     );
@@ -131,17 +149,19 @@ export abstract class Provider<T> {
                 entity = this._selection.last.entity;
             } else {
                 if (index === -1) {
-                    this._selection.current = [guid];
-                    entity = this.get().find(e => e.getGUID() === guid);
+                    this._selection.current = [selection.guid];
+                    entity = this.get().find(e => e.getGUID() === selection.guid);
                 } else {
-                    this._selection.current = [];
+                    if (selection.toggle !== false) {
+                        this._selection.current = [];
+                    }
                 }
             }
             this._subjects.selection.next({
                 provider: this,
                 entity: entity,
                 guids: this._selection.current,
-                sender: sender,
+                sender: selection.sender,
             });
         };
         return {
@@ -150,14 +170,20 @@ export abstract class Provider<T> {
                 if (entities.length === 0) {
                     return;
                 }
-                setSelection(entities[0].getGUID(), 'self.fisrt');
+                setSelection({
+                    guid: entities[0].getGUID(),
+                    sender: 'self.first',
+                });
             },
             last: () => {
                 const entities = this.get();
                 if (entities.length === 0) {
                     return;
                 }
-                setSelection(entities[entities.length - 1].getGUID(), 'self.last');
+                setSelection({
+                    guid: entities[entities.length - 1].getGUID(),
+                    sender: 'self.last'
+                });
             },
             next: () => {
                 if (this._selection.current.length !== 1) {
@@ -176,7 +202,10 @@ export abstract class Provider<T> {
                 if (index + 1 > entities.length - 1) {
                     return false;
                 }
-                setSelection(entities[index + 1].getGUID(), 'self.next');
+                setSelection({
+                    guid: entities[index + 1].getGUID(),
+                    sender: 'self.next'
+                });
                 return true;
             },
             prev: () => {
@@ -196,7 +225,10 @@ export abstract class Provider<T> {
                 if (index - 1 < 0) {
                     return false;
                 }
-                setSelection(entities[index - 1].getGUID(), 'self.next');
+                setSelection({
+                    guid: entities[index - 1].getGUID(),
+                    sender: 'self.next'
+                });
                 return true;
             },
             drop: (sender?: string) => {
@@ -250,6 +282,18 @@ export abstract class Provider<T> {
                     provider: this,
                 });
             },
+            doubleclick: (event: MouseEvent, entity: Entity<T>) => {
+                this._subjects.doubleclick.next({
+                    event: event,
+                    entity: entity,
+                    provider: this,
+                });
+                setSelection({
+                    guid: entity.getGUID(),
+                    sender: 'self.doubleclick',
+                    toggle: false,
+                });
+            },
         };
     }
 
@@ -286,12 +330,14 @@ export abstract class Provider<T> {
         selection: Observable<ISelectEvent>,
         edit: Observable<string | undefined>,
         context: Observable<IContextMenuEvent>,
+        doubleclick: Observable<IDoubleclickEvent>,
     } {
         return {
             change: this._subjects.change.asObservable(),
             selection: this._subjects.selection.asObservable(),
             edit: this._subjects.edit.asObservable(),
             context: this._subjects.context.asObservable(),
+            doubleclick: this._subjects.doubleclick.asObservable(),
         };
     }
 
@@ -327,6 +373,8 @@ export abstract class Provider<T> {
     public abstract getListComp(): IComponentDesc;
 
     public abstract getDetailsComp(): IComponentDesc;
+
+    public abstract search(entity: Entity<T>): void;
 
     /**
      * Should called in inherit class in constructor

@@ -1,10 +1,10 @@
-import { Provider, EProviders, ISelectEvent, IContextMenuEvent, EActions } from './provider';
+import { Provider, EProviders, ISelectEvent, IContextMenuEvent, EActions, IDoubleclickEvent } from './provider';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { KeyboardListener } from './keyboard.listener';
-
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { IMenuItem } from 'src/app/environment/services/standalone/service.contextmenu';
 import { Entity } from './entity';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class Providers {
 
@@ -18,9 +18,11 @@ export class Providers {
     private _subjects: {
         select: Subject<ISelectEvent | undefined>,
         context: Subject<IContextMenuEvent>,
+        doubleclick: Subject<IDoubleclickEvent>,
     } = {
         select: new Subject(),
         context: new Subject(),
+        doubleclick: new Subject(),
     };
 
     public destroy() {
@@ -39,10 +41,12 @@ export class Providers {
     public getObservable(): {
         select: Observable<ISelectEvent | undefined>,
         context: Observable<IContextMenuEvent>,
+        doubleclick: Observable<IDoubleclickEvent>,
     } {
         return {
             select: this._subjects.select.asObservable(),
             context: this._subjects.context.asObservable(),
+            doubleclick: this._subjects.doubleclick.asObservable(),
         };
     }
 
@@ -54,6 +58,7 @@ export class Providers {
         provider.setProvidersGetter(this.list.bind(this));
         this._selsubs[`selection_${name}`] = provider.getObservable().selection.subscribe(this._onSelectionEntity.bind(this));
         this._selsubs[`context_${name}`] = provider.getObservable().context.subscribe(this._onContextMenuEvent.bind(this));
+        this._selsubs[`doubleclick_${name}`] = provider.getObservable().doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
         this._providers.set(name, provider);
     }
 
@@ -276,19 +281,19 @@ export class Providers {
         if (entities.length === 0) {
             // Context menu is called without active selection
             // Set selection to target element
-            event.provider.select().set(event.entity.getGUID());
+            event.provider.select().set({ guid: event.entity.getGUID() });
             entities = [event.entity];
         } else if (entities.length === 1) {
             if (entities[0].getGUID() !== event.entity.getGUID()) {
                 this.select().drop();
-                event.provider.select().set(event.entity.getGUID());
+                event.provider.select().set({ guid: event.entity.getGUID() });
                 entities = [event.entity];
             }
         } else if (entities.length > 1) {
             if (entities.map((entity) => entity.getGUID()).indexOf(event.entity.getGUID()) === -1) {
                 // Context menu is called out of selection
                 this.select().drop();
-                event.provider.select().set(event.entity.getGUID());
+                event.provider.select().set({ guid: event.entity.getGUID() });
                 entities = [event.entity];
             }
         }
@@ -375,6 +380,10 @@ export class Providers {
             }
         });
         this._subjects.context.next(event);
+    }
+
+    private _onDoubleclickEvent(event: IDoubleclickEvent) {
+        event.provider.search(event.entity);
     }
 
 }

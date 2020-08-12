@@ -8,11 +8,14 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { SidebarAppSearchManagerFiltersComponent } from './list/component';
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
+import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderFilters extends Provider<FilterRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
+    private _logger: Logger = new Logger('ProviderFilters');
 
     constructor() {
         super();
@@ -36,7 +39,11 @@ export class ProviderFilters extends Provider<FilterRequest> {
                 return;
             }
             if (event.added instanceof FilterRequest) {
-                this.select().set(event.added.getGUID());
+                this.select().set({
+                    guid: event.added.getGUID(),
+                    sender: undefined,
+                    ignore: true
+                });
             }
             if (event.removed instanceof FilterRequest || event.requests.length === 0) {
                 this.select().drop();
@@ -122,9 +129,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
         };
     }
 
-    /*
-
-    */
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
         if (selected.length !== 1) {
             return [];
@@ -133,7 +137,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         const items: IMenuItem[] = [];
         if (entity instanceof ChartRequest && FilterRequest.isValid(entity.asDesc().request)) {
             items.push({
-                caption: `Conver To Filter`,
+                caption: `Convert To Filter`,
                 handler: () => {
                     super.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity);
                     super.getSession().getSessionSearch().getFiltersAPI().getStorage().add({
@@ -151,11 +155,19 @@ export class ProviderFilters extends Provider<FilterRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    super.getSession().getSessionSearch().search(entity);
+                    this.search(selected[0]);
                 },
             });
         }
         return items;
+    }
+
+    public search(entity: Entity<FilterRequest>) {
+        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
+            super.getSession().getSessionSearch().search(entity.getEntity());
+        }).catch((error: Error) => {
+            this._logger.error(`Failed to show matches due to error: ${error.message}`);
+        });
     }
 
     public actions(target: Entity<any>, selected: Array<Entity<any>>): {

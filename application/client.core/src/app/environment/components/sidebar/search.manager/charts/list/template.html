@@ -6,6 +6,7 @@
     class="charts">
     <app-sidebar-app-searchmanager-chart
         (contextmenu)="_ng_onContexMenu($event, entity)"
+        (dblclick)="_ng_onDoubleClick($event, entity)"
         appSidebarSearchManagerItem
         cdkDrag
         [provider]="provider"

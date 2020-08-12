@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import Logger from '../../tools/env.logger';
 import { Subscription } from '../../tools/index';
 import ServiceElectron, { IPCMessages } from '../service.electron';
