@@ -4,12 +4,11 @@ import { ChartRequest, IChartsStorageUpdated,  } from '../../../../controller/co
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerChartsComponent } from './list/component';
 import { SidebarAppSearchManagerChartDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../../../components/views/chart/charts/charts';
-import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
 import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderCharts extends Provider<ChartRequest> {
@@ -160,7 +159,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
     }
 
     public search(entity: Entity<ChartRequest>) {
-        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
+        super.openSearchToolbarApp().then(() => {
             super.getSession().getSessionSearch().search(new FilterRequest({
                 request: (entity.getEntity() as ChartRequest).asDesc().request,
                 flags: {

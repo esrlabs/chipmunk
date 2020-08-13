@@ -111,6 +111,10 @@ export abstract class Provider<T> {
         this._selection.last = selection;
     }
 
+    public openSearchToolbarApp(): Promise<void> {
+        return TabsSessionsService.bars().openToolbarApp(TabsSessionsService.bars().getDefsToolbarApps().search);
+    }
+
     public select(): {
         first: () => void,
         last: () => void,
