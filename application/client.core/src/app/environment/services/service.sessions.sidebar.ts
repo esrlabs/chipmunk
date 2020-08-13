@@ -119,13 +119,20 @@ export class SidebarSessionsService implements IService {
         service.setActive(tab);
     }
 
-    public open(guid: string, session: string | undefined, silence: boolean = false): Error | undefined {
+    /**
+     * Add and open sidebar tab
+     * @param guid {string} - unique sidebar GUID
+     * @param session {string} - target session
+     * @param openTabOnly {bool} - true - tab would be added (if doesn't exist), but not active;
+     *                             false - tab would be added (if doesn't exist) and set active.
+     */
+    public open(guid: string, session: string | undefined, openTabOnly: boolean = false): Error | undefined {
         const service: TabsService | Error = this._getSessionTabsService(session);
         if (service instanceof Error) {
             return service;
         }
         if (service.has(guid)) {
-            if (!silence) {
+            if (!openTabOnly) {
                 this.setActive(guid);
             }
             return undefined;
@@ -142,7 +149,7 @@ export class SidebarSessionsService implements IService {
             if (tab.guid === guid) {
                 added = true;
                 this.add(tab, session);
-                if (!silence) {
+                if (!openTabOnly) {
                     this.setActive(guid);
                 }
             }

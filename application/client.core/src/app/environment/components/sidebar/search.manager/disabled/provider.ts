@@ -3,11 +3,10 @@ import { Provider } from '../providers/provider';
 import { DisabledRequest, IUpdateEvent } from '../../../../controller/controller.session.tab.search.disabled.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerDisabledsComponent } from './list/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { IDisabledEntitySupport } from 'src/app/environment/controller/controller.session.tab.search.disabled.support';
-import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
 import { Logger } from 'chipmunk.client.toolkit';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
@@ -163,7 +162,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).catch((error: Error) => {
+                    super.openSearchToolbarApp().catch((error: Error) => {
                         this._logger.error(error.message);
                     });
                     match.getEntity().matches(session);
@@ -175,7 +174,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
 
     public search(entity: Entity<any>) {
         const cEntity = entity.getEntity().getEntity();
-        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
+        super.openSearchToolbarApp().then(() => {
             if (cEntity instanceof ChartRequest) {
                 super.getSession().getSessionSearch().search(new FilterRequest({
                     request: (cEntity as ChartRequest).asDesc().request,

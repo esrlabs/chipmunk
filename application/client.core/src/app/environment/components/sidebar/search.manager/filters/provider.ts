@@ -4,11 +4,10 @@ import { FilterRequest, IFiltersStorageUpdated } from '../../../../controller/co
 import { ChartRequest  } from '../../../../controller/controller.session.tab.search.charts.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerFiltersComponent } from './list/component';
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import ToolbarSessionsService from '../../../../services/service.sessions.toolbar';
 import { Logger } from 'chipmunk.client.toolkit';
 
 export class ProviderFilters extends Provider<FilterRequest> {
@@ -163,7 +162,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
     }
 
     public search(entity: Entity<FilterRequest>) {
-        ToolbarSessionsService.setActive(ToolbarSessionsService.getDefaultsGuids().search).then(() => {
+        super.openSearchToolbarApp().then(() => {
             super.getSession().getSessionSearch().search(entity.getEntity());
         }).catch((error: Error) => {
             this._logger.error(`Failed to show matches due to error: ${error.message}`);

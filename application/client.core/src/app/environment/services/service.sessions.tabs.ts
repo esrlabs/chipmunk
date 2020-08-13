@@ -23,7 +23,7 @@ export { ControllerSessionTabSearch } from '../controller/controller.session.tab
 
 export type TSessionGuid = string;
 export type TSidebarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
-export type TToolbarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
+export type TToolbarTabOpener = (guid: string, session: string | undefined) => Promise<void>;
 export type TNotificationOpener = (notification: Toolkit.INotification) => void;
 
 export interface IServiceSubjects {
@@ -235,6 +235,35 @@ export class TabsSessionsService implements IService {
         return this._sessionsEventsHub;
     }
 
+    public bars(): {
+        openSidebarApp: (appId: string, silence: boolean) => void,
+        openToolbarApp: (appId: string) => Promise<void>,
+        getDefsToolbarApps: () => Toolkit.IDefaultTabsGuids,
+    } {
+        const self = this;
+        return {
+            openSidebarApp: (appId: string, silence: boolean) => {
+                if (self._sidebarTabOpener === undefined) {
+                    return;
+                }
+                LayoutStateService.sidebarMax();
+                self._sidebarTabOpener(appId, self._tabsService.getActiveTab().guid, silence);
+            },
+            openToolbarApp: (appId: string): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    if (self._toolbarTabOpener === undefined) {
+                        return reject(new Error(`Toolbar API isn't inited`));
+                    }
+                    LayoutStateService.toolbarMax();
+                    self._toolbarTabOpener(appId, undefined).then(resolve).catch(reject);
+                });
+            },
+            getDefsToolbarApps: (): Toolkit.IDefaultTabsGuids => {
+                return self._defaultToolbarApps;
+            },
+        };
+    }
+
     public getPluginAPI(pluginId: number | undefined): IAPI {
         return {
             getIPC: pluginId === undefined ? () => undefined : () => {
@@ -275,20 +304,8 @@ export class TabsSessionsService implements IService {
             setSidebarTitleInjection: (component: IComponentDesc) => {
                 EventsSessionService.getSubject().onSidebarTitleInjection.next(component);
             },
-            openSidebarApp: (appId: string, silence: boolean) => {
-                if (this._sidebarTabOpener === undefined) {
-                    return;
-                }
-                LayoutStateService.sidebarMax();
-                this._sidebarTabOpener(appId, this._tabsService.getActiveTab().guid, silence);
-            },
-            openToolbarApp: (appId: string, silence: boolean) => {
-                if (this._toolbarTabOpener === undefined) {
-                    return;
-                }
-                LayoutStateService.toolbarMax();
-                this._toolbarTabOpener(appId, undefined, silence);
-            },
+            openSidebarApp: this.bars().openSidebarApp,
+            openToolbarApp: this.bars().openToolbarApp,
             getDefaultToolbarAppsIds: (): Toolkit.IDefaultTabsGuids => {
                 return Object.assign({}, this._defaultToolbarApps);
             },
