@@ -168,7 +168,7 @@ export default class ControllerElectronMenu {
                 if (item.label === added.root && item.submenu instanceof Array) {
                     item.submenu.push(...added.items);
                 }
-            })
+            });
         });
         this._menu = Menu.buildFromTemplate(template);
         Menu.setApplicationMenu(this._menu);
