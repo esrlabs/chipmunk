@@ -16,6 +16,7 @@ use base::{
 };
 use crossbeam_channel::{bounded, select, tick, Receiver};
 use std::{
+    env,
     fs,
     io::prelude::*,
     path::{Path, PathBuf},
@@ -66,7 +67,7 @@ fn init_logging() -> Result<()> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn spawn(exe: &Path, args: &[&Path]) -> Result<Child> {
+fn spawn(exe: &Path, args: &[&str]) -> Result<Child> {
     Command::new(exe)
         .args(args)
         .spawn()
@@ -74,7 +75,7 @@ fn spawn(exe: &Path, args: &[&Path]) -> Result<Child> {
 }
 
 #[cfg(target_os = "windows")]
-fn spawn(exe: &Path, args: &[&Path]) -> Result<Child> {
+fn spawn(exe: &Path, args: &[&str]) -> Result<Child> {
     const DETACHED_PROCESS: u32 = 0x0000_0008;
     const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
     Command::new(exe)
@@ -167,6 +168,7 @@ fn update_package_path() -> Result<Option<PathBuf>> {
 }
 
 fn update() -> Result<bool> {
+    
     let updater_path = get_updater_path()?;
 
     if !updater_path.exists() {
@@ -187,7 +189,9 @@ fn update() -> Result<bool> {
                 app,
                 update_package
             );
-            let child = spawn(&updater_path, &[&app, &update_package]);
+            let child = spawn(&updater_path, &[
+                &app.to_str().expect("Expecting app has to be valid path"),
+                &update_package.to_str().expect("Expected update_package has to be valid path")]);
             match child {
                 Ok(_child) => {
                     debug!("Updater is started ({:?})", updater_path);
@@ -239,8 +243,11 @@ fn main() -> Result<()> {
     let mut start_required = true;
     while start_required {
         start_required = false;
+        let env_args = env::args().collect::<Vec<String>>();
         debug!("Starting application");
-        let child: Result<Child> = spawn(&electron_app, &[]);
+        let mut args: Vec<&str> = vec!["launcher::".as_ref()];
+        args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
+        let child: Result<Child> = spawn(&electron_app, args.as_slice());
         match child {
             Ok(mut child) => {
                 let pid = child.id();

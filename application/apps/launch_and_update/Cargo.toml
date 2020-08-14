@@ -4,5 +4,6 @@ members = [
     "launcher",
     "updater",
     "base",
-    "miniapp"
+    "miniapp",
+    "cli"
 ]

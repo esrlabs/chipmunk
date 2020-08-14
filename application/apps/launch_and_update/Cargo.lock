@@ -156,6 +156,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "cm"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "base",
+ "chrono",
+ "crossbeam-channel",
+ "ctrlc",
+ "dirs",
+ "flate2",
+ "log",
+ "log4rs",
+ "regex",
+]
+
+[[package]]
 name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
