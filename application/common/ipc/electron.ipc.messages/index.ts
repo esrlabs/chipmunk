@@ -532,6 +532,12 @@ export { ITimerangeSearchResponse, TimerangeSearchResponse }
 import { ITimerangeSearchProgress, TimerangeSearchProgress } from './timerange.search.progress';
 export { ITimerangeSearchProgress, TimerangeSearchProgress }
 
+import { ICLIActionOpenFileRequest, CLIActionOpenFileRequest } from './cli.action.open.file.request';
+export { ICLIActionOpenFileRequest, CLIActionOpenFileRequest };
+
+import { ICLIActionOpenFileResponse, CLIActionOpenFileResponse } from './cli.action.open.file.response';
+export { ICLIActionOpenFileResponse, CLIActionOpenFileResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -707,7 +713,9 @@ export type TMessage =  AppRestartRequest |
                         TimestampExportCSVResponse |
                         TimerangeSearchRequest |
                         TimerangeSearchResponse |
-                        TimerangeSearchProgress;
+                        TimerangeSearchProgress |
+                        CLIActionOpenFileRequest |
+                        CLIActionOpenFileResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -914,4 +922,7 @@ export const Map = {
     [TimerangeSearchRequest.signature               ]: TimerangeSearchRequest,
     [TimerangeSearchResponse.signature              ]: TimerangeSearchResponse,
     [TimerangeSearchProgress.signature              ]: TimerangeSearchProgress,
+
+    [CLIActionOpenFileRequest.signature             ]: CLIActionOpenFileRequest,
+    [CLIActionOpenFileResponse.signature            ]: CLIActionOpenFileResponse,
 };

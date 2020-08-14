@@ -1,4 +1,4 @@
-import { app, Menu } from 'electron';
+import { app, Menu, MenuItemConstructorOptions } from 'electron';
 import { FileParsers } from '../files.parsers/index';
 import { IStorageScheme } from '../../services/service.storage';
 
@@ -58,10 +58,16 @@ const MENU_TEMPLATE = [
     },
 ];
 
+export interface IAddedItems {
+    root: string;
+    items: MenuItemConstructorOptions[];
+}
+
 export default class ControllerElectronMenu {
 
     private _menu: any;
     private _logger: Logger = new Logger('ControllerElectronMenu');
+    private _added: IAddedItems[] = [];
 
     constructor() {
         this._create();
@@ -71,7 +77,12 @@ export default class ControllerElectronMenu {
         this._create();
     }
 
-    private _getTemplate(items?: any[]) {
+    public add(root: string, items: MenuItemConstructorOptions[]) {
+        this._added.push({ root: root, items: items });
+        this._create();
+    }
+
+    private _getTemplate(items?: any[]): any[] {
         return (items === undefined ? MENU_TEMPLATE : items).map((item) => {
             const _item = Object.assign({}, item);
             if (_item.submenu instanceof Array) {
@@ -82,7 +93,7 @@ export default class ControllerElectronMenu {
     }
 
     private _create() {
-        const template: any = this._getTemplate();
+        const template: any[] = this._getTemplate();
         // Add files submenu
         template[0].submenu.push(...this._getFilesLocalSubmenu());
         // Add recent files (if it exists)
@@ -152,6 +163,13 @@ export default class ControllerElectronMenu {
                 click: HandlerItemAbout,
             });
         }
+        this._added.forEach((added: IAddedItems) => {
+            template.forEach((item: MenuItemConstructorOptions) => {
+                if (item.label === added.root && item.submenu instanceof Array) {
+                    item.submenu.push(...added.items);
+                }
+            })
+        });
         this._menu = Menu.buildFromTemplate(template);
         Menu.setApplicationMenu(this._menu);
     }

@@ -45,6 +45,7 @@ import ServiceRenderState from './services/service.render.state';
 import ServiceLogs from './services/service.logs';
 import ServiceLogsExtractor from './services/service.logs.extractor';
 import ServiceReleaseNotes from './services/service.release.notes';
+import ServiceCLI from './services/service.cli';
 
 enum EAppState {
     initing = 'initing',
@@ -94,7 +95,7 @@ const InitializeStages = [
         ServiceFileWriter,
     ],
     // Stage #10. Init plugins and current release data
-    [   ServicePlugins, ServiceReleaseNotes ],
+    [   ServicePlugins, ServiceReleaseNotes, ServiceCLI ],
     // (last service should startup service and should be single always)
     [   ServiceUpdate ],
 ];
