@@ -52,13 +52,22 @@ function getLauncherPath() {
     return path.join(APPLICATION_DIR, "electron/dist/compiled/apps/launcher");
 }
 
+function getCLIPath() {
+    if (process.platform === "win32") {
+        return path.join(APPLICATION_DIR, "electron", "dist", "compiled", "apps", "cm.exe");
+    }
+    return path.join(APPLICATION_DIR, "electron/dist/compiled/apps/cm");
+}
+
 function taskRenaming() {
+    const cliExecPath = executableLocation(ELECTRON_RELEASE_DIR, "cm").path;
     const chipmunkExecPath = executableLocation(ELECTRON_RELEASE_DIR, "chipmunk").path;
     const appExecPath = executableLocation(ELECTRON_RELEASE_DIR, "app").path;
     // tslint:disable-next-line:no-console
     console.log(`rename from ${chipmunkExecPath} to ${appExecPath}`);
     fs.renameSync(chipmunkExecPath, appExecPath);
     fs.copyFileSync(getLauncherPath(), chipmunkExecPath);
+    fs.copyFileSync(getCLIPath(), cliExecPath);
 }
 
 function copyFolderExcept(srcFolder: string, destFolder: string, exceptions: string[]) {

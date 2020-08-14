@@ -419,10 +419,11 @@ namespace :dev do
   task fullupdate_client: ['update_client']
 
   desc 'Developer task: build launcher and deliver into package.'
-  task deliver_updater_and_launcher: %i[build_launcher build_updater] do
+  task deliver_updater_and_launcher: %i[build_launcher build_cli build_updater] do
     node_app_original = app_path_in_electron_dist('chipmunk')
     rm_rf(node_app_original)
     cp(rust_exec_in_build_dir('launch_and_update', 'launcher'), node_app_original, :verbose => true)
+    cp(rust_exec_in_build_dir('launch_and_update', 'cm'), node_app_original, :verbose => true)
   end
 
   desc 'quick release'
@@ -570,6 +571,11 @@ task build_launcher: :folders do
   build_and_deploy_rust_app('launch_and_update', 'launcher')
 end
 
+desc 'build cli'
+task build_cli: :folders do
+  build_and_deploy_rust_app('launch_and_update', 'cm')
+end
+
 def build_and_deploy_rust_app(workspace, name)
   cd "#{APPS_DIR}/#{workspace}" do
     puts "Build #{name}"
@@ -663,6 +669,7 @@ end
 
 desc 'build native parts'
 task native: %i[build_launcher
+                build_cli
                 build_updater]
 
 task :create_release_file_list do
