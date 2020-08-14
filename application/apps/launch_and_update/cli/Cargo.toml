@@ -1,0 +1,17 @@
+[package]
+name = "cm"
+version = "0.0.0"
+authors = ["dmitry.astafyev <dmitry.astafyev@esrlabs.com>", "oliver.mueller <oliver.mueller@esrlabs.com>"]
+edition = "2018"
+
+[dependencies]
+crossbeam-channel = "0.4.2"
+ctrlc = "3.1.4"
+chrono = "0.4"
+flate2 = "1.0"
+dirs = "2.0"
+log = "0.4.8"
+log4rs = "0.11.0"
+regex = "1"
+anyhow = "1.0"
+base = { path = "../base" }
