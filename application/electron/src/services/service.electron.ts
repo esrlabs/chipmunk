@@ -121,6 +121,10 @@ class ServiceElectron implements IService {
         this._controllerElectronMenu.rebuild();
     }
 
+    public getMenu(): ControllerElectronMenu | undefined {
+        return this._controllerElectronMenu;
+    }
+
     /*
     public quit(code: EExitCodes = EExitCodes.normal) {
         this._logger.debug(`Closing app with code: ${code}`);

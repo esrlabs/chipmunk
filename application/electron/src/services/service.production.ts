@@ -5,7 +5,6 @@ import ServiceEnv from './service.env';
 import { LogsService, ELogLevels } from '../tools/env.logger';
 import { IService } from '../interfaces/interface.service';
 
-
 const CDEV_ENV_VAR_VALUE = 'ON';
 
 /**

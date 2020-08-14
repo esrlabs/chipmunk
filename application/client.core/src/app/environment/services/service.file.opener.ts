@@ -44,6 +44,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         return new Promise((resolve) => {
             this._subscriptions.FileOpenDoneEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenDoneEvent, this._onFileOpenDoneEvent.bind(this));
             this._subscriptions.FileOpenInprogressEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenInprogressEvent, this._onFileOpenInprogressEvent.bind(this));
+            this._subscriptions.CLIActionOpenFileRequest = ServiceElectronIpc.subscribe(IPCMessages.CLIActionOpenFileRequest, this._onCLIActionOpenFileRequest.bind(this));
             resolve();
         });
     }
@@ -261,6 +262,19 @@ export class FileOpenerService implements IService, IFileOpenerService {
             caption: 'Reopen File (indexing...)',
             disabled: true,
             handler: opener,
+        });
+    }
+
+    private _onCLIActionOpenFileRequest(msg: IPCMessages.CLIActionOpenFileRequest, response: (message: IPCMessages.TMessage) => Promise<void>) {
+        this.openFileByName(msg.file).then(() => {
+            response(new IPCMessages.CLIActionOpenFileResponse({})).catch((resErr: Error) => {
+                this._logger.warn(`Fail send response due error: ${resErr.message}`);
+            });
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail to open file "${msg.file}" due error: ${err.message}`);
+            response(new IPCMessages.CLIActionOpenFileResponse({ error: err.message})).catch((resErr: Error) => {
+                this._logger.warn(`Fail send response due error: ${resErr.message}`);
+            });
         });
     }
 }

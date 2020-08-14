@@ -37,6 +37,8 @@ class ServicePaths implements IService {
     private _app: string = '';
     private _root: string = '';
     private _exec: string = '';
+    private _launcher: string = '';
+    private _cli: string = '';
     private _appModules: string = '';
     private _resources: string = '';
     private _sockets: string = '';
@@ -71,11 +73,9 @@ class ServicePaths implements IService {
             }
             this._app = root;
             this._root = root;
-            const exec: string | Error = this._getExecPath();
-            if (exec instanceof Error) {
-                return reject(exec);
-            }
-            this._exec = exec;
+            this._exec = app.getPath('exe');
+            this._launcher = Path.resolve(Path.dirname(this._exec), `chipmunk${OS.platform() === 'win32' ? '.exe' : ''}`);
+            this._cli = Path.resolve(Path.dirname(this._exec), `cm${OS.platform() === 'win32' ? '.exe' : ''}`);
             this._includedPlugins = Path.resolve(this._root, 'plugins');
             this._appModules = Path.resolve(this._root, '../../node_modules');
             this._rg = Path.resolve(this._root, `apps/${OS.platform() === 'win32' ? 'rg.exe' : 'rg'}`);
@@ -84,7 +84,7 @@ class ServicePaths implements IService {
                 Promise.all([this._home, this._plugins, this._sockets, this._streams, this._downloads, this._tmp, this._apps, this._pluginsCfgFolder].map((folder: string) => {
                     return this._mkdir(folder);
                 })).then(() => {
-                    this._logger.debug(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tplugins settings ${this._pluginsCfgFolder}\n\tincluded plugins ${this._includedPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
+                    this._logger.debug(`Paths:\n\thome: ${this._home}\n\troot: ${this._root}\n\tapp: ${this._app}\n\texec ${this._exec}\n\tlauncher ${this._launcher}\n\tcli ${this._cli}\n\tresources ${this._resources}\n\tplugins ${this._plugins}\n\tplugins settings ${this._pluginsCfgFolder}\n\tincluded plugins ${this._includedPlugins}\n\tsockets ${this._sockets}\n\tstreams ${this._streams}\n\tmodules ${this._appModules}`);
                     resolve();
                 }).catch((error: Error) => {
                     this._logger.error(`Fail to initialize paths due error: ${error.message}`);
@@ -201,6 +201,21 @@ class ServicePaths implements IService {
     }
 
     /**
+     * Returns path to launcher executable file
+     * @returns string
+     */
+    public getLauncher(): string {
+        return this._launcher;
+    }
+
+    /**
+     * Returns path to CLI executable file
+     * @returns string
+     */
+    public getCLI(): string {
+        return this._cli;
+    }
+    /**
      * Returns path to ripgrep module
      * @returns string
      */
@@ -296,24 +311,6 @@ class ServicePaths implements IService {
             return Path.dirname(Path.resolve(process.cwd(), sourceFile));
         }
         return new Error(`Fail to detect application root folder`);
-    }
-
-    private _getExecPath(): string | Error {
-        if (!ServiceProduction.isProduction()) {
-            return this._root;
-        }
-        const exec: string = app.getPath('exe');
-        switch (OS.platform()) {
-            case 'darwin':
-                if (exec.search(`.app/Contents/MacOS/app`) === -1) {
-                    return new Error(`Cannot find target in ".app" package in path: ${exec}. Probably you forget to switch application into developer mode. Use env variable "CHIPMUNK_DEVELOPING_MODE=ON" to activate it.`);
-                }
-                return exec.replace(`/Contents/MacOS/app`, '');
-            case 'win32':
-                return exec;
-            default:
-                return exec;
-        }
     }
 
     private _getResourcePath(): string | Error {
