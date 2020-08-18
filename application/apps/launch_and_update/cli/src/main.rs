@@ -82,7 +82,7 @@ fn find_launcher() -> Result<String> {
 
 fn main() -> Result<()> {
     match init_logging() {
-        Ok(()) => trace!("Launcher started logging"),
+        Ok(()) => trace!("started logging"),
         Err(e) => eprintln!("couldn't initialize logging: {}", e),
     }
 
@@ -93,8 +93,7 @@ fn main() -> Result<()> {
             std::process::exit(1);
         }
     };
-
-    debug!("CLI: target application: {}", launcher);
+    debug!("Target app: {}", launcher);
 
     let launcher_path = Path::new(&launcher);
 
@@ -105,7 +104,7 @@ fn main() -> Result<()> {
     
     let pwd = env::current_dir().expect("Fail to detect current dir");
     let pwd = format!("pwd__{}__pwd", pwd.to_str().expect("Fail to convert current path to OS string"));
-    debug!("CLI: Target pwd: {}", pwd);
+    debug!("Target pwd: {}", pwd);
     let env_args = env::args().collect::<Vec<String>>();
     let mut args: Vec<&str> = vec![pwd.as_ref()];
     args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
@@ -113,10 +112,10 @@ fn main() -> Result<()> {
     match child {
         Ok(child) => {
             let pid = child.id();
-            debug!("CLI: Lancher is started (pid: {})", pid);
+            debug!(" Lancher is started (pid: {})", pid);
         }
         Err(e) => {
-            error!("CLI: Failed to start launcher ({})", e);
+            error!(" Failed to start launcher ({})", e);
         }
     };
     Ok(())

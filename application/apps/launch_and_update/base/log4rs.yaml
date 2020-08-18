@@ -40,3 +40,8 @@ loggers:
     appenders:
       - startup-appender
     additive: false
+  cm:
+    level: trace
+    appenders:
+      - startup-appender
+    additive: false
