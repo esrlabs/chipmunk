@@ -94,8 +94,7 @@ fn main() -> Result<()> {
         }
     };
 
-    trace!("Target application: {}", launcher);
-    println!("Target application: {}", launcher);
+    debug!("CLI: target application: {}", launcher);
 
     let launcher_path = Path::new(&launcher);
 
@@ -105,22 +104,19 @@ fn main() -> Result<()> {
     }
     
     let pwd = env::current_dir().expect("Fail to detect current dir");
-    let pwd = format!("pwd::{}::pwd", pwd.to_str().expect("Fail to convert current path to OS string"));
-    println!("Target pwd: {}", pwd);
+    let pwd = format!("pwd__{}__pwd", pwd.to_str().expect("Fail to convert current path to OS string"));
+    debug!("CLI: Target pwd: {}", pwd);
     let env_args = env::args().collect::<Vec<String>>();
     let mut args: Vec<&str> = vec![pwd.as_ref()];
     args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
     let child: Result<Child> = spawn(&launcher, args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>().as_slice());
-    println!("starting");
     match child {
         Ok(child) => {
             let pid = child.id();
-            info!("Lancher is started (pid: {})", pid);
-            println!("ok");
+            debug!("CLI: Lancher is started (pid: {})", pid);
         }
         Err(e) => {
-            error!("Failed to start launcher ({})", e);
-            println!("Failed to start launcher ({})", e);
+            error!("CLI: Failed to start launcher ({})", e);
         }
     };
     Ok(())

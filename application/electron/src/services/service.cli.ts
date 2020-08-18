@@ -22,8 +22,8 @@ import ServiceElectron from './service.electron';
 
 class ServiceCLI implements IService {
 
-    private readonly _pwdHookLeft: RegExp = /^pwd::/gi;
-    private readonly _pwdHookRight: RegExp = /::pwd$/gi;
+    private readonly _pwdHookLeft: RegExp = /^pwd__:/gi;
+    private readonly _pwdHookRight: RegExp = /__pwd$/gi;
     private _settings: StateFile<IScheme.IStorage> | undefined;
     private _logger: Logger = new Logger('ServiceCLI');
     private _pwd: string | undefined;
@@ -191,7 +191,7 @@ class ServiceCLI implements IService {
     private _getPwd(): Promise<void> {
         return new Promise((resolve, reject) => {
             const source = this._getArgs();
-            const start = source.findIndex(arg => arg.indexOf('pwd::') === 0);
+            const start = source.findIndex(arg => arg.indexOf('pwd__') === 0);
             if (start === -1) {
                 return reject(new Error(`Fail to find pwd`));
             }
