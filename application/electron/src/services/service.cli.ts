@@ -23,7 +23,7 @@ import ServiceElectron from './service.electron';
 
 class ServiceCLI implements IService {
 
-    private readonly _pwdHookLeft: RegExp = /^pwd__:/gi;
+    private readonly _pwdHookLeft: RegExp = /^pwd__/gi;
     private readonly _pwdHookRight: RegExp = /__pwd$/gi;
     private _settings: StateFile<IScheme.IStorage> | undefined;
     private _logger: Logger = new Logger('ServiceCLI');
@@ -97,7 +97,7 @@ class ServiceCLI implements IService {
                                 resolve();
                             });
                             break;
-                    }    
+                    }
                 }).catch(reject);
             }).catch(reject);
         });
@@ -149,7 +149,6 @@ class ServiceCLI implements IService {
                     this._logger.warn(`Fail to check file "${symbolic}" due error: ${err.message}`);
                     reject(err);
                 });
-    
             }).catch(reject);
         });
     }
@@ -193,7 +192,7 @@ class ServiceCLI implements IService {
                         if (stderr.trim() !== '') {
                             return reject(`Fail to call echo %windir% on windows due error: ${stderr}.`);
                         }
-                        this._symbolic = `${stdout.replace(/[\n\r]/gi,'')}\\system32\\cm.exe`;
+                        this._symbolic = `${stdout.replace(/[\n\r]/gi, '')}\\system32\\cm.exe`;
                         resolve( this._symbolic);
                     });
                 default:
@@ -226,7 +225,7 @@ class ServiceCLI implements IService {
             const pwd: string = args[0].replace(this._pwdHookLeft, '').replace(this._pwdHookRight, '');
             exist(path.resolve(pwd)).then((valid: boolean) => {
                 if (!valid) {
-                    this._logger.warn(`Pwd directory doesn't exist. Probably permissions issue.`);
+                    this._logger.warn(`Pwd directory doesn't exist. Probably permissions issue. Pwd: ${pwd}`);
                     return resolve();
                 }
                 this._pwd = pwd;
