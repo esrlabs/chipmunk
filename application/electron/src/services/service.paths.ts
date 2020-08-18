@@ -75,7 +75,7 @@ class ServicePaths implements IService {
             this._root = root;
             this._exec = app.getPath('exe');
             this._launcher = Path.resolve(Path.dirname(this._exec), `chipmunk${OS.platform() === 'win32' ? '.exe' : ''}`);
-            this._cli = Path.resolve(Path.dirname(this._exec), `cm${OS.platform() === 'win32' ? '.exe' : ''}`);
+            this._cli = Path.resolve(this._root, `apps/cm${OS.platform() === 'win32' ? '.exe' : ''}`);
             this._includedPlugins = Path.resolve(this._root, 'plugins');
             this._appModules = Path.resolve(this._root, '../../node_modules');
             this._rg = Path.resolve(this._root, `apps/${OS.platform() === 'win32' ? 'rg.exe' : 'rg'}`);

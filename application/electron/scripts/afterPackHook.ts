@@ -1,3 +1,4 @@
+// tslint:disable:no-console
 import * as path from "path";
 import * as fs from "fs";
 import { copyFolder } from "../src/tools/fs";
@@ -60,16 +61,20 @@ function getCLIPath() {
 }
 
 function taskRenaming() {
-    const cliExecPath = executableLocation(ELECTRON_RELEASE_DIR, "cm").path;
     const chipmunkExecPath = executableLocation(ELECTRON_RELEASE_DIR, "chipmunk").path;
     const appExecPath = executableLocation(ELECTRON_RELEASE_DIR, "app").path;
-    // tslint:disable-next-line:no-console
     console.log(`rename from ${chipmunkExecPath} to ${appExecPath}`);
     fs.renameSync(chipmunkExecPath, appExecPath);
+    console.log(`copy file ${getLauncherPath()} to ${chipmunkExecPath}`);
     fs.copyFileSync(getLauncherPath(), chipmunkExecPath);
+}
+/*
+function taskDeliveryCLI() {
+    const cliExecPath = executableLocation(ELECTRON_RELEASE_DIR, "cm").path;
+    console.log(`copy file ${getCLIPath()} to ${cliExecPath}`);
     fs.copyFileSync(getCLIPath(), cliExecPath);
 }
-
+*/
 function copyFolderExcept(srcFolder: string, destFolder: string, exceptions: string[]) {
     // tslint:disable-next-line:no-console
     console.log(`[copyFolder] *****\n\tsrcFolder ${srcFolder}\n\tdestFolder: ${destFolder}`);
@@ -133,5 +138,6 @@ export default async (context: any) => {
     // tslint:disable-next-line:no-console
     console.log("after pack: dirname=" + __dirname);
     taskRenaming();
+    // taskDeliveryCLI();
     taskCopying();
 };
