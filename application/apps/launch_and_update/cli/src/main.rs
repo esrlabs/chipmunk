@@ -15,8 +15,9 @@ use base::{
     chipmunk_log_config, initialize_from_fresh_yml, setup_fallback_logging,
 };
 use std::{
+    fs,
     env,
-    path::Path,
+    path::{Path, PathBuf},
     process::{Child, Command},
 };
 
@@ -64,11 +65,19 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
 /// on macos it looks like /xyz/chipmunk.app/Contents/Resources/app/dist/compiled/apps/cm
 fn find_launcher() -> Result<String> {
     let root = std::env::current_exe()?;
-    let root_path = Path::new(&root)
+    let direct_root = match fs::read_link(Path::new(&root)) {
+        Err(_e) => PathBuf::from(&root),
+        Ok(link) => link,
+    };
+    debug!("Link: {:?}", direct_root);
+    debug!("Current exe: {}", direct_root.display());
+    let root_path = Path::new(&direct_root)
         .parent()
         .ok_or_else(|| anyhow!("no parent found"))?;
+    debug!("Root: {}", root_path.display());
+    debug!("Args: {:?}", std::env::args());
     let app = if cfg!(target_os = "windows") {
-        let path = Path::new(&format!("{}/../../../../../{}", root_path.display(), "chipmunk")).canonicalize()?;
+        let path = Path::new(&format!("{}\\..\\..\\..\\..\\..\\{}", root_path.display(), "chipmunk.exe")).canonicalize()?;
         format!("{}", path.display())
     } else if cfg!(target_os = "macos") {
         let path = Path::new(&format!("{}/../../../../../MacOS/{}", root_path.display(), "chipmunk")).canonicalize()?;
