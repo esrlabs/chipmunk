@@ -7,6 +7,7 @@ import { exist } from '../tools/fs';
 import { CLIAction, TAction } from './cli/cli.action';
 import { Actions} from './cli/cli.actions';
 import { collect, sequences } from '../tools/sequences';
+import { exec } from 'child_process';
 
 import guid from '../tools/tools.guid';
 import Logger from '../tools/env.logger';
@@ -30,6 +31,7 @@ class ServiceCLI implements IService {
     private _executed: string | undefined;
     private _args: string[] = [];
     private _pendings: TAction[] = [];
+    private _symbolic: string | undefined;
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
@@ -73,28 +75,30 @@ class ServiceCLI implements IService {
                 if (state) {
                     return resolve();
                 }
-                const sudo = require('sudo-prompt');
-                const options = {
-                    name: 'Chipmunk Command Line Tool',
-                };
-                switch (process.platform) {
-                    case 'win32':
-                        sudo.exec(`mklink ${this._getSymLinkPath()} ${ServicePaths.getCLI()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
-                            if (error) {
-                                return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
-                            }
-                            resolve();
-                        });
-                        break;
-                    default:
-                        sudo.exec(`ln -s ${ServicePaths.getCLI()} ${this._getSymLinkPath()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
-                            if (error) {
-                                return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
-                            }
-                            resolve();
-                        });
-                        break;
-                }
+                this._getSymLinkPath().then((symbolic: string) => {
+                    const sudo = require('sudo-prompt');
+                    const options = {
+                        name: 'Chipmunk Command Line Tool',
+                    };
+                    switch (process.platform) {
+                        case 'win32':
+                            sudo.exec(`mklink ${symbolic} ${ServicePaths.getCLI()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                                if (error) {
+                                    return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
+                                }
+                                resolve();
+                            });
+                            break;
+                        default:
+                            sudo.exec(`ln -s ${ServicePaths.getCLI()} ${symbolic}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                                if (error) {
+                                    return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
+                                }
+                                resolve();
+                            });
+                            break;
+                    }    
+                }).catch(reject);
             }).catch(reject);
         });
     }
@@ -108,41 +112,45 @@ class ServiceCLI implements IService {
                 if (!state) {
                     return resolve();
                 }
-                const sudo = require('sudo-prompt');
-                const options = {
-                    name: 'Chipmunk Command Line Tool',
-                };
-                switch (process.platform) {
-                    case 'win32':
-                        sudo.exec(`del ${this._getSymLinkPath()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
-                            if (error) {
-                                return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
-                            }
-                            resolve();
-                        });
-                        break;
-                    default:
-                        sudo.exec(`rm ${this._getSymLinkPath()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
-                            if (error) {
-                                return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
-                            }
-                            resolve();
-                        });
-                        break;
-                }
+                this._getSymLinkPath().then((symbolic: string) => {
+                    const sudo = require('sudo-prompt');
+                    const options = {
+                        name: 'Chipmunk Command Line Tool',
+                    };
+                    switch (process.platform) {
+                        case 'win32':
+                            sudo.exec(`del ${symbolic}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                                if (error) {
+                                    return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
+                                }
+                                resolve();
+                            });
+                            break;
+                        default:
+                            sudo.exec(`rm ${symbolic}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                                if (error) {
+                                    return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
+                                }
+                                resolve();
+                            });
+                            break;
+                    }
+                    }).catch(reject);
             }).catch(reject);
         });
     }
 
     public isInstalled(): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const sl = this._getSymLinkPath();
-            exist(sl).then((res: boolean) => {
-                resolve(res);
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail to check file "${sl}" due error: ${err.message}`);
-                reject(err);
-            });
+            this._getSymLinkPath().then((symbolic: string) => {
+                exist(symbolic).then((res: boolean) => {
+                    resolve(res);
+                }).catch((err: Error) => {
+                    this._logger.warn(`Fail to check file "${symbolic}" due error: ${err.message}`);
+                    reject(err);
+                });
+    
+            }).catch(reject);
         });
     }
 
@@ -171,13 +179,28 @@ class ServiceCLI implements IService {
         });
     }
 
-    private _getSymLinkPath(): string {
-        switch (process.platform) {
-            case 'win32':
-                return '%windir%\\system32\\cm.exe';
-            default:
-                return `/usr/local/bin/cm`;
-        }
+    private _getSymLinkPath(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (this._symbolic !== undefined) {
+                return resolve(this._symbolic);
+            }
+            switch (process.platform) {
+                case 'win32':
+                    return exec(`echo %windir%`, (err, stdout: string, stderr: string) => {
+                        if (err) {
+                            return reject(`Fail to call echo %windir% on windows due error: ${err.message}.`);
+                        }
+                        if (stderr.trim() !== '') {
+                            return reject(`Fail to call echo %windir% on windows due error: ${stderr}.`);
+                        }
+                        this._symbolic = `${stdout.replace(/[\n\r]/gi,'')}\\system32\\cm.exe`;
+                        resolve( this._symbolic);
+                    });
+                default:
+                    this._symbolic = `/usr/local/bin/cm`;
+                    return resolve( this._symbolic);
+            }
+        });
     }
 
     private _getArgs(): string[] {
@@ -191,6 +214,7 @@ class ServiceCLI implements IService {
     private _getPwd(): Promise<void> {
         return new Promise((resolve, reject) => {
             const source = this._getArgs();
+            this._logger.debug(`Next arguments are available: ${source.join('; ')}`);
             const start = source.findIndex(arg => arg.indexOf('pwd__') === 0);
             if (start === -1) {
                 return reject(new Error(`Fail to find pwd`));
