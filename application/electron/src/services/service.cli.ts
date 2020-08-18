@@ -73,14 +73,20 @@ class ServiceCLI implements IService {
                 if (state) {
                     return resolve();
                 }
+                const sudo = require('sudo-prompt');
+                const options = {
+                    name: 'Chipmunk Command Line Tool',
+                };
                 switch (process.platform) {
                     case 'win32':
+                        sudo.exec(`mklink ${this._getSymLinkPath()} ${ServicePaths.getCLI()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                            if (error) {
+                                return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
+                            }
+                            resolve();
+                        });
                         break;
                     default:
-                        const sudo = require('sudo-prompt');
-                        const options = {
-                            name: 'Chipmunk Command Line Tool',
-                        };
                         sudo.exec(`ln -s ${ServicePaths.getCLI()} ${this._getSymLinkPath()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
                             if (error) {
                                 return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
@@ -102,14 +108,20 @@ class ServiceCLI implements IService {
                 if (!state) {
                     return resolve();
                 }
+                const sudo = require('sudo-prompt');
+                const options = {
+                    name: 'Chipmunk Command Line Tool',
+                };
                 switch (process.platform) {
                     case 'win32':
+                        sudo.exec(`del ${this._getSymLinkPath()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                            if (error) {
+                                return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
+                            }
+                            resolve();
+                        });
                         break;
                     default:
-                        const sudo = require('sudo-prompt');
-                        const options = {
-                            name: 'Chipmunk Command Line Tool',
-                        };
                         sudo.exec(`rm ${this._getSymLinkPath()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
                             if (error) {
                                 return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
@@ -124,19 +136,13 @@ class ServiceCLI implements IService {
 
     public isInstalled(): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            switch (process.platform) {
-                case 'win32':
-                    break;
-                default:
-                    const sl = this._getSymLinkPath();
-                    exist(sl).then((res: boolean) => {
-                        resolve(res);
-                    }).catch((err: Error) => {
-                        this._logger.warn(`Fail to check file "${sl}" due error: ${err.message}`);
-                        reject(err);
-                    });
-                    break;
-            }
+            const sl = this._getSymLinkPath();
+            exist(sl).then((res: boolean) => {
+                resolve(res);
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to check file "${sl}" due error: ${err.message}`);
+                reject(err);
+            });
         });
     }
 
@@ -168,7 +174,7 @@ class ServiceCLI implements IService {
     private _getSymLinkPath(): string {
         switch (process.platform) {
             case 'win32':
-                return '';
+                return '%windir%\\system32\\cm.exe';
             default:
                 return `/usr/local/bin/cm`;
         }

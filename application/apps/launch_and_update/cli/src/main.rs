@@ -61,16 +61,21 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
         .map_err(|e| anyhow!("{}", e))
 }
 
-/// on macos it looks like /xyz/chipmunk.app/Contents/MacOS/app
+/// on macos it looks like /xyz/chipmunk.app/Contents/Resources/app/dist/compiled/apps/cm
 fn find_launcher() -> Result<String> {
     let root = std::env::current_exe()?;
     let root_path = Path::new(&root)
         .parent()
         .ok_or_else(|| anyhow!("no parent found"))?;
     let app = if cfg!(target_os = "windows") {
-        format!("{}\\{}", root_path.display(), "chipmunk.exe")
+        let path = Path::new(&format!("{}/../../../../../{}", root_path.display(), "chipmunk")).canonicalize()?;
+        format!("{}", path.display())
+    } else if cfg!(target_os = "macos") {
+        let path = Path::new(&format!("{}/../../../../../MacOS/{}", root_path.display(), "chipmunk")).canonicalize()?;
+        format!("{}", path.display())
     } else {
-        format!("{}/{}", root_path.display(), "chipmunk")
+        let path = Path::new(&format!("{}/../../../../../{}", root_path.display(), "chipmunk")).canonicalize()?;
+        format!("{}", path.display())
     };
     Ok(app)
 }
@@ -90,6 +95,7 @@ fn main() -> Result<()> {
     };
 
     trace!("Target application: {}", launcher);
+    println!("Target application: {}", launcher);
 
     let launcher_path = Path::new(&launcher);
 
@@ -100,17 +106,21 @@ fn main() -> Result<()> {
     
     let pwd = env::current_dir().expect("Fail to detect current dir");
     let pwd = format!("pwd::{}::pwd", pwd.to_str().expect("Fail to convert current path to OS string"));
+    println!("Target pwd: {}", pwd);
     let env_args = env::args().collect::<Vec<String>>();
     let mut args: Vec<&str> = vec![pwd.as_ref()];
     args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
     let child: Result<Child> = spawn(&launcher, args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>().as_slice());
+    println!("starting");
     match child {
         Ok(child) => {
             let pid = child.id();
             info!("Lancher is started (pid: {})", pid);
+            println!("ok");
         }
         Err(e) => {
             error!("Failed to start launcher ({})", e);
+            println!("Failed to start launcher ({})", e);
         }
     };
     Ok(())
