@@ -245,9 +245,10 @@ fn main() -> Result<()> {
         start_required = false;
         let env_args = env::args().collect::<Vec<String>>();
         debug!("Starting application");
-        let mut args: Vec<&str> = vec!["launcher::".as_ref()];
+        let mut args: Vec<&str> = vec![];
         args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
-        let child: Result<Child> = spawn(&electron_app, args.as_slice());
+        debug!("It means, it's updated");
+        let child: Result<Child> = spawn(&electron_app, &[]);
         match child {
             Ok(mut child) => {
                 let pid = child.id();
