@@ -247,8 +247,8 @@ fn main() -> Result<()> {
         debug!("Starting application");
         let mut args: Vec<&str> = vec![];
         args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
-        debug!("It means, it's updated");
-        let child: Result<Child> = spawn(&electron_app, &[]);
+        debug!("Startup args: {:?}", args.as_slice());
+        let child: Result<Child> = spawn(&electron_app, args.as_slice());
         match child {
             Ok(mut child) => {
                 let pid = child.id();

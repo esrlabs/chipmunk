@@ -117,7 +117,8 @@ fn main() -> Result<()> {
     let env_args = env::args().collect::<Vec<String>>();
     let mut args: Vec<&str> = vec![pwd.as_ref()];
     args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
-    let child: Result<Child> = spawn(&launcher, args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>().as_slice());
+    debug!("Startup args: {:?}", args.as_slice());
+    let child: Result<Child> = spawn(&launcher, args.as_slice());
     match child {
         Ok(child) => {
             let pid = child.id();
