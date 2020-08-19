@@ -1,0 +1,31 @@
+@import '../../../../theme/variables.less';
+
+& mat-expansion-panel {
+    width: 48px;
+    height: 48px;
+    margin: auto;
+    position: sticky;
+    bottom: 0px;
+}
+
+& mat-expansion-panel:hover {
+    & mat-icon {
+        color: @scheme-color-error;
+    }
+}
+
+& mat-icon {
+    transform: translate(-50%, 50%);
+    color: @scheme-color-accent;
+}
+
+
+@keyframes blendInOut {
+    from {
+        opacity: 0.000001; 
+    }
+    
+    to {
+        opacity: 1;
+    }
+}
