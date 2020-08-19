@@ -23,8 +23,7 @@ import ServiceElectron from './service.electron';
 
 class ServiceCLI implements IService {
 
-    private readonly _pwdHookLeft: RegExp = /^pwd__/gi;
-    private readonly _pwdHookRight: RegExp = /__pwd$/gi;
+    private readonly _pwdParam: string = '--pwd';
     private _settings: StateFile<IScheme.IStorage> | undefined;
     private _logger: Logger = new Logger('ServiceCLI');
     private _pwd: string | undefined;
@@ -206,6 +205,7 @@ class ServiceCLI implements IService {
         if (ServiceProduction.isProduction()) {
             return process.argv;
         } else {
+            this._logger.debug(`Chipmunk started in developing mode. Arguments will be ignored.`);
             return [];
         }
     }
@@ -214,15 +214,15 @@ class ServiceCLI implements IService {
         return new Promise((resolve, reject) => {
             const source = this._getArgs();
             this._logger.debug(`Next arguments are available: ${source.join('; ')}`);
-            const start = source.findIndex(arg => arg.indexOf('pwd__') === 0);
+            const start = source.findIndex(arg => arg === this._pwdParam);
             if (start === -1) {
-                return reject(new Error(`Fail to find pwd`));
+                return reject(new Error(`Fail to find pwd param`));
             }
-            const args: string[] = source.slice(start, source.length);
+            const args: string[] = source.slice(start + 1, source.length);
             if (args.length === 2) {
                 return reject(new Error('Expected more than 2 arguments'));
             }
-            const pwd: string = args[0].replace(this._pwdHookLeft, '').replace(this._pwdHookRight, '');
+            const pwd: string =  args[0];
             exist(path.resolve(pwd)).then((valid: boolean) => {
                 if (!valid) {
                     this._logger.warn(`Pwd directory doesn't exist. Probably permissions issue. Pwd: ${pwd}`);

@@ -21,6 +21,8 @@ use std::{
     process::{Child, Command},
 };
 
+use dunce::canonicalize;
+
 fn init_logging() -> Result<()> {
     let log_config_path = chipmunk_log_config();
     let logging_correctly_initialized = if log_config_path.exists() {
@@ -77,7 +79,7 @@ fn find_launcher() -> Result<String> {
     debug!("Root: {}", root_path.display());
     debug!("Args: {:?}", std::env::args());
     let app = if cfg!(target_os = "windows") {
-        let path = Path::new(&format!("{}\\..\\..\\..\\..\\..\\{}", root_path.display(), "chipmunk.exe")).canonicalize()?;
+        let path = canonicalize(Path::new(&format!("{}\\..\\..\\..\\..\\..\\{}", root_path.display(), "chipmunk.exe")))?;
         format!("{}", path.display())
     } else if cfg!(target_os = "macos") {
         let path = Path::new(&format!("{}/../../../../../MacOS/{}", root_path.display(), "chipmunk")).canonicalize()?;
@@ -112,10 +114,10 @@ fn main() -> Result<()> {
     }
     
     let pwd = env::current_dir().expect("Fail to detect current dir");
-    let pwd = format!("pwd__{}__pwd", pwd.to_str().expect("Fail to convert current path to OS string"));
+    let pwd = pwd.to_str().expect("Fail to convert current path to OS string");
     debug!("Target pwd: {}", pwd);
     let env_args = env::args().collect::<Vec<String>>();
-    let mut args: Vec<&str> = vec![pwd.as_ref()];
+    let mut args: Vec<&str> = vec!["--pwd", pwd.as_ref()];
     args.append(&mut env_args.iter().map(|a| a.as_ref()).collect::<Vec<&str>>());
     debug!("Startup args: {:?}", args.as_slice());
     let child: Result<Child> = spawn(&launcher, args.as_slice());
