@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.6.1] - 08/19/2020
+* Fix markdown styles
+
 ### [2.6.0] - 08/19/2020
 * [#879] Support timestamp highlighting on DLT row
 * [#216] Update app menu on state change
