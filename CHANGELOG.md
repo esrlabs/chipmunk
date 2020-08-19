@@ -1,5 +1,145 @@
 # Changelog
 
+### [2.6.0] - 08/19/2020
+* [#879] Support timestamp highlighting on DLT row
+* [#216] Update app menu on state change
+* [#216] Fix pwd declaration way via args of cmd
+* [#216] Fix launcher and CLI caller (linux)
+* [#216] Fix launcher for windows
+* [#216] Fix loggin for CLI app
+* [#875] Get rid of using "::" in args of execution line
+* [#216] Move cli caller to apps folder
+* [#206] Js lint fixes
+* [#216] Open files on CLI call
+* [#216] Update build workflow
+* [#216] Add cli executor
+* [#860](fix) Fix circular dependencies
+* Merge branch 'master' into master
+* [#867] Using control-key instead cmd-key on mac (to switch tabs)
+* [#867] Switch tabs using hot keys
+* Revert "[#739](feat) Add shortcuts to save filter/chart"
+  This reverts commit 214e64e5ce6f447098b8ad95706393c44d32f037.
+* Revert "[#739](fix) Switch to tab "search""
+  This reverts commit 7b2d59da92cdd619c3bbaa5025a28f37eb4bea94.
+* Revert "[#739](refact) Add tooltips to shortkey descr."
+  This reverts commit 9eb0838906683dedf4216b55c5ae8f6f203d0be1.
+* Revert "[#739](refact) OS detection to seperate service"
+  This reverts commit 73f475e460a527fa99cd6805443c93c9632a60f4.
+* Revert "[#739](refact) Promise cleanup"
+  This reverts commit 1cf632cca4d661282b13934a83b23ec28e9d5034.
+* Revert "[#736](fix) Switch tab on "Show Matches""
+  This reverts commit 8580da12046494d2b1fde295bacc50c935cecdf7.
+* Revert "[#736](refact) Create service for common functions"
+  This reverts commit 820f07e0bae0c8ae1fe8adf23e01fb4e541882c5.
+* Revert "[#735](fix) doubleclick show matches new structure"
+  This reverts commit 325f12656cd9ad50844b775d258ef40e49f7a3f6.
+* Revert "[#736](refact) Apply requested changes"
+  This reverts commit c636305db29c80408977ec9b105a8bd6de5b8110.
+* Revert "[#860](fix) Ignore Ctrl button when saving"
+  This reverts commit 82c678480c26718e45265b9672b44af2cc702196.
+* Revert "[#736](refact) Change private methods to public"
+  This reverts commit 8020c7c6b54d110c5031a4fe688438b86877ee80.
+* Revert "[#860](fix) Ignore Shift/Ctrl button on shortcut"
+  This reverts commit 8339834eb42ca216581527715a02576458f8829a.
+* Revert "[#736](refact) Create service for toolbar"
+  This reverts commit 15beab672fa972cc2106c7b2252a35ea12df407f.
+* Revert "[#736](fix) Fix search for disabled components"
+  This reverts commit 04cf9d1f8a7213f98fa664aa679072ee2d726b17.
+* Revert "[#735](fix) Ignore click when doubleclick"
+  This reverts commit 7630d89c61978c075450e68c3a02afa4687fba32.
+* Revert "[#735](fix) Remove Timeout"
+  This reverts commit 23d160c5443b3d1412b2e7989b5cbb9a3b642fd9.
+* Remove unnecessary output
+* Fix windows compilation
+* Fix compile error under windows
+* Take care that the log-config file is correct
+  avoid writing to a folder named \$HOME_DIR (fixes #802)
+  format rust code
+  add raketask to format rust code and to check with clippy
+  introdude anyhow instead of failure
+* [#735](fix) Remove Timeout
+* [#735](fix) Ignore click when doubleclick
+* [#736](fix) Fix search for disabled components
+* [#736](refact) Create service for toolbar
+* [#860](fix) Ignore Shift/Ctrl button on shortcut
+* [#736](refact) Change private methods to public
+* [#860](fix) Ignore Ctrl button when saving
+* [#736](refact) Apply requested changes
+* [#735](fix) doubleclick show matches new structure
+* [#736](refact) Create service for common functions
+* [#736](fix) Switch tab on "Show Matches"
+* [#739](refact) Promise cleanup
+* [#739](refact) OS detection to seperate service
+* [#739](refact) Add tooltips to shortkey descr.
+* [#739](fix) Switch to tab "search"
+* [#739](feat) Add shortcuts to save filter/chart
+* [#735](fix) Remove Timeout
+* [#735](fix) Ignore click when doubleclick
+* [#736](fix) Fix search for disabled components
+* [#736](refact) Create service for toolbar
+* [#860](fix) Ignore Shift/Ctrl button on shortcut
+* [#736](refact) Change private methods to public
+* [#860](fix) Ignore Ctrl button when saving
+* [#736](refact) Apply requested changes
+* [#735](fix) doubleclick show matches new structure
+* [#736](refact) Create service for common functions
+* [#736](fix) Switch tab on "Show Matches"
+* [#739](refact) Promise cleanup
+* [#739](refact) OS detection to seperate service
+* [#739](refact) Add tooltips to shortkey descr.
+* [#739](fix) Switch to tab "search"
+* [#739](feat) Add shortcuts to save filter/chart
+* Lint js errors correction
+* [#866] Add files writing queue.
+* Fix switching to edit-mode (search manager)
+* Remove unused items from context menu (search manager)
+* Use "scaled" move for time measurement as default
+* [#865] Support key SHIFT for multiple selection
+* [#863] Correct lint js errors
+* [#863] Implemented 2 states of render: inited and ready
+* [#861] Add release notes tab
+* Apply updated npm resolutions list
+* Update resolutions list
+* [#857] Show full filename on hover of tab
+* [#853] Autosaving of entities (filters/charts/ranges/disabled)
+* [#853] Fix keyboard-navigation across entities lists
+* Correct dropping charts/filters/ranges on load data from file
+* [#834] Add back compatibility to load filters/charts
+* Fix row parser. Using UTF control codes for match-placeholders
+* [#834] Fix drag & drop along disabled items bug
+* [#834] Upgrade save/load controller (for filters/charts/ranges/disabled)
+* [#834] Support drag & drop from disabled to charts/filters/ranges
+* [#834] Disable entity (filter/chart/range) on drag & drop
+* [#834] Basic support of disabling filters/requests/ranges
+* Resolve npm security issues
+* Fix update error on tab's content controller (chipmunk.client.components)
+* [#853] Add support of multiple time range filters
+* [#853] Remove active/deactive state from time-range
+* [#853] Use scrict oreder of providers in the scope of search manager
+* [#853] Select just created entity as default
+* [#853] Drop details view on removing of entity
+* [#853] Use command instead control on OSX
+* [#853] Fix style of ranges in scope of row
+* [#853] Support scrict and not-strict modes for time ranges search
+* Fix JSLint warnings/errors
+* [#853] Add support multiple points in scope of the time range
+* [#853] Fix cursor position for timemeasure charts
+* [#853] Add posibility to change a color of time ranges
+* [#853] Update context menu of time ranges
+* [#853] Insert multiple ranges
+* [#853] Resolutions for npm modules
+* [#853] Update clhipmunk.client.toolkit 1.2.15 -> 1.2.16
+* [#853] Add processor of time range searches
+* [#853] Lint js corrections
+* [#853] Add UI in search manager for time ranges
+* [#853] Added basic views for time ranges in search manager
+* [#853] Add basic controllers for time ranges (hooks)
+* [#853] clean up context menu of search manger
+* [#853] added context menu support via provider of search-manager-data
+* [#853] select in search manger a filter/chart/others on keyboard event
+* Fix bug with dynamic component update
+* [#853] refactoring search manager (render)
+
 ### [2.5.3] - 07/15/2020
 * [](fix) fix fsevent module issue (mac, client.core)
 * [](fix) fix node-gym and fsevent errors related (mac)
