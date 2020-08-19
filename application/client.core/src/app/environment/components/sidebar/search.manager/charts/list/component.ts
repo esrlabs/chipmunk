@@ -1,9 +1,11 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, Output } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
 import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
-import { Subscription, Observable, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
+
+import SearchManagerService from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-charts',
@@ -19,6 +21,7 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _dragging: Entity<ChartRequest>;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -33,9 +36,11 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
+        this._subscriptions.remove = SearchManagerService.getObservable().remove.subscribe(this._onRemove.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<ChartRequest[]>) {
+        SearchManagerService.onDragStart(false);
         const prev = event.previousContainer;
         const index = event.previousIndex;
         if (prev.data !== undefined && (prev.data as any).disabled !== undefined) {
@@ -55,6 +60,18 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
 
     public _ng_onDoubleClick(event: MouseEvent, entity: Entity<ChartRequest>) {
         this.provider.select().doubleclick(event, entity);
+    }
+
+    public _ng_onDragStarted(entity: Entity<ChartRequest>) {
+        this._dragging = entity;
+        SearchManagerService.onDragStart(true);
+    }
+
+    private _onRemove() {
+        if (this._dragging) {
+            this._dragging.getEntity().remove(this.provider.getSession());
+        }
+        this._dragging = undefined;
     }
 
     private _onDataUpdate() {

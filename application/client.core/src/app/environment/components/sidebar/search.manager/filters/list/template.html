@@ -1,12 +1,13 @@
 <div id="filters-entities"
     cdkDropList
-    [cdkDropListConnectedTo]="['disabled-entities']"
+    [cdkDropListConnectedTo]="['disabled-entities', 'bin-entity']"
     [cdkDropListData]="_ng_entries"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
     class="filters">
     <app-sidebar-app-searchmanager-filter
         (contextmenu)="_ng_onContexMenu($event, entity)"
         (dblclick)="_ng_onDoubleClick($event, entity)"
+        (cdkDragStarted)="_ng_onDragStarted(entity)"
         appSidebarSearchManagerItem
         cdkDrag
         [provider]="provider"

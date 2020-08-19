@@ -1,10 +1,12 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
 import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
-import { Subscription, Observable, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
+
+import SearchManagerService from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-timerangehooks',
@@ -21,6 +23,7 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _dragging: Entity<RangeRequest>;
 
     constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {
     }
@@ -35,9 +38,11 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
+        this._subscriptions.remove = SearchManagerService.getObservable().remove.subscribe(this._onRemove.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<RangeRequest[]>) {
+        SearchManagerService.onDragStart(false);
         const prev = event.previousContainer;
         const index = event.previousIndex;
         if (prev.data !== undefined && (prev.data as any).disabled !== undefined) {
@@ -93,6 +98,18 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
             });
             this._forceUpdate();
         }
+    }
+
+    public _ng_onDragStarted(entity: Entity<RangeRequest>) {
+        this._dragging = entity;
+        SearchManagerService.onDragStart(true);
+    }
+
+    private _onRemove() {
+        if (this._dragging) {
+            this._dragging.getEntity().remove(this.provider.getSession());
+        }
+        this._dragging = undefined;
     }
 
     private _onDataUpdate() {

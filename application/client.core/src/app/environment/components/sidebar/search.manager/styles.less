@@ -11,8 +11,12 @@
     left: 0.5rem;
     top: 0.5rem;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     outline: none;
+    & div.holder {
+        overflow-y: auto;
+        height: 100%;
+    }
     & div.wrapper{
         position: relative;
         display: block;

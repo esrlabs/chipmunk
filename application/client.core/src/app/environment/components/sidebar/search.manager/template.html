@@ -1,46 +1,49 @@
-<div class="wrapper" *ngFor="let provider of _ng_providers">
-    <mat-expansion-panel
-        *ngIf="!provider.isEmpty() || provider.getContentIfEmpty() !== undefined"
-        [disabled]="true"
-        [hideToggle]="true"
-        [expanded]="true"
-        (click)="_ng_onPanelClick()">
-        <mat-expansion-panel-header>
-            <mat-panel-title>{{provider.getPanelName()}}</mat-panel-title>
-            <mat-panel-description>{{provider.getPanelDesc()}}</mat-panel-description>
-        </mat-expansion-panel-header>
-        <div *ngIf="!provider.isEmpty()">
-            <lib-containers-dynamic [detectChanges]="false" [component]="provider.getListComp()"></lib-containers-dynamic>
-        </div>
-        <p class="t-small" *ngIf="provider.isEmpty()">{{provider.getContentIfEmpty()}}</p>
-    </mat-expansion-panel>
+<div class="holder">
+    <div class="wrapper" *ngFor="let provider of _ng_providers">
+        <mat-expansion-panel
+            *ngIf="!provider.isEmpty() || provider.getContentIfEmpty() !== undefined"
+            [disabled]="true"
+            [hideToggle]="true"
+            [expanded]="true"
+            (click)="_ng_onPanelClick()">
+            <mat-expansion-panel-header>
+                <mat-panel-title>{{provider.getPanelName()}}</mat-panel-title>
+                <mat-panel-description>{{provider.getPanelDesc()}}</mat-panel-description>
+            </mat-expansion-panel-header>
+            <div *ngIf="!provider.isEmpty()">
+                <lib-containers-dynamic [detectChanges]="false" [component]="provider.getListComp()"></lib-containers-dynamic>
+            </div>
+            <p class="t-small" *ngIf="provider.isEmpty()">{{provider.getContentIfEmpty()}}</p>
+        </mat-expansion-panel>
+    </div>
+
+    <div class="wrapper" *ngIf="_ng_selected && _ng_selected.getDetailsComp() !== undefined">
+        <mat-expansion-panel
+            [disabled]="true"
+            [hideToggle]="true"
+            [expanded]="true"
+            (click)="_ng_onPanelClick()">
+            <mat-expansion-panel-header>
+                <mat-panel-title>{{_ng_selected.getDetailsPanelName()}}</mat-panel-title>
+                <mat-panel-description>{{_ng_selected.getDetailsPanelDesc()}}</mat-panel-description>
+            </mat-expansion-panel-header>
+            <lib-containers-dynamic [detectChanges]="false" [component]="_ng_selected.getDetailsComp()"></lib-containers-dynamic>
+        </mat-expansion-panel>
+    </div>
+
+    <div class="wrapper">
+        <mat-expansion-panel
+            [expanded]="true"
+            (click)="_ng_onPanelClick()">
+            <mat-expansion-panel-header>
+                <mat-panel-title>
+                    Manage
+                </mat-panel-title>
+                <mat-panel-description class="limited" *ngIf="_ng_filename !== ''">{{_ng_filename}}</mat-panel-description>
+            </mat-expansion-panel-header>
+            <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls>
+        </mat-expansion-panel>
+    </div>
 </div>
 
-<div class="wrapper" *ngIf="_ng_selected && _ng_selected.getDetailsComp() !== undefined">
-    <mat-expansion-panel
-        [disabled]="true"
-        [hideToggle]="true"
-        [expanded]="true"
-        (click)="_ng_onPanelClick()">
-        <mat-expansion-panel-header>
-            <mat-panel-title>{{_ng_selected.getDetailsPanelName()}}</mat-panel-title>
-            <mat-panel-description>{{_ng_selected.getDetailsPanelDesc()}}</mat-panel-description>
-        </mat-expansion-panel-header>
-        <lib-containers-dynamic [detectChanges]="false" [component]="_ng_selected.getDetailsComp()"></lib-containers-dynamic>
-    </mat-expansion-panel>
-</div>
-
-<div class="wrapper">
-    <mat-expansion-panel
-        [expanded]="true"
-        (click)="_ng_onPanelClick()">
-        <mat-expansion-panel-header>
-            <mat-panel-title>
-                Manage
-            </mat-panel-title>
-            <mat-panel-description class="limited" *ngIf="_ng_filename !== ''">{{_ng_filename}}</mat-panel-description>
-        </mat-expansion-panel-header>
-        <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls>
-    </mat-expansion-panel>
-</div>
-
+<app-sidebar-app-searchmanager-bin></app-sidebar-app-searchmanager-bin>

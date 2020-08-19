@@ -1,0 +1,11 @@
+<mat-expansion-panel
+    id="bin-entity"
+    [@inOut]="_ng_dragging ? 'in' : 'out'"
+    [ngStyle]="{'pointer-events': _ng_dragging ? 'all' : 'none' }"
+    [disabled]="true"
+    [hideToggle]="true"
+    [expanded]="true"
+    cdkDropList
+    (cdkDropListDropped)="_ng_onListDropped()">
+    <mat-icon>delete_outline</mat-icon>
+</mat-expansion-panel>

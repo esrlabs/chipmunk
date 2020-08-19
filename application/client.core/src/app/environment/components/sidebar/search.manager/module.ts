@@ -39,6 +39,7 @@ import { SidebarAppSearchManagerDisabledComponent           } from './disabled/e
 import { SidebarAppSearchManagerComponent                   } from './component';
 import { SidebarAppSearchManagerItemDirective               } from './directives/item.directive';
 import { SidebarAppSearchManagerControlsComponent           } from './controls/component';
+import { SidebarAppSearchManagerBinComponent                } from './bin/component';
 
 const entryComponents = [
     SidebarAppSearchManagerComponent,
@@ -55,6 +56,7 @@ const entryComponents = [
     SidebarAppSearchManagerFilterMiniComponent,
     SidebarAppSearchManagerDisabledsComponent,
     SidebarAppSearchManagerDisabledComponent,
+    SidebarAppSearchManagerBinComponent,
 ];
 const components = [ ...entryComponents ];
 const modules = [
