@@ -110,14 +110,14 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             }
             // Apply plugin parser
             column = OutputParsersService.row({
-                str: column,
+                str: matches.str,
                 pluginId: this.pluginId,
                 source: this.source,
                 position: this.position,
                 hasOwnStyles: (matches.color !== undefined) || (matches.background !== undefined),
             });
             return {
-                html: this._sanitizer.bypassSecurityTrustHtml(matches.str),
+                html: this._sanitizer.bypassSecurityTrustHtml(column),
                 index: index,
             };
         }).filter( i => i !== null );

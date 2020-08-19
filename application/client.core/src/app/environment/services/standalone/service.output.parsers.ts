@@ -201,8 +201,9 @@ export class OutputParsersService {
         return row.str;
     }
 
-    public matches(sessionId: string, row: number, str: string): { str: string, color?: string, background?: string } {
+    public matches(sessionId: string, row: number, str: string): { str: string, changed: boolean, color?: string, background?: string } {
         const map: { [key: string]: { value: string, reg: RegExp} } = {};
+        let changed: boolean = false;
         const getReplacedStr = (openWith: string, closeWith: string, replaceWith: string): string => {
             const openKey = this._getCachedKeyForValue(openWith).key;
             const closeKey = this._getCachedKeyForValue(closeWith).key;
@@ -218,6 +219,7 @@ export class OutputParsersService {
                     reg: this._getCachedKeyForValue(closeWith).regExp,
                 };
             }
+            changed = true;
             return `${openKey}${replaceWith}${closeKey}`;
         };
         const requests: IRequest[] | undefined = this._search.get(sessionId);
@@ -226,6 +228,7 @@ export class OutputParsersService {
         if (requests === undefined && this._highlights === undefined && charts === undefined) {
             return {
                 str: str,
+                changed: changed,
             };
         }
         let first: IRequest | undefined;
@@ -264,6 +267,7 @@ export class OutputParsersService {
         });
         return {
             str: str,
+            changed: changed,
             color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
             background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
         };
