@@ -165,6 +165,7 @@ dependencies = [
  "crossbeam-channel",
  "ctrlc",
  "dirs",
+ "dunce",
  "flate2",
  "log",
  "log4rs",
@@ -253,6 +254,12 @@ name = "dtoa"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4358a9e11b9a09cf52383b451b49a169e8d797b68aa02301ff586d70d9661ea3"
+
+[[package]]
+name = "dunce"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2641c4a7c0c4101df53ea572bffdc561c146f6c2eb09e4df02bc4811e3feeb4"
 
 [[package]]
 name = "fake-simd"
