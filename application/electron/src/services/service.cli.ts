@@ -24,6 +24,7 @@ import ServiceElectron from './service.electron';
 class ServiceCLI implements IService {
 
     private readonly _pwdParam: string = '--pwd';
+    private readonly _menuItemGuid: string = guid();
     private _settings: StateFile<IScheme.IStorage> | undefined;
     private _logger: Logger = new Logger('ServiceCLI');
     private _pwd: string | undefined;
@@ -156,19 +157,24 @@ class ServiceCLI implements IService {
         if (!ServiceProduction.isProduction()) {
             return;
         }
+        ServiceElectron.getMenu()?.remove(this._menuItemGuid);
         this.isInstalled().then((state: boolean) => {
             if (state) {
-                ServiceElectron.getMenu()?.add('File', [
+                ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
                     { type: 'separator' },
-                    { label: 'Uninstall Command Line Tool', click: () => {
-                        this.uninstall().catch((err: Error) => this._logger.warn(err));
+                    { label: 'Uninstall "cm" Command Line Tool', click: () => {
+                        this.uninstall().catch((err: Error) => this._logger.warn(err)).finally(() => {
+                            this._initMenu();
+                        });
                     }},
                 ]);
             } else {
-                ServiceElectron.getMenu()?.add('File', [
+                ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
                     { type: 'separator' },
-                    { label: 'Install Command Line Tool', click: () => {
-                        this.install().catch((err: Error) => this._logger.warn(err));
+                    { label: 'Install "cm" Command Line Tool', click: () => {
+                        this.install().catch((err: Error) => this._logger.warn(err)).finally(() => {
+                            this._initMenu();
+                        });
                     }},
                 ]);
             }
@@ -195,8 +201,14 @@ class ServiceCLI implements IService {
                         resolve( this._symbolic);
                     });
                 default:
-                    this._symbolic = `/usr/local/bin/cm`;
-                    return resolve( this._symbolic);
+                    const dest: string = `/usr/local/bin`;
+                    return exist(dest).then((res: boolean) => {
+                        if (!res) {
+                            return reject(new Error(`Fail to find destination folder "/usr/local/bin". Try to create this folder.`));
+                        }
+                        this._symbolic = `${dest}/cm`;
+                        resolve( this._symbolic);
+                    }).catch(reject);
             }
         });
     }

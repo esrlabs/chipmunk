@@ -59,6 +59,7 @@ const MENU_TEMPLATE = [
 ];
 
 export interface IAddedItems {
+    guid: string;
     root: string;
     items: MenuItemConstructorOptions[];
 }
@@ -77,8 +78,13 @@ export default class ControllerElectronMenu {
         this._create();
     }
 
-    public add(root: string, items: MenuItemConstructorOptions[]) {
-        this._added.push({ root: root, items: items });
+    public add(guid: string, root: string, items: MenuItemConstructorOptions[]) {
+        this._added.push({ guid: guid, root: root, items: items });
+        this._create();
+    }
+
+    public remove(guid: string) {
+        this._added = this._added.filter(i => i.guid !== guid);
         this._create();
     }
 
