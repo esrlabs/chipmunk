@@ -212,6 +212,27 @@ export class ControllerSessionTabStreamOutput {
         return rows;
     }
 
+    public loadRange(range: IRange): Promise<IStreamPacket[]> {
+        return new Promise((resolve, reject) => {
+            if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
+                return reject(new Error(`Range has incorrect format. Start and end shound be finite and not NaN`));
+            }
+            const stored = Object.assign({}, this._state.stored);
+            if (range.start >= stored.start && range.end <= stored.end) {
+                return resolve(this._getRowsSliced(range.start, range.end + 1));
+            }
+            this._requestDataHandler(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
+                const packets: IStreamPacket[] = [];
+                this._parse(message.data, packets);
+                resolve(packets.filter((packet: IStreamPacket) => {
+                    return packet.position >= range.start && packet.position <= range.end;
+                }));
+            }).catch((error: Error) => {
+                reject(new Error(`Error during requesting data (rows from ${range.start} to ${range.end}): ${error.message}`));
+            });
+        });
+    }
+
     public setFrame(range: IRange) {
         if (this._state.count === 0) {
             return;

@@ -5,6 +5,7 @@ import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.st
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
 import { IQueueController } from '../services/standalone/service.queue';
+import { IRange } from './helpers/selection';
 
 import QueueService from '../services/standalone/service.queue';
 import ServiceElectronIpc from '../services/service.electron.ipc';
@@ -102,6 +103,24 @@ export class ControllerSessionTabStream {
 
     public getBookmarks(): ControllerSessionTabStreamBookmarks {
         return this._bookmarks;
+    }
+
+    public getRowsSelection(ranges: IRange[]): Promise<IStreamPacket[]> {
+        return new Promise((resolve, reject) => {
+            let packets: IStreamPacket[] = [];
+            Toolkit.sequences(ranges.map((range: IRange) => {
+                return () => {
+                    return this._output.loadRange({
+                        start: range.start,
+                        end: range.end,
+                    }).then((packet: IStreamPacket[]) => {
+                        packets = packets.concat(packet);
+                    });
+                };
+            })).then(() => {
+                resolve(packets);
+            }).catch(reject);
+        });
     }
 
     private _requestData(start: number, end: number): Promise<IPCMessages.StreamChunk> {

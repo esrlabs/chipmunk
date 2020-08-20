@@ -1,18 +1,16 @@
-import * as Tools from "../../tools/index";
-import * as path from 'path';
 import * as fs from 'fs';
 
 import Logger from '../../tools/env.logger';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceOutputExport from "../../services/output/service.output.export";
 import ServiceStreams from "../../services/service.streams";
-import indexer, { CancelablePromise, Processor, Progress } from "indexer-neon";
-import ServiceStorage, { IStorageScheme } from '../../services/service.storage';
+import indexer from "indexer-neon";
+import ServiceFileRecent from '../../services/files/service.file.recent';
 
+import { CancelablePromise, Processor, Progress } from "indexer-neon";
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { dialog, SaveDialogReturnValue } from 'electron';
 import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
-import ServiceFileRecent from '../../services/files/service.file.recent';
 
 export class DefaultOutputExport {
 
