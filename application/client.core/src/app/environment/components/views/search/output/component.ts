@@ -11,6 +11,7 @@ import { ISelectionParser } from '../../../../services/standalone/service.select
 import { cleanupOutput } from '../../row/helpers';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
 import { copyTextToClipboard } from '../../../../controller/helpers/clipboard';
+import { fullClearRowStr } from '../../../../controller/helpers/row.helpers';
 
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import EventsHubService from '../../../../services/standalone/service.eventshub';
@@ -94,7 +95,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                     }
                     if (rowsSelection !== undefined) {
                         return this.session.getSessionStream().getRowsSelection(rowsSelection).then((rows) => {
-                            copyTextToClipboard(rows.map(row => row.str).join('\n'));
+                            copyTextToClipboard(fullClearRowStr(rows.map(row => row.str).join('\n')));
                         }).catch((err: Error) => {
                             this._logger.warn(`Fail get text selection for range ${rowsSelection.join('; ')} due error: ${err.message}`);
                         });
