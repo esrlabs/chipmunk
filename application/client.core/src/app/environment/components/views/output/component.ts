@@ -14,6 +14,7 @@ import { IExportAction } from '../../../services/standalone/service.output.expor
 import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
 import { IPCMessages } from '../../../interfaces/interface.ipc';
 import { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
+import { copyTextToClipboard } from '../../../controller/helpers/clipboard';
 
 import PluginsService from '../../../services/service.plugins';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
@@ -137,16 +138,26 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
             return;
         }
-        const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const textSelection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const rowsSelection = OutputRedirectionsService.getSelectionRanges(this.session.getGuid());
         const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
         const current: IStreamPacket | undefined = contextRowNumber !== -1 ? this._output.getRowByPosition(contextRowNumber) : undefined;
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
                 handler: () => {
-                    this._scrollBoxCom.copySelection();
+                    if (textSelection !== undefined) {
+                        return this._scrollBoxCom.copySelection();
+                    }
+                    if (rowsSelection !== undefined) {
+                        return this.session.getSessionStream().getRowsSelection(rowsSelection).then((rows) => {
+                            copyTextToClipboard(rows.map(row => row.str).join('\n'));
+                        }).catch((err: Error) => {
+                            this._logger.warn(`Fail get text selection for range ${rowsSelection.join('; ')} due error: ${err.message}`);
+                        });
+                    }
                 },
-                disabled: selection === undefined,
+                disabled: textSelection === undefined && rowsSelection === undefined,
             },
             { /* delimiter */ },
             {
@@ -158,7 +169,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 handler: this._ctrl_onScrollDown.bind(this),
             },
         ];
-        if (selection === undefined) {
+        if (textSelection === undefined) {
             window.getSelection().removeAllRanges();
         }
         if (current !== undefined) {
@@ -172,8 +183,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 },
             ]);
         }
-        if (selection !== undefined) {
-            const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
+        if (textSelection !== undefined) {
+            const parsers: ISelectionParser[] = SelectionParsersService.getParsers(textSelection.selection);
             if (parsers.length > 0) {
                 items.push(...[
                     { /* delimiter */ },
@@ -181,7 +192,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                         return {
                             caption: parser.name,
                             handler: () => {
-                                SelectionParsersService.parse(selection.selection, parser.guid, parser.name);
+                                SelectionParsersService.parse(textSelection.selection, parser.guid, parser.name);
                             }
                         };
                     })
@@ -193,13 +204,13 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             {
                 caption: 'Search with selection',
                 handler: () => {
-                    const filter: FilterRequest | undefined = this._getFilterFromStr(selection.selection);
+                    const filter: FilterRequest | undefined = this._getFilterFromStr(textSelection.selection);
                     if (filter === undefined) {
                         return;
                     }
                     this.session.getSessionSearch().search(filter);
                 },
-                disabled: selection === undefined || this._getFilterFromStr(selection.selection) === undefined
+                disabled: textSelection === undefined || this._getFilterFromStr(textSelection.selection) === undefined
             }
         ]);
         OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
