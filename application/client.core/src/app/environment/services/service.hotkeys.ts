@@ -250,7 +250,7 @@ export class HotkeysService implements IService {
     }
 
     private _copySelectionsToClipboard(event: KeyboardEvent) {
-        if (!event.ctrlKey) {
+        if (!event.ctrlKey && !event.metaKey) {
             return;
         }
         if (event.key !== 'c') {
