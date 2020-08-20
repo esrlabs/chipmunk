@@ -1,12 +1,15 @@
 declare var Electron: any;
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { Subscription } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
-import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
-import PopupsService from './standalone/service.popups';
 import { DialogsHotkeysMapComponent } from '../components/dialogs/hotkeys/component';
+import { IPCMessages } from './service.electron.ipc';
+
+import ElectronIpcService from './service.electron.ipc';
+import PopupsService from './standalone/service.popups';
 
 export enum EHotkeyCategory {
     Files = 'Files',
@@ -79,6 +82,7 @@ export class HotkeysService implements IService {
         settings: new Subject<IHotkeyEvent>(),
         nextTab: new Subject<IHotkeyEvent>(),
         prevTab: new Subject<IHotkeyEvent>(),
+        ctrlC: new Subject<IHotkeyEvent>(),
     };
 
     constructor() {
@@ -93,9 +97,11 @@ export class HotkeysService implements IService {
             this._cleanupShortcuts();
             this._subscriptions.onHotkeyCall = ElectronIpcService.subscribe(IPCMessages.HotkeyCall, this._onHotkeyCall.bind(this));
             this._subscriptions.onShowHotkeysMapDialog = this.getObservable().showHotkeysMapDialog.subscribe(this._onShowHotkeysMapDialog.bind(this));
+            this._copySelectionsToClipboard = this._copySelectionsToClipboard.bind(this);
             this._checkFocusedElement = this._checkFocusedElement.bind(this);
             window.addEventListener('mouseup', this._checkFocusedElement, true);
             window.addEventListener('keyup', this._checkFocusedElement, true);
+            window.addEventListener('keydown', this._copySelectionsToClipboard, true);
             resolve();
         });
     }
@@ -111,6 +117,7 @@ export class HotkeysService implements IService {
             });
             window.removeEventListener('mouseup', this._checkFocusedElement);
             window.removeEventListener('keyup', this._checkFocusedElement);
+            window.removeEventListener('keydown', this._copySelectionsToClipboard);
             resolve();
         });
     }
@@ -133,6 +140,7 @@ export class HotkeysService implements IService {
         settings: Observable<IHotkeyEvent>,
         nextTab: Observable<IHotkeyEvent>,
         prevTab: Observable<IHotkeyEvent>,
+        ctrlC: Observable<IHotkeyEvent>,
     } {
         return {
             newTab: this._subjects.newTab.asObservable(),
@@ -152,6 +160,7 @@ export class HotkeysService implements IService {
             settings: this._subjects.settings.asObservable(),
             nextTab: this._subjects.nextTab.asObservable(),
             prevTab: this._subjects.prevTab.asObservable(),
+            ctrlC: this._subjects.ctrlC.asObservable(),
         };
     }
 
@@ -238,6 +247,19 @@ export class HotkeysService implements IService {
                 this.inputOut();
             }
         }, 150);
+    }
+
+    private _copySelectionsToClipboard(event: KeyboardEvent) {
+        if (!event.ctrlKey) {
+            return;
+        }
+        if (event.key !== 'c') {
+            return;
+        }
+        this._subjects.ctrlC.next({
+            session: undefined,
+            unixtime: Date.now(),
+        });
     }
 
     private _getRefByKey(key: string): IPCMessages.EHotkeyActionRef | undefined {
