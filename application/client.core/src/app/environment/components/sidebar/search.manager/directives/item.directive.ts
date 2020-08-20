@@ -3,6 +3,9 @@ import { Subscription, Observable, Subject } from 'rxjs';
 import { Entity } from '../providers/entity';
 import { Provider, ISelectEvent } from '../providers/provider';
 
+import SearchManagerService, { TRequest } from '../service/service';
+
+
 @Directive({
     selector: '[appSidebarSearchManagerItem]',
 })
@@ -18,6 +21,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
     private _ignore: boolean = false;
+    private _dragging: Entity<TRequest>;
 
     @HostBinding('class.selected') get cssClassSelected() {
         return this._ng_selected;
@@ -54,6 +58,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     }
 
     public ngOnInit() {
+        this._subscriptions.remove = SearchManagerService.getObservable().remove.subscribe(this._onRemove.bind(this));
         if (this.provider !== undefined) {
             this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
             this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));
@@ -82,6 +87,13 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
             }
             this._forceUpdate();
         });
+    }
+
+    private _onRemove() {
+        this._dragging = SearchManagerService.getDragging();
+        if (this._dragging) {
+            this._dragging.getEntity().remove(this.provider.getSession());
+        }
     }
 
     private _forceUpdate() {

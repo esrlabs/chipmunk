@@ -2,6 +2,7 @@ import { FilterRequest } from './controller.session.tab.search.filters.request';
 import { ChartRequest } from './controller.session.tab.search.charts.request';
 import { RangeRequest } from './controller.session.tab.search.ranges.request';
 import { IDisabledEntitySupport } from './controller.session.tab.search.disabled.support';
+import { ControllerSessionTab } from './controller.session.tab';
 
 export interface IDesc {
     type: string;
@@ -43,6 +44,10 @@ export class DisabledRequest {
             type: this.getEntity().getTypeRef(),
             desc: this.getEntity().asDesc(),
         };
+    }
+
+    public remove(session: ControllerSessionTab) {
+        session.getSessionSearch().getDisabledAPI().getStorage().remove(this);
     }
 
 }
