@@ -6,12 +6,19 @@ import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxCom
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ViewOutputRowComponent } from '../../row/component';
 import { ViewSearchControlsComponent, IButton } from './controls/component';
+import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import { ISelectionParser } from '../../../../services/standalone/service.selection.parsers';
+import { cleanupOutput } from '../../row/helpers';
+import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
+import { copyTextToClipboard } from '../../../../controller/helpers/clipboard';
+
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import EventsHubService from '../../../../services/standalone/service.eventshub';
-import { cleanupOutput } from '../../row/helpers';
-import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import SelectionParsersService, { ISelectionParser } from '../../../../services/standalone/service.selection.parsers';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
+import ContextMenuService from '../../../../services/standalone/service.contextmenu';
+import SelectionParsersService from '../../../../services/standalone/service.selection.parsers';
+import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 const CSettings: {
     preloadCount: number,
@@ -49,6 +56,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         update: new Subject<IButton[]>(),
         keepScrollDown: true,
     };
+    private _logger: Toolkit.Logger = new Toolkit.Logger('ViewSearchOutputComponent');
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -74,18 +82,28 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         if (this._scrollBoxCom === undefined || this._scrollBoxCom === null) {
             return;
         }
-        const selection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const textSelection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
+        const rowsSelection = OutputRedirectionsService.getSelectionRanges(this.session.getGuid());
         const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
                 handler: () => {
-                    this._scrollBoxCom.copySelection();
+                    if (textSelection !== undefined) {
+                        return this._scrollBoxCom.copySelection();
+                    }
+                    if (rowsSelection !== undefined) {
+                        return this.session.getSessionStream().getRowsSelection(rowsSelection).then((rows) => {
+                            copyTextToClipboard(rows.map(row => row.str).join('\n'));
+                        }).catch((err: Error) => {
+                            this._logger.warn(`Fail get text selection for range ${rowsSelection.join('; ')} due error: ${err.message}`);
+                        });
+                    }
                 },
-                disabled: selection === undefined,
+                disabled: textSelection === undefined && rowsSelection === undefined,
             }
         ];
-        if (selection === undefined) {
+        if (textSelection === undefined) {
             window.getSelection().removeAllRanges();
         }
         if (contextRowNumber !== -1) {
@@ -102,8 +120,8 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                 ]);
             }
         }
-        if (selection !== undefined) {
-            const parsers: ISelectionParser[] = SelectionParsersService.getParsers(selection.selection);
+        if (textSelection !== undefined) {
+            const parsers: ISelectionParser[] = SelectionParsersService.getParsers(textSelection.selection);
             if (parsers.length > 0) {
                 items.push(...[
                     { /* delimiter */ },
@@ -111,7 +129,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                         return {
                             caption: parser.name,
                             handler: () => {
-                                SelectionParsersService.parse(selection.selection, parser.guid, parser.name);
+                                SelectionParsersService.parse(textSelection.selection, parser.guid, parser.name);
                             }
                         };
                     })
@@ -123,13 +141,13 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             {
                 caption: 'Search with selection',
                 handler: () => {
-                    const filter: FilterRequest | undefined = this._getFilterFromStr(selection.selection);
+                    const filter: FilterRequest | undefined = this._getFilterFromStr(textSelection.selection);
                     if (filter === undefined) {
                         return;
                     }
                     this.session.getSessionSearch().search(filter);
                 },
-                disabled: selection === undefined || this._getFilterFromStr(selection.selection) === undefined
+                disabled: textSelection === undefined || this._getFilterFromStr(textSelection.selection) === undefined
             }
         ]);
         ContextMenuService.show({

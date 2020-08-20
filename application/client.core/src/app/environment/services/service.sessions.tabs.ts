@@ -5,6 +5,7 @@ import { IService } from '../interfaces/interface.service';
 import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView } from '../states/state.default';
 import { IAPI, IPopup, IComponentDesc, ISettingsAPI } from 'chipmunk.client.toolkit';
+import { copyTextToClipboard } from '../controller/helpers/clipboard';
 
 import EventsSessionService from './standalone/service.events.session';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
@@ -75,6 +76,7 @@ export class TabsSessionsService implements IService {
             this._subscriptions.onCloseTab = HotkeysService.getObservable().closeTab.subscribe(this._onCloseTab.bind(this));
             this._subscriptions.onNextTab = HotkeysService.getObservable().nextTab.subscribe(this._onNextTab.bind(this));
             this._subscriptions.onPrevTab = HotkeysService.getObservable().prevTab.subscribe(this._onPrevTab.bind(this));
+            this._subscriptions.onCtrlC = HotkeysService.getObservable().ctrlC.subscribe(this._onCtrlC.bind(this));
             this._subscriptions.RenderSessionAddRequest = ElectronIpcService.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
             OutputRedirectionsService.init(this._currentSessionGuid);
             resolve();
@@ -386,6 +388,25 @@ export class TabsSessionsService implements IService {
 
     private _onPrevTab() {
         this._tabsService.prev();
+    }
+
+    private _onCtrlC() {
+        if (window.getSelection().toString() !== '') {
+            return;
+        }
+        const session = this.getActive();
+        if (session === undefined) {
+            return;
+        }
+        const selection = OutputRedirectionsService.getSelectionRanges(session.getGuid());
+        if (selection === undefined) {
+            return;
+        }
+        session.getSessionStream().getRowsSelection(selection).then((rows) => {
+            copyTextToClipboard(rows.map(row => row.str).join('\n'));
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail get text selection for range ${selection.join('; ')} due error: ${err.message}`);
+        });
     }
 
     private _ipc_RenderSessionAddRequest(message: IPCMessages.RenderSessionAddRequest, response: (message: IPCMessages.TMessage) => void) {
