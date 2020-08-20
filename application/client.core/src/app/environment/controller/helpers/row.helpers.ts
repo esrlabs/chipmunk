@@ -3,6 +3,8 @@ export const CRowNumberRegExp = /\u0002(\d*)\u0002/gi;
 export const CSourceSignatureRegExp = /\u0011(.*)\u0011/gi;
 export const CRowPluginDelimiterRegExp = /\u0003/gi;
 export const CRowNumberDelimiterRegExp = /\u0002/gi;
+export const CDLTColumnDelimiterRegExp = /\u0004/gi;
+export const CDLTArgumentDelimiterRegExp = /\u0005/gi;
 
 /**
  * Extracts from row string data plugin ID (id of data source)
@@ -33,5 +35,17 @@ export function extractRowPosition(rowStr: string): number {
 }
 
 export function clearRowStr(rowStr: string): string {
-    return rowStr.replace(CRowNumberRegExp, '').replace(CRowPluginRegExp, '');
+    return rowStr
+                .replace(CRowNumberRegExp, '')
+                .replace(CRowPluginRegExp, '');
+}
+
+// TODO: Should be implemented mechanizm to cleanup output (for example during copying to clipboard)
+// plugins should register cleanup-callbacks. This solution should temporary
+export function fullClearRowStr(rowStr: string): string {
+    return rowStr
+                .replace(CRowNumberRegExp, '')
+                .replace(CRowPluginRegExp, '')
+                .replace(CDLTColumnDelimiterRegExp, '\t')
+                .replace(CDLTArgumentDelimiterRegExp, ' ');
 }

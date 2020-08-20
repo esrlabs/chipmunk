@@ -6,6 +6,7 @@ import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView } from '../states/state.default';
 import { IAPI, IPopup, IComponentDesc, ISettingsAPI } from 'chipmunk.client.toolkit';
 import { copyTextToClipboard } from '../controller/helpers/clipboard';
+import { fullClearRowStr } from '../controller/helpers/row.helpers';
 
 import EventsSessionService from './standalone/service.events.session';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
@@ -403,7 +404,7 @@ export class TabsSessionsService implements IService {
             return;
         }
         session.getSessionStream().getRowsSelection(selection).then((rows) => {
-            copyTextToClipboard(rows.map(row => row.str).join('\n'));
+            copyTextToClipboard(fullClearRowStr(rows.map(row => row.str).join('\n')));
         }).catch((err: Error) => {
             this._logger.warn(`Fail get text selection for range ${selection.join('; ')} due error: ${err.message}`);
         });

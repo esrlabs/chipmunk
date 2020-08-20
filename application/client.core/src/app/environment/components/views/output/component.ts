@@ -15,6 +15,7 @@ import { FilterRequest } from '../../../controller/controller.session.tab.search
 import { IPCMessages } from '../../../interfaces/interface.ipc';
 import { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
 import { copyTextToClipboard } from '../../../controller/helpers/clipboard';
+import { fullClearRowStr } from '../../../controller/helpers/row.helpers';
 
 import PluginsService from '../../../services/service.plugins';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
@@ -151,7 +152,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     }
                     if (rowsSelection !== undefined) {
                         return this.session.getSessionStream().getRowsSelection(rowsSelection).then((rows) => {
-                            copyTextToClipboard(rows.map(row => row.str).join('\n'));
+                            copyTextToClipboard(fullClearRowStr(rows.map(row => row.str).join('\n')));
                         }).catch((err: Error) => {
                             this._logger.warn(`Fail get text selection for range ${rowsSelection.join('; ')} due error: ${err.message}`);
                         });
