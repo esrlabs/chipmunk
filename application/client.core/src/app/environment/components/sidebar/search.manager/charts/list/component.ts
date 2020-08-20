@@ -21,7 +21,6 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
-    private _dragging: Entity<ChartRequest>;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -36,7 +35,6 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
-        this._subscriptions.remove = SearchManagerService.getObservable().remove.subscribe(this._onRemove.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<ChartRequest[]>) {
@@ -63,15 +61,7 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     }
 
     public _ng_onDragStarted(entity: Entity<ChartRequest>) {
-        this._dragging = entity;
-        SearchManagerService.onDragStart(true);
-    }
-
-    private _onRemove() {
-        if (this._dragging) {
-            this._dragging.getEntity().remove(this.provider.getSession());
-        }
-        this._dragging = undefined;
+        SearchManagerService.onDragStart(true, entity);
     }
 
     private _onDataUpdate() {

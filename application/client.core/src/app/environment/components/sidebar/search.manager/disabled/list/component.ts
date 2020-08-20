@@ -21,7 +21,6 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
-    private _dragging: Entity<DisabledRequest>;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -36,7 +35,6 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
-        this._subscriptions.remove = SearchManagerService.getObservable().remove.subscribe(this._onRemove.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<{ disabled: DisabledRequest[] }>) {
@@ -66,15 +64,7 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
     }
 
     public _ng_onDragStarted(entity: Entity<DisabledRequest>) {
-        this._dragging = entity;
-        SearchManagerService.onDragStart(true);
-    }
-
-    private _onRemove() {
-        if (this._dragging) {
-            this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(this._dragging.getEntity());
-        }
-        this._dragging = undefined;
+        SearchManagerService.onDragStart(true, entity);
     }
 
     private _onDataUpdate() {
