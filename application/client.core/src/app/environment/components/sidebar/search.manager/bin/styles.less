@@ -8,24 +8,20 @@
     bottom: 0px;
 }
 
-& mat-expansion-panel:hover {
+& div {
+    transform: translateY(-100%);
+}
+
+& div:hover {
     & mat-icon {
         color: @scheme-color-error;
     }
 }
 
 & mat-icon {
-    transform: translate(-50%, 50%);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     color: @scheme-color-accent;
-}
-
-
-@keyframes blendInOut {
-    from {
-        opacity: 0.000001; 
-    }
-    
-    to {
-        opacity: 1;
-    }
 }
