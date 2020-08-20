@@ -1,5 +1,11 @@
 # Changelog
 
+### [2.6.2] - 08/20/2020
+* [#887] Add support of meta keys for macos to copy selection into clipboard
+* [#887] Cleanup content before copy to clipboard
+* [#887] Support hotkey to copy selected rows and support copy from search view
+* [#887] Main output: copy selected rows into clipboard (if no selected text).
+
 ### [2.6.1] - 08/19/2020
 * Fix markdown styles
 
