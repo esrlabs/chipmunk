@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, HostListener, ElementRef } from '@angular/core';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';

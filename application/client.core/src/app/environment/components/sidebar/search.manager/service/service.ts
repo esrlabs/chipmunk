@@ -29,6 +29,7 @@ export class SearchManagerService {
     public onBinDrop() {
         this._subjects.remove.next();
     }
+
     public onDragStart(status: boolean, entity?: Entity<TRequest>) {
         this._subjects.drag.next(status);
         this._dragging = entity;
