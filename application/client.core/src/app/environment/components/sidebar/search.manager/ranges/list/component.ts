@@ -21,10 +21,12 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     public _ng_entries: Array<Entity<RangeRequest>> = [];
     public _ng_progress: boolean = false;
     public _ng_listID: EListID = EListID.rangesList;
+    public _ng_dragging: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
-    private _dragging: Entity<RangeRequest>;
+    private _droppedOut: boolean;
+    private _ignore: boolean;
 
     constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {
     }
@@ -39,10 +41,16 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
+        this._subscriptions.mouseOver = SearchManagerService.getObservable().mouseOver.subscribe(this._onMouseOver.bind(this));
+        this._subscriptions.mouseOverGlobal = SearchManagerService.getObservable().mouseOverGlobal.subscribe(this._onMouseOverGlobal.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<RangeRequest[]>) {
         SearchManagerService.onDragStart(false);
+        this._ng_dragging = false;
+        if (this._droppedOut) {
+            return;
+        }
         const prev = event.previousContainer;
         const index = event.previousIndex;
         if (prev.data !== undefined && (prev.data as any).disabled !== undefined) {
@@ -101,8 +109,21 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     }
 
     public _ng_onDragStarted(entity: Entity<RangeRequest>) {
-        this._dragging = entity;
+        this._ng_dragging = true;
         SearchManagerService.onDragStart(true, entity);
+    }
+
+    private _onMouseOver(listID: EListID) {
+        this._ignore = true;
+        this._droppedOut = false;
+    }
+
+    private _onMouseOverGlobal() {
+        if (!this._ignore) {
+            this._droppedOut = true;
+        } else {
+            this._ignore = false;
+        }
     }
 
     private _onDataUpdate() {
