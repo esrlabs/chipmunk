@@ -1,0 +1,41 @@
+@import '../../../../theme/variables.less';
+
+:host {
+    position: absolute;
+    display: flex;
+    flex-flow: row;
+    padding: 0;
+    margin: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+    & div.left {
+        position: relative;
+        flex-grow: 1;
+        & > * {
+            display: inline-block;
+            vertical-align: top;
+        }
+        & p.label {
+            margin: 5px 8px;
+        }
+        & mat-spinner{
+            margin-top: 3px;
+        }
+        & span.format{
+            border: thin dotted @scheme-color-4;
+            margin: 0 8px;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+    }
+    & div.right {
+        position: relative;
+        flex-grow: 0;
+        & button {
+            margin-top: -1px;
+        }
+    }
+}

@@ -3,7 +3,7 @@ import { CommonModule                               } from '@angular/common';
 import { ScrollingModule                            } from '@angular/cdk/scrolling';
 
 import { ViewMeasurementComponent                   } from './component';
-import { ViewMeasurementFormatsComponent            } from './formats/component';
+import { ViewMeasurementControllsComponent          } from './controlls/component';
 import { ViewMeasurementFormatComponent             } from './format/component';
 import { ViewMeasurementDefaultsComponent           } from './defaults/component';
 import { ViewMeasurementChartComponent              } from './charts/component';
@@ -17,13 +17,15 @@ import { MatFormFieldModule                         } from '@angular/material/fo
 import { MatProgressBarModule                       } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule                   } from '@angular/material/progress-spinner';
 import { MatExpansionModule                         } from '@angular/material/expansion';
+import { MatMenuModule                              } from '@angular/material/menu';
+import { MatDividerModule                           } from '@angular/material/divider';
 
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 const entryComponents = [
     ViewMeasurementComponent,
-    ViewMeasurementFormatsComponent,
+    ViewMeasurementControllsComponent,
     ViewMeasurementFormatComponent,
     ViewMeasurementDefaultsComponent,
     ViewMeasurementChartComponent,
@@ -47,6 +49,8 @@ const components = [ ...entryComponents ];
         MatProgressBarModule,
         MatProgressSpinnerModule,
         MatExpansionModule,
+        MatMenuModule,
+        MatDividerModule,
         FormsModule,
         ReactiveFormsModule ],
     declarations    : [ ...components ],

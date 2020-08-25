@@ -1,0 +1,65 @@
+<!--
+<div class="list" (contextmenu)="_ng_onContexMenu($event)">
+    <mat-expansion-panel
+        [expanded]="true"
+        [hideToggle]="true">
+        <mat-expansion-panel-header>
+            <mat-panel-title>Formats:</mat-panel-title>
+        </mat-expansion-panel-header>
+        <p class="t-small color-scheme-2" *ngIf="_ng_formats.length === 0">No formats are detected</p>
+        <app-views-measurement-format *ngFor="let format of _ng_formats"
+            (contextmenu)="_ng_onContexMenu($event, format)"
+            [format]="format"></app-views-measurement-format>
+    </mat-expansion-panel>
+    <span class="slitter"></span>
+    <mat-expansion-panel
+        [expanded]="false">
+        <mat-expansion-panel-header>
+            <mat-panel-title>{{_ng_getDefaultsTitle()}}</mat-panel-title>
+        </mat-expansion-panel-header>
+        <app-views-measurement-defaults [controller]="controller"></app-views-measurement-defaults>
+    </mat-expansion-panel>
+</div>
+<div class="controlls">
+    <button mat-icon-button color="primary" aria-label="Add Format" (click)="_ng_onAddFormat()" [disabled]="_ng_detecting">
+        <mat-icon>add</mat-icon>
+    </button>
+    <button mat-icon-button color="primary" aria-label="Reset & Detect" (click)="_ng_onResetAndDetect()" [disabled]="_ng_detecting">
+        <mat-spinner *ngIf="_ng_detecting" [diameter]="32" mode="indeterminate"></mat-spinner>
+        <mat-icon>refresh</mat-icon>
+    </button>
+</div>
+
+-->
+<div class="left">
+    <p *ngIf="_ng_formats.length > 0" class="label t-normal color-scheme-1">
+        <span class="color-scheme-3">Used format: </span><span class="format">{{_ng_formats[0].format}}</span><span *ngIf="_ng_formats.length > 1"> (and more {{_ng_formats.length - 1}})</span>
+    </p>
+    <p *ngIf="_ng_detectingErr !== undefined" class="label t-normal color-scheme-accent">Format isn't detected. {{_ng_detectingErr}}</p>
+    <p *ngIf="_ng_detecting" class="label t-normal color-scheme-1">Detecting format...</p>
+    <mat-spinner *ngIf="_ng_detecting" [diameter]="24" mode="indeterminate"></mat-spinner>
+</div>
+<div class="right">
+    <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="actionsMenu">
+        <mat-icon>more_horiz</mat-icon>
+    </button>
+    <mat-menu #actionsMenu="matMenu" xPosition="before">
+        <button *ngFor="let format of _ng_formats" mat-menu-item disabled>
+            <span>{{format.format}}</span>
+        </button>
+        <mat-divider *ngIf="_ng_formats.length > 0"></mat-divider>
+        <button mat-menu-item (click)="_ng_onAddFormat()" [disabled]="_ng_detecting">
+            <mat-icon>add</mat-icon>
+            <span>Add DateTime Format</span>
+        </button>
+        <button mat-menu-item (click)="_ng_onResetAndDetect()" [disabled]="_ng_detecting">
+            <mat-icon>youtube_searched_for</mat-icon>
+            <span>Detect DateTime Format</span>
+        </button>
+        <button mat-menu-item (click)="_ng_onSetDefaultsFormat()" [disabled]="_ng_detecting">
+            <mat-icon>schedule</mat-icon>
+            <span>Set Defaults DateTime Values(YYYY, MM or DD)</span>
+        </button>
+      </mat-menu>
+</div>
+

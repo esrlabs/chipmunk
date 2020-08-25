@@ -3,6 +3,7 @@ import { Subscription } from 'rxjs';
 import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamps';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { DialogsMeasurementAddFormatComponent } from '../../../dialogs/measurement.format.add/component';
+import { DialogsMeasurementFormatDefaultsComponent } from '../../../dialogs/measurement.format.defaults/component';
 import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
 
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
@@ -11,20 +12,21 @@ import PopupsService from '../../../../services/standalone/service.popups';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
-    selector: 'app-views-measurement-formats',
+    selector: 'app-views-measurement-controlls',
     templateUrl: './template.html',
     styleUrls: ['./styles.less']
 })
 
-export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterContentInit, OnDestroy, OnChanges {
+export class ViewMeasurementControllsComponent implements AfterViewInit, AfterContentInit, OnDestroy, OnChanges {
 
     @Input() controller: ControllerSessionTabTimestamp;
 
     public _ng_formats: IFormat[] = [];
     public _ng_detecting: boolean = false;
+    public _ng_detectingErr: string | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementFormatsComponent');
+    private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementControllsComponent');
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -108,16 +110,36 @@ export class ViewMeasurementFormatsComponent implements AfterViewInit, AfterCont
         });
     }
 
+    public _ng_onSetDefaultsFormat() {
+        const guid: string = PopupsService.add({
+            id: 'measurement-time-defaults-format-dialog',
+            options: {
+                closable: false,
+                width: 40,
+            },
+            caption: `Set Defaults for Datetime`,
+            component: {
+                factory: DialogsMeasurementFormatDefaultsComponent,
+                inputs: {
+                    controller: this.controller,
+                    add: (format: IFormat) => {
+                        PopupsService.remove(guid);
+                        this.controller.addFormat(format);
+                    },
+                    cancel: () => {
+                        PopupsService.remove(guid);
+                    }
+                }
+            }
+        });
+    }
+
     public _ng_onResetAndDetect() {
         this._ng_detecting = true;
-        this.controller.discover(true).catch((error: Error) => {
-            this._notifications.add({
-                caption: 'Detecting timeformat',
-                message: `Fail to detect datetime format. Please define format manually. Error: ${error.message}`,
-                options: {
-                    type: ENotificationType.accent,
-                },
-            });
+        this.controller.discover(true).then(() => {
+            this._ng_detectingErr = undefined;
+        }).catch((error: Error) => {
+            this._ng_detectingErr = error.message;
         }).finally(() => {
             this._ng_detecting = false;
             this._forceUpdate();
