@@ -10,6 +10,7 @@ import { ProviderCharts } from './charts/provider';
 import { ProviderRanges } from './ranges/provider';
 import { ProviderDisabled } from './disabled/provider';
 
+import SearchManagerService from './service/service';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -105,6 +106,10 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
 
     public _ng_onPanelClick() {
         this._forceUpdate();
+    }
+
+    public _ng_onMouseOver() {
+        SearchManagerService.onMouseOverGlobal();
     }
 
     private _onContextMenu(event: IContextMenuEvent) {

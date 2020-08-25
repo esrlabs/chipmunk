@@ -1,5 +1,5 @@
 import { Directive, ChangeDetectorRef, OnInit, OnDestroy, Input, HostBinding, HostListener, NgZone, ViewContainerRef } from '@angular/core';
-import { Subscription, Observable, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { Entity } from '../providers/entity';
 import { Provider, ISelectEvent } from '../providers/provider';
 

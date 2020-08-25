@@ -6,7 +6,7 @@ import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
 
-import SearchManagerService from '../../service/service';
+import SearchManagerService, { EListID } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-timerangehooks',
@@ -20,6 +20,7 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
 
     public _ng_entries: Array<Entity<RangeRequest>> = [];
     public _ng_progress: boolean = false;
+    public _ng_listID: EListID = EListID.rangesList;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;

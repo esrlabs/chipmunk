@@ -5,7 +5,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
-import SearchManagerService from '../../service/service';
+import SearchManagerService, { EListID } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-disableds',
@@ -18,6 +18,7 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
     @Input() provider: Provider<DisabledRequest>;
 
     public _ng_entries: Array<Entity<DisabledRequest>> = [];
+    public _ng_listID: EListID = EListID.disabledList;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;

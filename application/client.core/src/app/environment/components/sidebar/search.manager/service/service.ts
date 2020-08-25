@@ -7,6 +7,14 @@ import { RangeRequest } from 'src/app/environment/controller/controller.session.
 
 export type TRequest = FilterRequest | ChartRequest | DisabledRequest | RangeRequest;
 
+export enum EListID {
+    filtersList = 'filtersList',
+    chartsList = 'chartsList',
+    disabledList = 'disabledList',
+    rangesList = 'rangesList',
+    binList = 'binList'
+}
+
 export class SearchManagerService {
 
     private _dragging: Entity<TRequest>;
@@ -14,15 +22,21 @@ export class SearchManagerService {
     private _subjects = {
         remove: new Subject<void>(),
         drag: new Subject<boolean>(),
+        mouseOver: new Subject<EListID>(),
+        mouseOverGlobal: new Subject<void>(),
     };
 
     public getObservable(): {
         remove: Observable<void>,
         drag: Observable<boolean>,
+        mouseOver: Observable<EListID>,
+        mouseOverGlobal: Observable<void>,
     } {
         return {
             remove: this._subjects.remove.asObservable(),
             drag: this._subjects.drag.asObservable(),
+            mouseOver: this._subjects.mouseOver.asObservable(),
+            mouseOverGlobal: this._subjects.mouseOverGlobal.asObservable(),
         };
     }
 
@@ -33,6 +47,14 @@ export class SearchManagerService {
     public onDragStart(status: boolean, entity?: Entity<TRequest>) {
         this._subjects.drag.next(status);
         this._dragging = entity;
+    }
+
+    public onMouseOver(listID: EListID) {
+        this._subjects.mouseOver.next(listID);
+    }
+
+    public onMouseOverGlobal() {
+        this._subjects.mouseOverGlobal.next();
     }
 
     public getDragging(): Entity<TRequest> {

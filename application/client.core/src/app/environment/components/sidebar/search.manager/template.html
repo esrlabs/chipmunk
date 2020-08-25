@@ -1,4 +1,4 @@
-<div class="holder">
+<div class="holder" (mouseover)="_ng_onMouseOver()">
     <div class="wrapper" *ngFor="let provider of _ng_providers">
         <mat-expansion-panel
             *ngIf="!provider.isEmpty() || provider.getContentIfEmpty() !== undefined"

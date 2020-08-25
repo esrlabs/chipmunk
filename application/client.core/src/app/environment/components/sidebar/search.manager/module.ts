@@ -38,6 +38,7 @@ import { SidebarAppSearchManagerDisabledsComponent          } from './disabled/l
 import { SidebarAppSearchManagerDisabledComponent           } from './disabled/entity/component';
 import { SidebarAppSearchManagerComponent                   } from './component';
 import { SidebarAppSearchManagerItemDirective               } from './directives/item.directive';
+import { SidebarAppSearchManagerListDirective               } from './directives/list.directive';
 import { SidebarAppSearchManagerControlsComponent           } from './controls/component';
 import { SidebarAppSearchManagerBinComponent                } from './bin/component';
 
@@ -59,6 +60,10 @@ const entryComponents = [
     SidebarAppSearchManagerBinComponent,
 ];
 const components = [ ...entryComponents ];
+const directives = [
+    SidebarAppSearchManagerItemDirective,
+    SidebarAppSearchManagerListDirective
+];
 const modules = [
     CommonModule,
     PrimitiveModule,
@@ -88,8 +93,8 @@ const modules = [
 @NgModule({
     entryComponents : [ ...entryComponents, MatSlider ],
     imports         : [ ...modules ],
-    declarations    : [ ...components, SidebarAppSearchManagerItemDirective ],
-    exports         : [ ...components, SidebarAppSearchManagerItemDirective ]
+    declarations    : [ ...components, ...directives ],
+    exports         : [ ...components, ...directives ]
 })
 
 export class SidebarAppSearchManagerModule {

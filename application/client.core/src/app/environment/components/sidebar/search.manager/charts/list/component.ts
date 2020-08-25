@@ -5,7 +5,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
-import SearchManagerService from '../../service/service';
+import SearchManagerService, { EListID } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-charts',
@@ -18,6 +18,7 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     @Input() provider: Provider<ChartRequest>;
 
     public _ng_entries: Array<Entity<ChartRequest>> = [];
+    public _ng_listID: EListID = EListID.chartsList;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;

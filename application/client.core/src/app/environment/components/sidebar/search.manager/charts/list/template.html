@@ -1,5 +1,7 @@
 <div id="charts-entities"
     cdkDropList
+    appSidebarSearchManagerList
+    [listID]="_ng_listID"
     [cdkDropListConnectedTo]="['disabled-entities', 'bin-entity']"
     [cdkDropListData]="_ng_entries"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
