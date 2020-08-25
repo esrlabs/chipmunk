@@ -1,5 +1,7 @@
 <div id="disabled-entities"
     cdkDropList
+    appSidebarSearchManagerList
+    [listID]="_ng_listID"
     [cdkDropListConnectedTo]="['charts-entities', 'ranges-entities', 'filters-entities', 'bin-entity']"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
     [cdkDropListData]="{ disabled: _ng_entries }"

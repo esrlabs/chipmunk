@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { Component, OnDestroy } from '@angular/core';
 import { trigger, transition, animate, style, state } from '@angular/animations';
 
-import SearchManagerService from '../service/service';
+import SearchManagerService, { EListID } from '../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-bin',
@@ -25,21 +26,56 @@ import SearchManagerService from '../service/service';
     ],
 })
 
-export class SidebarAppSearchManagerBinComponent {
+export class SidebarAppSearchManagerBinComponent implements OnDestroy {
 
     public _ng_dragging: boolean = false;
+    public _ng_listID: EListID = EListID.binList;
+
+    private _subscriptions: { [key: string]: Subscription } = {};
+    private _droppedListID: EListID;
+    private _droppedOut: boolean = false;
+    private _ignore: boolean;
 
     constructor() {
-        SearchManagerService.getObservable().drag.subscribe(this._onDragStart.bind(this));
+        this._subscriptions.drag = SearchManagerService.getObservable().drag.subscribe(this._onDragStart.bind(this));
+        this._subscriptions.mouseOver = SearchManagerService.getObservable().mouseOver.subscribe(this._onMouseOver.bind(this));
+        this._subscriptions.mouseOverGlobal = SearchManagerService.getObservable().mouseOverGlobal.subscribe(this._onMouseOverGlobal.bind(this));
+    }
+
+    public ngOnDestroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public _ng_onListDropped() {
-        SearchManagerService.onBinDrop();
+        if (this._droppedListID === this._ng_listID && !this._droppedOut) {
+            SearchManagerService.onBinDrop();
+        }
         this._ng_dragging = false;
     }
 
     private _onDragStart(status: boolean) {
         this._ng_dragging = status;
+    }
+
+    private _onMouseOver(listID: EListID) {
+        if (this._ng_dragging) {
+            if (listID !== this._ng_listID) {
+                // Special case for bin
+                this._ignore = true;
+            }
+            this._droppedListID = listID;
+            this._droppedOut = false;
+        }
+    }
+
+    private _onMouseOverGlobal() {
+        if (this._ng_dragging && !this._ignore) {
+            this._droppedOut = true;
+        } else {
+            this._ignore = false;
+        }
     }
 
 }
