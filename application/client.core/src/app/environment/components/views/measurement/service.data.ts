@@ -262,6 +262,17 @@ export class DataService {
         });
     }
 
+    public discover(update: boolean = false): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._session === undefined) {
+                return reject(new Error(this._logger.warn(`Session object isn't available`)));
+            }
+            this._session.getTimestamp().discover(update).then(resolve).catch(reject);
+            // TODO: Probably we should prevent multiple execution of discover feature - it doesn't make sence
+            // to start discove several times for same session.
+        });
+    }
+
     private _getRangesAsCSV(): string {
         const VALUE_DIV = ',';
         const content: string[] = [[

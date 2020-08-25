@@ -1,0 +1,20 @@
+@import '../../../theme/variables.less';
+
+:host {
+    position: relative;
+    display: block;
+    & div.controlls{
+        position: relative;
+        display: block;
+        overflow: hidden;
+        text-align: right;
+        width: 100%;
+        padding: 8px 0 6px 0;
+        & button {
+            margin-right: 8px!important;
+            &:last-child {
+                margin-right: 0!important;
+            }
+        }
+    }
+}
