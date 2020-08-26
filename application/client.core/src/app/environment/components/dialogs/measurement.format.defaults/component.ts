@@ -76,6 +76,8 @@ export class DatePartErrorStateMatcher implements ErrorStateMatcher {
 export class DialogsMeasurementFormatDefaultsComponent implements AfterViewInit, AfterContentInit, OnDestroy {
 
     @Input() controller: ControllerSessionTabTimestamp;
+    @Input() save: () => void;
+    @Input() cancel: () => void;
 
     public _ng_year: number | undefined;
     public _ng_month: number | undefined;
@@ -98,6 +100,10 @@ export class DialogsMeasurementFormatDefaultsComponent implements AfterViewInit,
         this._ng_year_error = new DatePartErrorStateMatcher(EDatePartType.year);
         this._ng_month_error = new DatePartErrorStateMatcher(EDatePartType.month);
         this._ng_day_error = new DatePartErrorStateMatcher(EDatePartType.day);
+        const defs = this.controller.getDefaults();
+        this._ng_day = defs.day;
+        this._ng_month = defs.month;
+        this._ng_year = defs.year;
     }
 
     ngAfterViewInit() {
@@ -109,10 +115,8 @@ export class DialogsMeasurementFormatDefaultsComponent implements AfterViewInit,
         });
     }
 
-    public _ng_onChange() {
-        if ((!this._ng_day_error.isValueValid(this._ng_day) && this._ng_day !== undefined && this._ng_day !== null) ||
-            (!this._ng_month_error.isValueValid(this._ng_month) && this._ng_month !== undefined && this._ng_month !== null) ||
-            (!this._ng_year_error.isValueValid(this._ng_year) && this._ng_year !== undefined && this._ng_year !== null)) {
+    public _ng_save() {
+        if (!this._ng_isValid()) {
             return;
         }
         this.controller.setDefaults({
@@ -120,14 +124,20 @@ export class DialogsMeasurementFormatDefaultsComponent implements AfterViewInit,
             month: this._ng_month === null ? undefined : this._ng_month,
             day: this._ng_day === null ? undefined : this._ng_day,
         });
-        this._forceUpdate();
-    }
-
-    public _ng_save() {
-
+        this.save();
     }
 
     public _ng_cancel() {
+        this.cancel();
+    }
+
+    public _ng_isValid(): boolean {
+        if ((!this._ng_day_error.isValueValid(this._ng_day) && this._ng_day !== undefined && this._ng_day !== null) ||
+            (!this._ng_month_error.isValueValid(this._ng_month) && this._ng_month !== undefined && this._ng_month !== null) ||
+            (!this._ng_year_error.isValueValid(this._ng_year) && this._ng_year !== undefined && this._ng_year !== null)) {
+            return false;
+        }
+        return true;
     }
 
     private _forceUpdate() {

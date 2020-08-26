@@ -77,7 +77,7 @@ export class ForamtErrorStateMatcher implements ErrorStateMatcher {
 export class DialogsMeasurementAddFormatComponent implements AfterViewInit, AfterContentInit, OnDestroy {
 
     @Input() controller: ControllerSessionTabTimestamp;
-    @Input() add: (format: IFormat) => void;
+    @Input() add: () => void;
     @Input() cancel: () => void;
 
     public _ng_format_error: ForamtErrorStateMatcher;
@@ -110,10 +110,11 @@ export class DialogsMeasurementAddFormatComponent implements AfterViewInit, Afte
 
     public _ng_add() {
         this.controller.validate(this._ng_format).then((regexp: RegExp) => {
-            this.add({
+            this.controller.addFormat({
                 format: this._ng_format,
                 regexp: regexp,
             });
+            this.add();
         }).catch((error: Error) => {
             this._logger.warn(`Fail get regexp from datetime format: `);
         });

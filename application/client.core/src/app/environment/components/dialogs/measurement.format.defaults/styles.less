@@ -3,6 +3,22 @@
 :host {
     position: relative;
     display: block;
+    & div.fields{
+        position: relative;
+        display: block;
+        overflow: hidden;
+        padding-right: 33%;
+    }
+    & div.desc{
+        position: absolute;
+        right: 0;
+        width: 33%;
+        top: 0;
+        & p {
+            padding-left: 16px;
+            padding-right: 8px;
+        }
+    }
     & div.controlls{
         position: relative;
         display: block;
