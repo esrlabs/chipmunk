@@ -46,6 +46,7 @@ import ServiceLogs from './services/service.logs';
 import ServiceLogsExtractor from './services/service.logs.extractor';
 import ServiceReleaseNotes from './services/service.release.notes';
 import ServiceCLI from './services/service.cli';
+import ServiceTimestampFormatRecent from './services/features/service.timestamp.recent';
 
 enum EAppState {
     initing = 'initing',
@@ -92,7 +93,7 @@ const InitializeStages = [
         ServiceFilePicker, ServiceDLTDeamonConnector,
         ServiceOutputExport, ServiceLogsExtractor,
         ServiceFileRecent, ServiceTimestamp,
-        ServiceFileWriter,
+        ServiceFileWriter, ServiceTimestampFormatRecent,
     ],
     // Stage #10. Init plugins and current release data
     [   ServicePlugins, ServiceReleaseNotes, ServiceCLI ],

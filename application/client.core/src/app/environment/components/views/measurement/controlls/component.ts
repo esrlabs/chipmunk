@@ -25,6 +25,7 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
     public _ng_formats: IFormat[] = [];
     public _ng_detecting: boolean = false;
     public _ng_detectingErr: string | undefined;
+    public _ng_recent: string[] = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementControllsComponent');
@@ -148,8 +149,26 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
     public _ng_onFilterRemove(event: MouseEvent, format: IFormat) {
         this.controller.removeFormatDef(format.format);
         this._forceUpdate();
-        event.stopImmediatePropagation();
-        event.preventDefault();
+    }
+
+    public _ng_onMenuCall() {
+        this.controller.getRecent().then((recent: string[]) => {
+            this._ng_recent = recent;
+            this._forceUpdate();
+        }).catch((err: Error) => {
+            this._logger.warn(err.message);
+        });
+    }
+
+    public _ng_onAddFromRecent(recent: string) {
+        this.controller.validate(recent).then((regexp: RegExp) => {
+            this.controller.addFormat({
+                format: recent,
+                regexp: regexp,
+            });
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail get regexp from datetime format: `);
+        });
     }
 
     private _subscribe() {

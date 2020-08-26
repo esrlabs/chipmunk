@@ -523,6 +523,16 @@ export { ITimestampExportCSVRequest, TimestampExportCSVRequest }
 import { ITimestampExportCSVResponse, TimestampExportCSVResponse } from './timestamp.exportcsv.response';
 export { ITimestampExportCSVResponse, TimestampExportCSVResponse }
 
+import { TimestampFormatRecentRequest } from './timestamp.format.recent.request';
+export { TimestampFormatRecentRequest }
+
+import { ITimestampFormatRecentResponse, TimestampFormatRecentResponse } from './timestamp.format.recent.response';
+export { ITimestampFormatRecentResponse, TimestampFormatRecentResponse }
+
+import { ITimestampFormatRecentAdd, TimestampFormatRecentAdd } from './timestamp.format.recent.add';
+export { ITimestampFormatRecentAdd, TimestampFormatRecentAdd }
+
+
 import { ITimerangeSearchRequest, TimerangeSearchRequest } from './timerange.search.request';
 export { ITimerangeSearchRequest, TimerangeSearchRequest }
 
@@ -711,6 +721,9 @@ export type TMessage =  AppRestartRequest |
                         TimestampExtractResponse |
                         TimestampExportCSVRequest |
                         TimestampExportCSVResponse |
+                        TimestampFormatRecentRequest |
+                        TimestampFormatRecentResponse |
+                        TimestampFormatRecentAdd |
                         TimerangeSearchRequest |
                         TimerangeSearchResponse |
                         TimerangeSearchProgress |
@@ -918,6 +931,9 @@ export const Map = {
     [TimestampExtractResponse.signature             ]: TimestampExtractResponse,
     [TimestampExportCSVRequest.signature            ]: TimestampExportCSVRequest,
     [TimestampExportCSVResponse.signature           ]: TimestampExportCSVResponse,
+    [TimestampFormatRecentRequest.signature         ]: TimestampFormatRecentRequest,
+    [TimestampFormatRecentResponse.signature        ]: TimestampFormatRecentResponse,
+    [TimestampFormatRecentAdd.signature             ]: TimestampFormatRecentAdd,
 
     [TimerangeSearchRequest.signature               ]: TimerangeSearchRequest,
     [TimerangeSearchResponse.signature              ]: TimerangeSearchResponse,
