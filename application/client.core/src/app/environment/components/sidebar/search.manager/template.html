@@ -13,7 +13,7 @@
             <div *ngIf="!provider.isEmpty()">
                 <lib-containers-dynamic [detectChanges]="false" [component]="provider.getListComp()"></lib-containers-dynamic>
             </div>
-            <p class="t-small" *ngIf="provider.isEmpty()">{{provider.getContentIfEmpty()}}</p>
+            <lib-containers-dynamic *ngIf="provider.isEmpty()" [detectChanges]="false" [component]="provider.getContentIfEmpty()"></lib-containers-dynamic>
         </mat-expansion-panel>
     </div>
 
