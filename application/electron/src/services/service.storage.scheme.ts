@@ -28,6 +28,7 @@ export interface IStorage {
     recentFiltersFiles: IRecentFilterFile[];
     recentSearchRequests: IRecentSearchRequest[];
     recentDLTConnectorSettings: IConnectionOptions[];
+    recentDateTimeFormats: string[];
 }
 
 export const defaults: IStorage = {
@@ -35,4 +36,5 @@ export const defaults: IStorage = {
     recentFiltersFiles: [],
     recentSearchRequests: [],
     recentDLTConnectorSettings: [],
+    recentDateTimeFormats: [],
 };

@@ -4,11 +4,12 @@ import ServiceStreams from "../service.streams";
 import MergeDiscover from '../../controllers/features/merge/merge.discover';
 import MergeFormat from '../../controllers/features/merge/merge.format';
 import TimestampExtract from '../../controllers/features/timestamp/timestamp.extract';
+import ServiceTimestampFormatRecent from './service.timestamp.recent';
 
 import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
-import { dialog, SaveDialogReturnValue, OpenDialogReturnValue } from 'electron';
+import { dialog, SaveDialogReturnValue } from 'electron';
 
 import * as fs from 'fs';
 

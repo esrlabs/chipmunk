@@ -1,36 +1,3 @@
-<!--
-<div class="list" (contextmenu)="_ng_onContexMenu($event)">
-    <mat-expansion-panel
-        [expanded]="true"
-        [hideToggle]="true">
-        <mat-expansion-panel-header>
-            <mat-panel-title>Formats:</mat-panel-title>
-        </mat-expansion-panel-header>
-        <p class="t-small color-scheme-2" *ngIf="_ng_formats.length === 0">No formats are detected</p>
-        <app-views-measurement-format *ngFor="let format of _ng_formats"
-            (contextmenu)="_ng_onContexMenu($event, format)"
-            [format]="format"></app-views-measurement-format>
-    </mat-expansion-panel>
-    <span class="slitter"></span>
-    <mat-expansion-panel
-        [expanded]="false">
-        <mat-expansion-panel-header>
-            <mat-panel-title>{{_ng_getDefaultsTitle()}}</mat-panel-title>
-        </mat-expansion-panel-header>
-        <app-views-measurement-defaults [controller]="controller"></app-views-measurement-defaults>
-    </mat-expansion-panel>
-</div>
-<div class="controlls">
-    <button mat-icon-button color="primary" aria-label="Add Format" (click)="_ng_onAddFormat()" [disabled]="_ng_detecting">
-        <mat-icon>add</mat-icon>
-    </button>
-    <button mat-icon-button color="primary" aria-label="Reset & Detect" (click)="_ng_onResetAndDetect()" [disabled]="_ng_detecting">
-        <mat-spinner *ngIf="_ng_detecting" [diameter]="32" mode="indeterminate"></mat-spinner>
-        <mat-icon>refresh</mat-icon>
-    </button>
-</div>
-
--->
 <div class="left">
     <p *ngIf="_ng_formats.length > 0" class="label t-normal color-scheme-1">
         <span class="color-scheme-3">Used format: </span><span class="format">{{_ng_formats[0].format}}</span><span *ngIf="_ng_formats.length > 1"> (and more {{_ng_formats.length - 1}})</span>
@@ -40,9 +7,12 @@
     <mat-spinner *ngIf="_ng_detecting" [diameter]="24" mode="indeterminate"></mat-spinner>
 </div>
 <div class="right">
-    <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="actionsMenu">
+    <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="actionsMenu" (mousedown)="_ng_onMenuCall()">
         <mat-icon>more_horiz</mat-icon>
     </button>
+    <mat-menu #recent="matMenu">
+        <button mat-menu-item *ngFor="let recent of _ng_recent" (click)="_ng_onAddFromRecent(recent)">{{recent}}</button>
+    </mat-menu>
     <mat-menu #actionsMenu="matMenu" xPosition="before">
         <div class="time-measurement-menu-item-filter" *ngFor="let format of _ng_formats">
             <div class="left">
@@ -55,11 +25,11 @@
             </div>
         </div>
         <mat-divider *ngIf="_ng_formats.length > 0"></mat-divider>
-        <button mat-menu-item [matMenuTriggerFor]="recent">
+        <button *ngIf="_ng_recent.length > 0" mat-menu-item [matMenuTriggerFor]="recent">
             <mat-icon>history</mat-icon>
             <span>Recent</span>
         </button>
-        <mat-divider></mat-divider>
+        <mat-divider *ngIf="_ng_recent.length > 0"></mat-divider>
         <button mat-menu-item (click)="_ng_onAddFormat()" [disabled]="_ng_detecting">
             <mat-icon>add</mat-icon>
             <span>Add DateTime Format</span>
@@ -72,10 +42,6 @@
             <mat-icon>schedule</mat-icon>
             <span>Set Defaults DateTime Values(YYYY, MM or DD)</span>
         </button>
-      </mat-menu>
-      <mat-menu #recent="matMenu">
-        <button mat-menu-item>Birds</button>
-        <button mat-menu-item>Mammals</button>
-      </mat-menu>
+    </mat-menu>
 </div>
 

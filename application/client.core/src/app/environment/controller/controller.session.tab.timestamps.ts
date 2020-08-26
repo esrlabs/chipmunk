@@ -529,6 +529,21 @@ export class ControllerSessionTabTimestamp {
         return task;
     }
 
+    public getRecent(): Promise<string[]> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.TimestampFormatRecentRequest(), IPCMessages.TimestampFormatRecentResponse).then((response: IPCMessages.TimestampFormatRecentResponse) => {
+                if (typeof response.error === 'string') {
+                    this._logger.error(`Fail to get recent time formats due error: ${response.error}`);
+                    return reject(new Error(response.error));
+                }
+                resolve(response.formats);
+            }).catch((disErr: Error) => {
+                this._logger.error(`Fail to request recent filters due error: ${disErr.message}`);
+                return reject(disErr);
+            });
+        });
+    }
+
     public isDetected(): boolean {
         return this._format.length > 0;
     }
@@ -588,9 +603,17 @@ export class ControllerSessionTabTimestamp {
     }
 
     public addFormat(format: IFormat) {
+        if (this._format.find(f => f.format === format.format) !== undefined) {
+            return;
+        }
         this._format.push(format);
         this._subjects.formats.next();
         OutputParsersService.updateRowsView();
+        ElectronIpcService.send(new IPCMessages.TimestampFormatRecentAdd({
+            format: format.format,
+        })).catch((err: Error) => {
+            this._logger.warn(`Fail to save recent format due: ${err.message}`);
+        });
     }
 
     public setDefaults(replacements: DefaultDateParts) {
