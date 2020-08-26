@@ -1,0 +1,10 @@
+<div id="filters-entities"
+    cdkDropList
+    appSidebarSearchManagerList
+    [listID]="_ng_listID"
+    [cdkDropListConnectedTo]="['disabled-entities', 'bin-entity']"
+    [cdkDropListData]="[_ng_empty]"
+    (cdkDropListDropped)="_ng_onItemDragged($event)"
+    class="filters">
+    <p class="t-small">{{_ng_empty}}</p>
+</div>

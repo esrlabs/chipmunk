@@ -389,7 +389,7 @@ export abstract class Provider<T> {
     /**
      * Should return undefined to hide panel in case of empty list
      */
-    public abstract getContentIfEmpty(): string | undefined;
+    public abstract getContentIfEmpty(): string | IComponentDesc | undefined;
 
     public abstract getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[];
 

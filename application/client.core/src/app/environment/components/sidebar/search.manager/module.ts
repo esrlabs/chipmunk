@@ -29,6 +29,7 @@ import { SidebarAppSearchManagerChartComponent              } from './charts/cha
 import { SidebarAppSearchManagerChartDetailsComponent       } from './charts/details/component';
 import { SidebarAppSearchManagerFiltersComponent            } from './filters/list/component';
 import { SidebarAppSearchManagerFilterComponent             } from './filters/filter/component';
+import { SidebarAppSearchManagerFiltersPlaceholderComponent } from './filters/placeholder/component';
 import { SidebarAppSearchManagerFilterDetailsComponent      } from './filters/details/component';
 import { SidebarAppSearchManagerTimeRangeComponent          } from './ranges/range/component';
 import { SidebarAppSearchManagerTimeRangesComponent         } from './ranges/list/component';
@@ -48,6 +49,7 @@ const entryComponents = [
     SidebarAppSearchManagerFiltersComponent,
     SidebarAppSearchManagerChartComponent,
     SidebarAppSearchManagerFilterComponent,
+    SidebarAppSearchManagerFiltersPlaceholderComponent,
     SidebarAppSearchManagerChartDetailsComponent,
     SidebarAppSearchManagerFilterDetailsComponent,
     SidebarAppSearchManagerControlsComponent,

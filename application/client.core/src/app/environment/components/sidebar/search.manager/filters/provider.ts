@@ -6,6 +6,7 @@ import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerFiltersComponent } from './list/component';
+import { SidebarAppSearchManagerFiltersPlaceholderComponent } from './placeholder/component';
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { Logger } from 'chipmunk.client.toolkit';
@@ -82,8 +83,13 @@ export class ProviderFilters extends Provider<FilterRequest> {
         super.update();
     }
 
-    public getContentIfEmpty(): string | undefined {
-        return `No filters are stored`;
+    public getContentIfEmpty(): IComponentDesc {
+        return {
+            factory: SidebarAppSearchManagerFiltersPlaceholderComponent,
+            inputs: {
+                provider: this,
+            },
+        };
     }
 
     public getPanelName(): string {
