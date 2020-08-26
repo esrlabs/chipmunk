@@ -1,4 +1,4 @@
-import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, OnChanges, SimpleChanges, SimpleChange } from '@angular/core';
+import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewEncapsulation, AfterContentInit, OnChanges, SimpleChanges, SimpleChange } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamps';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
@@ -14,7 +14,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-views-measurement-controlls',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 
 export class ViewMeasurementControllsComponent implements AfterViewInit, AfterContentInit, OnDestroy, OnChanges {
@@ -98,9 +99,8 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
                 factory: DialogsMeasurementAddFormatComponent,
                 inputs: {
                     controller: this.controller,
-                    add: (format: IFormat) => {
+                    add: () => {
                         PopupsService.remove(guid);
-                        this.controller.addFormat(format);
                     },
                     cancel: () => {
                         PopupsService.remove(guid);
@@ -122,9 +122,8 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
                 factory: DialogsMeasurementFormatDefaultsComponent,
                 inputs: {
                     controller: this.controller,
-                    add: (format: IFormat) => {
+                    save: () => {
                         PopupsService.remove(guid);
-                        this.controller.addFormat(format);
                     },
                     cancel: () => {
                         PopupsService.remove(guid);
@@ -144,6 +143,13 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
             this._ng_detecting = false;
             this._forceUpdate();
         });
+    }
+
+    public _ng_onFilterRemove(event: MouseEvent, format: IFormat) {
+        this.controller.removeFormatDef(format.format);
+        this._forceUpdate();
+        event.stopImmediatePropagation();
+        event.preventDefault();
     }
 
     private _subscribe() {

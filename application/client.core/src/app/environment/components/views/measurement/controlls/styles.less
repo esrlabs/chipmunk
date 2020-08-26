@@ -1,6 +1,6 @@
 @import '../../../../theme/variables.less';
 
-:host {
+app-views-measurement-controlls {
     position: absolute;
     display: flex;
     flex-flow: row;
@@ -37,5 +37,26 @@
         & button {
             margin-top: -1px;
         }
+    }
+}
+
+div.time-measurement-menu-item-filter {
+    display: flex;
+    flex-flow: row;
+    padding: 0 8px 0 16px;
+    & div.left {
+        position: relative;
+        flex-grow: 1;
+        & > * {
+            display: inline-block;
+            vertical-align: top;
+        }
+        & span.label {
+            padding-top: 10px;
+        }
+    }
+    & div.right {
+        position: relative;
+        flex-grow: 0;
     }
 }

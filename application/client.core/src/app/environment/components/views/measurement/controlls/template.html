@@ -44,10 +44,22 @@
         <mat-icon>more_horiz</mat-icon>
     </button>
     <mat-menu #actionsMenu="matMenu" xPosition="before">
-        <button *ngFor="let format of _ng_formats" mat-menu-item disabled>
-            <span>{{format.format}}</span>
-        </button>
+        <div class="time-measurement-menu-item-filter" *ngFor="let format of _ng_formats">
+            <div class="left">
+                <span class="t-normal color-scheme-1 label">{{format.format}}</span>
+            </div>
+            <div class="right">
+                <button mat-icon-button color="primary" aria-label="Remove" (click)="_ng_onFilterRemove($event, format)">
+                    <mat-icon>remove</mat-icon>
+                </button>
+            </div>
+        </div>
         <mat-divider *ngIf="_ng_formats.length > 0"></mat-divider>
+        <button mat-menu-item [matMenuTriggerFor]="recent">
+            <mat-icon>history</mat-icon>
+            <span>Recent</span>
+        </button>
+        <mat-divider></mat-divider>
         <button mat-menu-item (click)="_ng_onAddFormat()" [disabled]="_ng_detecting">
             <mat-icon>add</mat-icon>
             <span>Add DateTime Format</span>
@@ -60,6 +72,10 @@
             <mat-icon>schedule</mat-icon>
             <span>Set Defaults DateTime Values(YYYY, MM or DD)</span>
         </button>
+      </mat-menu>
+      <mat-menu #recent="matMenu">
+        <button mat-menu-item>Birds</button>
+        <button mat-menu-item>Mammals</button>
       </mat-menu>
 </div>
 
