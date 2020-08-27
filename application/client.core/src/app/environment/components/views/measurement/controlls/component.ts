@@ -1,12 +1,9 @@
-import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewEncapsulation, AfterContentInit, OnChanges, SimpleChanges, SimpleChange } from '@angular/core';
+import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewEncapsulation, OnChanges, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamps';
-import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { DialogsMeasurementAddFormatComponent } from '../../../dialogs/measurement.format.add/component';
 import { DialogsMeasurementFormatDefaultsComponent } from '../../../dialogs/measurement.format.defaults/component';
-import { NotificationsService, ENotificationType } from '../../../../services.injectable/injectable.service.notifications';
 
-import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 import PopupsService from '../../../../services/standalone/service.popups';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -18,7 +15,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     encapsulation: ViewEncapsulation.None,
 })
 
-export class ViewMeasurementControllsComponent implements AfterViewInit, AfterContentInit, OnDestroy, OnChanges {
+export class ViewMeasurementControllsComponent implements AfterViewInit, OnDestroy, OnChanges {
 
     @Input() controller: ControllerSessionTabTimestamp;
 
@@ -26,21 +23,26 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
     public _ng_detecting: boolean = false;
     public _ng_detectingErr: string | undefined;
     public _ng_recent: string[] = [];
+    public _ng_defaults: {
+        year: number | undefined,
+        month: number | undefined,
+        day: number | undefined,
+    } = {
+        year: undefined,
+        month: undefined,
+        day: undefined,
+    };
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementControllsComponent');
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-        private _notifications: NotificationsService) {
-
-    }
-
-    ngAfterContentInit() {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     ngAfterViewInit() {
         this._onFormatsChange();
+        this._onDefaultsChange();
         this._subscribe();
         if (!this.controller.isDetected()) {
             this._ng_onResetAndDetect();
@@ -57,35 +59,14 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
         }
         this._unsubscribe();
         this._subscribe();
+        this._onFormatsChange();
+        this._onDefaultsChange();
     }
 
     public _ng_getDefaultsTitle(): string {
         const defaults = this.controller.getDefaults();
         const value: string = `${defaults.year === undefined ? 'YYYY' : `${defaults.year}`}.${defaults.month === undefined ? 'MM' : `${defaults.month} `}.${defaults.day === undefined ? 'DD' : `${defaults.day} `}`;
         return value === '' ? `No defaults` : value;
-    }
-
-    public _ng_onContexMenu(event: MouseEvent, selection?: IFormat) {
-        const items: IMenuItem[] = [
-            {
-                caption: `Remove`,
-                handler: () => {
-                    this.controller.removeFormatDef(selection.format);
-                },
-                disabled: selection === undefined,
-            },
-            {
-                caption: `Remove All & Detect`,
-                handler: this._ng_onResetAndDetect.bind(this),
-            }
-        ];
-        ContextMenuService.show({
-            items: items,
-            x: event.pageX,
-            y: event.pageY,
-        });
-        event.stopImmediatePropagation();
-        event.preventDefault();
     }
 
     public _ng_onAddFormat() {
@@ -171,6 +152,10 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
         });
     }
 
+    public _ng_isDefaultsDefined(): boolean {
+        return Object.values(this._ng_defaults).filter(v => v !== undefined).length > 0;
+    }
+
     private _subscribe() {
         this._subscriptions._onFormatsChange = this.controller.getObservable().formats.subscribe(this._onFormatsChange.bind(this));
         this._subscriptions._onDefaultsChange = this.controller.getObservable().defaults.subscribe(this._onDefaultsChange.bind(this));
@@ -188,6 +173,7 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, AfterCo
     }
 
     private _onDefaultsChange() {
+        this._ng_defaults = Object.assign({}, this.controller.getDefaults());
         this._forceUpdate();
     }
 
