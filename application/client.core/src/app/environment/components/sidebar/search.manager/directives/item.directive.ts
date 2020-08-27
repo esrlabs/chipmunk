@@ -14,8 +14,6 @@ import SearchManagerService, { TRequest } from '../service/service';
 
 export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
 
-    @ViewChild(MatDragDropResetFeatureDirective) accessor; // First
-
     @Input() provider: Provider<any> | undefined;
     @Input() entity: Entity<any>;
 
