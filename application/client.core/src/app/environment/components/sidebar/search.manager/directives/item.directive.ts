@@ -5,7 +5,7 @@ import { Provider, ISelectEvent } from '../providers/provider';
 import { CdkDragRelease } from '@angular/cdk/drag-drop';
 import { MatDragDropResetFeatureDirective } from '../../../../directives/material.dragdrop.directive';
 
-import SearchManagerService, { TRequest, EListID } from '../service/service';
+import SearchManagerService, { TRequest } from '../service/service';
 
 
 @Directive({
@@ -28,7 +28,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     private _ignore: boolean = false;
     private _dragging: Entity<TRequest>;
     private _resetFeatureAccessorRef: MatDragDropResetFeatureDirective | undefined;
-    private _listID: EListID;
+    private _overBin: boolean;
 
     @HostBinding('class.selected') get cssClassSelected() {
         return this._ng_selected;
@@ -40,7 +40,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         if (this._resetFeatureAccessorRef === undefined) {
             return;
         }
-        if (this._listID === EListID.binList) {
+        if (this._overBin) {
             return;
         }
         this._resetFeatureAccessorRef.reset(event);
@@ -77,7 +77,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     }
 
     public ngOnInit() {
-        this._subscriptions.mouseOver = SearchManagerService.getObservable().mouseOver.subscribe(this._onMouseOver.bind(this));
+        this._subscriptions.overBin = SearchManagerService.getObservable().mouseOverBin.subscribe(this._onMouseOverBin.bind(this));
         this._subscriptions.remove = SearchManagerService.getObservable().remove.subscribe(this._onRemove.bind(this));
         if (this.provider !== undefined) {
             this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
@@ -96,8 +96,8 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         this._resetFeatureAccessorRef = ref;
     }
 
-    private _onMouseOver(listID: EListID) {
-        this._listID = listID;
+    private _onMouseOverBin(status: boolean) {
+        this._overBin = status;
     }
 
     private _onEditIn(guid: string | undefined) {
