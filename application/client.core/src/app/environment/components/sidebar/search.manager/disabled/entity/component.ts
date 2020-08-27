@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
 import { ProviderDisabled } from '../provider';
 import { Entity } from '../../providers/entity';
+import { MatDragDropResetFeatureDirective } from '../../../../../directives/material.dragdrop.directive';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-disabled',
@@ -27,8 +28,13 @@ export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, Afte
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone, private _directive: SidebarAppSearchManagerItemDirective) {
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _zone: NgZone,
+        private _directive: SidebarAppSearchManagerItemDirective,
+        private _accessor: MatDragDropResetFeatureDirective) {
         this._ng_directive = _directive;
+        this._ng_directive.setResetFeatureAccessorRef(_accessor);
     }
 
     public ngOnDestroy() {

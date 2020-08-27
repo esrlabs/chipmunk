@@ -26,3 +26,26 @@ export function isObjSame(a: any, b: any): boolean {
     });
     return result;
 }
+
+export function getPropByPath<T>(obj: any, path: string): T | Error {
+    const parts: string[] = path.split('.');
+    let value: any = obj;
+    let error: Error | undefined;
+    const pass: string[] = [];
+    parts.forEach((step: string, index: number) => {
+        if (error !== undefined) {
+            return;
+        }
+        if (index === parts.length - 1) {
+            value = value[step];
+        } else {
+            if (typeof value !== 'object' || value === null) {
+                error = new Error(`Value on steps "${pass.join('.')}" isn't an object.`);
+                return;
+            }
+            value = value[step];
+            pass.push(step);
+        }
+    });
+    return error === undefined ? value as T : error;
+}
