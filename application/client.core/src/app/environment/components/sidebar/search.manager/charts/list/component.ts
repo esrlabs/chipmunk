@@ -1,4 +1,5 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
+import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
 import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -17,14 +18,13 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
 
     @Input() provider: Provider<ChartRequest>;
 
+    @ViewChild(SidebarAppSearchManagerListDirective) listDirective: SidebarAppSearchManagerListDirective;
+
     public _ng_entries: Array<Entity<ChartRequest>> = [];
     public _ng_listID: EListID = EListID.chartsList;
-    public _ng_dragging: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
-    private _droppedOut: boolean;
-    private _ignore: boolean;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -39,14 +39,11 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
-        this._subscriptions.mouseOver = SearchManagerService.getObservable().mouseOver.subscribe(this._onMouseOver.bind(this));
-        this._subscriptions.mouseOverGlobal = SearchManagerService.getObservable().mouseOverGlobal.subscribe(this._onMouseOverGlobal.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<ChartRequest[]>) {
         SearchManagerService.onDragStart(false);
-        this._ng_dragging = false;
-        if (this._droppedOut) {
+        if (this.listDirective.droppedOut) {
             return;
         }
         const prev = event.previousContainer;
@@ -68,24 +65,6 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
 
     public _ng_onDoubleClick(event: MouseEvent, entity: Entity<ChartRequest>) {
         this.provider.select().doubleclick(event, entity);
-    }
-
-    public _ng_onDragStarted(entity: Entity<ChartRequest>) {
-        this._ng_dragging = true;
-        SearchManagerService.onDragStart(true, entity);
-    }
-
-    private _onMouseOver(listID: EListID) {
-        this._ignore = true;
-        this._droppedOut = false;
-    }
-
-    private _onMouseOverGlobal() {
-        if (!this._ignore) {
-            this._droppedOut = true;
-        } else {
-            this._ignore = false;
-        }
     }
 
     private _onDataUpdate() {

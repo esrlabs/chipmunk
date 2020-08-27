@@ -42,6 +42,9 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
             this._forceUpdate();
         });
     }
+    @HostListener('cdkDragStarted', ['entity']) DragStarted(entity: Entity<any>) {
+        SearchManagerService.onDragStart(true, entity);
+    }
 
     constructor(
         private _cdRef: ChangeDetectorRef,
