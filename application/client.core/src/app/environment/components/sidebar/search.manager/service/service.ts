@@ -23,6 +23,7 @@ export class SearchManagerService {
         remove: new Subject<void>(),
         drag: new Subject<boolean>(),
         mouseOver: new Subject<EListID>(),
+        mouseOverBin: new Subject<boolean>(),
         mouseOverGlobal: new Subject<void>(),
     };
 
@@ -30,12 +31,14 @@ export class SearchManagerService {
         remove: Observable<void>,
         drag: Observable<boolean>,
         mouseOver: Observable<EListID>,
+        mouseOverBin: Observable<boolean>,
         mouseOverGlobal: Observable<void>,
     } {
         return {
             remove: this._subjects.remove.asObservable(),
             drag: this._subjects.drag.asObservable(),
             mouseOver: this._subjects.mouseOver.asObservable(),
+            mouseOverBin: this._subjects.mouseOverBin.asObservable(),
             mouseOverGlobal: this._subjects.mouseOverGlobal.asObservable(),
         };
     }
@@ -51,6 +54,10 @@ export class SearchManagerService {
 
     public onMouseOver(listID: EListID) {
         this._subjects.mouseOver.next(listID);
+    }
+
+    public onMouseOverBin(status: boolean) {
+        this._subjects.mouseOverBin.next(status);
     }
 
     public onMouseOverGlobal() {

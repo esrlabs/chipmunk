@@ -67,12 +67,14 @@ export class SidebarAppSearchManagerBinComponent implements OnDestroy {
             }
             this._droppedListID = listID;
             this._droppedOut = false;
+            SearchManagerService.onMouseOverBin(true);
         }
     }
 
     private _onMouseOverGlobal() {
         if (this._ng_dragging && !this._ignore) {
             this._droppedOut = true;
+            SearchManagerService.onMouseOverBin(false);
         } else {
             this._ignore = false;
         }
