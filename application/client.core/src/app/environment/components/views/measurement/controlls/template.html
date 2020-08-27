@@ -1,9 +1,15 @@
 <div class="left">
     <p *ngIf="_ng_formats.length > 0" class="label t-normal color-scheme-1">
-        <span class="color-scheme-3">Used format: </span><span class="format">{{_ng_formats[0].format}}</span><span *ngIf="_ng_formats.length > 1"> (and more {{_ng_formats.length - 1}})</span>
+        <span class="color-scheme-3">Used format: </span><span class="format">{{_ng_formats[0].format}}</span><span *ngIf="_ng_formats.length > 1" [matMenuTriggerFor]="actionsMenu"> (and more {{_ng_formats.length - 1}})</span>
     </p>
     <p *ngIf="_ng_detectingErr !== undefined" class="label t-normal color-scheme-accent">Format isn't detected. {{_ng_detectingErr}}</p>
     <p *ngIf="_ng_detecting" class="label t-normal color-scheme-1">Detecting format...</p>
+    <p *ngIf="_ng_isDefaultsDefined()" class="label t-normal color-scheme-1" (click)="_ng_onSetDefaultsFormat()">
+        <span class="color-scheme-3">Defaults: </span>
+        <span class="defaults" *ngIf="_ng_defaults.year !== undefined">YYYY={{_ng_defaults.year}}</span>
+        <span *ngIf="_ng_defaults.month !== undefined">MM={{_ng_defaults.month}}</span>
+        <span *ngIf="_ng_defaults.day !== undefined">DD={{_ng_defaults.day}}</span>
+    </p>
     <mat-spinner *ngIf="_ng_detecting" [diameter]="24" mode="indeterminate"></mat-spinner>
 </div>
 <div class="right">
