@@ -1,12 +1,14 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
 import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
 import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
+import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
 import SearchManagerService, { EListID } from '../../service/service';
+import { EChartType } from 'src/app/environment/components/views/chart/charts/charts';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-charts',
@@ -41,21 +43,32 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<ChartRequest[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<any[]>) {
         SearchManagerService.onDragStart(false);
         if (this.listDirective.droppedOut) {
             return;
         }
         const prev = event.previousContainer;
         const index = event.previousIndex;
-        if (prev.data !== undefined && (prev.data as any).disabled !== undefined) {
-            const outside: Entity<any> | undefined = (prev.data as any).disabled[event.previousIndex] !== undefined ? (prev.data as any).disabled[index] : undefined;
-            if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof ChartRequest) {
-                this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
-                this.provider.getSession().getSessionSearch().getChartsAPI().getStorage().add(outside.getEntity().getEntity(), event.currentIndex);
+        if (prev.data !== undefined) {
+            if ((prev.data as any).disabled !== undefined) {
+                const outside: Entity<any> | undefined = (prev.data as any).disabled[event.previousIndex] !== undefined ? (prev.data as any).disabled[index] : undefined;
+                if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof ChartRequest) {
+                    this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
+                    this.provider.getSession().getSessionSearch().getChartsAPI().getStorage().add(outside.getEntity().getEntity(), event.currentIndex);
+                }
+            } else {
+                const outside: Entity<FilterRequest> | undefined = prev.data[event.previousIndex] !== undefined ? prev.data[index] : undefined;
+                if (outside !== undefined && typeof outside.getEntity === 'function' && outside.getEntity() instanceof FilterRequest) {
+                    this.provider.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(outside.getEntity());
+                    this.provider.getSession().getSessionSearch().getChartsAPI().getStorage().add({
+                        request: outside.getEntity().asDesc().request,
+                        type: EChartType.smooth,
+                    });
+                }
             }
         } else {
-            this.provider.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+                this.provider.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
     }
 
