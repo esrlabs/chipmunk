@@ -1,5 +1,22 @@
 # Changelog
 
+### [2.7.0] - 08/28/2020
+* []() Remove line
+* [#889](fix) Fix for drag&drop animation over bin
+* [#889](fix) Apply droplist animation fix
+* [#886](refact) Move methods into directive
+* [#889](fix) Drop into filter list when empty
+* [#886](fix) Files goes back into orignal list
+* [#737](fix) Remove entity only when dropped in bin
+* [](refact) Small refactoring
+* [#737](fix) Fix moving bin on hover
+* [#737](refact) Move remove method into directive
+* [#737](feat) Add bin to remove filter/chart/etc.
+* [#874] Addition UI for defaults values in time measurement view
+* [#874] Support recent formats
+* [#874] UI for recent datetime format
+* [#874] Timemeasurement view: remove tested sidebar; add statebar
+
 ### [2.6.2] - 08/20/2020
 * [#887] Add support of meta keys for macos to copy selection into clipboard
 * [#887] Cleanup content before copy to clipboard
