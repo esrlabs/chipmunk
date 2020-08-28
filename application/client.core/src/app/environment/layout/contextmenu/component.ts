@@ -80,12 +80,22 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
     }
 
     private _subscribeToWinEvents() {
+        this._onWindowKeyDown = this._onWindowKeyDown.bind(this);
+        window.addEventListener('keydown', this._onWindowKeyDown, true);
         this._onWindowMouseDown = this._onWindowMouseDown.bind(this);
         window.addEventListener('mousedown', this._onWindowMouseDown, true);
     }
 
     private _unsubscribeToWinEvents() {
         window.removeEventListener('mousedown', this._onWindowMouseDown);
+        window.removeEventListener('keydown', this._onWindowKeyDown);
+    }
+
+    private _onWindowKeyDown(event: KeyboardEvent) {
+        if (this._isContextMenuNode(event.target as HTMLElement) || event.key !== 'Escape') {
+            return false;
+        }
+        this._remove();
     }
 
     private _onWindowMouseDown(event: MouseEvent) {
