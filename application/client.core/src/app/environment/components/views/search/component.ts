@@ -308,6 +308,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             }
             this.setActiveTab(this.getDefaultsTabGuids().charts);
         });
+        this._addRecentFilter();
     }
 
     public _ng_getMatchesProc(): string {
