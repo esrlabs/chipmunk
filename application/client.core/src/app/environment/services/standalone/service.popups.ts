@@ -17,6 +17,8 @@ export class PopupsService {
     constructor() {
         this._onKeyUp = this._onKeyUp.bind(this);
         window.addEventListener('keyup', this._onKeyUp, true);
+        this._onMouseUp = this._onMouseUp.bind(this);
+        window.addEventListener('mouseup', this._onMouseUp, true);
     }
 
     public getObservable(): {
@@ -71,6 +73,17 @@ export class PopupsService {
     public clear(guid: string) {
         this._opened.delete(guid);
     }
+
+    private _onMouseUp(event: MouseEvent) {
+        if (event.button !== 0) {
+            return;
+        }
+        if (this._opened.size === 0) {
+            return;
+        }
+        this.remove(this._opened.keys().next().value);
+    }
+
 
     private _onKeyUp(event: KeyboardEvent) {
         if (event.key !== 'Escape') {
