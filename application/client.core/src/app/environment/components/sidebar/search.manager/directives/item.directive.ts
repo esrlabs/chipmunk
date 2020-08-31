@@ -75,8 +75,8 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     }
 
     public ngOnInit() {
-        this._subscriptions.overBin = SearchManagerService.getObservable().mouseOverBin.subscribe(this._onMouseOverBin.bind(this));
-        this._subscriptions.remove = SearchManagerService.getObservable().remove.subscribe(this._onRemove.bind(this));
+        this._subscriptions.overBin = SearchManagerService.observable.mouseOverBin.subscribe(this._onMouseOverBin.bind(this));
+        this._subscriptions.remove = SearchManagerService.observable.remove.subscribe(this._onRemove.bind(this));
         if (this.provider !== undefined) {
             this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEditIn.bind(this));
             this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._onSelected.bind(this));
@@ -116,7 +116,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     }
 
     private _onRemove() {
-        this._dragging = SearchManagerService.getDragging();
+        this._dragging = SearchManagerService.dragging;
         if (this._dragging) {
             this._dragging.getEntity().remove(this.provider.getSession());
         }

@@ -82,7 +82,7 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     }
 
     public _ng_viablePredicate(item: CdkDrag<any>) {
-        let dragging: any = SearchManagerService.getDragging();
+        let dragging: any = SearchManagerService.dragging;
         if (dragging) {
             if (dragging.getEntity() instanceof DisabledRequest) {
                 dragging = (dragging.getEntity() as DisabledRequest);

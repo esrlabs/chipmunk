@@ -27,7 +27,7 @@ export class SearchManagerService {
         mouseOverGlobal: new Subject<void>(),
     };
 
-    public getObservable(): {
+    public get observable(): {
         remove: Observable<void>,
         drag: Observable<boolean>,
         mouseOver: Observable<EListID>,
@@ -64,7 +64,7 @@ export class SearchManagerService {
         this._subjects.mouseOverGlobal.next();
     }
 
-    public getDragging(): Entity<TRequest> {
+    public get dragging(): Entity<TRequest> {
         return this._dragging;
     }
 

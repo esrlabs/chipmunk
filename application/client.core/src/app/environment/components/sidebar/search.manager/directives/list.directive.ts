@@ -24,8 +24,8 @@ export class SidebarAppSearchManagerListDirective implements OnDestroy {
     }
 
     constructor() {
-        this._subscriptions.mouseOver = SearchManagerService.getObservable().mouseOver.subscribe(this._onMouseOver.bind(this));
-        this._subscriptions.mouseOverGlobal = SearchManagerService.getObservable().mouseOverGlobal.subscribe(this._onMouseOverGlobal.bind(this));
+        this._subscriptions.mouseOver = SearchManagerService.observable.mouseOver.subscribe(this._onMouseOver.bind(this));
+        this._subscriptions.mouseOverGlobal = SearchManagerService.observable.mouseOverGlobal.subscribe(this._onMouseOverGlobal.bind(this));
     }
 
     ngOnDestroy() {
