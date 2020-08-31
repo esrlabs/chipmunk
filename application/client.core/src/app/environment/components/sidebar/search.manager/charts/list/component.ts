@@ -2,6 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewC
 import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
 import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters';
+import { DisabledRequest } from '../../../../../controller/controller.session.tab.search.disabled';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop, CdkDrag } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
@@ -81,7 +82,17 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
     }
 
     public _ng_viablePredicate(item: CdkDrag<any>) {
-        return ChartRequest.isValid(item.element.nativeElement.innerText);
+        let dragging: any = SearchManagerService.getDragging();
+        if (dragging) {
+            if (dragging.getEntity() instanceof DisabledRequest) {
+                dragging = (dragging.getEntity() as DisabledRequest);
+            }
+            if (!(dragging.getEntity() instanceof ChartRequest)) {
+                return false;
+            }
+            return ChartRequest.isValid(dragging.getEntity().asDesc().request);
+        }
+        return false;
     }
 
     private _onDataUpdate() {

@@ -1,8 +1,9 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
 import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
 import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
+import { DisabledRequest } from '../../../../../controller/controller.session.tab.search.disabled';
 import { Subscription } from 'rxjs';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, CdkDrag } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
@@ -103,6 +104,20 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
             });
             this._forceUpdate();
         }
+    }
+
+    public _ng_viablePredicate(item: CdkDrag<any>) {
+        let dragging: any = SearchManagerService.getDragging();
+        if (dragging) {
+            if (dragging.getEntity() instanceof DisabledRequest) {
+                dragging = (dragging.getEntity() as DisabledRequest);
+            }
+            if (!(dragging.getEntity() instanceof RangeRequest)) {
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     private _onDataUpdate() {
