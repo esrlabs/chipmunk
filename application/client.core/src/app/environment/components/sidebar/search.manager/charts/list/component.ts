@@ -3,7 +3,7 @@ import { SidebarAppSearchManagerListDirective } from '../../directives/list.dire
 import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters';
 import { Subscription } from 'rxjs';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, CdkDrag } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
@@ -78,6 +78,10 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
 
     public _ng_onDoubleClick(event: MouseEvent, entity: Entity<ChartRequest>) {
         this.provider.select().doubleclick(event, entity);
+    }
+
+    public _ng_viablePredicate(item: CdkDrag<any>) {
+        return ChartRequest.isValid(item.element.nativeElement.innerText);
     }
 
     private _onDataUpdate() {
