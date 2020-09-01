@@ -213,4 +213,9 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         };
     }
 
+    // Method because of abstract class, not used
+    public isViable() {
+        return true;
+    }
+
 }

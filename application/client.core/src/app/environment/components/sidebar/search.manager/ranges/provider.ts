@@ -2,16 +2,18 @@ import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
 import { RangeRequest } from '../../../../controller/controller.session.tab.search.ranges.request';
+import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
 import { IRangesStorageUpdated } from '../../../../controller/controller.session.tab.search.ranges.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { Subject, Observable, Subscription, TimeoutError } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerTimeRangesComponent } from './list/component';
 import { SidebarAppSearchManagerTimerangeDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+import SearchManagerService, { TRequest } from '../service/service';
 
 export class ProviderRanges extends Provider<RangeRequest> {
 
@@ -214,6 +216,21 @@ export class ProviderRanges extends Provider<RangeRequest> {
                 reject(new Error(errors.map(e => e.message).join('\n')));
             }
         });
+    }
+
+    public isViable(): boolean {
+        const dragging: Entity<TRequest> = SearchManagerService.dragging;
+        if (dragging) {
+            if (dragging.getEntity() instanceof DisabledRequest) {
+                if ((dragging.getEntity() as DisabledRequest).getEntity() instanceof RangeRequest) {
+                    return true;
+                }
+                return false;
+            } else if (dragging.getEntity() instanceof RangeRequest) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

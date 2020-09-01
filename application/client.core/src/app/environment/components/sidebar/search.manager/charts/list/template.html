@@ -4,7 +4,7 @@
     [listID]="_ng_listID"
     [cdkDropListConnectedTo]="['disabled-entities', 'bin-entity', 'filters-entities']"
     [cdkDropListData]="_ng_entries"
-    [cdkDropListEnterPredicate]="_ng_viablePredicate"
+    [cdkDropListEnterPredicate]="_ng_viablePredicate()"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
     class="charts">
     <app-sidebar-app-searchmanager-chart

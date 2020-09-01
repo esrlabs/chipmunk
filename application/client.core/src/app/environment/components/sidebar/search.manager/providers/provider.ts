@@ -380,6 +380,8 @@ export abstract class Provider<T> {
 
     public abstract search(entity: Entity<T>): void;
 
+    public abstract isViable(): boolean;
+
     /**
      * Should called in inherit class in constructor
      * @param session
