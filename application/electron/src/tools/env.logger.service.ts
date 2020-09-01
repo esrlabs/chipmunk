@@ -77,7 +77,7 @@ class Service {
             return;
         }
         this._introduced = true;
-        const msg: string = `\n${"-".repeat(30)}\nChipmunk session is started at: ${new Date().toUTCString()}\n${"-".repeat(30)}`;
+        const msg: string = `\n${"-".repeat(30)}\nChipmunk session is started at: ${new Date().toISOString()}\n${"-".repeat(30)}`;
         LogsBuffer.buffer(
             ELogLevels.INFO,
             msg,
@@ -140,9 +140,8 @@ class Service {
         const diff: number = now - this._lasttimestamp;
         const diffStr: string = (diff > 0 ? "+" : diff === 0 ? "" : "-") + diff + "ms";
         const stamp: string =
-            "[" +
-            now +
-            "][" +
+            (new Date(now)).toISOString() +
+            " [" +
             " ".repeat(diffStr.length > 8 ? 0 : 8 - diffStr.length) +
             diffStr +
             "]";
