@@ -2,6 +2,7 @@ import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
 import { ChartRequest, IChartsStorageUpdated,  } from '../../../../controller/controller.session.tab.search.charts.storage';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters';
+import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
@@ -10,6 +11,8 @@ import { SidebarAppSearchManagerChartDetailsComponent } from './details/componen
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../../../components/views/chart/charts/charts';
 import { Logger } from 'chipmunk.client.toolkit';
+
+import SearchManagerService, { TRequest } from '../service/service';
 
 export class ProviderCharts extends Provider<ChartRequest> {
 
@@ -221,6 +224,23 @@ export class ProviderCharts extends Provider<ChartRequest> {
             }
         } : undefined;
         return actions;
+    }
+
+    public isViable(): boolean {
+        const dragging: Entity<TRequest> = SearchManagerService.dragging;
+        if (dragging) {
+            if (dragging.getEntity() instanceof DisabledRequest) {
+                if ((dragging.getEntity() as DisabledRequest).getEntity() instanceof ChartRequest) {
+                    return true;
+                }
+                return false;
+            } else if (dragging.getEntity() instanceof ChartRequest) {
+                return true;
+            } else if (dragging.getEntity() instanceof FilterRequest) {
+                return ChartRequest.isValid((dragging.getEntity() as FilterRequest).asDesc().request);
+            }
+        }
+        return false;
     }
 
 }

@@ -1,9 +1,8 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
 import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
 import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
-import { DisabledRequest } from '../../../../../controller/controller.session.tab.search.disabled';
 import { Subscription } from 'rxjs';
-import { CdkDragDrop, CdkDrag } from '@angular/cdk/drag-drop';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
@@ -106,18 +105,8 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
         }
     }
 
-    public _ng_viablePredicate(item: CdkDrag<any>) {
-        let dragging: any = SearchManagerService.dragging;
-        if (dragging) {
-            if (dragging.getEntity() instanceof DisabledRequest) {
-                dragging = (dragging.getEntity() as DisabledRequest);
-            }
-            if (!(dragging.getEntity() instanceof RangeRequest)) {
-                return false;
-            }
-            return true;
-        }
-        return false;
+    public _ng_viablePredicate(): () => boolean {
+        return this.provider.isViable.bind(this);
     }
 
     private _onDataUpdate() {

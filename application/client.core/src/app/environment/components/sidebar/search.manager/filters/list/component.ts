@@ -2,9 +2,8 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewC
 import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
-import { DisabledRequest } from '../../../../../controller/controller.session.tab.search.disabled';
 import { Subscription } from 'rxjs';
-import { CdkDragDrop, CdkDrag } from '@angular/cdk/drag-drop';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
@@ -84,18 +83,8 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         this.provider.select().doubleclick(event, entity);
     }
 
-    public _ng_viablePredicate(item: CdkDrag<any>) {
-        let dragging: any = SearchManagerService.dragging;
-        if (dragging) {
-            if (dragging.getEntity() instanceof DisabledRequest) {
-                dragging = (dragging.getEntity() as DisabledRequest);
-            }
-            if (!(dragging.getEntity() instanceof FilterRequest)) {
-                return false;
-            }
-            return true;
-        }
-        return false;
+    public _ng_viablePredicate(): () => boolean {
+        return this.provider.isViable.bind(this);
     }
 
     private _onDataUpdate() {
