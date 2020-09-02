@@ -75,13 +75,27 @@ export class PopupsService {
     }
 
     private _onMouseUp(event: MouseEvent) {
-        if (event.button !== 0) {
+        if (event.button !== 0 || this._opened.size === 0) {
             return;
         }
-        if (this._opened.size === 0) {
-            return;
+        let node: HTMLElement = event.target as HTMLElement;
+        let isPopup: boolean = false;
+        do {
+            if (node === undefined || node === null) {
+                break;
+            }
+            if (node.nodeName.toLowerCase() === 'app-popup' || node.nodeName.toLowerCase() === 'mat-option') {
+                isPopup = true;
+                break;
+            }
+            if (node.nodeName.toLowerCase() === 'body') {
+                break;
+            }
+            node = node.parentNode as HTMLElement;
+        } while (true);
+        if (!isPopup) {
+            this.remove(this._opened.keys().next().value);
         }
-        this.remove(this._opened.keys().next().value);
     }
 
 
