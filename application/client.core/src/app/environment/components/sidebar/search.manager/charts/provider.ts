@@ -6,13 +6,14 @@ import { DisabledRequest } from '../../../../controller/controller.session.tab.s
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
+import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { SidebarAppSearchManagerChartsComponent } from './list/component';
 import { SidebarAppSearchManagerChartDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../../../components/views/chart/charts/charts';
 import { Logger } from 'chipmunk.client.toolkit';
 
-import SearchManagerService, { TRequest } from '../service/service';
+import SearchManagerService, { TRequest, TFilterChart, TDisabled } from '../service/service';
 
 export class ProviderCharts extends Provider<ChartRequest> {
 
@@ -241,6 +242,33 @@ export class ProviderCharts extends Provider<ChartRequest> {
             }
         }
         return false;
+    }
+
+    public itemDragged(event: CdkDragDrop<Entity<TFilterChart>[]>) {
+        const prev: CdkDropList<Entity<TFilterChart>[]> = event.previousContainer;
+        const index: number = event.previousIndex;
+        if (prev !== event.container) {
+            // Check if it is disabled Entity
+            const disabledData: TDisabled = (prev.data as unknown as TDisabled);
+            if (disabledData.disabled !== undefined) {
+                const outside: Entity<DisabledRequest> | undefined = disabledData.disabled[event.previousIndex] !== undefined ? disabledData.disabled[index] : undefined;
+                if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof ChartRequest) {
+                    this.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
+                    this.getSession().getSessionSearch().getChartsAPI().getStorage().add((outside.getEntity().getEntity() as ChartRequest), event.currentIndex);
+                }
+            } else {
+                const outside: Entity<FilterRequest> | undefined = prev.data[event.previousIndex] !== undefined ? (prev.data[index] as Entity<FilterRequest>) : undefined;
+                if (outside !== undefined && typeof outside.getEntity === 'function' && outside.getEntity() instanceof FilterRequest) {
+                    this.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(outside.getEntity());
+                    this.getSession().getSessionSearch().getChartsAPI().getStorage().add({
+                        request: outside.getEntity().asDesc().request,
+                        type: EChartType.smooth,
+                    }, event.currentIndex);
+                }
+            }
+        } else {
+            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        }
     }
 
 }
