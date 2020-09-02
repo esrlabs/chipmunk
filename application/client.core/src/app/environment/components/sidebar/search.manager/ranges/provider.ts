@@ -222,12 +222,13 @@ export class ProviderRanges extends Provider<RangeRequest> {
     public isViable(): boolean {
         const dragging: Entity<TRequest> = SearchManagerService.dragging;
         if (dragging) {
-            if (dragging.getEntity() instanceof DisabledRequest) {
-                if ((dragging.getEntity() as DisabledRequest).getEntity() instanceof RangeRequest) {
+            const request = dragging.getEntity();
+            if (request instanceof DisabledRequest) {
+                if ((request as DisabledRequest).getEntity() instanceof RangeRequest) {
                     return true;
                 }
                 return false;
-            } else if (dragging.getEntity() instanceof RangeRequest) {
+            } else if (request instanceof RangeRequest) {
                 return true;
             }
         }
