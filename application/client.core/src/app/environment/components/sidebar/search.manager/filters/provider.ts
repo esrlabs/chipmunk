@@ -231,12 +231,13 @@ export class ProviderFilters extends Provider<FilterRequest> {
     public isViable(): boolean {
         const dragging: Entity<TRequest> = SearchManagerService.dragging;
         if (dragging) {
-            if (dragging.getEntity() instanceof DisabledRequest) {
-                if ((dragging.getEntity() as DisabledRequest).getEntity() instanceof FilterRequest) {
+            const request: TRequest = dragging.getEntity();
+            if (request instanceof DisabledRequest) {
+                if ((request as DisabledRequest).getEntity() instanceof FilterRequest) {
                     return true;
                 }
                 return false;
-            } else if (dragging.getEntity() instanceof (FilterRequest || ChartRequest)) {
+            } else if (request instanceof ChartRequest || request instanceof FilterRequest ) {
                 return true;
             }
         }

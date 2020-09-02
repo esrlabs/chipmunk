@@ -230,15 +230,16 @@ export class ProviderCharts extends Provider<ChartRequest> {
     public isViable(): boolean {
         const dragging: Entity<TRequest> = SearchManagerService.dragging;
         if (dragging) {
-            if (dragging.getEntity() instanceof DisabledRequest) {
-                if ((dragging.getEntity() as DisabledRequest).getEntity() instanceof ChartRequest) {
+            const request: TRequest = dragging.getEntity();
+            if (request instanceof DisabledRequest) {
+                if ((request as DisabledRequest).getEntity() instanceof ChartRequest) {
                     return true;
                 }
                 return false;
-            } else if (dragging.getEntity() instanceof ChartRequest) {
+            } else if (request instanceof ChartRequest) {
                 return true;
-            } else if (dragging.getEntity() instanceof FilterRequest) {
-                return ChartRequest.isValid((dragging.getEntity() as FilterRequest).asDesc().request);
+            } else if (request instanceof FilterRequest) {
+                return ChartRequest.isValid((request as FilterRequest).asDesc().request);
             }
         }
         return false;
