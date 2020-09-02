@@ -33,6 +33,10 @@ export class PopupsComponent implements OnDestroy {
         this._remove(popup.id);
     }
 
+    public _ng_clickOutside() {
+        PopupsService.close();
+    }
+
     private _onNew(popup: Toolkit.IPopup) {
         popup = this._normalize(popup);
         if (popup === null) {
