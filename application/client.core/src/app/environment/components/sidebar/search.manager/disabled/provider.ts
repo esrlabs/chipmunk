@@ -10,6 +10,8 @@ import { IDisabledEntitySupport } from 'src/app/environment/controller/controlle
 import { Logger } from 'chipmunk.client.toolkit';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
+import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { TRequest } from '../service/service';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
 
@@ -216,6 +218,25 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
     // Method because of abstract class, not used
     public isViable() {
         return true;
+    }
+
+    public itemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+        const prev: CdkDropList<Entity<TRequest>[]> = event.previousContainer;
+        const index: number = event.previousIndex;
+        if (prev !== event.container) {
+            if (prev.data !== undefined) {
+                const outside: Entity<TRequest> | undefined = prev.data[event.previousIndex] !== undefined ? prev.data[index] : undefined;
+                if (outside !== undefined) {
+                    this.getSession().getSessionSearch().getDisabledAPI().getStorage().add(
+                        new DisabledRequest(outside.getEntity() as unknown as IDisabledEntitySupport),
+                        event.currentIndex,
+                    );
+                    outside.getEntity().remove(this.getSession());
+                }
+            }
+        } else {
+            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        }
     }
 
 }

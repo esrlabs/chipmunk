@@ -7,6 +7,10 @@ import { RangeRequest } from 'src/app/environment/controller/controller.session.
 
 export type TRequest = FilterRequest | ChartRequest | DisabledRequest | RangeRequest;
 
+export type TFilterChart = FilterRequest | ChartRequest | DisabledRequest;
+
+export interface TDisabled { disabled: Entity<DisabledRequest>[]; }
+
 export enum EListID {
     filtersList = 'filtersList',
     chartsList = 'chartsList',

@@ -11,7 +11,8 @@ import { SidebarAppSearchManagerFiltersPlaceholderComponent } from './placeholde
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { Logger } from 'chipmunk.client.toolkit';
-import SearchManagerService, { TRequest } from '../service/service';
+import SearchManagerService, { TRequest, TDisabled, TFilterChart } from '../service/service';
+import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 
 export class ProviderFilters extends Provider<FilterRequest> {
 
@@ -240,6 +241,37 @@ export class ProviderFilters extends Provider<FilterRequest> {
             }
         }
         return false;
+    }
+
+    public itemDragged(event: CdkDragDrop<Entity<TFilterChart>[]>) {
+        const prev: CdkDropList<Entity<TFilterChart>[]> = event.previousContainer;
+        const index: number = event.previousIndex;
+        if (prev !== event.container) {
+            // Check if it is disabled Entity
+            const disabledData: TDisabled = (prev.data as unknown as TDisabled);
+            if (disabledData.disabled !== undefined) {
+                const outside: Entity<DisabledRequest> | undefined = disabledData.disabled[event.previousIndex] !== undefined ? disabledData.disabled[index] : undefined;
+                if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof FilterRequest) {
+                    this.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
+                    this.getSession().getSessionSearch().getFiltersAPI().getStorage().add((outside.getEntity().getEntity() as FilterRequest), event.currentIndex);
+                }
+            } else {
+                const outside: Entity<ChartRequest> | undefined = prev.data[event.previousIndex] !== undefined ? (prev.data[index] as Entity<ChartRequest>) : undefined;
+                if (outside !== undefined && typeof outside.getEntity === 'function' && outside.getEntity() instanceof ChartRequest) {
+                    this.getSession().getSessionSearch().getChartsAPI().getStorage().remove(outside.getEntity());
+                    this.getSession().getSessionSearch().getFiltersAPI().getStorage().add({
+                        request: outside.getEntity().asDesc().request,
+                        flags: {
+                            casesensitive: true,
+                            wholeword: true,
+                            regexp: true,
+                        }
+                    }, event.currentIndex);
+                }
+            }
+        } else {
+            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        }
     }
 
 }

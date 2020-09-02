@@ -6,7 +6,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
-import SearchManagerService, { EListID } from '../../service/service';
+import SearchManagerService, { EListID, TRequest } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-disableds',
@@ -41,25 +41,12 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<{ disabled: DisabledRequest[] }>) {
+    public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
         SearchManagerService.onDragStart(false);
         if (this.listDirective.droppedOut) {
             return;
         }
-        const prev = event.previousContainer;
-        const index = event.previousIndex;
-        if (prev.data !== undefined && prev.data.disabled === undefined) {
-            const outside: Entity<any> | undefined = (prev.data as any)[event.previousIndex] !== undefined ? (prev.data as any)[index] : undefined;
-            if (outside !== undefined) {
-                this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().add(
-                    new DisabledRequest(outside.getEntity()),
-                    event.currentIndex,
-                );
-                outside.getEntity().remove(this.provider.getSession());
-            }
-        } else {
-            this.provider.reorder({ prev: event.previousIndex, curt: event.currentIndex });
-        }
+        this.provider.itemDragged(event);
     }
 
     public _ng_onContexMenu(event: MouseEvent, entity: Entity<DisabledRequest>) {

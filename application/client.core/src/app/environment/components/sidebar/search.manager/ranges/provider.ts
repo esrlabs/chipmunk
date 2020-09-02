@@ -11,9 +11,10 @@ import { SidebarAppSearchManagerTimeRangesComponent } from './list/component';
 import { SidebarAppSearchManagerTimerangeDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
+import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import SearchManagerService, { TRequest } from '../service/service';
+import SearchManagerService, { TRequest, TDisabled } from '../service/service';
 
 export class ProviderRanges extends Provider<RangeRequest> {
 
@@ -231,6 +232,23 @@ export class ProviderRanges extends Provider<RangeRequest> {
             }
         }
         return false;
+    }
+
+    public itemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+        const prev: CdkDropList<Entity<TRequest>[]> = event.previousContainer;
+        const index: number = event.previousIndex;
+        if (prev !== event.container) {
+            const disabledData: TDisabled = (prev.data as unknown as TDisabled);
+            if (disabledData.disabled !== undefined) {
+                const outside: Entity<DisabledRequest> | undefined = disabledData.disabled[event.previousIndex] !== undefined ? disabledData.disabled[index] : undefined;
+                if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof RangeRequest) {
+                    this.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
+                    this.getSession().getSessionSearch().getRangesAPI().getStorage().add((outside.getEntity().getEntity() as RangeRequest), event.currentIndex);
+                }
+            }
+        } else {
+            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        }
     }
 
 }

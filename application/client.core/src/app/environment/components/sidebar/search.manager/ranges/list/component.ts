@@ -7,7 +7,7 @@ import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
 
-import SearchManagerService, { EListID } from '../../service/service';
+import SearchManagerService, { EListID, TRequest } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-timerangehooks',
@@ -43,22 +43,12 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<RangeRequest[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
         SearchManagerService.onDragStart(false);
         if (this.listDirective.droppedOut) {
             return;
         }
-        const prev = event.previousContainer;
-        const index = event.previousIndex;
-        if (prev.data !== undefined && (prev.data as any).disabled !== undefined) {
-            const outside: Entity<any> | undefined = (prev.data as any).disabled[event.previousIndex] !== undefined ? (prev.data as any).disabled[index] : undefined;
-            if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof RangeRequest) {
-                this.provider.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
-                this.provider.getSession().getSessionSearch().getRangesAPI().getStorage().add(outside.getEntity().getEntity(), event.currentIndex);
-            }
-        } else {
-            this.provider.reorder({ prev: event.previousIndex, curt: event.currentIndex });
-        }
+        this.provider.itemDragged(event);
     }
 
     public _ng_onContexMenu(event: MouseEvent, entity: Entity<RangeRequest>) {
