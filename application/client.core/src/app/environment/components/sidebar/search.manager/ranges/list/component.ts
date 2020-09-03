@@ -5,7 +5,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
-
+import { EntityData } from '../../providers/entity.data';
 import SearchManagerService, { TRequest } from '../../service/service';
 
 @Component({
@@ -93,6 +93,10 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
 
     public _ng_viablePredicate(): () => boolean {
         return this.provider.isViable.bind(this);
+    }
+
+    public _ng_getEntries(): Entity<RangeRequest>[] | undefined {
+        return new EntityData(this._ng_entries).entries;
     }
 
     private _onDataUpdate() {

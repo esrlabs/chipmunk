@@ -11,8 +11,9 @@ import { SidebarAppSearchManagerFiltersPlaceholderComponent } from './placeholde
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { Logger } from 'chipmunk.client.toolkit';
-import SearchManagerService, { TRequest, TDisabled, TFilterChart, EListID } from '../service/service';
-import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import SearchManagerService, { TRequest, EListID } from '../service/service';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { EntityData } from '../providers/entity.data';
 
 export class ProviderFilters extends Provider<FilterRequest> {
 
@@ -245,20 +246,20 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return false;
     }
 
-    public itemDragged(event: CdkDragDrop<Entity<TFilterChart>[]>) {
-        const prev: CdkDropList<Entity<TFilterChart>[]> = event.previousContainer;
-        const index: number = event.previousIndex;
-        if (prev !== event.container) {
-            // Check if it is disabled Entity
-            const disabledData: TDisabled = (prev.data as unknown as TDisabled);
-            if (disabledData.disabled !== undefined) {
-                const outside: Entity<DisabledRequest> | undefined = disabledData.disabled[event.previousIndex] !== undefined ? disabledData.disabled[index] : undefined;
+    public itemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+        if (event.previousContainer === event.container) {
+            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        } else {
+            const index: number = event.previousIndex;
+            const data: EntityData<TRequest> = new EntityData(event.previousContainer.data);
+            if (data.disabled !== undefined) {
+                const outside: Entity<DisabledRequest> | undefined = data.disabled[event.previousIndex] !== undefined ? data.disabled[index] : undefined;
                 if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof FilterRequest) {
                     this.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
                     this.getSession().getSessionSearch().getFiltersAPI().getStorage().add((outside.getEntity().getEntity() as FilterRequest), event.currentIndex);
                 }
-            } else {
-                const outside: Entity<ChartRequest> | undefined = prev.data[event.previousIndex] !== undefined ? (prev.data[index] as Entity<ChartRequest>) : undefined;
+            } else if (data.entries !== undefined) {
+                const outside: Entity<ChartRequest> | undefined = data.entries[event.previousIndex] !== undefined ? (data.entries[index] as Entity<ChartRequest>) : undefined;
                 if (outside !== undefined && typeof outside.getEntity === 'function' && outside.getEntity() instanceof ChartRequest) {
                     this.getSession().getSessionSearch().getChartsAPI().getStorage().remove(outside.getEntity());
                     this.getSession().getSessionSearch().getFiltersAPI().getStorage().add({
@@ -271,8 +272,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     }, event.currentIndex);
                 }
             }
-        } else {
-            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
     }
 

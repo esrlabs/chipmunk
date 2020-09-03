@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
-
+import { EntityData } from '../../providers/entity.data';
 import SearchManagerService, { TRequest } from '../../service/service';
 
 @Component({
@@ -55,6 +55,10 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
 
     public _ng_viablePredicate(): () => boolean {
         return this.provider.isViable.bind(this);
+    }
+
+    public _ng_getEntries(): Entity<FilterRequest>[] | undefined {
+        return new EntityData(this._ng_entries).entries;
     }
 
     private _onDataUpdate() {

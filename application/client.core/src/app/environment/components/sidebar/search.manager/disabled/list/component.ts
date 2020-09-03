@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
-
+import { EntityData } from '../../providers/entity.data';
 import SearchManagerService, { TRequest } from '../../service/service';
 
 @Component({
@@ -51,6 +51,10 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
 
     public _ng_onDoubleClick(event: MouseEvent, entity: Entity<DisabledRequest>) {
         this.provider.select().doubleclick(event, entity);
+    }
+
+    public _ng_getEntries(): Entity<DisabledRequest>[] | undefined {
+        return new EntityData(this._ng_entries).entries;
     }
 
     private _onDataUpdate() {
