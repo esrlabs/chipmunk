@@ -10,8 +10,9 @@ import { IDisabledEntitySupport } from 'src/app/environment/controller/controlle
 import { Logger } from 'chipmunk.client.toolkit';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
-import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TRequest, EListID } from '../service/service';
+import { EntityData } from '../providers/entity.data';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
 
@@ -222,11 +223,13 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
     }
 
     public itemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
-        const prev: CdkDropList<Entity<TRequest>[]> = event.previousContainer;
-        const index: number = event.previousIndex;
-        if (prev !== event.container) {
-            if (prev.data !== undefined) {
-                const outside: Entity<TRequest> | undefined = prev.data[event.previousIndex] !== undefined ? prev.data[index] : undefined;
+        if (event.previousContainer === event.container) {
+            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        } else {
+            const index: number = event.previousIndex;
+            const data: EntityData<TRequest> = new EntityData(event.previousContainer.data);
+            if (data.entries !== undefined) {
+                const outside: Entity<TRequest> | undefined = data.entries[event.previousIndex] !== undefined ? data.entries[index] : undefined;
                 if (outside !== undefined) {
                     this.getSession().getSessionSearch().getDisabledAPI().getStorage().add(
                         new DisabledRequest(outside.getEntity() as unknown as IDisabledEntitySupport),
@@ -235,8 +238,6 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                     outside.getEntity().remove(this.getSession());
                 }
             }
-        } else {
-            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
     }
 

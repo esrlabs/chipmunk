@@ -11,10 +11,11 @@ import { SidebarAppSearchManagerTimeRangesComponent } from './list/component';
 import { SidebarAppSearchManagerTimerangeDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
-import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { EntityData } from '../providers/entity.data';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import SearchManagerService, { TRequest, TDisabled, EListID } from '../service/service';
+import SearchManagerService, { TRequest, EListID } from '../service/service';
 
 export class ProviderRanges extends Provider<RangeRequest> {
 
@@ -237,19 +238,18 @@ export class ProviderRanges extends Provider<RangeRequest> {
     }
 
     public itemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
-        const prev: CdkDropList<Entity<TRequest>[]> = event.previousContainer;
-        const index: number = event.previousIndex;
-        if (prev !== event.container) {
-            const disabledData: TDisabled = (prev.data as unknown as TDisabled);
-            if (disabledData.disabled !== undefined) {
-                const outside: Entity<DisabledRequest> | undefined = disabledData.disabled[event.previousIndex] !== undefined ? disabledData.disabled[index] : undefined;
+        if (event.previousContainer === event.container) {
+            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
+        } else {
+            const index: number = event.previousIndex;
+            const data: EntityData<TRequest> = new EntityData(event.previousContainer.data);
+            if (data.disabled !== undefined) {
+                const outside: Entity<DisabledRequest> | undefined = data.disabled[event.previousIndex] !== undefined ? data.disabled[index] : undefined;
                 if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof RangeRequest) {
                     this.getSession().getSessionSearch().getDisabledAPI().getStorage().remove(outside.getEntity());
                     this.getSession().getSessionSearch().getRangesAPI().getStorage().add((outside.getEntity().getEntity() as RangeRequest), event.currentIndex);
                 }
             }
-        } else {
-            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
     }
 
