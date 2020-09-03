@@ -1,12 +1,11 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
-import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
-import SearchManagerService, { EListID, TRequest } from '../../service/service';
+import SearchManagerService, { TRequest } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-filters',
@@ -18,10 +17,7 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
 
     @Input() provider: Provider<FilterRequest>;
 
-    @ViewChild(SidebarAppSearchManagerListDirective) listDirective: SidebarAppSearchManagerListDirective;
-
     public _ng_entries: Array<Entity<FilterRequest>> = [];
-    public _ng_listID: EListID = EListID.filtersList;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -43,7 +39,7 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
 
     public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
         SearchManagerService.onDragStart(false);
-        if (this.listDirective.droppedOut) {
+        if (SearchManagerService.droppedOut) {
             return;
         }
         this.provider.itemDragged(event);

@@ -22,6 +22,8 @@ export enum EListID {
 export class SearchManagerService {
 
     private _dragging: Entity<TRequest>;
+    private _droppedOut: boolean;
+    private _ignore: boolean;
 
     private _subjects = {
         remove: new Subject<void>(),
@@ -57,6 +59,8 @@ export class SearchManagerService {
     }
 
     public onMouseOver(listID: EListID) {
+        this._ignore = true;
+        this._droppedOut = false;
         this._subjects.mouseOver.next(listID);
     }
 
@@ -65,11 +69,20 @@ export class SearchManagerService {
     }
 
     public onMouseOverGlobal() {
+        if (!this._ignore) {
+            this._droppedOut = true;
+        } else {
+            this._ignore = false;
+        }
         this._subjects.mouseOverGlobal.next();
     }
 
     public get dragging(): Entity<TRequest> {
         return this._dragging;
+    }
+
+    get droppedOut(): boolean {
+        return this._droppedOut;
     }
 
 }

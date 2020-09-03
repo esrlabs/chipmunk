@@ -13,13 +13,14 @@ import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EChartType } from '../../../../components/views/chart/charts/charts';
 import { Logger } from 'chipmunk.client.toolkit';
 
-import SearchManagerService, { TRequest, TFilterChart, TDisabled } from '../service/service';
+import SearchManagerService, { TRequest, TFilterChart, TDisabled, EListID } from '../service/service';
 
 export class ProviderCharts extends Provider<ChartRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<ChartRequest>> = new Map();
     private _logger: Logger = new Logger('ProviderCharts');
+    private _listID: EListID = EListID.chartsList;
 
     constructor() {
         super();
@@ -270,6 +271,10 @@ export class ProviderCharts extends Provider<ChartRequest> {
         } else {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
+    }
+
+    public get listID(): EListID {
+        return this._listID;
     }
 
 }

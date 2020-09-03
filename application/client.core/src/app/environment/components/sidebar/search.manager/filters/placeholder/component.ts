@@ -1,10 +1,9 @@
-import { Component, OnDestroy, Input, ViewChild } from '@angular/core';
+import { Component, OnDestroy, Input } from '@angular/core';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
-import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
-import SearchManagerService, { EListID, TRequest } from '../../service/service';
+import SearchManagerService, { TRequest } from '../../service/service';
 import { Entity } from '../../providers/entity';
 
 @Component({
@@ -17,9 +16,6 @@ export class SidebarAppSearchManagerFiltersPlaceholderComponent implements OnDes
 
     @Input() provider: Provider<FilterRequest>;
 
-    @ViewChild(SidebarAppSearchManagerListDirective) listDirective: SidebarAppSearchManagerListDirective;
-
-    public _ng_listID: EListID = EListID.filtersList;
     public _ng_empty = 'No filters are stored';
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -32,7 +28,7 @@ export class SidebarAppSearchManagerFiltersPlaceholderComponent implements OnDes
 
     public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
         SearchManagerService.onDragStart(false);
-        if (this.listDirective.droppedOut) {
+        if (SearchManagerService.droppedOut) {
             return;
         }
         this.provider.itemDragged(event);

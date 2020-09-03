@@ -11,13 +11,14 @@ import { Logger } from 'chipmunk.client.toolkit';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
 import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
 import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
-import { TRequest } from '../service/service';
+import { TRequest, EListID } from '../service/service';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<DisabledRequest>> = new Map();
     private _logger: Logger = new Logger('ProviderDisabled');
+    private _listID: EListID = EListID.disabledList;
 
     constructor() {
         super();
@@ -237,6 +238,10 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         } else {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
+    }
+
+    public get listID(): EListID {
+        return this._listID;
     }
 
 }

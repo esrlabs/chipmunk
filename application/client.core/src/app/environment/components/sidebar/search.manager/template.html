@@ -5,6 +5,8 @@
             [disabled]="true"
             [hideToggle]="true"
             [expanded]="true"
+            [listID]="provider.listID"
+            appSidebarSearchManagerList
             (click)="_ng_onPanelClick()">
             <mat-expansion-panel-header>
                 <mat-panel-title>{{provider.getPanelName()}}</mat-panel-title>

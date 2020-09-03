@@ -1,7 +1,7 @@
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Entity } from './entity';
-import { TRequest } from '../service/service';
+import { TRequest, EListID } from '../service/service';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { KeyboardListener } from './keyboard.listener';
@@ -385,6 +385,8 @@ export abstract class Provider<T> {
     public abstract isViable(): boolean;
 
     public abstract itemDragged(event: CdkDragDrop<Entity<TRequest>[]>): void;
+
+    public abstract get listID(): EListID;
 
     /**
      * Should called in inherit class in constructor

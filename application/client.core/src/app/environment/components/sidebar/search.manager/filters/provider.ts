@@ -11,7 +11,7 @@ import { SidebarAppSearchManagerFiltersPlaceholderComponent } from './placeholde
 import { SidebarAppSearchManagerFilterDetailsComponent } from './details/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { Logger } from 'chipmunk.client.toolkit';
-import SearchManagerService, { TRequest, TDisabled, TFilterChart } from '../service/service';
+import SearchManagerService, { TRequest, TDisabled, TFilterChart, EListID } from '../service/service';
 import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 
 export class ProviderFilters extends Provider<FilterRequest> {
@@ -19,6 +19,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
     private _logger: Logger = new Logger('ProviderFilters');
+    private _listID: EListID = EListID.filtersList;
 
     constructor() {
         super();
@@ -273,6 +274,10 @@ export class ProviderFilters extends Provider<FilterRequest> {
         } else {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
+    }
+
+    public get listID(): EListID {
+        return this._listID;
     }
 
 }

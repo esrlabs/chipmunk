@@ -14,12 +14,13 @@ import { CancelablePromise } from 'chipmunk.client.toolkit';
 import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import SearchManagerService, { TRequest, TDisabled } from '../service/service';
+import SearchManagerService, { TRequest, TDisabled, EListID } from '../service/service';
 
 export class ProviderRanges extends Provider<RangeRequest> {
 
     private _subs: { [key: string]: Subscription } = {};
     private _entities: Map<string, Entity<RangeRequest>> = new Map();
+    private _listID: EListID = EListID.rangesList;
 
     constructor() {
         super();
@@ -250,6 +251,10 @@ export class ProviderRanges extends Provider<RangeRequest> {
         } else {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         }
+    }
+
+    public get listID(): EListID {
+        return this._listID;
     }
 
 }
