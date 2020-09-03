@@ -1,5 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
-import { SidebarAppSearchManagerListDirective } from '../../directives/list.directive';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
 import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -7,7 +6,7 @@ import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
 
-import SearchManagerService, { EListID, TRequest } from '../../service/service';
+import SearchManagerService, { TRequest } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-timerangehooks',
@@ -19,11 +18,8 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
 
     @Input() provider: Provider<RangeRequest>;
 
-    @ViewChild(SidebarAppSearchManagerListDirective) listDirective: SidebarAppSearchManagerListDirective;
-
     public _ng_entries: Array<Entity<RangeRequest>> = [];
     public _ng_progress: boolean = false;
-    public _ng_listID: EListID = EListID.rangesList;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -45,7 +41,7 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
 
     public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
         SearchManagerService.onDragStart(false);
-        if (this.listDirective.droppedOut) {
+        if (SearchManagerService.droppedOut) {
             return;
         }
         this.provider.itemDragged(event);
