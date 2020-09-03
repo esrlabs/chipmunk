@@ -1,5 +1,5 @@
 <div class="shadow" *ngIf="popups.length > 0" (click)="_ng_clickOutside()"></div>
-<ul class="popups">
+<ul class="popups" autofocus>
     <li *ngFor="let popup of popups" [attr.class]="'popup'">
         <app-popup [popup]="popup" [onClose]="onClose.bind(this, popup)"></app-popup>
     </li>
