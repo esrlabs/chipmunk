@@ -88,10 +88,7 @@ pub fn init_logging() -> Result<()> {
     }
 
     match log4rs::init_file(&log_config_path, Default::default()) {
-        Ok(_) => println!(
-            "Successfully initialized logging from {:?}",
-            log_config_path
-        ),
+        Ok(_) => (),
         Err(e) => {
             eprintln!("could not initialize logging with init_file: {}", e);
             let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
@@ -111,7 +108,6 @@ pub fn init_logging() -> Result<()> {
             anyhow::Context::with_context(log4rs::init_config(config), || {
                 "logging config could not be applied"
             })?;
-            println!("Initialized logging from fallback config");
         }
     }
     Ok(())
