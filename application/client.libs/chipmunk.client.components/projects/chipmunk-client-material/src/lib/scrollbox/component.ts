@@ -11,7 +11,9 @@ import guid from '../../tools/tools.guid';
 export interface IScrollBoxSelection {
     selection: string;
     anchor: number;
+    anchorOffset: number;
     focus: number;
+    focusOffset: number;
 }
 
 export interface IRange {
@@ -546,7 +548,9 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         return {
             selection: selection,
             anchor: this._selection.anchor.index,
+            anchorOffset: this._selection.anchor.offset,
             focus: this._selection.focus.index,
+            focusOffset: this._selection.focus.offset,
         };
     }
 
