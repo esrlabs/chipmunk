@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-material';
-import ContextMenuService, { IMenu, IMenuItem } from '../../services/standalone/service.contextmenu';
+import ContextMenuService, { IMenu, IMenuItem, EEventType } from '../../services/standalone/service.contextmenu';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
@@ -37,11 +37,13 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        this._unsubscribeToWinEvents();
+        ContextMenuService.unsubscribeToWinEvents(EEventType.keydown, this._onWindowKeyDown.bind(this));
+        ContextMenuService.unsubscribeToWinEvents(EEventType.mousedown, this._onWindowMouseDown.bind(this));
     }
 
     public ngAfterViewInit() {
-        this._subscribeToWinEvents();
+        ContextMenuService.subscribeToWinEvents(EEventType.keydown, this._onWindowKeyDown.bind(this));
+        ContextMenuService.subscribeToWinEvents(EEventType.mousedown, this._onWindowMouseDown.bind(this));
     }
 
     public _ng_onMouseDown(item: IMenuItem) {
@@ -79,21 +81,12 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
         }, 0);
     }
 
-    private _subscribeToWinEvents() {
-        this._onWindowKeyDown = this._onWindowKeyDown.bind(this);
-        window.addEventListener('keydown', this._onWindowKeyDown, true);
-        this._onWindowMouseDown = this._onWindowMouseDown.bind(this);
-        window.addEventListener('mousedown', this._onWindowMouseDown, true);
-    }
-
-    private _unsubscribeToWinEvents() {
-        window.removeEventListener('mousedown', this._onWindowMouseDown);
-        window.removeEventListener('keydown', this._onWindowKeyDown);
-    }
-
     private _onWindowKeyDown(event: KeyboardEvent) {
         if (this._isContextMenuNode(event.target as HTMLElement) || event.key !== 'Escape') {
             return false;
+        }
+        if (ContextMenuService.applyChange !== undefined && typeof ContextMenuService.applyChange === 'function') {
+            ContextMenuService.applyChange();
         }
         this._remove();
     }
