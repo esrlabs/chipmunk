@@ -17,14 +17,30 @@ export interface IMenu {
     y: number;
 }
 
+export enum EEventType {
+    keydown = 'keydown',
+    mousedown = 'mousedown'
+}
+
+type TEvent = MouseEvent | KeyboardEvent;
+type TApplyChange = () => void | undefined;
+
 export class ContextMenuService {
 
+    private _applyChange: TApplyChange;
     private _subjects: {
         onShow: Subject<IMenu>,
     } = {
         onShow: new Subject<IMenu>(),
     };
 
+    public get applyChange(): TApplyChange {
+        return this._applyChange;
+    }
+
+    public set applyChange(func: TApplyChange) {
+        this._applyChange = func;
+    }
 
     public getObservable(): {
         onShow: Observable<IMenu>,
@@ -32,6 +48,14 @@ export class ContextMenuService {
         return {
             onShow: this._subjects.onShow.asObservable(),
         };
+    }
+
+    public subscribeToWinEvents(type: EEventType, func: (event: TEvent) => void) {
+        window.addEventListener(type, func, true);
+    }
+
+    public unsubscribeToWinEvents(type: EEventType, func: (event: TEvent) => void) {
+        window.removeEventListener(type, func);
     }
 
     show(menu: IMenu): string {
