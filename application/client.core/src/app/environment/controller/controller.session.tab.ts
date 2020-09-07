@@ -18,6 +18,7 @@ import { ControllerSessionTabStreamBookmarks } from './controller.session.tab.st
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTabTitleContextMenu } from './controller.session.tab.titlemenu';
 import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
+import { ControllerSessionTabStreamComments } from './controller.session.tab.stream.comments';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -48,6 +49,7 @@ export class ControllerSessionTab {
     private _scope: ControllerSessionScope;
     private _map: ControllerSessionTabMap;
     private _timestamp: ControllerSessionTabTimestamp;
+    private _comments: ControllerSessionTabStreamComments;
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _tabAPI: ITabAPI | undefined;
     private _sourceInfo: IPCMessages.IStreamSourceNew | undefined;
@@ -68,6 +70,7 @@ export class ControllerSessionTab {
         this._api = params.api;
         this._scope = new ControllerSessionScope(this._sessionId, params.sessionsEventsHub);
         this._timestamp = new ControllerSessionTabTimestamp(params.guid);
+        this._comments = new ControllerSessionTabStreamComments(params.guid);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
             guid: params.guid,
@@ -200,6 +203,10 @@ export class ControllerSessionTab {
 
     public getSessionBooksmarks(): ControllerSessionTabStreamBookmarks {
         return this._stream.getBookmarks();
+    }
+
+    public getSessionComments(): ControllerSessionTabStreamComments {
+        return this._comments;
     }
 
     public getSessionSearch(): ControllerSessionTabSearch {

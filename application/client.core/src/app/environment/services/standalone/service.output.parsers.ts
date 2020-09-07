@@ -67,7 +67,7 @@ export class OutputParsersService {
     private _typedRowRenders: Map<string, Toolkit.ATypedRowRender<any>> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
-    private _session: string;
+    private _controller: ControllerSessionTab | undefined;
     private _sequence: number = 0;
     private _typedRowRendersHistory: {
         sources: string[],
@@ -176,6 +176,11 @@ export class OutputParsersService {
             position: row.position,
             hasOwnStyles: row.hasOwnStyles,
         };
+        if (this._controller === undefined) {
+            return;
+        }
+        // Apply comments highlights
+        row.str = this._controller.getSessionComments().getHTML(row.position, row.str);
         // Apply bound parsers
         const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);
         if (bound !== undefined) {
@@ -192,7 +197,7 @@ export class OutputParsersService {
             row.str = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
         });
         // Apply session parsers
-        const parsers: Map<string, Toolkit.ARowCommonParser> | undefined = this._parsers.session.get(this._session);
+        const parsers: Map<string, Toolkit.ARowCommonParser> | undefined = this._parsers.session.get(this._controller.getGuid());
         if (parsers !== undefined) {
             parsers.forEach((parser: Toolkit.ARowCommonParser) => {
                 row.str = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
@@ -287,10 +292,10 @@ export class OutputParsersService {
     }
 
     public setSessionParser(id: string, parser: Toolkit.RowCommonParser, session?: string, update: boolean = false) {
-        if (this._session === undefined && session === undefined) {
+        if (this._controller === undefined && session === undefined) {
             return;
         }
-        session = session === undefined ? this._session : session;
+        session = session === undefined ? this._controller.getGuid() : session;
         let parsers: Map<string, Toolkit.RowCommonParser> | undefined = this._parsers.session.get(session);
         if (parsers === undefined) {
             parsers = new Map();
@@ -303,10 +308,10 @@ export class OutputParsersService {
     }
 
     public removeSessionParser(id: string, session?: string, update: boolean = false) {
-        if (this._session === undefined && session === undefined) {
+        if (this._controller === undefined && session === undefined) {
             return;
         }
-        session = session === undefined ? this._session : session;
+        session = session === undefined ? this._controller.getGuid() : session;
         const parsers: Map<string, Toolkit.RowCommonParser> | undefined = this._parsers.session.get(session);
         if (parsers === undefined) {
             return;
@@ -319,10 +324,10 @@ export class OutputParsersService {
     }
 
     public setSessionTooltip(tooltip: ITooltip, session?: string) {
-        if (this._session === undefined && session === undefined) {
+        if (this._controller === undefined && session === undefined) {
             return;
         }
-        session = session === undefined ? this._session : session;
+        session = session === undefined ? this._controller.getGuid() : session;
         let tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(session);
         if (tooltips === undefined) {
             tooltips = new Map();
@@ -337,7 +342,7 @@ export class OutputParsersService {
 
     public getTooltipContent(target: HTMLElement, str: string, position: number): Promise<string | undefined> {
         return new Promise((resolve) => {
-            const tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(this._session);
+            const tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(this._controller.getGuid());
             if (tooltips === undefined) {
                 return resolve(undefined);
             }
@@ -361,10 +366,10 @@ export class OutputParsersService {
     }
 
     public setSessionClickHandler(id: string, handler: TClickHandler, session?: string) {
-        if (this._session === undefined && session === undefined) {
+        if (this._controller === undefined && session === undefined) {
             return;
         }
-        session = session === undefined ? this._session : session;
+        session = session === undefined ? this._controller.getGuid() : session;
         let clicks: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(session);
         if (clicks === undefined) {
             clicks = new Map();
@@ -378,7 +383,7 @@ export class OutputParsersService {
     }
 
     public emitClickHandler(target: HTMLElement, str: string, position: number): boolean {
-        const handlers: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(this._session);
+        const handlers: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(this._controller.getGuid());
         if (handlers === undefined) {
             return false;
         }
@@ -426,7 +431,7 @@ export class OutputParsersService {
         if (!this._parsers.tooltips.has(controller.getGuid())) {
             this._parsers.tooltips.set(controller.getGuid(), new Map());
         }
-        this._session = controller.getGuid();
+        this._controller = controller;
     }
 
     private _onSessionClosed(guid: string) {

@@ -199,6 +199,20 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     })
                 ]);
             }
+            items.push(...[
+                { /* delimiter */ },
+                {
+                    caption: `Comment`,
+                    handler: () => {
+                        const first = this._output.getRowByPosition(Math.min(textSelection.anchor, textSelection.focus));
+                        const last = this._output.getRowByPosition(Math.max(textSelection.anchor, textSelection.focus));
+                        if (first === undefined || last === undefined) {
+                            return;
+                        }
+                        this.session.getSessionComments().create(textSelection, first.str, last.str);
+                    },
+                },
+            ]);
         }
         items.push(...[
             { /* delimiter */ },
