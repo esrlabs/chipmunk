@@ -133,7 +133,7 @@ fn main() {
                 )
                 .arg(
                     Arg::with_name("watch")
-                        .short("w")
+                        .short("u")
                         .long("watch")
                         .help("tail the file (keep watching for updates)"),
                 )
