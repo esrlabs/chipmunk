@@ -39,7 +39,7 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
         SearchManagerService.onDragStart(false);
         if (SearchManagerService.droppedOut) {
             return;
@@ -95,8 +95,8 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
         return this.provider.isViable.bind(this);
     }
 
-    public _ng_getEntries(): Entity<RangeRequest>[] | undefined {
-        return new EntityData(this._ng_entries).entries;
+    public _ng_getDragAndDropData(): EntityData<RangeRequest> | undefined {
+        return new EntityData<RangeRequest>({ entities: this._ng_entries });
     }
 
     private _onDataUpdate() {

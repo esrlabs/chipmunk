@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import SearchManagerService, { TRequest } from '../../service/service';
-import { Entity } from '../../providers/entity';
+import { EntityData } from '../../providers/entity.data';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-filters',
@@ -26,7 +26,7 @@ export class SidebarAppSearchManagerFiltersPlaceholderComponent implements OnDes
         });
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
         SearchManagerService.onDragStart(false);
         if (SearchManagerService.droppedOut) {
             return;

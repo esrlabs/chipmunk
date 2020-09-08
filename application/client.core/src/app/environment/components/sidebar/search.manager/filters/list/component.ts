@@ -37,7 +37,7 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
         SearchManagerService.onDragStart(false);
         if (SearchManagerService.droppedOut) {
             return;
@@ -57,8 +57,8 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         return this.provider.isViable.bind(this);
     }
 
-    public _ng_getEntries(): Entity<FilterRequest>[] | undefined {
-        return new EntityData(this._ng_entries).entries;
+    public _ng_getDragAndDropData(): EntityData<FilterRequest> | undefined {
+        return new EntityData<FilterRequest>({ entities: this._ng_entries });
     }
 
     private _onDataUpdate() {

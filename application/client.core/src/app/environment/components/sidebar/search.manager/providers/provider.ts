@@ -6,6 +6,7 @@ import { ControllerSessionTab } from '../../../../controller/controller.session.
 import { IComponentDesc } from 'chipmunk-client-material';
 import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import { EntityData } from './entity.data';
 
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
@@ -384,7 +385,7 @@ export abstract class Provider<T> {
 
     public abstract isViable(): boolean;
 
-    public abstract itemDragged(event: CdkDragDrop<Entity<TRequest>[]>): void;
+    public abstract itemDragged(event: CdkDragDrop<EntityData<TRequest>>): void;
 
     public abstract get listID(): EListID;
 

@@ -222,12 +222,12 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         return true;
     }
 
-    public itemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+    public itemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
         if (event.previousContainer === event.container) {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         } else {
             const index: number = event.previousIndex;
-            const data: EntityData<TRequest> = new EntityData(event.previousContainer.data);
+            const data: EntityData<TRequest> = event.previousContainer.data;
             if (data.entries !== undefined) {
                 const outside: Entity<TRequest> | undefined = data.entries[event.previousIndex] !== undefined ? data.entries[index] : undefined;
                 if (outside !== undefined) {
