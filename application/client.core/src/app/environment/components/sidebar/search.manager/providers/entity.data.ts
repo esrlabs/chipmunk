@@ -1,19 +1,17 @@
 import { Entity } from './entity';
 import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
 
-interface IDisabledData { disabled: Entity<DisabledRequest>[]; }
-
 export class EntityData<T> {
 
-    private _entries: Entity<T>[];
-    private _disabled: Entity<DisabledRequest>[];
+    private _entries: Entity<T>[] | undefined;
+    private _disabled: Entity<DisabledRequest>[] | undefined;
 
-    constructor(entries: Entity<T>[] | IDisabledData) {
-        if (entries instanceof Array) {
-            this._entries = entries;
-        } else if (entries.disabled instanceof Array) {
-            this._disabled = entries.disabled;
-        }
+    constructor(params: {
+        entities?: Entity<T>[],
+        disabled?: Entity<DisabledRequest>[],
+    }) {
+        this._entries = params.entities instanceof Array ? params.entities : undefined;
+        this._disabled = params.disabled instanceof Array ? params.disabled : undefined;
     }
 
     public get entries(): Entity<T>[] | undefined {

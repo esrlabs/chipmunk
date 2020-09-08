@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-material';
-import ContextMenuService, { IMenu, IMenuItem, EEventType } from '../../services/standalone/service.contextmenu';
+import ContextMenuService, { IMenu, IMenuItem } from '../../services/standalone/service.contextmenu';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
@@ -37,13 +37,11 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        ContextMenuService.unsubscribeToWinEvents(EEventType.keydown, this._onWindowKeyDown.bind(this));
-        ContextMenuService.unsubscribeToWinEvents(EEventType.mousedown, this._onWindowMouseDown.bind(this));
+        this._unsubscribeToWinEvents();
     }
 
     public ngAfterViewInit() {
-        ContextMenuService.subscribeToWinEvents(EEventType.keydown, this._onWindowKeyDown.bind(this));
-        ContextMenuService.subscribeToWinEvents(EEventType.mousedown, this._onWindowMouseDown.bind(this));
+        this._subscribeToWinEvents();
     }
 
     public _ng_onMouseDown(item: IMenuItem) {
@@ -79,6 +77,18 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
                 this._cdRef.detectChanges();
             }
         }, 0);
+    }
+
+    private _subscribeToWinEvents() {
+        this._onWindowKeyDown = this._onWindowKeyDown.bind(this);
+        window.addEventListener('keydown', this._onWindowKeyDown, true);
+        this._onWindowMouseDown = this._onWindowMouseDown.bind(this);
+        window.addEventListener('mousedown', this._onWindowMouseDown, true);
+    }
+
+    private _unsubscribeToWinEvents() {
+        window.removeEventListener('mousedown', this._onWindowMouseDown);
+        window.removeEventListener('keydown', this._onWindowKeyDown);
     }
 
     private _onWindowKeyDown(event: KeyboardEvent) {

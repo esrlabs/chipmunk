@@ -246,12 +246,12 @@ export class ProviderCharts extends Provider<ChartRequest> {
         return false;
     }
 
-    public itemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+    public itemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
         if (event.previousContainer === event.container) {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         } else {
             const index: number = event.previousIndex;
-            const data: EntityData<TRequest> = new EntityData(event.previousContainer.data);
+            const data: EntityData<TRequest> = event.previousContainer.data;
             if (data.disabled !== undefined) {
                 const outside: Entity<DisabledRequest> | undefined = data.disabled[event.previousIndex] !== undefined ? data.disabled[index] : undefined;
                 if (outside !== undefined && typeof outside.getEntity().getEntity === 'function' && outside.getEntity().getEntity() instanceof ChartRequest) {

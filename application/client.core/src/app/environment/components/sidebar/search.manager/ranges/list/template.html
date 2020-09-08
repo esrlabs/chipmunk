@@ -1,7 +1,7 @@
 <div id="ranges-entities"
     cdkDropList
     [cdkDropListConnectedTo]="['disabled-entities', 'bin-entity']"
-    [cdkDropListData]="_ng_getEntries()"
+    [cdkDropListData]="_ng_getDragAndDropData()"
     [cdkDropListEnterPredicate]="_ng_viablePredicate()"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
     class="ranges">

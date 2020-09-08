@@ -37,7 +37,7 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
         this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<Entity<TRequest>[]>) {
+    public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
         SearchManagerService.onDragStart(false);
         if (SearchManagerService.droppedOut) {
             return;
@@ -53,8 +53,8 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
         this.provider.select().doubleclick(event, entity);
     }
 
-    public _ng_getEntries(): Entity<DisabledRequest>[] | undefined {
-        return new EntityData(this._ng_entries).entries;
+    public _ng_getDragAndDropData(): EntityData<DisabledRequest> | undefined {
+        return new EntityData({ disabled: this._ng_entries });
     }
 
     private _onDataUpdate() {
