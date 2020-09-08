@@ -426,7 +426,7 @@ pub(crate) fn scan_lines(
                     let replacements: DateTimeReplacements = DateTimeReplacements {
                         day: None,
                         month: None,
-                        year: year,
+                        year,
                         offset: Some(0),
                     };
                     match extract_posix_timestamp(trimmed, &regex, replacements) {
@@ -712,7 +712,7 @@ pub fn extract_posix_timestamp(
             .map_err(|e| anyhow!("fail parse day: {}", e)),
         None => replacements
             .day
-            .ok_or(anyhow!("no group for days found in regex")),
+            .ok_or_else(|| anyhow!("no group for days found in regex")),
     }?;
     let month = match caps.name(MONTH_GROUP) {
         Some(month_capt) => month_capt
@@ -723,7 +723,7 @@ pub fn extract_posix_timestamp(
             Some(month_short_name) => parse_from_month(month_short_name.as_str()),
             None => replacements
                 .month
-                .ok_or(anyhow!("no group for month found in regex")),
+                .ok_or_else(|| anyhow!("no group for month found in regex")),
         },
     }?;
     let hour_capt = caps
@@ -857,7 +857,7 @@ pub fn line_to_timed_line(
     let replacements: DateTimeReplacements = DateTimeReplacements {
         day: None,
         month: None,
-        year: year,
+        year,
         offset: time_offset,
     };
     match extract_posix_timestamp(line, regex, replacements) {
@@ -976,7 +976,7 @@ pub fn detect_timestamp_in_string(input: &str, offset: Option<i64>) -> Result<(i
                 day: None,
                 month: None,
                 year: None,
-                offset: offset,
+                offset,
             };
             match extract_posix_timestamp(trimmed, regex, replacements) {
                 Ok((timestamp, year_missing)) => {
