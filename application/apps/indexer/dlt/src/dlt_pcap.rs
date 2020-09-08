@@ -44,8 +44,8 @@ pub fn convert_to_dlt_file(
     task::block_on(async {
         while let Some(item) = pcap_producer.next().await {
             match item {
-                Ok(MessageStreamItem::Item(i)) => trace!("item: {:?}", i),
-                Ok(MessageStreamItem::Done) => {
+                Some(Ok(MessageStreamItem::Item(i))) => trace!("item: {:?}", i),
+                Some(Ok(MessageStreamItem::Done)) => {
                     trace!("DONE");
                     break;
                 }
@@ -92,10 +92,11 @@ enum MessageStreamItem {
     Item(Message),
     Skipped,
     Incomplete,
+    Nothing,
     Done,
 }
 impl futures::Stream for PcapMessageProducer {
-    type Item = Result<MessageStreamItem, DltParseError>;
+    type Item = Option<Result<MessageStreamItem, DltParseError>>;
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context,
@@ -109,7 +110,7 @@ impl futures::Stream for PcapMessageProducer {
         let now = SystemTime::now();
         let since_the_epoch = now
             .duration_since(UNIX_EPOCH)
-            .unwrap_or(std::time::Duration::from_secs(0));
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0));
         let mut last_in_ms = since_the_epoch.as_millis() as i64;
         let res = match self.reader.next() {
             Ok((offset, block)) => {
@@ -127,14 +128,14 @@ impl futures::Stream for PcapMessageProducer {
                 };
                 if let Some(payload) = data {
                     match SlicedPacket::from_ethernet(&payload) {
-                        Err(value) => {
-                            futures::task::Poll::Ready(Some(Err(DltParseError::ParsingHickup {
+                        Err(value) => futures::task::Poll::Ready(Some(Some(Err(
+                            DltParseError::ParsingHickup {
                                 reason: format!(
                                     "error trying to extract data from ethernet frame: {}",
                                     value
                                 ),
-                            })))
-                        }
+                            },
+                        )))),
                         Ok(value) => {
                             match dlt_message(
                                 value.payload,
@@ -148,52 +149,52 @@ impl futures::Stream for PcapMessageProducer {
                                     let msg_with_storage_header = m.add_storage_header(Some(
                                         DltTimeStamp::from_ms(last_in_ms as u64),
                                     ));
-                                    futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Item(
-                                        msg_with_storage_header,
+                                    futures::task::Poll::Ready(Some(Some(Ok(
+                                        MessageStreamItem::Item(msg_with_storage_header),
                                     ))))
                                 }
-                                Ok((_, ParsedMessage::FilteredOut)) => {
-                                    futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Skipped)))
-                                }
-                                Ok((_, ParsedMessage::Invalid)) => {
-                                    futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Skipped)))
-                                }
+                                Ok((_, ParsedMessage::FilteredOut)) => futures::task::Poll::Ready(
+                                    Some(Some(Ok(MessageStreamItem::Skipped))),
+                                ),
+                                Ok((_, ParsedMessage::Invalid)) => futures::task::Poll::Ready(
+                                    Some(Some(Ok(MessageStreamItem::Skipped))),
+                                ),
                                 Err(DltParseError::IncompleteParse { needed }) => {
                                     let needed_s = match needed {
                                         Some(s) => format!("{}", s),
                                         None => "unknown".to_string(),
                                     };
-                                    futures::task::Poll::Ready(Some(Err(
+                                    futures::task::Poll::Ready(Some(Some(Err(
                                           DltParseError::Unrecoverable {
                                               cause: format!(
                                                   "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
                                                   value.payload.len(),
                                                   needed_s)
                                           },
-                                      )))
+                                      ))))
                                 }
-                                Err(e) => futures::task::Poll::Ready(Some(Err(e))),
+                                Err(e) => futures::task::Poll::Ready(Some(Some(Err(e)))),
                             }
                         }
                     }
                 } else {
-                    futures::task::Poll::Pending
+                    futures::task::Poll::Ready(Some(None))
                 }
             }
             Err(PcapError::Eof) => {
                 trace!("Pcap: EOF");
-                futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Done)))
+                futures::task::Poll::Ready(Some(Some(Ok(MessageStreamItem::Done))))
             }
             Err(PcapError::Incomplete) => {
                 trace!("Pcap: Incomplete");
                 let _ = self.reader.refill();
-                futures::task::Poll::Ready(Some(Ok(MessageStreamItem::Incomplete)))
+                futures::task::Poll::Ready(Some(Some(Ok(MessageStreamItem::Incomplete))))
             }
             Err(e) => {
                 warn!("Pcap: error {:?}", e);
-                futures::task::Poll::Ready(Some(Err(DltParseError::Unrecoverable {
+                futures::task::Poll::Ready(Some(Some(Err(DltParseError::Unrecoverable {
                     cause: format!("error reading pcap: {:?}", e),
-                })))
+                }))))
             }
         };
         self.reader.consume(consumed);
@@ -235,12 +236,15 @@ pub fn index_from_pcap(
         debug!("shutdown_receiver event");
         Event::Shutdown
     });
-    let message_stream = pcap_msg_producer.map(Event::Msg);
+    let message_stream = pcap_msg_producer.map(|x| match x {
+        Some(m) => Event::Msg(m),
+        None => Event::Msg(Ok(MessageStreamItem::Nothing)),
+    });
     let mut event_stream = futures::stream::select(message_stream, shutdown_stream);
 
     task::block_on(async {
         while let Some(event) = event_stream.next().await {
-            // trace!("received event: {:?}", event);
+            trace!("received event: {:?}", event);
             match event {
                 Event::Shutdown => {
                     debug!("received shutdown through future channel");
@@ -267,6 +271,9 @@ pub fn index_from_pcap(
                 }
                 Event::Msg(Ok(MessageStreamItem::Incomplete)) => {
                     trace!("msg was incomplete");
+                }
+                Event::Msg(Ok(MessageStreamItem::Nothing)) => {
+                    trace!("no message yet");
                 }
                 Event::Msg(Ok(MessageStreamItem::Done)) => {
                     trace!("MessageStreamItem::Done received");

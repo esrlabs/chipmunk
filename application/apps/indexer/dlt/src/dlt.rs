@@ -1386,7 +1386,7 @@ impl Message {
                 let now = SystemTime::now();
                 let since_the_epoch = now
                     .duration_since(UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0));
+                    .unwrap_or_else(|_| std::time::Duration::from_secs(0));
                 let in_ms = since_the_epoch.as_millis();
                 DltTimeStamp::from_ms(in_ms as u64)
             }

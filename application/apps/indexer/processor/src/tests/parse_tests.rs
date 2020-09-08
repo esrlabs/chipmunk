@@ -336,7 +336,7 @@ mod tests {
             offset: Some(-TWO_HOURS_IN_MS),
         };
         let (timestamp_with_offset, _) =
-            extract_posix_timestamp(input, &regex, replacements.clone()).unwrap();
+            extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(1_559_838_667_577, timestamp_with_offset);
     }
 
@@ -350,18 +350,17 @@ mod tests {
             year: Some(2017),
             offset: Some(TWO_HOURS_IN_MS),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(
-                    NaiveDate::from_ymd(2017, 4, 4)
-                        .and_hms(9, 52, 50) // UTC
-                        .timestamp()
-                        * 1000
-                        + 229,
-                    tm
-                );
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(
+                NaiveDate::from_ymd(2017, 4, 4)
+                    .and_hms(9, 52, 50) // UTC
+                    .timestamp()
+                    * 1000
+                    + 229,
+                tm
+            );
         }
     }
 
@@ -375,17 +374,16 @@ mod tests {
             year: Some(2017),
             offset: Some(TWO_HOURS_IN_MS),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(
-                    NaiveDate::from_ymd(2017, 4, 4)
-                        .and_hms(9, 52, 50) // UTC
-                        .timestamp()
-                        * 1000,
-                    tm
-                );
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(
+                NaiveDate::from_ymd(2017, 4, 4)
+                    .and_hms(9, 52, 50) // UTC
+                    .timestamp()
+                    * 1000,
+                tm
+            );
         }
     }
 
@@ -400,18 +398,17 @@ mod tests {
             year: None,
             offset: Some(TWO_HOURS_IN_MS),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(
-                    NaiveDate::from_ymd(2017, 4, 4)
-                        .and_hms(9, 52, 50) // UTC
-                        .timestamp()
-                        * 1000
-                        + 229,
-                    tm
-                );
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(
+                NaiveDate::from_ymd(2017, 4, 4)
+                    .and_hms(9, 52, 50) // UTC
+                    .timestamp()
+                    * 1000
+                    + 229,
+                tm
+            );
         }
     }
 
@@ -425,17 +422,16 @@ mod tests {
             year: None,
             offset: Some(TWO_HOURS_IN_MS),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(
-                    NaiveDate::from_ymd(2017, 4, 4)
-                        .and_hms(9, 52, 50) // UTC
-                        .timestamp()
-                        * 1000,
-                    tm
-                );
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(
+                NaiveDate::from_ymd(2017, 4, 4)
+                    .and_hms(9, 52, 50) // UTC
+                    .timestamp()
+                    * 1000,
+                tm
+            );
         }
     }
 
@@ -449,18 +445,17 @@ mod tests {
             year: None,
             offset: Some(TWO_HOURS_IN_MS),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(
-                    NaiveDate::from_ymd(2019, 7, 30)
-                        .and_hms(8, 8, 2) // UTC
-                        .timestamp()
-                        * 1000
-                        + 555,
-                    tm
-                );
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(
+                NaiveDate::from_ymd(2019, 7, 30)
+                    .and_hms(8, 8, 2) // UTC
+                    .timestamp()
+                    * 1000
+                    + 555,
+                tm
+            );
         }
     }
 
@@ -475,17 +470,16 @@ mod tests {
             year: None,
             offset: Some(0),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(
-                    NaiveDate::from_ymd(2019, 7, 19)
-                        .and_hms(16, 14, 0)
-                        .timestamp()
-                        * 1000,
-                    tm
-                );
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(
+                NaiveDate::from_ymd(2019, 7, 19)
+                    .and_hms(16, 14, 0)
+                    .timestamp()
+                    * 1000,
+                tm
+            );
         }
     }
 
@@ -500,17 +494,16 @@ mod tests {
             year: Some(2019),
             offset: Some(0),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(
-                    NaiveDate::from_ymd(2019, 7, 19)
-                        .and_hms(16, 14, 57)
-                        .timestamp()
-                        * 1000,
-                    tm
-                );
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(
+                NaiveDate::from_ymd(2019, 7, 19)
+                    .and_hms(16, 14, 57)
+                    .timestamp()
+                    * 1000,
+                tm
+            );
         }
     }
 
@@ -524,11 +517,10 @@ mod tests {
             year: None,
             offset: Some(0),
         };
-        match extract_posix_timestamp_by_format(input, format, replacements) {
-            TimestampByFormatResult::Timestamp(tm) => {
-                assert_eq!(1_559_831_467_577, tm);
-            }
-            _ => (),
+        if let TimestampByFormatResult::Timestamp(tm) =
+            extract_posix_timestamp_by_format(input, format, replacements)
+        {
+            assert_eq!(1_559_831_467_577, tm);
         }
     }
 
@@ -909,55 +901,55 @@ mod tests {
                 _ => false,
             }
         }
-        const flags: FormatCheckFlags = FormatCheckFlags {
+        const FLAGS: FormatCheckFlags = FormatCheckFlags {
             miss_day: false,
             miss_year: false,
             miss_month: false,
         };
-        const flags_miss_year: FormatCheckFlags = FormatCheckFlags {
+        const FLAGS_MISS_YEAR: FormatCheckFlags = FormatCheckFlags {
             miss_day: false,
             miss_year: true,
             miss_month: false,
         };
         assert!(format_was_ok(check_format(
             "YYYY-MM-DDThh:mm:ssTZD",
-            flags.clone()
+            FLAGS.clone()
         )));
         assert!(format_was_ok(check_format(
             "YYYY-MM-DDThh:mm:ss",
-            flags.clone()
+            FLAGS.clone()
         ))); // OK without timezone
         assert!(!format_was_ok(check_format(
             "MM-DDThh:mm:ss",
-            flags.clone()
+            FLAGS.clone()
         ))); // no year - false
         assert!(format_was_ok(check_format(
             "MM-DDThh:mm:ss",
-            flags_miss_year.clone()
+            FLAGS_MISS_YEAR.clone()
         ))); // no year - true
         assert!(!format_was_ok(check_format(
             "YYYY-DDThh:mm:ss",
-            flags.clone()
+            FLAGS.clone()
         ))); // no month
         assert!(format_was_ok(check_format(
             "YYYY-DD(MMM)Thh:mm:ss",
-            flags.clone()
+            FLAGS.clone()
         ))); // short month
         assert!(!format_was_ok(check_format(
             "YYYY-MMThh:mm:ss",
-            flags.clone()
+            FLAGS.clone()
         ))); // no days
         assert!(!format_was_ok(check_format(
             "YYYY-DD-MMTmm:ss",
-            flags.clone()
+            FLAGS.clone()
         ))); // no hours
         assert!(!format_was_ok(check_format(
             "YYYY-DD-MMThh:ss",
-            flags.clone()
+            FLAGS.clone()
         ))); // no minutes
         assert!(format_was_ok(check_format(
             "YYYY-DD-MMThh:mm",
-            flags.clone()
+            FLAGS.clone()
         ))); // no seconds should be ok
     }
 
