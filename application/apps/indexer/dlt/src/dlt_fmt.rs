@@ -4,8 +4,7 @@ use crate::{
     fibex::*,
     service_id::*,
 };
-use byteorder::{BigEndian, LittleEndian};
-use bytes::ByteOrder;
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use chrono::{
     prelude::{DateTime, Utc},
     NaiveDateTime,

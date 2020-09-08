@@ -12,8 +12,8 @@
 #![allow(clippy::unit_arg)]
 
 use crate::proptest_strategies::*;
-use byteorder::{BigEndian, LittleEndian};
-use bytes::{BufMut, ByteOrder, BytesMut};
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
+use bytes::{BufMut, BytesMut};
 use indexer_base::error_reporter::*;
 use serde::Serialize;
 use std::{fmt, io, io::Error, rc::Rc};
@@ -191,15 +191,15 @@ impl StandardHeader {
         let mut buf = BytesMut::with_capacity(size as usize);
         buf.put_u8(header_type_byte);
         buf.put_u8(self.message_counter);
-        buf.put_u16_be(self.overall_length());
+        buf.put_u16(self.overall_length());
         if let Some(id) = &self.ecu_id {
             buf.put_zero_terminated_string(&id[..], 4);
         }
         if let Some(id) = &self.session_id {
-            buf.put_u32_be(*id);
+            buf.put_u32(*id);
         }
         if let Some(time) = &self.timestamp {
-            buf.put_u32_be(*time);
+            buf.put_u32(*time);
         }
         buf.to_vec()
     }
@@ -786,8 +786,9 @@ impl Argument {
         let mut buf = BytesMut::with_capacity(capacity);
         buf.extend_from_slice(&info.as_bytes::<T>()[..]);
         if let Some(n) = name {
-            #[allow(deprecated)]
-            buf.put_u16::<T>(n.len() as u16 + 1);
+            let mut tmp_buf = [0; 2];
+            T::write_u16(&mut tmp_buf, n.len() as u16 + 1);
+            buf.extend_from_slice(&tmp_buf);
             buf.extend_from_slice(n.as_bytes());
             buf.put_u8(0x0); // null termination
         }
@@ -827,21 +828,22 @@ impl Argument {
         let mut buf = BytesMut::with_capacity(capacity);
         buf.extend_from_slice(&info.as_bytes::<T>()[..]);
         if info.has_variable_info {
+            let mut tmp_buf = [0; 2];
             if let Some(n) = name {
-                #[allow(deprecated)]
-                buf.put_u16::<T>(n.len() as u16 + 1);
+                T::write_u16(&mut tmp_buf, n.len() as u16 + 1);
+                buf.extend_from_slice(&tmp_buf);
             // println!("put name len: {:02X?}", buf.to_vec());
             } else {
-                #[allow(deprecated)]
-                buf.put_u16::<T>(1u16);
+                T::write_u16(&mut tmp_buf, 1u16);
+                buf.extend_from_slice(&tmp_buf);
             }
             if let Some(u) = unit {
-                #[allow(deprecated)]
-                buf.put_u16::<T>(u.len() as u16 + 1);
+                T::write_u16(&mut tmp_buf, u.len() as u16 + 1);
+                buf.extend_from_slice(&tmp_buf);
             // println!("put unit len: {:02X?}", buf.to_vec());
             } else {
-                #[allow(deprecated)]
-                buf.put_u16::<T>(1u16);
+                T::write_u16(&mut tmp_buf, 1u16);
+                buf.extend_from_slice(&tmp_buf);
             }
             if let Some(n) = name {
                 buf.extend_from_slice(n.as_bytes());
@@ -860,15 +862,18 @@ impl Argument {
         }
         if let Some(fp) = fixed_point {
             #[allow(deprecated)]
-            buf.put_f32::<T>(fp.quantization);
+            let mut tmp_buf = [0; 4];
+            T::write_f32(&mut tmp_buf, fp.quantization);
+            buf.extend_from_slice(&tmp_buf);
             match fp.offset {
                 FixedPointValue::I32(v) => {
-                    #[allow(deprecated)]
-                    buf.put_i32::<T>(v);
+                    T::write_i32(&mut tmp_buf, v);
+                    buf.extend_from_slice(&tmp_buf);
                 }
                 FixedPointValue::I64(v) => {
-                    #[allow(deprecated)]
-                    buf.put_i64::<T>(v);
+                    let mut tmp_buf8 = [0; 8];
+                    T::write_i64(&mut tmp_buf8, v);
+                    buf.extend_from_slice(&tmp_buf8);
                 }
             }
         }
@@ -980,10 +985,12 @@ impl Argument {
                                     s.len() + 1,
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
-                                #[allow(deprecated)]
-                                buf.put_u16::<T>(s.len() as u16 + 1);
-                                #[allow(deprecated)]
-                                buf.put_u16::<T>(name_len_with_termination);
+                                let mut tmp_buf = [0; 2];
+                                T::write_u16(&mut tmp_buf, s.len() as u16 + 1);
+                                buf.extend_from_slice(&tmp_buf);
+                                T::write_u16(&mut tmp_buf, name_len_with_termination);
+                                buf.extend_from_slice(&tmp_buf);
+
                                 buf.extend_from_slice(var_name.as_bytes());
                                 buf.put_u8(0x0); // null termination
                                 buf.extend_from_slice(s.as_bytes());
@@ -1006,8 +1013,11 @@ impl Argument {
                                     s.len() + 1,
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
-                                #[allow(deprecated)]
-                                buf.put_u16::<T>(s.len() as u16 + 1);
+
+                                let mut tmp_buf = [0; 2];
+                                T::write_u16(&mut tmp_buf, s.len() as u16 + 1);
+                                buf.extend_from_slice(&tmp_buf);
+
                                 buf.extend_from_slice(s.as_bytes());
                                 buf.put_u8(0x0); // null termination
                                 dbg_bytes_with_info(
@@ -1043,10 +1053,13 @@ impl Argument {
                                     bytes.len(),
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
-                                #[allow(deprecated)]
-                                buf.put_u16::<T>(bytes.len() as u16);
-                                #[allow(deprecated)]
-                                buf.put_u16::<T>(name_len_with_termination);
+
+                                let mut tmp_buf = [0; 2];
+                                T::write_u16(&mut tmp_buf, bytes.len() as u16);
+                                buf.extend_from_slice(&tmp_buf);
+                                T::write_u16(&mut tmp_buf, name_len_with_termination);
+                                buf.extend_from_slice(&tmp_buf);
+
                                 buf.extend_from_slice(var_name.as_bytes());
                                 buf.put_u8(0x0); // null termination
                                 buf.extend_from_slice(bytes);
@@ -1068,8 +1081,11 @@ impl Argument {
                                     bytes.len(),
                                 );
                                 buf.extend_from_slice(&self.type_info.as_bytes::<T>()[..]);
-                                #[allow(deprecated)]
-                                buf.put_u16::<T>(bytes.len() as u16);
+
+                                let mut tmp_buf = [0; 2];
+                                T::write_u16(&mut tmp_buf, bytes.len() as u16);
+                                buf.extend_from_slice(&tmp_buf);
+
                                 buf.extend_from_slice(bytes);
                                 dbg_bytes("Raw, no variable info", &buf.to_vec()[..]);
                                 buf.to_vec()
@@ -1235,8 +1251,11 @@ impl Payload2 {
                 //     "...Payload2::as_bytes, writing nonverbose, buf.len = {}",
                 //     buf.len()
                 // );
-                #[allow(deprecated)]
-                buf.put_u32::<T>(*msg_id);
+
+                let mut tmp_buf = [0; 4];
+                T::write_u32(&mut tmp_buf, *msg_id);
+                buf.extend_from_slice(&tmp_buf);
+
                 buf.extend_from_slice(&payload[..]);
             }
             PayloadContent::ControlMsg(ctrl_id, payload) => {
