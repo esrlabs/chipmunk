@@ -1,7 +1,6 @@
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { ControllerColumns, IColumn } from '../../controller.columns';
 import { CColors } from '../../../../../../conts/colors';
-import ContextMenuService from '../../../../../../services/standalone/service.contextmenu';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 
@@ -11,10 +10,9 @@ export const CColumnsHeadersKey = 'CColumnsHeadersKey';
     styleUrls: ['./styles.less']
 })
 
-export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, AfterContentInit, AfterViewInit {
+export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, AfterContentInit {
 
     @Input() public controller: ControllerColumns;
-    @Input() public header: string;
 
     public _ng_columns: IColumn[] = [];
     public _ng_selected: number | undefined = undefined;
@@ -27,7 +25,6 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
     }
 
     public ngOnDestroy() {
-        ContextMenuService.applyChange = undefined;
         this._destroyed = true;
     }
 
@@ -36,12 +33,7 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
             return;
         }
         this._ng_columns = this.controller.getColumns();
-        ContextMenuService.applyChange = this._ng_apply.bind(this);
         this._forceUpdate();
-    }
-
-    public ngAfterViewInit() {
-        this._ng_onColumnMouseDown(new MouseEvent(''), this.index);
     }
 
     public _ng_onColorMouseDown(event: MouseEvent, color: string) {
@@ -90,13 +82,5 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
         this._cdRef.detectChanges();
     }
 
-    private get index(): number {
-        for (let i = 0; i < this._ng_columns.length; i++) {
-            if (this._ng_columns[i].header === this.header) {
-                return i;
-            }
-        }
-        return 0;
-    }
 
 }

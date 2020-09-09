@@ -34,17 +34,12 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     }
 
     @HostListener('contextmenu', ['$event']) public _ng_onContextMenu(event: MouseEvent) {
-        let header: string = '';
-        if (event.target !== undefined) {
-            header = (event.target as HTMLElement).innerText;
-        }
         ContextMenuService.show({
             component: {
                 factory: ViewOutputRowColumnsHeadersMenuComponent,
                 resolved: false,
                 inputs: {
-                    controller: this.controller,
-                    header: header,
+                    controller: this.controller
                 }
             },
             x: event.pageX,
