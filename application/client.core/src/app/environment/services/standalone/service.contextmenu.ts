@@ -17,24 +17,14 @@ export interface IMenu {
     y: number;
 }
 
-type TApplyChange = () => void | undefined;
-
 export class ContextMenuService {
 
-    private _applyChange: TApplyChange;
     private _subjects: {
         onShow: Subject<IMenu>,
     } = {
         onShow: new Subject<IMenu>(),
     };
 
-    public get applyChange(): TApplyChange {
-        return this._applyChange;
-    }
-
-    public set applyChange(func: TApplyChange) {
-        this._applyChange = func;
-    }
 
     public getObservable(): {
         onShow: Observable<IMenu>,

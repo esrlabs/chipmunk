@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-material';
 import ContextMenuService, { IMenu, IMenuItem } from '../../services/standalone/service.contextmenu';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -94,9 +94,6 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
     private _onWindowKeyDown(event: KeyboardEvent) {
         if (this._isContextMenuNode(event.target as HTMLElement) || event.key !== 'Escape') {
             return false;
-        }
-        if (ContextMenuService.applyChange !== undefined && typeof ContextMenuService.applyChange === 'function') {
-            ContextMenuService.applyChange();
         }
         this._remove();
     }
