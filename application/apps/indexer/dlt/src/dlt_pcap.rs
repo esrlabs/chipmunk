@@ -2,6 +2,7 @@ use crate::{dlt::*, dlt_parse::*, fibex::FibexMetadata, filtering};
 use async_std::task;
 use crossbeam_channel as cc;
 use etherparse::*;
+use futures::future;
 use futures::stream::StreamExt;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
@@ -92,7 +93,6 @@ enum MessageStreamItem {
     Item(Message),
     Skipped,
     Incomplete,
-    Nothing,
     Done,
 }
 impl futures::Stream for PcapMessageProducer {
@@ -236,15 +236,12 @@ pub fn index_from_pcap(
         debug!("shutdown_receiver event");
         Event::Shutdown
     });
-    let message_stream = pcap_msg_producer.map(|x| match x {
-        Some(m) => Event::Msg(m),
-        None => Event::Msg(Ok(MessageStreamItem::Nothing)),
-    });
+    let filtered_stream = pcap_msg_producer.filter_map(future::ready);
+    let message_stream = filtered_stream.map(Event::Msg);
     let mut event_stream = futures::stream::select(message_stream, shutdown_stream);
 
     task::block_on(async {
         while let Some(event) = event_stream.next().await {
-            trace!("received event: {:?}", event);
             match event {
                 Event::Shutdown => {
                     debug!("received shutdown through future channel");
@@ -252,6 +249,7 @@ pub fn index_from_pcap(
                     break;
                 }
                 Event::Msg(Ok(MessageStreamItem::Item(msg))) => {
+                    trace!("received msg event");
                     let written_bytes_len = utils::create_tagged_line_d(
                         &config.tag,
                         &mut buf_writer,
@@ -271,9 +269,6 @@ pub fn index_from_pcap(
                 }
                 Event::Msg(Ok(MessageStreamItem::Incomplete)) => {
                     trace!("msg was incomplete");
-                }
-                Event::Msg(Ok(MessageStreamItem::Nothing)) => {
-                    trace!("no message yet");
                 }
                 Event::Msg(Ok(MessageStreamItem::Done)) => {
                     trace!("MessageStreamItem::Done received");
