@@ -164,7 +164,13 @@ pub(crate) fn dlt_standard_header(input: &[u8]) -> IResult<&[u8], StandardHeader
         maybe_parse_u32(has_timestamp),
     ))(rest)?;
     let has_extended_header = (header_type_byte & WITH_EXTENDED_HEADER_FLAG) != 0;
-    let payload_length = overall_length - calculate_all_headers_length(header_type_byte);
+    let all_headers_length = calculate_all_headers_length(header_type_byte);
+    if all_headers_length > overall_length {
+        let err_ctx: (&[u8], nom::error::ErrorKind) = (&[], nom::error::ErrorKind::Verify);
+        let err = nom::Err::Error(err_ctx);
+        return Err(err);
+    }
+    let payload_length = overall_length - all_headers_length;
 
     Ok((
         i,
