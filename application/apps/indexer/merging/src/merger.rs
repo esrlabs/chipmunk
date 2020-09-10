@@ -406,9 +406,6 @@ pub(crate) fn combined_file_size<T>(paths: &[T]) -> Result<u64>
 where
     T: Len + Debug,
 {
-    let path = std::env::current_dir()?;
-    println!("The current directory is {}", path.display());
-    println!("paths: {:?}", paths);
     paths.iter().try_fold(0, |acc, x| match x.len() {
         Ok(len) => Ok(acc + len as u64),
         Err(e) => Err(anyhow!("error getting combined file size ({})", e)),

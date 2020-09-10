@@ -173,7 +173,9 @@ pub fn number_string_len(linenr: usize) -> usize {
     1 + nr.log10().floor() as usize
 }
 
-#[inline]
+/// extract the line number from a chipmunk preprocessed (indexed) file
+/// and use it to calculate the next index
+/// for continuing the indexed list of log messages
 pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     if !path.exists() {
         return Ok(0);
@@ -211,7 +213,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
 }
 pub fn get_out_file_and_size(
     append: bool,
-    out_path: &path::PathBuf,
+    out_path: &path::Path,
 ) -> Result<(fs::File, usize), Error> {
     let out_file: std::fs::File = if append {
         std::fs::OpenOptions::new()

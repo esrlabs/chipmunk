@@ -24,7 +24,7 @@ use async_std::task;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
 use dlt::{
-    dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::convert_to_dlt_file,
+    dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::pcap_to_dlt,
     fibex::FibexMetadata,
 };
 use indexer_base::{
@@ -378,10 +378,10 @@ fn main() {
                         .help("json file that defines dlt filter settings"),
                 )
                 .arg(
-                    Arg::with_name("direct")
-                        .short("d")
-                        .long("direct")
-                        .help("write file in one go"),
+                    Arg::with_name("convert")
+                        .short("n")
+                        .long("convert")
+                        .help("convert file to dlt format"),
                 ),
         )
         .subcommand(
@@ -939,15 +939,20 @@ fn main() {
             let tag_string = tag.to_string();
             let total = fs::metadata(&file_path).expect("file size error").len();
             let progress_bar = initialize_progress_bar(total);
-            let in_one_go: bool = matches.is_present("direct");
-            if in_one_go {
-                println!("in one go: pcap");
-                let _ = convert_to_dlt_file(file_path, filter_conf, tx, load_test_fibex_rc());
-            } else {
-                let shutdown_channel = async_std::sync::channel(1);
-
-                thread::spawn(move || {
-                    let why = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
+            let in_one_go: bool = matches.is_present("convert");
+            let shutdown_channel = async_std::sync::channel(1);
+            thread::spawn(move || {
+                let why = if in_one_go {
+                    pcap_to_dlt(
+                        &file_path,
+                        &out_path,
+                        filter_conf,
+                        tx,
+                        shutdown_channel.1,
+                        load_test_fibex_rc(),
+                    )
+                } else {
+                    dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
                         IndexingConfig {
                             tag: tag_string,
                             chunk_size,
@@ -960,52 +965,52 @@ fn main() {
                         &tx,
                         shutdown_channel.1,
                         load_test_fibex_rc(),
-                    );
+                    )
+                };
 
-                    if let Err(reason) = why {
-                        report_error(format!("couldn't process: {}", reason));
+                if let Err(reason) = why {
+                    report_error(format!("couldn't process: {}", reason));
+                    std::process::exit(2)
+                }
+            });
+            let mut chunks: Vec<Chunk> = vec![];
+            loop {
+                match rx.recv() {
+                    Err(why) => {
+                        report_error(format!("couldn't process: {}", why));
                         std::process::exit(2)
                     }
-                });
-                let mut chunks: Vec<Chunk> = vec![];
-                loop {
-                    match rx.recv() {
-                        Err(why) => {
-                            report_error(format!("couldn't process: {}", why));
-                            std::process::exit(2)
-                        }
-                        Ok(Ok(IndexingProgress::Finished { .. })) => {
-                            let _ = serialize_chunks(&chunks, &mapping_out_path);
-                            progress_bar.finish_and_clear();
-                            break;
-                        }
-                        Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                            let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                            trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                            progress_bar.set_position((progress_fraction * (total as f64)) as u64);
-                        }
-                        Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                            println!("{:?}", chunk);
-                            chunks.push(chunk);
-                        }
-                        Ok(Err(Notification {
-                            severity,
-                            content,
-                            line,
-                        })) => {
-                            if severity == Severity::WARNING {
-                                report_warning_ln(content, line);
-                            } else {
-                                report_error_ln(content, line);
-                            }
-                        }
-                        Ok(_) => report_warning("process finished without result"),
+                    Ok(Ok(IndexingProgress::Finished { .. })) => {
+                        let _ = serialize_chunks(&chunks, &mapping_out_path);
+                        progress_bar.finish_and_clear();
+                        break;
                     }
+                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                        let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+                        trace!("progress... ({:.0} %)", progress_fraction * 100.0);
+                        progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+                    }
+                    Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                        println!("{:?}", chunk);
+                        chunks.push(chunk);
+                    }
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
+                    Ok(_) => report_warning("process finished without result"),
                 }
-
-                println!("done with handle_dlt_pcap_subcommand");
-                std::process::exit(0)
             }
+
+            println!("done with handle_dlt_pcap_subcommand");
+            std::process::exit(0)
         }
     };
     async fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches<'_>) {

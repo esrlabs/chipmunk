@@ -78,7 +78,7 @@ pub(crate) fn dlt_storage_header<'a, T>(
     index: Option<usize>,
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> IResult<&'a [u8], Option<StorageHeader>> {
-    // println!("dlt_storage_header (left: {} bytes)", input.len());
+    // trace!("dlt_storage_header (left: {} bytes)", input.len());
     match forward_to_next_storage_header(input) {
         Some((consumed, rest)) => {
             if consumed > 0 {
@@ -97,7 +97,7 @@ pub(crate) fn dlt_storage_header<'a, T>(
                 streaming::le_u32,
             ))(rest)?;
             let (after_string, ecu_id) = dlt_zero_terminated_string(i, 4)?;
-            // println!("after_stringA (left: {} bytes)", after_string.len());
+            // trace!("after_stringA (left: {} bytes)", after_string.len());
             Ok((
                 after_string,
                 Some(StorageHeader {
@@ -293,18 +293,18 @@ pub fn dlt_zero_terminated_string(s: &[u8], size: usize) -> IResult<&[u8], &str>
 fn dlt_variable_name_and_unit<T: NomByteOrder>(
     type_info: &TypeInfo,
 ) -> fn(&[u8]) -> IResult<&[u8], (Option<String>, Option<String>)> {
-    // println!("dlt_variable_name_and_unit");
+    // trace!("dlt_variable_name_and_unit");
     if type_info.has_variable_info {
         |input| {
             let (i2, name_size_unit_size) = tuple((T::parse_u16, T::parse_u16))(input)?;
             dbg_parsed("namesize, unitsize", input, i2, &name_size_unit_size);
-            // println!("(name_size, unit_size): {:?}", (name_size, unit_size));
+            // trace!("(name_size, unit_size): {:?}", (name_size, unit_size));
             let (i3, name) = dlt_zero_terminated_string(i2, name_size_unit_size.0 as usize)?;
             dbg_parsed("name", i2, i3, &name);
-            // println!("name: {}", name);
+            // trace!("name: {}", name);
             let (rest, unit) = dlt_zero_terminated_string(i3, name_size_unit_size.1 as usize)?;
             dbg_parsed("unit", i3, rest, &unit);
-            // println!("unit: {}", unit);
+            // trace!("unit: {}", unit);
             Ok((rest, (Some(name.to_string()), Some(unit.to_string()))))
         }
     } else {
@@ -416,7 +416,7 @@ impl NomByteOrder for LittleEndian {
 }
 
 pub(crate) fn dlt_uint<T: NomByteOrder>(width: TypeLength) -> fn(&[u8]) -> IResult<&[u8], Value> {
-    // println!("dlt_uint ...");
+    // trace!("dlt_uint ...");
     match width {
         TypeLength::BitLength8 => |i| map(streaming::be_u8, Value::U8)(i),
         TypeLength::BitLength16 => |i| map(T::parse_u16, Value::U16)(i),
@@ -458,12 +458,12 @@ pub(crate) fn dlt_fixed_point<T: NomByteOrder>(
     input: &[u8],
     width: FloatWidth,
 ) -> IResult<&[u8], FixedPoint> {
-    // println!("width {:?} dlt_fixedpoint,input: \t{:02X?}", width, input);
+    // trace!("width {:?} dlt_fixedpoint,input: \t{:02X?}", width, input);
     let (i, quantization) = T::parse_f32(input)?;
-    // println!("parsed quantization: {:?}", quantization);
+    // trace!("parsed quantization: {:?}", quantization);
     if width == FloatWidth::Width32 {
         let (rest, offset) = T::parse_i32(i)?;
-        // println!("parsed offset: {:?}", offset);
+        // trace!("parsed offset: {:?}", offset);
         Ok((
             rest,
             FixedPoint {
@@ -488,7 +488,7 @@ pub(crate) fn dlt_fixed_point<T: NomByteOrder>(
 pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argument> {
     let (i, type_info) = dlt_type_info::<T>(input)?;
     dbg_parsed("type info", input, i, &type_info);
-    // println!("type info: {:?}", type_info);
+    // trace!("type info: {:?}", type_info);
     match type_info.kind {
         TypeInfoKind::Signed(width) => {
             let (before_val, name_unit) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
@@ -507,7 +507,7 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
             ))
         }
         TypeInfoKind::SignedFixedPoint(width) => {
-            // println!("parsing TypeInfoKind::Signed");
+            // trace!("parsing TypeInfoKind::Signed");
             let (before_val, name_unit) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
             dbg_parsed("name and unit", i, before_val, &name_unit);
             let (r, fp) = dlt_fixed_point::<T>(before_val, width)?;
@@ -528,7 +528,7 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
         }
         TypeInfoKind::Unsigned(width) => {
             let (before_val, (name, unit)) = dlt_variable_name_and_unit::<T>(&type_info)(i)?;
-            // println!("Unsigned: calling dlt_uint for {:02X?}", before_val);
+            // trace!("Unsigned: calling dlt_uint for {:02X?}", before_val);
             let (rest, value) = dlt_uint::<T>(width)(before_val)?;
             dbg_parsed("unsigned", before_val, rest, &value);
             Ok((
@@ -548,7 +548,7 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
                 let (r, fp) = dlt_fixed_point::<T>(before_val, width)?;
                 (r, Some(fp))
             };
-            // println!(
+            // trace!(
             //     "UnsignedFixedPoint: calling dlt_uint for {:02X?}",
             //     before_val
             // );
@@ -629,7 +629,7 @@ pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argu
             };
             let (rest, value) = dlt_zero_terminated_string(i3, size as usize)?;
             dbg_parsed("StringType", i3, rest, &value);
-            // println!(
+            // trace!(
             //     "was stringtype: \"{}\", size should have been {}",
             //     value, size
             // );
@@ -659,9 +659,9 @@ fn dlt_payload<T: NomByteOrder>(
     arg_cnt: u8,
     is_controll_msg: bool,
 ) -> IResult<&[u8], Payload2> {
-    // println!("try to parse dlt_payload for {:02X?}", input,);
+    // trace!("try to parse dlt_payload for {:02X?}", input,);
     if verbose {
-        // println!("verbose, arg_cnt = {}", arg_cnt);
+        // trace!("verbose, arg_cnt = {}", arg_cnt);
         let (rest, arguments) = count(dlt_argument::<T>, arg_cnt as usize)(input)?;
         Ok((
             rest,
@@ -670,9 +670,9 @@ fn dlt_payload<T: NomByteOrder>(
             },
         ))
     } else if is_controll_msg {
-        // println!("is_controll_msg");
+        // trace!("is_controll_msg");
         if payload_length < 1 {
-            // println!("error, payload too short {}", payload_length);
+            // trace!("error, payload too short {}", payload_length);
             return Err(nom::Err::Failure((&[], nom::error::ErrorKind::Verify)));
         }
         match tuple((nom::number::complete::be_u8, take(payload_length - 1)))(input) {
@@ -686,19 +686,19 @@ fn dlt_payload<T: NomByteOrder>(
                 },
             )),
             Err(e) => {
-                // println!("error e {:?}", e);
+                // trace!("error e {:?}", e);
                 Err(e)
             }
         }
     } else {
-        // println!("non verbose (input.len = {})", input.len());
-        // println!(
+        // trace!("non verbose (input.len = {})", input.len());
+        // trace!(
         //     "not is_controll_msg, payload_length: {}, input left: {}",
         //     payload_length,
         //     input.len()
         // );
         if input.len() < 4 {
-            // println!("error, payload too short {}", input.len());
+            // trace!("error, payload too short {}", input.len());
             return Err(nom::Err::Failure((&[], nom::error::ErrorKind::Verify)));
         }
         match tuple((T::parse_u32, take(payload_length - 4)))(input) {
@@ -709,7 +709,7 @@ fn dlt_payload<T: NomByteOrder>(
                 },
             )),
             Err(e) => {
-                // println!("error e {:?}", e);
+                // trace!("error e {:?}", e);
                 Err(e)
             }
         }

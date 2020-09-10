@@ -491,7 +491,7 @@ impl TypeInfo {
         }
     }
     pub fn as_bytes<T: ByteOrder>(self: &TypeInfo) -> Vec<u8> {
-        // println!("TypeInfo::as_bytes: {:?}", self);
+        // ptrace!("TypeInfo::as_bytes: {:?}", self);
         let mut info: u32 = 0;
         // encode length
         match self.kind {
@@ -832,7 +832,7 @@ impl Argument {
             if let Some(n) = name {
                 T::write_u16(&mut tmp_buf, n.len() as u16 + 1);
                 buf.extend_from_slice(&tmp_buf);
-            // println!("put name len: {:02X?}", buf.to_vec());
+            // trace!("put name len: {:02X?}", buf.to_vec());
             } else {
                 T::write_u16(&mut tmp_buf, 1u16);
                 buf.extend_from_slice(&tmp_buf);
@@ -840,7 +840,7 @@ impl Argument {
             if let Some(u) = unit {
                 T::write_u16(&mut tmp_buf, u.len() as u16 + 1);
                 buf.extend_from_slice(&tmp_buf);
-            // println!("put unit len: {:02X?}", buf.to_vec());
+            // trace!("put unit len: {:02X?}", buf.to_vec());
             } else {
                 T::write_u16(&mut tmp_buf, 1u16);
                 buf.extend_from_slice(&tmp_buf);
@@ -848,14 +848,14 @@ impl Argument {
             if let Some(n) = name {
                 buf.extend_from_slice(n.as_bytes());
                 buf.put_u8(0x0); // null termination
-                                 // println!("put name: {:02X?}", buf.to_vec());
+                                 // trace!("put name: {:02X?}", buf.to_vec());
             } else {
                 buf.put_u8(0x0); // only null termination
             }
             if let Some(u) = unit {
                 buf.extend_from_slice(u.as_bytes());
                 buf.put_u8(0x0); // null termination
-                                 // println!("put unit: {:02X?}", buf.to_vec());
+                                 // trace!("put unit: {:02X?}", buf.to_vec());
             } else {
                 buf.put_u8(0x0); // only null termination
             }
@@ -877,7 +877,7 @@ impl Argument {
                 }
             }
         }
-        // println!("typeinfo + name + unit as bytes: {:02X?}", buf.to_vec());
+        // trace!("typeinfo + name + unit as bytes: {:02X?}", buf.to_vec());
         buf
     }
 
@@ -968,7 +968,7 @@ impl Argument {
             }
             // TypeInfoKind::Array => {
             //     // TODO dlt array type not yet implemented NYI
-            //     eprintln!("found dlt array type...not yet supported");
+            //     warning!("found dlt array type...not yet supported");
             //     BytesMut::with_capacity(STORAGE_HEADER_LENGTH).to_vec()
             // }
             TypeInfoKind::StringType => {
@@ -1247,7 +1247,7 @@ impl Payload2 {
                 }
             }
             PayloadContent::NonVerbose(msg_id, payload) => {
-                // println!(
+                // trace!(
                 //     "...Payload2::as_bytes, writing nonverbose, buf.len = {}",
                 //     buf.len()
                 // );
@@ -1259,7 +1259,7 @@ impl Payload2 {
                 buf.extend_from_slice(&payload[..]);
             }
             PayloadContent::ControlMsg(ctrl_id, payload) => {
-                // println!(
+                // trace!(
                 //     "...Payload2::as_bytes, writing ControlType, buf.len = {}",
                 //     buf.len()
                 // );
@@ -1329,8 +1329,6 @@ impl Message {
         fibex: Option<Rc<FibexMetadata>>,
         storage_header: Option<StorageHeader>,
     ) -> Self {
-        // println!("--- Message::new, conf = {:?}", conf);
-        // println!("--- Message::new, arg-cnt = {}", conf.payload.arg_count());
         let payload_length = if conf.endianness == Endianness::Big {
             conf.payload.as_bytes::<BigEndian>().len()
         } else {
