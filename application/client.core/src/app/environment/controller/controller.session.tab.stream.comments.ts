@@ -7,6 +7,7 @@ import { IScrollBoxSelection } from 'chipmunk-client-material';
 export interface ISelectionPoint {
     position: number;
     offset: number;
+    text: string;
 }
 
 export interface ICommentedSelection {
@@ -51,26 +52,87 @@ export class ControllerSessionTabStreamComments {
     public destroy() {
     }
 
-    public create(selection: IScrollBoxSelection, startRowStr: string, endRowStr: string) {
-        if (selection.anchor === selection.focus) {
-            this._getActualSelectionData(startRowStr, selection.selection);
+    public create(selection: IScrollBoxSelection, startRowStr: string, endRowStr: string): Error | undefined {
+        function remember(): { anchorNode: Node, anchorOffset: number, focusNode: Node, focusOffset: number } | undefined {
+            const winSel = window.getSelection();
+            if (winSel === undefined) {
+                return undefined;
+            }
+            return {
+                anchorNode: winSel.anchorNode,
+                anchorOffset: winSel.anchorOffset,
+                focusNode: winSel.focusNode,
+                focusOffset: winSel.focusOffset,
+            };
         }
-        
+        function restore(stored: { anchorNode: Node, anchorOffset: number, focusNode: Node, focusOffset: number }) {
+            const winSel = window.getSelection();
+            if (winSel === undefined) {
+                return;
+            }
+            const range: Range = document.createRange();
+            range.setStart(stored.anchorNode, stored.anchorOffset);
+            range.setEnd(stored.focusNode, stored.focusOffset);
+            winSel.removeAllRanges();
+            winSel.addRange(range);
+        }
         const guid: string = Toolkit.guid();
-        this._comments.set(guid, {
-            guid: guid,
-            selection: {
-                start: {
-                    position: selection.anchor < selection.focus ? selection.anchor : selection.focus,
-                    offset: selection.anchor < selection.focus ? selection.anchorOffset : selection.focusOffset,
+        if (selection.anchor === selection.focus) {
+            const sel: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, selection.selection, false);
+            if (sel instanceof Error) {
+                return sel;
+            }
+            this._comments.set(guid, {
+                guid: guid,
+                selection: {
+                    start: {
+                        position: selection.anchor,
+                        offset: sel.start,
+                        text: sel.selection,
+                    },
+                    end: {
+                        position: selection.anchor,
+                        offset: sel.end,
+                        text: sel.selection,
+                    },
+                    text: selection.selection,
                 },
-                end: {
-                    position: selection.anchor > selection.focus ? selection.anchor : selection.focus,
-                    offset: selection.anchor > selection.focus ? selection.anchorOffset : selection.focusOffset,
+            });
+        } else {
+            const rows = selection.selection.split(/[\n\r]/gi);
+            const stored = remember();
+            if (stored === undefined) {
+                return new Error(`Fail save selection`);
+            }
+            if (rows.length < 2) {
+                return new Error(`Fail split rows correctly`);
+            }
+            const selStart: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, rows[0], false);
+            restore(stored);
+            const selEnd: IActualSelectionData | Error = this._getActualSelectionData(endRowStr, rows[rows.length - 1], true);
+            if (selStart instanceof Error) {
+                return selStart;
+            }
+            if (selEnd instanceof Error) {
+                return selEnd;
+            }
+            this._comments.set(guid, {
+                guid: guid,
+                selection: {
+                    start: {
+                        position: selection.anchor,
+                        offset: selStart.start,
+                        text: selStart.selection,
+                    },
+                    end: {
+                        position: selection.focus,
+                        offset: selEnd.end,
+                        text: selEnd.selection,
+                    },
+                    text: selection.selection,
                 },
-                text: selection.selection,
-            },
-        });
+            });
+        }
     }
 
     public add(comment: IComment) {
@@ -118,20 +180,24 @@ export class ControllerSessionTabStreamComments {
             return str;
         }
         if (position === comment.selection.start.position && position === comment.selection.end.position) {
-            const len: number = comment.selection.text.length;
-            const from: number = comment.selection.end.offset - len;
-            const to: number = comment.selection.end.offset;
-            return str.substring(0, from) +
+            return str.substring(0, comment.selection.start.offset) +
                 '<span class="comment" style="background: red">' +
-                str.substr(from, len) +
+                str.substring(comment.selection.start.offset, comment.selection.end.offset) +
                 '</span>' +
-                str.substring(to, str.length);
+                str.substring(comment.selection.end.offset, str.length);
         }
         if (position === comment.selection.start.position && position !== comment.selection.end.position) {
-            return str;
+            return str.substring(0, comment.selection.start.offset) +
+                '<span class="comment" style="background: red">' +
+                str.substring(comment.selection.start.offset, str.length) +
+                '</span>';
         }
         if (position !== comment.selection.start.position && position === comment.selection.end.position) {
-            return str;
+            const res = '<span class="comment" style="background: red">' +
+                str.substring(0, comment.selection.end.offset) +
+                '</span>' +
+                str.substring(comment.selection.end.offset, str.length);
+            return res;
         }
         if (position > comment.selection.start.position && position < comment.selection.end.position) {
             return `<span class="comment" style="background: red">${str}</span>`;
@@ -155,7 +221,7 @@ export class ControllerSessionTabStreamComments {
         return undefined;
     }
 
-    private _getActualSelectionData(original: string, selected: string): IActualSelectionData | Error {
+    private _getActualSelectionData(original: string, selected: string, readFromEnd: boolean): IActualSelectionData | Error {
         function getHolder(node: HTMLElement): HTMLElement | Error {
             if (node.nodeName.toLowerCase().search('app-views-output-row-') !== -1) {
                 return node;
@@ -168,13 +234,19 @@ export class ControllerSessionTabStreamComments {
         function getRegExpWithASCI(str: string): RegExp {
             let regStr: string = '';
             for (let i = 0; i < str.length; i += 1) {
-                regStr += `(\\u001b\\[[\\d;]*[HfABCDsuJKmhIp])?${Toolkit.regTools.serializeRegStr(str[i])}`;
+                regStr += `[\\u0000-\\u001f]?(\\u001b\\[[\\d;]*[HfABCDsuJKmhIp])?${Toolkit.regTools.serializeRegStr(str[i])}`;
+                //         all notprintalbe | possible ASCII codes               | single char, which we are looking for
+                //         symbols          |                                    |
             }
             return new RegExp(regStr);
         }
         // Collapse selection to start. We need it because anchor and focus nodes can be in any order (depends
         // on how user did selection
-        window.getSelection().collapseToStart();
+        if (!readFromEnd) {
+            window.getSelection().collapseToStart();
+        } else {
+            window.getSelection().collapseToEnd();
+        }
         const selection = window.getSelection();
         if (selection === undefined) {
             return new Error(`No active selection`);
@@ -200,23 +272,31 @@ export class ControllerSessionTabStreamComments {
         if (before.length !== 0) {
             const regBefore = getRegExpWithASCI(before);
             const matchBefore = original.match(regBefore);
-            if (matchBefore === null || matchBefore.length === 0 || original.search(regBefore) !== 0) {
+            if (matchBefore === null || matchBefore.length === 0 || original.search(regBefore) === -1) {
                 return new Error(`Fail to catch begining of selection`);
             }
             selStartOffset = matchBefore[0].length;
             after = original.substring(selStartOffset, original.length);
         }
-        const regAfter = getRegExpWithASCI(selected);
-        const matchAfter = after.match(regAfter);
-        if (matchAfter === null || matchAfter.length === 0 || after.search(regAfter) !== 0) {
-            return new Error(`Fail to catch end of selection`);
+        if (!readFromEnd) {
+            const regAfter = getRegExpWithASCI(selected);
+            const matchAfter = after.match(regAfter);
+            if (matchAfter === null || matchAfter.length === 0 || after.search(regAfter) === -1) {
+                return new Error(`Fail to catch end of selection`);
+            }
+            const selEndOffset = matchAfter[0].length;
+            return {
+                selection: original.substring(selStartOffset, selStartOffset + selEndOffset),
+                start: selStartOffset,
+                end: selStartOffset + selEndOffset,
+            };
+        } else {
+            return {
+                selection: original.substring(0, selStartOffset),
+                start: 0,
+                end: selStartOffset,
+            };
         }
-        const selEndOffset: number = matchAfter[0].length;
-        const sel = { start: selStartOffset, end: selStartOffset + selEndOffset };
-        return {
-            selection: original.substring(sel.start, sel.end),
-            start: selStartOffset,
-            end: selEndOffset,
-        };
     }
+
 }
