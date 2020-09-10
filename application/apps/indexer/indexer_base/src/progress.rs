@@ -19,8 +19,14 @@ pub type IndexingResults<T> = std::result::Result<IndexingProgress<T>, Notificat
 
 #[derive(Debug)]
 pub enum IndexingProgress<T> {
-    GotItem { item: T },
-    Progress { ticks: (u64, u64) },
+    GotItem {
+        item: T,
+    },
+    /// Progress indicates how many ticks of the total amount have been processed
+    /// the first number indicates the actual amount, the second the presumed total
+    Progress {
+        ticks: (u64, u64),
+    },
     Stopped,
     Finished,
 }

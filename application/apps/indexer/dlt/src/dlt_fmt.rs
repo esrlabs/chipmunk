@@ -48,14 +48,7 @@ impl fmt::Display for Message {
                     .iter()
                     .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, arg))
             }
-            PayloadContent::NonVerbose(id, data) => {
-                self.format_nonverbose_data(*id, data, f)
-                // match self.format_nonverbose_data(*id, data, f) {
-                //     Err(e) => println!("error in formatter: {}", e),
-                //     Ok(()) => (),
-                // }
-                // Ok(())
-            }
+            PayloadContent::NonVerbose(id, data) => self.format_nonverbose_data(*id, data, f),
             PayloadContent::ControlMsg(ctrl_id, _data) => {
                 self.write_app_id_context_id_and_message_type(f)?;
                 match SERVICE_ID_MAPPING.get(&ctrl_id.value()) {
