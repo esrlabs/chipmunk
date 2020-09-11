@@ -8,15 +8,14 @@ import { FilterRequest } from '../../controller/controller.session.tab.search.fi
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
 import { EKey } from '../../services/standalone/service.output.redirections';
+import { IRequest } from './row.modifiers/row.modifier';
+
+import { ModifierProcessor } from './row.modifiers/row.modifier';
+import { HighlightsModifier } from './row.modifiers/row.modifier.highlights';
+import { FiltersModifier } from './row.modifiers/row.modifier.filters';
 
 import EventsSessionService from '../../services/standalone/service.events.session';
 import OutputRedirectionsService from '../../services/standalone/service.output.redirections';
-
-export interface IRequest {
-    reg: RegExp;
-    color: string | undefined;
-    background: string | undefined;
-}
 
 export interface IRow {
     str: string;
@@ -209,6 +208,7 @@ export class OutputParsersService {
     public matches(sessionId: string, row: number, str: string): { str: string, changed: boolean, color?: string, background?: string } {
         const map: { [key: string]: { value: string, reg: RegExp} } = {};
         let changed: boolean = false;
+        /*
         const getReplacedStr = (openWith: string, closeWith: string, replaceWith: string): string => {
             const openKey = this._getCachedKeyForValue(openWith).key;
             const closeKey = this._getCachedKeyForValue(closeWith).key;
@@ -227,6 +227,7 @@ export class OutputParsersService {
             changed = true;
             return `${openKey}${replaceWith}${closeKey}`;
         };
+        */
         const requests: IRequest[] | undefined = this._search.get(sessionId);
         const highlights: IRequest[] = this._highlights.get(sessionId);
         const charts: IRequest[] = this._charts.get(sessionId);
@@ -238,7 +239,9 @@ export class OutputParsersService {
         }
         let first: IRequest | undefined;
         const applied: string[] = [];
+        let h = new HighlightsModifier([], str);
         if (highlights instanceof Array || charts instanceof Array) {
+            /*
             [
                 ...(highlights === undefined ? [] : highlights),
                 ...(charts === undefined ? [] : charts)
@@ -252,8 +255,16 @@ export class OutputParsersService {
                     return getReplacedStr(`<span class="noreset match" style="background: ${bgcl}; color: ${fgcl};">`, `</span>`, match);
                 });
                 applied.push(request.reg.source);
-            });
+            });*/
+            h = new HighlightsModifier([
+                ...(highlights === undefined ? [] : highlights),
+                ...(charts === undefined ? [] : charts)
+            ], str);
         }
+        const r = new FiltersModifier(requests instanceof Array ? requests : [], str);
+        /*
+        bla <span #1>bla <span #2>bla</spa<span #3>n> bla</span> bla bla</span> bla bla bla bla bla bla bla bla bla bla 
+
         if (requests instanceof Array) {
             requests.forEach((request: IRequest) => {
                 if (applied.indexOf(request.reg.source) !== -1) {
@@ -266,12 +277,15 @@ export class OutputParsersService {
                     return getReplacedStr(`<span class="noreset match">`, `</span>`, match);
                 });
             });
-        }
+            r = new FiltersModifier(requests);
+        }*/
+        const c = new ModifierProcessor([h, r]);
+        /*
         Object.keys(map).forEach((key: string) => {
             str = str.replace(map[key].reg, map[key].value);
-        });
+        });*/
         return {
-            str: str,
+            str: c.parse(str),
             changed: changed,
             color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
             background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
