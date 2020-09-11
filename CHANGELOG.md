@@ -1,5 +1,41 @@
 # Changelog
 
+### [2.7.1] - 09/11/2020
+* Fix pcap file reading
+  pcap file reading was broken in multiple ways. We now
+  try to parse as much as possible and discard corrupt
+  messages without stopping
+  A new function was added that allows to convert from a pcapng
+  file to a dlt file. There is not yet a binding for javascript
+  code.
+  closes #899
+* better filtering
+* Upgrade bytes crate dependency
+* Fix pcap file parsing blocking
+* Remove output to stdout in launcher
+* Remove popup modifications
+* Revert "[#642](feat) rework dlt column formatting options"
+  This reverts commit 54f7446cc316795a6951af41d4a3b01f4eab22c5.
+* [](refact) Apply review changes
+* [#642](feat) rework dlt column formatting options
+* [#661](fix) Create directive to always focus popup
+* [#661](feat) Open DLT file when enter pressed
+* [](refact) Refactor code of droplist logic
+* [#898](fix) Adjust focus sensitivity of droplists
+* [#894](fix) Fix drag&drop for filters placeholder
+* [#661](refact) Close dialog on left-click outside
+* [#661](fix) Close dialog when left-click outside
+* [#894](refact) Fix viable check and refactor lists
+* [#894](refact) Move logic into provider class
+* [#894](fix) Move logic into provider and fix it
+* [](refact) Refactoring of get methods
+* [#894](feat) En-/Disable drops in lists
+* [#894](feat) Allow valid filter drop in chart list
+* [#661](feat) Close dialog when left-click outside
+* [#664](feat) Any context menu close on ESC
+* [#893](fix) Save chart search on keyboard shortcut
+* [#894](feat) Drag&Drop between filters/charts list
+
 ### [2.7.0] - 08/28/2020
 * []() Remove line
 * [#889](fix) Fix for drag&drop animation over bin
