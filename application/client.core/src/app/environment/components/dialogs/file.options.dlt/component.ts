@@ -4,7 +4,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import { CommonInterfaces } from '../../../interfaces/interface.common';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subject } from 'rxjs';
 import { DialogsFileOptionsDltStatsComponent, IStatRow, IForceSortData } from './stats/component';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
@@ -101,7 +101,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     @Input() public options: CommonInterfaces.DLT.IDLTOptions | undefined;
     @Input() public onDone: (options: CommonInterfaces.DLT.IDLTOptions) => void;
     @Input() public onCancel: () => void;
-    @Input() public onEnter: Observable<void>;
 
     public _ng_size: string = '';
     public _ng_logLevelDefault: EMTIN = EMTIN.DLT_LOG_VERBOSE;
@@ -128,7 +127,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     private _destroyed: boolean = false;
     private _requestId: string | undefined;
     private _logger: Toolkit.Logger = new Toolkit.Logger(`DialogsFileOptionsDltComponent`);
-    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
@@ -136,7 +134,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.onEnter = this.onEnter.subscribe(this._ng_onOpen.bind(this));
         this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
         if (this.options !== undefined && this.options.stats !== undefined) {
             this._initAsReopen();
@@ -147,9 +144,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public ngOnDestroy() {
         this._destroyed = true;
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].unsubscribe();
-        });
         if (this._requestId !== undefined) {
             this._logger.env(`Canceling DLT stats getting by request "${this._requestId}"`);
             ElectronIpcService.request(new IPCMessages.DLTStatsCancelRequest({
