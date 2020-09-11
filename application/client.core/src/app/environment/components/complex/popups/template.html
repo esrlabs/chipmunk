@@ -1,6 +1,6 @@
 <div class="shadow" *ngIf="popups.length > 0" (click)="_ng_clickOutside()"></div>
 <ul class="popups">
     <li *ngFor="let popup of popups" [attr.class]="'popup'">
-        <app-popup appComplexPopups [popup]="popup" [onClose]="onClose.bind(this, popup)"></app-popup>
+        <app-popup [popup]="popup" [onClose]="onClose.bind(this, popup)"></app-popup>
     </li>
 </ul>
