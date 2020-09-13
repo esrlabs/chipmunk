@@ -8,9 +8,9 @@ import { FilterRequest } from '../../controller/controller.session.tab.search.fi
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
 import { EKey } from '../../services/standalone/service.output.redirections';
-import { IRequest } from './row.modifiers/row.modifier';
+import { IRequest } from 'chipmunk.client.toolkit';
 
-import { ModifierProcessor } from './row.modifiers/row.modifier';
+import { ModifierProcessor } from './row.modifiers/modifiers.processor';
 import { HighlightsModifier } from './row.modifiers/row.modifier.highlights';
 import { FiltersModifier } from './row.modifiers/row.modifier.filters';
 
@@ -183,112 +183,61 @@ export class OutputParsersService {
         // Apply bound parsers
         const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);
         if (bound !== undefined) {
-            row.str = bound.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+            const parsed = bound.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+            if (typeof parsed === 'string') {
+                row.str = parsed;
+            }
         }
         // Apply typed parser
         this._parsers.typed.forEach((typed: Toolkit.ARowTypedParser) => {
             if (typed.isTypeMatch(row.source)) {
-                row.str = typed.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+                const parsed = typed.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+                if (typeof parsed === 'string') {
+                    row.str = parsed;
+                }
             }
         });
         // Apply common parser
         this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
-            row.str = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+            const parsed = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+            if (typeof parsed === 'string') {
+                row.str = parsed;
+            }
         });
         // Apply session parsers
         const parsers: Map<string, Toolkit.ARowCommonParser> | undefined = this._parsers.session.get(this._controller.getGuid());
         if (parsers !== undefined) {
             parsers.forEach((parser: Toolkit.ARowCommonParser) => {
-                row.str = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+                const parsed = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
+                if (typeof parsed === 'string') {
+                    row.str = parsed;
+                }
             });
         }
         return row.str;
     }
 
     public matches(sessionId: string, row: number, str: string): { str: string, changed: boolean, color?: string, background?: string } {
-        const map: { [key: string]: { value: string, reg: RegExp} } = {};
-        let changed: boolean = false;
-        /*
-        const getReplacedStr = (openWith: string, closeWith: string, replaceWith: string): string => {
-            const openKey = this._getCachedKeyForValue(openWith).key;
-            const closeKey = this._getCachedKeyForValue(closeWith).key;
-            if (map[openKey] === undefined) {
-                map[openKey] = {
-                    value: openWith,
-                    reg: this._getCachedKeyForValue(openWith).regExp,
-                };
-            }
-            if (map[closeKey] === undefined) {
-                map[closeKey] = {
-                    value: closeWith,
-                    reg: this._getCachedKeyForValue(closeWith).regExp,
-                };
-            }
-            changed = true;
-            return `${openKey}${replaceWith}${closeKey}`;
-        };
-        */
         const requests: IRequest[] | undefined = this._search.get(sessionId);
-        const highlights: IRequest[] = this._highlights.get(sessionId);
-        const charts: IRequest[] = this._charts.get(sessionId);
+        const highlights: IRequest[] | undefined = this._highlights.get(sessionId);
+        const charts: IRequest[] | undefined = this._charts.get(sessionId);
         if (requests === undefined && this._highlights === undefined && charts === undefined) {
             return {
                 str: str,
-                changed: changed,
+                changed: false,
             };
         }
-        let first: IRequest | undefined;
-        const applied: string[] = [];
-        let h = new HighlightsModifier([], str);
-        if (highlights instanceof Array || charts instanceof Array) {
-            /*
-            [
-                ...(highlights === undefined ? [] : highlights),
-                ...(charts === undefined ? [] : charts)
-            ].forEach((request: IRequest) => {
-                const bgcl: string = request.background === CColors[0] ? scheme_color_4 : (request.background === undefined ? scheme_color_4 : shadeColor(request.background, 30));
-                const fgcl: string = getContrastColor(bgcl, true);
-                str = str.replace(request.reg, (match: string) => {
-                    if (first === undefined) {
-                        first = request;
-                    }
-                    return getReplacedStr(`<span class="noreset match" style="background: ${bgcl}; color: ${fgcl};">`, `</span>`, match);
-                });
-                applied.push(request.reg.source);
-            });*/
-            h = new HighlightsModifier([
-                ...(highlights === undefined ? [] : highlights),
-                ...(charts === undefined ? [] : charts)
-            ], str);
-        }
-        const r = new FiltersModifier(requests instanceof Array ? requests : [], str);
-        /*
-        bla <span #1>bla <span #2>bla</spa<span #3>n> bla</span> bla bla</span> bla bla bla bla bla bla bla bla bla bla 
-
-        if (requests instanceof Array) {
-            requests.forEach((request: IRequest) => {
-                if (applied.indexOf(request.reg.source) !== -1) {
-                    return;
-                }
-                str = str.replace(request.reg, (match: string) => {
-                    if (first === undefined) {
-                        first = request;
-                    }
-                    return getReplacedStr(`<span class="noreset match">`, `</span>`, match);
-                });
-            });
-            r = new FiltersModifier(requests);
-        }*/
-        const c = new ModifierProcessor([h, r]);
-        /*
-        Object.keys(map).forEach((key: string) => {
-            str = str.replace(map[key].reg, map[key].value);
-        });*/
+        const highlightsModifier = new HighlightsModifier([
+            ...(highlights === undefined ? [] : highlights),
+            ...(charts === undefined ? [] : charts)
+        ], str);
+        const filtersModifier = new FiltersModifier(requests instanceof Array ? requests : [], str);
+        const modifiers = new ModifierProcessor([highlightsModifier, filtersModifier]);
         return {
-            str: c.parse(str),
-            changed: changed,
-            color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
-            background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
+            str: modifiers.parse(str),
+            changed: modifiers.wasChanged(),
+            // color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
+            // background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
         };
     }
 

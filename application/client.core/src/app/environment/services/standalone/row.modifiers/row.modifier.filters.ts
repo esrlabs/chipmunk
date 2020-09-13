@@ -1,4 +1,4 @@
-import { Modifier, IRequest, EType, IHTMLInjection, IModifierRange, ModifierProcessor } from './row.modifier';
+import { Modifier, IRequest, EType, IHTMLInjection, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
 
 export class FiltersModifier extends Modifier {
 
@@ -30,7 +30,7 @@ export class FiltersModifier extends Modifier {
     }
 
     public obey(ranges: Required<IModifierRange>[]) {
-        this._ranges = ModifierProcessor.obey(ranges, this._ranges);
+        this._ranges = Modifiers.obey(ranges, this._ranges);
     }
 
     public getRanges(): Required<IModifierRange>[] {
@@ -54,9 +54,9 @@ export class FiltersModifier extends Modifier {
         });
         // Remove nested ranges because it doesn't make sense,
         // because color is same
-        this._ranges = ModifierProcessor.removeIncluded(this._ranges);
+        this._ranges = Modifiers.removeIncluded(this._ranges);
         // Remove conflicts
-        this._ranges = ModifierProcessor.removeCrossing(this._ranges);
+        this._ranges = Modifiers.removeCrossing(this._ranges);
     }
 
 }

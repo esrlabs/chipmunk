@@ -1,4 +1,4 @@
-import { Modifier, IRequest, EType, IHTMLInjection, IModifierRange, ModifierProcessor } from './row.modifier';
+import { Modifier, IRequest, EType, IHTMLInjection, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
 import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../../theme/colors';
 import { CColors } from '../../../conts/colors';
 
@@ -37,7 +37,7 @@ export class HighlightsModifier extends Modifier {
     }
 
     public obey(ranges: Required<IModifierRange>[]) {
-        this._ranges = ModifierProcessor.obey(ranges, this._ranges) as IRange[];
+        this._ranges = Modifiers.obey(ranges, this._ranges) as IRange[];
     }
 
     public getRanges(): Required<IModifierRange>[] {
@@ -61,12 +61,7 @@ export class HighlightsModifier extends Modifier {
             });
         });
         // Remove conflicts
-        this._ranges = ModifierProcessor.removeCrossing(this._ranges) as IRange[];
-        /*
-        this._ranges.sort((a: IRange, b: IRange) => {
-            return a.start < b.start ? 1 : -1;
-        });
-        */
+        this._ranges = Modifiers.removeCrossing(this._ranges) as IRange[];
     }
 
 }
