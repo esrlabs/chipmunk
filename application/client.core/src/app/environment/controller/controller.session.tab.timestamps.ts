@@ -3,6 +3,8 @@ import { IPCMessages } from '../services/service.electron.ipc';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 import { getUniqueColorTo, getColorHolder } from '../theme/colors';
 import { EKey } from '../services/standalone/service.output.redirections';
+import { TimestampRowParser } from './controller.session.tab.timestamps.rowparser';
+import { TimestampModifier } from './controller.session.tab.timestamps.modifier';
 
 import ElectronIpcService from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
@@ -35,20 +37,6 @@ export interface IState {
 export interface IFormat {
     format: string;
     regexp: RegExp;
-}
-
-class TimestampRowParser extends Toolkit.RowCommonParser {
-
-    private _parser: (str: string) => string;
-
-    constructor(parser: (str: string) => string) {
-        super();
-        this._parser = parser;
-    }
-    public parse(str: string, themeTypeRef: Toolkit.EThemeType, row: Toolkit.IRowInfo): string {
-        return this._parser(str);
-    }
-
 }
 
 export interface DefaultDateParts {
@@ -738,16 +726,20 @@ export class ControllerSessionTabTimestamp {
         });
     }
 
-    private _injectHighlightFormat(str: string): string {
+    private _injectHighlightFormat(str: string): string | Toolkit.Modifier {
+        const tags = {
+            open: `<span class="tooltip timestampmatch" ${OutputParsersService.getTooltipHook(this.ROW_TOOLTIP_ID)} ${OutputParsersService.getClickHandlerHook(this.ROW_HANDLER_ID)}>`,
+            close: `</span>`,
+        };
         if (this._open === undefined) {
-            return str;
+            return new TimestampModifier([], str, tags);
+        } else {
+            return new TimestampModifier(
+                this._format.map(f => f.regexp),
+                str,
+                tags,
+            );
         }
-        this._format.forEach((format: IFormat) => {
-            str = str.replace(format.regexp, (_match: string) => {
-                return `<span class="tooltip timestampmatch" ${OutputParsersService.getTooltipHook(this.ROW_TOOLTIP_ID)} ${OutputParsersService.getClickHandlerHook(this.ROW_HANDLER_ID)}>${_match}</span>`;
-            });
-        });
-        return str;
     }
 
     private _setState() {
