@@ -12,6 +12,7 @@ import { basename, dirname } from './tools.path';
 import { copy } from './tools.object';
 import * as Promises from './tools.promises';
 import { CancelablePromise } from './tools.promises';
+import * as Modifiers from './tools.modifier.helpers'
 
 export {
     guid,
@@ -33,4 +34,5 @@ export {
     ELogLevels,
     Promises,
     CancelablePromise,
+    Modifiers,
 };

@@ -1,5 +1,6 @@
 import { EThemeType } from '../consts/enums';
 import { IRowInfo } from '../interfaces/row';
+import { Modifier } from './class.row.modifier';
 
 const CSignature = 'RowTypedParser';
 
@@ -48,7 +49,7 @@ export abstract class RowTypedParser {
      * @param {IRowInfo} row - information about current row (see IRowInfo for more details)
      * @returns {string} method should return a string.
      */
-    public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string;
+    public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string | Modifier;
 
     /**
      * This method will be called for each line of stream before method "parse" will be called.
@@ -57,6 +58,15 @@ export abstract class RowTypedParser {
      * @returns {boolean} - true - method "parse" will be called for this line; false - parser will be ignored
      */
     public abstract isTypeMatch(sourceName: string, sourceMeta?: string): boolean;
+
+    /**
+     * This method will be called with each line in stream to get row modifier
+     * @param {string} str - single line from stream
+     * @param {EThemeType} themeTypeRef - reference to active theme (dark, light and so on)
+     * @param {IRowInfo} row - information about current row (see IRowInfo for more details)
+     * @returns {string} method should return a string.
+     */
+    // public abstract getModifier(str: string, themeTypeRef: EThemeType, row: IRowInfo): Modifier;
 
 }
 
