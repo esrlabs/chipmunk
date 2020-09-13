@@ -9,3 +9,4 @@ export * from './class.parser.row.typed';
 export * from './class.parser.row.bound';
 export * from './class.parser.selection';
 export * from './class.plugin.ngmodule';
+export * from './class.row.modifier';
