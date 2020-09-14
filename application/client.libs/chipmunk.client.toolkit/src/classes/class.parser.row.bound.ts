@@ -54,7 +54,7 @@ export abstract class RowBoundParser {
      * @param {IRowInfo} row - information about current row (see IRowInfo for more details)
      * @returns {string} method should return a string.
      */
-    public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string | Modifier;
+    public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string | Modifier | undefined;
 
     /**
      * This method will be called with each line in stream to get row modifier
