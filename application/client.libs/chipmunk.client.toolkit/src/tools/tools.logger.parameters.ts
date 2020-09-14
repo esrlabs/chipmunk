@@ -36,6 +36,9 @@ export function setGlobalLogLevel(lev: ELogLevels) {
     if (LOGS_LEVEL_TABLE[lev] === undefined) {
         return;
     }
+    if (window === undefined) {
+        return;
+    }
     (window as any)[allowedConsoleRefName] = Object.assign({}, DEFAUT_ALLOWED_CONSOLE);
     Object.keys((window as any)[allowedConsoleRefName]).forEach((key: string) => {
         (window as any)[allowedConsoleRefName][key] = LOGS_LEVEL_TABLE[lev].indexOf(key as ELogLevels) !== -1;
@@ -43,6 +46,9 @@ export function setGlobalLogLevel(lev: ELogLevels) {
 }
 
 export function setGlobalLogCallback(cb: TLogCallback) {
+    if (window === undefined) {
+        return;
+    }
     (window as any)[callbackRefName] = cb;
 }
 
@@ -77,6 +83,9 @@ export class LoggerParameters {
     }
 
     public getAllowedConsole(): {[key: string]: boolean} {
+        if (window === undefined) {
+            return;
+        }
         if ((window as any)[allowedConsoleRefName] === undefined) {
             return this._allowedConsole;
         } else {
@@ -85,6 +94,9 @@ export class LoggerParameters {
     }
 
     public getCallback(): TLogCallback | undefined {
+        if (window === undefined) {
+            return;
+        }
         if (typeof (window as any)[callbackRefName] === 'function') {
             return (window as any)[callbackRefName] as TLogCallback;
         }

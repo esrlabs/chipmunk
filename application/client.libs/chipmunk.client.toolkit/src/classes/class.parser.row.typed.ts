@@ -49,7 +49,7 @@ export abstract class RowTypedParser {
      * @param {IRowInfo} row - information about current row (see IRowInfo for more details)
      * @returns {string} method should return a string.
      */
-    public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string | Modifier;
+    public abstract parse(str: string, themeTypeRef: EThemeType, row: IRowInfo): string | Modifier | undefined;
 
     /**
      * This method will be called for each line of stream before method "parse" will be called.

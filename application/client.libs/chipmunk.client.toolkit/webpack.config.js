@@ -6,7 +6,8 @@ module.exports = {
         path: __dirname + "/dist",
         libraryTarget: 'umd',
         library: 'chipmunk.client.toolkit',
-        umdNamedDefine: true
+        umdNamedDefine: true,
+        globalObject: 'this',
     },
     // Enable sourcemaps for debugging webpack's output.
     devtool: "source-map",
