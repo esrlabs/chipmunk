@@ -3,29 +3,9 @@ import { Observable, Subject } from 'rxjs';
 import HotkeysService, { IHotkeyEvent } from '../services/service.hotkeys';
 import { Subscription } from 'rxjs';
 import { IScrollBoxSelection } from 'chipmunk-client-material';
-
-export interface ISelectionPoint {
-    position: number;
-    offset: number;
-    text: string;
-}
-
-export interface ICommentedSelection {
-    start: ISelectionPoint;
-    end: ISelectionPoint;
-    text: string;
-}
-
-export interface IComment {
-    guid: string;
-    selection: ICommentedSelection;
-}
-
-export interface IActualSelectionData {
-    selection: string;
-    start: number;
-    end: number;
-}
+import { Modifier } from 'chipmunk.client.toolkit';
+import { CommentSelectionModifier } from './controller.session.tab.stream.comments.modifier';
+import { IComment, IActualSelectionData} from './controller.session.tab.stream.comments.types';
 
 export class ControllerSessionTabStreamComments {
 
@@ -174,6 +154,12 @@ export class ControllerSessionTabStreamComments {
         return false;
     }
 
+    public getModifier(position: number, str: string): Modifier {
+        const comment: IComment | undefined = this._getRelevantComment(position);
+        return new CommentSelectionModifier(comment, position, str);
+    }
+
+    /*
     public getHTML(position: number, str: string): string {
         const comment: IComment | undefined = this._getRelevantComment(position);
         if (comment === undefined) {
@@ -203,6 +189,7 @@ export class ControllerSessionTabStreamComments {
             return `<span class="comment" style="background: red">${str}</span>`;
         }
     }
+    */
 
     private _getRelevantComment(position: number): IComment | undefined {
         try {
