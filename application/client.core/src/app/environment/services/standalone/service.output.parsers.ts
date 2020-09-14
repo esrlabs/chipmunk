@@ -8,7 +8,7 @@ import { FilterRequest } from '../../controller/controller.session.tab.search.fi
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
 import { EKey } from '../../services/standalone/service.output.redirections';
-import { IRequest } from 'chipmunk.client.toolkit';
+import { IRequest, Modifier } from 'chipmunk.client.toolkit';
 
 import { ModifierProcessor } from './row.modifiers/modifiers.processor';
 import { HighlightsModifier } from './row.modifiers/row.modifier.highlights';
@@ -169,7 +169,11 @@ export class OutputParsersService {
         return this._getTypedRowRenderBySource(sourceName, sourceMeta);
     }
 
-    public row(row: IRow): string {
+    public row(row: IRow, sessionId?: string): string {
+        sessionId = sessionId !== undefined ? sessionId : (this._controller === undefined ? undefined : this._controller.getGuid());
+        if (sessionId === undefined) {
+            return this._logger.warn(`Session ID isn't defined.`);
+        }
         const rowInfo: Toolkit.IRowInfo = {
             sourceName: row.source,
             position: row.position,
@@ -178,30 +182,37 @@ export class OutputParsersService {
         if (this._controller === undefined) {
             return;
         }
-        // Apply comments highlights
-        row.str = this._controller.getSessionComments().getHTML(row.position, row.str);
+        const modifiers: Modifier[] = [
+            this._controller.getSessionComments().getModifier(row.position, row.str),
+        ];
         // Apply bound parsers
         const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);
         if (bound !== undefined) {
             const parsed = bound.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-            if (typeof parsed === 'string') {
-                row.str = parsed;
+            if (parsed instanceof Modifier) {
+                modifiers.push(parsed);
+            } else {
+                this._logger.warn(`Bound parsers: using of string parsers is depricated. Please create Modifier`);
             }
         }
         // Apply typed parser
         this._parsers.typed.forEach((typed: Toolkit.ARowTypedParser) => {
             if (typed.isTypeMatch(row.source)) {
                 const parsed = typed.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-                if (typeof parsed === 'string') {
-                    row.str = parsed;
+                if (parsed instanceof Modifier) {
+                    modifiers.push(parsed);
+                } else {
+                    this._logger.warn(`Typed parsers: using of string parsers is depricated. Please create Modifier`);
                 }
             }
         });
         // Apply common parser
         this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
             const parsed = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-            if (typeof parsed === 'string') {
-                row.str = parsed;
+            if (parsed instanceof Modifier) {
+                modifiers.push(parsed);
+            } else {
+                this._logger.warn(`Common parsers: using of string parsers is depricated. Please create Modifier`);
             }
         });
         // Apply session parsers
@@ -209,15 +220,31 @@ export class OutputParsersService {
         if (parsers !== undefined) {
             parsers.forEach((parser: Toolkit.ARowCommonParser) => {
                 const parsed = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-                if (typeof parsed === 'string') {
-                    row.str = parsed;
+                if (parsed instanceof Modifier) {
+                    modifiers.push(parsed);
+                } else {
+                    this._logger.warn(`Common session parsers: using of string parsers is depricated. Please create Modifier`);
                 }
             });
         }
-        return row.str;
+        const requests: IRequest[] | undefined = this._search.get(sessionId);
+        const highlights: IRequest[] | undefined = this._highlights.get(sessionId);
+        const charts: IRequest[] | undefined = this._charts.get(sessionId);
+        modifiers.push(new HighlightsModifier([
+            ...(highlights === undefined ? [] : highlights),
+            ...(charts === undefined ? [] : charts)
+        ], row.str));
+        modifiers.push(new FiltersModifier(requests instanceof Array ? requests : [], row.str));
+        const processor = new ModifierProcessor(modifiers);
+        return processor.parse(row.str);
     }
 
     public matches(sessionId: string, row: number, str: string): { str: string, changed: boolean, color?: string, background?: string } {
+        return {
+            str: str,
+            changed: false,
+        };
+        /*
         const requests: IRequest[] | undefined = this._search.get(sessionId);
         const highlights: IRequest[] | undefined = this._highlights.get(sessionId);
         const charts: IRequest[] | undefined = this._charts.get(sessionId);
@@ -238,7 +265,7 @@ export class OutputParsersService {
             changed: modifiers.wasChanged(),
             // color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
             // background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
-        };
+        };*/
     }
 
     public escapeHTML(html: string): string {
