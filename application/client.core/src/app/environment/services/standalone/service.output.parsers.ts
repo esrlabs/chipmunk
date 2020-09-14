@@ -189,7 +189,7 @@ export class OutputParsersService {
         const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);
         if (bound !== undefined) {
             const parsed = bound.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-            if (parsed instanceof Modifier) {
+            if (typeof parsed === 'object') {
                 modifiers.push(parsed);
             } else {
                 this._logger.warn(`Bound parsers: using of string parsers is depricated. Please create Modifier`);
@@ -199,7 +199,7 @@ export class OutputParsersService {
         this._parsers.typed.forEach((typed: Toolkit.ARowTypedParser) => {
             if (typed.isTypeMatch(row.source)) {
                 const parsed = typed.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-                if (parsed instanceof Modifier) {
+                if (typeof parsed === 'object') {
                     modifiers.push(parsed);
                 } else {
                     this._logger.warn(`Typed parsers: using of string parsers is depricated. Please create Modifier`);
@@ -209,7 +209,7 @@ export class OutputParsersService {
         // Apply common parser
         this._parsers.common.forEach((common: Toolkit.ARowCommonParser) => {
             const parsed = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-            if (parsed instanceof Modifier) {
+            if (typeof parsed === 'object') {
                 modifiers.push(parsed);
             } else {
                 this._logger.warn(`Common parsers: using of string parsers is depricated. Please create Modifier`);
@@ -220,7 +220,7 @@ export class OutputParsersService {
         if (parsers !== undefined) {
             parsers.forEach((parser: Toolkit.ARowCommonParser) => {
                 const parsed = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
-                if (parsed instanceof Modifier) {
+                if (typeof parsed === 'object') {
                     modifiers.push(parsed);
                 } else {
                     this._logger.warn(`Common session parsers: using of string parsers is depricated. Please create Modifier`);

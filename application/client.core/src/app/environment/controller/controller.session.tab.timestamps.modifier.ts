@@ -31,16 +31,20 @@ export class TimestampModifier extends Modifier {
         return EType.match;
     }
 
-    public obey(ranges: Required<IModifierRange>[]) {
+    public obey(ranges: Array<Required<IModifierRange>>) {
         this._ranges = Modifiers.obey(ranges, this._ranges);
     }
 
-    public getRanges(): Required<IModifierRange>[] {
+    public getRanges(): Array<Required<IModifierRange>> {
         return this._ranges;
     }
 
     public getGroupPriority(): number {
         return 1;
+    }
+
+    public finalize(str: string): string {
+        return str;
     }
 
     private _map(row: string, formats: RegExp[]) {

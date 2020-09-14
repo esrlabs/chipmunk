@@ -36,16 +36,20 @@ export class HighlightsModifier extends Modifier {
         return EType.match;
     }
 
-    public obey(ranges: Required<IModifierRange>[]) {
+    public obey(ranges: Array<Required<IModifierRange>>) {
         this._ranges = Modifiers.obey(ranges, this._ranges) as IRange[];
     }
 
-    public getRanges(): Required<IModifierRange>[] {
+    public getRanges(): Array<Required<IModifierRange>> {
         return this._ranges;
     }
 
     public getGroupPriority(): number {
         return 2;
+    }
+
+    public finalize(str: string): string {
+        return str;
     }
 
     private _map(row: string, highlights: IRequest[]) {
