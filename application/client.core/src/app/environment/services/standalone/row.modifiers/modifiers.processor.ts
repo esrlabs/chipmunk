@@ -46,6 +46,9 @@ export class ModifierProcessor {
         this._injections.forEach((inj: IHTMLInjection) => {
             row = row.substring(0, inj.offset) + inj.injection + row.substring(inj.offset, row.length);
         });
+        this._modifiers.forEach((modifier: Modifier) => {
+            row = modifier.finalize(row);
+        });
         return row;
     }
 

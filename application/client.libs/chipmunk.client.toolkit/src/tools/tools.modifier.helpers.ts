@@ -58,3 +58,20 @@ export function obey(master: Array<Required<IModifierRange>>, slave: Array<Requi
         return !excluded;
     });
 }
+
+export function consider(master: Array<Required<IModifierRange>>, slave: Array<Required<IModifierRange>>): Array<Required<IModifierRange>> {
+    return slave.filter((checking: IModifierRange) => {
+        let excluded: boolean = false;
+        master.forEach((range: IModifierRange) => {
+            if (excluded) {
+                return;
+            }
+            // Prevent any crossing
+            if ((range.start < checking.start && range.end > checking.start) ||
+                (range.start < checking.end && range.end > checking.end)) {
+                excluded = true;
+            }
+        });
+        return !excluded;
+    });
+}

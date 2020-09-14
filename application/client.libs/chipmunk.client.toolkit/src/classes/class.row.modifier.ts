@@ -40,8 +40,6 @@ export abstract class Modifier {
 
     public abstract getGroupPriority(): number;
 
-    public abstract consider(ranges: Array<Required<IModifierRange>>);
-
     public abstract finalize(str: string): string;
 
 }
