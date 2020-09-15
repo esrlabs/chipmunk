@@ -1,5 +1,5 @@
 
-import { Modifier, Priorities, EType, IHTMLInjection, IModifierRange } from 'chipmunk.client.toolkit';
+import { Modifier, Priorities, EType, IHTMLInjection, EHTMLInjectionType } from 'chipmunk.client.toolkit';
 
 export class ModifierProcessor {
 
@@ -43,6 +43,19 @@ export class ModifierProcessor {
         this._injections.sort((a: IHTMLInjection, b: IHTMLInjection) => {
             return a.offset < b.offset ? 1 : -1;
         });
+        let injections: IHTMLInjection[] = [];
+        this._injections.forEach((inj: IHTMLInjection) => {
+            const same: IHTMLInjection[] = this._injections.filter(a => a.offset === inj.offset);
+            if (same.length === 1) {
+                injections.push(inj);
+            } else {
+                same.sort((a: IHTMLInjection, b: IHTMLInjection) => {
+                    return a.type === EHTMLInjectionType.close ? 1 : -1;
+                });
+            }
+            injections = injections.concat(same);
+        });
+        this._injections = injections;
         this._injections.forEach((inj: IHTMLInjection) => {
             row = row.substring(0, inj.offset) + inj.injection + row.substring(inj.offset, row.length);
         });

@@ -1,4 +1,4 @@
-import { Modifier, IRequest, EType, IHTMLInjection, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
+import { Modifier, IRequest, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
 import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../../theme/colors';
 import { CColors } from '../../../conts/colors';
 
@@ -22,10 +22,12 @@ export class HighlightsModifier extends Modifier {
             injections.push(...[{
                     offset: range.start,
                     injection: `<span class="noreset match" style="background: ${range.bgcl}; color: ${fgcl};">`,
+                    type: EHTMLInjectionType.open,
                 },
                 {
                     offset: range.end,
-                    injection: `</span>`
+                    injection: `</span>`,
+                    type: EHTMLInjectionType.close,
                 }
             ]);
         });

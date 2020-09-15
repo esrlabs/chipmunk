@@ -1,4 +1,4 @@
-import { Modifier, EType, IHTMLInjection, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
+import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
 
 export class TimestampModifier extends Modifier {
 
@@ -17,10 +17,12 @@ export class TimestampModifier extends Modifier {
             injections.push(...[{
                     offset: range.start,
                     injection: this._tags.open,
+                    type: EHTMLInjectionType.open,
                 },
                 {
                     offset: range.end,
-                    injection: this._tags.close
+                    injection: this._tags.close,
+                    type: EHTMLInjectionType.close,
                 }
             ]);
         });

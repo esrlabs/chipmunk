@@ -1,4 +1,4 @@
-import { Modifier, IRequest, EType, IHTMLInjection, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
+import { Modifier, IRequest, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
 import { ISelectionPoint, ICommentedSelection, IComment, IActualSelectionData} from './controller.session.tab.stream.comments.types';
 
 export class CommentSelectionModifier extends Modifier {
@@ -18,10 +18,12 @@ export class CommentSelectionModifier extends Modifier {
             injections.push(...[{
                     offset: range.start,
                     injection: `<span class="comment" style="background: red">`,
+                    type: EHTMLInjectionType.open,
                 },
                 {
                     offset: range.end,
-                    injection: `</span>`
+                    injection: `</span>`,
+                    type: EHTMLInjectionType.close,
                 }
             ]);
         });
