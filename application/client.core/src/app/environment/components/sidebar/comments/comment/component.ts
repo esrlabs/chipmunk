@@ -4,6 +4,7 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, HostBinding, HostListen
 import { Subscription, Observable, Subject } from 'rxjs';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { ControllerFileMergeSession, IMergeFile, ITimeScale, EViewMode } from '../../../../controller/controller.file.merge.session';
+import { IComment } from '../../../../controller/controller.session.tab.stream.comments.types';
 
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 
@@ -16,6 +17,8 @@ const CPadding = 12;
 })
 
 export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentInit, AfterViewInit, OnChanges {
+
+    @Input() comment: IComment;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;

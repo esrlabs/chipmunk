@@ -1,27 +1,15 @@
-// tslint:disable: member-ordering
-
-declare var Electron: any;
-
-import { Component, OnDestroy, Input,  ChangeDetectorRef, HostListener, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
+import { Component, OnDestroy, Input,  ChangeDetectorRef, AfterContentInit, AfterViewInit } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
-import { ControllerFileMergeSession, IMergeFile, EViewMode } from '../../../controller/controller.file.merge.session';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IComment } from '../../../controller/controller.session.tab.stream.comments.types';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
+import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-
-enum EState {
-    merge = 'merge',
-    discover = 'discover',
-    ready = 'ready',
-}
 
 @Component({
     selector: 'app-sidebar-app-files',
@@ -35,13 +23,14 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     @Input() public onBeforeTabRemove: Subject<void>;
     @Input() public close: () => void;
 
+    public _ng_comments: IComment[] = [];
+
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppMergeFilesComponent');
     private _destroyed: boolean = false;
+    private _controller: ControllerSessionTab | undefined;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef,
-                private _notifications: NotificationsService) {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     public ngOnDestroy() {
@@ -53,15 +42,25 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
 
     public ngAfterContentInit() {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._controller = TabsSessionsService.getActive();
     }
 
     public ngAfterViewInit() {
+        this._load();
     }
 
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
-        if (session === undefined) {
+    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+        this._controller = controller;
+        this._load();
+        this._forceUpdate();
+    }
+
+    private _load() {
+        if (this._controller === undefined) {
+            this._ng_comments = [];
         } else {
+            this._ng_comments = Array.from(this._controller.getSessionComments().get().values());
         }
         this._forceUpdate();
     }
