@@ -18,6 +18,9 @@ import { SidebarAppDLTConnectorComponent        } from './dlt.connector/componen
 import { SidebarAppNotificationsModule          } from '../views/notifications/module';
 import { SidebarAppNotificationsComponent       } from '../views/notifications/component';
 
+import { SidebarAppCommentsModule               } from '../sidebar/comments/module';
+import { SidebarAppCommentsComponent            } from '../sidebar/comments/component';
+
 @NgModule({
     entryComponents : [ ],
     imports         : [
@@ -30,7 +33,8 @@ import { SidebarAppNotificationsComponent       } from '../views/notifications/c
         SidebarAppParsingModule,
         SidebarAppNotificationsModule,
         SidebarAppConcatFilesModule,
-        SidebarAppDLTConnectorModule
+        SidebarAppDLTConnectorModule,
+        SidebarAppCommentsModule,
     ]
 })
 

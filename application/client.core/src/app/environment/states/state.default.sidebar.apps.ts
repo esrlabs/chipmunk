@@ -2,6 +2,7 @@ import { SidebarAppSearchManagerComponent } from '../components/sidebar/search.m
 import { SidebarAppMergeFilesComponent } from '../components/sidebar/merge/component';
 import { SidebarAppConcatFilesComponent } from '../components/sidebar/concat/component';
 import { SidebarAppDLTConnectorComponent } from '../components/sidebar/dlt.connector/component';
+import { SidebarAppCommentsComponent } from '../components/sidebar/comments/component';
 import { ITab } from 'chipmunk-client-material';
 
 export { ITab };
@@ -11,6 +12,7 @@ export const CGuids = {
     merging: 'merging',
     concat: 'concat',
     dltdeamon: 'dltdeamon',
+    comments: 'comments',
 };
 
 export interface IDefaultSidebarApp {
@@ -68,6 +70,20 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             name: 'DLT Deamon',
             content: {
                 factory: SidebarAppDLTConnectorComponent,
+                resolved: false,
+                inputs: {},
+            },
+            closable: true,
+            active: true,
+        }
+    },
+    {
+        addedAsDefault: false,
+        tab: {
+            guid: CGuids.comments,
+            name: 'Comments',
+            content: {
+                factory: SidebarAppCommentsComponent,
                 resolved: false,
                 inputs: {},
             },

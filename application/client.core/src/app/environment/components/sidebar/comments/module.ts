@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCardModule } from '@angular/material/card';
 
 
 import {
@@ -48,6 +49,7 @@ const components = [ ...entryComponents ];
         MatExpansionModule,
         MatProgressBarModule,
         MatProgressSpinnerModule,
+        MatCardModule,
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
