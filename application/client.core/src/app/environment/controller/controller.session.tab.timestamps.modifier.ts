@@ -49,6 +49,10 @@ export class TimestampModifier extends Modifier {
         return str;
     }
 
+    public getName(): string {
+        return 'TimestampModifier';
+    }
+
     private _map(row: string, formats: RegExp[]) {
         formats.forEach((format: RegExp) => {
             row.replace(format, (match: string, ...args: any[]) => {

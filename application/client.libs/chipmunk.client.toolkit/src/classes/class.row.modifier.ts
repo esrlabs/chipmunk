@@ -36,6 +36,8 @@ export interface IHTMLInjection {
 
 export abstract class Modifier {
 
+    public static Signature: string = 'modifier';
+
     public abstract getInjections(): IHTMLInjection[];
 
     public abstract obey(ranges: Array<Required<IModifierRange>>);
@@ -47,6 +49,12 @@ export abstract class Modifier {
     public abstract getGroupPriority(): number;
 
     public abstract finalize(str: string): string;
+
+    public abstract getName(): string;
+
+    public signature(): string {
+        return Modifier.Signature;
+    }
 
 }
 

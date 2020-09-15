@@ -50,6 +50,10 @@ export class CommentSelectionModifier extends Modifier {
         return str;
     }
 
+    public getName(): string {
+        return 'CommentSelectionModifier';
+    }
+
     private _map(comment: IComment, position: number, str: string) {
         if (position === comment.selection.start.position && position === comment.selection.end.position) {
             this._ranges.push({

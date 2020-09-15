@@ -47,6 +47,10 @@ export class FiltersModifier extends Modifier {
         return str;
     }
 
+    public getName(): string {
+        return 'FiltersModifier';
+    }
+
     private _map(row: string, filters: IRequest[]) {
         filters.forEach((request: IRequest) => {
             row.replace(request.reg, (match: string, ...args: any[]) => {

@@ -54,6 +54,10 @@ export class HighlightsModifier extends Modifier {
         return str;
     }
 
+    public getName(): string {
+        return 'HighlightsModifier';
+    }
+
     private _map(row: string, highlights: IRequest[]) {
         highlights.forEach((request: IRequest) => {
             row.replace(request.reg, (match: string, ...args: any[]) => {

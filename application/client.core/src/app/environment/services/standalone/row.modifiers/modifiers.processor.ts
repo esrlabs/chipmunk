@@ -1,16 +1,19 @@
 
-import { Modifier, Priorities, EType, IHTMLInjection, EHTMLInjectionType } from 'chipmunk.client.toolkit';
+import { Modifier, Priorities, EType, IHTMLInjection, EHTMLInjectionType, Logger } from 'chipmunk.client.toolkit';
 
 export class ModifierProcessor {
 
     private _modifiers: Modifier[];
     private _injections: IHTMLInjection[] = [];
+    private _logger: Logger = new Logger('ModifierProcessor');
 
     constructor(modifiers: Modifier[]) {
         this._modifiers = modifiers;
     }
 
     public parse(row: string): string {
+        // Get rid of original HTML in logs
+        row = this._serialize(row);
         this._injections = [];
         Priorities.forEach((type: EType, index: number) => {
             const subordinateTypes: EType[] = index !== Priorities.length - 1 ? Priorities.slice(index + 1, Priorities.length) : [];
@@ -38,7 +41,20 @@ export class ModifierProcessor {
             }
         });
         this._modifiers.forEach((modifier: Modifier) => {
-            this._injections.push(...modifier.getInjections());
+            let ignore: boolean = false;
+            // Check injections of modifier
+            modifier.getInjections().forEach((inj: IHTMLInjection) => {
+                const err: Error | undefined = this._getInjectionError((inj.injection));
+                if (err instanceof Error) {
+                    this._logger.warn(`Injection of modifier "${modifier.getName()}" has been rejected due error: ${err.message}`);
+                    ignore = true;
+                }
+            });
+            if (!ignore) {
+                this._injections.push(...modifier.getInjections());
+            } else {
+                this._logger.warn(`All injections of modifier "${modifier.getName()}" will be ignored`);
+            }
         });
         this._injections.sort((a: IHTMLInjection, b: IHTMLInjection) => {
             return a.offset < b.offset ? 1 : -1;
@@ -63,14 +79,46 @@ export class ModifierProcessor {
         this._injections.forEach((inj: IHTMLInjection) => {
             row = row.substring(0, inj.offset) + inj.injection + row.substring(inj.offset, row.length);
         });
-        this._modifiers.forEach((modifier: Modifier) => {
-            row = modifier.finalize(row);
+        row = row.replace(/(^.*?\<)|(\>.*?\<)|(\>.*?$)/gi, (match: string, ...args: any[]) => {
+            let clean: string = match.replace(/[\>\<]/gi, '');
+            if (clean === '') {
+                return match;
+            }
+            this._modifiers.forEach((modifier: Modifier) => {
+                const finalized: string = modifier.finalize(clean);
+                const safe: string = this._serialize(finalized);
+                if (safe.length !== finalized.length) {
+                    this._logger.warn(`Modifier "${modifier.getName()}" tries to inject HTML`);
+                }
+                clean = safe;
+            });
+            return `${match[0] === '>' ? '>' : ''}${clean}${match[match.length - 1] === '<' ? '<' : ''}`;
         });
         return row;
     }
 
     public wasChanged(): boolean {
         return this._injections.length > 0;
+    }
+
+    private _serialize(str: string): string {
+        // Serialize input string to prevent brocken HTML
+        return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
+    }
+
+    private _getInjectionError(injection: string): Error | undefined {
+        const tag = /\<\/?(span|b|i).*?\>/gi;
+        const match: RegExpMatchArray = injection.match(tag);
+        if (match === null) {
+            return new Error(`Expecting "injection" has to be HTML tag (supported tags: <span>, <b> and <i>.)`);
+        }
+        if (match.length > 1) {
+            return new Error(`"injection" should return only one tag. Multiple tags are prohibited`);
+        }
+        if (injection.replace(tag, '').length !== 0) {
+            return new Error(`"injection" should return only tag without any content outside of tag.`);
+        }
+        return undefined;
     }
 
 }
