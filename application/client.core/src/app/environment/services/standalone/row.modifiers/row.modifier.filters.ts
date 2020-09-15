@@ -14,7 +14,7 @@ export class FiltersModifier extends Modifier {
         this._ranges.forEach((range: IModifierRange) => {
             injections.push(...[{
                     offset: range.start,
-                    injection: `<span class="noreset match" ">`,
+                    injection: `<span class="noreset match">`,
                     type: EHTMLInjectionType.open,
                 },
                 {
