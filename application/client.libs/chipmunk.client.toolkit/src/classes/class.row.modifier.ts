@@ -23,9 +23,15 @@ export interface IModifierRange {
     end: number;
 }
 
+export enum EHTMLInjectionType {
+    close = 'close',
+    open = 'open',
+}
+
 export interface IHTMLInjection {
     offset: number;
     injection: string;
+    type: EHTMLInjectionType;
 }
 
 export abstract class Modifier {

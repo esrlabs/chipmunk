@@ -1,4 +1,4 @@
-import { Modifier, IRequest, EType, IHTMLInjection, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
+import { Modifier, IRequest, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
 
 export class FiltersModifier extends Modifier {
 
@@ -15,10 +15,12 @@ export class FiltersModifier extends Modifier {
             injections.push(...[{
                     offset: range.start,
                     injection: `<span class="noreset match" ">`,
+                    type: EHTMLInjectionType.open,
                 },
                 {
                     offset: range.end,
-                    injection: `</span>`
+                    injection: `</span>`,
+                    type: EHTMLInjectionType.close,
                 }
             ]);
         });
