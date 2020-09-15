@@ -1,23 +1,28 @@
 import { Modifier, IRequest, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
-import { ISelectionPoint, ICommentedSelection, IComment, IActualSelectionData} from './controller.session.tab.stream.comments.types';
+import { ECommentState, IComment} from './controller.session.tab.stream.comments.types';
 
 export class CommentSelectionModifier extends Modifier {
 
     private _ranges: IModifierRange[] = [];
+    private _comment: IComment | undefined;
 
     constructor(comment: IComment | undefined, position: number, row: string) {
         super();
         if (comment !== undefined) {
+            this._comment = comment;
             this._map(comment, position, row);
         }
     }
 
     public getInjections(): IHTMLInjection[] {
+        if (this._comment === undefined) {
+            return [];
+        }
         const injections: IHTMLInjection[] = [];
         this._ranges.forEach((range: IModifierRange) => {
             injections.push(...[{
                     offset: range.start,
-                    injection: `<span class="comment" style="background: red">`,
+                    injection: `<span class="injected-row-comment ${this._comment.guid === ECommentState.pending ? 'pending' : ''}">`,
                     type: EHTMLInjectionType.open,
                 },
                 {

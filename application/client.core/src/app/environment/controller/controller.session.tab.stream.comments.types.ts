@@ -10,8 +10,15 @@ export interface ICommentedSelection {
     text: string;
 }
 
+export enum ECommentState {
+    done = 'done',
+    pending = 'pending',
+}
+
 export interface IComment {
     guid: string;
+    state: ECommentState;
+    comment: string;
     selection: ICommentedSelection;
 }
 
