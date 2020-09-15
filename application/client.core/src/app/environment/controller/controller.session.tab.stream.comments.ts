@@ -1,11 +1,15 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { Observable, Subject } from 'rxjs';
-import HotkeysService, { IHotkeyEvent } from '../services/service.hotkeys';
 import { Subscription } from 'rxjs';
 import { IScrollBoxSelection } from 'chipmunk-client-material';
 import { Modifier } from 'chipmunk.client.toolkit';
 import { CommentSelectionModifier } from './controller.session.tab.stream.comments.modifier';
-import { IComment, IActualSelectionData} from './controller.session.tab.stream.comments.types';
+import { IComment, IActualSelectionData, ECommentState } from './controller.session.tab.stream.comments.types';
+import { DialogsAddCommentOnRowComponent } from '../components/dialogs/comment.row.add/component';
+
+import PopupsService from '../services/standalone/service.popups';
+import OutputParsersService from '../services/standalone/service.output.parsers';
 
 export class ControllerSessionTabStreamComments {
 
@@ -64,6 +68,8 @@ export class ControllerSessionTabStreamComments {
             }
             this._comments.set(guid, {
                 guid: guid,
+                state: ECommentState.pending,
+                comment: '',
                 selection: {
                     start: {
                         position: selection.anchor,
@@ -98,6 +104,8 @@ export class ControllerSessionTabStreamComments {
             }
             this._comments.set(guid, {
                 guid: guid,
+                state: ECommentState.pending,
+                comment: '',
                 selection: {
                     start: {
                         position: selection.anchor,
@@ -113,6 +121,8 @@ export class ControllerSessionTabStreamComments {
                 },
             });
         }
+        OutputParsersService.updateRowsView();
+        this._create(guid);
     }
 
     public add(comment: IComment) {
@@ -159,37 +169,37 @@ export class ControllerSessionTabStreamComments {
         return new CommentSelectionModifier(comment, position, str);
     }
 
-    /*
-    public getHTML(position: number, str: string): string {
-        const comment: IComment | undefined = this._getRelevantComment(position);
-        if (comment === undefined) {
-            return str;
-        }
-        if (position === comment.selection.start.position && position === comment.selection.end.position) {
-            return str.substring(0, comment.selection.start.offset) +
-                '<span class="comment" style="background: red">' +
-                str.substring(comment.selection.start.offset, comment.selection.end.offset) +
-                '</span>' +
-                str.substring(comment.selection.end.offset, str.length);
-        }
-        if (position === comment.selection.start.position && position !== comment.selection.end.position) {
-            return str.substring(0, comment.selection.start.offset) +
-                '<span class="comment" style="background: red">' +
-                str.substring(comment.selection.start.offset, str.length) +
-                '</span>';
-        }
-        if (position !== comment.selection.start.position && position === comment.selection.end.position) {
-            const res = '<span class="comment" style="background: red">' +
-                str.substring(0, comment.selection.end.offset) +
-                '</span>' +
-                str.substring(comment.selection.end.offset, str.length);
-            return res;
-        }
-        if (position > comment.selection.start.position && position < comment.selection.end.position) {
-            return `<span class="comment" style="background: red">${str}</span>`;
-        }
+    private _create(commendId: string) {
+        const guid: string = PopupsService.add({
+            id: 'commend-add-on-row-dialog',
+            options: {
+                closable: false,
+                width: 40,
+            },
+            caption: `Add new comment`,
+            component: {
+                factory: DialogsAddCommentOnRowComponent,
+                inputs: {
+                    add: (text: string) => {
+                        PopupsService.remove(guid);
+                        const comment: IComment | undefined = this._comments.get(commendId);
+                        if (comment === undefined) {
+                            return;
+                        }
+                        comment.comment = text;
+                        comment.state = ECommentState.done;
+                        this._comments.set(commendId, comment);
+                        OutputParsersService.updateRowsView();
+                    },
+                    cancel: () => {
+                        PopupsService.remove(guid);
+                        this._comments.delete(commendId);
+                        OutputParsersService.updateRowsView();
+                    }
+                }
+            }
+        });
     }
-    */
 
     private _getRelevantComment(position: number): IComment | undefined {
         try {

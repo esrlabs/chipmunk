@@ -1,0 +1,12 @@
+<div class="inputs">
+    <mat-form-field class="comment-input">
+        <mat-label>Leave a comment</mat-label>
+        <textarea rows="5" matInput #message maxlength="1024" placeholder="Ex. I need help with..." [(ngModel)]="_ng_comment"></textarea>
+        <mat-hint align="start"><strong>Don't disclose personal info</strong> </mat-hint>
+        <mat-hint align="end">{{message.value.length}} / 1024</mat-hint>
+    </mat-form-field>
+</div>
+<div class="controlls">
+    <button mat-stroked-button color="primary" (click)="_ng_onAdd()">Add</button>
+    <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
+</div>

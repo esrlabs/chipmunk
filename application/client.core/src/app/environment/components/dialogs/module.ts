@@ -10,6 +10,8 @@ import { DialogsRecentFilesActionComponent          } from './recentfile/compone
 import { DialogsRecentFitlersActionComponent        } from './recentfilter/component';
 import { DialogsMeasurementAddFormatComponent       } from './measurement.format.add/component';
 import { DialogsMeasurementFormatDefaultsComponent  } from './measurement.format.defaults/component';
+import { DialogsAddCommentOnRowComponent            } from './comment.row.add/component';
+
 
 import { PrimitiveModule, ContainersModule          } from 'chipmunk-client-material';
 import { AppDirectiviesModule                       } from '../../directives/module';
@@ -25,18 +27,19 @@ import { MatProgressBar, MatProgressBarModule } from '@angular/material/progress
 import { MatSelect, MatSelectModule } from '@angular/material/select';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTable, MatTableModule } from '@angular/material/table';
+
 import {
     FormsModule,
     ReactiveFormsModule } from '@angular/forms';
 
 const entryComponents = [
-    MatFormField,
+    /*MatFormField,
     MatAutocomplete,
     MatTable,
     MatProgressBar,
     MatCheckbox,
     MatButton,
-    MatSelect,
+    MatSelect,*/
 ];
 
 const CDialogs = [
@@ -48,6 +51,7 @@ const CDialogs = [
     DialogsRecentFitlersActionComponent,
     DialogsMeasurementAddFormatComponent,
     DialogsMeasurementFormatDefaultsComponent,
+    DialogsAddCommentOnRowComponent,
 ];
 
 @NgModule({

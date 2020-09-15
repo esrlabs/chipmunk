@@ -36,6 +36,13 @@
         
     }
 }
+& span.injected-row-comment {
+    background: fade(@scheme-color-warning, 45%);
+    color: @scheme-color-0;
+    &.pending {
+        background: fade(@scheme-color-warning, 25%);
+    }
+}
 & .console-content,
 & .console-content * {
     font-family: 'console', monospace;
