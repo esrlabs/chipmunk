@@ -45,6 +45,10 @@ export class ModifierProcessor {
         });
         let injections: IHTMLInjection[] = [];
         this._injections.forEach((inj: IHTMLInjection) => {
+            if (injections.find(a => a.offset === inj.offset) !== undefined) {
+                // Skip. Already done.
+                return;
+            }
             const same: IHTMLInjection[] = this._injections.filter(a => a.offset === inj.offset);
             if (same.length === 1) {
                 injections.push(inj);
@@ -52,8 +56,8 @@ export class ModifierProcessor {
                 same.sort((a: IHTMLInjection, b: IHTMLInjection) => {
                     return a.type === EHTMLInjectionType.close ? 1 : -1;
                 });
+                injections = injections.concat(same);
             }
-            injections = injections.concat(same);
         });
         this._injections = injections;
         this._injections.forEach((inj: IHTMLInjection) => {
