@@ -58,6 +58,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         });
         if (this._ng_controller !== undefined) {
             this._sessionSubs.onAdded = this._ng_controller.getSessionComments().getObservable().onAdded.subscribe(this._onCommentAdded.bind(this));
+            this._sessionSubs.onRemoved = this._ng_controller.getSessionComments().getObservable().onRemoved.subscribe(this._onCommentRemoved.bind(this));
         }
         this._load();
         this._forceUpdate();
@@ -69,13 +70,17 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         } else {
             this._ng_comments = Array.from(this._ng_controller.getSessionComments().get().values());
             this._ng_comments.sort((a: IComment, b: IComment) => {
-                return a.selection.start.position < b.selection.start.position ? 1 : -1;
+                return a.selection.start.position > b.selection.start.position ? 1 : -1;
             });
         }
         this._forceUpdate();
     }
 
     private _onCommentAdded(comment: IComment) {
+        this._load();
+    }
+
+    private _onCommentRemoved(guid: string) {
         this._load();
     }
 
