@@ -1,6 +1,5 @@
 use crate::{
-    channels::{EventEmitterTask, IndexingThreadConfig},
-    fibex_utils::gather_fibex_data,
+    channels::EventEmitterTask, config::IndexingThreadConfig, fibex_utils::gather_fibex_data,
 };
 use crossbeam_channel as cc;
 use dlt::{fibex::FibexMetadata, filtering};
@@ -10,14 +9,10 @@ use indexer_base::{
     progress::{Notification, Severity},
 };
 use neon::prelude::*;
-use std::{
-    path,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{path, thread};
 
 pub struct IndexingDltEventEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub event_receiver: cc::Receiver<ChunkResults>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -108,7 +103,7 @@ declare_types! {
             let shutdown_channel = cc::unbounded();
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = IndexingDltEventEmitter {
-                event_receiver: Arc::new(Mutex::new(rx)),
+                event_receiver: rx,
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
@@ -133,15 +128,15 @@ declare_types! {
         // will be called by JS to receive data in a loop, but care should be taken to only call it once at a time.
         method poll(mut cx) {
             // The callback to be executed when data is available
-            let cb = cx.argument::<JsFunction>(0)?;
+            let data_available_callback = cx.argument::<JsFunction>(0)?;
             let this = cx.this();
 
             // Create an asynchronously `EventEmitterTask` to receive data
-            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+            let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
             let emitter = EventEmitterTask::new(events);
 
             // Schedule the task on the `libuv` thread pool
-            emitter.schedule(cb);
+            emitter.schedule(data_available_callback);
             Ok(JsUndefined::new().upcast())
         }
 

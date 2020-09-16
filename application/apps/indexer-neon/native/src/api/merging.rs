@@ -8,12 +8,11 @@ use merging::merger::{merge_files_use_config, FileMergeOptions};
 use neon::prelude::*;
 use std::{
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
     thread,
 };
 
 pub struct MergerEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub event_receiver: cc::Receiver<ChunkResults>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -94,7 +93,7 @@ pub class JsMergerEmitter for MergerEmitter {
         let (result_tx, result_rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
         let shutdown_channel = cc::unbounded();
         let mut emitter = MergerEmitter{
-            event_receiver: Arc::new(Mutex::new(result_rx)),
+            event_receiver: result_rx,
             shutdown_sender: shutdown_channel.0,
             task_thread: None,
         };
@@ -112,7 +111,7 @@ pub class JsMergerEmitter for MergerEmitter {
     method poll(mut cx) {
         let cb = cx.argument::<JsFunction>(0)?;
         let this = cx.this();
-        let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+        let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
         let emitter_task = EventEmitterTask::new(events);
         emitter_task.schedule(cb);
         Ok(JsUndefined::new().upcast())

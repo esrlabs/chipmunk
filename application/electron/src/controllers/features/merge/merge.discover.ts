@@ -1,6 +1,6 @@
 // tslint:disable:max-classes-per-file
 // tslint:disable: no-unused-expression
-import { CancelablePromise, Processor, Progress, Units } from "indexer-neon";
+import { CancelablePromise, Timestamps, Progress } from "indexer-neon";
 import { Subscription } from "../../../tools/index";
 import { PCREToECMARegExp, isRegStrValid } from '../../../tools/tools.regexp';
 import { IPCMessages } from '../../../services/service.electron';
@@ -34,7 +34,7 @@ export default class MergeDiscover {
     private _closed: boolean = false;
     private _session: string = "";
     private _files: IFile[];
-    private _task: CancelablePromise<void, void, Processor.TDiscoverTimespanAsyncEvents, Processor.TDiscoverTimespanAsyncEventObject> | undefined;
+    private _task: CancelablePromise<void, void, Timestamps.TDiscoverTimespanAsyncEvents, Timestamps.TDiscoverTimespanAsyncEventObject> | undefined;
 
     constructor(files: IFile[], session?: string) {
         this._files = files;

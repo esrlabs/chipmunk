@@ -6,14 +6,10 @@ use indexer_base::{
 };
 use merging::concatenator::{concat_files, ConcatenatorInput};
 use neon::prelude::*;
-use std::{
-    path,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{path, thread};
 
 pub struct ConcatenatorEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub event_receiver: cc::Receiver<ChunkResults>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -95,7 +91,7 @@ declare_types! {
             let chunk_result_channel: (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let shutdown_channel = cc::unbounded();
             let mut emitter = ConcatenatorEmitter{
-                event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
+                event_receiver: chunk_result_channel.1,
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
@@ -113,7 +109,7 @@ declare_types! {
         method poll(mut cx) {
             let cb = cx.argument::<JsFunction>(0)?;
             let this = cx.this();
-            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+            let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
             let emitter = EventEmitterTask::new(events);
             emitter.schedule(cb);
             Ok(JsUndefined::new().upcast())

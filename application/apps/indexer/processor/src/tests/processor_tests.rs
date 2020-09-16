@@ -3,7 +3,9 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     extern crate rand;
     // extern crate tempdir;
-    use crate::processor::*;
+    use crate::grabber::LineRange;
+    use crate::grabber::Slot;
+    use crate::{grabber::Grabber, processor::*};
     use anyhow::Result;
     use crossbeam_channel as cc;
     use crossbeam_channel::unbounded;
@@ -88,8 +90,6 @@ mod tests {
                 }
             }
         }
-        // println!("out_file_content: {}", out_file_content);
-        // println!("got chunks: {:?}", chunks);
     }
     type Pair = (usize, usize);
 
@@ -409,5 +409,163 @@ mod tests {
                 assert_eq!(original_content_lines, restored_file_content_lines);
             }
         }
+    }
+
+    fn identify_range_simple(grabber: &Grabber, line_index: u64) -> Option<Slot> {
+        let metadata = grabber.metadata.as_ref()?;
+        // let metadata = grabber.metadata.as_ref()?;
+        for slot in &metadata.slots {
+            if slot.lines.range.contains(&line_index) {
+                println!(
+                    "found start of line index {} in {:?}",
+                    line_index, slot.bytes
+                );
+                return Some(slot.clone());
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn test_identify_range() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        // many lines
+        {
+            let mut file = NamedTempFile::new()?;
+            let mut s = String::new();
+            for i in 0..80 {
+                s.push_str(&format!("{}", i % 10));
+            }
+            for _line in 0..1000 {
+                writeln!(file, "{}", s)?;
+            }
+            let p = file.into_temp_path();
+            let line_count = Grabber::count_lines(&p)? as u64;
+            let grabber = Grabber::new(&p)?;
+
+            for line_index in 0..line_count {
+                assert_eq!(
+                    identify_range_simple(&grabber, line_index),
+                    grabber.identify_slot(line_index)
+                );
+            }
+        }
+        // long lines
+        {
+            let mut file = NamedTempFile::new()?;
+            let mut s = String::new();
+            for i in 0..10000 {
+                s.push_str(&format!("{}", i % 10));
+            }
+            for _line in 0..100 {
+                writeln!(file, "{}", s)?;
+            }
+            let p = file.into_temp_path();
+            let line_count = Grabber::count_lines(&p)? as u64;
+            println!("----------> file has {} lines", line_count);
+            let grabber = Grabber::new(&p)?;
+            for line_index in 0..line_count {
+                assert_eq!(
+                    identify_range_simple(&grabber, line_index),
+                    grabber.identify_slot(line_index)
+                );
+            }
+        }
+        Ok(())
+    }
+
+    static SUPPORTED_STRING_FORMAT: &str = "[ -~]{0,100}";
+
+    #[test]
+    fn test_get_entries_single_one_char_line() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut file = NamedTempFile::new()?;
+        write!(file, "a")?;
+        let p = file.into_temp_path();
+        let grabber = Grabber::new(&p)?;
+        let single_line_range = LineRange::new(0, 1);
+        let naive = grabber.get_entries(&single_line_range)?;
+        let entries: Vec<String> = vec!["a".to_owned()];
+        assert_eq!(naive, entries);
+        Ok(())
+    }
+
+    #[test]
+    fn test_grab_all_entries_in_file_with_empty_lines() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut file = NamedTempFile::new()?;
+        let mut line_length: Vec<u64> = vec![];
+        let v = vec!["", ""];
+        for (i, line) in v.iter().enumerate() {
+            if i == v.len() - 1 {
+                // last
+                write!(file, "{}", line)?;
+                println!("[{}]: (last line) {}", i, line);
+            } else {
+                writeln!(file, "{}", line)?;
+                println!("[{}]: {}", i, line);
+            }
+
+            line_length.push(line.len() as u64);
+        }
+        let p = file.into_temp_path();
+        if let Ok(grabber) = Grabber::new(&p) {
+            let r = LineRange::new(0, v.len() as u64);
+            let naive = grabber.get_entries(&r).expect("entries not grabbed");
+            let entries: Vec<String> = vec!["".to_owned(), "".to_owned()];
+            assert_eq!(naive, entries);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_entries_empty_line_at_end() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut file = NamedTempFile::new()?;
+        write!(file, "ABC")?;
+        writeln!(file)?;
+        let p = file.into_temp_path();
+        let grabber = Grabber::new(&p)?;
+        let one_line_empty_range = LineRange::new(1, 2);
+        let naive = grabber.get_entries(&one_line_empty_range)?;
+        let entries: Vec<String> = vec!["".to_owned()];
+        assert_eq!(naive, entries);
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_one_line_only() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut file = NamedTempFile::new()?;
+        write!(file, "ABC")?;
+        let p = file.into_temp_path();
+        let grabber = Grabber::new(&p)?;
+        let one_line_range = LineRange::new(0, 1);
+        let c1 = grabber.get_entries(&one_line_range)?;
+        let c2: Vec<String> = vec!["ABC".to_owned()];
+        assert_eq!(c1, c2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_entries_only_empty_lines() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut file = NamedTempFile::new()?;
+        // 3 lines, all empty
+        writeln!(file)?;
+        writeln!(file)?;
+        let p = file.into_temp_path();
+        let grabber = Grabber::new(&p)?;
+        let one_line_range = LineRange::new(0, 1);
+        let c1 = grabber.get_entries(&one_line_range)?;
+        let c2: Vec<String> = vec!["".to_owned()];
+        assert_eq!(c1, c2);
+        Ok(())
     }
 }

@@ -3,14 +3,10 @@ use crossbeam_channel as cc;
 use dlt::dlt_parse::StatisticsResults;
 use indexer_base::progress::{Notification, Severity};
 use neon::prelude::*;
-use std::{
-    path,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{path, thread};
 
 pub struct DltStatsEventEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<StatisticsResults>>>,
+    pub event_receiver: cc::Receiver<StatisticsResults>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -61,7 +57,7 @@ declare_types! {
             let chunk_result_channel: (cc::Sender<StatisticsResults>, cc::Receiver<StatisticsResults>) = cc::unbounded();
             let shutdown_channel = cc::unbounded();
             let mut emitter = DltStatsEventEmitter {
-                event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
+                event_receiver: chunk_result_channel.1,
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
@@ -80,7 +76,7 @@ declare_types! {
             let this = cx.this();
 
             // Create an asynchronously `EventEmitterTask` to receive data
-            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+            let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
             let emitter = EventEmitterTask::new(events);
 
             // Schedule the task on the `libuv` thread pool

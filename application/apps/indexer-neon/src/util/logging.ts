@@ -1,4 +1,4 @@
-import { ILogger, TLogFunc } from '../../../common/interfaces/interface.node.global';
+import { ILogger, TLogFunc } from '../../../../common/interfaces/interface.node.global';
 
 export function log(s: any) {
     if ((global as any).chipmunk !== undefined) {

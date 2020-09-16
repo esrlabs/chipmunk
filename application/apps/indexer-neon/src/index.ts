@@ -1,11 +1,13 @@
-import { CancelablePromise } from './promise';
-import * as Processor from './processor';
-import * as Progress from './progress';
-import * as DLT from './dlt';
-import * as Merge from './merger';
-import * as Units from './units';
+import { CancelablePromise } from './util/promise';
+import * as Processor from './api/processor';
+import * as Timestamps from './api/timestamps';
+import * as Exporter from './api/exporter';
+import * as Progress from './util/progress';
+import * as DLT from './api/dlt';
+import * as Merge from './api/merger';
+import * as Units from './util/units';
 
-export { CancelablePromise, Processor, Progress, DLT, Merge, Units };
+export { CancelablePromise, Processor, Timestamps, Exporter, Progress, DLT, Merge, Units };
 
 export default {
 	// DLT
@@ -16,11 +18,13 @@ export default {
 	indexPcapDlt: DLT.indexPcapDlt,
 	// Indexing
 	indexAsync: Processor.indexAsync,
-	discoverTimespanAsync: Processor.discoverTimespanAsync,
-	exportLineBased: Processor.exportLineBased,
+	// Timestamps
+	discoverTimespanAsync: Timestamps.discoverTimespanAsync,
+	checkFormat: Timestamps.checkFormat,
+	exctractTimestamp: Timestamps.exctractTimestamp,
+	// Export/Import
+	exportLineBased: Exporter.exportLineBased,
 	// Merging
 	mergeFilesAsync: Merge.mergeFilesAsync,
 	concatFilesAsync: Merge.concatFilesAsync,
-	checkFormat: Processor.checkFormat,
-	exctractTimestamp: Processor.exctractTimestamp,
 };

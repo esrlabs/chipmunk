@@ -11,12 +11,9 @@ extern crate log4rs;
 use std::os::windows::process::CommandExt;
 
 use anyhow::{anyhow, Result};
-use base::{
-    chipmunk_log_config, initialize_from_fresh_yml, setup_fallback_logging,
-};
+use base::{chipmunk_log_config, initialize_from_fresh_yml, setup_fallback_logging};
 use std::{
-    fs,
-    env,
+    env, fs,
     path::{Path, PathBuf},
     process::{Child, Command},
 };
@@ -79,13 +76,27 @@ fn find_launcher() -> Result<String> {
     debug!("Root: {}", root_path.display());
     debug!("Args: {:?}", std::env::args());
     let app = if cfg!(target_os = "windows") {
-        let path = canonicalize(Path::new(&format!("{}\\..\\..\\..\\..\\..\\{}", root_path.display(), "chipmunk.exe")))?;
+        let path = canonicalize(Path::new(&format!(
+            "{}\\..\\..\\..\\..\\..\\{}",
+            root_path.display(),
+            "chipmunk.exe"
+        )))?;
         format!("{}", path.display())
     } else if cfg!(target_os = "macos") {
-        let path = Path::new(&format!("{}/../../../../../MacOS/{}", root_path.display(), "chipmunk")).canonicalize()?;
+        let path = Path::new(&format!(
+            "{}/../../../../../MacOS/{}",
+            root_path.display(),
+            "chipmunk"
+        ))
+        .canonicalize()?;
         format!("{}", path.display())
     } else {
-        let path = Path::new(&format!("{}/../../../../../{}", root_path.display(), "chipmunk")).canonicalize()?;
+        let path = Path::new(&format!(
+            "{}/../../../../../{}",
+            root_path.display(),
+            "chipmunk"
+        ))
+        .canonicalize()?;
         format!("{}", path.display())
     };
     Ok(app)
@@ -112,9 +123,11 @@ fn main() -> Result<()> {
         error!("launcher not found! {:?}", launcher_path);
         std::process::exit(1);
     }
-    
+
     let pwd = env::current_dir().expect("Fail to detect current dir");
-    let pwd = pwd.to_str().expect("Fail to convert current path to OS string");
+    let pwd = pwd
+        .to_str()
+        .expect("Fail to convert current path to OS string");
     debug!("Target pwd: {}", pwd);
     let env_args = env::args().collect::<Vec<String>>();
     let mut args: Vec<&str> = vec!["--pwd", pwd.as_ref()];

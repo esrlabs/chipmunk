@@ -2,20 +2,15 @@ use crate::channels::EventEmitterTask;
 use anyhow::{Error, *};
 use crossbeam_channel as cc;
 use indexer_base::{chunks::ChunkResults, config::SectionConfig, export::export_file_line_based};
-use neon::context::Context;
-use neon::prelude::*;
-use std::{
-    path,
-    sync::{Arc, Mutex},
-    thread,
-};
+use neon::{context::Context, prelude::*};
+use std::{path, thread};
 
 static DLT_SESSION_ID: &str = "session";
 static DLT_SOURCE_FILE: &str = "file";
 static LINE_BASED_SOURCE_FILE: &str = "lines";
 
 pub struct ExporterEventEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub event_receiver: cc::Receiver<ChunkResults>,
     pub shutdown_sender: async_std::sync::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -113,7 +108,7 @@ declare_types! {
             let shutdown_channel = async_std::sync::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = ExporterEventEmitter {
-                event_receiver: Arc::new(Mutex::new(rx)),
+                event_receiver: rx,
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
@@ -139,7 +134,7 @@ declare_types! {
             let this = cx.this();
 
             // Create an asynchronously `EventEmitterTask` to receive data
-            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+            let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
             let emitter = EventEmitterTask::new(events);
 
             // Schedule the task on the `libuv` thread pool

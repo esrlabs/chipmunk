@@ -5,9 +5,9 @@ import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceOutputExport from "../../services/output/service.output.export";
 import ServiceStreams from "../../services/service.streams";
 import indexer from "indexer-neon";
+import { CancelablePromise, Progress, Exporter } from "indexer-neon";
 import ServiceFileRecent from '../../services/files/service.file.recent';
 
-import { CancelablePromise, Processor, Progress } from "indexer-neon";
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { dialog, SaveDialogReturnValue } from 'electron';
 import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
@@ -16,7 +16,7 @@ export class DefaultOutputExport {
 
     private _logger: Logger;
     private _guid: string;
-    private _saver: CancelablePromise<void, void, Processor.TFileAsyncEvents, Processor.TFileAsyncEventObject> | undefined;
+    private _saver: CancelablePromise<void, void, Exporter.TFileAsyncEvents, Exporter.TFileAsyncEventObject> | undefined;
 
     constructor(guid: string) {
         this._guid = guid;

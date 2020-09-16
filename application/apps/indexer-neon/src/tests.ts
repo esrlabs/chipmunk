@@ -1,5 +1,5 @@
-import { CancelablePromise } from './promise';
-import { indexAsync, IFilePath, discoverTimespanAsync, checkFormat } from './processor';
+import { CancelablePromise } from './util/promise';
+import { indexAsync } from './api/processor';
 import {
 	DltFilterConf,
 	DltLogLevel,
@@ -8,23 +8,17 @@ import {
 	ISocketConfig,
 	IMulticastInfo,
 	indexPcapDlt
-} from './dlt';
-import indexer, { DLT, Units, Merge, Progress } from './index';
-import {
-	ITicks,
-	IChunk,
-	AsyncResult,
-	INeonNotification,
-	ITimestampFormatResult,
-	IDiscoverItem,
-	IMergerItemOptions
-} from './progress';
+} from './api/dlt';
+import indexer, { DLT, Merge, Progress } from './index';
+import { ITicks, IChunk, AsyncResult, INeonNotification, IDiscoverItem, IMergerItemOptions } from './util/progress';
 import * as log from 'loglevel';
-import { IConcatFilesParams, ConcatenatorInput } from './merger';
+import { IConcatFilesParams, ConcatenatorInput } from './api/merger';
 import { StdoutController } from 'custom.stdout';
 import { Detect } from '../../../common/interfaces/index';
 
 import * as fs from 'fs';
+import { RustGrabberClass, createGrabberAsync } from './api/grabber';
+import { discoverTimespanAsync, checkFormat } from './api/timestamps';
 
 const stdout = new StdoutController(process.stdout, { handleStdoutGlobal: true });
 
@@ -158,13 +152,16 @@ export function testCallConcatFiles(concatConfig: string, out: string, chunk_siz
 		}
 	});
 }
-export function testCheckFormatString(input: string, flags: Detect.ICheckFormatFlags = { miss_year: false, miss_month: false, miss_day: false }) {
+export function testCheckFormatString(
+	input: string,
+	flags: Detect.ICheckFormatFlags = { miss_year: false, miss_month: false, miss_day: false }
+) {
 	log.setDefaultLevel(log.levels.DEBUG);
 	log.debug(`calling testCheckFormatString with ${input}`);
 	const hrstart = process.hrtime();
 	try {
 		let onProgress = (ticks: ITicks) => {
-			log.debug('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total) + '%');
+			log.trace('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total) + '%');
 		};
 		let onNotification = (notification: INeonNotification) => {
 			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
@@ -200,7 +197,7 @@ export function testCallDltStats(file: string) {
 	const hrstart = process.hrtime();
 	try {
 		let onProgress = (ticks: ITicks) => {
-			log.debug('progress: ' + JSON.stringify(ticks));
+			log.trace('progress: ' + JSON.stringify(ticks));
 		};
 		let onConf = (conf: DLT.StatisticInfo) => {
 			log.debug('testCallDltStats.onConf:');
@@ -245,6 +242,7 @@ export function testDiscoverTimestampAsync(files: string[]) {
 	const bar = stdout.createProgressBar({ caption: 'discover timestamp', width: 60 });
 	try {
 		let onProgress = (ticks: ITicks) => {
+			log.debug('onProgress');
 			bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 		};
 		let onNotification = (notification: INeonNotification) => {
@@ -253,7 +251,7 @@ export function testDiscoverTimestampAsync(files: string[]) {
 		let items: IDiscoverItem[] = files.map((file: string) => {
 			return {
 				path: file,
-				format_string: "YYYY-MM-DD hh:mm:ss.s"
+				format_string: 'YYYY-MM-DD hh:mm:ss.s'
 			};
 		});
 		discoverTimespanAsync(items)
@@ -270,8 +268,8 @@ export function testDiscoverTimestampAsync(files: string[]) {
 			.on('chunk', (event: Progress.ITimestampFormatResult) => {
 				log.debug('received ' + JSON.stringify(event));
 				log.debug('event.format ' + JSON.stringify(event.format));
-				log.debug('event.format.Ok ' + JSON.stringify(event.format?.Ok));
-				log.debug('event.format.Err ' + JSON.stringify(event.format?.Err));
+				// log.debug('event.format.Ok ' + JSON.stringify(event.format?.Ok));
+				// log.debug('event.format.Err ' + JSON.stringify(event.format?.Err));
 			})
 			.on('progress', (event: Progress.ITicks) => {
 				onProgress(event);
@@ -531,20 +529,20 @@ export function testIndexingPcap(fileToIndex: string, outPath: string) {
 }
 export function testIndexingAsync(inFile: string, outPath: string, chunkSize: number) {
 	log.setDefaultLevel(log.levels.DEBUG);
-	log.debug(`testIndexingAsync for ${inFile} (chunkSize: ${chunkSize}, type: ${typeof(chunkSize)})`);
+	log.debug(`testIndexingAsync for ${inFile} (chunkSize: ${chunkSize}, type: ${typeof chunkSize})`);
 	const hrstart = process.hrtime();
 	const bar = stdout.createProgressBar({ caption: 'index file', width: 60 });
 	try {
 		let chunks: number = 0;
 		let onProgress = (ticks: ITicks) => {
-			log.debug('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total) + '%');
+			log.trace('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total) + '%');
 			bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
 		};
 		let onChunk = (chunk: IChunk) => {
-			log.debug(`onChunk: ${JSON.stringify(chunk)}`)
+			// log.debug(`onChunk: ${JSON.stringify(chunk)}`)
 			chunks += 1;
 			if (chunks % 100 === 0) {
-				process.stdout.write('.');
+				// process.stdout.write('.');
 			}
 		};
 		let onNotification = (notification: INeonNotification) => {
@@ -557,6 +555,28 @@ export function testIndexingAsync(inFile: string, outPath: string, chunkSize: nu
 				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
 				log.debug('COMPLETELY DONE');
 				log.info('Execution time for indexing : %dms', ms);
+				const hrstart2 = process.hrtime();
+				// 2nd time
+				indexAsync(inFile, outPath, 'TAG', { chunkSize })
+					.then(() => {
+						bar.update(100);
+						const hrend2 = process.hrtime(hrstart2);
+						const ms = Math.round(hrend2[0] * 1000 + hrend2[1] / 1000000);
+						log.debug('COMPLETELY DONE 2nd time');
+						log.info('Execution time for indexing : %dms', ms);
+					})
+					.catch((error: Error) => {
+						log.debug(`Failed with error: ${error.message}`);
+					})
+					.on('chunk', (event: Progress.IChunk) => {
+						onChunk(event);
+					})
+					.on('progress', (event: Progress.ITicks) => {
+						onProgress(event);
+					})
+					.on('notification', (notification: Progress.INeonNotification) => {
+						onNotification(notification);
+					});
 			})
 			.catch((error: Error) => {
 				log.debug(`Failed with error: ${error.message}`);
@@ -687,39 +707,59 @@ export function testCancelledAsyncIndexing(fileToIndex: string, outPath: string)
 	}, 500);
 }
 
-function testVeryShortIndexing() {
-	const outPath = examplePath + '/indexing/test.out';
-	const hrstart = process.hrtime();
-	let chunks: number = 0;
-	let onProgress = (ticks: ITicks) => {
-		log.debug('progress: ' + ticks);
-	};
-	let onNotification = (notification: INeonNotification) => {
-		log.debug('testVeryShortIndexing: received notification:' + JSON.stringify(notification));
-	};
-	let onChunk = (chunk: IChunk) => {
-		chunks += 1;
-		if (chunks % 100 === 0) {
-			process.stdout.write('.');
-		}
-	};
-	indexAsync(examplePath + '/indexing/access_tiny.log', outPath, 'TAG', { chunkSize: 500 })
-		.then(() => {
-			const hrend = process.hrtime(hrstart);
-			const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-			log.debug('first event emitter task finished');
-			log.info('Execution time for indexing : %dms', ms);
-		})
-		.catch((error: Error) => {
-			log.debug(`Failed with error: ${error.message}`);
-		})
-		.on('chunk', (event: Progress.IChunk) => {
-			onChunk(event);
-		})
-		.on('progress', (event: Progress.ITicks) => {
-			onProgress(event);
-		})
-		.on('notification', (notification: Progress.INeonNotification) => {
-			onNotification(notification);
+export function testGrabLinesInFile(path: string) {
+	log.setDefaultLevel(log.levels.DEBUG);
+
+	// if (process.env.NODE_ENV !== 'test') {
+	// 	addon.fibonacci(500000, (err: any, result: any) => {
+	// 		console.log('async result:');
+	// 		console.log(result);
+	// 	});
+
+	// 	console.log('computing fibonacci(500000) in background thread...');
+	// 	console.log('main thread is still responsive!');
+	// }
+	// return;
+
+	try {
+		const hrstart_create = process.hrtime();
+
+		createGrabberAsync(path).then((grabber) => {
+			const hrend_create = process.hrtime(hrstart_create);
+			const ms = Math.round(hrend_create[0] * 1000 + hrend_create[1] / 1000000);
+			log.info('time to create grabber: %dms', ms);
+			log.info('total lines in file: %d', grabber.total_entries());
+
+			const hrstart_index = process.hrtime();
+			grabber.create_metadata();
+			const hrend_index = process.hrtime(hrstart_index);
+			const ms_index = Math.round(hrend_index[0] * 1000 + hrend_index[1] / 1000000);
+			log.info('time to create metadata: %dms', ms_index);
+			log.info('total lines in file: %d', grabber.total_entries());
+
+			let entry_cnt = grabber.total_entries();
+			if (entry_cnt !== undefined) {
+				const hrstart = process.hrtime();
+				const start_line = entry_cnt - 1000;
+				const lines_to_grab = 200;
+				const lines = grabber.grab(start_line, lines_to_grab);
+				const hrend = process.hrtime(hrstart);
+				const us = Math.round(hrend[0] * 1000 + hrend[1] / 1000);
+				log.info('Execution time for grabbing %d lines from index %d: %dus', lines_to_grab, start_line, us);
+				let i = 0;
+				for (const line of lines) {
+					log.debug('line %d =-----> %s', start_line + i, line);
+					i += 1;
+					if (i > 5) {
+						break;
+					}
+				}
+			}
+		}).catch((e) => {
+			log.warn(`Error during grabbing: ${e}`);
 		});
+		log.info("waiting for grabber...");
+	} catch (error) {
+		log.warn('Error from RustGrabber: %s', error.message);
+	}
 }

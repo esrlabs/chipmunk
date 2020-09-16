@@ -7,6 +7,8 @@ LOCAL_EXAMPLE_DIR = "#{Dir.home}/tmp/logviewer_usecases"
 TEST_DIR = './tests'
 OUT_DIR = './out'
 TESTS_JS_REQUIRE = 'require("./dist/apps/indexer-neon/src/tests.js")'
+HUGE_LOGFILE = "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log"
+MONSTER_LOGFILE = "#{LOCAL_EXAMPLE_DIR}/indexing/test_huge.log"
 
 directory OUT_DIR
 CLEAN.include(["#{OUT_DIR}/*.*",
@@ -23,6 +25,12 @@ namespace :neon do
 
   desc 'test all but super huge'
   task :all
+
+  desc 'test neon integration: grab lines'
+  task grabber: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testGrabLinesInFile',  HUGE_LOGFILE)
+  end
+  task all: 'neon:grabber'
 
   desc 'test neon integration: dlt non-verbose indexing'
   task dlt_nonverbose: [:clean, OUT_DIR, 'neon:rebuild'] do
@@ -80,7 +88,7 @@ namespace :neon do
     call_test_function_with_array(
       'testDiscoverTimestampAsync',
       ['./tests/mini_with_invalids.log',
-       "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
+       HUGE_LOGFILE,
        "#{LOCAL_EXAMPLE_DIR}/concat/2019-07-15_06.26.01.log"]
     )
   end
@@ -130,17 +138,17 @@ namespace :neon do
   end
   task all: 'neon:merge'
 
+  desc 'test neon integration: regular indexing'
   task index: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function(
       'testIndexingAsync',
-      "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
+      HUGE_LOGFILE,
       "#{LOCAL_EXAMPLE_DIR}/indexing/test.out",
       500
     )
   end
   task all: 'neon:index'
 
-  desc 'test neon integration: regular indexing'
   desc 'test neon integration: short indexing'
   task index_short: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function(
@@ -180,15 +188,7 @@ namespace :neon do
   desc 'test neon cancel task'
   task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function('testCancelledAsyncIndexing',
-                       "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
-                       "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
-  end
-  task all: 'neon:cancelled'
-
-  desc 'test neon cancel dlt stats'
-  task cancelled: [:clean, OUT_DIR, 'neon:rebuild'] do
-    call_test_function('testCancelledAsyncIndexing',
-                       "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log",
+                       HUGE_LOGFILE,
                        "#{LOCAL_EXAMPLE_DIR}/indexing/test.out")
   end
   task all: 'neon:cancelled'

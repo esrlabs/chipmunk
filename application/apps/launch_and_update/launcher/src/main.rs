@@ -16,8 +16,7 @@ use base::{
 };
 use crossbeam_channel::{bounded, select, tick, Receiver};
 use std::{
-    env,
-    fs,
+    env, fs,
     io::prelude::*,
     path::{Path, PathBuf},
     process::{Child, Command},
@@ -168,7 +167,6 @@ fn update_package_path() -> Result<Option<PathBuf>> {
 }
 
 fn update() -> Result<bool> {
-    
     let updater_path = get_updater_path()?;
 
     if !updater_path.exists() {
@@ -189,9 +187,15 @@ fn update() -> Result<bool> {
                 app,
                 update_package
             );
-            let child = spawn(&updater_path, &[
-                &app.to_str().expect("Expecting app has to be valid path"),
-                &update_package.to_str().expect("Expected update_package has to be valid path")]);
+            let child = spawn(
+                &updater_path,
+                &[
+                    &app.to_str().expect("Expecting app has to be valid path"),
+                    &update_package
+                        .to_str()
+                        .expect("Expected update_package has to be valid path"),
+                ],
+            );
             match child {
                 Ok(_child) => {
                     debug!("Updater is started ({:?})", updater_path);

@@ -1,5 +1,5 @@
 // tslint:disable:max-classes-per-file
-import { CancelablePromise, Processor, Progress } from "indexer-neon";
+import { CancelablePromise, Timestamps, Progress } from "indexer-neon";
 import { IPCMessages } from '../../../services/service.electron';
 
 import Logger from "../../../tools/env.logger";
@@ -10,7 +10,7 @@ export default class TimestampExtract {
     private _closed: boolean = false;
     private _input: string;
     private _format: string;
-    private _task: CancelablePromise<void, void, Processor.TTimestampExtractAsyncEvents, Processor.TTimestampExtractAsyncEventObject> | undefined;
+    private _task: CancelablePromise<void, void, Timestamps.TTimestampExtractAsyncEvents, Timestamps.TTimestampExtractAsyncEventObject> | undefined;
 
     constructor(input: string, format: string) {
         this._input = input;

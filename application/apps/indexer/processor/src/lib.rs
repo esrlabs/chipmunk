@@ -18,6 +18,7 @@ extern crate log;
 
 extern crate crossbeam_channel as cc;
 
+pub mod grabber;
 pub mod parse;
 pub mod processor;
 
