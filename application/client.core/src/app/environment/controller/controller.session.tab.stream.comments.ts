@@ -69,74 +69,118 @@ export class ControllerSessionTabStreamComments {
             winSel.addRange(range);
         }
         const guid: string = Toolkit.guid();
-        let comment;
-        if (selection.anchor === selection.focus) {
-            const sel: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, selection.selection, false);
-            if (sel instanceof Error) {
-                return sel;
-            }
-            comment = {
-                guid: guid,
-                state: ECommentState.pending,
-                comment: '',
-                selection: {
-                    start: {
-                        position: selection.anchor,
-                        offset: sel.start,
-                        text: sel.selection,
+        const comment: IComment | Error = (() => {
+            if (selection.anchor === selection.focus) {
+                const sel: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, selection.selection, false);
+                if (sel instanceof Error) {
+                    return sel;
+                }
+                return {
+                    guid: guid,
+                    state: ECommentState.pending,
+                    comment: '',
+                    selection: {
+                        start: {
+                            position: selection.anchor,
+                            offset: sel.start,
+                            text: sel.selection,
+                        },
+                        end: {
+                            position: selection.anchor,
+                            offset: sel.end,
+                            text: sel.selection,
+                        },
+                        text: selection.selection,
                     },
-                    end: {
-                        position: selection.anchor,
-                        offset: sel.end,
-                        text: sel.selection,
+                };
+            } else {
+                const rows = selection.selection.split(/[\n\r]/gi);
+                const stored = remember();
+                if (stored === undefined) {
+                    return new Error(`Fail save selection`);
+                }
+                if (rows.length < 2) {
+                    return new Error(`Fail split rows correctly`);
+                }
+                const selStart: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, rows[0], false);
+                restore(stored);
+                const selEnd: IActualSelectionData | Error = this._getActualSelectionData(endRowStr, rows[rows.length - 1], true);
+                if (selStart instanceof Error) {
+                    return selStart;
+                }
+                if (selEnd instanceof Error) {
+                    return selEnd;
+                }
+                return {
+                    guid: guid,
+                    state: ECommentState.pending,
+                    comment: '',
+                    selection: {
+                        start: {
+                            position: selection.anchor,
+                            offset: selStart.start,
+                            text: selStart.selection,
+                        },
+                        end: {
+                            position: selection.focus,
+                            offset: selEnd.end,
+                            text: selEnd.selection,
+                        },
+                        text: selection.selection,
                     },
-                    text: selection.selection,
-                },
-            };
-        } else {
-            const rows = selection.selection.split(/[\n\r]/gi);
-            const stored = remember();
-            if (stored === undefined) {
-                return new Error(`Fail save selection`);
+                };
             }
-            if (rows.length < 2) {
-                return new Error(`Fail split rows correctly`);
-            }
-            const selStart: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, rows[0], false);
-            restore(stored);
-            const selEnd: IActualSelectionData | Error = this._getActualSelectionData(endRowStr, rows[rows.length - 1], true);
-            if (selStart instanceof Error) {
-                return selStart;
-            }
-            if (selEnd instanceof Error) {
-                return selEnd;
-            }
-            comment = {
-                guid: guid,
-                state: ECommentState.pending,
-                comment: '',
-                selection: {
-                    start: {
-                        position: selection.anchor,
-                        offset: selStart.start,
-                        text: selStart.selection,
-                    },
-                    end: {
-                        position: selection.focus,
-                        offset: selEnd.end,
-                        text: selEnd.selection,
-                    },
-                    text: selection.selection,
-                },
-            };
+        })();
+        if (comment instanceof Error) {
+            return comment;
         }
-        this._comments.set(guid, comment);
+        const crossing: IComment[] = [];
+        this._comments.forEach((com: IComment) => {
+            if (com.selection.start.position === com.selection.end.position &&
+                com.selection.start.position === comment.selection.start.position &&
+                com.selection.end.position === comment.selection.end.position) {
+                if (comment.selection.start.offset >= com.selection.start.offset && comment.selection.start.offset <= com.selection.end.offset) {
+                    crossing.push(com);
+                } else if (comment.selection.end.offset >= com.selection.start.offset && comment.selection.end.offset <= com.selection.end.offset) {
+                    crossing.push(com);
+                } else if (comment.selection.start.offset <= com.selection.start.offset && comment.selection.end.offset >= com.selection.end.offset) {
+                    crossing.push(com);
+                }
+            } else if (comment.selection.start.position >= com.selection.start.position && comment.selection.start.position <= com.selection.end.position) {
+                crossing.push(com);
+            } else if (comment.selection.end.position >= com.selection.start.position && comment.selection.end.position <= com.selection.end.position) {
+                crossing.push(com);
+            } else if (comment.selection.start.position <= com.selection.start.position && comment.selection.end.position >= com.selection.end.position) {
+                crossing.push(com);
+            }
+        });
+        const toBeStored: { comment: IComment, recover?: IComment } | undefined = (() => {
+            if (crossing.length > 1) {
+                // Here should be notification
+                return;
+            } else if (crossing.length === 1) {
+                const recover = Toolkit.copy(crossing[0]);
+                crossing[0].selection.start.position = Math.min(crossing[0].selection.start.position, comment.selection.start.position);
+                crossing[0].selection.end.position = Math.max(crossing[0].selection.end.position, comment.selection.end.position);
+                crossing[0].selection.start.offset = Math.min(crossing[0].selection.start.offset, comment.selection.start.offset);
+                crossing[0].selection.end.offset = Math.max(crossing[0].selection.end.offset, comment.selection.end.offset);
+                crossing[0].state = ECommentState.pending;
+                return { comment: crossing[0], recover: recover };
+            } else {
+                return { comment: comment };
+            }
+        })();
+        if (toBeStored === undefined) {
+            return;
+        }
+        this._comments.set(toBeStored.comment.guid, toBeStored.comment);
+        this._subjects.onPending.next(toBeStored.comment);
+        this.edit(toBeStored.comment, toBeStored.recover);
         OutputParsersService.updateRowsView();
-        this._subjects.onPending.next(comment);
-        this.edit(comment, true);
     }
 
-    public edit(comment: IComment, creating: boolean = false) {
+    public edit(comment: IComment, recover?: IComment) {
+        const creating: boolean = comment.comment === '';
         comment.state = ECommentState.pending;
         const guid: string = PopupsService.add({
             id: 'commend-add-on-row-dialog',
@@ -170,6 +214,9 @@ export class ControllerSessionTabStreamComments {
                         PopupsService.remove(guid);
                         if (creating) {
                             this._comments.delete(comment.guid);
+                        }
+                        if (recover !== undefined) {
+                            this._comments.set(recover.guid, recover);
                         }
                         OutputParsersService.updateRowsView();
                     }
