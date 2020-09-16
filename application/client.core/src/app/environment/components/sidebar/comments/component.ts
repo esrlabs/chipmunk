@@ -2,11 +2,9 @@ import { Component, OnDestroy, Input,  ChangeDetectorRef, AfterContentInit, Afte
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { IServices } from '../../../services/shared.services.sidebar';
-import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { IComment } from '../../../controller/controller.session.tab.stream.comments.types';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
-import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -24,12 +22,12 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     @Input() public close: () => void;
 
     public _ng_comments: IComment[] = [];
+    public _ng_controller: ControllerSessionTab | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubs: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppMergeFilesComponent');
     private _destroyed: boolean = false;
-    private _controller: ControllerSessionTab | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -54,23 +52,25 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     }
 
     private _onSessionChange(controller: ControllerSessionTab | undefined) {
-        this._controller = controller;
+        this._ng_controller = controller;
         Object.keys(this._sessionSubs).forEach((key: string) => {
             this._sessionSubs[key].unsubscribe();
         });
-        if (this._controller !== undefined) {
-            this._sessionSubs.onAdded = this._controller.getSessionComments().getObservable().onAdded.subscribe(this._onCommentAdded.bind(this));
+        if (this._ng_controller !== undefined) {
+            this._sessionSubs.onAdded = this._ng_controller.getSessionComments().getObservable().onAdded.subscribe(this._onCommentAdded.bind(this));
         }
         this._load();
         this._forceUpdate();
     }
 
     private _load() {
-
-        if (this._controller === undefined) {
+        if (this._ng_controller === undefined) {
             this._ng_comments = [];
         } else {
-            this._ng_comments = Array.from(this._controller.getSessionComments().get().values());
+            this._ng_comments = Array.from(this._ng_controller.getSessionComments().get().values());
+            this._ng_comments.sort((a: IComment, b: IComment) => {
+                return a.selection.start.position < b.selection.start.position ? 1 : -1;
+            });
         }
         this._forceUpdate();
     }

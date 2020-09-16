@@ -8,16 +8,16 @@
     </mat-card-actions>
 </mat-card>
 <mat-menu #commentActionsMenu="matMenu" xPosition="before">
-    <button mat-menu-item>
+    <button mat-menu-item (click)="ngOnEdit()">
         <mat-icon>edit</mat-icon>
         <span>Edit</span>
     </button>
-    <button mat-menu-item>
+    <button mat-menu-item (click)="ngOnShow()">
         <mat-icon>search</mat-icon>
         <span>Show</span>
     </button>
     <mat-divider></mat-divider>
-    <button mat-menu-item>
+    <button mat-menu-item (click)="ngOnRemove()">
         <mat-icon>delete</mat-icon>
         <span>Remove</span>
     </button>
