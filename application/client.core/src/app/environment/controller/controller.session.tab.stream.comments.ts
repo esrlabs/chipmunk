@@ -131,13 +131,46 @@ export class ControllerSessionTabStreamComments {
         this._comments.set(guid, comment);
         OutputParsersService.updateRowsView();
         this._subjects.onPending.next(comment);
-        this._create(guid);
+        this.edit(comment, true);
     }
 
-    public add(comment: IComment) {
+    public edit(comment: IComment, creating: boolean = false) {
+        comment.state = ECommentState.pending;
+        const guid: string = PopupsService.add({
+            id: 'commend-add-on-row-dialog',
+            options: {
+                closable: false,
+                width: 40,
+            },
+            caption: `Add new comment`,
+            component: {
+                factory: DialogsAddCommentOnRowComponent,
+                inputs: {
+                    comment: comment,
+                    add: (text: string) => {
+                        PopupsService.remove(guid);
+                        comment.comment = text;
+                        comment.state = ECommentState.done;
+                        this._comments.set(comment.guid, comment);
+                        this._subjects.onAdded.next(comment);
+                        this._api.openSidebarApp('comments', false);
+                        LayoutStateService.sidebarMax();
+                    },
+                    cancel: () => {
+                        PopupsService.remove(guid);
+                        if (creating) {
+                            this._comments.delete(comment.guid);
+                        }
+                        OutputParsersService.updateRowsView();
+                    }
+                }
+            }
+        });
     }
 
     public remove(guid: string) {
+        this._comments.delete(guid);
+        OutputParsersService.updateRowsView();
     }
 
     public getObservable(): {
@@ -178,40 +211,6 @@ export class ControllerSessionTabStreamComments {
     public getModifier(position: number, str: string): Modifier {
         const comment: IComment | undefined = this._getRelevantComment(position);
         return new CommentSelectionModifier(comment, position, str);
-    }
-
-    private _create(commendId: string) {
-        const guid: string = PopupsService.add({
-            id: 'commend-add-on-row-dialog',
-            options: {
-                closable: false,
-                width: 40,
-            },
-            caption: `Add new comment`,
-            component: {
-                factory: DialogsAddCommentOnRowComponent,
-                inputs: {
-                    add: (text: string) => {
-                        PopupsService.remove(guid);
-                        const comment: IComment | undefined = this._comments.get(commendId);
-                        if (comment === undefined) {
-                            return;
-                        }
-                        comment.comment = text;
-                        comment.state = ECommentState.done;
-                        this._comments.set(commendId, comment);
-                        this._subjects.onAdded.next(comment);
-                        this._api.openSidebarApp('comments', false);
-                        LayoutStateService.sidebarMax();
-                    },
-                    cancel: () => {
-                        PopupsService.remove(guid);
-                        this._comments.delete(commendId);
-                        OutputParsersService.updateRowsView();
-                    }
-                }
-            }
-        });
     }
 
     private _getRelevantComment(position: number): IComment | undefined {

@@ -1,12 +1,11 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, HostBinding, HostListener, AfterContentInit, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import { ControllerFileMergeSession, IMergeFile, ITimeScale, EViewMode } from '../../../../controller/controller.file.merge.session';
+import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { IComment } from '../../../../controller/controller.session.tab.stream.comments.types';
 
-import ContextMenuService from '../../../../services/standalone/service.contextmenu';
+import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
 const CPadding = 12;
 
@@ -16,17 +15,15 @@ const CPadding = 12;
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentInit, AfterViewInit, OnChanges {
+export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     @Input() comment: IComment;
+    @Input() controller: ControllerSessionTab;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
-    }
-
-    public ngAfterContentInit() {
     }
 
     public ngAfterViewInit() {
@@ -39,7 +36,20 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
         });
     }
 
+    public ngOnEdit() {
+        this.controller.getSessionComments().edit(this.comment);
+    }
+
+    public ngOnShow() {
+        OutputRedirectionsService.select('comments_redirection', this.controller.getGuid(), this.comment.selection.start.position);
+    }
+
+    public ngOnRemove() {
+        this.controller.getSessionComments().remove(this.comment.guid);
+    }
+
     public ngOnChanges(changes: SimpleChanges) {
+        this._forceUpdate();
     }
 
     private _forceUpdate() {

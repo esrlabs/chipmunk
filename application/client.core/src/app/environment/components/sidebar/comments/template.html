@@ -1,1 +1,7 @@
-<app-sidebar-app-comments-item [comment]="comment" *ngFor="let comment of _ng_comments"></app-sidebar-app-comments-item>
+<div class="comments" *ngIf="_ng_controller !== undefined">
+    <app-sidebar-app-comments-item
+        [comment]="comment"
+        [controller]="_ng_controller"
+        *ngFor="let comment of _ng_comments">
+    </app-sidebar-app-comments-item>
+</div>
