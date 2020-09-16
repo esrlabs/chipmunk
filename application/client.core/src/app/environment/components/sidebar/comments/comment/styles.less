@@ -2,10 +2,20 @@
 
 
 :host {
-    & mat-card {
-        margin-top: 8px;
-        & mat-card-actions {
-            text-align: right;
+    & div.wrapper {
+        & mat-card {
+            margin-top: 8px;
+            & mat-card-actions {
+                text-align: right;
+                opacity: 0.001;
+            }
         }
-    } 
+        &:hover {
+            & mat-card {
+                & mat-card-actions {
+                    opacity: 1;
+                }
+            }
+        }
+    }
 }
