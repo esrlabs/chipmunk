@@ -1,5 +1,5 @@
 // tslint:disable:max-classes-per-file
-import { CancelablePromise, Processor, Progress } from "indexer-neon";
+import { CancelablePromise, Timestamps, Progress, Exporter } from "indexer-neon";
 import { PCREToECMARegExp, isRegStrValid } from '../../../tools/tools.regexp';
 
 import Logger from "../../../tools/env.logger";
@@ -9,13 +9,13 @@ export default class MergeFormat {
     private _logger: Logger = new Logger("MergeFormat");
     private _closed: boolean = false;
     private _format: string;
-    private _task: CancelablePromise<void, void, Processor.TFormatVerificationAsyncEvents, Processor.TFormatVerificationAsyncEventObject> | undefined;
+    private _task: CancelablePromise<void, void, Timestamps.TFormatVerificationAsyncEvents, Timestamps.TFormatVerificationAsyncEventObject> | undefined;
 
     constructor(format: string) {
         this._format = format;
     }
 
-    public validate(flags: Processor.ICheckFormatFlags = { miss_year: false, miss_month: false, miss_day: false}): Promise<string> {
+    public validate(flags: Exporter.ICheckFormatFlags = { miss_year: false, miss_month: false, miss_day: false}): Promise<string> {
         return new Promise((resolve, reject) => {
             const measure = this._logger.measure('Validate format');
             let error: string | undefined;

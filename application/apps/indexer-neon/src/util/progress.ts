@@ -1,4 +1,4 @@
-import { ITimestampFormat } from '../../../common/interfaces/interface.detect'
+import { ITimestampFormat } from '../../../../common/interfaces/interface.detect'
 export enum AsyncResult {
     Completed,
     Interrupted,

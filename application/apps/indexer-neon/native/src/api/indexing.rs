@@ -1,4 +1,4 @@
-use crate::channels::{EventEmitterTask, IndexingThreadConfig};
+use crate::{channels::EventEmitterTask, config::IndexingThreadConfig};
 use crossbeam_channel as cc;
 use indexer_base::{
     chunks::ChunkResults,
@@ -6,14 +6,10 @@ use indexer_base::{
     progress::{Notification, Severity},
 };
 use neon::prelude::*;
-use std::{
-    path,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{path, thread};
 
 pub struct IndexingEventEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub event_receiver: cc::Receiver<ChunkResults>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -107,7 +103,7 @@ declare_types! {
             let file_path = path::PathBuf::from(file);
             let (chunk_result_sender, chunk_result_receiver): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = IndexingEventEmitter {
-                event_receiver: Arc::new(Mutex::new(chunk_result_receiver)),
+                event_receiver: chunk_result_receiver,
                 shutdown_sender,
                 task_thread: None,
             };
@@ -133,7 +129,7 @@ declare_types! {
             let this = cx.this();
 
             // Create an asynchronously `EventEmitterTask` to receive data
-            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+            let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
             let emitter = EventEmitterTask::new(events);
 
             // Schedule the task on the `libuv` thread pool

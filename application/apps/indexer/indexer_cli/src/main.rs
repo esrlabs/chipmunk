@@ -50,10 +50,13 @@ extern crate clap;
 extern crate log;
 use clap::{App, Arg, SubCommand};
 use indexer_base::progress::{IndexingProgress, Notification, Severity};
-use processor::parse::{
-    detect_timestamp_in_string, line_matching_format_expression, match_format_string_in_file,
-    posix_timestamp_as_string, read_format_string_options, timespan_in_files, DiscoverItem,
-    FormatTestOptions, TimestampFormatResult,
+use processor::{
+    grabber::LineRange,
+    parse::{
+        detect_timestamp_in_string, line_matching_format_expression, match_format_string_in_file,
+        posix_timestamp_as_string, read_format_string_options, timespan_in_files, DiscoverItem,
+        FormatTestOptions, TimestampFormatResult,
+    },
 };
 use std::{fs, io::Read, path, time::Instant};
 
@@ -85,6 +88,47 @@ fn main() {
                 .short("v")
                 .multiple(true)
                 .help("Sets the level of verbosity"),
+        )
+        .subcommand(
+            SubCommand::with_name("grab")
+                .about("command for grabbing part of a file")
+                .arg(
+                    Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .help("Sets the input file path")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("export")
+                        .short("e")
+                        .long("export")
+                        .help("export metadata to file"),
+                )
+                .arg(
+                    Arg::with_name("metadata")
+                        .short("m")
+                        .long("meta")
+                        .value_name("META")
+                        .help("slot metadata"),
+                )
+                .arg(
+                    Arg::with_name("start")
+                        .short("s")
+                        .long("start")
+                        .value_name("START")
+                        .help("start index")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("length")
+                        .short("x")
+                        .long("length")
+                        .value_name("END")
+                        .help("end index")
+                        .required(true),
+                ),
         )
         .subcommand(
             SubCommand::with_name("index")
@@ -460,6 +504,10 @@ fn main() {
     task::block_on(async {
         if let Some(matches) = matches.subcommand_matches("merge") {
             handle_merge_subcommand(matches, start).await
+        } else if let Some(matches) = matches.subcommand_matches("grab") {
+            handle_grab_subcommand(matches, start, use_stderr_for_status_updates)
+                .await
+                .expect("could not handle grab command")
         } else if let Some(matches) = matches.subcommand_matches("index") {
             handle_index_subcommand(matches, start, use_stderr_for_status_updates).await
         } else if let Some(matches) = matches.subcommand_matches("format") {
@@ -478,6 +526,89 @@ fn main() {
             handle_discover_subcommand(matches).await
         }
     });
+
+    async fn handle_grab_subcommand(
+        matches: &clap::ArgMatches<'_>,
+        _start_time: std::time::Instant,
+        _status_updates: bool,
+    ) -> Result<()> {
+        let input_path_string_res = value_t!(matches.value_of("input"), String);
+        let start_res = value_t!(matches.value_of("start"), u64);
+        let length_res = value_t!(matches.value_of("length"), u64);
+        match (input_path_string_res, start_res, length_res) {
+            (Ok(input_path), Ok(start), Ok(length)) => {
+                println!(
+                    "read file: {} from {} -> {}",
+                    input_path,
+                    start,
+                    start + length
+                );
+
+                let start_op = Instant::now();
+
+                let input_p = path::PathBuf::from(input_path);
+                let grabber = if matches.is_present("metadata") {
+                    let metadata_path =
+                        matches.value_of("metadata").expect("input must be present");
+                    println!("grabber with metadata");
+                    processor::grabber::Grabber::lazy(&input_p)?
+                        .load_metadata(path::PathBuf::from(metadata_path))?
+                } else {
+                    processor::grabber::Grabber::new(&input_p)?
+                };
+
+                duration_report(start_op, "initializing Grabber".to_string());
+
+                let export: bool = matches.is_present("export");
+                if export {
+                    let start_op = Instant::now();
+                    if let Some(export_folder_path) = input_p.parent() {
+                        let mut export_path = std::path::PathBuf::from(export_folder_path);
+                        export_path.push(format!(
+                            "{}.metadata",
+                            input_p
+                                .file_name()
+                                .unwrap_or_else(|| std::ffi::OsStr::new("export"))
+                                .to_string_lossy()
+                        ));
+                        grabber
+                            .export_slots(&export_path)
+                            .expect("could not export metadata");
+                    }
+                    duration_report(start_op, "exporting metadata".to_string());
+                }
+
+                let start_op = Instant::now();
+                let r = LineRange::new(start, start + length);
+                let res = grabber.get_entries(&r);
+
+                match res {
+                    Ok(v) => {
+                        duration_report(start_op, format!("grabbing {} lines", length));
+                        let mut i = start;
+                        for (cnt, s) in v.iter().enumerate() {
+                            if s.len() > 50 {
+                                println!("[{}]--> {}", i, &s[..50]);
+                            } else {
+                                println!("[{}]--> {}", i, &s);
+                            }
+                            i += 1;
+                            if cnt > 15 {
+                                println!("...{} more lines", v.len() - 15);
+                                break;
+                            }
+                        }
+                        Ok(())
+                    }
+                    Err(e) => println!("error: {}", e),
+                }
+            }
+            _ => {
+                report_error("could not find out size of source file");
+                std::process::exit(2);
+            }
+        }
+    }
 
     async fn handle_index_subcommand(
         matches: &clap::ArgMatches<'_>,
@@ -1362,10 +1493,20 @@ fn main() {
 
 fn duration_report(start: std::time::Instant, report: String) {
     let elapsed = start.elapsed();
-    let ms = elapsed.as_millis();
-    let duration_in_s = ms as f64 / 1000.0;
-    eprintln!("{} took {:.3}s!", report, duration_in_s);
+    let us = elapsed.as_micros();
+    if us > 1000 {
+        let ms = elapsed.as_millis();
+        if ms > 1000 {
+            let duration_in_s = ms as f64 / 1000.0;
+            eprintln!("{} took {:.3}s!", report, duration_in_s);
+        } else {
+            eprintln!("{} took {:.3}ms!", report, ms);
+        }
+    } else {
+        eprintln!("{} took {:.3}us!", report, us);
+    }
 }
+
 fn duration_report_throughput(
     start: std::time::Instant,
     report: String,

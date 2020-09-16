@@ -1,6 +1,5 @@
 use crate::{
-    channels::{EventEmitterTask, IndexingThreadConfig},
-    fibex_utils::gather_fibex_data,
+    channels::EventEmitterTask, config::IndexingThreadConfig, fibex_utils::gather_fibex_data,
 };
 use crossbeam_channel as cc;
 use dlt::{fibex::FibexMetadata, filtering};
@@ -9,14 +8,10 @@ use indexer_base::{
     config::{FibexConfig, IndexingConfig},
 };
 use neon::prelude::*;
-use std::{
-    path,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{path, thread};
 
 pub struct PcapDltEventEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<ChunkResults>>>,
+    pub event_receiver: cc::Receiver<ChunkResults>,
     pub shutdown_sender: async_std::sync::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -77,7 +72,7 @@ declare_types! {
             let shutdown_channel = async_std::sync::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = PcapDltEventEmitter {
-                event_receiver: Arc::new(Mutex::new(rx)),
+                event_receiver: rx,
                 shutdown_sender: shutdown_channel.0,
                 task_thread: None,
             };
@@ -107,7 +102,7 @@ declare_types! {
             let this = cx.this();
 
             // Create an asynchronously `EventEmitterTask` to receive data
-            let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+            let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
             let emitter = EventEmitterTask::new(events);
 
             // Schedule the task on the `libuv` thread pool

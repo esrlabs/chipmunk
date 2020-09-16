@@ -1,14 +1,16 @@
-import { log } from './logging';
-import { ITicks, INeonTransferChunk, INeonNotification, IChunk } from './progress';
+import { log } from '../util/logging';
+import { ITicks, INeonTransferChunk, INeonNotification, IChunk } from '../util/progress';
 import {
-	NativeEventEmitter,
 	RustDltIndexerChannel,
 	RustDltStatsChannel,
 	RustExportFileChannel,
 	RustDltSocketChannel,
 	RustDltPcapChannel
-} from './emitter';
-import { CancelablePromise } from './promise';
+} from '../native';
+import {
+	NativeComputationManager,
+} from '../native_computation_manager';
+import { CancelablePromise } from '../util/promise';
 import {
 	IDLTFilters,
 	IDLTOptions,
@@ -18,8 +20,8 @@ import {
 	LevelDistribution,
 	StatisticInfo,
 	IFibexConfig
-} from '../../../common/interfaces/interface.dlt';
-import { IFileSaveParams } from '../../../common/interfaces';
+} from '../../../../common/interfaces/interface.dlt';
+import { IFileSaveParams } from '../../../../common/interfaces';
 
 export {
 	IDLTFilters,
@@ -86,29 +88,24 @@ export function dltStatsAsync(
 				emitter.requestShutdown();
 			});
 			const channel = new RustDltStatsChannel(dltFile);
-			const emitter = new NativeEventEmitter(channel);
+			const emitter = new NativeComputationManager<StatisticInfo>(channel);
 			let total: number = 1;
-			emitter.on(NativeEventEmitter.EVENTS.GotItem, (chunk: StatisticInfo) => {
+			emitter.onItem((chunk: StatisticInfo) => {
 				self.emit('config', chunk);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+			emitter.onProgress((ticks: ITicks) => {
 				total = ticks.total;
 				self.emit('progress', ticks);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
-				emitter.shutdownAcknowledged(() => {
-					cancel();
-				});
+			emitter.onStopped(() => {
+				cancel();
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+			emitter.onNotification((notification: INeonNotification) => {
 				log('dltStats: we got a notification: ' + JSON.stringify(notification));
 				self.emit('notification', notification);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
-				emitter.shutdownAcknowledged(() => {
-					self.emit('progress', { ellapsed: total, total });
-					resolve();
-				});
+			emitter.onFinished(() => {
+				resolve();
 			});
 		} catch (err) {
 			if (!(err instanceof Error)) {
@@ -151,30 +148,22 @@ export function exportDltFile(
 			// Create channel
 			const channel = new RustExportFileChannel(source, sourceType, targetFile, params, false);
 			// Create emitter
-			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
+			const emitter: NativeComputationManager<ITicks> = new NativeComputationManager(channel);
 			let chunks: number = 0;
 			// Add listenters
-			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+			emitter.onItem((ticks: ITicks) => {
 				self.emit('progress', ticks);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+			emitter.onStopped(() => {
 				log(`we got a stopped event while saving dlt file (${sourceType}) with source ${source}`);
-				emitter.shutdownAcknowledged(() => {
-					log('export dlt: shutdown completed after we got stopped');
-					// Operation is canceled.
-					cancel();
-				});
+				cancel();
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+			emitter.onNotification((notification: INeonNotification) => {
 				self.emit('notification', notification);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+			emitter.onFinished(() => {
 				log('we got a finished event after ' + chunks + ' chunks');
-				emitter.shutdownAcknowledged(() => {
-					log('export dlt: shutdown completed after finish event');
-					// Operation is done.
-					resolve();
-				});
+				resolve();
 			});
 			// Handle finale of promise
 			self.finally(() => {
@@ -234,10 +223,10 @@ export function indexDltAsync(
 				params.fibex
 			);
 			// Create emitter
-			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
+			const emitter: NativeComputationManager<INeonTransferChunk> = new NativeComputationManager(channel);
 			let chunks: number = 0;
 			// Add listenters
-			emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+			emitter.onItem((c: INeonTransferChunk) => {
 				self.emit('chunk', {
 					bytesStart: c.b[0],
 					bytesEnd: c.b[1],
@@ -246,27 +235,19 @@ export function indexDltAsync(
 				});
 				chunks += 1;
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+			emitter.onProgress((ticks: ITicks) => {
 				self.emit('progress', ticks);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+			emitter.onStopped(() => {
 				log('we got a stopped event after ' + chunks + ' chunks');
-				emitter.shutdownAcknowledged(() => {
-					log('indexDlt: shutdown completed after we got stopped');
-					// Operation is canceled.
-					cancel();
-				});
+				cancel();
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+			emitter.onNotification((notification: INeonNotification) => {
 				self.emit('notification', notification);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+			emitter.onFinished(() => {
 				log('we got a finished event after ' + chunks + ' chunks');
-				emitter.shutdownAcknowledged(() => {
-					log('indexDlt: shutdown completed after finish event');
-					// Operation is done.
-					resolve();
-				});
+				resolve();
 			});
 			// Handle finale of promise
 			self.finally(() => {
@@ -327,11 +308,11 @@ export function indexPcapDlt(
 			);
 			log('created channel');
 			// Create emitter
-			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
+			const emitter: NativeComputationManager<INeonTransferChunk> = new NativeComputationManager(channel);
 			log('created emitter');
 			let chunks: number = 0;
 			// Add listenters
-			emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+			emitter.onItem((c: INeonTransferChunk) => {
 				log('received pcap item: ' + JSON.stringify(c));
 				self.emit('chunk', {
 					bytesStart: c.b[0],
@@ -341,27 +322,19 @@ export function indexPcapDlt(
 				});
 				chunks += 1;
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+			emitter.onProgress((ticks: ITicks) => {
 				self.emit('progress', ticks);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+			emitter.onStopped(() => {
 				log('pcap: we got a stopped event after ' + chunks + ' chunks');
-				emitter.shutdownAcknowledged(() => {
-					log('pcap: shutdown completed after we got stopped');
-					// Operation is canceled.
-					cancel();
-				});
+				cancel();
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+			emitter.onNotification((notification: INeonNotification) => {
 				self.emit('notification', notification);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+			emitter.onFinished(() => {
 				log('pcap: we got a finished event after ' + chunks + ' chunks');
-				emitter.shutdownAcknowledged(() => {
-					log('pcap: shutdown completed after finish event');
-					// Operation is done.
-					resolve();
-				});
+				resolve();
 			});
 			// Handle finale of promise
 			self.finally(() => {
@@ -410,10 +383,10 @@ export function dltOverSocket(
 				params.fibex
 			);
 			// Create emitter
-			const emitter: NativeEventEmitter = new NativeEventEmitter(channel);
+			const emitter: NativeComputationManager<INeonTransferChunk> = new NativeComputationManager(channel);
 			let chunks: number = 0;
 			// Add listenters
-			emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+			emitter.onItem((c: INeonTransferChunk) => {
 				log('received over socket: ' + JSON.stringify(c));
 				if (c.b[0] === 0 && c.b[1] === 0) {
 					self.emit('connect');
@@ -427,27 +400,19 @@ export function dltOverSocket(
 					chunks += 1;
 				}
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+			emitter.onProgress((ticks: ITicks) => {
 				self.emit('progress', ticks);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+			emitter.onStopped(() => {
 				log('we got a stopped event after ' + chunks + ' chunks');
-				emitter.shutdownAcknowledged(() => {
-					log('socketDlt: shutdown completed after we got stopped');
-					// Operation is canceled.
-					cancel();
-				});
+				cancel();
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+			emitter.onNotification((notification: INeonNotification) => {
 				self.emit('notification', notification);
 			});
-			emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+			emitter.onFinished(() => {
 				log('we got a finished event after ' + chunks + ' chunks');
-				emitter.shutdownAcknowledged(() => {
-					log('socketDlt: shutdown completed after finish event');
-					// Operation is done.
-					resolve();
-				});
+				resolve();
 			});
 			// Handle finale of promise
 			self.finally(() => {

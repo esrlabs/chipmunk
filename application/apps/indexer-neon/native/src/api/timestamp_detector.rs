@@ -2,24 +2,41 @@ use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingResults, Notification, Severity};
 use neon::prelude::*;
-use processor::parse::{timespan_in_files, DiscoverItem, TimestampFormatResult};
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use processor::parse::{self, timespan_in_files, DiscoverItem, TimestampFormatResult};
+use std::thread;
+
+/// Trys to detect a valid timestamp in a string
+/// Returns the a tuple of
+/// * the timestamp as posix timestamp
+/// * if the year was missing
+///   (we assume the current year (local time) if true)
+/// * the format string that was used
+///
+/// # Arguments
+///
+/// * `input` - A string slice that should be parsed
+pub fn detect_timestamp_in_string(mut cx: FunctionContext) -> JsResult<JsNumber> {
+    let input: String = cx.argument::<JsString>(0)?.value();
+    match parse::detect_timestamp_in_string(input.as_str(), None) {
+        Ok((timestamp, _, _)) => Ok(cx.number((timestamp) as f64)),
+        Err(e) => cx.throw_type_error(format!("{}", e)),
+    }
+}
 
 pub struct TimestampDetectorEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<IndexingResults<TimestampFormatResult>>>>,
+    pub event_receiver: cc::Receiver<IndexingResults<TimestampFormatResult>>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
+    pub shutdown_rx: cc::Receiver<()>,
+    pub result_sender: cc::Sender<IndexingResults<TimestampFormatResult>>,
 }
 impl TimestampDetectorEmitter {
     pub fn start_timespan_detection_in_thread(
         self: &mut TimestampDetectorEmitter,
         items: Vec<DiscoverItem>,
-        result_sender: cc::Sender<IndexingResults<TimestampFormatResult>>,
-        shutdown_rx: cc::Receiver<()>,
     ) {
+        let shutdown_rx = self.shutdown_rx.clone();
+        let result_sender = self.result_sender.clone();
         self.task_thread = Some(thread::spawn(move || {
             detect_timespan_with_progress(items, result_sender, Some(shutdown_rx));
             debug!("back after timespan detection finished!",);
@@ -33,10 +50,7 @@ fn detect_timespan_with_progress(
     _shutdown_receiver: Option<cc::Receiver<()>>,
 ) {
     trace!("detecting timespan");
-    match timespan_in_files(
-        items, &tx,
-        // shutdown_receiver,
-    ) {
+    match timespan_in_files(items, &tx) {
         Err(why) => {
             let err_msg = format!("couldn't detect timestamps: {}", why);
             error!("{}", err_msg);
@@ -55,31 +69,38 @@ fn detect_timespan_with_progress(
 // interface of the Rust code for js, exposes the `poll` and `shutdown` methods
 declare_types! {
 pub class JsTimestampFormatDetectionEmitter for TimestampDetectorEmitter {
-    init(mut cx) {
-        let file_names = cx.argument::<JsValue>(0)?;
-        let items: Vec<DiscoverItem> = neon_serde::from_value(&mut cx, file_names)?;
-        trace!("{:?}", items);
+    init(_cx) {
         let chunk_result_channel: (cc::Sender<IndexingResults<TimestampFormatResult>>, cc::Receiver<IndexingResults<TimestampFormatResult>>) = cc::unbounded();
         let shutdown_channel = cc::unbounded();
-        let mut emitter = TimestampDetectorEmitter {
-            event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
+        let emitter = TimestampDetectorEmitter {
+            event_receiver: chunk_result_channel.1,
             shutdown_sender: shutdown_channel.0,
             task_thread: None,
+            shutdown_rx: shutdown_channel.1,
+            result_sender: chunk_result_channel.0,
         };
-        emitter.start_timespan_detection_in_thread(
-            items,
-            chunk_result_channel.0,
-            shutdown_channel.1,
-        );
         Ok(emitter)
+    }
+
+    method start(mut cx) {
+        let file_names = cx.argument::<JsValue>(0)?;
+        let items: Vec<DiscoverItem> = neon_serde::from_value(&mut cx, file_names)?;
+        let mut this = cx.this();
+        cx.borrow_mut(&mut this, |mut detector| {
+            detector.start_timespan_detection_in_thread(
+                items,
+            );
+        });
+        Ok(JsUndefined::new().upcast())
     }
 
     method poll(mut cx) {
         let cb = cx.argument::<JsFunction>(0)?;
         let this = cx.this();
-        let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
-        let emitter = EventEmitterTask::new(events);
-        emitter.schedule(cb);
+         cx.borrow(&this, |emitter| {
+            let task = EventEmitterTask::new(emitter.event_receiver.clone());
+            task.schedule(cb);
+        });
         Ok(JsUndefined::new().upcast())
     }
 

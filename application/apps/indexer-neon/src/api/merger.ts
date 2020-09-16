@@ -1,13 +1,14 @@
-import { log } from "./logging";
+import { log } from "../util/logging";
 import {
     ITicks,
     INeonNotification,
     IMergerItemOptions,
     INeonTransferChunk,
     IChunk,
-} from "./progress";
-import { NativeEventEmitter, RustConcatenatorChannel, RustMergerChannel } from "./emitter";
-import { CancelablePromise } from './promise';
+} from "../util/progress";
+import { NativeComputationManager } from "../native_computation_manager";
+import { RustConcatenatorChannel, RustMergerChannel } from "../native";
+import { CancelablePromise } from '../util/promise';
 
 export interface IMergeParams {
     configFile: string;
@@ -51,12 +52,6 @@ export function mergeFilesAsync(
         try {
             // Get defaults options
             const opt = getDefaultMergeOptions(options);
-            // Add cancel callback
-            refCancelCB(() => {
-                // Cancelation is started, but not canceled
-                log(`Get command "break" operation. Starting breaking.`);
-                emitter.requestShutdown();
-            });
             log(`mergeFilesAsync called with config: ${JSON.stringify(config)}`);
             const channel = new RustMergerChannel(
                 config,
@@ -64,9 +59,15 @@ export function mergeFilesAsync(
                 opt.append,
                 opt.chunk_size,
             );
-            const emitter = new NativeEventEmitter(channel);
+            const computation = new NativeComputationManager<INeonTransferChunk>(channel);
+            // Add cancel callback
+            refCancelCB(() => {
+                // Cancelation is started, but not canceled
+                log(`Get command "break" operation. Starting breaking.`);
+                computation.requestShutdown();
+            });
             let totalTicks = 1;
-            emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+            computation.onItem((c: INeonTransferChunk) => {
                 self.emit('result', {
                     bytesStart: c.b[0],
                     bytesEnd: c.b[1],
@@ -74,31 +75,27 @@ export function mergeFilesAsync(
                     rowsEnd: c.r[1],
                 });
             });
-            emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+            computation.onProgress((ticks: ITicks) => {
                 totalTicks = ticks.total;
                 self.emit('progress', ticks);
             });
-            emitter.on(NativeEventEmitter.EVENTS.Error, () => {
+            computation.onError(() => {
                 log(`Event "Error" is triggered`);
-                emitter.requestShutdown();
+                computation.requestShutdown();
             });
-            emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+            computation.onStopped(() => {
                 log(`Event "Stopped" is triggered`);
-                emitter.shutdownAcknowledged(() => {
-                    cancel();
-                });
+                cancel();
             });
-            emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+            computation.onNotification((notification: INeonNotification) => {
                 self.emit('notification', notification);
             });
-            emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+            computation.onFinished(() => {
                 self.emit('progress', {
                     ellapsed: totalTicks,
                     total: totalTicks,
                 });
-                emitter.shutdownAcknowledged(() => {
-                    resolve();
-                });
+                resolve();
             });
         } catch (err) {
             if (!(err instanceof Error)) {
@@ -136,16 +133,16 @@ export function concatFilesAsync(
         try {
             // Get defaults options
             const opt = getDefaultMergeOptions(options);
+            const channel = new RustConcatenatorChannel(config, outFile, opt.append, opt.chunk_size);
+            const computation = new NativeComputationManager<INeonTransferChunk>(channel);
             // Add cancel callback
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 log(`Get command "break" operation. Starting breaking.`);
-                emitter.requestShutdown();
+                computation.requestShutdown();
             });
-            const channel = new RustConcatenatorChannel(config, outFile, opt.append, opt.chunk_size);
-            const emitter = new NativeEventEmitter(channel);
             let totalTicks = 1;
-            emitter.on(NativeEventEmitter.EVENTS.GotItem, (c: INeonTransferChunk) => {
+            computation.onItem((c: INeonTransferChunk) => {
                 self.emit('result', {
                     bytesStart: c.b[0],
                     bytesEnd: c.b[1],
@@ -153,31 +150,27 @@ export function concatFilesAsync(
                     rowsEnd: c.r[1],
                 });
             });
-            emitter.on(NativeEventEmitter.EVENTS.Progress, (ticks: ITicks) => {
+            computation.onProgress((ticks: ITicks) => {
                 totalTicks = ticks.total;
                 self.emit('progress', ticks);
             });
-            emitter.on(NativeEventEmitter.EVENTS.Error, () => {
+            computation.onError(() => {
                 log(`Event "Error" is triggered`);
-                emitter.requestShutdown();
+                computation.requestShutdown();
             });
-            emitter.on(NativeEventEmitter.EVENTS.Stopped, () => {
+            computation.onStopped(() => {
                 log(`Event "Stopped" is triggered`);
-                emitter.shutdownAcknowledged(() => {
-                    cancel();
-                });
+                cancel();
             });
-            emitter.on(NativeEventEmitter.EVENTS.Notification, (notification: INeonNotification) => {
+            computation.onNotification((notification: INeonNotification) => {
                 self.emit('notification', notification);
             });
-            emitter.on(NativeEventEmitter.EVENTS.Finished, () => {
+            computation.onFinished(() => {
                 self.emit('progress', {
                     ellapsed: totalTicks,
                     total: totalTicks,
                 });
-                emitter.shutdownAcknowledged(() => {
-                    resolve();
-                });
+                resolve();
             });
         } catch (err) {
             if (!(err instanceof Error)) {

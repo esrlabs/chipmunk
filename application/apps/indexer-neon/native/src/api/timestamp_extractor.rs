@@ -2,14 +2,15 @@ use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
-use processor::parse::{extract_posix_timestamp_by_format, TimestampByFormatResult, DateTimeReplacements};
-use std::sync::{Arc, Mutex};
+use processor::parse::{
+    extract_posix_timestamp_by_format, DateTimeReplacements, TimestampByFormatResult,
+};
 use std::thread;
 
 type ExtractResult = IndexingResults<TimestampByFormatResult>;
 
 pub struct TimestampExtractEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<ExtractResult>>>,
+    pub event_receiver: cc::Receiver<ExtractResult>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -24,7 +25,13 @@ impl TimestampExtractEmitter {
         shutdown_rx: cc::Receiver<()>,
     ) {
         self.task_thread = Some(thread::spawn(move || {
-            extract_timestamp_with_progress(input_string, format_string, replacements, result_sender, Some(shutdown_rx));
+            extract_timestamp_with_progress(
+                input_string,
+                format_string,
+                replacements,
+                result_sender,
+                Some(shutdown_rx),
+            );
             debug!("back format verification finished!",);
         }));
     }
@@ -91,7 +98,7 @@ pub class JsTimestampExtractEmitter for TimestampExtractEmitter {
         let chunk_result_channel: (cc::Sender<ExtractResult>, cc::Receiver<ExtractResult>) = cc::unbounded();
         let shutdown_channel = cc::unbounded();
         let mut emitter = TimestampExtractEmitter {
-            event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
+            event_receiver: chunk_result_channel.1,
             shutdown_sender: shutdown_channel.0,
             task_thread: None,
         };
@@ -108,7 +115,7 @@ pub class JsTimestampExtractEmitter for TimestampExtractEmitter {
     method poll(mut cx) {
         let cb = cx.argument::<JsFunction>(0)?;
         let this = cx.this();
-        let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+        let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
         let emitter = EventEmitterTask::new(events);
         emitter.schedule(cb);
         Ok(JsUndefined::new().upcast())

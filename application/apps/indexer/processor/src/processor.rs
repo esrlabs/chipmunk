@@ -23,7 +23,6 @@ use indexer_base::{
 };
 use parse::detect_timestamp_in_string;
 use std::{
-    cell::RefCell,
     fs,
     io::{BufRead, BufReader, BufWriter, Read, Write},
     path::PathBuf,
@@ -73,8 +72,7 @@ pub async fn create_index_and_mapping(
         .strip_bom(true)
         .bom_override(true)
         .bom_sniffing(true);
-    let decode_buffer_inst = RefCell::new(vec![0; 8 * (1 << 10)]);
-    let mut decode_buffer = decode_buffer_inst.borrow_mut();
+    let mut decode_buffer = vec![0; 8 * 1024];
     let read_from = decode_builder.build_with_buffer(in_file, &mut *decode_buffer)?;
     index_file(
         read_from,

@@ -367,7 +367,7 @@ task :resolutions do
     'application/node.libs/chipmunk.shell.env',
     "#{APPS_DIR}/indexer-neon",
   ].each do|path|
-    if File.exist? "#{path}/package-lock.json" 
+    if File.exist? "#{path}/package-lock.json"
       puts path
       cd path do
         npm_force_resolutions

@@ -3,14 +3,11 @@ use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::prelude::*;
 use processor::parse::{check_format, FormatCheckFlags, FormatCheckResult};
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::thread;
 
 type FormatResult = IndexingResults<FormatCheckResult>;
 pub struct FormatVerifyEmitter {
-    pub event_receiver: Arc<Mutex<cc::Receiver<FormatResult>>>,
+    pub event_receiver: cc::Receiver<FormatResult>,
     pub shutdown_sender: cc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -82,7 +79,7 @@ pub class JsFormatVerificationEmitter for FormatVerifyEmitter {
         let chunk_result_channel: (cc::Sender<FormatResult>, cc::Receiver<FormatResult>) = cc::unbounded();
         let shutdown_channel = cc::unbounded();
         let mut emitter = FormatVerifyEmitter {
-            event_receiver: Arc::new(Mutex::new(chunk_result_channel.1)),
+            event_receiver: chunk_result_channel.1,
             shutdown_sender: shutdown_channel.0,
             task_thread: None,
         };
@@ -98,7 +95,7 @@ pub class JsFormatVerificationEmitter for FormatVerifyEmitter {
     method poll(mut cx) {
         let cb = cx.argument::<JsFunction>(0)?;
         let this = cx.this();
-        let events = cx.borrow(&this, |emitter| Arc::clone(&emitter.event_receiver));
+        let events = cx.borrow(&this, |emitter| emitter.event_receiver.clone());
         let emitter = EventEmitterTask::new(events);
         emitter.schedule(cb);
         Ok(JsUndefined::new().upcast())

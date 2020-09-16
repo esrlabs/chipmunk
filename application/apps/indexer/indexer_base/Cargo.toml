@@ -11,10 +11,10 @@ serde = { version = "1.0", features = ["derive"] }
 buf_redux = "0.8.1"
 anyhow = "1.0"
 log = "0.4"
-rustc-hash = "1.0"
+rustc-hash = "1.1.0"
 crossbeam-channel = "0.4"
 
 [dev-dependencies]
 tempdir = "0.3"
-test-generator = "0.2.2"
+test-generator = "0.3.0"
 pretty_assertions = "0.6"

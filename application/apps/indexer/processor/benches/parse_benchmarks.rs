@@ -1,7 +1,7 @@
 extern crate criterion;
 extern crate processor;
 
-use criterion::{Criterion, *};
+use criterion::{measurement::WallTime, Criterion, *};
 use processor::parse::*;
 
 fn parse_benchmark(c: &mut Criterion) {
@@ -72,7 +72,9 @@ fn parse_benchmark(c: &mut Criterion) {
         "31.202.233.212 - - [12/Dec/2015:18:46:21 +0100] GET /administrator",
     ];
     let ts_regex = lookup_regex_for_format_str("DD/MMM/YYYY:hh:mm:ss TZD").unwrap();
-    Benchmark::new("detect_timestamp_in_string", move |b| {
+
+    // c.bench_function("detect_timestamp_in_string", f: F)
+    Benchmark::<WallTime>::new("detect_timestamp_in_string", move |b| {
         for sample in samples.iter() {
             b.iter(|| detect_timestamp_in_string(sample, None))
         }

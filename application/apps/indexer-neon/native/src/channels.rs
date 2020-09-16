@@ -2,22 +2,17 @@ use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, IndexingResults, Notification};
 use neon::prelude::*;
 use serde::Serialize;
-use std::{
-    fmt::Debug,
-    path,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{fmt::Debug, time::Duration};
 
 // Reading from a channel `Receiver` is a blocking operation. This struct
 // wraps the data required to perform a read asynchronously from a libuv
 // thread.
 pub struct EventEmitterTask<T: Send + Debug + Serialize> {
-    events_rx: Arc<Mutex<cc::Receiver<IndexingResults<T>>>>,
+    events_rx: cc::Receiver<IndexingResults<T>>,
 }
 
 impl<T: Send + Debug + Serialize> EventEmitterTask<T> {
-    pub fn new(event_stream: Arc<Mutex<cc::Receiver<IndexingResults<T>>>>) -> EventEmitterTask<T> {
+    pub fn new(event_stream: cc::Receiver<IndexingResults<T>>) -> EventEmitterTask<T> {
         EventEmitterTask::<T> {
             events_rx: event_stream,
         }
@@ -35,14 +30,8 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
     // In practice, this should never need to wait for a lock since it
     // should only be executed one at a time by the `EventEmitter` class.
     fn perform(&self) -> Result<Self::Output, Self::Error> {
-        // debug!("perform rs");
-        let rx = self
-            .events_rx
-            .lock()
-            .map_err(|_| "Could not obtain lock on receiver".to_string())?;
-
         // Attempt to read from the channel. Block for at most 100 ms.
-        match rx.recv_timeout(Duration::from_millis(100)) {
+        match self.events_rx.recv_timeout(Duration::from_millis(100)) {
             Ok(event) => {
                 // match event {
                 //     Ok(IndexingProgress::GotItem { .. }) => debug!("DEBUG: GotItem"),
@@ -148,13 +137,4 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
             }
         })
     }
-}
-
-#[derive(Debug)]
-pub struct IndexingThreadConfig {
-    pub in_file: path::PathBuf,
-    pub out_path: path::PathBuf,
-    pub append: bool,
-    pub tag: String,
-    pub timestamps: bool,
 }
