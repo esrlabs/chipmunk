@@ -70,7 +70,7 @@ export class ControllerSessionTab {
         this._api = params.api;
         this._scope = new ControllerSessionScope(this._sessionId, params.sessionsEventsHub);
         this._timestamp = new ControllerSessionTabTimestamp(params.guid);
-        this._comments = new ControllerSessionTabStreamComments(params.guid);
+        this._comments = new ControllerSessionTabStreamComments(params.guid, this._api);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
             guid: params.guid,

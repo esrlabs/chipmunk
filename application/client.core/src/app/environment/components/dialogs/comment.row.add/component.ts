@@ -1,7 +1,4 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
-import SidebarSessionsService from '../../../services/service.sessions.sidebar';
-import LayoutStateService from '../../../services/standalone/service.layout.state';
-// import { CGuids } from '../../../states/state.default.sidebar.apps';
 
 @Component({
     selector: 'app-views-dialogs-comment-add-on-row',
@@ -27,12 +24,6 @@ export class DialogsAddCommentOnRowComponent implements AfterContentInit {
         if (this._ng_comment.trim().length === 0) {
             return;
         }
-        if (!SidebarSessionsService.has(`comments`)) {
-            SidebarSessionsService.addByGuid(`comments`);
-        } else {
-            SidebarSessionsService.setActive(`comments`);
-        }
-        LayoutStateService.sidebarMax();
         this.add(this._ng_comment);
     }
 
