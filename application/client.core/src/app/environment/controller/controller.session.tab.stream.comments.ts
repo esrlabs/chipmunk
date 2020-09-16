@@ -10,6 +10,7 @@ import { DialogsAddCommentOnRowComponent } from '../components/dialogs/comment.r
 
 import PopupsService from '../services/standalone/service.popups';
 import OutputParsersService from '../services/standalone/service.output.parsers';
+import Tabs from '../services/service.sessions.tabs';
 
 export class ControllerSessionTabStreamComments {
 
@@ -20,10 +21,12 @@ export class ControllerSessionTabStreamComments {
 
     private _subjects: {
         onAdded: Subject<IComment>,
+        onPending: Subject<IComment>,
         onRemoved: Subject<string>,
         onSelected: Subject<string>,
     } = {
         onAdded: new Subject<IComment>(),
+        onPending: new Subject<IComment>(),
         onRemoved: new Subject<string>(),
         onSelected: new Subject<string>()
     };
@@ -61,12 +64,13 @@ export class ControllerSessionTabStreamComments {
             winSel.addRange(range);
         }
         const guid: string = Toolkit.guid();
+        let comment;
         if (selection.anchor === selection.focus) {
             const sel: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, selection.selection, false);
             if (sel instanceof Error) {
                 return sel;
             }
-            this._comments.set(guid, {
+            comment = {
                 guid: guid,
                 state: ECommentState.pending,
                 comment: '',
@@ -83,7 +87,7 @@ export class ControllerSessionTabStreamComments {
                     },
                     text: selection.selection,
                 },
-            });
+            };
         } else {
             const rows = selection.selection.split(/[\n\r]/gi);
             const stored = remember();
@@ -102,7 +106,7 @@ export class ControllerSessionTabStreamComments {
             if (selEnd instanceof Error) {
                 return selEnd;
             }
-            this._comments.set(guid, {
+            comment = {
                 guid: guid,
                 state: ECommentState.pending,
                 comment: '',
@@ -119,9 +123,11 @@ export class ControllerSessionTabStreamComments {
                     },
                     text: selection.selection,
                 },
-            });
+            };
         }
+        this._comments.set(guid, comment);
         OutputParsersService.updateRowsView();
+        this._subjects.onPending.next(comment);
         this._create(guid);
     }
 
@@ -133,13 +139,15 @@ export class ControllerSessionTabStreamComments {
 
     public getObservable(): {
         onAdded: Observable<IComment>,
+        onPending: Observable<IComment>,
         onRemoved: Observable<string>,
         onSelected: Observable<string>,
     } {
         return {
             onAdded: this._subjects.onAdded.asObservable(),
+            onPending: this._subjects.onPending.asObservable(),
             onRemoved: this._subjects.onRemoved.asObservable(),
-            onSelected: this._subjects.onSelected.asObservable()
+            onSelected: this._subjects.onSelected.asObservable(),
         };
     }
 
@@ -189,7 +197,7 @@ export class ControllerSessionTabStreamComments {
                         comment.comment = text;
                         comment.state = ECommentState.done;
                         this._comments.set(commendId, comment);
-                        OutputParsersService.updateRowsView();
+                        this._subjects.onAdded.next(comment);
                     },
                     cancel: () => {
                         PopupsService.remove(guid);

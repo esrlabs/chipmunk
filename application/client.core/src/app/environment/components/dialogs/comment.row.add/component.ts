@@ -1,15 +1,7 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
-
-interface IKey {
-    shortkeys: string[];
-    description: string;
-}
-
-interface IGroup {
-    name: string;
-    keys: IKey[];
-}
+import SidebarSessionsService from '../../../services/service.sessions.sidebar';
+import LayoutStateService from '../../../services/standalone/service.layout.state';
+// import { CGuids } from '../../../states/state.default.sidebar.apps';
 
 @Component({
     selector: 'app-views-dialogs-comment-add-on-row',
@@ -35,6 +27,12 @@ export class DialogsAddCommentOnRowComponent implements AfterContentInit {
         if (this._ng_comment.trim().length === 0) {
             return;
         }
+        if (!SidebarSessionsService.has(`comments`)) {
+            SidebarSessionsService.addByGuid(`comments`);
+        } else {
+            SidebarSessionsService.setActive(`comments`);
+        }
+        LayoutStateService.sidebarMax();
         this.add(this._ng_comment);
     }
 
