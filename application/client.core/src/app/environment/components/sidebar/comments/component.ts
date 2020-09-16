@@ -26,6 +26,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     public _ng_comments: IComment[] = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _sessionSubs: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppMergeFilesComponent');
     private _destroyed: boolean = false;
     private _controller: ControllerSessionTab | undefined;
@@ -38,31 +39,44 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+        Object.keys(this._sessionSubs).forEach((key: string) => {
+            this._sessionSubs[key].unsubscribe();
+        });
     }
 
     public ngAfterContentInit() {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._controller = TabsSessionsService.getActive();
     }
 
     public ngAfterViewInit() {
+        this._onSessionChange(TabsSessionsService.getActive());
         this._load();
     }
 
-
     private _onSessionChange(controller: ControllerSessionTab | undefined) {
         this._controller = controller;
+        Object.keys(this._sessionSubs).forEach((key: string) => {
+            this._sessionSubs[key].unsubscribe();
+        });
+        if (this._controller !== undefined) {
+            this._sessionSubs.onAdded = this._controller.getSessionComments().getObservable().onAdded.subscribe(this._onCommentAdded.bind(this));
+        }
         this._load();
         this._forceUpdate();
     }
 
     private _load() {
+
         if (this._controller === undefined) {
             this._ng_comments = [];
         } else {
             this._ng_comments = Array.from(this._controller.getSessionComments().get().values());
         }
         this._forceUpdate();
+    }
+
+    private _onCommentAdded(comment: IComment) {
+        this._load();
     }
 
     private _forceUpdate() {
