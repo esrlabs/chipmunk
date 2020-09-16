@@ -50,11 +50,12 @@ export class ControllerSessionTabStreamComments {
             if (winSel === undefined) {
                 return undefined;
             }
+            const reversed: boolean = winSel.anchorNode.compareDocumentPosition(winSel.focusNode) === Node.DOCUMENT_POSITION_PRECEDING;
             return {
-                anchorNode: winSel.anchorNode,
-                anchorOffset: winSel.anchorOffset,
-                focusNode: winSel.focusNode,
-                focusOffset: winSel.focusOffset,
+                anchorNode: reversed ? winSel.focusNode : winSel.anchorNode,
+                anchorOffset: reversed ? winSel.focusOffset : winSel.anchorOffset,
+                focusNode: reversed ? winSel.anchorNode : winSel.focusNode,
+                focusOffset: reversed ? winSel.anchorOffset : winSel.focusOffset,
             };
         }
         function restore(stored: { anchorNode: Node, anchorOffset: number, focusNode: Node, focusOffset: number }) {
@@ -81,12 +82,12 @@ export class ControllerSessionTabStreamComments {
                     comment: '',
                     selection: {
                         start: {
-                            position: selection.anchor,
+                            position: Math.min(selection.anchor, selection.focus),
                             offset: sel.start,
                             text: sel.selection,
                         },
                         end: {
-                            position: selection.anchor,
+                            position: Math.max(selection.anchor, selection.focus),
                             offset: sel.end,
                             text: sel.selection,
                         },
@@ -117,12 +118,12 @@ export class ControllerSessionTabStreamComments {
                     comment: '',
                     selection: {
                         start: {
-                            position: selection.anchor,
+                            position: Math.min(selection.anchor, selection.focus),
                             offset: selStart.start,
                             text: selStart.selection,
                         },
                         end: {
-                            position: selection.focus,
+                            position: Math.max(selection.anchor, selection.focus),
                             offset: selEnd.end,
                             text: selEnd.selection,
                         },
@@ -323,7 +324,7 @@ export class ControllerSessionTabStreamComments {
         const anchorNode = selection.anchorNode;
         const anchorOffset = selection.anchorOffset;
         // Looking for root row node
-        const holder: HTMLElement | Error = getHolder(selection.anchorNode as HTMLElement);
+        const holder: HTMLElement | Error = getHolder(anchorNode as HTMLElement);
         if (holder instanceof Error) {
             return holder;
         }
