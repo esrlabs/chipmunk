@@ -7,8 +7,6 @@ import { IComment } from '../../../../controller/controller.session.tab.stream.c
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
-const CPadding = 12;
-
 @Component({
     selector: 'app-sidebar-app-comments-item',
     templateUrl: './template.html',
@@ -49,6 +47,10 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
     }
 
     public ngOnChanges(changes: SimpleChanges) {
+        if (changes.comment === undefined) {
+            return;
+        }
+        this.comment = changes.comment.currentValue;
         this._forceUpdate();
     }
 

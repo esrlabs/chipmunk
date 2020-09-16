@@ -23,11 +23,13 @@ export class ControllerSessionTabStreamComments {
 
     private _subjects: {
         onAdded: Subject<IComment>,
+        onUpdated: Subject<IComment>,
         onPending: Subject<IComment>,
         onRemoved: Subject<string>,
         onSelected: Subject<string>,
     } = {
         onAdded: new Subject<IComment>(),
+        onUpdated: new Subject<IComment>(),
         onPending: new Subject<IComment>(),
         onRemoved: new Subject<string>(),
         onSelected: new Subject<string>()
@@ -147,14 +149,22 @@ export class ControllerSessionTabStreamComments {
                 factory: DialogsAddCommentOnRowComponent,
                 inputs: {
                     comment: comment,
-                    add: (text: string) => {
+                    accept: (text: string) => {
                         PopupsService.remove(guid);
                         comment.comment = text;
                         comment.state = ECommentState.done;
                         this._comments.set(comment.guid, comment);
-                        this._subjects.onAdded.next(comment);
+                        if (creating) {
+                            this._subjects.onAdded.next(comment);
+                        } else {
+                            this._subjects.onUpdated.next(comment);
+                        }
                         this._api.openSidebarApp('comments', false);
                         LayoutStateService.sidebarMax();
+                    },
+                    remove: () => {
+                        PopupsService.remove(guid);
+                        this.remove(comment.guid);
                     },
                     cancel: () => {
                         PopupsService.remove(guid);
@@ -171,16 +181,19 @@ export class ControllerSessionTabStreamComments {
     public remove(guid: string) {
         this._comments.delete(guid);
         OutputParsersService.updateRowsView();
+        this._subjects.onRemoved.next(guid);
     }
 
     public getObservable(): {
         onAdded: Observable<IComment>,
+        onUpdated: Observable<IComment>,
         onPending: Observable<IComment>,
         onRemoved: Observable<string>,
         onSelected: Observable<string>,
     } {
         return {
             onAdded: this._subjects.onAdded.asObservable(),
+            onUpdated: this._subjects.onUpdated.asObservable(),
             onPending: this._subjects.onPending.asObservable(),
             onRemoved: this._subjects.onRemoved.asObservable(),
             onSelected: this._subjects.onSelected.asObservable(),

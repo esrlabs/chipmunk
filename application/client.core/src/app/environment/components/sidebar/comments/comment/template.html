@@ -1,5 +1,5 @@
 <mat-card>
-    <mat-card-subtitle>{{comment.selection.start.position}} - {{comment.selection.end.position}}</mat-card-subtitle>
+    <mat-card-subtitle (click)="ngOnShow()">{{comment.selection.start.position}} - {{comment.selection.end.position}}</mat-card-subtitle>
     <mat-card-content>{{comment.comment}}</mat-card-content>
     <mat-card-actions>
         <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="commentActionsMenu">
