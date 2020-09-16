@@ -7,10 +7,11 @@ import { Modifier } from 'chipmunk.client.toolkit';
 import { CommentSelectionModifier } from './controller.session.tab.stream.comments.modifier';
 import { IComment, IActualSelectionData, ECommentState } from './controller.session.tab.stream.comments.types';
 import { DialogsAddCommentOnRowComponent } from '../components/dialogs/comment.row.add/component';
+import { IAPI } from 'chipmunk.client.toolkit';
 
+import LayoutStateService from '../services/standalone/service.layout.state';
 import PopupsService from '../services/standalone/service.popups';
 import OutputParsersService from '../services/standalone/service.output.parsers';
-import Tabs from '../services/service.sessions.tabs';
 
 export class ControllerSessionTabStreamComments {
 
@@ -18,6 +19,7 @@ export class ControllerSessionTabStreamComments {
     private _sessionId: string;
     private _comments: Map<string, IComment> = new Map();
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
+    private _api: IAPI;
 
     private _subjects: {
         onAdded: Subject<IComment>,
@@ -31,7 +33,8 @@ export class ControllerSessionTabStreamComments {
         onSelected: new Subject<string>()
     };
 
-    constructor(session: string) {
+    constructor(session: string, api: IAPI) {
+        this._api = api;
         this._sessionId = session;
         this._logger = new Toolkit.Logger(`ControllerSessionComments: ${session}`);
     }
@@ -198,6 +201,8 @@ export class ControllerSessionTabStreamComments {
                         comment.state = ECommentState.done;
                         this._comments.set(commendId, comment);
                         this._subjects.onAdded.next(comment);
+                        this._api.openSidebarApp('comments', false);
+                        LayoutStateService.sidebarMax();
                     },
                     cancel: () => {
                         PopupsService.remove(guid);
