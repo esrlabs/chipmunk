@@ -19,7 +19,6 @@ use std::{
 
 struct PcapMessageProducer {
     reader: PcapNGReader<File>,
-    update_channel: cc::Sender<ChunkResults>,
     index: usize,
     fibex_metadata: Option<Rc<FibexMetadata>>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
@@ -29,7 +28,6 @@ impl PcapMessageProducer {
     #![allow(dead_code)]
     pub fn new(
         pcap_path: &std::path::Path,
-        update_channel: cc::Sender<ChunkResults>,
         fibex_metadata: Option<Rc<FibexMetadata>>,
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
     ) -> Result<Self, DltParseError> {
@@ -38,7 +36,6 @@ impl PcapMessageProducer {
             Ok(reader) => Ok(PcapMessageProducer {
                 reader,
                 index: 0,
-                update_channel,
                 fibex_metadata,
                 filter_config,
             }),
@@ -61,7 +58,6 @@ impl futures::Stream for PcapMessageProducer {
         _cx: &mut std::task::Context,
     ) -> futures::task::Poll<Option<Self::Item>> {
         let mut consumed = 0usize;
-        let update_channel = self.update_channel.clone();
         let filter_config = self.filter_config.clone();
         let fibex = self.fibex_metadata.clone();
         let index = self.index;
@@ -171,7 +167,6 @@ pub fn pcap_to_dlt(
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
     let pcap_file_size = pcap_path.metadata()?.len();
-    let mut processed_bytes = 0usize;
     let progress = |consumed| {
         let _ = update_channel.send(Ok(IndexingProgress::Progress {
             ticks: (consumed as u64, pcap_file_size),
@@ -180,12 +175,7 @@ pub fn pcap_to_dlt(
     let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)?;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
-    let pcap_msg_producer = PcapMessageProducer::new(
-        pcap_path,
-        update_channel.clone(),
-        fibex_metadata,
-        filter_config,
-    )?;
+    let pcap_msg_producer = PcapMessageProducer::new(pcap_path, fibex_metadata, filter_config)?;
     // listen for both a shutdown request and incomming messages
     // to do this we need to select over streams of the same type
     // the type we use to unify is this Event enum
@@ -306,7 +296,6 @@ pub fn index_from_pcap(
     trace!("index_from_pcap for  conf: {:?}", config);
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
-    // let out_file_name = format!("{:?}", out_file);
     let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
     let mut line_nr = initial_line_nr;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
@@ -317,12 +306,8 @@ pub fn index_from_pcap(
         }));
     };
 
-    let pcap_msg_producer = PcapMessageProducer::new(
-        &config.in_file,
-        update_channel.clone(),
-        fibex_metadata,
-        filter_config,
-    )?;
+    let pcap_msg_producer =
+        PcapMessageProducer::new(&config.in_file, fibex_metadata, filter_config)?;
     // listen for both a shutdown request and incomming messages
     // to do this we need to select over streams of the same type
     // the type we use to unify is this Event enum

@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 log = "0.4.8"
-log4rs = "0.11.0"
-dirs = "2.0"
+log4rs = "0.13.0"
+dirs = "3.0.1"
 anyhow = "1.0"
 chrono = "0.4"
 flate2 = "1.0"
@@ -17,5 +17,5 @@ tar = "0.4.26"
 
 [dev-dependencies]
 tempdir = "0.3"
-sha-1 = "0.8"
+sha-1 = "0.9.1"
 ring = "0.16"

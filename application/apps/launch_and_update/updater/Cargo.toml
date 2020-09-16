@@ -5,8 +5,8 @@ authors = ["dmitry.astafyev <dmitry.astafyev@esrlabs.com>", "oliver.mueller <oli
 edition = "2018"
 
 [dependencies]
-dirs = "2.0.2"
+dirs = "3.0.1"
 log = "0.4.8"
-log4rs = "0.11"
+log4rs = "0.13.0"
 anyhow = "1.0"
 base = { path = "../base" }
