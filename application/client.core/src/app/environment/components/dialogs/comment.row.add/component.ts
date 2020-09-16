@@ -1,4 +1,5 @@
-import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterViewInit, ViewChild } from '@angular/core';
+import { MatInput } from '@angular/material/input';
 
 @Component({
     selector: 'app-views-dialogs-comment-add-on-row',
@@ -6,9 +7,11 @@ import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/
     styleUrls: ['./styles.less']
 })
 
-export class DialogsAddCommentOnRowComponent implements AfterContentInit {
+export class DialogsAddCommentOnRowComponent implements AfterViewInit {
 
     public _ng_comment: string = '';
+
+    @ViewChild(MatInput, { static: true }) _ng_inputComRef: MatInput;
 
     @Input() add: (comment: string) => void = (comment: string) => {};
     @Input() cancel: () => void = () => {};
@@ -16,8 +19,15 @@ export class DialogsAddCommentOnRowComponent implements AfterContentInit {
     constructor(private _cdRef: ChangeDetectorRef) {
     }
 
-    ngAfterContentInit() {
+    ngAfterViewInit() {
+        setTimeout(() => { this._ng_inputComRef.focus(); }, 150);
+    }
 
+    public _ng_onKeyDown(event: KeyboardEvent) {
+        console.log(event);
+        if (event.code === 'Enter') {
+            this._ng_onAdd();
+        }
     }
 
     public _ng_onAdd() {
