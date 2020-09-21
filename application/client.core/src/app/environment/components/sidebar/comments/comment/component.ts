@@ -1,22 +1,26 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { IComment } from '../../../../controller/controller.session.tab.stream.comments.types';
+import { CShortColors } from '../../../../conts/colors';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
 @Component({
     selector: 'app-sidebar-app-comments-item',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 
 export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     @Input() comment: IComment;
     @Input() controller: ControllerSessionTab;
+
+    public _ng_colors: string[] = CShortColors.slice();
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -51,6 +55,12 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
             return;
         }
         this.comment = changes.comment.currentValue;
+        this._forceUpdate();
+    }
+
+    public ngOnSetColor(color: string | undefined) {
+        this.comment.color = color;
+        this.controller.getSessionComments().update(this.comment);
         this._forceUpdate();
     }
 

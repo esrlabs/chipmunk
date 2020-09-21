@@ -1,13 +1,22 @@
 @import '../../../../theme/variables.less';
 
 
-:host {
+app-sidebar-app-comments-item {
+    display: block;
     & div.wrapper {
+        &.black {
+            & * {
+                color: #000000!important;
+            }
+        }
         & mat-card {
             margin-top: 8px;
             & mat-card-actions {
                 text-align: right;
                 opacity: 0.001;
+                & button {
+                    transition: 250ms ease-in-out all;
+                }
             }
         }
         &:hover {
@@ -18,4 +27,7 @@
             }
         }
     }
+}
+button.comment-color-selector {
+    margin: 2px;
 }

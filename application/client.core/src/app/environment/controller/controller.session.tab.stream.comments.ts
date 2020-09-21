@@ -80,6 +80,7 @@ export class ControllerSessionTabStreamComments {
                     guid: guid,
                     state: ECommentState.pending,
                     comment: '',
+                    color: undefined,
                     selection: {
                         start: {
                             position: Math.min(selection.anchor, selection.focus),
@@ -116,6 +117,7 @@ export class ControllerSessionTabStreamComments {
                     guid: guid,
                     state: ECommentState.pending,
                     comment: '',
+                    color: undefined,
                     selection: {
                         start: {
                             position: Math.min(selection.anchor, selection.focus),
@@ -230,6 +232,14 @@ export class ControllerSessionTabStreamComments {
         this._comments.delete(guid);
         OutputParsersService.updateRowsView();
         this._subjects.onRemoved.next(guid);
+    }
+
+    public update(comment: IComment) {
+        if (!this._comments.has(comment.guid)) {
+            return;
+        }
+        this._comments.set(comment.guid, comment);
+        this._subjects.onUpdated.next(comment);
     }
 
     public getObservable(): {

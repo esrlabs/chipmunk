@@ -19,6 +19,7 @@ export interface IComment {
     guid: string;
     state: ECommentState;
     comment: string;
+    color: string | undefined;
     selection: ICommentedSelection;
 }
 
