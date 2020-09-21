@@ -183,7 +183,7 @@ export class OutputParsersService {
             return;
         }
         const modifiers: Modifier[] = [
-            this._controller.getSessionComments().getModifier(row.position, row.str),
+            ...this._controller.getSessionComments().getModifiers(row.position, row.str),
         ];
         // Apply bound parsers
         const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);

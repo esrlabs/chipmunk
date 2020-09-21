@@ -269,26 +269,25 @@ export class ControllerSessionTabStreamComments {
         return false;
     }
 
-    public getModifier(position: number, str: string): Modifier {
-        const comment: IComment | undefined = this._getRelevantComment(position);
-        return new CommentSelectionModifier(comment, position, str);
+    public getModifiers(position: number, str: string): Modifier[] {
+        const comments: IComment[] = this._getRelevantComment(position);
+        return comments.map((comment: IComment) => {
+            return new CommentSelectionModifier(comment, position, str);
+        });
     }
 
-    private _getRelevantComment(position: number): IComment | undefined {
-        try {
-            this._comments.forEach((comment: IComment) => {
-                if (position < comment.selection.start.position) {
-                    return;
-                }
-                if (position > comment.selection.end.position) {
-                    return;
-                }
-                throw comment;
-            });
-        } catch (comment) {
-            return comment;
-        }
-        return undefined;
+    private _getRelevantComment(position: number): IComment[] {
+        const comments: IComment[] = [];
+        this._comments.forEach((comment: IComment) => {
+            if (position < comment.selection.start.position) {
+                return;
+            }
+            if (position > comment.selection.end.position) {
+                return;
+            }
+            comments.push(comment);
+        });
+        return comments;
     }
 
     private _getActualSelectionData(original: string, selected: string, readFromEnd: boolean): IActualSelectionData | Error {
