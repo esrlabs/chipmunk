@@ -8,6 +8,7 @@ import EventsSessionService from '../../../services/standalone/service.events.se
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+import { CShortColors } from 'src/app/environment/conts/colors';
 
 @Component({
     selector: 'app-sidebar-app-files',
@@ -57,6 +58,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         });
         if (this._ng_controller !== undefined) {
             this._sessionSubs.onAdded = this._ng_controller.getSessionComments().getObservable().onAdded.subscribe(this._onCommentAdded.bind(this));
+            this._sessionSubs.onUpdated = this._ng_controller.getSessionComments().getObservable().onUpdated.subscribe(this._onCommentUpdated.bind(this));
             this._sessionSubs.onRemoved = this._ng_controller.getSessionComments().getObservable().onRemoved.subscribe(this._onCommentRemoved.bind(this));
         }
         this._load();
@@ -67,15 +69,24 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
             if (this._ng_controller === undefined) {
                 this._ng_comments = [];
             } else {
-                this._ng_comments = Array.from(this._ng_controller.getSessionComments().get().values());
-                this._ng_comments.sort((a: IComment, b: IComment) => {
-                    return a.selection.start.position > b.selection.start.position ? 1 : -1;
+                this._ng_comments = [];
+                const all: IComment[] = Array.from(this._ng_controller.getSessionComments().get().values());
+                CShortColors.slice().concat([undefined]).forEach((color: string | undefined) => {
+                    const group: IComment[] = all.filter(c => c.color === color);
+                    group.sort((a: IComment, b: IComment) => {
+                        return a.selection.start.position > b.selection.start.position ? 1 : -1;
+                    });
+                    this._ng_comments = this._ng_comments.concat(group);
                 });
             }
         });
     }
 
     private _onCommentAdded(comment: IComment) {
+        this._load();
+    }
+
+    private _onCommentUpdated(comment: IComment) {
         this._load();
     }
 

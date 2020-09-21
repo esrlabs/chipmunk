@@ -1,8 +1,16 @@
-<div class="wrapper">
-    <mat-card>
-        <mat-card-subtitle (click)="ngOnShow()">{{comment.selection.start.position}} - {{comment.selection.end.position}}</mat-card-subtitle>
+<div [attr.class]="'wrapper ' + (comment.color !== undefined ? 'black' : 'white')">
+    <mat-card [ngStyle]="{'background': comment.color}">
+        <mat-card-subtitle (click)="ngOnShow()">
+            <span class="position-label">{{comment.selection.start.position}} - {{comment.selection.end.position}}</span>
+        </mat-card-subtitle>
         <mat-card-content>{{comment.comment}}</mat-card-content>
         <mat-card-actions>
+            <button mat-icon-button color="primary" [matMenuTriggerFor]="commentCategoryMenu">
+                <mat-icon>color_lens</mat-icon>
+            </button>
+            <button mat-icon-button color="primary" (click)="ngOnEdit()">
+                <mat-icon>edit</mat-icon>
+            </button>
             <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="commentActionsMenu">
                 <mat-icon>more_horiz</mat-icon>
             </button>
@@ -22,5 +30,19 @@
             <mat-icon>delete</mat-icon>
             <span>Remove</span>
         </button>
+    </mat-menu>
+    <mat-menu #commentCategoryMenu="matMenu" xPosition="before">
+        <div class="colors-wrapper">
+            <button class="comment-color-selector" mat-mini-fab color="primary" aria-label="Category" (click)="ngOnSetColor(undefined)">
+                <mat-icon>remove</mat-icon>
+            </button>
+            <button *ngFor="let color of _ng_colors"
+                    class="comment-color-selector"
+                    mat-mini-fab color="primary"
+                    (click)="ngOnSetColor(color)"
+                    [ngStyle]="{'background': color}">
+                
+            </button>
+        </div>
     </mat-menu>
 </div>
