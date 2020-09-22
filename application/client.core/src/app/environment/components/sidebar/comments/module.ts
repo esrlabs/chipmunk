@@ -5,6 +5,7 @@ import { ScrollingModule                        } from '@angular/cdk/scrolling';
 import { SidebarAppCommentsComponent            } from './component';
 import { SidebarAppCommentsItemComponent        } from './comment/component';
 import { SidebarAppCommentsEditorComponent      } from './editor/component';
+import { SidebarAppCommentsItemReplayComponent  } from './replay/component';
 
 import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
 
@@ -27,6 +28,7 @@ const entryComponents = [
     SidebarAppCommentsComponent,
     SidebarAppCommentsItemComponent,
     SidebarAppCommentsEditorComponent,
+    SidebarAppCommentsItemReplayComponent,
 ];
 
 const components = [ ...entryComponents ];

@@ -1,0 +1,32 @@
+@import '../../../../theme/variables.less';
+
+
+:host {
+    display: block;
+    margin-left: 32px;
+    & div.wrapper {
+        &.black {
+            & * {
+                color: #000000!important;
+            }
+        }
+        & mat-card {
+            margin-top: 8px;
+            & mat-card-actions {
+                text-align: right;
+                opacity: 0.001;
+                & button {
+                    transition: 250ms ease-in-out all;
+                }
+            }
+        }
+        &:hover {
+            & mat-card {
+                & mat-card-actions {
+                    opacity: 1;
+                }
+            }
+        }
+    }
+}
+
