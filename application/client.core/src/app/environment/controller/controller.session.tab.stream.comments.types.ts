@@ -15,10 +15,20 @@ export enum ECommentState {
     pending = 'pending',
 }
 
+export interface ICommentResponse {
+    guid: string;
+    comment: string;
+    created: number;
+    modified: number;
+}
+
 export interface IComment {
     guid: string;
     state: ECommentState;
     comment: string;
+    created: number;
+    modified: number;
+    responses: ICommentResponse[];
     color: string | undefined;
     selection: ICommentedSelection;
 }

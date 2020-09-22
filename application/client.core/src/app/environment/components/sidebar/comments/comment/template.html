@@ -11,11 +11,23 @@
             <button mat-icon-button color="primary" (click)="ngOnEdit()">
                 <mat-icon>edit</mat-icon>
             </button>
+            <button mat-icon-button color="primary" (click)="ngOnReplay(undefined)">
+                <mat-icon>replay</mat-icon>
+            </button>
             <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="commentActionsMenu">
                 <mat-icon>more_horiz</mat-icon>
             </button>
         </mat-card-actions>
     </mat-card>
+
+    <div class="replay-editor" *ngIf="_ng_response !== undefined">
+        <app-sidebar-app-comments-editor
+            [comment]="_ng_response"
+            [save]="ngOnResponseSave"
+            [mode]="(_ng_response.guid === '' ? 'create' : 'edit')"
+            [cancel]="ngOnResponseCancel"
+        ></app-sidebar-app-comments-editor>
+    </div>
     <mat-menu #commentActionsMenu="matMenu" xPosition="before">
         <button mat-menu-item (click)="ngOnEdit()">
             <mat-icon>edit</mat-icon>

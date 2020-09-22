@@ -1,0 +1,26 @@
+<div class="inputs">
+    <mat-form-field class="comment-input">
+        <mat-label>Leave a comment</mat-label>
+        <textarea 
+            rows="5"
+            matInput
+            #message
+            maxlength="1024"
+            placeholder="Replay"
+            [(ngModel)]="_ng_comment"
+            [errorStateMatcher]="_ng_input_error"
+            (keydown)="_ng_onKeyDown($event)"></textarea>
+        <mat-hint align="start">
+            <strong *ngIf="_ng_input_error.isValid()">Don't disclose personal info</strong>
+            <mat-error *ngIf="!_ng_input_error.isValid()">
+                {{_ng_input_error.getError()}}
+            </mat-error>
+        </mat-hint>
+        <mat-hint align="end">{{message.value.length}} / 1024</mat-hint>
+    </mat-form-field>
+</div>
+<div class="controlls">
+    <button mat-stroked-button color="primary" (click)="_ng_onAccept()">{{mode === 'edit' ? 'Save' : 'Replay'}}</button>
+    <button *ngIf="mode === 'edit'" mat-stroked-button color="primary" (click)="_ng_onRemove()">Remove</button>
+    <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
+</div>
