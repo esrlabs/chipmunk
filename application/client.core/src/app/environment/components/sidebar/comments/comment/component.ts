@@ -1,6 +1,6 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges, ViewEncapsulation, NgZone } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges, SimpleChanges, ViewEncapsulation, NgZone } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { IComment, ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
@@ -18,14 +18,16 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
     encapsulation: ViewEncapsulation.None,
 })
 
-export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit, OnChanges {
+export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentInit, OnChanges {
 
     @Input() comment: IComment;
     @Input() controller: ControllerSessionTab;
+    @Input() broadcastEditorUsage: Subject<string>;
 
     public _ng_colors: string[] = CShortColors.slice();
     public _ng_response: ICommentResponse | undefined;
 
+    private _guid: string = Toolkit.guid();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
@@ -33,9 +35,16 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
                 private _zone: NgZone) {
         this.ngOnResponseSave = this.ngOnResponseSave.bind(this);
         this.ngOnResponseCancel = this.ngOnResponseCancel.bind(this);
+        this.ngOnResponseRemove = this.ngOnResponseRemove.bind(this);
     }
 
-    public ngAfterViewInit() {
+    public ngAfterContentInit() {
+        this._subscriptions.broadcastEditorUsage = this.broadcastEditorUsage.asObservable().subscribe((guid: string) => {
+            if (guid === this._guid) {
+                return;
+            }
+            this._ng_response = undefined;
+        });
     }
 
     public ngOnDestroy() {
@@ -71,16 +80,15 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
         this._forceUpdate();
     }
 
-    public ngOnReplay(ref: string | undefined) {
-        if (ref === undefined) {
-            this._ng_response = {
-                guid: '',
-                created: Date.now(),
-                modified: Date.now(),
-                comment: '',
-            };
-            this._forceUpdate();
-        }
+    public ngOnReplay() {
+        this._ng_response = {
+            guid: '',
+            created: Date.now(),
+            modified: Date.now(),
+            comment: '',
+        };
+        this.broadcastEditorUsage.next(this._guid);
+        this._forceUpdate();
     }
 
     public ngOnResponseSave(comment: string) {
@@ -109,9 +117,19 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
         this._forceUpdate();
     }
 
+    public ngOnResponseRemove() {
+        if (this._ng_response === undefined) {
+            return;
+        }
+        this.comment.responses = this.comment.responses.filter(r => r.guid !== this._ng_response.guid);
+        this.controller.getSessionComments().update(this.comment);
+        this.ngOnResponseCancel();
+    }
+
     public ngGetResponseEditCallback(response: ICommentResponse) {
         return () => {
             this._ng_response = Object.assign({}, response);
+            this.broadcastEditorUsage.next(this._guid);
             this._forceUpdate();
         };
     }

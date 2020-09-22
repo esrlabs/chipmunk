@@ -11,7 +11,7 @@
             <button mat-icon-button color="primary" (click)="ngOnEdit()">
                 <mat-icon>edit</mat-icon>
             </button>
-            <button mat-icon-button color="primary" (click)="ngOnReplay(undefined)">
+            <button mat-icon-button color="primary" (click)="ngOnReplay()">
                 <mat-icon>replay</mat-icon>
             </button>
             <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="commentActionsMenu">
@@ -53,19 +53,20 @@
 </div>
 
 <div class="replays" *ngIf="comment.responses.length > 0">
-    <app-sidebar-app-comments-item-replay *ngFor="let response of comment.responses"
+    <app-sidebar-app-comments-item-replay *ngFor="let response of comment.responses; let i = index"
         [response]="response"
         [color]="ngGetResponseColor()"
         [edit]="ngGetResponseEditCallback(response)"
         [remove]="ngGetResponseRemoveCallback(response.guid)"
+        [icon]="i === 0"
     ></app-sidebar-app-comments-item-replay>
 </div>
 
 <div class="replay-editor" *ngIf="_ng_response !== undefined">
     <app-sidebar-app-comments-editor
-        [comment]="_ng_response"
+        [response]="_ng_response"
         [save]="ngOnResponseSave"
-        [mode]="(_ng_response.guid === '' ? 'create' : 'edit')"
         [cancel]="ngOnResponseCancel"
+        [remove]="ngOnResponseRemove"
     ></app-sidebar-app-comments-editor>
 </div>

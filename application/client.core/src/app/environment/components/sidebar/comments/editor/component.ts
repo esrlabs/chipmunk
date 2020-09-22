@@ -1,5 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, Input, OnChanges, AfterContentInit, AfterViewInit } from '@angular/core';
-import { Subscription, Observable, Subject } from 'rxjs';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
@@ -43,45 +42,45 @@ export class InputErrorStateMatcher implements ErrorStateMatcher {
     styleUrls: ['./styles.less'],
 })
 
-export class SidebarAppCommentsEditorComponent implements OnDestroy, AfterContentInit, AfterViewInit {
+export class SidebarAppCommentsEditorComponent implements OnDestroy, AfterContentInit {
 
-    @Input() comment: ICommentResponse;
+    @Input() response: ICommentResponse;
     @Input() save: (comment: string) => void;
+    @Input() remove: () => void;
     @Input() cancel: () => void;
-    @Input() mode: 'create' | 'edit' = 'create';
 
     public _ng_input_error: InputErrorStateMatcher = new InputErrorStateMatcher();
-    public _ng_comment: string = '';
+    public _ng_response: string = '';
+    public _ng_mode: 'create' | 'edit' = 'create';
 
-    private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     public ngAfterContentInit() {
-
-    }
-
-    public ngAfterViewInit() {
+        if (this.response.guid !== '') {
+            this._ng_response = this.response.comment;
+            this._ng_mode = 'edit';
+        }
     }
 
     public ngOnDestroy() {
         this._destroyed = true;
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].unsubscribe();
-        });
     }
 
-public _ng_onKeyDown(event: KeyboardEvent) {
-    if (event.code === 'Enter') {
-        this._ng_onAccept();
+    public _ng_onKeyDown(event: KeyboardEvent) {
+        if (event.code === 'Enter') {
+            this._ng_onAccept();
+        }
     }
-}
-
 
     public _ng_onAccept() {
-        this.save(this._ng_comment);
+        this.save(this._ng_response);
+    }
+
+    public _ng_onRemove() {
+        this.remove();
     }
 
     public _ng_onCancel() {

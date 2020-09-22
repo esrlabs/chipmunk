@@ -3,8 +3,17 @@
 
 :host {
     display: block;
-    margin-left: 32px;
+    margin-left: 16px;
     & div.wrapper {
+        display: flex;
+        &.offsetted{
+            margin-left: 19px;
+        }
+        & > mat-icon {
+            color: @scheme-color-1;
+            font-size: 16px;
+            margin-top: 6px;
+        }
         &.black {
             & * {
                 color: #000000!important;
@@ -12,6 +21,14 @@
         }
         & mat-card {
             margin-top: 8px;
+            width: 100%;
+            & mat-card-subtitle {
+                display: flex;
+                align-items: center;
+                & > span {
+                    width: 100%;
+                }
+            }
             & mat-card-actions {
                 text-align: right;
                 opacity: 0.001;
