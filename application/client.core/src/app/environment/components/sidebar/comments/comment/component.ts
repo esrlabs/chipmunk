@@ -5,6 +5,9 @@ import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { IComment, ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
 import { CShortColors } from '../../../../conts/colors';
+import { shadeColor } from '../../../../theme/colors';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
@@ -81,11 +84,47 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
     }
 
     public ngOnResponseSave(comment: string) {
-
+        if (comment !== '') {
+            if (this._ng_response.guid === '') {
+                this._ng_response.guid = Toolkit.guid();
+                this._ng_response.comment = comment;
+                this.comment.responses.push(this._ng_response);
+            } else {
+                this.comment.responses = this.comment.responses.map((response: ICommentResponse) => {
+                    if (response.guid === this._ng_response.guid) {
+                        response.modified = Date.now();
+                        response.comment = comment;
+                    }
+                    return response;
+                });
+                this.controller.getSessionComments().update(this.comment);
+            }
+            this.controller.getSessionComments().update(this.comment);
+        }
+        this.ngOnResponseCancel();
     }
 
     public ngOnResponseCancel() {
+        this._ng_response = undefined;
+        this._forceUpdate();
+    }
 
+    public ngGetResponseEditCallback(response: ICommentResponse) {
+        return () => {
+            this._ng_response = Object.assign({}, response);
+            this._forceUpdate();
+        };
+    }
+
+    public ngGetResponseRemoveCallback(guid: string) {
+        return () => {
+            this.comment.responses = this.comment.responses.filter(r => r.guid !== guid);
+            this.controller.getSessionComments().update(this.comment);
+        };
+    }
+
+    public ngGetResponseColor(): string | undefined {
+        return this.comment.color === undefined ? undefined : shadeColor(this.comment.color, -20);
     }
 
     private _forceUpdate() {

@@ -20,14 +20,6 @@
         </mat-card-actions>
     </mat-card>
 
-    <div class="replay-editor" *ngIf="_ng_response !== undefined">
-        <app-sidebar-app-comments-editor
-            [comment]="_ng_response"
-            [save]="ngOnResponseSave"
-            [mode]="(_ng_response.guid === '' ? 'create' : 'edit')"
-            [cancel]="ngOnResponseCancel"
-        ></app-sidebar-app-comments-editor>
-    </div>
     <mat-menu #commentActionsMenu="matMenu" xPosition="before">
         <button mat-menu-item (click)="ngOnEdit()">
             <mat-icon>edit</mat-icon>
@@ -43,6 +35,7 @@
             <span>Remove</span>
         </button>
     </mat-menu>
+
     <mat-menu #commentCategoryMenu="matMenu" xPosition="before">
         <div class="colors-wrapper">
             <button class="comment-color-selector" mat-mini-fab color="primary" aria-label="Category" (click)="ngOnSetColor(undefined)">
@@ -57,4 +50,22 @@
             </button>
         </div>
     </mat-menu>
+</div>
+
+<div class="replays" *ngIf="comment.responses.length > 0">
+    <app-sidebar-app-comments-item-replay *ngFor="let response of comment.responses"
+        [response]="response"
+        [color]="ngGetResponseColor()"
+        [edit]="ngGetResponseEditCallback(response)"
+        [remove]="ngGetResponseRemoveCallback(response.guid)"
+    ></app-sidebar-app-comments-item-replay>
+</div>
+
+<div class="replay-editor" *ngIf="_ng_response !== undefined">
+    <app-sidebar-app-comments-editor
+        [comment]="_ng_response"
+        [save]="ngOnResponseSave"
+        [mode]="(_ng_response.guid === '' ? 'create' : 'edit')"
+        [cancel]="ngOnResponseCancel"
+    ></app-sidebar-app-comments-editor>
 </div>
