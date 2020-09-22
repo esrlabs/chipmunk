@@ -10,13 +10,13 @@
             margin-left: 19px;
         }
         & > mat-icon {
-            color: @scheme-color-1;
+            color: @scheme-color-1!important;
             font-size: 16px;
             margin-top: 6px;
         }
         &.black {
             & * {
-                color: #000000!important;
+                color: #000000;
             }
         }
         & mat-card {
@@ -25,6 +25,9 @@
             & mat-card-subtitle {
                 display: flex;
                 align-items: center;
+                & button {
+                    opacity: 0.001;
+                }
                 & > span {
                     width: 100%;
                 }
@@ -39,8 +42,10 @@
         }
         &:hover {
             & mat-card {
-                & mat-card-actions {
-                    opacity: 1;
+                & mat-card-subtitle {
+                    & button {
+                        opacity: 1;
+                    }
                 }
             }
         }
