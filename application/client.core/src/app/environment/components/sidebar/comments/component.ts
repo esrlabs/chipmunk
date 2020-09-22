@@ -24,6 +24,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
 
     public _ng_comments: IComment[] = [];
     public _ng_controller: ControllerSessionTab | undefined;
+    public _ng_broadcastEditorUsage: Subject<string> = new Subject<string>();
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubs: { [key: string]: Subscription } = {};

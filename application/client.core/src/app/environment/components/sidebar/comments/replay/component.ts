@@ -19,6 +19,7 @@ export class SidebarAppCommentsItemReplayComponent implements OnDestroy, AfterVi
     @Input() color: string | undefined;
     @Input() edit: () => void;
     @Input() remove: () => void;
+    @Input() icon: boolean;
 
 
     private _subscriptions: { [key: string]: Subscription } = {};
