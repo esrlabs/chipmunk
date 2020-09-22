@@ -3,12 +3,12 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { IServices } from '../../../services/shared.services.sidebar';
 import { IComment } from '../../../controller/controller.session.tab.stream.comments.types';
+import { CShortColors } from 'src/app/environment/conts/colors';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { CShortColors } from 'src/app/environment/conts/colors';
 
 @Component({
     selector: 'app-sidebar-app-files',

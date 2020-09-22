@@ -1,9 +1,9 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges, ViewEncapsulation, NgZone } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { IComment } from '../../../../controller/controller.session.tab.stream.comments.types';
+import { IComment, ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
 import { CShortColors } from '../../../../conts/colors';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
@@ -21,11 +21,15 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
     @Input() controller: ControllerSessionTab;
 
     public _ng_colors: string[] = CShortColors.slice();
+    public _ng_response: ICommentResponse | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef,
+                private _zone: NgZone) {
+        this.ngOnResponseSave = this.ngOnResponseSave.bind(this);
+        this.ngOnResponseCancel = this.ngOnResponseCancel.bind(this);
     }
 
     public ngAfterViewInit() {
@@ -62,6 +66,26 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterViewInit
         this.comment.color = color;
         this.controller.getSessionComments().update(this.comment);
         this._forceUpdate();
+    }
+
+    public ngOnReplay(ref: string | undefined) {
+        if (ref === undefined) {
+            this._ng_response = {
+                guid: '',
+                created: Date.now(),
+                modified: Date.now(),
+                comment: '',
+            };
+            this._forceUpdate();
+        }
+    }
+
+    public ngOnResponseSave(comment: string) {
+
+    }
+
+    public ngOnResponseCancel() {
+
     }
 
     private _forceUpdate() {

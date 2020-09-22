@@ -81,6 +81,9 @@ export class ControllerSessionTabStreamComments {
                     state: ECommentState.pending,
                     comment: '',
                     color: undefined,
+                    created: Date.now(),
+                    modified: Date.now(),
+                    responses: [],
                     selection: {
                         start: {
                             position: Math.min(selection.anchor, selection.focus),
@@ -118,6 +121,9 @@ export class ControllerSessionTabStreamComments {
                     state: ECommentState.pending,
                     comment: '',
                     color: undefined,
+                    created: Date.now(),
+                    modified: Date.now(),
+                    responses: [],
                     selection: {
                         start: {
                             position: Math.min(selection.anchor, selection.focus),
@@ -200,6 +206,7 @@ export class ControllerSessionTabStreamComments {
                         PopupsService.remove(guid);
                         comment.comment = text;
                         comment.state = ECommentState.done;
+                        comment.modified = Date.now();
                         this._comments.set(comment.guid, comment);
                         if (creating) {
                             this._subjects.onAdded.next(comment);
@@ -238,6 +245,7 @@ export class ControllerSessionTabStreamComments {
         if (!this._comments.has(comment.guid)) {
             return;
         }
+        comment.modified = Date.now();
         this._comments.set(comment.guid, comment);
         this._subjects.onUpdated.next(comment);
     }
