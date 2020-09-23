@@ -240,7 +240,7 @@ export class OutputParsersService {
             ...(charts === undefined ? [] : charts)
         ], row.str));
         modifiers.push(new FiltersModifier(requests instanceof Array ? requests : [], row.str));
-        const processor = new ModifierProcessor(modifiers);
+        const processor = new ModifierProcessor(modifiers, row.hasOwnStyles);
         return processor.parse(row.str);
     }
 
