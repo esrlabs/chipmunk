@@ -9,12 +9,13 @@ import { IComment, IActualSelectionData, ECommentState } from './controller.sess
 import { DialogsAddCommentOnRowComponent } from '../components/dialogs/comment.row.add/component';
 import { IAPI } from 'chipmunk.client.toolkit';
 import { CShortColors } from '../conts/colors';
+import { Importable, IImportedData } from './controller.session.importer.interface';
 
 import LayoutStateService from '../services/standalone/service.layout.state';
 import PopupsService from '../services/standalone/service.popups';
 import OutputParsersService from '../services/standalone/service.output.parsers';
 
-export class ControllerSessionTabStreamComments {
+export class ControllerSessionTabStreamComments extends Importable {
 
     private _logger: Toolkit.Logger;
     private _sessionId: string;
@@ -37,12 +38,14 @@ export class ControllerSessionTabStreamComments {
     };
 
     constructor(session: string, api: IAPI) {
+        super();
         this._api = api;
         this._sessionId = session;
         this._logger = new Toolkit.Logger(`ControllerSessionComments: ${session}`);
     }
 
     public destroy() {
+        this._comments.clear();
     }
 
     public create(selection: IScrollBoxSelection, startRowStr: string, endRowStr: string): Error | undefined {
@@ -292,6 +295,45 @@ export class ControllerSessionTabStreamComments {
         const comments: IComment[] = this._getRelevantComment(position);
         return comments.map((comment: IComment) => {
             return new CommentSelectionModifier(comment, position, str);
+        });
+    }
+
+    public getImporterUUID(): string {
+        return 'comments';
+    }
+
+    public export(): Promise<IImportedData | undefined> {
+        return new Promise((resolve) => {
+            if (this._comments.size === 0) {
+                return resolve(undefined);
+            }
+            const data: string = JSON.stringify(Array.from(this._comments.values()));
+            resolve({
+                hash: this.getDataHash(data),
+                data: data,
+            });
+        });
+    }
+
+    public import(data: IImportedData): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                if (this.getDataHash(data.data) !== data.hash) {
+                    return reject(new Error(`Dismatch of hash`));
+                }
+                const imported: IComment[] = JSON.parse(data.data);
+                if (!(imported instanceof Array)) {
+                    return reject(new Error(this._logger.warn(`Fail to import data because of expecting an array`)));
+                }
+                this._comments.clear();
+                imported.forEach((comment: IComment) => {
+                    this._comments.set(comment.guid, comment);
+                    this._subjects.onAdded.next(comment);
+                });
+                resolve();
+            } catch (e) {
+                reject(new Error(this._logger.warn(`Fail to import data due error: ${e.message}`)));
+            }
         });
     }
 

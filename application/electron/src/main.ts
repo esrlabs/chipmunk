@@ -47,6 +47,7 @@ import ServiceLogsExtractor from './services/service.logs.extractor';
 import ServiceReleaseNotes from './services/service.release.notes';
 import ServiceCLI from './services/service.cli';
 import ServiceTimestampFormatRecent from './services/features/service.timestamp.recent';
+import ServiceImporter from './services/service.importer';
 
 enum EAppState {
     initing = 'initing',

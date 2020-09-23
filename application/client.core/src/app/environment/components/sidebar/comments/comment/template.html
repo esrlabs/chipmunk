@@ -18,6 +18,17 @@
                 <mat-icon>more_horiz</mat-icon>
             </button>
         </mat-card-actions>
+
+        <div class="replays" *ngIf="comment.responses.length > 0">
+            <app-sidebar-app-comments-item-replay *ngFor="let response of comment.responses; let i = index"
+                [response]="response"
+                [color]="ngGetResponseColor()"
+                [edit]="ngGetResponseEditCallback(response)"
+                [remove]="ngGetResponseRemoveCallback(response.guid)"
+                [icon]="i === 0"
+            ></app-sidebar-app-comments-item-replay>
+        </div>
+
     </mat-card>
 
     <mat-menu #commentActionsMenu="matMenu" xPosition="before">
@@ -46,20 +57,9 @@
                     mat-mini-fab color="primary"
                     (click)="ngOnSetColor(color)"
                     [ngStyle]="{'background': color}">
-                
             </button>
         </div>
     </mat-menu>
-</div>
-
-<div class="replays" *ngIf="comment.responses.length > 0">
-    <app-sidebar-app-comments-item-replay *ngFor="let response of comment.responses; let i = index"
-        [response]="response"
-        [color]="ngGetResponseColor()"
-        [edit]="ngGetResponseEditCallback(response)"
-        [remove]="ngGetResponseRemoveCallback(response.guid)"
-        [icon]="i === 0"
-    ></app-sidebar-app-comments-item-replay>
 </div>
 
 <div class="replay-editor" *ngIf="_ng_response !== undefined">

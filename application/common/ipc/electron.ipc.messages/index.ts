@@ -548,6 +548,18 @@ export { ICLIActionOpenFileRequest, CLIActionOpenFileRequest };
 import { ICLIActionOpenFileResponse, CLIActionOpenFileResponse } from './cli.action.open.file.response';
 export { ICLIActionOpenFileResponse, CLIActionOpenFileResponse };
 
+import { ISessionImporterLoadRequest, SessionImporterLoadRequest } from './session.importer.load.request';
+export { ISessionImporterLoadRequest, SessionImporterLoadRequest };
+
+import { ISessionImporterLoadResponse, SessionImporterLoadResponse } from './session.importer.load.response';
+export { ISessionImporterLoadResponse, SessionImporterLoadResponse };
+
+import { ISessionImporterData, ISessionImporterSaveRequest, SessionImporterSaveRequest } from './session.importer.save.request';
+export { ISessionImporterData, ISessionImporterSaveRequest, SessionImporterSaveRequest };
+
+import { ISessionImporterSaveResponse, SessionImporterSaveResponse } from './session.importer.save.response';
+export { ISessionImporterSaveResponse, SessionImporterSaveResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -728,7 +740,11 @@ export type TMessage =  AppRestartRequest |
                         TimerangeSearchResponse |
                         TimerangeSearchProgress |
                         CLIActionOpenFileRequest |
-                        CLIActionOpenFileResponse;
+                        CLIActionOpenFileResponse |
+                        SessionImporterLoadRequest |
+                        SessionImporterLoadResponse |
+                        SessionImporterSaveRequest |
+                        SessionImporterSaveResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -941,4 +957,9 @@ export const Map = {
 
     [CLIActionOpenFileRequest.signature             ]: CLIActionOpenFileRequest,
     [CLIActionOpenFileResponse.signature            ]: CLIActionOpenFileResponse,
+
+    [SessionImporterLoadRequest.signature           ]: SessionImporterLoadRequest,
+    [SessionImporterLoadResponse.signature          ]: SessionImporterLoadResponse,
+    [SessionImporterSaveRequest.signature           ]: SessionImporterSaveRequest,
+    [SessionImporterSaveResponse.signature          ]: SessionImporterSaveResponse,
 };

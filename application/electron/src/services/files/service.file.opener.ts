@@ -2,18 +2,19 @@ import ServiceElectron, { IPCMessages } from '../service.electron';
 import ServiceStreams from '../service.streams';
 import ServiceStreamSource from '../service.stream.sources';
 import ServiceHotkeys from '../service.hotkeys';
-import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
 import ServiceFileRecent from './service.file.recent';
+import Logger from '../../tools/env.logger';
 
 import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue } from 'electron';
-import Logger from '../../tools/env.logger';
-import * as Tools from '../../tools/index';
-import * as fs from 'fs';
-import * as path from 'path';
+import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import { isHidden } from '../../tools/fs';
+
+import * as Tools from '../../tools/index';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface IOpenFileResult {
     sourceId: number;
@@ -131,6 +132,8 @@ class ServiceFileOpener implements IService {
                                 })).catch((confirmNotificationErr: Error) => {
                                     this._logger.warn(`Fail notify render about opening file "${file}" due error: ${confirmNotificationErr.message}`);
                                 });
+                                // Bound filename with session
+                                ServiceStreams.addBoundFile(sessionId, file);
                                 // Resolve
                                 resolve({ sourceId: sourceId, options: options });
                             });

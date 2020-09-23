@@ -25,6 +25,7 @@ export interface IStreamInfo {
     socketFile: string;
     streamFile: string;
     searchFile: string;
+    bounds: string[];
     connections: Net.Socket[];
     connectionFactory: (pluginName: string) => Promise<{ socket: Net.Socket, file: string }>;
     server: Net.Server;
@@ -177,7 +178,7 @@ class ServiceStreams implements IService  {
         return this._streams.has(streamId);
     }
 
-    public getStreamFile(streamId?: string): { streamId: string, file: string } | Error {
+    public getStreamFile(streamId?: string): { streamId: string, file: string, bounds: string[] } | Error {
         if (streamId === undefined) {
             streamId = this._activeStreamGuid;
         }
@@ -186,7 +187,7 @@ class ServiceStreams implements IService  {
         if (stream === undefined) {
             return new Error(this._logger.warn(`Cannot return stream's filename, because fail to find a stream data for stream guid "${streamId}"`));
         }
-        return { streamId: streamId, file: stream.streamFile };
+        return { streamId: streamId, file: stream.streamFile, bounds: stream.bounds };
     }
 
     public addProgressSession(id: string, name: string, streamId?: string) {
@@ -257,6 +258,15 @@ class ServiceStreams implements IService  {
         stream.processor.pushToStreamFileMap(map);
     }
 
+    public addBoundFile(session: string, filename: string) {
+        const stream: IStreamInfo | undefined = this._streams.get(session);
+        if (stream === undefined) {
+            return;
+        }
+        stream.bounds.push(filename);
+        this._streams.set(session, stream);
+    }
+
     public closeAll(): Promise<void> {
         return new Promise((resolve) => {
             // Destroy all connections / servers to UNIX sockets
@@ -315,6 +325,7 @@ class ServiceStreams implements IService  {
                     searchFile: searchFile,
                     server: server,
                     connections: [],
+                    bounds: [],
                     connectionFactory: (pluginName: string): Promise<{ socket: Net.Socket, file: string }> => {
                         return new Promise((resolveConnection) => {
                             const socket: Net.Socket = Net.connect(socketFile, () => {
