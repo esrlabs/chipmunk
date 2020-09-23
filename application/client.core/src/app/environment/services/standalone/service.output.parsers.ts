@@ -25,6 +25,11 @@ export interface IRow {
     hasOwnStyles?: boolean;
 }
 
+export interface IHighlight {
+    color: string | undefined;
+    background: string | undefined;
+}
+
 export interface ITooltip {
     id: string;
     getContent(str: string, position: number, selection: string): Promise<string | undefined>;
@@ -239,33 +244,15 @@ export class OutputParsersService {
         return processor.parse(row.str);
     }
 
-    public matches(sessionId: string, row: number, str: string): { str: string, changed: boolean, color?: string, background?: string } {
+    public highlight(sessionId: string, str: string): IHighlight {
+        const requests: IRequest[] = this._search.has(sessionId) ? this._search.get(sessionId) : [];
+        const highlights: IRequest[] = this._highlights.has(sessionId) ? this._highlights.get(sessionId) : [];
+        const charts: IRequest[] = this._charts.has(sessionId) ? this._charts.get(sessionId) : [];
+        const target: IRequest | undefined = ([].concat(highlights, charts, requests)).find(r => str.search(r.reg) !== -1);
         return {
-            str: str,
-            changed: false,
+            color: target === undefined ? undefined : (target.color === CColors[0] ? undefined : target.color),
+            background: target === undefined ? undefined : (target.background === CColors[0] ? undefined : target.background)
         };
-        /*
-        const requests: IRequest[] | undefined = this._search.get(sessionId);
-        const highlights: IRequest[] | undefined = this._highlights.get(sessionId);
-        const charts: IRequest[] | undefined = this._charts.get(sessionId);
-        if (requests === undefined && this._highlights === undefined && charts === undefined) {
-            return {
-                str: str,
-                changed: false,
-            };
-        }
-        const highlightsModifier = new HighlightsModifier([
-            ...(highlights === undefined ? [] : highlights),
-            ...(charts === undefined ? [] : charts)
-        ], str);
-        const filtersModifier = new FiltersModifier(requests instanceof Array ? requests : [], str);
-        const modifiers = new ModifierProcessor([highlightsModifier, filtersModifier]);
-        return {
-            str: modifiers.parse(str),
-            changed: modifiers.wasChanged(),
-            // color: first === undefined ? undefined : (first.color === CColors[0] ? undefined : first.color),
-            // background: first === undefined ? undefined : (first.background === CColors[0] ? undefined : first.background)
-        };*/
     }
 
     public escapeHTML(html: string): string {

@@ -87,23 +87,23 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     }
 
     private _getHTML(str: string): string {
+        // Apply search matches parser
+        const highlight = OutputParsersService.highlight(this.sessionId, str);
         // Rid of HTML
         str = OutputParsersService.serialize(str);
-        // Apply search matches parser
-        const matches = OutputParsersService.matches(this.sessionId, this.position, str);
         // Set colors
-        this.color = matches.color;
-        this.background = matches.background;
+        this.color = highlight.color;
+        this.background = highlight.background;
         // Apply plugin parser
         str = OutputParsersService.row({
             str: str,
             pluginId: this.pluginId,
             source: this.source,
             position: this.position,
-            hasOwnStyles: (matches.color !== undefined) || (matches.background !== undefined),
+            hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
         });
         // Return parsed HTML
-        return matches.str;
+        return str;
     }
 
 }
