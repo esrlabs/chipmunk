@@ -6,19 +6,22 @@ export class ModifierProcessor {
     private _modifiers: Modifier[];
     private _injections: IHTMLInjection[] = [];
     private _logger: Logger = new Logger('ModifierProcessor');
+    private _hasOwnStyles: boolean = false;
 
-    constructor(modifiers: Modifier[]) {
+    constructor(modifiers: Modifier[], hasOwnStyles: boolean) {
         this._modifiers = modifiers;
+        this._hasOwnStyles = hasOwnStyles;
     }
 
     public parse(row: string): string {
         // Get rid of original HTML in logs
         row = this._serialize(row);
         this._injections = [];
+        const modifiers: Modifier[] = this._getApplicableModifiers();
         Priorities.forEach((type: EType, index: number) => {
             const subordinateTypes: EType[] = index !== Priorities.length - 1 ? Priorities.slice(index + 1, Priorities.length) : [];
-            const masters: Modifier[] = this._modifiers.filter(m => m.type() === type);
-            const subordinates: Modifier[] = this._modifiers.filter(m => subordinateTypes.indexOf(m.type()) !== -1);
+            const masters: Modifier[] = modifiers.filter(m => m.type() === type);
+            const subordinates: Modifier[] = modifiers.filter(m => subordinateTypes.indexOf(m.type()) !== -1);
             if (masters.length === 0) {
                 return;
             } else {
@@ -40,7 +43,7 @@ export class ModifierProcessor {
                 });
             }
         });
-        this._modifiers.forEach((modifier: Modifier) => {
+        modifiers.forEach((modifier: Modifier) => {
             let ignore: boolean = false;
             // Check injections of modifier
             modifier.getInjections().forEach((inj: IHTMLInjection) => {
@@ -84,6 +87,9 @@ export class ModifierProcessor {
             if (clean === '') {
                 return match;
             }
+            // For finalization procedure we are applying
+            // all modifiers. For example, to cleanup from 
+            // ASCII escapes
             this._modifiers.forEach((modifier: Modifier) => {
                 const finalized: string = modifier.finalize(clean);
                 const safe: string = this._serialize(finalized);
@@ -99,6 +105,16 @@ export class ModifierProcessor {
 
     public wasChanged(): boolean {
         return this._injections.length > 0;
+    }
+
+    private _getApplicableModifiers(): Modifier[] {
+        return this._modifiers.filter((modifier: Modifier) => {
+            if (this._hasOwnStyles) {
+                return [EType.above, EType.match].indexOf(modifier.type()) !== -1;
+            } else {
+                return true;
+            }
+        });
     }
 
     private _serialize(str: string): string {
