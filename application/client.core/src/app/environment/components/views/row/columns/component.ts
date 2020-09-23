@@ -100,21 +100,19 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             if (!this._columns[index] || !this._columns[index].visible) {
                 return null;
             }
+            // Apply search matches parser
+            const highlight = OutputParsersService.highlight(this.sessionId, column);
+            this.color = highlight.color;
+            this.background = highlight.background;
             // Rid of HTML
             column = OutputParsersService.serialize(column);
-            // Apply search matches parser
-            const matches = OutputParsersService.matches(this.sessionId, this.position, column);
-            if (this.background === undefined || this.color === undefined) {
-                this.color = matches.color;
-                this.background = matches.background;
-            }
             // Apply plugin parser
             column = OutputParsersService.row({
-                str: matches.str,
+                str: column,
                 pluginId: this.pluginId,
                 source: this.source,
                 position: this.position,
-                hasOwnStyles: (matches.color !== undefined) || (matches.background !== undefined),
+                hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
             });
             return {
                 html: this._sanitizer.bypassSecurityTrustHtml(column),
