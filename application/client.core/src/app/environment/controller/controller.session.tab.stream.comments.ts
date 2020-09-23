@@ -8,6 +8,7 @@ import { CommentSelectionModifier } from './controller.session.tab.stream.commen
 import { IComment, IActualSelectionData, ECommentState } from './controller.session.tab.stream.comments.types';
 import { DialogsAddCommentOnRowComponent } from '../components/dialogs/comment.row.add/component';
 import { IAPI } from 'chipmunk.client.toolkit';
+import { CShortColors } from '../conts/colors';
 
 import LayoutStateService from '../services/standalone/service.layout.state';
 import PopupsService from '../services/standalone/service.popups';
@@ -80,7 +81,7 @@ export class ControllerSessionTabStreamComments {
                     guid: guid,
                     state: ECommentState.pending,
                     comment: '',
-                    color: undefined,
+                    color: CShortColors[0],
                     created: Date.now(),
                     modified: Date.now(),
                     responses: [],
@@ -120,7 +121,7 @@ export class ControllerSessionTabStreamComments {
                     guid: guid,
                     state: ECommentState.pending,
                     comment: '',
-                    color: undefined,
+                    color: CShortColors[0],
                     created: Date.now(),
                     modified: Date.now(),
                     responses: [],
