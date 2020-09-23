@@ -88,7 +88,7 @@ export class ModifierProcessor {
                 return match;
             }
             // For finalization procedure we are applying
-            // all modifiers. For example, to cleanup from 
+            // all modifiers. For example, to cleanup from
             // ASCII escapes
             this._modifiers.forEach((modifier: Modifier) => {
                 const finalized: string = modifier.finalize(clean);
