@@ -4,12 +4,14 @@ import { ControllerSessionTabStreamOutput } from './controller.session.tab.strea
 import { ControllerSessionTabSearchState} from './controller.session.tab.search.state';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
+import { Importable } from './controller.session.importer.interface';
 import {
     FilterRequest,
     IFilterFlags,
     IFiltersStorageUpdated,
     IFilterUpdateEvent,
     FiltersStorage,
+    IFilterDescOptional,
 } from './controller.session.tab.search.filters.storage';
 
 import ServiceElectronIpc, { IPCMessages } from '../services/service.electron.ipc';
@@ -38,9 +40,10 @@ export interface ISubjects {
     searching: Subject<void>;
     complited: Subject<void>;
     dropped: Subject<void>;
+    onExport: Subject<void>;
 }
 
-export class ControllerSessionTabSearchFilters {
+export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOptional[]> {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -50,6 +53,7 @@ export class ControllerSessionTabSearchFilters {
         searching: new Subject<void>(),
         complited: new Subject<void>(),
         dropped: new Subject<void>(),
+        onExport: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = { };
     private _scope: ControllerSessionScope;
@@ -58,6 +62,7 @@ export class ControllerSessionTabSearchFilters {
     private _requestedSearch: string | undefined;
 
     constructor(params: IControllerSessionStreamFilters) {
+        super();
         this._guid = params.guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchFilters: ${params.guid}`);
         this._scope = params.scope;
@@ -192,10 +197,36 @@ export class ControllerSessionTabSearchFilters {
         return this._state;
     }
 
+    public getExportObservable(): Observable<void> {
+        return this._subjects.onExport.asObservable();
+    }
+
+    public getImporterUUID(): string {
+        return 'filters';
+    }
+
+    public export(): Promise<IFilterDescOptional[] | undefined> {
+        return new Promise((resolve) => {
+            if (this._storage.get().length === 0) {
+                return resolve(undefined);
+            }
+            resolve(this._storage.getAsDesc());
+        });
+    }
+
+    public import(filters: IFilterDescOptional[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._storage.clear();
+            this._storage.add(filters);
+            resolve();
+        });
+    }
+
     private _onStorageUpdated(event: IFiltersStorageUpdated | undefined) {
         OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());
         OutputParsersService.updateRowsView();
         this._subjects.updated.next(this._storage);
+        this._subjects.onExport.next();
         if (this._state.isLocked()) {
             // Do not apply search, because we have active search
             return;
@@ -216,6 +247,7 @@ export class ControllerSessionTabSearchFilters {
             OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());
             OutputParsersService.updateRowsView();
         }
+        this._subjects.onExport.next();
     }
 
     private _search(requestId: string, requests?: FilterRequest | FilterRequest[]): Promise<number | undefined> {
