@@ -123,6 +123,8 @@ class ServiceFileOpener implements IService {
                                 if (info !== undefined) {
                                     (info as IPCMessages.IStreamSourceNew).id = sourceId;
                                 }
+                                // Bound filename with session
+                                ServiceStreams.addBoundFile(sessionId, file);
                                 // Send meta info data
                                 ServiceElectron.IPC.send(new IPCMessages.FileOpenDoneEvent({
                                     session: sessionId,
@@ -132,8 +134,6 @@ class ServiceFileOpener implements IService {
                                 })).catch((confirmNotificationErr: Error) => {
                                     this._logger.warn(`Fail notify render about opening file "${file}" due error: ${confirmNotificationErr.message}`);
                                 });
-                                // Bound filename with session
-                                ServiceStreams.addBoundFile(sessionId, file);
                                 // Resolve
                                 resolve({ sourceId: sourceId, options: options });
                             });

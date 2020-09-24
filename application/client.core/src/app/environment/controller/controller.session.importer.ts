@@ -1,5 +1,7 @@
 import { IImportedData, Importable } from './controller.session.importer.interface';
-import { IPCMessages } from '../services/service.electron.ipc';
+import { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
+import { Subscription } from 'rxjs';
+
 import ServiceElectronIpc from '../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -9,11 +11,25 @@ export class ControllerSessionImporter {
     private _controllers: Importable[];
     private _logger: Toolkit.Logger;
     private _session: string;
+    private _subscriptions: { [key: string]: IPCSubscription | Subscription } = {};
 
     constructor(session: string, controllers: Importable[]) {
         this._logger = new Toolkit.Logger(`ControllerSessionImporter ${session}`);
         this._controllers = controllers;
         this._session = session;
+        this._subscriptions.FileOpenDoneEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenDoneEvent, this._onFileOpenDoneEvent.bind(this));
+        this._controllers.forEach((controller: Importable) => {
+            this._subscriptions[controller.getImporterUUID()] = controller.getExportObservable().subscribe(this._onExportTriggered.bind(this));
+        });
+    }
+
+    public destroy(): Promise<void> {
+        return new Promise((resolve) => {
+            Object.keys(this._subscriptions).forEach((key: string) => {
+                this._subscriptions[key].unsubscribe();
+            });
+            resolve();
+        });
     }
 
     public export(): Promise<void> {
@@ -86,6 +102,21 @@ export class ControllerSessionImporter {
             }).catch((err: Error) => {
                 reject(new Error(this._logger.warn(`Fail to import data due error: ${err.message}`)));
             });
+        });
+    }
+
+    private _onExportTriggered() {
+        this.export().catch((error: Error) => {
+            this._logger.warn(`Export failed due error: ${error.message}`);
+        });
+    }
+
+    private _onFileOpenDoneEvent(event: IPCMessages.FileOpenDoneEvent) {
+        if (this._session !== event.session) {
+            return;
+        }
+        this.import().catch((error: Error) => {
+            this._logger.warn(`Import for "${event.file}" is failed due error: ${error.message}`);
         });
     }
 

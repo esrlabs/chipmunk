@@ -95,6 +95,7 @@ const InitializeStages = [
         ServiceOutputExport, ServiceLogsExtractor,
         ServiceFileRecent, ServiceTimestamp,
         ServiceFileWriter, ServiceTimestampFormatRecent,
+        ServiceImporter,
     ],
     // Stage #10. Init plugins and current release data
     [   ServicePlugins, ServiceReleaseNotes, ServiceCLI ],
