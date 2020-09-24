@@ -137,6 +137,12 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
         return this._stored;
     }
 
+    public getAsDesc(): IFilterDescOptional[] {
+        return this._stored.map((filter: FilterRequest) => {
+            return filter.asDesc();
+        });
+    }
+
     public getActive(): FilterRequest[] {
         return this._stored.filter((request: FilterRequest) => request.getState());
     }
