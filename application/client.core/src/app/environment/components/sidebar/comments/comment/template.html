@@ -19,7 +19,12 @@
             </button>
         </mat-card-actions>
 
-        <div class="replays" *ngIf="comment.responses.length > 0">
+        <mat-expansion-panel *ngIf="comment.responses.length > 0" [ngStyle]="{'background-color': ngGetResponseColor()}">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                {{comment.responses.length}} response{{comment.responses.length > 1 ? 's' : ''}}
+              </mat-panel-title>
+            </mat-expansion-panel-header>
             <app-sidebar-app-comments-item-replay *ngFor="let response of comment.responses; let i = index"
                 [response]="response"
                 [color]="ngGetResponseColor()"
@@ -27,7 +32,7 @@
                 [remove]="ngGetResponseRemoveCallback(response.guid)"
                 [icon]="i === 0"
             ></app-sidebar-app-comments-item-replay>
-        </div>
+        </mat-expansion-panel>
 
     </mat-card>
 
