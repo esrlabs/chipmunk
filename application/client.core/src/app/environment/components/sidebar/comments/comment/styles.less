@@ -8,6 +8,9 @@ app-sidebar-app-comments-item {
             & * {
                 color: #000000!important;
             }
+            .mat-expansion-indicator::after{
+                color: #000000!important;
+            }
         }
         & mat-card {
             margin-top: 8px;
@@ -17,6 +20,13 @@ app-sidebar-app-comments-item {
                 & button {
                     transition: 250ms ease-in-out all;
                 }
+            }
+            & mat-expansion-panel {
+                margin-left: -16px!important;
+                border-top-left-radius: 0!important;
+                border-top-right-radius: 0!important;
+                margin-right: -16px!important;
+                margin-bottom: -16px!important;
             }
         }
         &:hover {

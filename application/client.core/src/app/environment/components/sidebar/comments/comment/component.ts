@@ -142,7 +142,7 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     }
 
     public ngGetResponseColor(): string | undefined {
-        return this.comment.color === undefined ? undefined : shadeColor(this.comment.color, -20);
+        return this.comment.color === undefined ? undefined : shadeColor(this.comment.color, -10);
     }
 
     private _forceUpdate() {
