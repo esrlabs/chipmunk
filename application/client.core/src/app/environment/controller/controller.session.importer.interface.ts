@@ -1,4 +1,3 @@
-import { getHash } from './helpers/hash';
 import { Observable } from 'rxjs';
 
 export interface IImportedData {
@@ -6,18 +5,14 @@ export interface IImportedData {
     data: string;
 }
 
-export abstract class Importable {
+export abstract class Importable<T> {
 
-    public abstract export(): Promise<IImportedData | undefined>;
+    public abstract export(): Promise<T | undefined>;
 
-    public abstract import(data: IImportedData): Promise<void>;
+    public abstract import(data: T): Promise<void>;
 
     public abstract getImporterUUID(): string;
 
     public abstract getExportObservable(): Observable<void>;
-
-    public getDataHash(str: string): number {
-        return getHash(str);
-    }
 
 }

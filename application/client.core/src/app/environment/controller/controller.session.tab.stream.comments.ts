@@ -15,7 +15,7 @@ import LayoutStateService from '../services/standalone/service.layout.state';
 import PopupsService from '../services/standalone/service.popups';
 import OutputParsersService from '../services/standalone/service.output.parsers';
 
-export class ControllerSessionTabStreamComments extends Importable {
+export class ControllerSessionTabStreamComments extends Importable<IComment[]> {
 
     private _logger: Toolkit.Logger;
     private _sessionId: string;
@@ -29,14 +29,14 @@ export class ControllerSessionTabStreamComments extends Importable {
         onPending: Subject<IComment>,
         onRemoved: Subject<string>,
         onSelected: Subject<string>,
-        onChanges: Subject<void>,
+        onExport: Subject<void>,
     } = {
         onAdded: new Subject<IComment>(),
         onUpdated: new Subject<IComment>(),
         onPending: new Subject<IComment>(),
         onRemoved: new Subject<string>(),
         onSelected: new Subject<string>(),
-        onChanges: new Subject<void>(),
+        onExport: new Subject<void>(),
     };
 
     constructor(session: string, api: IAPI) {
@@ -216,10 +216,10 @@ export class ControllerSessionTabStreamComments extends Importable {
                         this._comments.set(comment.guid, comment);
                         if (creating) {
                             this._subjects.onAdded.next(comment);
-                            this._subjects.onChanges.next();
+                            this._subjects.onExport.next();
                         } else {
                             this._subjects.onUpdated.next(comment);
-                            this._subjects.onChanges.next();
+                            this._subjects.onExport.next();
                         }
                         this._api.openSidebarApp('comments', false);
                         LayoutStateService.sidebarMax();
@@ -256,7 +256,7 @@ export class ControllerSessionTabStreamComments extends Importable {
         comment.modified = Date.now();
         this._comments.set(comment.guid, comment);
         this._subjects.onUpdated.next(comment);
-        this._subjects.onChanges.next();
+        this._subjects.onExport.next();
     }
 
     public getObservable(): {
@@ -304,48 +304,33 @@ export class ControllerSessionTabStreamComments extends Importable {
     }
 
     public getExportObservable(): Observable<void> {
-        return this._subjects.onChanges.asObservable();
+        return this._subjects.onExport.asObservable();
     }
 
     public getImporterUUID(): string {
         return 'comments';
     }
 
-    public export(): Promise<IImportedData | undefined> {
+    public export(): Promise<IComment[] | undefined> {
         return new Promise((resolve) => {
             if (this._comments.size === 0) {
                 return resolve(undefined);
             }
-            const data: string = JSON.stringify(Array.from(this._comments.values()));
-            resolve({
-                hash: this.getDataHash(data),
-                data: data,
-            });
+            resolve(Array.from(this._comments.values()));
         });
     }
 
-    public import(data: IImportedData): Promise<void> {
+    public import(comments: IComment[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                if (this.getDataHash(data.data) !== data.hash) {
-                    return reject(new Error(`Dismatch of hash`));
-                }
-                const imported: IComment[] = JSON.parse(data.data);
-                if (!(imported instanceof Array)) {
-                    return reject(new Error(this._logger.warn(`Fail to import data because of expecting an array`)));
-                }
-                this._comments.clear();
-                imported.forEach((comment: IComment) => {
-                    this._comments.set(comment.guid, comment);
-                    this._subjects.onAdded.next(comment);
-                    this._subjects.onChanges.next();
-                });
-                OutputParsersService.updateRowsView();
-                this._api.openSidebarApp('comments', true);
-                resolve();
-            } catch (e) {
-                reject(new Error(this._logger.warn(`Fail to import data due error: ${e.message}`)));
-            }
+            this._comments.clear();
+            comments.forEach((comment: IComment) => {
+                this._comments.set(comment.guid, comment);
+                this._subjects.onAdded.next(comment);
+                this._subjects.onExport.next();
+            });
+            OutputParsersService.updateRowsView();
+            this._api.openSidebarApp('comments', true);
+            resolve();
         });
     }
 
