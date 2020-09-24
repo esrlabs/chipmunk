@@ -1,19 +1,20 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabTimestamp, IAddRange } from './controller.session.tab.timestamps';
 import { CommonInterfaces } from '../interfaces/interface.common';
+import { Importable } from './controller.session.importer.interface';
 import {
     RangeRequest,
     RangesStorage,
     IRangeUpdateEvent,
     IRangesStorageUpdated,
-    IUpdateEvent,
+    IRangeDescOptional
 } from './controller.session.tab.search.ranges.storage';
 import { FilterRequest } from './controller.session.tab.search.filters.request';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 import { IPCMessages } from '../services/service.electron.ipc';
-import { shadeColor, getColorHolder } from '../theme/colors';
+import { getColorHolder } from '../theme/colors';
+
 import ServiceElectronIpc from '../services/service.electron.ipc';
-import OutputParsersService from '../services/standalone/service.output.parsers';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -28,9 +29,10 @@ export interface ISubjects {
     updated: Subject<RangesStorage>;
     searching: Subject<string>;
     complited: Subject<string>;
+    onExport: Subject<void>;
 }
 
-export class ControllerSessionTabSearchRanges {
+export class ControllerSessionTabSearchRanges extends Importable<IRangeDescOptional[]> {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -39,12 +41,14 @@ export class ControllerSessionTabSearchRanges {
         updated: new Subject<RangesStorage>(),
         searching: new Subject<string>(),
         complited: new Subject<string>(),
+        onExport: new Subject<void>(),
     };
     private _timestamp: ControllerSessionTabTimestamp;
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = { };
     private _tasks: Map<string, CancelablePromise<CommonInterfaces.TimeRanges.IRange[]>> = new Map();
 
     constructor(params: IControllerSessionTabSearchRanges) {
+        super();
         this._guid = params.guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchRanges: ${params.guid}`);
         this._storage = new RangesStorage(params.guid);
@@ -159,11 +163,37 @@ export class ControllerSessionTabSearchRanges {
         return task;
     }
 
+    public getExportObservable(): Observable<void> {
+        return this._subjects.onExport.asObservable();
+    }
+
+    public getImporterUUID(): string {
+        return 'timeranges';
+    }
+
+    public export(): Promise<IRangeDescOptional[] | undefined> {
+        return new Promise((resolve) => {
+            if (this._storage.get().length === 0) {
+                return resolve(undefined);
+            }
+            resolve(this._storage.getAsDesc());
+        });
+    }
+
+    public import(filters: IRangeDescOptional[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._storage.clear();
+            this._storage.add(filters);
+            resolve();
+        });
+    }
+
     private _onStorageUpdated(event: IRangesStorageUpdated | undefined) {
+        this._subjects.onExport.next();
     }
 
     private _onStorageChanged(event: IRangeUpdateEvent) {
-
+        this._subjects.onExport.next();
     }
 
 }

@@ -137,6 +137,10 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
         return this._stored;
     }
 
+    public getAsDesc(): IChartDescOptional[] {
+        return this._stored.map(c => c.asDesc());
+    }
+
     public getActive(): ChartRequest[] {
         return this._stored.filter((request: ChartRequest) => request.getState());
     }
