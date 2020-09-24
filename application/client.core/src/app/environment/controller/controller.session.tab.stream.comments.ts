@@ -29,12 +29,14 @@ export class ControllerSessionTabStreamComments extends Importable {
         onPending: Subject<IComment>,
         onRemoved: Subject<string>,
         onSelected: Subject<string>,
+        onChanges: Subject<void>,
     } = {
         onAdded: new Subject<IComment>(),
         onUpdated: new Subject<IComment>(),
         onPending: new Subject<IComment>(),
         onRemoved: new Subject<string>(),
-        onSelected: new Subject<string>()
+        onSelected: new Subject<string>(),
+        onChanges: new Subject<void>(),
     };
 
     constructor(session: string, api: IAPI) {
@@ -214,8 +216,10 @@ export class ControllerSessionTabStreamComments extends Importable {
                         this._comments.set(comment.guid, comment);
                         if (creating) {
                             this._subjects.onAdded.next(comment);
+                            this._subjects.onChanges.next();
                         } else {
                             this._subjects.onUpdated.next(comment);
+                            this._subjects.onChanges.next();
                         }
                         this._api.openSidebarApp('comments', false);
                         LayoutStateService.sidebarMax();
@@ -252,6 +256,7 @@ export class ControllerSessionTabStreamComments extends Importable {
         comment.modified = Date.now();
         this._comments.set(comment.guid, comment);
         this._subjects.onUpdated.next(comment);
+        this._subjects.onChanges.next();
     }
 
     public getObservable(): {
@@ -298,6 +303,10 @@ export class ControllerSessionTabStreamComments extends Importable {
         });
     }
 
+    public getExportObservable(): Observable<void> {
+        return this._subjects.onChanges.asObservable();
+    }
+
     public getImporterUUID(): string {
         return 'comments';
     }
@@ -329,7 +338,10 @@ export class ControllerSessionTabStreamComments extends Importable {
                 imported.forEach((comment: IComment) => {
                     this._comments.set(comment.guid, comment);
                     this._subjects.onAdded.next(comment);
+                    this._subjects.onChanges.next();
                 });
+                OutputParsersService.updateRowsView();
+                this._api.openSidebarApp('comments', true);
                 resolve();
             } catch (e) {
                 reject(new Error(this._logger.warn(`Fail to import data due error: ${e.message}`)));

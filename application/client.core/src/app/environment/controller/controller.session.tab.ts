@@ -129,6 +129,7 @@ export class ControllerSessionTab {
                         this._states.destroy(),
                         this._timestamp.destroy(),
                         this._comments.destroy(),
+                        this._importer.destroy(),
                     ])
                         .then(() => {
                             this._scope.destroy();

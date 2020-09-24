@@ -23,12 +23,12 @@ class ServiceImporter implements IService {
     public init(): Promise<void> {
         return new Promise((resolve) => {
             // Subscribe to IPC messages / errors
-            ServiceElectron.IPC.subscribe(IPCMessages.SessionImporterLoadRequest, this._ipc_onSessionImporterLoadRequest).then((subscription: Subscription) => {
+            ServiceElectron.IPC.subscribe(IPCMessages.SessionImporterLoadRequest, this._ipc_onSessionImporterLoadRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscriptions.SessionImporterLoadRequest = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "SessionImporterLoadRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
-            ServiceElectron.IPC.subscribe(IPCMessages.SessionImporterSaveRequest, this._ipc_onSessionImporterSaveRequest).then((subscription: Subscription) => {
+            ServiceElectron.IPC.subscribe(IPCMessages.SessionImporterSaveRequest, this._ipc_onSessionImporterSaveRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscriptions.SessionImporterSaveRequest = subscription;
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "SessionImporterSaveRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
