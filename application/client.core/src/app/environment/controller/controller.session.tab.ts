@@ -90,7 +90,10 @@ export class ControllerSessionTab {
             search: this._search,
             stream: this._stream,
         });
-        this._importer = new ControllerSessionImporter(params.guid, [this._comments]);
+        this._importer = new ControllerSessionImporter(params.guid, [
+            this._comments,
+            this._stream.getBookmarks(),
+        ]);
         this._states = new ControllerSessionTabStates(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this.addOutputInjection = this.addOutputInjection.bind(this);

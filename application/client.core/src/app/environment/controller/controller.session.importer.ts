@@ -1,6 +1,7 @@
 import { IImportedData, Importable } from './controller.session.importer.interface';
 import { IPCMessages, Subscription as IPCSubscription } from '../services/service.electron.ipc';
 import { Subscription } from 'rxjs';
+import { getHash } from './helpers/hash';
 
 import ServiceElectronIpc from '../services/service.electron.ipc';
 
@@ -8,17 +9,17 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class ControllerSessionImporter {
 
-    private _controllers: Importable[];
+    private _controllers: Importable<any>[];
     private _logger: Toolkit.Logger;
     private _session: string;
     private _subscriptions: { [key: string]: IPCSubscription | Subscription } = {};
 
-    constructor(session: string, controllers: Importable[]) {
+    constructor(session: string, controllers: Importable<any>[]) {
         this._logger = new Toolkit.Logger(`ControllerSessionImporter ${session}`);
         this._controllers = controllers;
         this._session = session;
         this._subscriptions.FileOpenDoneEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenDoneEvent, this._onFileOpenDoneEvent.bind(this));
-        this._controllers.forEach((controller: Importable) => {
+        this._controllers.forEach((controller: Importable<any>) => {
             this._subscriptions[controller.getImporterUUID()] = controller.getExportObservable().subscribe(this._onExportTriggered.bind(this));
         });
     }
@@ -35,13 +36,16 @@ export class ControllerSessionImporter {
     public export(): Promise<void> {
         return new Promise((resolve, reject) => {
             const toBeExported: IPCMessages.ISessionImporterData[] = [];
-            Promise.all(this._controllers.map((controller: Importable) => {
+            Promise.all(this._controllers.map((controller: Importable<any>) => {
                 return new Promise((res) => {
-                    controller.export().then((data: IImportedData | undefined) => {
+                    controller.export().then((data: any | undefined) => {
                         if (data !== undefined) {
+                            const stringified: string = JSON.stringify(data);
+                            // const utf8Encode = new TextEncoder();
+                            // utf8Encode.encode(stringified);
                             toBeExported.push({
-                                hash: data.hash,
-                                data: data.data,
+                                hash: getHash(stringified),
+                                data: stringified,
                                 controller: controller.getImporterUUID(),
                             });
                         }
@@ -73,6 +77,13 @@ export class ControllerSessionImporter {
     }
 
     public import(): Promise<void> {
+        function getDataFromStr(str: string): any | Error {
+            try {
+                return JSON.parse(str);
+            } catch (e) {
+                return e;
+            }
+        }
         return new Promise((resolve, reject) => {
             ServiceElectronIpc.request(new IPCMessages.SessionImporterLoadRequest({
                 session: this._session,
@@ -85,12 +96,21 @@ export class ControllerSessionImporter {
                 }
                 Promise.all(response.data.map((pack: IPCMessages.ISessionImporterData) => {
                     return new Promise((res) => {
-                        const controller: Importable | undefined = this._controllers.find(c => c.getImporterUUID() === pack.controller);
+                        const controller: Importable<any> | undefined = this._controllers.find(c => c.getImporterUUID() === pack.controller);
                         if (controller === undefined) {
                             this._logger.warn(`Fail to find controller for "${pack.controller}". Fail to import data for it.`);
                             return res();
                         }
-                        controller.import({ data: pack.data, hash: pack.hash }).catch((err: Error) => {
+                        if (getHash(pack.data) !== pack.hash) {
+                            this._logger.warn(`Fail to parse data for "${pack.controller}" because of hash dismatch`);
+                            return res();
+                        }
+                        const parsed: any | Error = getDataFromStr(pack.data);
+                        if (parsed instanceof Error) {
+                            this._logger.warn(`Fail to parse data for "${pack.controller}" due error: ${parsed.message}`);
+                            return res();
+                        }
+                        controller.import(parsed).catch((err: Error) => {
                             this._logger.warn(`Fail import data for "${pack.controller}" due error: ${err.message}`);
                         }).finally(res);
                     });
