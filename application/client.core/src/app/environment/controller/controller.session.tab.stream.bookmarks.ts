@@ -2,6 +2,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Observable, Subject } from 'rxjs';
 import HotkeysService, { IHotkeyEvent } from '../services/service.hotkeys';
 import { Subscription } from 'rxjs';
+import { Importable, IImportedData } from './controller.session.importer.interface';
 
 export interface IBookmark {
     str: string | undefined;
@@ -10,7 +11,7 @@ export interface IBookmark {
     rank: number;
 }
 
-export class ControllerSessionTabStreamBookmarks {
+export class ControllerSessionTabStreamBookmarks extends Importable<IBookmark[]> {
 
     private _logger: Toolkit.Logger;
     private _sessionId: string;
@@ -22,13 +23,17 @@ export class ControllerSessionTabStreamBookmarks {
         onAdded: Subject<IBookmark>,
         onRemoved: Subject<number>,
         onSelected: Subject<number>,
+        onExport: Subject<void>,
+
     } = {
         onAdded: new Subject<IBookmark>(),
         onRemoved: new Subject<number>(),
-        onSelected: new Subject<number>()
+        onSelected: new Subject<number>(),
+        onExport: new Subject<void>(),
     };
 
     constructor(session: string) {
+        super();
         this._sessionId = session;
         this._logger = new Toolkit.Logger(`ControllerSessionBookmarks: ${session}`);
         this._subscriptions.selectNextRow = HotkeysService.getObservable().selectNextRow.subscribe(this._selectNextRow.bind(this));
@@ -45,6 +50,7 @@ export class ControllerSessionTabStreamBookmarks {
         const stored: IBookmark = Object.assign({}, bookmark);
         this._bookmarks.set(bookmark.position, stored);
         this._subjects.onAdded.next(stored);
+        this._subjects.onExport.next();
     }
 
     public remove(index: number) {
@@ -53,6 +59,7 @@ export class ControllerSessionTabStreamBookmarks {
         }
         this._bookmarks.delete(index);
         this._subjects.onRemoved.next(index);
+        this._subjects.onExport.next();
     }
 
     public isBookmarked(index: number): boolean {
@@ -89,6 +96,35 @@ export class ControllerSessionTabStreamBookmarks {
     public reset() {
         this._bookmarks.forEach((bookmark: IBookmark, key: number) => {
             this.remove(key);
+        });
+    }
+
+    public getExportObservable(): Observable<void> {
+        return this._subjects.onExport.asObservable();
+    }
+
+    public getImporterUUID(): string {
+        return 'bookmarks';
+    }
+
+    public export(): Promise<IBookmark[] | undefined> {
+        return new Promise((resolve) => {
+            if (this._bookmarks.size === 0) {
+                return resolve(undefined);
+            }
+            resolve(Array.from(this._bookmarks.values()));
+        });
+    }
+
+    public import(bookmarks: IBookmark[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._bookmarks.clear();
+            bookmarks.forEach((bookmark: IBookmark) => {
+                this._bookmarks.set(bookmark.position, bookmark);
+                this._subjects.onAdded.next(bookmark);
+                this._subjects.onExport.next();
+            });
+            resolve();
         });
     }
 
