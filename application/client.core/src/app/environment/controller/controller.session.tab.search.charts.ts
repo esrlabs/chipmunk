@@ -4,12 +4,13 @@ import { ControllerSessionScope } from './controller.session.tab.scope';
 import { ControllerSessionTab } from './controller.session.tab';
 import { IPCMessages } from '../services/service.electron.ipc';
 import { EChartType } from '../components/views/chart/charts/charts';
-import { CancelablePromise } from 'chipmunk.client.toolkit';
+import { Importable } from './controller.session.importer.interface';
 import {
     ChartRequest,
     IChartUpdateEvent,
     IChartsStorageUpdated,
     ChartsStorage,
+    IChartDescOptional
 } from './controller.session.tab.search.charts.storage';
 
 import ServiceElectronIpc from '../services/service.electron.ipc';
@@ -43,9 +44,10 @@ export interface ISubjects {
     onExtractingFinished: Subject<void>;
     onChartsResultsUpdated: Subject<IPCMessages.TChartResults>;
     onChartSelected: Subject<ChartRequest | undefined>;
+    onExport: Subject<void>;
 }
 
-export class ControllerSessionTabSearchCharts {
+export class ControllerSessionTabSearchCharts extends Importable<IChartDescOptional[]> {
 
     private _logger: Toolkit.Logger;
     private _guid: string;
@@ -57,12 +59,14 @@ export class ControllerSessionTabSearchCharts {
         onExtractingFinished: new Subject<void>(),
         onChartsResultsUpdated: new Subject<IPCMessages.TChartResults>(),
         onChartSelected: new Subject<ChartRequest | undefined>(),
+        onExport: new Subject<void>(),
     };
     private _data: IPCMessages.TChartResults = {};
     private _selected: string | undefined;
     private _tasks: Map<string, Promise<IPCMessages.TChartResults>> = new Map();
 
     constructor(params: IControllerSessionStreamCharts) {
+        super();
         this._guid = params.guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchCharts: ${params.guid}`);
         this._storage = new ChartsStorage(params.guid);
@@ -195,6 +199,31 @@ export class ControllerSessionTabSearchCharts {
         return this._subjects;
     }
 
+    public getExportObservable(): Observable<void> {
+        return this._subjects.onExport.asObservable();
+    }
+
+    public getImporterUUID(): string {
+        return 'charts';
+    }
+
+    public export(): Promise<IChartDescOptional[] | undefined> {
+        return new Promise((resolve) => {
+            if (this._storage.get().length === 0) {
+                return resolve(undefined);
+            }
+            resolve(this._storage.getAsDesc());
+        });
+    }
+
+    public import(filters: IChartDescOptional[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._storage.clear();
+            this._storage.add(filters);
+            resolve();
+        });
+    }
+
     private _onStorageUpdated(event: IChartsStorageUpdated) {
         this._refresh();
     }
@@ -269,6 +298,7 @@ export class ControllerSessionTabSearchCharts {
             };
         })}).finally(() => {
             this._updateRowsViews();
+            this._subjects.onExport.next();
         }).catch((error: Error) => {
             this._logger.error(`Fail to refresh charts data due error: ${error.message}`);
         });

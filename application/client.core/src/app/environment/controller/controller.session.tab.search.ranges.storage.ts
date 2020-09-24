@@ -135,6 +135,10 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
         return this._stored;
     }
 
+    public getAsDesc(): IRangeDescOptional[] {
+        return this._stored.map(r => r.asDesc());
+    }
+
     public reorder(params: IReorderParams) {
         const filter: RangeRequest = this._stored[params.prev];
         this._stored = this._stored.filter((i: RangeRequest, index: number) => {

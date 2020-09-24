@@ -94,6 +94,8 @@ export class ControllerSessionTab {
             this._comments,
             this._stream.getBookmarks(),
             this._search.getFiltersAPI(),
+            this._search.getChartsAPI(),
+            this._search.getRangesAPI(),
         ]);
         this._states = new ControllerSessionTabStates(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
