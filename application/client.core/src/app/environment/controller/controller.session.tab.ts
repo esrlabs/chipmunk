@@ -93,6 +93,7 @@ export class ControllerSessionTab {
         this._importer = new ControllerSessionImporter(params.guid, [
             this._comments,
             this._stream.getBookmarks(),
+            this._search.getFiltersAPI(),
         ]);
         this._states = new ControllerSessionTabStates(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();

@@ -2,7 +2,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Observable, Subject } from 'rxjs';
 import HotkeysService, { IHotkeyEvent } from '../services/service.hotkeys';
 import { Subscription } from 'rxjs';
-import { Importable, IImportedData } from './controller.session.importer.interface';
+import { Importable } from './controller.session.importer.interface';
 
 export interface IBookmark {
     str: string | undefined;
