@@ -13,6 +13,7 @@ export class ControllerSessionImporter {
     private _logger: Toolkit.Logger;
     private _session: string;
     private _subscriptions: { [key: string]: IPCSubscription | Subscription } = {};
+    private _lastOperationHash: string = '';
 
     constructor(session: string, controllers: Importable<any>[]) {
         this._logger = new Toolkit.Logger(`ControllerSessionImporter ${session}`);
@@ -55,6 +56,9 @@ export class ControllerSessionImporter {
                 });
             })).then(() => {
                 if (toBeExported.length === 0) {
+                    return resolve();
+                }
+                if (!this._isActualOperation(toBeExported)) {
                     return resolve();
                 }
                 ServiceElectronIpc.request(new IPCMessages.SessionImporterSaveRequest({
@@ -123,6 +127,13 @@ export class ControllerSessionImporter {
                 reject(new Error(this._logger.warn(`Fail to import data due error: ${err.message}`)));
             });
         });
+    }
+
+    private _isActualOperation(toBeExported: IPCMessages.ISessionImporterData[]): boolean {
+        const hash: string = toBeExported.map(i => i.hash.toString()).join('-');
+        const actual: boolean = this._lastOperationHash !== hash;
+        this._lastOperationHash = hash;
+        return actual;
     }
 
     private _onExportTriggered() {

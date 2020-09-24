@@ -4,6 +4,7 @@ import * as FS from '../tools/fs';
 import { StateFile } from '../classes/class.statefile';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
+import { ImporterWriter } from '../controllers/importer/importer.writer';
 
 import ServiceElectron from './service.electron';
 import ServiceStreams from './service.streams';
@@ -19,6 +20,7 @@ class ServiceImporter implements IService {
     private _settings: StateFile<IScheme.IStorage> | undefined;
     private _logger: Logger = new Logger('ServiceImporter');
     private _subscriptions: { [key: string ]: Subscription | undefined } = { };
+    private _writer: ImporterWriter = new ImporterWriter();
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
@@ -122,6 +124,11 @@ class ServiceImporter implements IService {
                 session: message.session,
             }));
         }
+        this._writer.write(this._getImporterFileName(file.bounds[0]), JSON.stringify(message.data));
+        response(new IPCMessages.SessionImporterSaveResponse({
+            session: message.session,
+        }));
+        /*
         FS.writeTextFile(this._getImporterFileName(file.bounds[0]), JSON.stringify(message.data), true).then(() => {
             response(new IPCMessages.SessionImporterSaveResponse({
                 session: message.session,
@@ -131,7 +138,7 @@ class ServiceImporter implements IService {
                 error: err.message,
                 session: message.session,
             }));
-        });
+        });*/
     }
 
     private _getImporterFileName(filename: string): string {
