@@ -47,7 +47,7 @@ export class TabSelectionParserService implements IService {
     private _onUpdate(event: IUpdateEvent) {
         this._last = event;
         if (ToolbarSessionsService.has(this._tabGuid)) {
-            ToolbarSessionsService.setActive(this._tabGuid).catch((error: Error) => this._logger.error(error.message));
+            ToolbarSessionsService.setActive(this._tabGuid, undefined, false).catch((error: Error) => this._logger.error(error.message));
             return;
         }
         ToolbarSessionsService.add('Details', {

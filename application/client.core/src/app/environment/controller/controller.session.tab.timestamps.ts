@@ -5,6 +5,8 @@ import { getUniqueColorTo, getColorHolder } from '../theme/colors';
 import { EKey } from '../services/standalone/service.output.redirections';
 import { TimestampRowParser } from './controller.session.tab.timestamps.rowparser';
 import { TimestampModifier } from './controller.session.tab.timestamps.modifier';
+import { Importable } from './controller.session.importer.interface';
+import { IAPI } from 'chipmunk.client.toolkit';
 
 import ElectronIpcService from '../services/service.electron.ipc';
 import OutputParsersService from '../services/standalone/service.output.parsers';
@@ -39,6 +41,22 @@ export interface IFormat {
     regexp: RegExp;
 }
 
+export interface IFormatDesc {
+    format: string;
+    regexp: string;
+}
+
+export interface ITimemeasureSession {
+    formats: IFormatDesc[];
+    ranges: IRange[];
+    defaults: DefaultDateParts;
+    mode: EChartMode;
+    sequences: {
+        range: number,
+        group: number,
+    };
+}
+
 export interface DefaultDateParts {
     day: number | undefined;
     month: number | undefined;
@@ -63,12 +81,13 @@ export enum EChartMode {
     scaled = 'scaled'
 }
 
-export class ControllerSessionTabTimestamp {
+export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSession> {
     readonly ROW_PARSER_ID: string = 'timestamps-row-parser';
     readonly ROW_TOOLTIP_ID: string = 'timestamps-row-tooltip';
     readonly ROW_HANDLER_ID: string = 'timestamps-row-handler';
 
     private _guid: string;
+    private _api: IAPI;
     private _logger: Toolkit.Logger;
     private _tasks: Map<string, CancelablePromise<any, any, any, any>> = new Map();
     private _format: IFormat[] = [];
@@ -97,6 +116,7 @@ export class ControllerSessionTabTimestamp {
         mode: Subject<EChartMode>,
         zoom: Subject<void>,
         optimization: Subject<boolean>,
+        onExport: Subject<void>,
     } = {
         update: new Subject(),
         formats: new Subject(),
@@ -104,6 +124,7 @@ export class ControllerSessionTabTimestamp {
         mode: new Subject(),
         zoom: new Subject(),
         optimization: new Subject(),
+        onExport: new Subject(),
     };
     private _cursor: {
         left: number,
@@ -114,7 +135,9 @@ export class ControllerSessionTabTimestamp {
     };
     private _colors: string[] = [];
 
-    constructor(guid: string) {
+    constructor(guid: string, api: IAPI) {
+        super();
+        this._api = api;
         this._guid = guid;
         this._logger = new Toolkit.Logger(`ControllerSessionTabTimestamp: ${guid}`);
         this._parser = new TimestampRowParser(this._injectHighlightFormat.bind(this));
@@ -673,6 +696,59 @@ export class ControllerSessionTabTimestamp {
         return ++this._sequences.group;
     }
 
+    public getExportObservable(): Observable<void> {
+        return this._subjects.onExport.asObservable();
+    }
+
+    public getImporterUUID(): string {
+        return 'timestamps_and_formats';
+    }
+
+    public export(): Promise<ITimemeasureSession | undefined> {
+        return new Promise((resolve) => {
+            if (this._format.length === 0) {
+                return resolve(undefined);
+            }
+            resolve({
+                formats: this._format.map((format: IFormat) => {
+                    return { format: format.format, regexp: format.regexp.source };
+                }),
+                ranges: this._ranges.slice(),
+                mode: this._mode,
+                defaults: Object.assign({}, this._defaults),
+                sequences: {
+                    group: this._sequences.group,
+                    range: this._sequences.range,
+                }
+            });
+        });
+    }
+
+    public import(session: ITimemeasureSession): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._format = session.formats.map((format: IFormatDesc) => {
+                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(format.regexp);
+                if (regexp instanceof Error) {
+                    this._logger.warn(`Fail restore regexp "${format.regexp}" due error: ${regexp.message}`);
+                    return null;
+                }
+                return { format: format.format, regexp: regexp };
+            }).filter(f => f !== null);
+            this._sequences = session.sequences;
+            this._ranges = session.ranges;
+            this._defaults = session.defaults;
+            this._mode = session.mode;
+            this._subjects.update.next(this.getRanges());
+            this._setState(true);
+            OutputParsersService.updateRowsView();
+            this._subjects.formats.next();
+            this._subjects.mode.next(session.mode);
+            this._subjects.defaults.next(session.defaults);
+            this._api.openToolbarApp(this._api.getDefaultToolbarAppsIds().timemeasurement, true);
+            resolve();
+        });
+    }
+
     private _getRangeByPosition(position: number, exception?: number): IRange | undefined {
         let range: IRange | undefined;
         this._ranges.forEach((r: IRange) => {
@@ -742,7 +818,7 @@ export class ControllerSessionTabTimestamp {
         }
     }
 
-    private _setState() {
+    private _setState(noexport: boolean = false) {
         const duration: number = this._state.duration;
         this._state = {
             min: Math.min(...this._ranges.map((r) => {
@@ -767,6 +843,9 @@ export class ControllerSessionTabTimestamp {
         }
         if (this._mode !== EChartMode.aligned) {
             this._subjects.zoom.next();
+        }
+        if (!noexport) {
+            this._subjects.onExport.next();
         }
     }
 

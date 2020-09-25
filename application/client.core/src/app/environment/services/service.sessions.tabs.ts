@@ -25,7 +25,7 @@ export { ControllerSessionTabSearch } from '../controller/controller.session.tab
 
 export type TSessionGuid = string;
 export type TSidebarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
-export type TToolbarTabOpener = (guid: string, session: string | undefined) => Promise<void>;
+export type TToolbarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Promise<void>;
 export type TNotificationOpener = (notification: Toolkit.INotification) => void;
 
 export interface IServiceSubjects {
@@ -239,26 +239,26 @@ export class TabsSessionsService implements IService {
     }
 
     public bars(): {
-        openSidebarApp: (appId: string, silence: boolean) => void,
-        openToolbarApp: (appId: string) => Promise<void>,
+        openSidebarApp: (appId: string, openTabOnly: boolean) => void,
+        openToolbarApp: (appId: string, openTabOnly: boolean) => Promise<void>,
         getDefsToolbarApps: () => Toolkit.IDefaultTabsGuids,
     } {
         const self = this;
         return {
-            openSidebarApp: (appId: string, silence: boolean) => {
+            openSidebarApp: (appId: string, openTabOnly: boolean = false) => {
                 if (self._sidebarTabOpener === undefined) {
                     return;
                 }
                 LayoutStateService.sidebarMax();
-                self._sidebarTabOpener(appId, self._tabsService.getActiveTab().guid, silence);
+                self._sidebarTabOpener(appId, self._tabsService.getActiveTab().guid, openTabOnly);
             },
-            openToolbarApp: (appId: string): Promise<void> => {
+            openToolbarApp: (appId: string, openTabOnly: boolean = false): Promise<void> => {
                 return new Promise((resolve, reject) => {
                     if (self._toolbarTabOpener === undefined) {
                         return reject(new Error(`Toolbar API isn't inited`));
                     }
                     LayoutStateService.toolbarMax();
-                    self._toolbarTabOpener(appId, undefined).then(resolve).catch(reject);
+                    self._toolbarTabOpener(appId, self._tabsService.getActiveTab().guid, openTabOnly).then(resolve).catch(reject);
                 });
             },
             getDefsToolbarApps: (): Toolkit.IDefaultTabsGuids => {

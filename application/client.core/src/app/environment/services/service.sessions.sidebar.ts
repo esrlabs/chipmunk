@@ -131,30 +131,29 @@ export class SidebarSessionsService implements IService {
         if (service instanceof Error) {
             return service;
         }
-        if (service.has(guid)) {
-            if (!openTabOnly) {
-                this.setActive(guid);
+        const current: string = service.getActiveTab().guid;
+        if (!service.has(guid)) {
+            const available: ITab[] | undefined = this.getAvailableTabs();
+            if (available === undefined) {
+                return new Error(`No available tabs found`);
             }
-            return undefined;
-        }
-        const available: ITab[] | undefined = this.getAvailableTabs();
-        if (available === undefined) {
-            return new Error(`No tab found`);
-        }
-        let added: boolean = false;
-        available.forEach((tab: ITab) => {
-            if (added) {
-                return;
-            }
-            if (tab.guid === guid) {
-                added = true;
-                this.add(tab, session);
-                if (!openTabOnly) {
-                    this.setActive(guid);
+            available.forEach((tab: ITab) => {
+                if (service.has(guid)) {
+                    return;
                 }
+                if (tab.guid === guid) {
+                    this.add(tab, session);
+                }
+            });
+        }
+        if (service.has(guid)) {
+            if (openTabOnly === false) {
+                this.setActive(guid);
+            } else {
+                this.setActive(current);
             }
-        });
-        return added ? undefined : new Error(`Tab ${guid} wasn't found in a list of available tabs.`);
+        }
+        return service.has(guid) ? undefined : new Error(`Tab ${guid} wasn't found in a list of available tabs.`);
     }
 
     public getAvailableTabs(session?: string): ITab[] | undefined {

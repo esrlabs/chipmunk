@@ -163,12 +163,13 @@ export class ToolbarSessionsService implements IService {
         return service.has(guid);
     }
 
-    public setActive(guid: string): Promise<void> {
+    public setActive(guid: string, session: string | undefined, openTabOnly: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            const service: TabsService | undefined = this._sessions.get(this._active);
+            const service: TabsService | undefined = this._sessions.get(session !== undefined ? session : this._active);
             if (service === undefined) {
                 return reject(new Error(this._logger.warn(`Fail to find tab's service`)));
             }
+            const current: string = service.getActiveTab().guid;
             if (!service.has(guid)) {
                 const tab: ITab | undefined = this._getTabByGuid(guid);
                 if (tab === undefined) {
@@ -176,7 +177,11 @@ export class ToolbarSessionsService implements IService {
                 }
                 service.add(tab);
             }
-            service.setActive(guid);
+            if (openTabOnly === true) {
+                service.setActive(current);
+            } else {
+                service.setActive(guid);
+            }
             const controller: ControllerToolbarLifecircle | undefined = this._lifecircle.get(guid);
             if (controller === undefined) {
                 // This situation isn't possible, but... At least log message

@@ -71,7 +71,7 @@ export class ControllerSessionTab {
         this._sessionId = params.guid;
         this._api = params.api;
         this._scope = new ControllerSessionScope(this._sessionId, params.sessionsEventsHub);
-        this._timestamp = new ControllerSessionTabTimestamp(params.guid);
+        this._timestamp = new ControllerSessionTabTimestamp(params.guid, this._api);
         this._comments = new ControllerSessionTabStreamComments(params.guid, this._api);
         this._logger = new Toolkit.Logger(`ControllerSession: ${params.guid}`);
         this._stream = new ControllerSessionTabStream({
@@ -92,6 +92,7 @@ export class ControllerSessionTab {
         });
         this._importer = new ControllerSessionImporter(params.guid, [
             this._comments,
+            this._timestamp,
             this._stream.getBookmarks(),
             this._search.getFiltersAPI(),
             this._search.getChartsAPI(),

@@ -300,7 +300,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                 caption: `Create range${selRanges.length > 1 ? 's' : ''} by ${selRanges.length > 1 ? `${selRanges.length} ` : ''}selection${selRanges.length > 1 ? 's' : ''}.`,
                                 handler: () => {
                                     if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
-                                        ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement).catch((error: Error) => {
+                                        ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement, undefined, false).catch((error: Error) => {
                                             this._logger.error(error.message);
                                         });
                                     }
@@ -358,7 +358,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                     caption: `Start time range`,
                                     handler: () => {
                                         if (!ToolbarSessionsService.has(CDefaultTabsGuids.timemeasurement)) {
-                                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement).catch((error: Error) => {
+                                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement, undefined, false).catch((error: Error) => {
                                                 this._logger.error(error.message);
                                             });
                                         }
@@ -408,7 +408,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     {
                         caption: 'Open time measurement view',
                         handler: () => {
-                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement).catch((error: Error) => {
+                            ToolbarSessionsService.setActive(CDefaultTabsGuids.timemeasurement, undefined, false).catch((error: Error) => {
                                 this._logger.error(error.message);
                             });
                         },
