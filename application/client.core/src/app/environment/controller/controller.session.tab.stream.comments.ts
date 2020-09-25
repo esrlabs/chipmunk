@@ -247,6 +247,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> {
         this._comments.delete(guid);
         OutputParsersService.updateRowsView();
         this._subjects.onRemoved.next(guid);
+        this._subjects.onExport.next();
     }
 
     public update(comment: IComment) {
