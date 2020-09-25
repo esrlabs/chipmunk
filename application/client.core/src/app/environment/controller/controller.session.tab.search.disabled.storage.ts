@@ -8,6 +8,8 @@ import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export { IDisabledDesc };
+
 export interface IUpdateEvent {
     requests: DisabledRequest[];
     added?: DisabledRequest | DisabledRequest[];
@@ -116,6 +118,10 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
 
     public get(): DisabledRequest[] {
         return this._stored;
+    }
+
+    public getAsDesc(): IDisabledDesc[] {
+        return this._stored.map(d => d.asDesc());
     }
 
     public reorder(params: IReorderParams) {

@@ -96,6 +96,7 @@ export class ControllerSessionTab {
             this._search.getFiltersAPI(),
             this._search.getChartsAPI(),
             this._search.getRangesAPI(),
+            this._search.getDisabledAPI(),
         ]);
         this._states = new ControllerSessionTabStates(params.guid);
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
