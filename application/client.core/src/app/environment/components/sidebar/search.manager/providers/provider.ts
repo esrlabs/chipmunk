@@ -115,7 +115,7 @@ export abstract class Provider<T> {
     }
 
     public openSearchToolbarApp(): Promise<void> {
-        return TabsSessionsService.bars().openToolbarApp(TabsSessionsService.bars().getDefsToolbarApps().search);
+        return TabsSessionsService.bars().openToolbarApp(TabsSessionsService.bars().getDefsToolbarApps().search, false);
     }
 
     public select(): {
