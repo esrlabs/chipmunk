@@ -283,7 +283,6 @@ namespace :client do
     cd CLIENT_CORE_DIR do
       puts 're-installing: core'
       npm_install
-      npm_reinstall('chipmunk.client.toolkit@latest')
       npm_force_resolutions
     end
   end
@@ -338,7 +337,6 @@ namespace :client do
     cd CLIENT_CORE_DIR do
       npm_install
       npm_force_resolutions
-      npm_install('chipmunk.client.toolkit@latest')
     end
   end
   task build_core: [CLIENT_CORE_DIR, core_toolkit_installation]
