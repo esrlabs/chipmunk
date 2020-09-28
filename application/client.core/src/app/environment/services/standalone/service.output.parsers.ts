@@ -196,7 +196,7 @@ export class OutputParsersService {
             const parsed = bound.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
             if (typeof parsed === 'object') {
                 modifiers.push(parsed);
-            } else {
+            } else if (parsed !== undefined) {
                 this._logger.warn(`Bound parsers: using of string parsers is depricated. Please create Modifier`);
             }
         }
@@ -206,7 +206,7 @@ export class OutputParsersService {
                 const parsed = typed.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
                 if (typeof parsed === 'object') {
                     modifiers.push(parsed);
-                } else {
+                } else if (parsed !== undefined) {
                     this._logger.warn(`Typed parsers: using of string parsers is depricated. Please create Modifier`);
                 }
             }
@@ -216,7 +216,7 @@ export class OutputParsersService {
             const parsed = common.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
             if (typeof parsed === 'object') {
                 modifiers.push(parsed);
-            } else {
+            } else if (parsed !== undefined) {
                 this._logger.warn(`Common parsers: using of string parsers is depricated. Please create Modifier`);
             }
         });
@@ -227,7 +227,7 @@ export class OutputParsersService {
                 const parsed = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
                 if (typeof parsed === 'object') {
                     modifiers.push(parsed);
-                } else {
+                } else if (parsed !== undefined) {
                     this._logger.warn(`Common session parsers: using of string parsers is depricated. Please create Modifier`);
                 }
             });
