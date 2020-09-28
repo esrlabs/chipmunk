@@ -300,6 +300,29 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                     datasets: datasets.dataset,
                 },
                 options: {
+                    tooltips: {
+                        callbacks: {
+                            label: function(tooltipItem, data) {
+                                if (tooltipItem.datasetIndex === undefined || isNaN(tooltipItem.datasetIndex) || !isFinite(tooltipItem.datasetIndex)) {
+                                    return undefined;
+                                }
+                                if (data.datasets === undefined) {
+                                    return undefined;
+                                }
+                                if (data.datasets[tooltipItem.datasetIndex] === undefined) {
+                                    return undefined;
+                                }
+                                if (data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index] === undefined) {
+                                    return undefined;
+                                }
+                                const point: any = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                                if (point.row === undefined || isNaN(point.row) || !isFinite(point.row)) {
+                                    return undefined;
+                                }
+                                return `(${point.row}; ${tooltipItem.value})`;
+                            }
+                        }
+                    },
                     title: {
                         display: false,
                     },

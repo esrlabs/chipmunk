@@ -20,7 +20,7 @@ export default class Chart extends AChart {
         const results = [];
         let max: number = -1;
         let min: number = Infinity;
-        let prev: number | undefined;
+        const prev: { value: number, row: number } = { value: -1, row: -1 };
         matches.forEach((point: IPCMessages.IChartMatch) => {
             if (!(point.value instanceof Array) || point.value.length === 0) {
                 return;
@@ -42,43 +42,46 @@ export default class Chart extends AChart {
                 // TODO: here we can jump out
                 return;
             }
-            if (prev !== undefined) {
+            if (prev.value !== -1) {
                 results.push({
                     x: point.row,
-                    y: prev
+                    y: prev.value,
+                    row: prev.row,
                 });
             }
             results.push({
                 x: point.row,
-                y: value
+                y: value,
+                row: point.row,
             });
-            prev = value;
+            prev.value = value;
+            prev.row = point.row;
         });
         // Find borders first
         const left: number | undefined = api.getLeftPoint(filter, range.begin);
         const right: number | undefined = api.getRightPoint(filter, range.end, true);
         if (results.length > 0) {
             left !== undefined && results.unshift(...[
-                { x: range.begin,   y: left },
-                { x: results[0].x,  y: left },
+                { x: range.begin,   y: left, row: range.begin },
+                { x: results[0].x,  y: left, row: results[0].x },
             ]);
             right !== undefined && results.push(...[
-                { x: results[results.length - 1].x, y: right },
-                { x: range.end,                     y: right }
+                { x: results[results.length - 1].x, y: right, row: results[results.length - 1].x },
+                { x: range.end,                     y: right, row: range.end }
             ]);
         } else {
             left !== undefined && results.push(...[
-                { x: range.begin, y: left }
+                { x: range.begin, y: left, row: range.begin }
             ]);
             right !== undefined && results.push(...[
-                { x: range.end, y: right }
+                { x: range.end, y: right, row: range.end }
             ]);
             if (results.length !== 2) {
                 left !== undefined && results.push(...[
-                    { x: range.end, y: left }
+                    { x: range.end, y: left, row: range.end }
                 ]);
                 right !== undefined && results.unshift(...[
-                    { x: range.begin, y: right }
+                    { x: range.begin, y: right, row: range.begin }
                 ]);
             }
         }

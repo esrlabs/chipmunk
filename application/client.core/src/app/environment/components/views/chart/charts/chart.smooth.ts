@@ -44,7 +44,8 @@ export default class Chart extends AChart {
             }
             results.push({
                 x: point.row,
-                y: value
+                y: value,
+                row: point.row,
             });
         });
         // Find borders first
@@ -52,24 +53,24 @@ export default class Chart extends AChart {
         const right: number | undefined = api.getRightPoint(filter, range.end, false);
         if (results.length > 0) {
             left !== undefined && results.unshift(...[
-                { x: range.begin, y: left },
+                { x: range.begin, y: left, row: range.begin },
             ]);
             right !== undefined && results.push(...[
-                { x: range.end, y: right }
+                { x: range.end, y: right, row: range.end }
             ]);
         } else {
             left !== undefined && results.push(...[
-                { x: range.begin, y: left }
+                { x: range.begin, y: left, row: range.begin }
             ]);
             right !== undefined && results.push(...[
-                { x: range.end, y: right }
+                { x: range.end, y: right, row: range.end }
             ]);
             if (results.length !== 2) {
                 left !== undefined && results.push(...[
-                    { x: range.end, y: left }
+                    { x: range.end, y: left, row: range.end }
                 ]);
                 right !== undefined && results.unshift(...[
-                    { x: range.begin, y: right }
+                    { x: range.begin, y: right, row: range.begin }
                 ]);
             }
         }
