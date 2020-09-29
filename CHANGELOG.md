@@ -1,9 +1,10 @@
 # Changelog
 
-### [2.7.2] - 09/29/2020
-* [#908] Correct redirection from stepped chart to main view
-* Fix build script: prevent installing latest version of toolkit
-* Fix reference to chipmunk.client.toolkit (using of 1.2.16)
+## [2.7.2] - 09/29/2020
+### Changed
+* Prevent using of latest chipmunk.client.toolkit library in build workflow. Using a strictly defined version of a library.
+### Fixed
+* Fixed an issue with redirection to the main view on click on a stepped chart
 
 ### [2.7.1] - 09/11/2020
 * Fix pcap file reading
