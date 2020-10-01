@@ -24,7 +24,6 @@ CLIENT_CORE_DIR = 'application/client.core'
 INCLUDED_PLUGINS_FOLDER = "#{ELECTRON_COMPILED_DIR}/plugins"
 INCLUDED_APPS_FOLDER = "#{ELECTRON_COMPILED_DIR}/apps"
 APP_PACKAGE_JSON = "#{ELECTRON_DIR}/package.json"
-SRC_CLIENT_NPM_LIBS = 'application/client.libs/chipmunk.client.components'
 RIPGREP_URL = "https://github.com/BurntSushi/ripgrep/releases/download/#{RIPGREP_VERSION}/ripgrep-#{RIPGREP_VERSION}"
 RIPGREP_LOCAL_TMP = File.join(Dir.home, 'tmp/ripgrep_download')
 
@@ -287,18 +286,6 @@ namespace :client do
     end
   end
 
-  # setup file dependencies for chipmunk.client.components installation
-  components_installation = 'application/client.libs/chipmunk.client.components/node_modules'
-  file components_installation => FileList['application/client.libs/chipmunk.client.components/*.json'] do |_t|
-    cd 'application/client.libs/chipmunk.client.components' do
-      puts 'Installing: components'
-      npm_install
-      npm_force_resolutions
-      touch 'node_modules'
-    end
-  end
-  task install_components: components_installation
-
   # this task will create the ressources in application/electron/dist/client
   task create_resources: :compile_neon_ts
 
@@ -312,7 +299,7 @@ namespace :client do
     # puts t.investigation
     cd CLIENT_CORE_DIR do
       puts 'Building client.core'
-      sh "#{NPM_RUN} build"
+      sh "#{NPM_RUN} prod"
     end
     puts 'Deliver client.core'
     rm_rf(dest_client_path)
@@ -412,9 +399,6 @@ namespace :dev do
   task neon: %i[build_embedded_indexer deliver_neon_indexer_into_local_runtime]
 
   task update_client: ['client:create_resources']
-
-  desc 'Developer task: update client and libs'
-  task fullupdate_client: ['update_client']
 
   desc 'Developer task: build launcher and deliver into package.'
   task deliver_updater_and_launcher: %i[build_launcher build_cli build_updater] do
