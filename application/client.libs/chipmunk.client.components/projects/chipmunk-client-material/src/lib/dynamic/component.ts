@@ -10,7 +10,14 @@ export interface IComponentDesc {
     inputs?: any;
 }
 
-const CCachedFactories: Map<string, any> = new Map();
+const CCachedFactories: Map<number, any> = new Map();
+const CCacheFactoryKey: string = '__dynamic_component_factory_cache_key__';
+const getSequence: () => number = function() {
+    let sequence: number = 0;
+    return () => {
+        return sequence ++;
+    };
+}();
 
 @Component({
     selector        : 'lib-containers-dynamic',
@@ -22,10 +29,10 @@ const CCachedFactories: Map<string, any> = new Map();
 export class DynamicComponent {
 
     private _component: any = null;
+    private _cachedKey: number = -1;
 
     @Input() detectChanges = true;
     @Input() alwaysDrop = false;
-
 
     @Input() set component(desc: IComponentDesc) {
         if (typeof desc !== 'object' || desc === null) {
@@ -38,8 +45,9 @@ export class DynamicComponent {
             desc.inputs = {};
         }
         if (this._component) {
+            const cacheKey: number | undefined = this._getKey(desc.factory);
             // Component already was created
-            if (!this.alwaysDrop && typeof this._component.componentType === 'function' && typeof desc.factory === 'function' && this._component.componentType.name === desc.factory.name) {
+            if (!this.alwaysDrop && this._cachedKey === cacheKey) {
                 // No need to recreate component. Update inputs
                 Object.keys(desc.inputs).forEach((key: string) => {
                     this._component.instance[key] = desc.inputs[key];
@@ -53,9 +61,9 @@ export class DynamicComponent {
         let component;
         if (!desc.resolved) {
             // Factory of component isn't resolved
-            const name: string = desc.factory.name;
-            let factory = CCachedFactories.get(name);
-            if (factory === undefined || typeof name !== 'string' || name.trim() === '') {
+            const cacheKey: number | undefined = this._getKey(desc.factory);
+            let factory = cacheKey === undefined ? undefined : CCachedFactories.get(cacheKey);
+            if (factory === undefined) {
                 const inputProviders = Object.keys(desc.inputs).map((inputName) => {
                     const token = new InjectionToken<any>(inputName);
                     return { provide: token, useValue: desc.inputs[inputName] };
@@ -66,7 +74,8 @@ export class DynamicComponent {
                 });
                 factory = this.resolver.resolveComponentFactory(desc.factory);
                 component = factory.create(injector);
-                CCachedFactories.set(name, { factory: factory, injector: injector });
+                CCachedFactories.set(cacheKey, { factory: factory, injector: injector });
+                this._cachedKey = cacheKey;
             } else {
                 component = factory.factory.create(factory.injector);
             }
@@ -85,6 +94,17 @@ export class DynamicComponent {
             });
         }
         this._component = component;
+    }
+
+    private _getKey(factory: any): number | undefined {
+        if ((typeof factory !== 'object' || factory === null) && typeof factory !== 'function') {
+            return undefined;
+        }
+        if (typeof factory[CCacheFactoryKey] === 'number') {
+            return factory[CCacheFactoryKey];
+        }
+        factory[CCacheFactoryKey] = getSequence();
+        return undefined;
     }
 
     constructor(
