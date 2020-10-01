@@ -75,10 +75,10 @@ export class DynamicComponent {
                 factory = this.resolver.resolveComponentFactory(desc.factory);
                 component = factory.create(injector);
                 CCachedFactories.set(cacheKey, { factory: factory, injector: injector });
-                this._cachedKey = cacheKey;
             } else {
                 component = factory.factory.create(factory.injector);
             }
+            this._cachedKey = cacheKey;
             Object.keys(desc.inputs).forEach((key: string) => {
                 component.instance[key] = desc.inputs[key];
             });
