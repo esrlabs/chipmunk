@@ -1,4 +1,4 @@
-<mat-checkbox [(ngModel)]="_ng_state" (change)="_ng_onStateChange($event)" (click)="_ng_onStateClick($event)"></mat-checkbox>
+<mat-checkbox [checked]="_ng_state" (change)="_ng_onStateChange($event)" (click)="_ng_onStateClick($event)"></mat-checkbox>
 <span class="color" [ngStyle]="{'background': _ng_color}"></span>
 <span class="background" [ngStyle]="{'background': _ng_background}"></span>
 <span class="request" *ngIf="!entity.getEditState().state()">{{_ng_request}}</span>

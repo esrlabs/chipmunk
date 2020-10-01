@@ -72,7 +72,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         private _notifications: NotificationsService,
     ) {
         this._onGlobalKeyUp = this._onGlobalKeyUp.bind(this);
-        // this._subscriptions.selected = this._ng_selected.asObservable().subscribe(this._onSelectedInList.bind(this));
     }
 
     public ngOnDestroy() {
