@@ -381,14 +381,12 @@ end
 desc 're-install'
 task reinstall: [:folders,
                  'client:rebuild_core',
-                 'client:install_components',
                  :compile_electron,
                  'client:create_resources',
                  :add_package_json]
 desc 'install'
 task install_electron_stuff: [:folders,
                               'client:build_core',
-                              'client:install_components',
                               :compile_electron,
                               'client:create_resources',
                               :add_package_json]
