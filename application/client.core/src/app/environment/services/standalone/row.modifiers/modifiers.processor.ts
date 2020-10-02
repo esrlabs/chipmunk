@@ -14,6 +14,20 @@ export class ModifierProcessor {
     }
 
     public parse(row: string): string {
+        const cleanup = (str: string): string => {
+            // For finalization procedure we are applying
+            // all modifiers. For example, to cleanup from
+            // ASCII escapes
+            this._modifiers.forEach((modifier: Modifier) => {
+                const finalized: string = modifier.finalize(str);
+                const safe: string = this._serialize(finalized);
+                if (safe.length !== finalized.length) {
+                    this._logger.warn(`Modifier "${modifier.getName()}" tries to inject HTML`);
+                }
+                str = safe;
+            });
+            return str;
+        };
         // Get rid of original HTML in logs
         row = this._serialize(row);
         this._injections = [];
@@ -82,24 +96,18 @@ export class ModifierProcessor {
         this._injections.forEach((inj: IHTMLInjection) => {
             row = row.substring(0, inj.offset) + inj.injection + row.substring(inj.offset, row.length);
         });
-        row = row.replace(/(^.*?\<)|(\>.*?\<)|(\>.*?$)/gi, (match: string, ...args: any[]) => {
-            let clean: string = match.replace(/[\>\<]/gi, '');
-            if (clean === '') {
-                return match;
-            }
-            // For finalization procedure we are applying
-            // all modifiers. For example, to cleanup from
-            // ASCII escapes
-            this._modifiers.forEach((modifier: Modifier) => {
-                const finalized: string = modifier.finalize(clean);
-                const safe: string = this._serialize(finalized);
-                if (safe.length !== finalized.length) {
-                    this._logger.warn(`Modifier "${modifier.getName()}" tries to inject HTML`);
+        if (row.search(/[\>\<]/g) !== -1) {
+            row = row.replace(/(^.*?\<)|(\>.*?\<)|(\>.*?$)/gi, (match: string, ...args: any[]) => {
+                let clean: string = match.replace(/[\>\<]/gi, '');
+                if (clean === '') {
+                    return match;
                 }
-                clean = safe;
+                clean = cleanup(clean);
+                return `${match[0] === '>' ? '>' : ''}${clean}${match[match.length - 1] === '<' ? '<' : ''}`;
             });
-            return `${match[0] === '>' ? '>' : ''}${clean}${match[match.length - 1] === '<' ? '<' : ''}`;
-        });
+        } else {
+            row = cleanup(row);
+        }
         return row;
     }
 

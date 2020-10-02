@@ -51,11 +51,10 @@ export abstract class TypedRowRenderAPIColumns {
     public abstract getHeaders(): string[];
 
     /**
-     * Should return values of columns
-     * @param {string} str - single line from stream
-     * @returns {string[]} values of columns
+     * Should return delimiter of columns
+     * @returns {string} string value of delimiter
      */
-    public abstract getColumns(str: string): string[];
+    public abstract getDelimiter(): string;
 
     /**
      * Should return default widths of columns

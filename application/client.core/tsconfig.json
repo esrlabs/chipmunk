@@ -18,6 +18,9 @@
       "dom"
     ]
   },
+  "angularCompilerOptions": {
+    "enableIvy": true
+  },
   "include": [
     "src/**/*",
     "../electron/src/controllers/electron.ipc.messages/**/*",
