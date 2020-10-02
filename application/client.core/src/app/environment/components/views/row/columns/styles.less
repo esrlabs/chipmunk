@@ -1,6 +1,7 @@
 @import '../../../../theme/variables.less';
+@import '../../../../theme/support.less';
 
-:host {
+app-views-output-row-columns {
     display: inline-block;
     position: relative;
     padding: 0;
@@ -13,10 +14,11 @@
     user-select: text;
     cursor: text;
     & span.column{
+        position: relative;
         font-family: 'console', monospace;
         font-size: 13.5px;
         font-variant-numeric: tabular-nums;
-        padding: 0 6px;
+        padding: 0 6px!important;
         box-sizing: content-box;
         margin: 0;
         line-height: 16px;
@@ -30,6 +32,15 @@
         cursor: text;
         border-right: 1px solid @scheme-color-4;
         overflow: hidden;
-        text-overflow: ellipsis;
+        &:after{
+            position: absolute;
+            content: '';
+            display: block;
+            height: 100%;
+            right: 0;
+            top:0;
+            width: 16px;
+            background: linear-gradient(90deg, rgba(0,0,0,0) 0%, @scheme-color-5 100%);
+        }
     }
 }

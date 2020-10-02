@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewEncapsulation } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
@@ -10,10 +10,11 @@ import { ControllerSessionTab } from '../../../../controller/controller.session.
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { ViewOutputRowColumnsHeadersComponent, CColumnsHeadersKey } from './headers/component';
+import { hash } from 'chipmunk.client.toolkit';
 
 interface IAPI {
     getHeaders(): string[];
-    getColumns(str: string): string[];
+    getDelimiter(): string;
     getDefaultWidths(): Array<{ width: number, min: number }>;
 }
 
@@ -23,7 +24,7 @@ const CControllerColumnsKey = 'row.columns.service';
     selector: 'app-views-output-row-columns',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    // encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None
 })
 
 export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implements AfterContentInit, AfterContentChecked, OnDestroy {
@@ -41,6 +42,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _columns: IColumn[] = [];
+    private _logger: Toolkit.Logger = new Toolkit.Logger('ViewOutputRowColumnsComponent');
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
         super();
@@ -96,6 +98,27 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         }
         this.color = undefined;
         this.background = undefined;
+        let html = this.str;
+        // Apply search matches parser
+        const highlight = OutputParsersService.highlight(this.sessionId, this.str);
+        this.color = highlight.color;
+        this.background = highlight.background;
+        // Rid of HTML
+        html = OutputParsersService.serialize(html);
+        // Apply plugin parser html, this.pluginId, this.source, this.position
+        html = OutputParsersService.row({
+            str: html,
+            pluginId: this.pluginId,
+            source: this.source,
+            position: this.position,
+            hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
+        });
+        // html = `<span class="a">This is \u0004test string</span><span class="b"> to make \u0004sure<span class="c"> all works well</span></span>`;
+        this._ng_columns = this._parse(html)
+            .filter(c => this._columns[c.index] && this._columns[c.index].visible)
+            .map(c => ({ html: this._sanitizer.bypassSecurityTrustHtml(c.html), index: c.index }));
+        // html.split('\u0004').forEach(())
+        /*
         this._ng_columns = this.api.getColumns(this.str).map((column: string, index: number) => {
             if (!this._columns[index] || !this._columns[index].visible) {
                 return null;
@@ -119,6 +142,79 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                 index: index,
             };
         }).filter( i => i !== null );
+        */
+    }
+
+    private _parse(html: string): Array<{ html: string, index: number }> {
+        function getStrUntilChar(str: string): string | Error {
+            const index: number = str.search('>');
+            if (index === -1) {
+                return new Error(`Fail to find closing symbol ">"`);
+            }
+            return str.substring(0, index + 1);
+        }
+        function getTagName(str: string): string | Error {
+            const index: number = str.search(/[>\s]/gi);
+            return index === -1 ? new Error(`Fail to find closing tag symbol ">"`) : str.substring(0, index).replace(/[^\w\d_-]/gi, '');
+        }
+        let chunk = '';
+        const tags: Array<{ value: string, name: string }> = [];
+        const columns: Array<{ html: string, index: number }> = [];
+        let cNum: number = 0;
+        try {
+            let pos: number = 0;
+            do {
+                if (['<', '>', this.api.getDelimiter()].indexOf(html[pos]) !== -1) {
+                    switch (html[pos]) {
+                        case '<':
+                            // Some tag is opened
+                            if (pos + 1 > html.length) {
+                                throw new Error(`Open/close tag symbol "<" has been found at the end of string`);
+                            }
+                            const tag: string | Error = getStrUntilChar(html.substring(pos, html.length));
+                            if (tag instanceof Error) {
+                                throw tag;
+                            }
+                            if (tag[1] === '/') {
+                                if (tags.length === 0) {
+                                    throw new Error(`Found closing tag, but no opened tag`);
+                                }
+                                // Tag is closed
+                                tags.splice(tags.length - 1, 1);
+                            } else {
+                                // Tag is opened
+                                const tagName: string | Error = getTagName(tag);
+                                if (tagName instanceof Error) {
+                                    throw tagName;
+                                }
+                                tags.push({ value: tag, name: tagName });
+                            }
+                            pos += tag.length;
+                            chunk += tag;
+                            break;
+                        case '>':
+                            throw new Error(`">" has been found unexpectable`);
+                        case '\u0004':
+                            chunk += tags.map(t => `</${t.name}>`).join('');
+                            columns.push({ html: chunk, index: cNum });
+                            cNum += 1;
+                            chunk = tags.map(t => t.value).join('');
+                            pos += 1;
+                            break;
+                    }
+                } else {
+                    chunk += html[pos];
+                    pos += 1;
+                }
+            } while (pos < html.length);
+            if (columns.length > 0) {
+                columns.push({ html: chunk, index: pos });
+            }
+        } catch (err) {
+            this._logger.warn(`Fail to process columns row view due error: ${err.message}`);
+            return [];
+        }
+        return columns;
     }
 
     private _getControllerColumns(): ControllerColumns | undefined {
