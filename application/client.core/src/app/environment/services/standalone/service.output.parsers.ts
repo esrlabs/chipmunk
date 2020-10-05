@@ -409,6 +409,7 @@ export class OutputParsersService {
             this._parsers.tooltips.set(controller.getGuid(), new Map());
         }
         this._controller = controller;
+        this._subjects.onRepain.next();
     }
 
     private _onSessionClosed(guid: string) {
