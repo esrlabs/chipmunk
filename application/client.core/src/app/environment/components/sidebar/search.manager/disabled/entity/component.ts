@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild, Provider } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, Provider } from '@angular/core';
 import { DisabledRequest } from '../../../../../controller/controller.session.tab.search.disabled.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
@@ -30,7 +30,6 @@ export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, Afte
 
     constructor(
         private _cdRef: ChangeDetectorRef,
-        private _zone: NgZone,
         private _directive: SidebarAppSearchManagerItemDirective,
         private _accessor: MatDragDropResetFeatureDirective) {
         this._ng_directive = _directive;
@@ -59,11 +58,9 @@ export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, Afte
     }
 
     private _init() {
-        this._zone.run(() => {
-            const entity = this.entity.getEntity().getEntity();
-            this._ng_display_name = entity.getDisplayName();
-            this._ng_icon = entity.getIcon();
-        });
+        const entity = this.entity.getEntity().getEntity();
+        this._ng_display_name = entity.getDisplayName();
+        this._ng_icon = entity.getIcon();
     }
 
     private _forceUpdate() {

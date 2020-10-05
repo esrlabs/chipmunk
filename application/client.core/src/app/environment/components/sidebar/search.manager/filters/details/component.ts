@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, NgZone, ViewChild } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
 import { Provider } from '../../providers/provider';
@@ -17,7 +17,8 @@ interface IColorOption {
 @Component({
     selector: 'app-sidebar-app-searchmanager-filter-details',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy, AfterContentInit {
@@ -41,7 +42,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
     private _destroyed: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef) {
 
     }
 
@@ -58,20 +59,18 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
     }
 
     public _ng_onColorTypeChange(event: MatSelectChange) {
-        this._zone.run(() => {
-            this._ng_colorType = event.value;
-            switch (this._ng_colorType) {
-                case 'color':
-                    this._ng_currentColor = this._ng_color;
-                    break;
-                case 'background':
-                    this._ng_currentColor = this._ng_background;
-                    break;
-            }
-            this._refSelect.close();
-            this._setColors();
-            this._forceUpdate();
-        });
+        this._ng_colorType = event.value;
+        switch (this._ng_colorType) {
+            case 'color':
+                this._ng_currentColor = this._ng_color;
+                break;
+            case 'background':
+                this._ng_currentColor = this._ng_background;
+                break;
+        }
+        this._refSelect.close();
+        this._setColors();
+        this._forceUpdate();
     }
 
     public _ng_onColorChange(color: string) {

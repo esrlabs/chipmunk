@@ -1,6 +1,6 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges, SimpleChanges, ViewEncapsulation, NgZone } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges, SimpleChanges, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { IComment, ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
@@ -17,6 +17,7 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentInit, OnChanges {
@@ -32,8 +33,7 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef) {
         this.ngOnResponseSave = this.ngOnResponseSave.bind(this);
         this.ngOnResponseCancel = this.ngOnResponseCancel.bind(this);
         this.ngOnResponseRemove = this.ngOnResponseRemove.bind(this);

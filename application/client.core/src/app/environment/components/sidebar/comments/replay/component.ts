@@ -1,6 +1,6 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges, NgZone } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
 import { getDateTimeStr } from '../../../../controller/helpers/dates';
@@ -11,6 +11,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     selector: 'app-sidebar-app-comments-item-replay',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class SidebarAppCommentsItemReplayComponent implements OnDestroy, AfterViewInit, OnChanges {
@@ -25,8 +26,7 @@ export class SidebarAppCommentsItemReplayComponent implements OnDestroy, AfterVi
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     public ngAfterViewInit() {

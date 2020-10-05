@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild, OnChanges } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, OnChanges, ChangeDetectionStrategy } from '@angular/core';
 import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { Subscription } from 'rxjs';
 import { Entity } from '../../providers/entity';
@@ -6,7 +6,8 @@ import { Entity } from '../../providers/entity';
 @Component({
     selector: 'app-sidebar-app-searchmanager-filter-mini',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class SidebarAppSearchManagerFilterMiniComponent implements OnDestroy, AfterContentInit, OnChanges {
@@ -22,7 +23,7 @@ export class SidebarAppSearchManagerFilterMiniComponent implements OnDestroy, Af
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     public ngOnDestroy() {
@@ -38,17 +39,16 @@ export class SidebarAppSearchManagerFilterMiniComponent implements OnDestroy, Af
 
     public ngOnChanges() {
         this._init();
+        this._forceUpdate();
     }
 
     private _init() {
-        this._zone.run(() => {
-            const desc = this.entity.getEntity().asDesc();
-            this._ng_flags = desc.flags;
-            this._ng_request = desc.request;
-            this._ng_color = desc.color;
-            this._ng_background = desc.background;
-            this._ng_state = desc.active;
-        });
+        const desc = this.entity.getEntity().asDesc();
+        this._ng_flags = desc.flags;
+        this._ng_request = desc.request;
+        this._ng_color = desc.color;
+        this._ng_background = desc.background;
+        this._ng_state = desc.active;
     }
 
     private _forceUpdate() {

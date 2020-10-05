@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, NgZone, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, ViewChild, ViewEncapsulation } from '@angular/core';
 import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
 import ChartControllers, { AChart, IOption, EOptionType, EChartType } from '../../../../views/chart/charts/charts';
 import { IComponentDesc } from 'chipmunk-client-material';
@@ -57,7 +57,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     private _destroyed: boolean = false;
     private _entity: Entity<ChartRequest> | undefined;
 
-    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef) {
 
     }
 
@@ -83,16 +83,14 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     }
 
     public _ng_onChartTypeChange(event: MatSelectChange) {
-        this._zone.run(() => {
-            if (this._entity === undefined) {
-                return;
-            }
-            this._ng_type = event.value;
-            this._entity.getEntity().setType(event.value);
-            this._refSelect.close();
-            this._ng_options = this._getOptions();
-            this._forceUpdate();
-        });
+        if (this._entity === undefined) {
+            return;
+        }
+        this._ng_type = event.value;
+        this._entity.getEntity().setType(event.value);
+        this._refSelect.close();
+        this._ng_options = this._getOptions();
+        this._forceUpdate();
     }
 
     private _init() {
