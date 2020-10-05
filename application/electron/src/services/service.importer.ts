@@ -45,7 +45,9 @@ class ServiceImporter implements IService {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 (this._subscriptions as any)[key].destroy();
             });
-            resolve();
+            this._writer.destroy().catch((err: Error) => {
+                this._logger.warn(`Fail correctly destroy files writer due error: ${err.message}`);
+            }).finally(resolve);
         });
     }
 
@@ -128,17 +130,6 @@ class ServiceImporter implements IService {
         response(new IPCMessages.SessionImporterSaveResponse({
             session: message.session,
         }));
-        /*
-        FS.writeTextFile(this._getImporterFileName(file.bounds[0]), JSON.stringify(message.data), true).then(() => {
-            response(new IPCMessages.SessionImporterSaveResponse({
-                session: message.session,
-            }));
-        }).catch((err: Error) => {
-            response(new IPCMessages.SessionImporterSaveResponse({
-                error: err.message,
-                session: message.session,
-            }));
-        });*/
     }
 
     private _getImporterFileName(filename: string): string {
