@@ -117,36 +117,9 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             position: this.position,
             hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
         }, this.parent);
-        // html = `<span class="a">This is \u0004test string</span><span class="b"> to make \u0004sure<span class="c"> all works well</span></span>`;
         this._ng_columns = this._parse(html)
             .filter(c => this._columns[c.index] && this._columns[c.index].visible)
             .map(c => ({ html: this._sanitizer.bypassSecurityTrustHtml(c.html), index: c.index }));
-        // html.split('\u0004').forEach(())
-        /*
-        this._ng_columns = this.api.getColumns(this.str).map((column: string, index: number) => {
-            if (!this._columns[index] || !this._columns[index].visible) {
-                return null;
-            }
-            // Apply search matches parser
-            const highlight = OutputParsersService.highlight(this.sessionId, column);
-            this.color = highlight.color;
-            this.background = highlight.background;
-            // Rid of HTML
-            column = OutputParsersService.serialize(column);
-            // Apply plugin parser
-            column = OutputParsersService.row({
-                str: column,
-                pluginId: this.pluginId,
-                source: this.source,
-                position: this.position,
-                hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
-            });
-            return {
-                html: this._sanitizer.bypassSecurityTrustHtml(column),
-                index: index,
-            };
-        }).filter( i => i !== null );
-        */
     }
 
     private _parse(html: string): Array<{ html: string, index: number }> {
@@ -212,7 +185,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                 }
             } while (pos < html.length);
             if (columns.length > 0) {
-                columns.push({ html: chunk, index: pos });
+                columns.push({ html: chunk, index: cNum });
             }
         } catch (err) {
             this._logger.warn(`Fail to process columns row view due error: ${err.message}`);
