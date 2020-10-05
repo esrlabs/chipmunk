@@ -1,4 +1,4 @@
-import { Modifier, IRequest, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
+import { Modifier, EApplyTo, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, Modifiers } from 'chipmunk.client.toolkit';
 import { ECommentState, IComment} from './controller.session.tab.stream.comments.types';
 
 export class CommentSelectionModifier extends Modifier {
@@ -57,6 +57,10 @@ export class CommentSelectionModifier extends Modifier {
 
     public getName(): string {
         return 'CommentSelectionModifier';
+    }
+
+    public applyTo(): EApplyTo {
+        return EApplyTo.output;
     }
 
     private _map(comment: IComment, position: number, str: string) {

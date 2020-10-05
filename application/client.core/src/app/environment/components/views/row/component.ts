@@ -11,6 +11,7 @@ import { AOutputRenderComponent } from '../../../interfaces/interface.output.ren
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
 import { scheme_color_accent } from '../../../theme/colors';
+import { EParent } from '../../../services/standalone/service.output.redirections';
 
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
@@ -57,7 +58,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public scope: ControllerSessionScope | undefined;
     @Input() public timestamp: ControllerSessionTabTimestamp | undefined;
     @Input() public rank: number = 1;
-    @Input() public parent: string;
+    @Input() public parent: EParent;
 
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
@@ -318,9 +319,9 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _getPosition(): number | undefined {
-        if (this.parent === 'stream') {
+        if (this.parent === EParent.output) {
             return this.position;
-        } else if (this.parent === 'search') {
+        } else if (this.parent === EParent.search) {
             return this.positionInStream;
         }
     }

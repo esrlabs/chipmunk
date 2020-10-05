@@ -11,7 +11,7 @@ import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
-import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
+import OutputRedirectionsService, { EParent } from '../../../../services/standalone/service.output.redirections';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -218,7 +218,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                         if (this._session === undefined) {
                             return;
                         }
-                        OutputRedirectionsService.select('timemeasurement', this._session.getGuid(), target.range.start.position);
+                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), target.range.start.position);
                     },
                 },
                 {
@@ -227,7 +227,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                         if (this._session === undefined) {
                             return;
                         }
-                        OutputRedirectionsService.select('timemeasurement', this._session.getGuid(), target.range.end.position);
+                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), target.range.end.position);
                     },
                 }
             ]);
@@ -372,7 +372,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             return;
         }
         OutputRedirectionsService.select(
-            '',
+            EParent.notassigned,
             this._session.getGuid(),
             target.range.start.position < target.range.end.position ? target.range.start.position : target.range.end.position,
         );

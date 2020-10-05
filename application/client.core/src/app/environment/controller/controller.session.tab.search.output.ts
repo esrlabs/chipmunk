@@ -5,6 +5,7 @@ import { ControllerSessionTabStreamBookmarks, IBookmark } from './controller.ses
 import { ControllerSessionTabTimestamp } from './controller.session.tab.timestamps';
 import { ControllerSessionScope } from './controller.session.tab.scope';
 import { extractPluginId, extractRowPosition, clearRowStr } from './helpers/row.helpers';
+import { EParent } from '../services/standalone/service.output.redirections';
 
 import OutputRedirectionsService from '../services/standalone/service.output.redirections';
 
@@ -295,8 +296,8 @@ export class ControllerSessionTabSearchOutput {
         return this._rows.slice(from - offset, to - offset);
     }
 
-    private _onRowSelected(sender: string, selection: number[], clicked: number) {
-        if (sender === 'search') {
+    private _onRowSelected(sender: EParent, selection: number[], clicked: number) {
+        if (sender === EParent.search) {
             return;
         }
         this._subjects.onScrollTo.next(clicked);
@@ -349,7 +350,7 @@ export class ControllerSessionTabSearchOutput {
                     pluginId: inserted.pluginId,
                     sessionId: this._guid,
                     bookmarks: this._bookmakrs,
-                    parent: 'search',
+                    parent: EParent.search,
                     scope: this._scope,
                     controller: this._stream,
                     timestamp: this._timestamp,
@@ -553,7 +554,7 @@ export class ControllerSessionTabSearchOutput {
                     rank: this._stream.getRank(),
                     sessionId: this._guid,
                     bookmarks: this._bookmakrs,
-                    parent: 'search',
+                    parent: EParent.search,
                     scope: this._scope,
                     controller: this._stream,
                     timestamp: this._timestamp,
@@ -586,7 +587,7 @@ export class ControllerSessionTabSearchOutput {
                 rank: this._stream.getRank(),
                 sessionId: this._guid,
                 bookmarks: this._bookmakrs,
-                parent: 'search',
+                parent: EParent.search,
                 scope: this._scope,
                 controller: this._stream,
                 timestamp: this._timestamp,
