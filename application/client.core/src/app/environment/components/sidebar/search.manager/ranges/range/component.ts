@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, NgZone, ViewChild } from '@angular/core';
+import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewChild } from '@angular/core';
 import { RangeRequest, IRangeUpdateEvent } from '../../../../../controller/controller.session.tab.search.ranges.request';
 import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
@@ -33,7 +33,6 @@ export class SidebarAppSearchManagerTimeRangeComponent implements OnDestroy, Aft
 
     constructor(
         private _cdRef: ChangeDetectorRef,
-        private _zone: NgZone,
         private _directive: SidebarAppSearchManagerItemDirective,
         private _accessor: MatDragDropResetFeatureDirective) {
         this._ng_directive = _directive;
@@ -67,32 +66,26 @@ export class SidebarAppSearchManagerTimeRangeComponent implements OnDestroy, Aft
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {
         switch (event.code) {
             case 'Escape':
-                this._zone.run(() => {
-                    this._ng_alias = this.entity.getEntity().asDesc().alias;
-                    this.provider.edit().out();
-                    this._forceUpdate();
-                });
+                this._ng_alias = this.entity.getEntity().asDesc().alias;
+                this.provider.edit().out();
+                this._forceUpdate();
                 break;
             case 'Enter':
-                this._zone.run(() => {
-                    if (RangeRequest.isValidAlias(this._ng_alias)) {
-                        this.entity.getEntity().setAlias(this._ng_alias);
-                    } else {
-                        this._ng_alias = this.entity.getEntity().asDesc().alias;
-                    }
-                    this.provider.edit().out();
-                    this._forceUpdate();
-                });
+                if (RangeRequest.isValidAlias(this._ng_alias)) {
+                    this.entity.getEntity().setAlias(this._ng_alias);
+                } else {
+                    this._ng_alias = this.entity.getEntity().asDesc().alias;
+                }
+                this.provider.edit().out();
+                this._forceUpdate();
                 break;
         }
     }
 
     public _ng_onRequestInputBlur() {
-        this._zone.run(() => {
-            this._ng_alias = this.entity.getEntity().asDesc().alias;
-            this.provider.edit().out();
-            this._forceUpdate();
-        });
+        this._ng_alias = this.entity.getEntity().asDesc().alias;
+        this.provider.edit().out();
+        this._forceUpdate();
     }
 
     private _onRequestUpdated(event: IRangeUpdateEvent) {
@@ -102,11 +95,9 @@ export class SidebarAppSearchManagerTimeRangeComponent implements OnDestroy, Aft
     }
 
     private _init() {
-        this._zone.run(() => {
-            const desc = this.entity.getEntity().asDesc();
-            this._ng_alias = desc.alias;
-            this._ng_color = desc.color;
-        });
+        const desc = this.entity.getEntity().asDesc();
+        this._ng_alias = desc.alias;
+        this._ng_color = desc.color;
     }
 
     private _forceUpdate() {

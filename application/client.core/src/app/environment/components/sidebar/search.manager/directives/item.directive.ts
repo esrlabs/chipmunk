@@ -1,4 +1,4 @@
-import { Directive, ChangeDetectorRef, OnInit, OnDestroy, Input, HostBinding, HostListener, NgZone, ViewContainerRef, ViewChild } from '@angular/core';
+import { Directive, ChangeDetectorRef, OnInit, OnDestroy, Input, HostBinding, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Entity } from '../providers/entity';
 import { Provider, ISelectEvent } from '../providers/provider';
@@ -51,19 +51,15 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         if (this._ng_edit) {
             return;
         }
-        this._zone.run(() => {
-            this.provider !== undefined && this.provider.select().set({ guid: this.entity.getGUID()});
-            this._forceUpdate();
-        });
+        this.provider !== undefined && this.provider.select().set({ guid: this.entity.getGUID()});
+        this._forceUpdate();
     }
     @HostListener('cdkDragStarted', ['entity']) DragStarted(entity: Entity<any>) {
         SearchManagerService.onDragStart(true, entity);
     }
 
     constructor(
-        private _cdRef: ChangeDetectorRef,
-        private _zone: NgZone,
-        private _view: ViewContainerRef,
+        private _cdRef: ChangeDetectorRef
     ) {
     }
 
@@ -99,20 +95,16 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
     }
 
     private _onEditIn(guid: string | undefined) {
-        this._zone.run(() => {
-            this._ng_edit = this.entity.getGUID() === guid;
-            this._forceUpdate();
-        });
+        this._ng_edit = this.entity.getGUID() === guid;
+        this._forceUpdate();
     }
 
     private _onSelected(event: ISelectEvent) {
-        this._zone.run(() => {
-            this._ng_selected = event.guids.indexOf(this.entity.getGUID()) !== -1;
-            if (!this._ng_selected) {
-                this._ng_edit = false;
-            }
-            this._forceUpdate();
-        });
+        this._ng_selected = event.guids.indexOf(this.entity.getGUID()) !== -1;
+        if (!this._ng_selected) {
+            this._ng_edit = false;
+        }
+        this._forceUpdate();
     }
 
     private _onRemove() {

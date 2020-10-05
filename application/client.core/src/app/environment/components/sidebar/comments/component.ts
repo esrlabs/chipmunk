@@ -1,4 +1,4 @@
-import { Component, OnDestroy, Input,  ChangeDetectorRef, AfterContentInit, AfterViewInit, NgZone } from '@angular/core';
+import { Component, OnDestroy, Input,  ChangeDetectorRef, AfterContentInit, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import { IServices } from '../../../services/shared.services.sidebar';
@@ -13,7 +13,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-sidebar-app-files',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit, AfterViewInit {
@@ -29,12 +30,13 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubs: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppCommentsComponent');
+    private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef) {
     }
 
     public ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -66,21 +68,20 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     }
 
     private _load() {
-        this._zone.run(() => {
-            if (this._ng_controller === undefined) {
-                this._ng_comments = [];
-            } else {
-                this._ng_comments = [];
-                const all: IComment[] = Array.from(this._ng_controller.getSessionComments().get().values());
-                CShortColors.slice().concat([undefined]).forEach((color: string | undefined) => {
-                    const group: IComment[] = all.filter(c => c.color === color);
-                    group.sort((a: IComment, b: IComment) => {
-                        return a.selection.start.position > b.selection.start.position ? 1 : -1;
-                    });
-                    this._ng_comments = this._ng_comments.concat(group);
+        if (this._ng_controller === undefined) {
+            this._ng_comments = [];
+        } else {
+            this._ng_comments = [];
+            const all: IComment[] = Array.from(this._ng_controller.getSessionComments().get().values());
+            CShortColors.slice().concat([undefined]).forEach((color: string | undefined) => {
+                const group: IComment[] = all.filter(c => c.color === color);
+                group.sort((a: IComment, b: IComment) => {
+                    return a.selection.start.position > b.selection.start.position ? 1 : -1;
                 });
-            }
-        });
+                this._ng_comments = this._ng_comments.concat(group);
+            });
+        }
+        this._forceUpdate();
     }
 
     private _onCommentAdded(comment: IComment) {
@@ -95,5 +96,11 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         this._load();
     }
 
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
+    }
 
 }

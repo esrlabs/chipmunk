@@ -1,10 +1,9 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, NgZone, ViewChild } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
 import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CColors } from '../../../../../conts/colors';
 import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 
@@ -42,7 +41,7 @@ export class SidebarAppSearchManagerTimerangeDetailsComponent implements OnDestr
     private _destroyed: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
+    constructor(private _cdRef: ChangeDetectorRef) {
 
     }
 
