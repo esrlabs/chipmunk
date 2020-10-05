@@ -28,6 +28,12 @@ export enum EHTMLInjectionType {
     open = 'open',
 }
 
+export enum EApplyTo {
+    all = 'all',
+    output = 'output',
+    search = 'search',
+}
+
 export interface IHTMLInjection {
     offset: number;
     injection: string;
@@ -51,6 +57,10 @@ export abstract class Modifier {
     public abstract finalize(str: string): string;
 
     public abstract getName(): string;
+
+    public applyTo(): EApplyTo {
+        return EApplyTo.all;
+    }
 
     public signature(): string {
         return Modifier.Signature;
