@@ -2,7 +2,10 @@ import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, Eleme
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabMap, IMapPoint, IMapState } from '../../../../controller/controller.session.tab.map';
 import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
-import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import { EParent } from '../../../../services/standalone/service.output.redirections';
+
+import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
@@ -64,7 +67,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         if (row > this._state.count - 1) {
             row = this._state.count - 1;
         }
-        OutputRedirectionsService.select('markers-line', this.service.getGuid(), row);
+        OutputRedirectionsService.select(EParent.marker, this.service.getGuid(), row);
     }
 
     @HostListener('dblclick', ['$event']) public _ng_onDblClick(event: MouseEvent) {

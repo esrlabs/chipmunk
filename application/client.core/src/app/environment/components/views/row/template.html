@@ -26,6 +26,7 @@
         [position]="position" 
         [pluginId]="pluginId"
         [source]="_ng_sourceName"
+        [parent]="parent"
         [scope]="scope"
         (click)="_ng_onRowSelect($event)"></app-views-output-row-standard>
     <app-views-output-row-columns
@@ -37,6 +38,7 @@
         [pluginId]="pluginId"
         [source]="_ng_sourceName"
         [scope]="scope"
+        [parent]="parent"
         [output]="controller"
         [api]="_ng_render_api" 
         (click)="_ng_onRowSelect($event)"></app-views-output-row-columns>
@@ -48,6 +50,7 @@
         [position]="position" 
         [pluginId]="pluginId"
         [source]="_ng_sourceName"
+        [parent]="parent"
         [scope]="scope"
         [component]="_ng_component"
         (click)="_ng_onRowSelect($event)"></app-views-output-row-external>

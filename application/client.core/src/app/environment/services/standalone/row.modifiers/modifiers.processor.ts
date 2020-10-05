@@ -1,5 +1,6 @@
 
-import { Modifier, Priorities, EType, IHTMLInjection, EHTMLInjectionType, Logger } from 'chipmunk.client.toolkit';
+import { Modifier, Priorities, EType, IHTMLInjection, EHTMLInjectionType, Logger, EApplyTo } from 'chipmunk.client.toolkit';
+import { EParent } from '../../standalone/service.output.redirections';
 
 export class ModifierProcessor {
 
@@ -13,7 +14,7 @@ export class ModifierProcessor {
         this._hasOwnStyles = hasOwnStyles;
     }
 
-    public parse(row: string): string {
+    public parse(row: string, parent: EParent): string {
         const cleanup = (str: string): string => {
             // For finalization procedure we are applying
             // all modifiers. For example, to cleanup from
@@ -31,7 +32,7 @@ export class ModifierProcessor {
         // Get rid of original HTML in logs
         row = this._serialize(row);
         this._injections = [];
-        const modifiers: Modifier[] = this._getApplicableModifiers();
+        const modifiers: Modifier[] = this._getApplicableModifiers(parent);
         Priorities.forEach((type: EType, index: number) => {
             const subordinateTypes: EType[] = index !== Priorities.length - 1 ? Priorities.slice(index + 1, Priorities.length) : [];
             const masters: Modifier[] = modifiers.filter(m => m.type() === type);
@@ -115,8 +116,20 @@ export class ModifierProcessor {
         return this._injections.length > 0;
     }
 
-    private _getApplicableModifiers(): Modifier[] {
+    private _getApplicableModifiers(target: EParent): Modifier[] {
+        const applyTo: EApplyTo = (() => {
+            if (target === EParent.output) {
+                return EApplyTo.output;
+            }
+            if (target === EParent.search) {
+                return EApplyTo.search;
+            }
+            return EApplyTo.all;
+        })();
         return this._modifiers.filter((modifier: Modifier) => {
+            if (modifier.applyTo() !== EApplyTo.all && modifier.applyTo() !== applyTo) {
+                return false;
+            }
             if (this._hasOwnStyles) {
                 return [EType.above, EType.match].indexOf(modifier.type()) !== -1;
             } else {

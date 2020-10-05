@@ -1,8 +1,11 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
+import { EParent } from '../../../../services/standalone/service.output.redirections';
+import { EApplyTo } from 'chipmunk.client.toolkit';
+
+import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 
 @Component({
     selector: 'app-views-output-row-standard',
@@ -18,6 +21,7 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
     @Input() public pluginId: number | undefined;
     @Input() public source: string | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
+    @Input() public parent: EParent;
 
     private _safeHtml: SafeHtml = null;
 
@@ -47,7 +51,7 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
             source: this.source,
             position: this.position,
             hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
-        });
+        }, this.parent);
         // Generate html
         this._safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
     }

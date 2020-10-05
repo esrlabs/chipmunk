@@ -6,6 +6,7 @@ import { ControllerSessionTab } from '../../../../controller/controller.session.
 import { IComment, ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
 import { CShortColors } from '../../../../conts/colors';
 import { shadeColor } from '../../../../theme/colors';
+import { EParent } from '../../../../services/standalone/service.output.redirections';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -59,7 +60,7 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     }
 
     public ngOnShow() {
-        OutputRedirectionsService.select('comments_redirection', this.controller.getGuid(), this.comment.selection.start.position);
+        OutputRedirectionsService.select(EParent.comment, this.controller.getGuid(), this.comment.selection.start.position);
     }
 
     public ngOnRemove() {

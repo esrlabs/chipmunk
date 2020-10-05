@@ -1,12 +1,27 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
+
 import { Subscription, Observable } from 'rxjs';
 import { Selection, ISelectionAccessor, IRange } from '../../controller/helpers/selection';
+import { EApplyTo } from 'chipmunk.client.toolkit';
 
 import EventsSessionService from './service.events.session';
 
 export enum EKey {
     ctrl = 'ctrl',
     shift = 'shift'
+}
+
+export enum EParent {
+    output = 'output',
+    search = 'search',
+    bookmark = 'bookmark',
+    notification = 'notification',
+    parsing = 'parsing',
+    marker = 'marker',
+    chart = 'chart',
+    timemeasurement = 'timemeasurement',
+    comment = 'comment',
+    notassigned = 'notassigned',
 }
 
 interface IState {
@@ -25,6 +40,7 @@ export interface IRangeExtended extends IRange {
         end: string;
     };
 }
+
 export class OutputRedirectionsService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputRedirectionsService');
@@ -45,7 +61,7 @@ export class OutputRedirectionsService {
         window.addEventListener('blur', this._onGlobalKeyUp);
     }
 
-    public select(sender: string, sessionId: string, row: number, str?: string) {
+    public select(sender: EParent, sessionId: string, row: number, str?: string) {
         let state: IState | undefined = this._state.get(sessionId);
         if (this._keyHolded === undefined || state === undefined) {
             state = {

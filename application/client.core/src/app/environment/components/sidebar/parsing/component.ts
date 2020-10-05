@@ -2,7 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, After
 import { Subscription, Subject, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { IUpdateEvent, ISelectionParser } from '../../../services/standalone/service.selection.parsers';
-import { IMenu, IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { EParent } from '../../../services/standalone/service.output.redirections';
 
 import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
@@ -94,7 +94,7 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
         // Serialize
         str = OutputParsersService.serialize(str);
         // Apply plugin parser
-        str = OutputParsersService.row({ str: str });
+        str = OutputParsersService.row({ str: str }, EParent.parsing);
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 
@@ -102,7 +102,7 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
         // Serialize
         str = OutputParsersService.serialize(str);
         // Apply plugin parser
-        str = OutputParsersService.row({ str: str, source: 'details', hasOwnStyles: false });
+        str = OutputParsersService.row({ str: str, source: 'details', hasOwnStyles: false }, EParent.parsing);
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 

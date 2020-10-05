@@ -4,6 +4,7 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, After
 import { Subscription, Observable, Subject } from 'rxjs';
 import { NotificationsService, INotification } from '../../../../services.injectable/injectable.service.notifications';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { EParent } from '../../../../services/standalone/service.output.redirections';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
@@ -78,7 +79,7 @@ export class SidebarAppNotificationComponent implements OnDestroy, AfterContentI
         if (typeof this.data.notification.row !== 'number' || isNaN(this.data.notification.row) || !isFinite(this.data.notification.row)) {
             return;
         }
-        OutputRedirectionsService.select('notifications', this.session, this.data.notification.row);
+        OutputRedirectionsService.select(EParent.notification, this.session, this.data.notification.row);
     }
 
 }

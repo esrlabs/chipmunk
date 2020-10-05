@@ -1,16 +1,19 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewEncapsulation } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { ControllerColumns, IColumn } from './controller.columns';
 import { Subscription, Subject } from 'rxjs';
-import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import { ViewOutputRowColumnsHeadersComponent, CColumnsHeadersKey } from './headers/component';
-import { hash } from 'chipmunk.client.toolkit';
+import { EParent } from '../../../../services/standalone/service.output.redirections';
+import { EApplyTo } from 'chipmunk.client.toolkit';
+
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import OutputParsersService from '../../../../services/standalone/service.output.parsers';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IAPI {
     getHeaders(): string[];
@@ -37,6 +40,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     @Input() public api: IAPI | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
     @Input() public output: ControllerSessionTabStreamOutput | undefined;
+    @Input() public parent: EParent;
 
     public _ng_columns: Array<{ html: SafeHtml, index: number }> = [];
 
@@ -112,7 +116,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             source: this.source,
             position: this.position,
             hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
-        });
+        }, this.parent);
         // html = `<span class="a">This is \u0004test string</span><span class="b"> to make \u0004sure<span class="c"> all works well</span></span>`;
         this._ng_columns = this._parse(html)
             .filter(c => this._columns[c.index] && this._columns[c.index].visible)

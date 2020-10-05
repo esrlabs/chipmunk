@@ -1,11 +1,14 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
-import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { IComponentDesc } from 'chipmunk-client-material';
-import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import { EParent } from '../../../../services/standalone/service.output.redirections';
 import { Subject } from 'rxjs';
 import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
-import * as Toolkit from 'chipmunk.client.toolkit';
+import { EApplyTo } from 'chipmunk.client.toolkit';
+
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import OutputParsersService from '../../../../services/standalone/service.output.parsers';
+
 
 @Component({
     selector: 'app-views-output-row-external',
@@ -23,6 +26,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     @Input() public source: string | undefined;
     @Input() public component: IComponentDesc | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
+    @Input() public parent: EParent;
 
     public _ng_component: IComponentDesc | undefined;
 
@@ -101,7 +105,7 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
             source: this.source,
             position: this.position,
             hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
-        });
+        }, this.parent);
         // Return parsed HTML
         return str;
     }

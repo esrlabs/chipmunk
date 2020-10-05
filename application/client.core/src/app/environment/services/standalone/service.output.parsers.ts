@@ -7,8 +7,8 @@ import { CColors } from '../../conts/colors';
 import { FilterRequest } from '../../controller/controller.session.tab.search.filters.request';
 import { ControllerSessionTab } from '../../controller/controller.session.tab';
 import { Subscription } from 'rxjs';
-import { EKey } from '../../services/standalone/service.output.redirections';
-import { IRequest, Modifier } from 'chipmunk.client.toolkit';
+import { EKey, EParent } from '../../services/standalone/service.output.redirections';
+import { IRequest, Modifier, EApplyTo } from 'chipmunk.client.toolkit';
 
 import { ModifierProcessor } from './row.modifiers/modifiers.processor';
 import { HighlightsModifier } from './row.modifiers/row.modifier.highlights';
@@ -174,7 +174,7 @@ export class OutputParsersService {
         return this._getTypedRowRenderBySource(sourceName, sourceMeta);
     }
 
-    public row(row: IRow, sessionId?: string): string {
+    public row(row: IRow, target: EParent, sessionId?: string): string {
         sessionId = sessionId !== undefined ? sessionId : (this._controller === undefined ? undefined : this._controller.getGuid());
         if (sessionId === undefined) {
             return this._logger.warn(`Session ID isn't defined.`);
@@ -241,7 +241,7 @@ export class OutputParsersService {
         ], row.str));
         modifiers.push(new FiltersModifier(requests instanceof Array ? requests : [], row.str));
         const processor = new ModifierProcessor(modifiers, row.hasOwnStyles);
-        return processor.parse(row.str);
+        return processor.parse(row.str, target);
     }
 
     public highlight(sessionId: string, str: string): IHighlight {
