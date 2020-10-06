@@ -92,9 +92,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         return this._ng_isVisible(key) ? {
             width: `${this._columns[key].width}px`,
             color: this.color === undefined ? this._columns[key].color : this.color,
-        } : {
-            width: `1px`,
-        };
+        } : { };
     }
 
     public _ng_isVisible(index: number): boolean {
