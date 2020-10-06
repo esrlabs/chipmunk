@@ -122,11 +122,4 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         this._controller.setCurrentFile(filename);
     }
 
-    private _forceUpdate() {
-        if (this._destroyed) {
-            return;
-        }
-        this._cdRef.detectChanges();
-    }
-
 }

@@ -260,6 +260,16 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> {
         this._subjects.onExport.next();
     }
 
+    public clear() {
+        this._comments.forEach((comment: IComment, guid: string) => {
+            this._comments.delete(guid);
+            this._subjects.onRemoved.next(guid);
+        });
+        this._comments.clear();
+        OutputParsersService.updateRowsView();
+        this._subjects.onExport.next();
+    }
+
     public getObservable(): {
         onAdded: Observable<IComment>,
         onUpdated: Observable<IComment>,

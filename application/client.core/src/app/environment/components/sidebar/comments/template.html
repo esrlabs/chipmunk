@@ -1,8 +1,37 @@
+<div class="actions">
+    <button mat-icon-button color="primary" [matMenuTriggerFor]="commentCategoryMenu">
+        <mat-icon>filter_list</mat-icon>
+    </button>
+    <button mat-icon-button color="primary" aria-label="Available Actions" [matMenuTriggerFor]="commentActionsMenu">
+        <mat-icon>more_horiz</mat-icon>
+    </button>
+</div>
 <div class="comments" *ngIf="_ng_controller !== undefined">
     <app-sidebar-app-comments-item
         [comment]="comment"
         [controller]="_ng_controller"
         [broadcastEditorUsage]="_ng_broadcastEditorUsage"
-        *ngFor="let comment of _ng_comments">
+        *ngFor="let comment of ngGetComments()">
     </app-sidebar-app-comments-item>
 </div>
+
+<mat-menu #commentActionsMenu="matMenu" xPosition="before">
+    <button mat-menu-item (click)="ngOnRemoveAll()">
+        <mat-icon>delete_sweep</mat-icon>
+        <span>Remove All</span>
+    </button>
+</mat-menu>
+
+<mat-menu #commentCategoryMenu="matMenu" xPosition="before">
+    <div class="colors-wrapper">
+        <button class="comment-color-selector" mat-mini-fab color="primary" aria-label="Category" (click)="ngOnSetFilter(undefined)">
+            <mat-icon>remove</mat-icon>
+        </button>
+        <button *ngFor="let color of _ng_colors"
+                class="comment-color-selector"
+                mat-mini-fab color="primary"
+                (click)="ngOnSetFilter(color)"
+                [ngStyle]="{'background': color}">
+        </button>
+    </div>
+</mat-menu>

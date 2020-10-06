@@ -1,7 +1,7 @@
 @import '../../../theme/variables.less';
 
 
-:host {
+app-sidebar-app-comments {
     position: absolute;
     display: block;
     padding: 0 0.5rem 0 0;
@@ -10,28 +10,28 @@
     right: 0;
     left: 0.5rem;
     top: 0.5rem;
-    overflow-y: auto;
-    overflow-x: hidden;
-    & span.slitter{
-        position: relative;
-        display: block;
-        height: 8px;
-    }
-    & .controlls{
+    overflow: hidden;
+    & .actions{
         text-align: right;
         white-space: nowrap;
-        & * {
-            margin-right: 8px;
-            &:last-child {
-                margin-right: 0;
-            }
-        }
-        & > button {
-            margin-left: 8px;
-            & mat-spinner{
-                display: inline-block;
-                margin-right: 8px;
-            }
-        }
+        position: absolute;
+        display: block;
+        height: 32px;
+        width: 100%;
+        left:0;
     }
+    & .comments {
+        position: absolute;
+        display: block;
+        top: 32px;
+        bottom: 0;
+        width: 100%;
+        left:0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+}
+
+button.comment-color-selector {
+    margin: 2px;
 }

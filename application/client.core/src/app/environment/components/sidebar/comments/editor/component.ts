@@ -87,11 +87,4 @@ export class SidebarAppCommentsEditorComponent implements OnDestroy, AfterConten
         this.cancel();
     }
 
-    private _forceUpdate() {
-        if (this._destroyed) {
-            return;
-        }
-        this._cdRef.detectChanges();
-    }
-
 }
