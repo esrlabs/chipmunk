@@ -62,13 +62,21 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         this._forceUpdate();
     }
 
-    public ngGetComments() {
-        return this._ng_comments.filter((comment: IComment) => {
-            if (this._filter === undefined) {
-                return true;
+    public ngGetComments(): IComment[] {
+        return this._ng_comments.filter(c => this._filter === undefined || this._filter === c.color);
+    }
+
+    public ngGetHiddenComments(): Array<{ count: number, color: string | undefined}> {
+        const data: Array<{ count: number, color: string | undefined}> = [];
+        this._ng_comments.filter(c => this._filter !== undefined && this._filter !== c.color).map((comment: IComment) => {
+            const index: number = data.findIndex(d => d.color === comment.color);
+            if (index === -1) {
+                data.push({ count: 1, color: comment.color });
+            } else {
+                data[index].count += 1;
             }
-            return this._filter === comment.color;
         });
+        return data;
     }
 
     public ngOnRemoveAll() {

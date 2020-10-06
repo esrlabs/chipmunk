@@ -66,7 +66,7 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     public ngOnRemove() {
         setTimeout(() => {
             this.controller.getSessionComments().remove(this.comment.guid);
-        }, 50);
+        }, 10);
     }
 
     public ngOnChanges(changes: SimpleChanges) {
@@ -108,7 +108,6 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
                     }
                     return response;
                 });
-                this.controller.getSessionComments().update(this.comment);
             }
             this.controller.getSessionComments().update(this.comment);
         }

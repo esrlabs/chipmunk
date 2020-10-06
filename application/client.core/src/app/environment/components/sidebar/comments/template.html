@@ -13,6 +13,19 @@
         [broadcastEditorUsage]="_ng_broadcastEditorUsage"
         *ngFor="let comment of ngGetComments()">
     </app-sidebar-app-comments-item>
+    <div class="hidden" *ngIf="ngGetHiddenComments().length > 0">
+        <div *ngFor="let hidden of ngGetHiddenComments()" class="hidden-comment-wrapper">
+            <div class="hidden-comment">
+                <button 
+                    class="hidden-comment"
+                    mat-mini-fab color="primary"
+                    [ngStyle]="{'background': hidden.color}">
+                </button>
+                <p>more {{hidden.count}} comment{{hidden.count > 1 ? 's' : ''}}</p>
+            </div>
+        </div>
+    </div>
+    <p class="t-small color-scheme-1 info" *ngIf="_ng_comments.length === 0">To create new comment: select some text; call context menu and select "Comment"</p>
 </div>
 
 <mat-menu #commentActionsMenu="matMenu" xPosition="before">
