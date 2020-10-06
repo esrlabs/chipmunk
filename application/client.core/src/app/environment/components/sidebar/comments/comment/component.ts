@@ -64,7 +64,9 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     }
 
     public ngOnRemove() {
-        this.controller.getSessionComments().remove(this.comment.guid);
+        setTimeout(() => {
+            this.controller.getSessionComments().remove(this.comment.guid);
+        }, 50);
     }
 
     public ngOnChanges(changes: SimpleChanges) {
