@@ -78,7 +78,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> {
         const guid: string = Toolkit.guid();
         const comment: IComment | Error = (() => {
             if (selection.anchor === selection.focus) {
-                const sel: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, selection.selection, false);
+                const sel: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, selection.original, false);
                 if (sel instanceof Error) {
                     return sel;
                 }
@@ -101,11 +101,11 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> {
                             offset: sel.end,
                             text: sel.selection,
                         },
-                        text: selection.selection,
+                        text: selection.original,
                     },
                 };
             } else {
-                const rows = selection.selection.split(/[\n\r]/gi);
+                const rows = selection.original.split(/[\n\r]/gi);
                 const stored = remember();
                 if (stored === undefined) {
                     return new Error(`Fail save selection`);
@@ -141,7 +141,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> {
                             offset: selEnd.end,
                             text: selEnd.selection,
                         },
-                        text: selection.selection,
+                        text: selection.original,
                     },
                 };
             }

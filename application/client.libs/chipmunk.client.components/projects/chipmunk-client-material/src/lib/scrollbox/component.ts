@@ -10,6 +10,7 @@ import guid from '../../tools/tools.guid';
 
 export interface IScrollBoxSelection {
     selection: string;
+    original: string;
     anchor: number;
     anchorOffset: number;
     focus: number;
@@ -547,6 +548,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
         return {
             selection: selection,
+            original: this._selection.selection,
             anchor: this._selection.anchor.index,
             anchorOffset: this._selection.anchor.offset,
             focus: this._selection.focus.index,
