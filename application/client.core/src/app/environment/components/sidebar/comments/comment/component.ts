@@ -71,7 +71,7 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
         if (changes.comment === undefined) {
             return;
         }
-        this.comment = changes.comment.currentValue;
+        this.comment = Toolkit.copy(changes.comment.currentValue);
         this._forceUpdate();
     }
 
