@@ -4,10 +4,10 @@
 app-sidebar-app-comments {
     position: absolute;
     display: block;
-    padding: 0 0.5rem 0 0;
+    padding: 0;
     margin: 0;
     bottom: 0.5rem;
-    right: 0;
+    right: 0.5rem;
     left: 0.5rem;
     top: 0.5rem;
     overflow: hidden;
@@ -29,6 +29,22 @@ app-sidebar-app-comments {
         left:0;
         overflow-y: auto;
         overflow-x: hidden;
+    }
+    & .hidden {
+        & .hidden-comment-wrapper{
+            margin-top: 8px;
+            & .hidden-comment{
+                display: flex;
+                align-items: center;
+                & p {
+                    margin-left: 16px;
+                    color: @scheme-color-2;
+                }
+            }
+        }
+    }
+    p.info {
+        margin: 16px 0;
     }
 }
 
