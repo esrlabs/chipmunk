@@ -42,5 +42,19 @@ app-views-output-row-columns {
             width: 16px;
             background: linear-gradient(90deg, rgba(0,0,0,0) 0%, @scheme-color-5 100%);
         }
+        &.hide {
+            padding: 0!important;
+            border-right: none;
+            &::after{
+                display: none;
+            }
+        }
+    }
+}
+div.wrapper.selected {
+    app-views-output-row-columns {
+        & span.column::after{
+            display: none;
+        }
     }
 }
