@@ -89,10 +89,16 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     }
 
     public _ng_getStyles(key: number): { [key: string]: string } {
-        return {
+        return this._ng_isVisible(key) ? {
             width: `${this._columns[key].width}px`,
             color: this.color === undefined ? this._columns[key].color : this.color,
+        } : {
+            width: `1px`,
         };
+    }
+
+    public _ng_isVisible(index: number): boolean {
+        return this._columns[index] && this._columns[index].visible;
     }
 
     private _render() {
@@ -118,7 +124,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
         }, this.parent);
         this._ng_columns = this._parse(html)
-            .filter(c => this._columns[c.index] && this._columns[c.index].visible)
+//            .filter(c => this._columns[c.index] && this._columns[c.index].visible)
             .map(c => ({ html: this._sanitizer.bypassSecurityTrustHtml(c.html), index: c.index }));
     }
 
@@ -137,11 +143,12 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         let chunk = '';
         const tags: Array<{ value: string, name: string }> = [];
         const columns: Array<{ html: string, index: number }> = [];
+        const delimiter: string = this.api.getDelimiter();
         let cNum: number = 0;
         try {
             let pos: number = 0;
             do {
-                if (['<', '>', this.api.getDelimiter()].indexOf(html[pos]) !== -1) {
+                if (['<', '>', delimiter].indexOf(html[pos]) !== -1) {
                     switch (html[pos]) {
                         case '<':
                             // Some tag is opened
@@ -171,8 +178,9 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                             break;
                         case '>':
                             throw new Error(`">" has been found unexpectable`);
-                        case '\u0004':
+                        case delimiter:
                             chunk += tags.map(t => `</${t.name}>`).join('');
+                            chunk += delimiter;
                             columns.push({ html: chunk, index: cNum });
                             cNum += 1;
                             chunk = tags.map(t => t.value).join('');
