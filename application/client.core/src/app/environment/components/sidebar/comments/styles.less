@@ -31,14 +31,22 @@ app-sidebar-app-comments {
         overflow-x: hidden;
     }
     & .hidden {
+        margin-top: 8px;
         & .hidden-comment-wrapper{
             margin-top: 8px;
+            &:first-child{
+                margin-top: 0;
+            }
             & .hidden-comment{
                 display: flex;
                 align-items: center;
                 & p {
                     margin-left: 16px;
-                    color: @scheme-color-2;
+                    margin-top: -2px;
+                }
+                & .mat-mini-fab{
+                    width: 16px;
+                    height: 16px;
                 }
             }
         }

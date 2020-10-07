@@ -13,19 +13,35 @@
         [broadcastEditorUsage]="_ng_broadcastEditorUsage"
         *ngFor="let comment of ngGetComments()">
     </app-sidebar-app-comments-item>
+
     <div class="hidden" *ngIf="ngGetHiddenComments().length > 0">
-        <div *ngFor="let hidden of ngGetHiddenComments()" class="hidden-comment-wrapper">
-            <div class="hidden-comment">
-                <button 
-                    class="hidden-comment"
-                    mat-mini-fab color="primary"
-                    [ngStyle]="{'background': hidden.color}">
-                </button>
-                <p>more {{hidden.count}} comment{{hidden.count > 1 ? 's' : ''}}</p>
+        <mat-card>
+            <div *ngFor="let hidden of ngGetHiddenComments()" class="hidden-comment-wrapper">
+                <div class="hidden-comment" (click)="ngOnSetFilter(hidden.color)">
+                    <button 
+                        class="hidden-comment"
+                        mat-mini-fab color="primary"
+                        [ngStyle]="{'background': hidden.color}">
+                    </button>
+                    <p class="t-small color-scheme-2">more {{hidden.count}} comment{{hidden.count > 1 ? 's' : ''}}</p>
+                </div>
             </div>
-        </div>
+            <div class="hidden-comment-wrapper">
+                <div class="hidden-comment" (click)="ngOnSetFilter(undefined)">
+                    <button 
+                        class="hidden-comment"
+                        mat-mini-fab color="primary">
+                    </button>
+                    <p class="t-small color-scheme-2">show all</p>
+                </div>
+            </div>
+        </mat-card>
     </div>
-    <p class="t-small color-scheme-1 info" *ngIf="_ng_comments.length === 0">To create new comment: select some text; call context menu and select "Comment"</p>
+    <div class="hidden" *ngIf="_ng_comments.length === 0">
+        <mat-card>
+            <p class="t-small color-scheme-1 info" >To create new comment: select some text; call context menu and select "Comment"</p>
+        </mat-card>
+    </div>
 </div>
 
 <mat-menu #commentActionsMenu="matMenu" xPosition="before">
