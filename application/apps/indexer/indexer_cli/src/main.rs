@@ -600,7 +600,10 @@ fn main() {
                         }
                         Ok(())
                     }
-                    Err(e) => println!("error: {}", e),
+                    Err(e) => {
+                        report_error(format!("Error during line grabbing: {}", e));
+                        std::process::exit(2);
+                    }
                 }
             }
             _ => {

@@ -162,7 +162,6 @@ fn main() {
         current_app_path.clone() // is equals to chipmunk.app
     } else {
         current_app_path
-            .clone()
             .parent()
             .expect("could not get parent-directory of application")
             .to_path_buf()
