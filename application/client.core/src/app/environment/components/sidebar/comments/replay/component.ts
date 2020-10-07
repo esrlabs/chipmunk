@@ -40,7 +40,9 @@ export class SidebarAppCommentsItemReplayComponent implements OnDestroy, AfterVi
     }
 
     public ngOnRemove() {
-        this.remove();
+        setTimeout(() => {
+            this.remove();
+        }, 10);
     }
 
     public ngOnEdit() {
