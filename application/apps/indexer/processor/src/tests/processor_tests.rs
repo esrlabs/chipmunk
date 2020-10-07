@@ -3,9 +3,10 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     extern crate rand;
     // extern crate tempdir;
-    use crate::grabber::LineRange;
-    use crate::grabber::Slot;
-    use crate::{grabber::Grabber, processor::*};
+    use crate::{
+        grabber::{Grabber, LineRange, Slot},
+        processor::*,
+    };
     use anyhow::Result;
     use crossbeam_channel as cc;
     use crossbeam_channel::unbounded;
