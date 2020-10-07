@@ -6,7 +6,7 @@
             matInput
             #message
             maxlength="1024"
-            placeholder="Replay"
+            placeholder="Reply"
             [(ngModel)]="_ng_response"
             [errorStateMatcher]="_ng_input_error"
             (keydown)="_ng_onKeyDown($event)"></textarea>
@@ -20,7 +20,7 @@
     </mat-form-field>
 </div>
 <div class="controlls">
-    <button mat-stroked-button color="primary" (click)="_ng_onAccept()">{{_ng_mode === 'edit' ? 'Save' : 'Replay'}}</button>
+    <button mat-stroked-button color="primary" (click)="_ng_onAccept()">{{_ng_mode === 'edit' ? 'Save' : 'Reply'}}</button>
     <button *ngIf="_ng_mode === 'edit'" mat-stroked-button color="primary" (click)="_ng_onRemove()">Remove</button>
     <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
 </div>
