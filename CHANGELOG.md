@@ -1,5 +1,80 @@
 # Changelog
 
+### [2.8.0] - 10/08/2020
+* Downgrade electron-rebuild to 2.1.1
+* Fix typos
+* Upgrade to electron 9.3.2
+* Fix removing of subcomment
+* Update UI/UX of comments sidebar
+* Add stat for comments
+* Fix removing of comment
+* Add support of comments sorting
+* Support comments selection on any column (for columns-row-view)
+* Keep column content even it's hidden
+* Change view update strategy
+* Fix payload rendering (rendering last column)
+* Asynch destroy of writer for session importer
+* Correct rendering of rows on session switch
+* Add possibility to bind a modifier with type of output
+* chipmunk.client.toolkit -> 1.3.13
+* Add support of columns for row modifiers
+* Exclude installing components lib from build workflow
+* Change angular build limits for client.core
+* Switch client.core into production mode (aot)
+* Fix update view event on filters/charts manager
+* Fix error in dynamic component (missed cached key)
+* Switch client.core to production (aot)
+* Refactor caching for dynamic components
+* Prevent warning for unused modifiers during row render
+* Open tab in sidebar and toolbar in silence mode
+* Fix bug with removing of comment
+* Add disabled filters into session storage
+* Add charts and timeranges into session storage
+* Include filters into session storage
+* Add queue of IO operations with session file
+* Include bookmarks to session storage
+* Refactor importer abstraction
+* Change subcomments design
+* Save/load session file
+* Services and controller for session store/restore support
+* Fix comment selection style
+* Prevent breakable modifiers on styled rows (like matches)
+* Fix rendering highlights (active/passive filters)
+* Default color for comment
+* Fix styles for subcomments editor
+* Finalize implementation of subcomments
+* Edit / remove subcomments
+* Replay comment basic support
+* Support colors for comments blocks
+* Fix rendering multiple comments highlight on same row
+* Fix reverse selection of output to create comment
+* Resolver crossing comments
+* Fix error on remove comment
+* Implement asic monipulations: edit, remove, show
+* Add comment menu actions
+* Default actions for comment-add dialog
+* Fix circle dependencies issue
+* Delivery comments to comments panel
+* Add comments views for sidebar
+* Possibility to add a new comment
+* Fix error on open-tag for filters modifier
+* Update modifier processor (prevent not allowed  HTML)
+* Fix parsing matched injections
+* Add finalization of parsing
+* Switch all parsers (include plugins) to modifiers
+* Update modifier interface
+* Update toolkit to 1.3.5
+* Update resolutions list for npm
+* Update comments controller
+* Upgrade time-measurement row parser
+* Apply updates of tookit on client.core
+* Add modifier definitionn to toolkit
+* Basic implementation of row modifires
+* Correct highlight of selection in row
+* Basic UI for comments support
+* Change internal log's datetime format
+* Use chipmunk-client-material -> 1.2.1
+
 ## [2.7.2] - 09/29/2020
 ### Changed
 * Prevent using of latest chipmunk.client.toolkit library in build workflow. Using a strictly defined version of a library.
