@@ -1,7 +1,8 @@
 # Changelog
 
-### [2.8.1] - 10/09/2020
-* Fix layout of plugin description screen
+## [2.8.1] - 10/09/2020
+### Fixed
+* Fix layout of plugin's description screen
 * Fix highlight of matches for columns view
 
 ## [2.8.0] - 10/08/2020
