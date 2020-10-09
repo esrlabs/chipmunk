@@ -1,5 +1,9 @@
 # Changelog
 
+### [2.8.1] - 10/09/2020
+* Fix layout of plugin description screen
+* Fix highlight of matches for columns view
+
 ## [2.8.0] - 10/08/2020
 ### Added
 * Support of session store/restore in the scope of the viewed file (filters, charts, comments, etc. will be restored as the file would be reopened)
