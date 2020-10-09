@@ -1,4 +1,4 @@
-<span [attr.class]="'column '  + (_ng_isVisible(column.index) ? '' : 'hide')" 
+<span [attr.class]="'column '  + (_ng_isVisible(column.index) ? '' : 'hide') + ' ' + (background !== undefined ? 'highlighted' : '')" 
       *ngFor="let column of _ng_columns" 
       [ngStyle]="_ng_getStyles(column.index)" 
       [innerHTML]="column.html"></span>
