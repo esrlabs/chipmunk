@@ -19,10 +19,12 @@ export class Providers {
         select: Subject<ISelectEvent | undefined>,
         context: Subject<IContextMenuEvent>,
         doubleclick: Subject<IDoubleclickEvent>,
+        change: Subject<void>,
     } = {
         select: new Subject(),
         context: new Subject(),
         doubleclick: new Subject(),
+        change: new Subject(),
     };
 
     public destroy() {
@@ -42,11 +44,13 @@ export class Providers {
         select: Observable<ISelectEvent | undefined>,
         context: Observable<IContextMenuEvent>,
         doubleclick: Observable<IDoubleclickEvent>,
+        change: Observable<void>,
     } {
         return {
             select: this._subjects.select.asObservable(),
             context: this._subjects.context.asObservable(),
             doubleclick: this._subjects.doubleclick.asObservable(),
+            change: this._subjects.change.asObservable(),
         };
     }
 
@@ -59,6 +63,7 @@ export class Providers {
         this._selsubs[`selection_${name}`] = provider.getObservable().selection.subscribe(this._onSelectionEntity.bind(this));
         this._selsubs[`context_${name}`] = provider.getObservable().context.subscribe(this._onContextMenuEvent.bind(this));
         this._selsubs[`doubleclick_${name}`] = provider.getObservable().doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
+        this._selsubs[`change_${name}`] = provider.getObservable().change.subscribe(this._onChange.bind(this));
         this._providers.set(name, provider);
     }
 
@@ -384,6 +389,10 @@ export class Providers {
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {
         event.provider.search(event.entity);
+    }
+
+    private _onChange() {
+        this._subjects.change.next();
     }
 
 }

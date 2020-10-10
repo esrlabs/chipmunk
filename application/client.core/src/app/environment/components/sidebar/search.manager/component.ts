@@ -97,6 +97,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._ng_providers = this._providers.list();
         this._subscriptions.select = this._providers.getObservable().select.subscribe(this._onSingleSelection.bind(this));
         this._subscriptions.context = this._providers.getObservable().context.subscribe(this._onContextMenu.bind(this));
+        this._subscriptions.change = this._providers.getObservable().change.subscribe(this._onChange.bind(this));
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         window.addEventListener('keyup', this._onGlobalKeyUp);
         this._onSessionChange(undefined);
@@ -175,6 +176,10 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
 
     private _onFilenameChanged(filename: string) {
         this._ng_filename = Toolkit.basename(filename);
+        this._forceUpdate();
+    }
+
+    private _onChange() {
         this._forceUpdate();
     }
 
