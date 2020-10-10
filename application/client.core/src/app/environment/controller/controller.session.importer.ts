@@ -55,9 +55,6 @@ export class ControllerSessionImporter {
                     }).finally(res);
                 });
             })).then(() => {
-                if (toBeExported.length === 0) {
-                    return resolve();
-                }
                 if (!this._isActualOperation(toBeExported)) {
                     return resolve();
                 }
@@ -130,7 +127,7 @@ export class ControllerSessionImporter {
     }
 
     private _isActualOperation(toBeExported: IPCMessages.ISessionImporterData[]): boolean {
-        const hash: string = toBeExported.map(i => i.hash.toString()).join('-');
+        const hash: string = toBeExported.length !== 0 ? toBeExported.map(i => i.hash.toString()).join('-') : '-';
         const actual: boolean = this._lastOperationHash !== hash;
         this._lastOperationHash = hash;
         return actual;
