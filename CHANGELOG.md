@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.8.2] - 10/11/2020
+* Fix dropping of session data
+
 ## [2.8.1] - 10/09/2020
 ### Fixed
 * Fix layout of plugin's description screen
