@@ -10,6 +10,11 @@ import TabsSessionsService from '../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export enum ECommentsOrdering {
+    position = 'position',
+    colors = 'colors',
+}
+
 @Component({
     selector: 'app-sidebar-app-comments',
     templateUrl: './template.html',
@@ -28,6 +33,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     public _ng_controller: ControllerSessionTab | undefined;
     public _ng_broadcastEditorUsage: Subject<string> = new Subject<string>();
     public _ng_colors: string[] = CShortColors.slice();
+    public _ng_ordring: ECommentsOrdering = ECommentsOrdering.position;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubs: { [key: string]: Subscription } = {};
@@ -83,6 +89,11 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         this._ng_controller.getSessionComments().clear();
     }
 
+    public ngOnOrderingSwitch() {
+        this._ng_ordring = this._ng_ordring === ECommentsOrdering.colors ? ECommentsOrdering.position : ECommentsOrdering.colors;
+        this._forceUpdate();
+    }
+
     private _onSessionChange(controller: ControllerSessionTab | undefined) {
         this._ng_controller = controller;
         Object.keys(this._sessionSubs).forEach((key: string) => {
@@ -102,13 +113,23 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         } else {
             let comments: IComment[] = [];
             const all: IComment[] = Array.from(this._ng_controller.getSessionComments().get().values());
-            CShortColors.slice().concat([undefined]).forEach((color: string | undefined) => {
-                const group: IComment[] = all.filter(c => c.color === color);
-                group.sort((a: IComment, b: IComment) => {
-                    return a.selection.start.position > b.selection.start.position ? 1 : -1;
-                });
-                comments = comments.concat(group);
-            });
+            switch (this._ng_ordring) {
+                case ECommentsOrdering.colors:
+                    CShortColors.slice().concat([undefined]).forEach((color: string | undefined) => {
+                        const group: IComment[] = all.filter(c => c.color === color);
+                        group.sort((a: IComment, b: IComment) => {
+                            return a.selection.start.position > b.selection.start.position ? 1 : -1;
+                        });
+                        comments = comments.concat(group);
+                    });
+                    break;
+                case ECommentsOrdering.position:
+                    all.sort((a: IComment, b: IComment) => {
+                        return a.selection.start.position > b.selection.start.position ? 1 : -1;
+                    });
+                    comments = all;
+                    break;
+            }
             this._ng_comments = comments;
         }
         this._forceUpdate();

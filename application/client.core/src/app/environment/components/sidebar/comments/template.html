@@ -45,6 +45,11 @@
 </div>
 
 <mat-menu #commentActionsMenu="matMenu" xPosition="before">
+    <button mat-menu-item  (click)="ngOnOrderingSwitch()">
+        <mat-icon>sort</mat-icon>
+        <span>{{_ng_ordring === 'position' ? 'Order by Colors' : 'Order by Positions'}}</span>
+    </button>
+    <mat-divider></mat-divider>
     <button mat-menu-item (click)="ngOnRemoveAll()">
         <mat-icon>delete_sweep</mat-icon>
         <span>Remove All</span>
