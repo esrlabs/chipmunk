@@ -1,5 +1,10 @@
 # Changelog
 
+### [2.8.3] - 10/12/2020
+* Adjust style for selected row(s)
+* Adjust comment redirection
+* Add options to order comments
+
 ## [2.8.2] - 10/11/2020
 ### Fixed
 * Fix dropping of session data
