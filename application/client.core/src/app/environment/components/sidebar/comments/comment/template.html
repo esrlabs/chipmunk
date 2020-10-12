@@ -3,7 +3,7 @@
         <mat-card-subtitle (click)="ngOnShow()">
             <span class="position-label">{{comment.selection.start.position}} - {{comment.selection.end.position}}</span>
         </mat-card-subtitle>
-        <mat-card-content>{{comment.comment}}</mat-card-content>
+        <mat-card-content (click)="ngOnShow()">{{comment.comment}}</mat-card-content>
         <mat-card-actions>
             <button mat-icon-button color="primary" [matMenuTriggerFor]="commentCategoryMenu">
                 <mat-icon>color_lens</mat-icon>
