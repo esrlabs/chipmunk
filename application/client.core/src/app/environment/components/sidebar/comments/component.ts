@@ -91,7 +91,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
 
     public ngOnOrderingSwitch() {
         this._ng_ordring = this._ng_ordring === ECommentsOrdering.colors ? ECommentsOrdering.position : ECommentsOrdering.colors;
-        this._forceUpdate();
+        this._load();
     }
 
     private _onSessionChange(controller: ControllerSessionTab | undefined) {
