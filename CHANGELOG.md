@@ -1,9 +1,12 @@
 # Changelog
 
-### [2.8.3] - 10/12/2020
-* Adjust style for selected row(s)
-* Adjust comment redirection
+## [2.8.3] - 10/12/2020
+### Added
 * Add options to order comments
+### Changed
+* Adjust style for selected row(s)
+### Fixed
+* Adjust comment redirection
 
 ## [2.8.2] - 10/11/2020
 ### Fixed
