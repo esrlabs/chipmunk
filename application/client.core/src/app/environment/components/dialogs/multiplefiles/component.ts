@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef, Input, AfterViewInit, ViewContainerRef, OnDestroy } from '@angular/core';
 import ServiceElectronIpc, { IPCMessages } from '../../../services/service.electron.ipc';
 import { FilesList } from '../../../controller/controller.file.storage';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
@@ -15,6 +15,8 @@ import ContextMenuService, { IMenuItem } from '../../../services/standalone/serv
 export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDestroy {
 
     @Input() fileList: FilesList;
+    @Input() onEnter: Observable<void>;
+    @Input() merge: () => void;
 
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
@@ -26,6 +28,7 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
 
     ngAfterViewInit() {
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
+        this._subscriptions.onEnter = this.onEnter.subscribe(this.merge.bind(this));
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
     }
 

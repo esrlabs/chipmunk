@@ -88,7 +88,7 @@ export class PopupsService {
             return;
         }
         if (event.key === 'Escape') {
-            this.remove(this._opened.keys().next().value);
+            this.close();
         } else if (event.key === 'Enter') {
             this._subjects.onEnter.next();
         }

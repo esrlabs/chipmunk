@@ -1,7 +1,6 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { IService } from '../interfaces/interface.service';
-import { Observable, Subject } from 'rxjs';
 import { IPCMessages, Subscription } from './service.electron.ipc';
 import { ControllerSessionTab } from '../controller/controller.session.tab';
 import { FilesList } from '../controller/controller.file.storage';
@@ -99,13 +98,18 @@ export class FileOpenerService implements IService, IFileOpenerService {
                         // Multiple files
                         // Select way: merge or concat
                         const fileList: FilesList = new FilesList(checkResponse.files);
-                        PopupsService.add({
+                        const guid: string = PopupsService.add({
                             id: 'opening-file-dialog',
                             caption: `Opening files`,
                             component: {
                                 factory: DialogsMultipleFilesActionComponent,
                                 inputs: {
                                     fileList: fileList,
+                                    onEnter: PopupsService.getObservable().onEnter,
+                                    merge: () => {
+                                        this.merge(fileList),
+                                        PopupsService.remove(guid);
+                                    },
                                 }
                             },
                             buttons: [
