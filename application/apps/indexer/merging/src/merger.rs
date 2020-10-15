@@ -252,7 +252,7 @@ fn do_the_merge(
 
 pub trait Len {
     fn len(&self) -> Result<u64>;
-    fn is_empty(self: &Self) -> bool;
+    fn is_empty(&self) -> bool;
 }
 
 impl Len for FileMergeOptions {
@@ -260,22 +260,16 @@ impl Len for FileMergeOptions {
         Ok(fs::metadata(&self.path)?.len())
     }
 
-    fn is_empty(self: &Self) -> bool {
-        match self.len() {
-            Ok(0) => true,
-            _ => false,
-        }
+    fn is_empty(&self) -> bool {
+        matches!(self.len(), Ok(0))
     }
 }
 impl Len for PathBuf {
     fn len(&self) -> Result<u64> {
         Ok(fs::metadata(self)?.len())
     }
-    fn is_empty(self: &Self) -> bool {
-        match self.len() {
-            Ok(0) => true,
-            _ => false,
-        }
+    fn is_empty(&self) -> bool {
+        matches!(self.len(), Ok(0))
     }
 }
 

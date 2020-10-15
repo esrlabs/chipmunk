@@ -1217,17 +1217,11 @@ impl Payload2 {
     }
     #[allow(dead_code)]
     pub(crate) fn is_verbose(&self) -> bool {
-        match self.payload_content {
-            PayloadContent::Verbose(_) => true,
-            _ => false,
-        }
+        matches!(self.payload_content, PayloadContent::Verbose(_))
     }
     #[allow(dead_code)]
     fn is_non_verbose(&self) -> bool {
-        match self.payload_content {
-            PayloadContent::NonVerbose(_, _) => true,
-            _ => false,
-        }
+        matches!(self.payload_content, PayloadContent::NonVerbose(_, _))
     }
     #[allow(dead_code)]
     fn is_control_request(&self) -> Option<bool> {

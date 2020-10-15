@@ -818,10 +818,10 @@ mod tests {
     fn test_dlt_zero_terminated_string_less_data() {
         let mut buf = BytesMut::with_capacity(4);
         buf.extend_from_slice(b"id\0");
-        assert!(match dlt_zero_terminated_string(&buf, 4) {
-            Err(nom::Err::Incomplete(nom::Needed::Size(_))) => true,
-            _ => false,
-        });
+        assert!(matches!(
+            dlt_zero_terminated_string(&buf, 4),
+            Err(nom::Err::Incomplete(nom::Needed::Size(_)))
+        ));
         buf.clear();
         buf.extend_from_slice(b"id\0\0");
         let expected: IResult<&[u8], &str> = Ok((b"", "id"));
