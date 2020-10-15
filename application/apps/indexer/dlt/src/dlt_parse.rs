@@ -1224,7 +1224,7 @@ pub type StatisticsResults = std::result::Result<IndexingProgress<StatisticInfo>
 pub fn get_dlt_file_info(
     in_file: &std::path::PathBuf,
     update_channel: &cc::Sender<StatisticsResults>,
-    shutdown_receiver: Option<cc::Receiver<()>>,
+    shutdown_receiver: Option<crossbeam_channel::Receiver<()>>,
 ) -> Result<(), DltParseError> {
     let f = fs::File::open(in_file)?;
 

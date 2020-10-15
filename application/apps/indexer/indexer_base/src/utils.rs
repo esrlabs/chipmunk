@@ -239,7 +239,7 @@ pub fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
 }
 
 pub fn check_if_stop_was_requested(
-    shutdown_receiver: Option<&cc::Receiver<()>>,
+    shutdown_receiver: Option<&crossbeam_channel::Receiver<()>>,
     component: &str,
 ) -> bool {
     match shutdown_receiver.as_ref() {
