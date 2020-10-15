@@ -105,8 +105,8 @@ export class FileOpenerService implements IService, IFileOpenerService {
                                 factory: DialogsMultipleFilesActionComponent,
                                 inputs: {
                                     fileList: fileList,
-                                    onEnter: PopupsService.getObservable().onEnter,
-                                    merge: () => {
+                                    onDefaultOkAction: PopupsService.getObservable().onEnter,
+                                    defaultAction: () => {
                                         this.merge(fileList),
                                         PopupsService.remove(guid);
                                     },

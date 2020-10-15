@@ -100,8 +100,8 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     @Input() public size: number = -1;
     @Input() public options: CommonInterfaces.DLT.IDLTOptions | undefined;
     @Input() public onDone: (options: CommonInterfaces.DLT.IDLTOptions) => void;
-    @Input() public onCancel: () => void;
-    @Input() public onEnter: Observable<void>;
+    @Input() public onDefaultCancelAction: () => void;
+    @Input() public onDefaultOkAction: Observable<void>;
 
     public _ng_size: string = '';
     public _ng_logLevelDefault: EMTIN = EMTIN.DLT_LOG_VERBOSE;
@@ -136,7 +136,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.onEnter = this.onEnter.subscribe(this._ng_onOpen.bind(this));
+        this._subscriptions.onEnter = this.onDefaultOkAction.subscribe(this._ng_onOpen.bind(this));
         this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
         if (this.options !== undefined && this.options.stats !== undefined) {
             this._initAsReopen();
@@ -186,7 +186,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     public _ng_onCancel() {
-        this.onCancel();
+        this.onDefaultCancelAction();
     }
 
     public _ng_onFibex() {
