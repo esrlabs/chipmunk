@@ -12,7 +12,7 @@ buf_redux = "0.8.1"
 anyhow = "1.0"
 log = "0.4"
 rustc-hash = "1.1.0"
-crossbeam-channel = "0.4"
+crossbeam-channel = "0.5.0"
 
 [dev-dependencies]
 tempdir = "0.3"

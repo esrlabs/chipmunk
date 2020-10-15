@@ -20,7 +20,6 @@ use crate::{
 use anyhow::anyhow;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use crossbeam_channel as cc;
-use crossbeam_channel::unbounded;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
     config::*,
@@ -43,7 +42,8 @@ pub async fn parse_dlt_file(
 ) -> Result<Vec<Message>, DltParseError> {
     trace!("parse_dlt_file");
     let source_file_size = fs::metadata(&in_file)?.len();
-    let (update_channel, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+    let (update_channel, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) =
+        cc::unbounded();
     let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
     let mut messages: Vec<Message> = Vec::new();
     let mut message_stream = FileMessageProducer::new(
