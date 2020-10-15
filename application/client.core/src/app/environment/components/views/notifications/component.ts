@@ -142,6 +142,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         this._ng_filter = '';
         this._ng_selected = undefined;
         this._notifications.clear(this._ng_session);
+        this._ng_summary = this._getSummary();
         this._forceUpdate();
     }
 
