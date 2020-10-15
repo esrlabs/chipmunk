@@ -843,10 +843,7 @@ pub fn dlt_message<'a>(
         //     "did parse extended header (type: {})",
         //     ext_header.message_type
         // );
-        is_controll_msg = match ext_header.message_type {
-            MessageType::Control(_) => true,
-            _ => false,
-        };
+        is_controll_msg = matches!(ext_header.message_type, MessageType::Control(_));
         // trace!(
         //     "did parse extended header, verbose: {}, arg_count: {}, is_controll: {}",
         //     verbose,
