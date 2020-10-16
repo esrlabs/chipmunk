@@ -162,8 +162,7 @@ impl futures::Stream for PcapMessageProducer {
                                     }
                                     Ok((_, ParsedMessage::Invalid)) => (),
                                     Err(e) => {
-                                        trace!("error: {}", e);
-                                        warn!("PCAP payload did not contain a valid DLT message");
+                                        trace!("PCAP payload did not contain a valid DLT message, error: {}", e);
                                         break;
                                     }
                                 }

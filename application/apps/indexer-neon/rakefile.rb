@@ -43,8 +43,8 @@ namespace :neon do
 
   desc 'test neon integration: dlt pcap indexing'
   task dlt_pcap: [:clean, OUT_DIR, 'neon:rebuild'] do
-    call_test_function('testIndexingPcap', "#{LOCAL_EXAMPLE_DIR}/dlt/test.pcapng",
-                       "#{LOCAL_EXAMPLE_DIR}/dlt/test.pcapng.out")
+    call_test_function('testIndexingPcap', "#{LOCAL_EXAMPLE_DIR}/dlt/pcap/test.pcapng",
+                       "#{LOCAL_EXAMPLE_DIR}/dlt/pcap/test.pcapng.out")
   end
   task all: 'neon:dlt_nonverbose'
 

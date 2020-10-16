@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.9.0] - 10/16/2020
+### Added
+* Implement on-the-fly grabbing of file content.
+  The indexer can now be asked for a specific range of log entries
+  of a given file. No need to preprocess the file and store it.
+  * support for storing and loading of grab-metadata
+  * run async metadata creation in rust thread
+  * typesafe typescript API for Grabber
+### Changed
+* Opening *.pcapng files: pcap frames that do not contain valid DLT will not be flagged as error
+* Moved rust/js-binding api functions to own package
+* General async binding improvements
+  * avoid acknowledge of shutdown
+  * Get rid of Mutex lock for receiving events
+    from rust side
+### Fixed
+* correctly show all DLT messages in a single pcap frame (even if there are multiple)
+
 ## [2.8.3] - 10/12/2020
 ### Added
 * Add options to order comments
