@@ -1,4 +1,4 @@
-use crate::{dlt::*, dlt_parse::*, fibex::FibexMetadata, filtering};
+use crate::{dlt, dlt_parse::*, fibex::FibexMetadata, filtering};
 use async_std::task;
 use crossbeam_channel as cc;
 use etherparse::*;
@@ -46,7 +46,7 @@ impl PcapMessageProducer {
 
 #[derive(Debug)]
 enum MessageStreamItem {
-    Item(Message),
+    Item(Vec<dlt::Message>),
     Skipped,
     Incomplete,
     Done,
@@ -76,9 +76,54 @@ impl futures::Stream for PcapMessageProducer {
                         last_in_ms = ts_us / 1000;
                         Some(epb.data)
                     }
-                    PcapBlockOwned::NG(Block::SimplePacket(ref spb)) => Some(spb.data),
-                    PcapBlockOwned::NG(_) => None,
-                    PcapBlockOwned::Legacy(_) | PcapBlockOwned::LegacyHeader(_) => None,
+                    PcapBlockOwned::NG(Block::SimplePacket(ref spb)) => {
+                        trace!("SimplePacket");
+                        Some(spb.data)
+                    }
+                    PcapBlockOwned::NG(Block::SectionHeader(_)) => {
+                        trace!("NG SectionHeader");
+                        None
+                    }
+                    PcapBlockOwned::NG(Block::InterfaceDescription(_)) => {
+                        trace!("NG InterfaceDescription");
+                        None
+                    }
+                    PcapBlockOwned::NG(Block::NameResolution(h)) => {
+                        trace!("NG NameResolution: {} namerecords", h.nr.len());
+                        None
+                    }
+                    PcapBlockOwned::NG(Block::InterfaceStatistics(h)) => {
+                        trace!("NG InterfaceStatistics: {:?}", h.options);
+                        None
+                    }
+                    PcapBlockOwned::NG(Block::SystemdJournalExport(_h)) => {
+                        trace!("NG SystemdJournalExport");
+                        None
+                    }
+                    PcapBlockOwned::NG(Block::DecryptionSecrets(_h)) => {
+                        trace!("NG DecryptionSecrets");
+                        None
+                    }
+                    PcapBlockOwned::NG(Block::Custom(_)) => {
+                        trace!("NG Custom");
+                        None
+                    }
+                    PcapBlockOwned::NG(Block::Unknown(_)) => {
+                        trace!("NG Unknown");
+                        None
+                    }
+                    PcapBlockOwned::Legacy(_s) => {
+                        trace!("LegacyData");
+                        None
+                    }
+                    PcapBlockOwned::LegacyHeader(_s) => {
+                        trace!(
+                            "LegacyData: version: {}.{}",
+                            _s.version_major,
+                            _s.version_minor
+                        );
+                        None
+                    }
                 };
                 if let Some(payload) = data {
                     match SlicedPacket::from_ethernet(&payload) {
@@ -92,32 +137,51 @@ impl futures::Stream for PcapMessageProducer {
                             }),
                         )))),
                         Ok(value) => {
-                            match dlt_message(
-                                value.payload,
-                                filter_config.as_ref(),
-                                index,
-                                None, // we do not want updates reported by the parser itself
-                                fibex,
-                                false,
-                            ) {
-                                Ok((_, ParsedMessage::Item(m))) => {
-                                    let msg_with_storage_header = m.add_storage_header(Some(
-                                        DltTimeStamp::from_ms(last_in_ms as u64),
-                                    ));
+                            let mut input_slice = value.payload;
+                            let mut found_dlt_messages = vec![];
+                            let mut skipped = 0usize;
+                            while !input_slice.is_empty() {
+                                match dlt_message(
+                                    input_slice,
+                                    filter_config.as_ref(),
+                                    index,
+                                    None, // we do not want updates reported by the parser itself
+                                    fibex.clone(),
+                                    false,
+                                ) {
+                                    Ok((rest, ParsedMessage::Item(m))) => {
+                                        trace!("Extracted a valid DLT message");
+                                        let msg_with_storage_header = m.add_storage_header(Some(
+                                            dlt::DltTimeStamp::from_ms(last_in_ms as u64),
+                                        ));
+                                        input_slice = rest;
+                                        found_dlt_messages.push(msg_with_storage_header);
+                                    }
+                                    Ok((_, ParsedMessage::FilteredOut)) => {
+                                        skipped += 1;
+                                    }
+                                    Ok((_, ParsedMessage::Invalid)) => (),
+                                    Err(e) => {
+                                        trace!("error: {}", e);
+                                        warn!("PCAP payload did not contain a valid DLT message");
+                                        break;
+                                    }
+                                }
+                            }
+                            if found_dlt_messages.is_empty() {
+                                if skipped > 0 {
                                     futures::task::Poll::Ready(Some(Some((
                                         consumed,
-                                        Ok(MessageStreamItem::Item(msg_with_storage_header)),
+                                        Ok(MessageStreamItem::Skipped),
                                     ))))
+                                } else {
+                                    futures::task::Poll::Ready(Some(None))
                                 }
-                                Ok((_, ParsedMessage::FilteredOut)) => futures::task::Poll::Ready(
-                                    Some(Some((consumed, Ok(MessageStreamItem::Skipped)))),
-                                ),
-                                Ok((_, ParsedMessage::Invalid)) => futures::task::Poll::Ready(
-                                    Some(Some((consumed, Ok(MessageStreamItem::Skipped)))),
-                                ),
-                                Err(e) => {
-                                    futures::task::Poll::Ready(Some(Some((consumed, Err(e)))))
-                                }
+                            } else {
+                                futures::task::Poll::Ready(Some(Some((
+                                    consumed,
+                                    Ok(MessageStreamItem::Item(found_dlt_messages)),
+                                ))))
                             }
                         }
                     }
@@ -212,15 +276,17 @@ pub fn pcap_to_dlt(
                     stopped = true;
                     break;
                 }
-                Event::Msg(Ok(MessageStreamItem::Item(msg)), _) => {
+                Event::Msg(Ok(MessageStreamItem::Item(msgs)), _) => {
                     trace!("pcap_as_dlt: received msg event");
 
-                    let msg_with_storage_header = match msg.storage_header {
-                        Some(_) => msg,
-                        None => msg.add_storage_header(None),
-                    };
-                    let msg_bytes = msg_with_storage_header.as_bytes();
-                    buf_writer.write_all(&msg_bytes)?;
+                    for msg in msgs {
+                        let msg_with_storage_header = match msg.storage_header {
+                            Some(_) => msg,
+                            None => msg.add_storage_header(None),
+                        };
+                        let msg_bytes = msg_with_storage_header.as_bytes();
+                        buf_writer.write_all(&msg_bytes)?;
+                    }
                 }
                 Event::Msg(Ok(MessageStreamItem::Skipped), _) => {
                     trace!("pcap_as_dlt: msg was skipped due to filters");
@@ -344,21 +410,24 @@ pub fn index_from_pcap(
                     stopped = true;
                     break;
                 }
-                Event::Msg(Ok(MessageStreamItem::Item(msg)), _) => {
+                Event::Msg(Ok(MessageStreamItem::Item(msgs)), _) => {
                     trace!("received msg event");
 
-                    let written_bytes_len = utils::create_tagged_line_d(
-                        &config.tag,
-                        &mut buf_writer,
-                        &msg,
-                        line_nr,
-                        true,
-                    )?;
-                    line_nr += 1;
-                    if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
-                        buf_writer.flush()?;
-                        chunk_count += 1;
-                        let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
+                    for msg in msgs {
+                        let written_bytes_len = utils::create_tagged_line_d(
+                            &config.tag,
+                            &mut buf_writer,
+                            &msg,
+                            line_nr,
+                            true,
+                        )?;
+                        line_nr += 1;
+                        if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
+                            buf_writer.flush()?;
+                            chunk_count += 1;
+                            let _ =
+                                update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
+                        }
                     }
                 }
                 Event::Msg(Ok(MessageStreamItem::Skipped), _) => {

@@ -166,7 +166,7 @@ pub(crate) fn dlt_standard_header(input: &[u8]) -> IResult<&[u8], StandardHeader
     let has_extended_header = (header_type_byte & WITH_EXTENDED_HEADER_FLAG) != 0;
     let all_headers_length = calculate_all_headers_length(header_type_byte);
     if all_headers_length > overall_length {
-        let err_ctx: (&[u8], nom::error::ErrorKind) = (&[], nom::error::ErrorKind::Verify);
+        let err_ctx: (&[u8], nom::error::ErrorKind) = (input, nom::error::ErrorKind::Verify);
         let err = nom::Err::Error(err_ctx);
         return Err(err);
     }
@@ -265,7 +265,7 @@ pub(crate) fn dlt_extended_header<'a, T>(
                 }));
             }
 
-            let err_ctx: (&[u8], nom::error::ErrorKind) = (&[], nom::error::ErrorKind::Verify);
+            let err_ctx: (&[u8], nom::error::ErrorKind) = (input, nom::error::ErrorKind::Verify);
             let err = nom::Err::Error(err_ctx);
             Err(err)
         }
@@ -450,7 +450,7 @@ pub(crate) fn dlt_type_info<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Typ
         }
         Err(_) => {
             report_error(format!("dlt_type_info no type_info for 0x{:02X?}", info));
-            Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
+            Err(nom::Err::Error((input, nom::error::ErrorKind::Verify)))
         }
     }
 }
@@ -482,7 +482,7 @@ pub(crate) fn dlt_fixed_point<T: NomByteOrder>(
         ))
     } else {
         report_error("error in dlt_fixed_point");
-        Err(nom::Err::Error((&[], nom::error::ErrorKind::Verify)))
+        Err(nom::Err::Error((input, nom::error::ErrorKind::Verify)))
     }
 }
 pub(crate) fn dlt_argument<T: NomByteOrder>(input: &[u8]) -> IResult<&[u8], Argument> {
@@ -673,7 +673,7 @@ fn dlt_payload<T: NomByteOrder>(
         // trace!("is_controll_msg");
         if payload_length < 1 {
             // trace!("error, payload too short {}", payload_length);
-            return Err(nom::Err::Failure((&[], nom::error::ErrorKind::Verify)));
+            return Err(nom::Err::Failure((input, nom::error::ErrorKind::Verify)));
         }
         match tuple((nom::number::complete::be_u8, take(payload_length - 1)))(input) {
             Ok((rest, (control_msg_id, payload))) => Ok((
@@ -699,7 +699,7 @@ fn dlt_payload<T: NomByteOrder>(
         // );
         if input.len() < 4 {
             // trace!("error, payload too short {}", input.len());
-            return Err(nom::Err::Failure((&[], nom::error::ErrorKind::Verify)));
+            return Err(nom::Err::Failure((input, nom::error::ErrorKind::Verify)));
         }
         match tuple((T::parse_u32, take(payload_length - 4)))(input) {
             Ok((rest, (message_id, payload))) => Ok((
@@ -798,36 +798,45 @@ pub fn dlt_message<'a>(
     } else {
         (input, None)
     };
-    dbg_parsed(
-        "storage header",
-        &input,
-        &after_storage_header,
-        &storage_header,
-    );
+    if storage_header.is_some() {
+        dbg_parsed(
+            "storage header",
+            &input,
+            &after_storage_header,
+            &storage_header,
+        );
+    }
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
-    // trace!(
-    //     "parsed header is {}",
-    //     if header.endianness == Endianness::Big {
-    //         "big endian"
-    //     } else {
-    //         "little endian"
-    //     }
-    // );
     dbg_parsed(
         "normal header",
         &after_storage_header,
         &after_storage_and_normal_header,
         &header,
     );
-    // trace!("dlt_msg 3, header: {:?}", serde_json::to_string(&header));
 
     // trace!("parsing 2...let's validate the payload length");
     let payload_length = match validated_payload_length(&header, Some(index), update_channel) {
         Some(length) => length,
         None => {
+            warn!("no validated payload length");
             return Ok((after_storage_and_normal_header, ParsedMessage::Invalid));
         }
     };
+    // trace!(
+    //     "payload-length: {} <-> input-length: {}",
+    //     payload_length,
+    //     input.len()
+    // );
+    if payload_length as usize > input.len() {
+        warn!(
+            "Payload length seems wrong ({}) but only {} bytes available",
+            payload_length,
+            input.len()
+        );
+        return Err(DltParseError::ParsingHickup {
+            reason: "Not a valid DLT message".to_string(),
+        });
+    }
 
     // trace!("dlt_msg 4, payload_length: {}", payload_length);
     let mut verbose: bool = false;
