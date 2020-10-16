@@ -17,7 +17,7 @@ import { StdoutController } from 'custom.stdout';
 import { Detect } from '../../../common/interfaces/index';
 
 import * as fs from 'fs';
-import { RustGrabberClass, createGrabberAsync } from './api/grabber';
+import { createGrabberAsync } from './api/grabber';
 import { discoverTimespanAsync, checkFormat } from './api/timestamps';
 
 const stdout = new StdoutController(process.stdout, { handleStdoutGlobal: true });

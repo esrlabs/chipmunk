@@ -1299,7 +1299,7 @@ pub struct MessageConfig {
 
 #[inline]
 fn dbg_bytes_with_info(_name: &str, _bytes: &[u8], _info: Option<&str>) {
-    #[cfg(feature = "debug_parser")]
+    // #[cfg(feature = "debug_parser")]
     {
         trace!(
             "writing {}: {} {:02X?} {}",
