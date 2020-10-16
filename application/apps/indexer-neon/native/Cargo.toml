@@ -1,6 +1,6 @@
 [package]
 name = "chipmunk_integration"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 license = "MIT"
 build = "build.rs"
