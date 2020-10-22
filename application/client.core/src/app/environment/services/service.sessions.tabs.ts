@@ -7,6 +7,7 @@ import { IDefaultView } from '../states/state.default';
 import { IAPI, IPopup, IComponentDesc, ISettingsAPI } from 'chipmunk.client.toolkit';
 import { copyTextToClipboard } from '../controller/helpers/clipboard';
 import { fullClearRowStr } from '../controller/helpers/row.helpers';
+import { ISearchSettings } from '../components/views/search/component';
 
 import EventsSessionService from './standalone/service.events.session';
 import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
@@ -52,6 +53,7 @@ export class TabsSessionsService implements IService {
     private _toolbarTabOpener: TToolbarTabOpener | undefined;
     private _notificationOpener: TNotificationOpener | undefined;
     private _defaultToolbarApps: Toolkit.IDefaultTabsGuids | undefined;
+    private _searchSettings: { [guid: string]: ISearchSettings } = {};
 
     private _defaults: {
         views: IDefaultView[],
@@ -321,6 +323,14 @@ export class TabsSessionsService implements IService {
         };
     }
 
+    public setSearchSettings(guid: string, settings: ISearchSettings) {
+        this._searchSettings[guid] = settings;
+    }
+
+    public getSearchSettings(guid: string): ISearchSettings | undefined {
+        return this._searchSettings[guid];
+    }
+
     private _onSourceChanged(guid: string, sourceId: number) {
         if (typeof sourceId !== 'number' || sourceId < 0) {
             return;
@@ -339,6 +349,13 @@ export class TabsSessionsService implements IService {
 
     private _onSessionTabSwitched(tab: ITab) {
         this.setActive(tab.guid);
+        if (this.getSearchSettings(tab.guid) === undefined) {
+            this.setSearchSettings(tab.guid, {
+                casesensitive: false,
+                wholeword: false,
+                regexp: true,
+            });
+        }
     }
 
     private _onSessionTabClosed(session: string) {
@@ -359,7 +376,11 @@ export class TabsSessionsService implements IService {
             this._removeSession(session);
             this._logger.env(`Session "${session}" is removed`);
         }
+        this._removeSearchSettings(session);
+    }
 
+    private _removeSearchSettings(guid: string) {
+        delete this._searchSettings[guid];
     }
 
     private _removeSession(guid: string) {

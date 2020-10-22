@@ -30,6 +30,12 @@ import ElectronIpcService from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export interface ISearchSettings {
+    casesensitive: boolean;
+    wholeword: boolean;
+    regexp: boolean;
+}
+
 interface IViewState {
     searchRequestId: string | undefined;
     isRequestValid: boolean;
@@ -75,11 +81,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
     public _ng_inputCtrl = new FormControl();
     public _ng_recent: Observable<IPair[]>;
-    public _ng_flags: {
-        casesensitive: boolean,
-        wholeword: boolean,
-        regexp: boolean,
-    } = {
+    public _ng_flags: ISearchSettings = {
         casesensitive: false,
         wholeword: false,
         regexp: true,
@@ -125,6 +127,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         ServiceOS.getOS().then((os: string) => {
             this._os = os;
         });
+        this._loadSettings();
     }
 
     public ngOnDestroy() {
@@ -348,6 +351,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         (event.target as any).focus();
         event.preventDefault();
         event.stopImmediatePropagation();
+        this._saveSettings();
     }
 
     public _ng_getFound(): string {
@@ -723,6 +727,17 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }).catch((error: Error) => {
             return this._logger.error(`Fail to send a new recent filter due error: ${error.message}`);
         });
+    }
+
+    private _loadSettings() {
+        const settings = TabsSessionsService.getSearchSettings(this._ng_session.getGuid());
+        if (settings !== undefined) {
+            this._ng_flags = settings;
+        }
+    }
+
+    private _saveSettings() {
+        TabsSessionsService.setSearchSettings(this._ng_session.getGuid(), this._ng_flags);
     }
 
     private _forceUpdate() {
