@@ -1,6 +1,7 @@
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
 import { ControllerColumns, IColumn } from '../../controller.columns';
 import { CColors } from '../../../../../../conts/colors';
+import ContextMenuService from '../../../../../../services/standalone/service.contextmenu';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 
@@ -10,9 +11,10 @@ export const CColumnsHeadersKey = 'CColumnsHeadersKey';
     styleUrls: ['./styles.less']
 })
 
-export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, AfterContentInit {
+export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, AfterContentInit, AfterViewInit {
 
     @Input() public controller: ControllerColumns;
+    @Input() public header: string;
 
     public _ng_columns: IColumn[] = [];
     public _ng_selected: number | undefined = undefined;
@@ -36,6 +38,10 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
         this._forceUpdate();
     }
 
+    public ngAfterViewInit() {
+        this._ng_onColumnMouseDown(new MouseEvent(''), this.index);
+    }
+
     public _ng_onColorMouseDown(event: MouseEvent, color: string) {
         if (this._ng_selected !== undefined) {
             this._ng_columns[this._ng_selected].color = CColors[0] === color ? undefined : color;
@@ -43,6 +49,7 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
         event.stopImmediatePropagation();
         event.stopPropagation();
         event.preventDefault();
+        this._setColumns();
         this._forceUpdate();
         return false;
     }
@@ -69,9 +76,17 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
 
     public _ng_onChange(index: number) {
         this._ng_columns[index].visible = !this._ng_columns[index].visible;
+        this._setColumns();
     }
 
     public _ng_apply() {
+        this._setColumns();
+        if (ContextMenuService.close !== undefined && typeof ContextMenuService.close === 'function') {
+            ContextMenuService.close();
+        }
+    }
+
+    public _setColumns() {
         this.controller.setColumns(this._ng_columns);
     }
 
@@ -82,5 +97,13 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
         this._cdRef.detectChanges();
     }
 
+    private get index(): number {
+        for (let i = 0; i < this._ng_columns.length; i++) {
+            if (this._ng_columns[i].header === this.header) {
+                return i;
+            }
+        }
+        return 0;
+    }
 
 }
