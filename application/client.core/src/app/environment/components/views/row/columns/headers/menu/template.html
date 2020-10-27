@@ -10,7 +10,7 @@
         </li>
     </ul>
     <ul *ngIf="_ng_selected !== undefined" class="colors">
-        <li class="color" *ngFor="let color of _ng_colors" [ngStyle]="{'background': color}" (mousedown)="_ng_onColorMouseDown($event, color)"></li>
+        <li [attr.class]="'color ' + (this._ng_columns[this._ng_selected].color === color ? 'selected' : '')" *ngFor="let color of _ng_colors" [ngStyle]="{'background': color}" (mousedown)="_ng_onColorMouseDown($event, color)"></li>
     </ul>
 </div>
 <div class="controls">

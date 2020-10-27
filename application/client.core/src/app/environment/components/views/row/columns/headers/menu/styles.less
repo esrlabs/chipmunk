@@ -63,8 +63,23 @@
                 box-sizing: border-box;
                 vertical-align: top;
                 &:hover,
-                &.selected{
-                    border: 2px solid @scheme-color-0;
+                &.selected {
+                    border: 1px solid @scheme-color-0;
+                    &::after{
+                        position: absolute;
+                        content: '';
+                        top:0;
+                        left:0;
+                        width: 0;
+                        height: 0;
+                        border-top: 6px solid @scheme-color-0; 
+                        border-right: 6px solid transparent;
+                    }
+                    &:hover{
+                        &::after{
+                            display: none;
+                        }
+                    }
                 }
             }
         }
