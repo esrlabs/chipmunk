@@ -1,5 +1,10 @@
 <span class="offset" [ngStyle]="{'width': _ng_getOffset(), 'margin-left': _ng_getHorScrollOffset()}"></span>
-<span class="wrapper" *ngFor="let column of _ng_columns" [ngStyle]="{'width': _ng_getWidth(column.index)}">
+<span   class="wrapper"
+        *ngFor="let column of _ng_columns"
+        (mouseenter)="_ng_onMouseOver($event)"
+        (mouseleave)="_ng_onMouseOut($event)"
+        [ngStyle]="{'width': _ng_getWidth(column.index)}">
     <span class="title">{{column.header}}</span>
+    <mat-icon *ngIf="_ng_mouseOverHeader === column.header" class="more" (click)="_ng_onClick($event)">{{_ng_more}}</mat-icon>
     <span class="border" (mousedown)="_ng_onMouseDown(column.index, $event)"></span>
 </span>

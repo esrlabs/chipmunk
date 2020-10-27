@@ -23,6 +23,8 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     public _ng_offset: number = 0;
     public _ng_horScrollOffset: number = 0;
     public _ng_columns: IColumn[] = [];
+    public _ng_mouseOverHeader: string = '';
+    public _ng_more: string = 'more_horiz';
 
     private _columns: IColumn[] = [];
     private _cachedMouseX: number = -1;
@@ -34,22 +36,15 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     }
 
     @HostListener('contextmenu', ['$event']) public _ng_onContextMenu(event: MouseEvent) {
-        let header: string = '';
-        if (event.target !== undefined) {
-            header = (event.target as HTMLElement).innerText;
+        const target: HTMLElement = (event.target as HTMLElement);
+        if (target === undefined || target.innerText === '') {
+            return;
+        } else if (target.innerText !== this._ng_more) {
+            this._ng_mouseOverHeader = (event.target as HTMLElement).innerText;
+        } else {
+            this._ng_mouseOverHeader = target.previousSibling.textContent;
         }
-        ContextMenuService.show({
-            component: {
-                factory: ViewOutputRowColumnsHeadersMenuComponent,
-                resolved: false,
-                inputs: {
-                    controller: this.controller,
-                    header: header,
-                }
-            },
-            x: event.pageX,
-            y: event.pageY,
-        });
+        this._createContextMenu(event);
     }
 
     public ngOnDestroy() {
@@ -79,6 +74,22 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._getOffset();
     }
 
+    public _ng_onClick(event: MouseEvent) {
+        this._createContextMenu(event);
+    }
+
+    public _ng_onMouseOver(event: MouseEvent) {
+        if (event.target !== undefined) {
+            this._ng_mouseOverHeader = (event.target as HTMLElement).innerText;
+        }
+        this._forceUpdate();
+    }
+
+    public _ng_onMouseOut(event: MouseEvent) {
+        this._ng_mouseOverHeader = '';
+        this._forceUpdate();
+    }
+
     public _ng_getWidth(key: number): string {
         return `${this._columns[key].width}px`;
     }
@@ -95,6 +106,21 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
 
     public _ng_getHorScrollOffset(): string {
         return `-${this._ng_horScrollOffset}px`;
+    }
+
+    private _createContextMenu(event: MouseEvent) {
+        ContextMenuService.show({
+            component: {
+                factory: ViewOutputRowColumnsHeadersMenuComponent,
+                resolved: false,
+                inputs: {
+                    controller: this.controller,
+                    header: this._ng_mouseOverHeader,
+                }
+            },
+            x: event.pageX,
+            y: event.pageY,
+        });
     }
 
     private _setColumns() {
