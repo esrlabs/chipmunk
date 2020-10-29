@@ -1,8 +1,8 @@
 <div class="wrapper">
     <ul class="columns">
         <li [attr.class]="'column ' + (_ng_selected == i ? 'selected' : '')" *ngFor="let column of _ng_columns; let i = index;" (mousedown)="_ng_onColumnMouseDown($event, i)">
-            <mat-checkbox [checked]="column.visible" (change)="_ng_onChange(i)" (mousedown)="_ng_onCheckBoxMouseDown($event, i)"></mat-checkbox>
-            <span [ngStyle]="{'color': column.color}">{{column.header}}</span>
+            <mat-checkbox [disableRipple]="true" [checked]="column.visible" (change)="_ng_onChange(i)" (mousedown)="_ng_onCheckBoxMouseDown($event, i)"></mat-checkbox>
+            <span class="label t-normal" [ngStyle]="{'color': column.color}">{{column.header}}</span>
         </li>
     </ul>
     <ul *ngIf="_ng_selected !== undefined" class="colors">

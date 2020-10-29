@@ -20,7 +20,7 @@
             & li.column{
                 position: relative;
                 display: block;
-                padding: 4px 10px 4px 0;
+                padding: 0px 10px 4px 6px;
                 margin: 0;
                 list-style: none;
                 width: 100%;
@@ -47,7 +47,7 @@
             display: inline-block;
             vertical-align: top;
             padding: 0;
-            margin: 0 0 0 1rem;
+            margin: 0 0 0 1.5rem;
             list-style: none;
             width: 5.6rem;
             white-space: normal;
@@ -85,14 +85,18 @@
         }
     }
 
-    & div.controls{
+    & div.controls {
         position: relative;
-        display: block;
-        text-align: right;
-        margin-right: -0.5rem;
+        float: right;
+        margin: 0.2rem;
     }
 
-    & mat-checkbox {
-        margin: 0px 5px;
+    & span.label {
+        position: relative;
+        display: inline-block;
+        padding: 2px 0px 0px 4px;
+        cursor: default;
+        color: @scheme-color-1;
+        vertical-align: top;
     }
 }
