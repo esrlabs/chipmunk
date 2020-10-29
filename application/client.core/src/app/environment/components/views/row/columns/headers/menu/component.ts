@@ -57,7 +57,7 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
     public _ng_onColumnMouseDown(event: MouseEvent, index: number) {
         if (!this._checkBoxClicked) {
             if (this._ng_selected === index) {
-                this._ng_selected = undefined;
+                this._ng_onChange(index);
             } else {
                 this._ng_selected = index;
             }
