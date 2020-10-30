@@ -72,6 +72,9 @@ export class OperationAppend extends EventEmitter {
                 cwd: path.dirname(this._streamFile),
                 stdio: [ 'pipe', 'pipe', 'pipe' ],
             });
+            if (process.stdin === null || process.stdout === null) {
+                return reject(new Error(`No stdin / stdout`));
+            }
             // Pipe process with reader: reader -> ripgrep
             reader.pipe(process.stdin);
             // Pipe process with writer: ripgrep -> writer
@@ -95,12 +98,12 @@ export class OperationAppend extends EventEmitter {
             this._cleaner = () => {
                 // Kill process
                 process.removeAllListeners();
-                process.stdin.removeAllListeners();
-                process.stdin.end();
-                process.stdin.destroy();
-                process.stdout.removeAllListeners();
-                process.stdout.unpipe();
-                process.stdout.destroy();
+                process.stdin?.removeAllListeners();
+                process.stdin?.end();
+                process.stdin?.destroy();
+                process.stdout?.removeAllListeners();
+                process.stdout?.unpipe();
+                process.stdout?.destroy();
                 process.kill();
                 // Attention. Using of writer.destroy() here will give "Uncatchable error: Cannot call write after a stream was destroyed"
                 // it doesn't block any how main process, but not okay to have it for sure

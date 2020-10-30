@@ -756,8 +756,8 @@ file electron_build_output => FileList["#{ELECTRON_DIR}/src/**/*.*",
                                        "#{ELECTRON_DIR}/*.json"] do |_t|
   require 'dotenv/load'
   cd ELECTRON_DIR do
-    sh 'tsc -p tsconfig.json'
-    sh "tsc -p #{File.join('scripts', 'tsconfig.json')}"
+    sh './node_modules/.bin/tsc -p tsconfig.json'
+    sh "./node_modules/.bin/tsc -p #{File.join('scripts', 'tsconfig.json')}"
     if OS.mac?
       begin
         if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')

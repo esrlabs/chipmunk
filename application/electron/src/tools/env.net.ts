@@ -6,7 +6,7 @@ import * as fs from 'fs';
 export function download(uri: string, filename: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const _url = url.parse(uri);
-        if (_url === undefined || _url.protocol === undefined) {
+        if (_url === undefined || _url.protocol === undefined || _url.protocol === null) {
             return reject(new Error(`Not valid url: ${uri}`));
         }
         const protocol = _url.protocol.slice(0, -1);

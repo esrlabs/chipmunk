@@ -82,7 +82,7 @@ class ServiceFileSearch implements IService {
                 const process: ChildProcess = spawn(this._cmd, args, {
                     stdio: [ 'pipe', 'pipe', 'pipe' ],
                 });
-                process.stdout.on('data', (chunk: Buffer | string) => {
+                process.stdout?.on('data', (chunk: Buffer | string) => {
                     if (chunk instanceof Buffer) {
                         chunk = chunk.toString();
                     }
@@ -91,7 +91,7 @@ class ServiceFileSearch implements IService {
                     }
                     output += chunk;
                 });
-                process.stderr.on('data', (chunk: Buffer | string) => {
+                process.stderr?.on('data', (chunk: Buffer | string) => {
                     if (chunk instanceof Buffer) {
                         chunk = chunk.toString();
                     }

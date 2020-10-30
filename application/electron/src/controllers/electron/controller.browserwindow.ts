@@ -99,6 +99,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 y: state.y,
                 webPreferences: {
                     nodeIntegration: true,
+                    enableRemoteModule: true,
                 },
             };
             this._window = new BrowserWindow(options);
