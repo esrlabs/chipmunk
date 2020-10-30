@@ -3,6 +3,7 @@ import { CommonModule                               } from '@angular/common';
 import { ScrollingModule                            } from '@angular/cdk/scrolling';
 import { MatIconModule                              } from '@angular/material/icon';
 import { MatCheckboxModule                          } from '@angular/material/checkbox';
+import { MatButtonModule                            } from '@angular/material/button';
 
 import { ViewOutputRowComponent                     } from './component';
 import { ViewOutputRowStandardComponent             } from './standard/component';
@@ -22,7 +23,7 @@ const components = [ ...entryComponents ];
 
 @NgModule({
     entryComponents : [ ...entryComponents ],
-    imports         : [ CommonModule, ScrollingModule, PrimitiveModule, ContainersModule, ComplexModule, MatIconModule, MatCheckboxModule ],
+    imports         : [ CommonModule, ScrollingModule, PrimitiveModule, ContainersModule, ComplexModule, MatIconModule, MatCheckboxModule, MatButtonModule ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
 })
