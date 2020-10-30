@@ -101,8 +101,8 @@ export default class ControllerPluginProcessSingle extends Emitter {
                     'ipc',  // ipc    - used by parent process as command sender / reciever
                 ]});
             // Getting data events
-            this._process.stderr.on('data', this._onSTDErr);
-            this._process.stdout.on('data', this._onSTDOut);
+            this._process.stderr?.on('data', this._onSTDErr);
+            this._process.stdout?.on('data', this._onSTDOut);
             // State process events
             this._process.on('exit', this._onClose);
             this._process.on('close', this._onClose);
@@ -168,7 +168,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
      * Attempt to kill plugin process
      * @returns void
      */
-    public kill(signal: string = 'SIGTERM'): boolean {
+    public kill(signal: NodeJS.Signals = 'SIGTERM'): boolean {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].destroy();
         });
@@ -255,7 +255,7 @@ export default class ControllerPluginProcessSingle extends Emitter {
 
     private _bindRefWithId(socket: Net.Socket): Promise<void> {
         return new Promise((resolve, reject) => {
-            socket.write(`[plugin:${this._opt.id}]`, (error: Error) => {
+            socket.write(`[plugin:${this._opt.id}]`, (error: Error | undefined) => {
                 if (error) {
                     return reject(new Error(this._logger.error(`Cannot send binding message into socket due error: ${error.message}`)));
                 }

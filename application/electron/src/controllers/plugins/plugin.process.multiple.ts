@@ -87,8 +87,8 @@ export default class ControllerPluginProcessMultiple extends Emitter {
                     // 'pipe', // Stream is deliveried as UNIX socket. We don't need it at the moment. But probably in th future it will be used as channel for sending big data
                 ]});
             // Getting data events
-            this._process.stderr.on('data', this._onSTDErr);
-            this._process.stdout.on('data', this._onSTDOut);
+            this._process.stderr?.on('data', this._onSTDErr);
+            this._process.stdout?.on('data', this._onSTDOut);
             // State process events
             this._process.on('exit', this._onClose);
             this._process.on('close', this._onClose);
@@ -143,7 +143,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
      * Attempt to kill plugin process
      * @returns void
      */
-    public kill(signal: string = 'SIGTERM'): boolean {
+    public kill(signal: NodeJS.Signals = 'SIGTERM'): boolean {
         if (this._process === undefined || this._ipc === undefined) {
             return false;
         }
@@ -209,7 +209,7 @@ export default class ControllerPluginProcessMultiple extends Emitter {
 
     private _bindRefWithId(socket: Net.Socket): Promise<void> {
         return new Promise((resolve, reject) => {
-            socket.write(`[plugin:${this._opt.id}]`, (error: Error) => {
+            socket.write(`[plugin:${this._opt.id}]`, (error: Error | undefined) => {
                 if (error) {
                     return reject(new Error(this._logger.error(`Cannot send binding message into socket due error: ${error.message}`)));
                 }

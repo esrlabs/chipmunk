@@ -149,7 +149,7 @@ export default class ControllerIPCPlugin extends EventEmitter implements IContro
             if (expectResponse) {
                 this._pending.set(message.sequence, resolve);
             }
-            this._process.send(message, (error: Error) => {
+            this._process.send(message, (error: Error | null) => {
                 if (error) {
                     this._logger.warn(`Error while sending message to plugin: ${error.message}`);
                     return reject(error);
