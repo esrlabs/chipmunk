@@ -78,14 +78,12 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         this._createContextMenu(event);
     }
 
-    public _ng_onMouseOver(event: MouseEvent) {
-        if (event.target !== undefined) {
-            this._ng_mouseOverHeader = (event.target as HTMLElement).innerText;
-        }
+    public _ng_onMouseOver(header: string) {
+        this._ng_mouseOverHeader = header;
         this._forceUpdate();
     }
 
-    public _ng_onMouseOut(event: MouseEvent) {
+    public _ng_onMouseOut() {
         this._ng_mouseOverHeader = '';
         this._forceUpdate();
     }
