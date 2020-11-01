@@ -23,30 +23,24 @@ export enum EEventType {
 }
 
 type TEvent = MouseEvent | KeyboardEvent;
-type TClose = () => void | undefined;
 
 export class ContextMenuService {
 
-    private _close: TClose;
     private _subjects: {
         onShow: Subject<IMenu>,
+        onRemove: Subject<void>,
     } = {
         onShow: new Subject<IMenu>(),
+        onRemove: new Subject<void>(),
     };
-
-    public get close(): TClose {
-        return this._close;
-    }
-
-    public set close(func: TClose) {
-        this._close = func;
-    }
 
     public getObservable(): {
         onShow: Observable<IMenu>,
+        onRemove: Observable<void>,
     } {
         return {
             onShow: this._subjects.onShow.asObservable(),
+            onRemove: this._subjects.onRemove.asObservable(),
         };
     }
 
@@ -58,12 +52,16 @@ export class ContextMenuService {
         window.removeEventListener(type, func);
     }
 
-    show(menu: IMenu): string {
+    public show(menu: IMenu): string {
         if (typeof menu.id !== 'string' || menu.id.trim() === '') {
             menu.id = Toolkit.guid();
         }
         this._subjects.onShow.next(menu);
         return menu.id;
+    }
+
+    public remove(): void {
+        this._subjects.onRemove.next();
     }
 
 }

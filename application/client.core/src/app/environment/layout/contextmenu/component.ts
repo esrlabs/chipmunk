@@ -23,6 +23,7 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._subscriptions.onShow = ContextMenuService.getObservable().onShow.subscribe(this._onShow.bind(this));
+        this._subscriptions.onRemove = ContextMenuService.getObservable().onRemove.subscribe(this._remove.bind(this));
     }
 
     public get _ng_top() {
@@ -34,7 +35,6 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
     }
 
     public ngOnDestroy() {
-        ContextMenuService.close = undefined;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -42,7 +42,6 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
     }
 
     public ngAfterViewInit() {
-        ContextMenuService.close = this._remove.bind(this);
         this._subscribeToWinEvents();
     }
 

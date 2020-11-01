@@ -81,9 +81,7 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
 
     public _ng_apply() {
         this._setColumns();
-        if (ContextMenuService.close !== undefined && typeof ContextMenuService.close === 'function') {
-            ContextMenuService.close();
-        }
+        ContextMenuService.remove();
     }
 
     public _setColumns() {
