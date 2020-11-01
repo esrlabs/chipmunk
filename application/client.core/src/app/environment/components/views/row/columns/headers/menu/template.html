@@ -9,6 +9,6 @@
         <ul *ngIf="_ng_selected !== undefined" class="colors">
             <li [attr.class]="'color ' + (this._ng_columns[this._ng_selected].color === color ? 'selected' : '')" *ngFor="let color of _ng_colors" [ngStyle]="{'background': color}" (mousedown)="_ng_onColorMouseDown($event, color)"></li>
         </ul>
-            <button mat-raised-button class="ok" (mousedown)="_ng_apply()">OK</button>
+            <button mat-stroked-button color="primary" class="ok" (mousedown)="_ng_apply()">OK</button>
     </div>
 </div>
