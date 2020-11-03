@@ -215,7 +215,8 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         const width: number = (this._ng_holderNode.nativeElement as HTMLElement).getBoundingClientRect().width;
         const tabs: number = (this._ng_tabsNode.nativeElement as HTMLElement).getBoundingClientRect().width;
         const injections: number = this._ng_injectionsNode !== undefined ? (this._ng_injectionsNode !== null ? (this._ng_injectionsNode.nativeElement as HTMLElement).getBoundingClientRect().width : 0) : 0;
-        this._sizes.space = width - tabs - injections;
+        const space: number = Math.round(width - tabs - injections);
+        this._sizes.space = space === -0 ? 0 : space ;
         this._sizes.holder = width;
         this._sizes.tabs = [];
         this._ng_tabsElRegs.forEach((tab: ElementRef<HTMLElement>) => {
