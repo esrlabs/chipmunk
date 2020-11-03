@@ -20,6 +20,7 @@ ELECTRON_COMPILED_DIR = "#{ELECTRON_DIR}/dist/compiled"
 ELECTRON_RELEASE_DIR = "#{ELECTRON_DIR}/dist/release"
 APPS_DIR = 'application/apps'
 CLIENT_CORE_DIR = 'application/client.core'
+CLIENT_COMPONENTS_DIR = 'application/client.libs/chipmunk.client.components'
 
 INCLUDED_PLUGINS_FOLDER = "#{ELECTRON_COMPILED_DIR}/plugins"
 INCLUDED_APPS_FOLDER = "#{ELECTRON_COMPILED_DIR}/apps"
@@ -397,6 +398,24 @@ namespace :dev do
   task neon: %i[build_embedded_indexer deliver_neon_indexer_into_local_runtime]
 
   task update_client: ['client:create_resources']
+
+  desc 'Developer task: build chipmunk.client.components and delivery it into client.'
+  task :client_components do
+    #CLIENT_CORE_DIR = 'application/client.core'
+    #CLIENT_COMPONENTS_DIR = 'application/client.libs/chipmunk.client.components'
+    cd Pathname.new(CLIENT_COMPONENTS_DIR), verbose: false do
+      begin
+        sh 'npm run build'
+      rescue StandardError => e
+        puts "error: #{e}"
+      end
+    end
+    comp_lib_dest = Pathname.new(CLIENT_CORE_DIR).join('node_modules').join('chipmunk-client-material')
+    core_node_modules = Pathname.new(CLIENT_CORE_DIR).join('node_modules')
+    comp_lib_src = Pathname.new(CLIENT_COMPONENTS_DIR).join('dist').join('chipmunk-client-material')
+    rm_rf(comp_lib_dest)
+    cp_r(comp_lib_src, core_node_modules, :verbose => true)
+  end
 
   desc 'Developer task: build launcher and deliver into package.'
   task deliver_updater_and_launcher: %i[build_launcher build_cli build_updater] do
