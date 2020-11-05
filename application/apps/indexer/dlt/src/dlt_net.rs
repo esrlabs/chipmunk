@@ -6,7 +6,6 @@ use crate::{
     fibex::FibexMetadata,
     filtering,
 };
-use async_std::net::{Ipv4Addr, UdpSocket};
 use crossbeam_channel as cc;
 use futures::{stream::StreamExt, FutureExt};
 use indexer_base::{
@@ -17,10 +16,11 @@ use indexer_base::{
 };
 use std::{
     io::{BufWriter, Write},
-    net::SocketAddr,
+    net::{Ipv4Addr, SocketAddr},
     rc::Rc,
 };
 use thiserror::Error;
+use tokio::{net::UdpSocket, sync};
 
 #[derive(Debug, Error)]
 pub enum ConnectionError {
@@ -64,7 +64,7 @@ pub async fn index_from_socket(
     tag: &str,
     out_path: &std::path::PathBuf,
     initial_line_nr: usize,
-    shutdown_receiver: async_std::sync::Receiver<()>,
+    shutdown_receiver: sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, out_path)?;
@@ -127,8 +127,7 @@ pub async fn index_from_socket(
         debug!("shutdown_receiver event");
         Event::Shutdown
     });
-    let message_stream: futures::stream::Map<UdpMessageProducer, _> =
-        udp_msg_producer.map(Event::Msg);
+    let message_stream = udp_msg_producer.map(Event::Msg);
     let mut event_stream = futures::stream::select(message_stream, shutdown_stream);
     while let Some(event) = event_stream.next().await {
         let maybe_msgs = match event {
@@ -179,7 +178,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     out_path: &std::path::PathBuf,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
-    shutdown_receiver: async_std::sync::Receiver<()>,
+    shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex_metadata: Option<FibexMetadata>,
 ) -> Result<(), ConnectionError> {
     trace!("create_index_and_mapping_dlt_from_socket");

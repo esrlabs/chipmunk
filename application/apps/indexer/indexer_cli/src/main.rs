@@ -20,7 +20,6 @@ extern crate processor;
 extern crate lazy_static;
 
 use anyhow::{anyhow, Result};
-use async_std::task;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
 use dlt::{
@@ -37,6 +36,7 @@ use indexer_base::{
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
 use std::rc::Rc;
+use tokio::sync;
 
 lazy_static! {
     static ref EXAMPLE_FIBEX: std::path::PathBuf =
@@ -76,7 +76,8 @@ fn init_logging() -> Result<()> {
     Ok(())
 }
 
-fn main() {
+#[tokio::main]
+pub async fn main() -> Result<()> {
     init_logging().expect("logging has to be in place");
     let start = Instant::now();
     let matches = App::new("chip")
@@ -501,31 +502,29 @@ fn main() {
     // (i.e. 'myprog -v -v -v' or 'myprog -vvv' vs 'myprog -v'
     let use_stderr_for_status_updates = matches.occurrences_of("v") >= 1;
 
-    task::block_on(async {
-        if let Some(matches) = matches.subcommand_matches("merge") {
-            handle_merge_subcommand(matches, start).await
-        } else if let Some(matches) = matches.subcommand_matches("grab") {
-            handle_grab_subcommand(matches, start, use_stderr_for_status_updates)
-                .await
-                .expect("could not handle grab command")
-        } else if let Some(matches) = matches.subcommand_matches("index") {
-            handle_index_subcommand(matches, start, use_stderr_for_status_updates).await
-        } else if let Some(matches) = matches.subcommand_matches("format") {
-            handle_format_subcommand(matches, start, use_stderr_for_status_updates).await
-        } else if let Some(matches) = matches.subcommand_matches("export") {
-            handle_export_subcommand(matches, start).await
-        } else if let Some(matches) = matches.subcommand_matches("dlt") {
-            handle_dlt_subcommand(matches, start).await
-        } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
-            handle_dlt_pcap_subcommand(matches).await
-        } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
-            handle_dlt_udp_subcommand(matches).await
-        } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
-            handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates).await
-        } else if let Some(matches) = matches.subcommand_matches("discover") {
-            handle_discover_subcommand(matches).await
-        }
-    });
+    if let Some(matches) = matches.subcommand_matches("merge") {
+        handle_merge_subcommand(matches, start).await
+    } else if let Some(matches) = matches.subcommand_matches("grab") {
+        handle_grab_subcommand(matches, start, use_stderr_for_status_updates)
+            .await
+            .expect("could not handle grab command")
+    } else if let Some(matches) = matches.subcommand_matches("index") {
+        handle_index_subcommand(matches, start, use_stderr_for_status_updates).await
+    } else if let Some(matches) = matches.subcommand_matches("format") {
+        handle_format_subcommand(matches, start, use_stderr_for_status_updates).await
+    } else if let Some(matches) = matches.subcommand_matches("export") {
+        handle_export_subcommand(matches, start).await
+    } else if let Some(matches) = matches.subcommand_matches("dlt") {
+        handle_dlt_subcommand(matches, start).await
+    } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
+        handle_dlt_pcap_subcommand(matches).await
+    } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
+        handle_dlt_udp_subcommand(matches).await
+    } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
+        handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates).await
+    } else if let Some(matches) = matches.subcommand_matches("discover") {
+        handle_discover_subcommand(matches).await
+    }
 
     async fn handle_grab_subcommand(
         matches: &clap::ArgMatches<'_>,
@@ -650,7 +649,7 @@ fn main() {
                 cc::Receiver<ChunkResults>,
             ) = unbounded();
 
-            let _h = task::spawn(async move {
+            let _h = tokio::spawn(async move {
                 match processor::processor::create_index_and_mapping(
                     IndexingConfig {
                         tag: tag_string,
@@ -669,7 +668,7 @@ fn main() {
                 {
                     Err(why) => {
                         report_error(format!("couldn't process: {}", why));
-                        async_std::process::exit(2)
+                        std::process::exit(2)
                     }
                     Ok(()) => (),
                 }
@@ -1074,7 +1073,7 @@ fn main() {
             let total = fs::metadata(&file_path).expect("file size error").len();
             let progress_bar = initialize_progress_bar(total);
             let in_one_go: bool = matches.is_present("convert");
-            let shutdown_channel = async_std::sync::channel(1);
+            let shutdown_channel = sync::mpsc::channel(1);
             thread::spawn(move || {
                 let why = if in_one_go {
                     pcap_to_dlt(
@@ -1175,7 +1174,7 @@ fn main() {
                 path::PathBuf::from(output.to_string() + ".map.json");
 
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-            let shutdown_channel = async_std::sync::channel(1);
+            let shutdown_channel = sync::mpsc::channel(1);
             let tag_string = tag.to_string();
             let multicast_conf = MulticastInfo {
                 multiaddr: ip_address.to_string(),
@@ -1190,6 +1189,10 @@ fn main() {
             use chrono::Local;
             let now = Local::now();
             let session_id = format!("dlt_session_id_{}.dlt", now.format("%Y%b%d_%H-%M-%S"));
+            use tokio::runtime::Runtime;
+            // Create the runtime
+            let rt = Runtime::new().expect("Could not create runtime");
+            // TODO rework without thread::spawn
             thread::spawn(move || {
                 let dlt_socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
                     session_id,
@@ -1201,8 +1204,8 @@ fn main() {
                     shutdown_channel.1,
                     load_test_fibex(),
                 );
-                let why = task::block_on(dlt_socket_future);
 
+                let why = rt.block_on(dlt_socket_future);
                 if let Err(reason) = why {
                     report_error(format!("couldn't process: {}", reason));
                     std::process::exit(2)
@@ -1492,6 +1495,7 @@ fn main() {
             }
         }
     }
+    Ok(())
 }
 
 fn duration_report(start: std::time::Instant, report: String) {

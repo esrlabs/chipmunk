@@ -4,6 +4,7 @@ use crossbeam_channel as cc;
 use indexer_base::{chunks::ChunkResults, config::SectionConfig, export::export_file_line_based};
 use neon::{context::Context, prelude::*};
 use std::{path, thread};
+use tokio::sync;
 
 static DLT_SESSION_ID: &str = "session";
 static DLT_SOURCE_FILE: &str = "file";
@@ -11,7 +12,7 @@ static LINE_BASED_SOURCE_FILE: &str = "lines";
 
 pub struct ExporterEventEmitter {
     pub event_receiver: cc::Receiver<ChunkResults>,
-    pub shutdown_sender: async_std::sync::Sender<()>,
+    pub shutdown_sender: sync::mpsc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl ExporterEventEmitter {
@@ -24,7 +25,7 @@ impl ExporterEventEmitter {
         sections_config: SectionConfig,
         was_session_file: bool,
         // TODO react on shutdown event
-        _shutdown_rx: async_std::sync::Receiver<()>,
+        _shutdown_rx: sync::mpsc::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
     ) -> Result<(), Error> {
         info!(
@@ -105,7 +106,7 @@ declare_types! {
             i += 1;
             let was_session_file = cx.argument::<JsBoolean>(i)?.value();
 
-            let shutdown_channel = async_std::sync::channel(1);
+            let shutdown_channel = sync::mpsc::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = ExporterEventEmitter {
                 event_receiver: rx,
@@ -145,14 +146,17 @@ declare_types! {
         // The shutdown method may be called to stop the Rust thread. It
         // will error if the thread has already been destroyed.
         method shutdown(mut cx) {
+            use tokio::runtime::Runtime;
+            // Create the runtime
+            let rt = Runtime::new().expect("Could not create runtime");
             trace!("shutdown called");
             let this = cx.this();
 
             // Unwrap the shutdown channel and send a shutdown command
             cx.borrow(&this, |emitter| {
-                async_std::task::block_on(
+                rt.block_on(
                     async {
-                        emitter.shutdown_sender.send(()).await;
+                        let _ = emitter.shutdown_sender.send(()).await;
                         trace!("sent command Shutdown")
                     }
                 );

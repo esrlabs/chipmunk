@@ -23,6 +23,9 @@ impl IndexingEventEmitter {
         thread_conf: IndexingThreadConfig,
     ) {
         info!("call event_thread with chunk size: {}", chunk_size);
+        use tokio::runtime::Runtime;
+        // Create the runtime
+        let rt = Runtime::new().expect("Could not create runtime");
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
@@ -40,7 +43,7 @@ impl IndexingEventEmitter {
                 Some(shutdown_rx),
             );
 
-            async_std::task::block_on(async {
+            rt.block_on(async {
                 index_future.await;
             });
             debug!("back after indexing finished!",);

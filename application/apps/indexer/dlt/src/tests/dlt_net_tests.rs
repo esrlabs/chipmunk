@@ -2,10 +2,10 @@
 mod tests {
 
     use crate::{dlt::Message, dlt_net::*, dlt_parse::DltParseError};
-    use async_std::net::UdpSocket;
     use crossbeam_channel as cc;
     use futures::stream::StreamExt;
     use indexer_base::chunks::ChunkResults;
+    use tokio::net::UdpSocket;
 
     fn message_without_storage_header() -> Vec<u8> {
         #[rustfmt::skip]
@@ -60,7 +60,7 @@ mod tests {
         })
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn test_upd_message_producer() {
         let content = message_without_storage_header();
         match send_and_receive(&content).await {
