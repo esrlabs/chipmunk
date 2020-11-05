@@ -108,7 +108,7 @@ mod tests {
             && row_pairs.iter().all(|&(p1, p2)| p1.1 + 1 == p2.0)
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn test_append_to_empty_output() -> Result<()> {
         let tmp_dir = tempdir().expect("could not create temp dir");
         let empty_file_path = tmp_dir.path().join("empty.log");
@@ -242,7 +242,7 @@ mod tests {
         }
         Ok(())
     }
-    #[async_std::test]
+    #[tokio::test]
     async fn test_chunking_one_chunk_exact() {
         let (chunks, content) = get_chunks("A\n", 1, "some_new_tag", None).await;
         println!("chunks: {:?}", chunks);
@@ -250,7 +250,7 @@ mod tests {
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[async_std::test]
+    #[tokio::test]
     async fn test_chunking_one_chunk_to_big() {
         let (chunks, content) = get_chunks("A\n", 2, "tag_ok", None).await;
         println!("chunks: {:?}", chunks);
@@ -258,13 +258,13 @@ mod tests {
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[async_std::test]
+    #[tokio::test]
     async fn test_chunking_one_chunk_exact_no_nl() {
         let (chunks, content) = get_chunks("A", 1, "tag_no_nl", None).await;
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[async_std::test]
+    #[tokio::test]
     async fn test_chunking_multiple_chunks_partly() {
         let (chunks, content) = get_chunks("A\nB\nC", 2, "T", None).await;
         println!("chunks: {:?}", chunks);
@@ -276,13 +276,13 @@ mod tests {
         assert_eq!(2, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[async_std::test]
+    #[tokio::test]
     async fn test_chunking_multiple_chunks_complete() {
         let (chunks, content) = get_chunks("A\nB\nC\nD\n", 2, "tag_chunk_complet", None).await;
         assert_eq!(2, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
     }
-    #[async_std::test]
+    #[tokio::test]
     async fn test_chunking_multiple_chunks_complete_no_nl() {
         let (chunks, content) = get_chunks("A\nB\nC\nD", 2, "tag_complete_no_nl", None).await;
         println!("chunks: {:?}", chunks);
@@ -325,7 +325,10 @@ mod tests {
             fs::copy(&append_to_this, &out_file_path).expect("copy content failed");
         }
         let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-        async_std::task::block_on(async {
+        use tokio::runtime::Runtime;
+        // Create the runtime
+        let rt = Runtime::new().expect("Could not create runtime");
+        rt.block_on(async {
             create_index_and_mapping(
                 IndexingConfig {
                     tag: "TAG".to_owned(),
@@ -475,8 +478,6 @@ mod tests {
         }
         Ok(())
     }
-
-    static SUPPORTED_STRING_FORMAT: &str = "[ -~]{0,100}";
 
     #[test]
     fn test_get_entries_single_one_char_line() -> Result<()> {

@@ -9,18 +9,19 @@ use indexer_base::{
 };
 use neon::prelude::*;
 use std::{path, thread};
+use tokio::sync;
 
 pub struct PcapDltEventEmitter {
     pub event_receiver: cc::Receiver<ChunkResults>,
-    pub shutdown_sender: async_std::sync::Sender<()>,
+    pub shutdown_sender: sync::mpsc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl PcapDltEventEmitter {
     #[allow(clippy::too_many_arguments)]
     pub fn start_indexing_pcap_file_in_thread(
-        self: &mut Self,
+        &mut self,
         chunk_size: usize,
-        shutdown_rx: async_std::sync::Receiver<()>,
+        shutdown_rx: sync::mpsc::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
         thread_conf: IndexingThreadConfig,
         filter_conf: Option<filtering::DltFilterConfig>,
@@ -69,7 +70,7 @@ declare_types! {
             let arg_fibex_conf = cx.argument::<JsValue>(6)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
 
-            let shutdown_channel = async_std::sync::channel(1);
+            let shutdown_channel = sync::mpsc::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = PcapDltEventEmitter {
                 event_receiver: rx,
@@ -115,12 +116,15 @@ declare_types! {
         method shutdown(mut cx) {
             trace!("shutdown called");
             let this = cx.this();
+            use tokio::runtime::Runtime;
+            // Create the runtime
+            let rt = Runtime::new().expect("Could not create runtime");
 
             // Unwrap the shutdown channel and send a shutdown command
             cx.borrow(&this, |emitter| {
-                async_std::task::block_on(
+                rt.block_on(
                     async {
-                        emitter.shutdown_sender.send(()).await;
+                        let _ = emitter.shutdown_sender.clone().send(()).await;
                         trace!("sent command Shutdown")
                     }
                 );
