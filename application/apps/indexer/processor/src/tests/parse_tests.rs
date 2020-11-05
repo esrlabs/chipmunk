@@ -896,10 +896,7 @@ mod tests {
     fn test_check_format() {
         init();
         fn format_was_ok(res: FormatCheckResult) -> bool {
-            match res {
-                FormatCheckResult::FormatRegex(_) => true,
-                _ => false,
-            }
+            matches!(res, FormatCheckResult::FormatRegex(_))
         }
         const FLAGS: FormatCheckFlags = FormatCheckFlags {
             miss_day: false,

@@ -1,5 +1,4 @@
 use crate::{dlt, dlt_parse::*, fibex::FibexMetadata, filtering};
-use async_std::task;
 use crossbeam_channel as cc;
 use etherparse::*;
 use futures::{future, stream::StreamExt};
@@ -16,6 +15,7 @@ use std::{
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
+use tokio::sync;
 
 struct PcapMessageProducer {
     reader: PcapNGReader<File>,
@@ -215,6 +215,7 @@ impl futures::Stream for PcapMessageProducer {
     }
 }
 
+// TODO make async
 /// convert a PCAPNG file to a dlt file
 #[allow(clippy::too_many_arguments)]
 pub fn pcap_to_dlt(
@@ -222,7 +223,7 @@ pub fn pcap_to_dlt(
     out_path: &std::path::Path,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_receiver: async_std::sync::Receiver<()>,
+    shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), DltParseError> {
     trace!("Starting pcap_to_dlt");
@@ -260,7 +261,11 @@ pub fn pcap_to_dlt(
     let mut unrecoverable_parse_errors = 0usize;
     let mut incomplete_parses = 0usize;
     let mut stopped = false;
-    task::block_on(async {
+    use tokio::runtime::Runtime;
+
+    // Create the runtime
+    let rt = Runtime::new()?;
+    rt.block_on(async {
         while let Some(event) = event_stream.next().await {
             if let Event::Msg(_, consumed) = event {
                 if consumed > 0 {
@@ -349,13 +354,14 @@ pub fn pcap_to_dlt(
     })
 }
 
+// make async
 #[allow(clippy::too_many_arguments)]
 pub fn index_from_pcap(
     config: IndexingConfig,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     initial_line_nr: usize,
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_receiver: async_std::sync::Receiver<()>,
+    shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), DltParseError> {
     trace!("index_from_pcap for  conf: {:?}", config);
@@ -395,7 +401,11 @@ pub fn index_from_pcap(
     let mut unrecoverable_parse_errors = 0usize;
     let mut incomplete_parses = 0usize;
     let mut stopped = false;
-    task::block_on(async {
+    use tokio::runtime::Runtime;
+
+    // Create the runtime
+    let rt = Runtime::new()?;
+    rt.block_on(async {
         while let Some(event) = event_stream.next().await {
             if let Event::Msg(_, consumed) = event {
                 if consumed > 0 {
@@ -498,7 +508,7 @@ pub fn create_index_and_mapping_dlt_from_pcap(
     config: IndexingConfig,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
-    shutdown_receiver: async_std::sync::Receiver<()>,
+    shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), DltParseError> {
     trace!("create_index_and_mapping_dlt_from_pcap");

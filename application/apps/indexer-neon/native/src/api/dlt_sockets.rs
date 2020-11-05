@@ -7,6 +7,7 @@ use indexer_base::{
 };
 use neon::prelude::*;
 use std::{path, thread};
+use tokio::sync;
 
 #[derive(Debug)]
 pub struct SocketThreadConfig {
@@ -15,7 +16,7 @@ pub struct SocketThreadConfig {
 }
 pub struct SocketDltEventEmitter {
     pub event_receiver: cc::Receiver<ChunkResults>,
-    pub shutdown_sender: async_std::sync::Sender<()>,
+    pub shutdown_sender: sync::mpsc::Sender<()>,
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl SocketDltEventEmitter {
@@ -23,7 +24,7 @@ impl SocketDltEventEmitter {
     pub fn start_indexing_socket_in_thread(
         self: &mut SocketDltEventEmitter,
         session_id: String,
-        shutdown_rx: async_std::sync::Receiver<()>,
+        shutdown_rx: sync::mpsc::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
         thread_conf: SocketThreadConfig,
         socket_conf: SocketConfig,
@@ -31,6 +32,9 @@ impl SocketDltEventEmitter {
         fibex: FibexConfig,
     ) {
         info!("start_indexing_socket_in_thread: {:?}", thread_conf);
+        use tokio::runtime::Runtime;
+        // Create the runtime
+        let rt = Runtime::new().expect("Could not create runtime");
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
@@ -45,7 +49,7 @@ impl SocketDltEventEmitter {
                 shutdown_rx,
                 fibex_metadata,
             );
-            async_std::task::block_on(async {
+            rt.block_on(async {
                 match socket_future.await {
                     Ok(_) => {}
                     Err(e) => warn!("error for socket dlt stream: {}", e),
@@ -72,7 +76,7 @@ declare_types! {
             let arg_fibex_conf = cx.argument::<JsValue>(5)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
 
-            let shutdown_channel = async_std::sync::channel(1);
+            let shutdown_channel = sync::mpsc::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = SocketDltEventEmitter {
                 event_receiver: rx,
@@ -113,14 +117,17 @@ declare_types! {
         // The shutdown method may be called to stop the Rust thread. It
         // will error if the thread has already been destroyed.
         method shutdown(mut cx) {
+            use tokio::runtime::Runtime;
             trace!("shutdown called");
             let this = cx.this();
+            // Create the runtime
+            let rt = Runtime::new().expect("Could not create runtime");
 
             // Unwrap the shutdown channel and send a shutdown command
             cx.borrow(&this, |emitter| {
-                async_std::task::block_on(
+                rt.block_on(
                     async {
-                        emitter.shutdown_sender.send(()).await;
+                        let _ = emitter.shutdown_sender.send(()).await;
                         trace!("sent command Shutdown")
                     }
                 );
