@@ -1,6 +1,7 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages } from './service.electron.ipc';
+import { IVersion } from '../../../../../common/ipc/electron.ipc.messages';
 
 import ElectronIpcService from './service.electron.ipc';
 
@@ -13,10 +14,11 @@ export interface IReleaseInfo {
 
 export class ReleaseNotesService implements IService {
 
-    private readonly _url: string = 'https://api.github.com/repos/esrlabs/chipmunk/releases/latest';
+    private readonly _url: string = 'https://api.github.com/repos/esrlabs/chipmunk/releases/tags/';
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('ReleaseNotesService');
     private _info: IReleaseInfo | undefined;
+    private _version: string = '';
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription | undefined } = { };
     private _subjects: {
         tab: Subject<void>,
@@ -26,6 +28,7 @@ export class ReleaseNotesService implements IService {
 
     constructor() {
         this._subscriptions.TabCustomRelease = ElectronIpcService.subscribe(IPCMessages.TabCustomRelease, this._onTabCustomRelease.bind(this));
+        this._subscriptions.TabCustomVersion = ElectronIpcService.subscribe(IPCMessages.TabCustomVersion, this._onTabCustomVersion.bind(this));
     }
 
     public init(): Promise<void> {
@@ -57,8 +60,11 @@ export class ReleaseNotesService implements IService {
             if (this._info !== undefined) {
                 return resolve(this._info);
             }
-            fetch(this._url).then((resoponse: Response) => {
-                resoponse.json().then((value: any) => {
+            if (this._version === '') {
+                return reject(new Error(this._logger.warn(`Chipmunk version not found`)));
+            }
+            fetch(this._url + this._version).then((response: Response) => {
+                response.json().then((value: any) => {
                     this._info = {
                         version: value.name,
                         notes: value.body,
@@ -81,7 +87,9 @@ export class ReleaseNotesService implements IService {
         });
     }
 
-
+    private _onTabCustomVersion(params: IVersion) {
+        this._version = params.version;
+    }
 }
 
 export default (new ReleaseNotesService());

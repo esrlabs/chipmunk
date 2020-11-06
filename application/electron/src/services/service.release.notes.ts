@@ -38,6 +38,9 @@ class ServiceReleaseNotes implements IService {
                     if (this._store.get().version === ServicePackage.get().version) {
                         return;
                     }
+                    ServiceElectron.IPC.send(new IPCMessages.TabCustomVersion({version: ServicePackage.get().version})).catch((error: Error) => {
+                        this._logger.warn(`Fail to send TabCustomVersion due error: ${error.message}`);
+                    });
                     ServiceElectron.IPC.send(new IPCMessages.TabCustomRelease()).then(() => {
                         if (this._store === undefined) {
                             return;
