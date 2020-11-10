@@ -106,9 +106,9 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             return;
         }
         Electron.remote.dialog.showOpenDialog({
-            properties: ['openFile', 'showHiddenFiles']
+            properties: ['openFile', 'showHiddenFiles', 'multiSelections']
         }).then((result: { filePaths: string[] }) => {
-            if (!(result.filePaths instanceof Array) || result.filePaths.length !== 1) {
+            if (!(result.filePaths instanceof Array)) {
                 return;
             }
             this._ng_state = EState.discover;

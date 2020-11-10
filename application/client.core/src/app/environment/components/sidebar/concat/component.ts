@@ -140,16 +140,16 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
 
     public _ng_onAddFile() {
         Electron.remote.dialog.showOpenDialog({
-            properties: ['openFile', 'showHiddenFiles']
+            properties: ['openFile', 'showHiddenFiles', 'multiSelections']
         }).then((result: { filePaths: string[] }) => {
-            if (!(result.filePaths instanceof Array) || result.filePaths.length !== 1) {
+            if (!(result.filePaths instanceof Array)) {
                 return;
             }
             if (this._controller === undefined) {
                 return;
             }
             this._ng_state = EState.add;
-            this._controller.add([result.filePaths[0]]).catch((error: Error) => {
+            this._controller.add(result.filePaths).catch((error: Error) => {
                 this._notifications.add({
                     caption: 'Concat',
                     message: `Fail add file due error: ${error.message}`,
