@@ -1,6 +1,7 @@
 pub mod concatenatination;
 pub mod dlt_indexing;
 pub mod dlt_pcap;
+pub mod dlt_pcap_converter;
 pub mod dlt_sockets;
 pub mod dlt_stats;
 pub mod exporting;

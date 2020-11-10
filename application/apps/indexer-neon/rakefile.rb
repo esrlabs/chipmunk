@@ -83,6 +83,12 @@ namespace :neon do
   end
   task all: 'neon:dlt'
 
+  desc 'test neon integration: convert pcap to dlt'
+  task convert_pcap2dlt: [:clean, OUT_DIR, 'neon:rebuild'] do
+    call_test_function('testConvertPcapToDlt', "#{LOCAL_EXAMPLE_DIR}/dlt/pcap/test.pcapng")
+  end
+  task all: 'neon:convert_pcap2dlt'
+
   desc 'test neon integration: discover timestamps'
   task discover: [:clean, OUT_DIR, 'neon:rebuild'] do
     call_test_function_with_array(

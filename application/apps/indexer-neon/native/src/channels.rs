@@ -44,8 +44,8 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
             }
             Err(cc::RecvTimeoutError::Timeout) => Ok(None),
             Err(cc::RecvTimeoutError::Disconnected) => {
-                debug!("(receiving from channel in libuv-thread): Channel Disconnected");
-                Err("(receiving in channels.rs): Channel was Disconnected".to_string())
+                debug!("Channel got disconnected (receiving from channel in libuv-thread)");
+                Err("Event-channel was Disconnected (receiving in channels.rs)".to_string())
             }
         }
     }

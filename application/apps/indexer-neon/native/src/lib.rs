@@ -17,6 +17,7 @@ mod channels;
 mod config;
 mod fibex_utils;
 mod logging;
+use crate::api::dlt_pcap_converter::JsDltPcapConverterEventEmitter;
 use logging::init_logging;
 
 use api::{
@@ -47,6 +48,7 @@ register_module!(mut cx, {
     cx.export_class::<JsIndexerEventEmitter>("RustIndexerEventEmitter")?;
     cx.export_class::<JsDltIndexerEventEmitter>("RustDltIndexerEventEmitter")?;
     cx.export_class::<JsDltPcapEventEmitter>("RustDltPcapEventEmitter")?;
+    cx.export_class::<JsDltPcapConverterEventEmitter>("RustDltPcapConverterEventEmitter")?;
     cx.export_class::<JsDltStatsEventEmitter>("RustDltStatsEventEmitter")?;
     cx.export_class::<JsDltSocketEventEmitter>("RustDltSocketEventEmitter")?;
     cx.export_class::<JsTimestampFormatDetectionEmitter>("RustTimestampFormatDetectionEmitter")?;
