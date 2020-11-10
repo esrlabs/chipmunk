@@ -56,7 +56,7 @@ export class NativeComputationManager<T> {
             // Poll for data
             channel.poll((err: string, eventData: { [x: string]: any; event_tag: string; }) => {
                 if (err) {
-                    log(">>> error on promise poll: " + err);
+                    log("Problem polling the channel: " + err);
                     this.eventEmitter.emit("error", err);
                 }
                 else if (eventData) {

@@ -1,15 +1,14 @@
 import { log } from '../util/logging';
-import { ITicks, INeonTransferChunk, INeonNotification, IChunk } from '../util/progress';
+import { ITicks, INeonTransferChunk, INeonNotification } from '../util/progress';
 import {
 	RustDltIndexerChannel,
 	RustDltStatsChannel,
 	RustExportFileChannel,
 	RustDltSocketChannel,
-	RustDltPcapChannel
+	RustDltPcapChannel,
+	RustDltPcapConverterChannel
 } from '../native';
-import {
-	NativeComputationManager,
-} from '../native_computation_manager';
+import { NativeComputationManager } from '../native_computation_manager';
 import { CancelablePromise } from '../util/promise';
 import {
 	IDLTFilters,
@@ -22,6 +21,7 @@ import {
 	IFibexConfig
 } from '../../../../common/interfaces/interface.dlt';
 import { IFileSaveParams } from '../../../../common/interfaces';
+import { ChunkHandler, NotificationHandler, ProgressEventHandler } from './common';
 
 export {
 	IDLTFilters,
@@ -64,9 +64,7 @@ export interface IIndexDltOptionsChecked {}
 
 export type TDltStatsEvents = 'config' | 'progress' | 'notification';
 export type TDltStatsEventConfig = (event: StatisticInfo) => void;
-export type TDltStatsEventProgress = (event: ITicks) => void;
-export type TDltStatsEventNotification = (event: INeonNotification) => void;
-export type TDltStatsEventObject = TDltStatsEventConfig | TDltStatsEventProgress | TDltStatsEventNotification;
+export type TDltStatsEventObject = TDltStatsEventConfig | ProgressEventHandler | NotificationHandler;
 
 export function dltStatsAsync(
 	dltFile: string,
@@ -81,15 +79,15 @@ export function dltStatsAsync(
 		try {
 			// Get defaults options
 			const opt = getDefaultIndexDltProcessingOptions(options);
+			const channel = new RustDltStatsChannel(dltFile);
+			const emitter = new NativeComputationManager<StatisticInfo>(channel);
+			let total: number = 1;
 			// Add cancel callback
 			refCancelCB(() => {
 				// Cancelation is started, but not canceled
 				log(`Get command "break" operation. Starting breaking.`);
 				emitter.requestShutdown();
 			});
-			const channel = new RustDltStatsChannel(dltFile);
-			const emitter = new NativeComputationManager<StatisticInfo>(channel);
-			let total: number = 1;
 			emitter.onItem((chunk: StatisticInfo) => {
 				self.emit('config', chunk);
 			});
@@ -122,8 +120,7 @@ export function dltStatsAsync(
 }
 
 export type TDltFileAsyncEvents = 'progress' | 'notification';
-export type TDltFileAsyncEventProgress = (event: ITicks) => void;
-export type TDltFileAsyncEventObject = TDltFileAsyncEventProgress;
+export type TDltFileAsyncEventObject = ProgressEventHandler;
 
 export function exportDltFile(
 	source: string,
@@ -184,13 +181,7 @@ export function exportDltFile(
 }
 
 export type TIndexDltAsyncEvents = 'chunk' | 'progress' | 'notification';
-export type TIndexDltAsyncEventChunk = (event: IChunk) => void;
-export type TIndexDltAsyncEventProgress = (event: ITicks) => void;
-export type TIndexDltAsyncEventNotification = (event: INeonNotification) => void;
-export type TIndexDltAsyncEventObject =
-	| TIndexDltAsyncEventChunk
-	| TIndexDltAsyncEventProgress
-	| TIndexDltAsyncEventNotification;
+export type TIndexDltAsyncEventObject = ChunkHandler | ProgressEventHandler | NotificationHandler;
 
 export function indexDltAsync(
 	params: IIndexDltParams,
@@ -268,15 +259,8 @@ export function indexDltAsync(
 }
 
 export type TDLTSocketEvents = 'chunk' | 'progress' | 'notification' | 'connect';
-export type TDLTSocketEventChunk = (event: IChunk) => void;
 export type TDLTSocketEventConnect = () => void;
-export type TDLTSocketEventProgress = (event: ITicks) => void;
-export type TDLTSocketEventNotification = (event: INeonNotification) => void;
-export type TDLTSocketEventObject =
-	| TDLTSocketEventChunk
-	| TDLTSocketEventConnect
-	| TDLTSocketEventProgress
-	| TDLTSocketEventNotification;
+export type TDLTSocketEventObject = ChunkHandler | TDLTSocketEventConnect | ProgressEventHandler | NotificationHandler;
 
 export function indexPcapDlt(
 	params: IIndexDltParams
@@ -437,4 +421,61 @@ function getDefaultIndexDltProcessingOptions(options: IIndexDltOptions | undefin
 		options = {};
 	}
 	return options as IIndexDltOptionsChecked;
+}
+
+export type TPcap2DltEvents = 'progress' | 'notification';
+export type TPcap2DltsEventObject = ProgressEventHandler | NotificationHandler;
+
+export function pcap2dlt(
+	pcapFilePath: String,
+	outFilePath: String
+): CancelablePromise<void, void, TPcap2DltEvents, TPcap2DltsEventObject> {
+	return new CancelablePromise<
+		void,
+		void,
+		TPcap2DltEvents,
+		TPcap2DltsEventObject
+	>((resolve, reject, cancel, refCancelCB, self) => {
+		try {
+			// Create channel
+			const channel = new RustDltPcapConverterChannel(pcapFilePath, outFilePath);
+			// Create emitter
+			const emitter: NativeComputationManager<void> = new NativeComputationManager(channel);
+			let chunks: number = 0;
+
+			// Add cancel callback
+			refCancelCB(() => {
+				emitter.requestShutdown();
+			});
+			// Add listenters
+			emitter.onProgress((ticks: ITicks) => {
+				self.emit('progress', ticks);
+			});
+			emitter.onStopped(() => {
+				log('Stopped event after ' + chunks + ' chunks');
+				cancel();
+			});
+			emitter.onNotification((notification: INeonNotification) => {
+				self.emit('notification', notification);
+			});
+			emitter.onFinished(() => {
+				log('Finished event after ' + chunks + ' chunks');
+				resolve();
+			});
+			// Handle finale of promise
+			self.finally(() => {
+				log('Operation pcap2dlt is finished');
+			});
+		} catch (err) {
+			if (!(err instanceof Error)) {
+				log(`Operation stopped. Error isn't valid:`);
+				log(err);
+				err = new Error(`Operation stopped. Error isn't valid.`);
+			} else {
+				log(`Operation stopped due error: ${err.message}`);
+			}
+			// Operation is rejected
+			reject(err);
+		}
+	});
 }
