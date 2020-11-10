@@ -1,7 +1,7 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages } from './service.electron.ipc';
-import { IVersion } from '../../../../../common/ipc/electron.ipc.messages';
+import { IVersion } from '../../../../../common/ipc/electron.ipc.messages/index';
 
 import ElectronIpcService from './service.electron.ipc';
 
