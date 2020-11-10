@@ -417,7 +417,6 @@ mod tests {
 
     fn identify_range_simple(grabber: &Grabber, line_index: u64) -> Option<Slot> {
         let metadata = grabber.metadata.as_ref()?;
-        // let metadata = grabber.metadata.as_ref()?;
         for slot in &metadata.slots {
             if slot.lines.range.contains(&line_index) {
                 println!(

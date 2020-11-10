@@ -18,7 +18,7 @@ pub struct ExporterEventEmitter {
 impl ExporterEventEmitter {
     #[allow(clippy::too_many_arguments)]
     pub fn start_exporting_file_in_thread(
-        self: &mut Self,
+        &mut self,
         source: String,
         source_type: String,
         destination_path: path::PathBuf,

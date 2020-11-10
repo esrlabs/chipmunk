@@ -27,7 +27,7 @@ use dlt::{
     fibex::FibexMetadata,
 };
 use indexer_base::{
-    chunks::{serialize_chunks, Chunk, ChunkResults},
+    chunks::{serialize_chunks, Chunk, ChunkResults, VoidResults},
     config::*,
     error_reporter::*,
     export::export_file_line_based,
@@ -1067,25 +1067,65 @@ pub async fn main() -> Result<()> {
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file_name.to_string() + ".map.json");
 
-            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let tag_string = tag.to_string();
             let total = fs::metadata(&file_path).expect("file size error").len();
             let progress_bar = initialize_progress_bar(total);
             let in_one_go: bool = matches.is_present("convert");
             let shutdown_channel = sync::mpsc::channel(1);
-            thread::spawn(move || {
-                let why = if in_one_go {
-                    pcap_to_dlt(
+            if in_one_go {
+                let (tx, rx): (cc::Sender<VoidResults>, cc::Receiver<VoidResults>) = unbounded();
+                thread::spawn(move || {
+                    let res = pcap_to_dlt(
                         &file_path,
                         &out_path,
                         filter_conf,
                         tx,
                         shutdown_channel.1,
                         load_test_fibex_rc(),
-                    )
-                } else {
-                    dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
+                    );
+
+                    if let Err(reason) = res {
+                        report_error(format!("couldn't convert: {}", reason));
+                        std::process::exit(2)
+                    }
+                });
+                loop {
+                    match rx.recv() {
+                        Err(why) => {
+                            report_error(format!("couldn't process: {}", why));
+                            std::process::exit(2)
+                        }
+                        Ok(Ok(IndexingProgress::Finished { .. })) => {
+                            progress_bar.finish_and_clear();
+                            break;
+                        }
+                        Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                            let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+                            trace!("progress... ({:.0} %)", progress_fraction * 100.0);
+                            progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+                        }
+                        Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                            println!("Invalid chunk received {:?}", chunk);
+                        }
+                        Ok(Err(Notification {
+                            severity,
+                            content,
+                            line,
+                        })) => {
+                            if severity == Severity::WARNING {
+                                report_warning_ln(content, line);
+                            } else {
+                                report_error_ln(content, line);
+                            }
+                        }
+                        Ok(_) => report_warning("process finished without result"),
+                    }
+                }
+            } else {
+                let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+                thread::spawn(move || {
+                    let res = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
                         IndexingConfig {
                             tag: tag_string,
                             chunk_size,
@@ -1098,47 +1138,47 @@ pub async fn main() -> Result<()> {
                         &tx,
                         shutdown_channel.1,
                         load_test_fibex_rc(),
-                    )
-                };
+                    );
 
-                if let Err(reason) = why {
-                    report_error(format!("couldn't process: {}", reason));
-                    std::process::exit(2)
-                }
-            });
-            let mut chunks: Vec<Chunk> = vec![];
-            loop {
-                match rx.recv() {
-                    Err(why) => {
-                        report_error(format!("couldn't process: {}", why));
+                    if let Err(reason) = res {
+                        report_error(format!("couldn't process: {}", reason));
                         std::process::exit(2)
                     }
-                    Ok(Ok(IndexingProgress::Finished { .. })) => {
-                        let _ = serialize_chunks(&chunks, &mapping_out_path);
-                        progress_bar.finish_and_clear();
-                        break;
-                    }
-                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                        let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                        trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * (total as f64)) as u64);
-                    }
-                    Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                        println!("{:?}", chunk);
-                        chunks.push(chunk);
-                    }
-                    Ok(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
+                });
+                let mut chunks: Vec<Chunk> = vec![];
+                loop {
+                    match rx.recv() {
+                        Err(why) => {
+                            report_error(format!("couldn't process: {}", why));
+                            std::process::exit(2)
                         }
+                        Ok(Ok(IndexingProgress::Finished { .. })) => {
+                            let _ = serialize_chunks(&chunks, &mapping_out_path);
+                            progress_bar.finish_and_clear();
+                            break;
+                        }
+                        Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                            let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+                            trace!("progress... ({:.0} %)", progress_fraction * 100.0);
+                            progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+                        }
+                        Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                            println!("{:?}", chunk);
+                            chunks.push(chunk);
+                        }
+                        Ok(Err(Notification {
+                            severity,
+                            content,
+                            line,
+                        })) => {
+                            if severity == Severity::WARNING {
+                                report_warning_ln(content, line);
+                            } else {
+                                report_error_ln(content, line);
+                            }
+                        }
+                        Ok(_) => report_warning("process finished without result"),
                     }
-                    Ok(_) => report_warning("process finished without result"),
                 }
             }
 

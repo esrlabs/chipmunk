@@ -91,7 +91,6 @@ pub fn create_index_and_mapping_dlt(
         true,
         fibex_metadata.map(Rc::new),
     )?;
-    // TODO do not clone metadata...if we use it in FileMessageProducer, we should not need it in index_dlt_content
     index_dlt_content(
         config,
         source_file_size,

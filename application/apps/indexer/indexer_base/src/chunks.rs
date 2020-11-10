@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 
 pub type ChunkResults = std::result::Result<IndexingProgress<Chunk>, Notification>;
+pub type VoidResults = std::result::Result<IndexingProgress<()>, Notification>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Chunk {

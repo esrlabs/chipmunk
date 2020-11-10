@@ -7,7 +7,8 @@ import {
 	dltOverSocket,
 	ISocketConfig,
 	IMulticastInfo,
-	indexPcapDlt
+	indexPcapDlt,
+	pcap2dlt
 } from './api/dlt';
 import indexer, { DLT, Merge, Progress } from './index';
 import { ITicks, IChunk, AsyncResult, INeonNotification, IDiscoverItem, IMergerItemOptions } from './util/progress';
@@ -164,7 +165,7 @@ export function testCheckFormatString(
 			log.trace('progress: ' + Math.round(100 * ticks.ellapsed / ticks.total) + '%');
 		};
 		let onNotification = (notification: INeonNotification) => {
-			log.debug('testDiscoverTimestampAsync: received notification:' + JSON.stringify(notification));
+			log.debug('testCheckFormatString: received notification:' + JSON.stringify(notification));
 		};
 		checkFormat(input, flags)
 			.then(() => {
@@ -270,6 +271,40 @@ export function testDiscoverTimestampAsync(files: string[]) {
 				log.debug('event.format ' + JSON.stringify(event.format));
 				// log.debug('event.format.Ok ' + JSON.stringify(event.format?.Ok));
 				// log.debug('event.format.Err ' + JSON.stringify(event.format?.Err));
+			})
+			.on('progress', (event: Progress.ITicks) => {
+				onProgress(event);
+			})
+			.on('notification', (event: Progress.INeonNotification) => {
+				onNotification(event);
+			});
+	} catch (error) {
+		log.error('error %s', error);
+	}
+}
+
+export function testConvertPcapToDlt(input: string) {
+	log.setDefaultLevel(log.levels.DEBUG);
+	log.debug(`calling testConvertPcapToDlt with ${input}`);
+	const hrstart = process.hrtime();
+	const bar = stdout.createProgressBar({ caption: 'convert pcap2dlt', width: 60 });
+	try {
+		let onProgress = (ticks: ITicks) => {
+			bar.update(Math.round(100 * ticks.ellapsed / ticks.total));
+		};
+		let onNotification = (notification: INeonNotification) => {
+			log.debug('testConvertPcapToDlt: received notification:' + JSON.stringify(notification));
+		};
+		let output = `${input}.out.dlt`
+		pcap2dlt(input, output)
+			.then(() => {
+				const hrend = process.hrtime(hrstart);
+				const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+				bar.update(100);
+				log.info('Execution time for conversion : %dms', ms);
+			})
+			.catch((error: Error) => {
+				log.debug(`Failed with error: ${error.message}`);
 			})
 			.on('progress', (event: Progress.ITicks) => {
 				onProgress(event);

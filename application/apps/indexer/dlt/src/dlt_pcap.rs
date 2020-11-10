@@ -3,7 +3,7 @@ use crossbeam_channel as cc;
 use etherparse::*;
 use futures::{future, stream::StreamExt};
 use indexer_base::{
-    chunks::{ChunkFactory, ChunkResults},
+    chunks::{ChunkFactory, ChunkResults, VoidResults},
     config::IndexingConfig,
     progress::*,
     utils,
@@ -215,14 +215,13 @@ impl futures::Stream for PcapMessageProducer {
     }
 }
 
-// TODO make async
 /// convert a PCAPNG file to a dlt file
 #[allow(clippy::too_many_arguments)]
 pub fn pcap_to_dlt(
     pcap_path: &std::path::Path,
     out_path: &std::path::Path,
     dlt_filter: Option<filtering::DltFilterConfig>,
-    update_channel: cc::Sender<ChunkResults>,
+    update_channel: cc::Sender<VoidResults>,
     shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex_metadata: Option<Rc<FibexMetadata>>,
 ) -> Result<(), DltParseError> {
@@ -267,21 +266,19 @@ pub fn pcap_to_dlt(
     let rt = Runtime::new()?;
     rt.block_on(async {
         while let Some(event) = event_stream.next().await {
-            if let Event::Msg(_, consumed) = event {
-                if consumed > 0 {
-                    processed_bytes += consumed;
-                    progress(processed_bytes);
-                }
-            }
             match event {
                 Event::Shutdown => {
-                    debug!("pcap_as_dlt: received shutdown through future channel");
+                    debug!("pcap_as_dlt: Received shutdown through future channel");
                     let _ = update_channel.send(Ok(IndexingProgress::Stopped));
                     stopped = true;
                     break;
                 }
-                Event::Msg(Ok(MessageStreamItem::Item(msgs)), _) => {
-                    trace!("pcap_as_dlt: received msg event");
+                Event::Msg(Ok(MessageStreamItem::Item(msgs)), consumed) => {
+                    trace!("pcap_as_dlt: Received msg event");
+                    if consumed > 0 {
+                        processed_bytes += consumed;
+                        progress(processed_bytes);
+                    }
 
                     for msg in msgs {
                         let msg_with_storage_header = match msg.storage_header {
@@ -293,11 +290,11 @@ pub fn pcap_to_dlt(
                     }
                 }
                 Event::Msg(Ok(MessageStreamItem::Skipped), _) => {
-                    trace!("pcap_as_dlt: msg was skipped due to filters");
+                    trace!("pcap_as_dlt: Msg was skipped due to filters");
                 }
                 Event::Msg(Ok(MessageStreamItem::Incomplete), consumed) => {
                     trace!(
-                        "pcap_as_dlt: msg was incomplete (consumed {} bytes)",
+                        "pcap_as_dlt: Msg was incomplete (consumed {} bytes)",
                         consumed
                     );
                 }
