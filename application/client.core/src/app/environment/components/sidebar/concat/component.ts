@@ -14,6 +14,7 @@ import { IPCMessages } from '../../../services/service.electron.ipc';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import FileOpenerService from '../../../services/service.file.opener';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -132,6 +133,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
                 }
             });
         }).finally(() => {
+            FileOpenerService.nextFileOpen();
             this._ng_state = EState.ready;
             this._forceUpdate();
         });
