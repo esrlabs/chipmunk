@@ -112,7 +112,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     ngAfterViewInit() {
         this._loadState();
-        this._focus(true);
         this.lifecircle.emit().viewready();
     }
 
