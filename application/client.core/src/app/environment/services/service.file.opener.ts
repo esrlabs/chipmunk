@@ -7,6 +7,7 @@ import { FilesList } from '../controller/controller.file.storage';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
 import { CGuids } from '../states/state.default.sidebar.apps';
 import { Storage } from '../controller/helpers/virtualstorage';
+import { Observable, Subject } from 'rxjs';
 
 import LayoutStateService from './standalone/service.layout.state';
 import ServiceElectronIpc from './service.electron.ipc';
@@ -34,6 +35,11 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOpenerService');
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _subjects: {
+        onFileOpen: Subject<void>,
+    } = {
+        onFileOpen: new Subject<void>(),
+    };
 
     constructor() {
 
@@ -46,6 +52,14 @@ export class FileOpenerService implements IService, IFileOpenerService {
             this._subscriptions.CLIActionOpenFileRequest = ServiceElectronIpc.subscribe(IPCMessages.CLIActionOpenFileRequest, this._onCLIActionOpenFileRequest.bind(this));
             resolve();
         });
+    }
+
+    public getObservable(): {
+        onFileOpen: Observable<void>,
+    } {
+        return {
+            onFileOpen: this._subjects.onFileOpen.asObservable(),
+        };
     }
 
     public getName(): string {
@@ -90,6 +104,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                             if (openResponse.error !== undefined) {
                                 return reject(new Error(this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${openResponse.error}`)));
                             }
+                            this._subjects.onFileOpen.next();
                             resolve();
                         }).catch((error: Error) => {
                             return reject(new Error(this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${error.message}`)));
@@ -132,6 +147,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         return new Promise((resolve, reject) => {
             this._setSessionForFile().then((session: ControllerSessionTab) => {
                 TabsSessionsService.setActive(session.getGuid());
+                this._subjects.onFileOpen.next();
                 ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                     file: file,
                     session: session.getGuid(),
@@ -166,6 +182,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
             return;
         }
         this._open(checked, EActionType.concat);
+    }
+
+    public nextFileOpen() {
+        this._subjects.onFileOpen.next();
     }
 
     private _open(files: IPCMessages.IFile[], action: EActionType) {

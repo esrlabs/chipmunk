@@ -101,7 +101,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         window.addEventListener('keyup', this._onGlobalKeyUp);
         this._onSessionChange(undefined);
-        this._focus();
     }
 
     public _ng_onPanelClick() {

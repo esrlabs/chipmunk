@@ -9,6 +9,7 @@ import { DialogsFileOptionsDltStatsComponent, IStatRow, IForceSortData } from '.
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import FileOpenerService from '../../../services/service.file.opener';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -183,6 +184,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             }) },
             fibexFilesInfo: this._ng_fibex,
         });
+        FileOpenerService.nextFileOpen();
     }
 
     public _ng_onCancel() {
