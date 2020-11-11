@@ -172,12 +172,6 @@ export { ISearchUpdated, SearchUpdated };
 import { ISearchRequest, SearchRequest, ISearchExpression, ISearchExpressionFlags } from './search.request';
 export { ISearchRequest, SearchRequest, ISearchExpression, ISearchExpressionFlags };
 
-import { ISearchRequestCancelRequest, SearchRequestCancelRequest } from './search.request.cancel.request';
-export { ISearchRequestCancelRequest, SearchRequestCancelRequest };
-
-import { ISearchRequestCancelResponse, SearchRequestCancelResponse } from './search.request.cancel.response';
-export { ISearchRequestCancelResponse, SearchRequestCancelResponse };
-
 import { ISearchRequestResults, SearchRequestResults } from './search.request.results';
 export { ISearchRequestResults, SearchRequestResults };
 
@@ -710,8 +704,6 @@ export type TMessage =  AppRestartRequest |
                         StreamPtyResizeResponse |
                         SearchResultMap |
                         SearchRequest |
-                        SearchRequestCancelRequest |
-                        SearchRequestCancelResponse |
                         SearchRequestResults |
                         SearchResultMapState |
                         SearchUpdated |
@@ -935,8 +927,6 @@ export const Map = {
 
     [SearchResultMap.signature                  ]: SearchResultMap,
     [SearchRequest.signature                    ]: SearchRequest,
-    [SearchRequestCancelRequest.signature       ]: SearchRequestCancelRequest,
-    [SearchRequestCancelResponse.signature      ]: SearchRequestCancelResponse,
     [SearchRequestResults.signature             ]: SearchRequestResults,
     [SearchResultMapState.signature             ]: SearchResultMapState,
     [SearchChunk.signature                      ]: SearchChunk,

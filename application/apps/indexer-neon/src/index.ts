@@ -1,31 +1,28 @@
-import { CancelablePromise } from './util/promise';
-import * as Processor from './api/processor';
-import * as Timestamps from './api/timestamps';
-import * as Exporter from './api/exporter';
-import * as Progress from './util/progress';
-import * as DLT from './api/dlt';
-import * as Merge from './api/merger';
 import * as Units from './util/units';
+import * as Events from './util/events';
 
-export { CancelablePromise, Processor, Timestamps, Exporter, Progress, DLT, Merge, Units };
+export { CancelablePromise } from './util/promise';
+export { PromiseExecutor } from './util/promise.executor';
+export { IOperationProgress } from './interfaces/computation.minimal.withprogress';
+export { TFileOptions, IFileOptionsDLT, EFileOptionsRequirements } from './native/native.session.stream.append';
+export {
+    Session,
+    SessionSearch,
+    SessionStream,
+    ISessionEvents,
+    IEventMapUpdated,
+    IEventMatchesUpdated,
+    IEventSearchUpdated,
+    IEventStreamUpdated,
+} from './api/session';
 
-export default {
-	// DLT
-	dltStatsAsync: DLT.dltStatsAsync,
-	exportDltFile: DLT.exportDltFile,
-	indexDltAsync: DLT.indexDltAsync,
-	dltOverSocket: DLT.dltOverSocket,
-	indexPcapDlt: DLT.indexPcapDlt,
-	pcapToDlt: DLT.pcap2dlt,
-	// Indexing
-	indexAsync: Processor.indexAsync,
-	// Timestamps
-	discoverTimespanAsync: Timestamps.discoverTimespanAsync,
-	checkFormat: Timestamps.checkFormat,
-	exctractTimestamp: Timestamps.exctractTimestamp,
-	// Export/Import
-	exportLineBased: Exporter.exportLineBased,
-	// Merging
-	mergeFilesAsync: Merge.mergeFilesAsync,
-	concatFilesAsync: Merge.concatFilesAsync,
-};
+export {
+    IFileToBeMerged,
+    IExportOptions,
+    IDetectDTFormatResult,
+    IDetectOptions,
+    IExtractOptions,
+    IExtractDTFormatResult,
+} from './api/session.stream';
+
+export { Units, Events };

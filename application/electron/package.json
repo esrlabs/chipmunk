@@ -86,7 +86,7 @@
         "@types/ncp": "^2.0.3",
         "@types/request": "^2.48.4",
         "@types/semver": "^7.1.0",
-        "@types/tar": "^4.0.0",
+        "@types/tar": "^4.0.4",
         "chipmunk.shell.env": "0.0.8",
         "dltreader": "latest",
         "file-type": "^12.2.0",
@@ -102,15 +102,18 @@
     },
     "devDependencies": {
         "@types/file-type": "^10.9.1",
-        "@types/jasmine": "^3.3.8",
-        "@types/node": "^14.14.6",
+        "@types/jasmine": "^3.6.1",
+        "@types/node": "^14.14.10",
         "@types/uuid": "^8.3.0",
         "dmg-builder": "22.9.1",
         "electron": "10.2.0",
         "electron-builder": "^22.9.1",
         "electron-notarize": "^1.0.0",
+        "jasmine": "^3.6.3",
+        "jasmine-ts": "^0.3.0",
+        "ts-node": "^9.0.0",
         "tslint": "^6.1.3",
-        "typescript": "^4.0.5"
+        "typescript": "^4.1.2"
     },
     "scripts": {
         "electron": "./node_modules/.bin/tsc -p ./tsconfig.json && ./node_modules/.bin/electron --inspect ./dist/compiled/electron/src/main.js",
@@ -124,7 +127,8 @@
         "build-win": "npm run build-scripts-ts && npm run build-ts && node_modules/.bin/electron-builder --win",
         "package-check": "../node_modules/.bin/npm-check",
         "lint": "./node_modules/.bin/tslint --project .",
-        "package-upgrade": "../node_modules/.bin/npm-check -y"
+        "package-upgrade": "../node_modules/.bin/npm-check -y",
+        "test": "./node_modules/.bin/jasmine-ts"
     },
     "resolutions": {
         "websocket-extensions": ">=0.1.4",
