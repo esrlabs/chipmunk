@@ -1,17 +1,16 @@
 import Logger from "../../tools/env.logger";
-import ServiceStreams from "../../services/service.streams";
+import ServiceStreams from "../../services/service.sessions";
 import ServiceStreamSource from '../../services/service.stream.sources';
 import ServiceNotifications from "../../services/service.notifications";
 
-import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
+import { CancelablePromise } from "indexer-neon";
 import { IDLTDeamonConnectionOptions as IConnectionOptions } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
-import { CMetaData } from '../files.parsers/file.parser.dlt';
 
 export { IConnectionOptions };
 
 export interface IDLTOptions {
-    filters: DLT.DltFilterConf;
+    //filters: DLT.DltFilterConf;
     stdout?: boolean;
     statusUpdates?: boolean;
 }
@@ -25,11 +24,11 @@ export class DLTConnectionController extends EventEmitter {
     };
 
     private _connection: IConnectionOptions;
-    private _dlt: IDLTOptions;
+    //private _dlt: IDLTOptions;
     private _session: string;
     private _guid: string;
     private _logger: Logger;
-    private _connector: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
+    //private _connector: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
     private _bytes: number = 0;
 
     constructor(guid: string, session: string, connection: IConnectionOptions, dlt?: IDLTOptions) {
@@ -37,12 +36,13 @@ export class DLTConnectionController extends EventEmitter {
         this._guid = guid;
         this._session = session;
         this._connection = connection;
+        /*
         this._dlt = {
             filters: !dlt ? { min_log_level: DLT.DltLogLevel.Debug } : dlt.filters,
             // fibex: !dlt ? {fibex_file_paths: []} : dlt.fibex,
             stdout: !dlt ? false : (typeof dlt.stdout === 'boolean' ? dlt.stdout : false),
             statusUpdates: !dlt ? false : (typeof dlt.statusUpdates === 'boolean' ? dlt.statusUpdates : false),
-        };
+        };*/
         this._logger = new Logger(`DLTConnectionController: ${session}`);
     }
 
@@ -53,9 +53,7 @@ export class DLTConnectionController extends EventEmitter {
 
     public connect(): Promise<void> {
         return new Promise((resolve, reject) => {
-            // if (typeof this._connection.ecu !== 'string' || this._connection.ecu.trim() === '') {
-            //     return reject(new Error(`ecu isn't defined in options, value: ${this._connection.ecu}`));
-            // }
+            /*
             if (typeof this._connection.bindingAddress !== 'string' || this._connection.bindingAddress.trim() === '') {
                 return reject(new Error(`bindingAddress isn't defined in options, value: ${this._connection.bindingAddress}`));
             }
@@ -126,6 +124,7 @@ export class DLTConnectionController extends EventEmitter {
                     streamInfo.file,
                 );
             });
+            */
             // Resolving
             resolve();
         });
@@ -133,12 +132,14 @@ export class DLTConnectionController extends EventEmitter {
 
     public disconnect(): Promise<void> {
         return new Promise((resolve) => {
+            /*
             if (this._connector === undefined) {
                 return resolve();
             }
             this._connector.finally(() => {
                 resolve();
             }).abort();
+            */
         });
     }
 

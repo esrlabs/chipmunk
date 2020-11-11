@@ -1,351 +1,429 @@
-import * as fs from 'fs';
-import * as Stream from 'stream';
+// tslint:disable: member-ordering
+
+import * as Tools from '../../tools/index';
 
 import Logger from '../../tools/env.logger';
 import ServiceElectron from '../../services/service.electron';
-import ServicePlugins from '../../services/service.plugins';
-import ServiceStreamSource from '../../services/service.stream.sources';
-import State from './state';
-import ControllerIPCPlugin from '../plugins/plugin.process.ipc';
 
-import { IMapItem } from './file.map';
-import { EventsHub } from '../stream.common/events';
-import { FileWriter } from './file.writer';
-import { DefaultOutputExport } from './output.export.default';
-import { IPCMessages as IPCPluginMessages } from '../plugins/plugin.process.ipc';
-import { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
+import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
+import { Dependency, DependencyConstructor } from './controller.dependency';
+import { Socket } from './controller.dependency.socket';
+import { Search } from './controller.dependency.search';
+import { Charts } from './controller.dependency.charts';
+import { Channel } from './controller.channel';
+import {
+    Session,
+    SessionStream,
+    CancelablePromise,
+    IFileToBeMerged,
+    IExportOptions,
+    IDetectDTFormatResult,
+    IDetectOptions,
+    IExtractOptions,
+    IExtractDTFormatResult,
+    TFileOptions,
+} from 'indexer-neon';
 
-export interface IPipeOptions {
-    reader: fs.ReadStream;
-    pipeId: string;
-    sourceId: number;
-    decoder?: Stream.Transform;
+export interface ISubjects {
+    destroyed: Tools.Subject<string>;
+    inited: Tools.Subject<ControllerSession>;
 }
 
-export interface ISourceInfo {
-    id: number;
-    token: string | undefined;
-}
-
-export interface IStreamStateInfo {
-    started: number;
-    memoryUsed: number;
-}
-
-export default class ControllerStreamProcessor {
-
-    public static Events = {
-        next: 'next',
+export class ControllerSession {
+    private readonly _subscriptions: {
+        ipc: { [key: string]: Subscription };
+    } = {
+        ipc: {},
+    };
+    private readonly _events: Channel = new Channel();
+    private readonly _subjects: ISubjects = {
+        destroyed: new Tools.Subject('destroyed'),
+        inited: new Tools.Subject('created'),
+    };
+    private readonly _dependencies: {
+        socket: Socket | undefined;
+        search: Search | undefined;
+        charts: Charts | undefined;
+    } = {
+        socket: undefined,
+        search: undefined,
+        charts: undefined,
     };
     private _logger: Logger;
-    private _guid: string;
-    private _file: string;
-    private _stream: fs.WriteStream | undefined;
-    private _pluginRefs: Map<string, number> = new Map();
-    private _pluginIPCSubscriptions: {
-        state: Map<number, Subscription>,
-        pipeStarted: Map<number, Subscription>,
-        pipeFinished: Map<number, Subscription>,
-    } = {
-        state: new Map(),
-        pipeStarted: new Map(),
-        pipeFinished: new Map(),
-    };
-    private _memUsage: Map<number, IStreamStateInfo> = new Map();
-    private _subscriptions: { [key: string ]: Subscription } = { };
-    private _state: State;
-    private _events: EventsHub;
-    private _writer: FileWriter;
-    private _export: DefaultOutputExport;
+    private _session: Session | undefined;
 
-    constructor(guid: string, file: string, events: EventsHub) {
-        this._guid = guid;
-        this._file = file;
-        this._events = events;
-        this._logger = new Logger(`ControllerStreamProcessor: ${this._guid}`);
-        this._state = new State(this._guid, this._file);
-        this._writer = new FileWriter(guid, file, this._state.map);
-        this._export = new DefaultOutputExport(guid);
-        this._writer.on(FileWriter.Events.ChunkWritten, this._onChunkWritten.bind(this));
-        this._ipc_onStreamChunkRequested = this._ipc_onStreamChunkRequested.bind(this);
-        ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamChunk, this._ipc_onStreamChunkRequested).then((subscription: Subscription) => {
-            this._subscriptions.StreamChunk = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "StreamChunk" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
+    constructor() {
+        this._logger = new Logger(`ControllerSession (not inited)`);
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
-            this._state.destroy();
-            this._writer.removeAllListeners();
-            this._export.destroy();
             // Unsubscribe IPC messages / events
-            Object.keys(this._subscriptions).forEach((key: string) => {
-                this._subscriptions[key].destroy();
-            });
-            this._writer.destroy().then(resolve).catch((error: Error) => {
-                this._logger.error(`Fail to correctly destroy writer due error: ${error.message}`);
-                resolve();
-            });
-        });
-    }
-
-    public write(chunk: Buffer | string, pluginReference: string | undefined, trackId: string | undefined, pluginId?: number): Promise<void> {
-        return new Promise((resolve, reject) => {
-            let output: string = '';
-            if (typeof chunk === 'string') {
-                output = chunk;
-            } else {
-                output = chunk.toString('utf8');
-            }
-            // Binding ref with ID of plugin
-            if (pluginReference !== undefined && this._bindPluginRef(output, pluginReference) === true) {
-                // This is binding message. No need to process it forward.
-                return resolve();
-            }
-            // Get plugin info
-            const sourceInfo: ISourceInfo | Error = this._getSourceInfo(pluginReference, pluginId);
-            if (sourceInfo instanceof Error) {
-                return reject(new Error(`Fail to write data due error: ${sourceInfo.message}`));
-            }
-            this._writer.write(output, sourceInfo.id).then(() => {
-                // Send notification to render
-                this._state.postman.notification();
-                resolve();
-            }).catch(reject);
-        });
-    }
-
-    public addProgressSession(pipeId: string, name: string) {
-        this._state.progress.add(pipeId, name);
-        this._dropStreamFile();
-    }
-
-    public removeProgressSession(pipeId: string) {
-        this._state.progress.remove(pipeId);
-    }
-
-    public updateProgressSession(id: string, progress: number) {
-        this._state.progress.next(id, progress);
-    }
-
-    public rewriteStreamFileMap(map: IMapItem[]) {
-        this._state.map.rewrite(map);
-        this._notify({
-            bytes: {
-                from: map.length !== 0 ? map[0].bytes.from : -1,
-                to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
-            },
-            rows: {
-                from: map.length !== 0 ? map[0].rows.from : -1,
-                to: map.length !== 0 ? map[map.length - 1].rows.to : -1,
-            },
-        });
-    }
-
-    public pushToStreamFileMap(map: IMapItem[]) {
-        this._state.map.push(map);
-        this._notify({
-            bytes: {
-                from: map.length !== 0 ? map[0].bytes.from : -1,
-                to: map.length !== 0 ? map[map.length - 1].bytes.to : -1,
-            },
-            rows: {
-                from: map.length !== 0 ? map[0].rows.from : -1,
-                to: map.length !== 0 ? map[map.length - 1].rows.to : -1,
-            },
-        });
-    }
-
-    public reattach() {
-        this._writer.stop();
-        this._writer.resume();
-    }
-
-    public reset(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._writer.stop();
-            // Close stream
-            if (this._stream !== undefined) {
-                this._stream.close();
-                this._stream = undefined;
-            }
-            // Drop stream file
-            fs.unlink(this._file, (error: NodeJS.ErrnoException | null) => {
-                if (error) {
-                    return reject(error);
+            this._ipc().unsubscribe();
+            // Kill all dependecies
+            Promise.all(
+                ([
+                    this._dependencies.socket,
+                    this._dependencies.search,
+                    this._dependencies.charts,
+                ].filter((d) => d !== undefined) as Dependency[]).map((dep: Dependency) => {
+                    return dep.destroy().catch((err: Error) => {
+                        this._logger.warn(`Fail to destroy dependency due err: ${err.message}`);
+                        return Promise.resolve();
+                    });
+                }),
+            ).then(() => {
+                if (this._session === undefined) {
+                    this._logger.warn(
+                        `Attempt to destroy session even session wasn't inited at all`,
+                    );
+                    this._unsubscribe();
+                    return resolve();
                 }
-                // Drop map
-                this._state.map.drop();
-                this._writer.resume();
-                // Notification
-                this._notify();
-                resolve();
+                const guid: string = this._session.getUUID();
+                const session: Session = this._session;
+                session
+                    .destroy()
+                    .catch((err: Error) => {
+                        this._logger.error(
+                            `Fail to safely destroy session "${guid}" due error: ${err.message}`,
+                        );
+                    })
+                    .finally(() => {
+                        this._session = undefined;
+                        this._ipc().unsubscribe();
+                        resolve();
+                        this._subjects.destroyed.emit(guid);
+                        this._unsubscribe();
+                    });
             });
         });
     }
 
-    public getStreamSize(): number {
-        return this._state.map.getByteLength();
-    }
-
-    public getStreamLength(): number {
-        return this._state.map.getRowsCount();
-    }
-
-    private _onChunkWritten(map: IMapItem) {
-        // Trigger event on stream was updated
-        this._events.getSubject().onStreamBytesMapUpdated.emit({
-            bytes: Object.assign({}, map.bytes),
-            rows: Object.assign({}, map.rows),
+    public init(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            // Factory for initialization of dependency
+            function getDependency<T>(
+                self: ControllerSession,
+                sess: Session,
+                Dep: DependencyConstructor<T>,
+            ): Promise<Dependency & T> {
+                return new Promise((res, rej) => {
+                    const dependency = new Dep(sess, self._events);
+                    self._logger.debug(
+                        `Initing ${dependency.getName()} for session ${sess.getUUID()}`,
+                    );
+                    dependency
+                        .init()
+                        .then(() => {
+                            self._logger.debug(`${dependency.getName()} inited successfully`);
+                            res(dependency);
+                        })
+                        .catch((err: Error) => {
+                            rej(
+                                new Error(
+                                    self._logger.error(
+                                        `Fail to init ${dependency.getName()} due error: ${
+                                            err.message
+                                        }`,
+                                    ),
+                                ),
+                            );
+                        });
+                });
+            }
+            // Initialization of session
+            let session: Session;
+            try {
+                session = new Session();
+            } catch (err) {
+                this._logger.error(`Fail to create a session due error: ${err.message}`);
+                this._unsubscribe();
+                return reject(err);
+            }
+            session
+                .init()
+                .then(() => {
+                    this._logger = new Logger(`ControllerSession: ${session.getUUID()}`);
+                    this._session = session;
+                    // Initialization of dependencies
+                    Promise.all([
+                        getDependency<Socket>(this, session, Socket).then((dep: Socket) => {
+                            this._dependencies.socket = dep;
+                        }),
+                        getDependency<Search>(this, session, Search).then((dep: Search) => {
+                            this._dependencies.search = dep;
+                        }),
+                        getDependency<Charts>(this, session, Charts).then((dep: Charts) => {
+                            this._dependencies.charts = dep;
+                        }),
+                    ])
+                        .then(() => {
+                            this._logger.debug(`Session "${session.getUUID()}" is created`);
+                            this._ipc().subscribe();
+                            resolve(session.getUUID());
+                            this._subjects.inited.emit(this);
+                        })
+                        .catch(reject);
+                })
+                .catch((err: Error) => {
+                    this._logger.error(`Fail to init a session due error: ${err.message}`);
+                    this._unsubscribe();
+                    reject(err);
+                });
         });
     }
 
-    private _dropStreamFile() {
-        if (this._stream === undefined) {
-            return;
+    public get(): {
+        UUID(): string;
+        session(): Session;
+    } {
+        const session = this._session;
+        if (session === undefined) {
+            throw new Error(
+                this._logger.error(`Cannot return session's UUID because session isn't inited`),
+            );
         }
-        this._stream.close();
-        this._stream.removeAllListeners();
-        this._stream = undefined;
+        return {
+            UUID(): string {
+                return session.getUUID() as string;
+            },
+            session(): Session {
+                return session;
+            },
+        };
     }
 
-    private _getSourceInfo(pluginReference: string | undefined, id?: number): ISourceInfo | Error {
-        // Check source before
-        if (id !== undefined && ServiceStreamSource.get(id) !== undefined) {
-            return { id: id, token: undefined };
-        }
-        // Attempt to find ID of plugin
-        const pluginId: number | undefined = pluginReference === undefined ? id : this._pluginRefs.get(pluginReference);
-        if (pluginId === undefined) {
-            return new Error(`Fail to find plugin ID. Chunk of data will not be forward.`);
-        }
-        // Get token
-        const pluginToken: string | undefined = ServicePlugins.getPluginToken(pluginId);
-        if (pluginToken === undefined) {
-            return new Error(`Fail to find plugin token by ID of plugin: id = "${pluginId}". Chunk of data will not be forward.`);
-        }
-        return { id: pluginId, token: pluginToken };
+    public getSubjects(): ISubjects {
+        return this._subjects;
     }
 
-    private _bindPluginRef(chunk: string, ref: string): boolean {
-        if (this._pluginRefs.has(ref)) {
-            // Plugin's connection is already bound
-            return false;
+    public operations(): {
+        append(filename: string, options: TFileOptions): CancelablePromise<void>;
+        concat(files: string[]): CancelablePromise<void>;
+        merge(files: IFileToBeMerged[]): CancelablePromise<void>;
+        export(options: IExportOptions): CancelablePromise<void>;
+        detectTimeformat(options: IDetectOptions): CancelablePromise<IDetectDTFormatResult>;
+        extractTimeformat(options: IExportOptions): CancelablePromise<IExtractDTFormatResult>;
+    } {
+        const self = this;
+        function getStream(): SessionStream {
+            const stream = self.get().session().getStream();
+            if (stream instanceof Error) {
+                throw new Error(`Fail to get stream ref, due error: ${stream.message}`);
+            }
+            return stream;
         }
-        if (chunk.search(/\[plugin:\d*\]/) === -1) {
-            return false;
-        }
-        const id: number = parseInt(chunk.replace('[plugin:', '').replace(']', ''), 10);
-        const token: string | undefined = ServicePlugins.getPluginToken(id);
-        if (token === undefined) {
-            this._logger.warn(`Fail to find plugin token by ID of plugin: id = "${id}". Attempt auth of plugin connection is failed.`);
-            return false;
-        }
-        // Add source description
-        ServiceStreamSource.set(id, { name: ServicePlugins.getPluginName(id) as string, session: '*' });
-        // Bind plugin ref with plugin ID
-        this._pluginRefs.set(ref, id);
-        this._logger.debug(`Plugin #${id} (${ServicePlugins.getPluginName(id)}) bound with reference "${ref}".`);
-        // Get IPC of plugin
-        const IPC: ControllerIPCPlugin | undefined = ServicePlugins.getPluginIPC(this._guid, token);
-        if (IPC === undefined) {
-            return true;
-        }
-        IPC.subscribe(IPCPluginMessages.SessionStreamState, this._onSessionState.bind(this, id)).then((subscription: Subscription) => {
-            this._pluginIPCSubscriptions.state.set(id, subscription);
+        return {
+            append(filename: string, options: TFileOptions): CancelablePromise<void> {
+                return getStream().append(filename, options);
+            },
+            concat(files: string[]): CancelablePromise<void> {
+                return getStream().concat(files);
+            },
+            merge(files: IFileToBeMerged[]): CancelablePromise<void> {
+                return getStream().merge(files);
+            },
+            export(options: IExportOptions): CancelablePromise<void> {
+                return getStream().export(options);
+            },
+            detectTimeformat(options: IDetectOptions): CancelablePromise<IDetectDTFormatResult> {
+                return getStream().detectTimeformat(options);
+            },
+            extractTimeformat(options: IExportOptions): CancelablePromise<IExtractDTFormatResult> {
+                return getStream().extractTimeformat(options);
+            },
+        };
+    }
+
+    private _ipc(): {
+        subscribe(): Promise<void>;
+        unsubscribe(): void;
+        handlers: {
+            reset(
+                message: IPC.StreamResetRequest,
+                response: (message: IPC.StreamResetResponse) => void,
+            ): void;
+            concat(
+                message: IPC.ConcatFilesRequest,
+                response: (message: IPC.ConcatFilesResponse) => void,
+            ): void;
+            merge(
+                request: IPC.MergeFilesRequest,
+                response: (instance: IPC.MergeFilesResponse) => any,
+            ): void;
+            merge_test(
+                request: IPC.MergeFilesTestRequest,
+                response: (instance: IPC.IMergeFilesDiscoverResult) => any,
+            ): void;
+            timeformat_discover(
+                request: IPC.MergeFilesDiscoverRequest,
+                response: (instance: IPC.MergeFilesDiscoverResponse) => any,
+            ): void;
+            timeformat_request(
+                request: IPC.MergeFilesFormatRequest,
+                response: (instance: IPC.MergeFilesFormatResponse) => any,
+            ): void;
+        };
+    } {
+        const self = this;
+        return {
+            subscribe(): Promise<void> {
+                return Promise.all([
+                    ServiceElectron.IPC.subscribe(
+                        IPC.ConcatFilesRequest,
+                        self._ipc().handlers.concat as any,
+                    ).then((subscription: Subscription) => {
+                        self._subscriptions.ipc.concate = subscription;
+                    }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.StreamResetRequest,
+                        self._ipc().handlers.reset as any,
+                    ).then((subscription: Subscription) => {
+                        self._subscriptions.ipc.reset = subscription;
+                    }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.MergeFilesRequest,
+                        self._ipc().handlers.merge as any,
+                    ).then((subscription: Subscription) => {
+                        self._subscriptions.ipc.merge = subscription;
+                    }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.MergeFilesTestRequest,
+                        self._ipc().handlers.merge_test as any,
+                    ).then((subscription: Subscription) => {
+                        self._subscriptions.ipc.MergeFilesTestRequest = subscription;
+                    }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.MergeFilesDiscoverRequest,
+                        self._ipc().handlers.timeformat_discover as any,
+                    ).then((subscription: Subscription) => {
+                        self._subscriptions.ipc.MergeFilesDiscoverRequest = subscription;
+                    }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.MergeFilesFormatRequest,
+                        self._ipc().handlers.timeformat_request as any,
+                    ).then((subscription: Subscription) => {
+                        self._subscriptions.ipc.MergeFilesFormatRequest = subscription;
+                    }),
+                ]).then(() => {
+                    return Promise.resolve();
+                });
+            },
+            unsubscribe(): void {
+                Object.keys(self._subscriptions).forEach((key: string) => {
+                    (self._subjects as any)[key].destroy();
+                });
+            },
+            handlers: {
+                reset(
+                    message: IPC.StreamResetRequest,
+                    response: (message: IPC.StreamResetRequest) => void,
+                ): void {
+                    if (message.guid !== self.get().UUID()) {
+                        return;
+                    }
+                    self.get()
+                        .session()
+                        .reset()
+                        .then(() => {
+                            self._logger.debug(`Session "${message.guid}" was reset.`);
+                            response(
+                                new IPC.StreamResetResponse({
+                                    guid: message.guid,
+                                }),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            response(
+                                new IPC.StreamResetResponse({
+                                    guid: message.guid,
+                                    error: self._logger.warn(
+                                        `Fail to reset session "${message.guid}" due error: ${err.message}.`,
+                                    ),
+                                }),
+                            );
+                        });
+                },
+                concat(
+                    message: IPC.ConcatFilesRequest,
+                    response: (message: IPC.ConcatFilesResponse) => void,
+                ): void {
+                    if (message.session !== self.get().UUID()) {
+                        return;
+                    }
+                    self.operations()
+                        .concat(message.files)
+                        .then(() => {
+                            response(
+                                new IPC.ConcatFilesResponse({
+                                    id: message.id,
+                                }),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            response(
+                                new IPC.ConcatFilesResponse({
+                                    id: message.id,
+                                    error: self._logger.warn(
+                                        `Fail to concat files due error: ${err.message}`,
+                                    ),
+                                }),
+                            );
+                        });
+                },
+                merge(
+                    message: IPC.MergeFilesRequest,
+                    response: (instance: IPC.MergeFilesResponse) => any,
+                ): void {
+                    if (message.session !== self.get().UUID()) {
+                        return;
+                    }
+                    self.operations()
+                        .merge([])
+                        .then(() => {
+                            response(
+                                new IPC.MergeFilesResponse({
+                                    id: message.id,
+                                }),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            response(
+                                new IPC.MergeFilesResponse({
+                                    id: message.id,
+                                    error: self._logger.warn(
+                                        `Fail to concat files due error: ${err.message}`,
+                                    ),
+                                }),
+                            );
+                        });
+                },
+                merge_test(
+                    message: IPC.MergeFilesTestRequest,
+                    response: (instance: IPC.IMergeFilesDiscoverResult) => any,
+                ): void {
+                    //TODO: Implement
+                },
+                timeformat_discover(
+                    message: IPC.MergeFilesDiscoverRequest,
+                    response: (instance: IPC.MergeFilesDiscoverResponse) => any,
+                ): void {
+                    //TODO: Implement
+                },
+                timeformat_request(
+                    message: IPC.MergeFilesFormatRequest,
+                    response: (instance: IPC.MergeFilesFormatResponse) => any,
+                ): void {
+                    //TODO: Implement
+                }
+            },
+        };
+    }
+
+    private _unsubscribe() {
+        Object.keys(this._subjects).forEach((key: string) => {
+            (this._subjects as any)[key].destroy();
         });
-        IPC.subscribe(IPCPluginMessages.SessionStreamPipeStarted, this._onSessionStreamPipeStarted.bind(this, id)).then((subscription: Subscription) => {
-            this._pluginIPCSubscriptions.pipeStarted.set(id, subscription);
-        });
-        IPC.subscribe(IPCPluginMessages.SessionStreamPipeFinished, this._onSessionStreamPipeFinished.bind(this, id)).then((subscription: Subscription) => {
-            this._pluginIPCSubscriptions.pipeFinished.set(id, subscription);
-        });
-        return true;
     }
-
-    private _onSessionState(id: number, message: IPCPluginMessages.SessionStreamState) {
-        if (message.stream !== this._guid) {
-            return;
-        }
-        if (message.state === IPCPluginMessages.SessionStreamState.States.block) {
-            this._memUsage.set(id, {
-                started: Date.now(),
-                memoryUsed: process.memoryUsage().heapUsed / 1024 / 1024,
-            });
-        } else if (this._memUsage.has(id)) {
-            const stateInfo: IStreamStateInfo = this._memUsage.get(id) as IStreamStateInfo;
-            const memory = {
-                used: process.memoryUsage().heapUsed / 1024 / 1024,
-                total: process.memoryUsage().heapTotal / 1024 / 1024,
-            };
-            this._logger.debug(`Session was closed by plugin #${id} in ${((Date.now() - stateInfo.started) / 1000).toFixed(2)}s. Memory: on start: ${stateInfo.memoryUsed.toFixed(2)}Mb; on end: ${memory.used.toFixed(2)}/${memory.used.toFixed(2)}Mb; diff: ${(memory.used - stateInfo.memoryUsed).toFixed(2)}Mb`);
-            // Close "long chunk" by carret
-            this.write(Buffer.from('\n'), undefined, undefined, id);
-            this._notify();
-            this._memUsage.delete(id);
-        } else {
-            this._logger.warn(`Cannot close session for plugin ${id} because session wasn't started.`);
-        }
-    }
-
-    private _onSessionStreamPipeStarted(id: number, message: IPCPluginMessages.SessionStreamPipeStarted) {
-        if (message.streamId !== this._guid) {
-            return;
-        }
-        // TODO: add opening of progress tracking
-    }
-
-    private _onSessionStreamPipeFinished(id: number, message: IPCPluginMessages.SessionStreamPipeFinished) {
-        if (message.streamId !== this._guid) {
-            return;
-        }
-        // TODO: add closing of progress tracking
-    }
-
-    private _ipc_onStreamChunkRequested(_message: IPCElectronMessages.TMessage, response: (isntance: IPCElectronMessages.TMessage) => any) {
-        const message: IPCElectronMessages.StreamChunk = _message as IPCElectronMessages.StreamChunk;
-        if (message.guid !== this._guid) {
-            return;
-        }
-        // Get bytes range (convert rows range to bytes range)
-        const range: IMapItem | Error = this._state.map.getBytesRange({
-            from: message.start,
-            to: message.end,
-        });
-        if (range instanceof Error) {
-            return response(new IPCElectronMessages.StreamChunk({
-                guid: this._guid,
-                start: -1,
-                end: -1,
-                rows: this._state.map.getRowsCount(),
-                length: this._state.map.getByteLength(),
-                error: this._logger.error(`Fail to process StreamChunk request due error: ${range.message}`),
-            }));
-        }
-        // Reading chunk
-        this._state.reader.read(range.bytes.from, range.bytes.to).then((output: string) => {
-            response(new IPCElectronMessages.StreamChunk({
-                guid: this._guid,
-                start: range.rows.from,
-                end: range.rows.to,
-                data: output,
-                rows: this._state.map.getRowsCount(),
-                length: this._state.map.getByteLength(),
-            }));
-        }).catch((readError: Error) => {
-            this._logger.error(`Fail to read data from storage file due error: ${readError.message}`);
-        });
-    }
-
-    private _notify(map?: IMapItem) {
-        // Send notification to render
-        this._state.postman.notification();
-        if (map !== undefined) {
-            // Trigger event on stream was updated
-            this._events.getSubject().onStreamBytesMapUpdated.emit(map);
-        }
-    }
-
 }

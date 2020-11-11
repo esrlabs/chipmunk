@@ -5,13 +5,13 @@ import { dialog, SaveDialogReturnValue } from 'electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
 
-import ServiceStreams from "../service.streams";
+import ServiceStreams from "../service.sessions";
 import Logger from "../../tools/env.logger";
 
 import ServiceStorage, { IStorageScheme } from '../service.storage';
 import ServiceElectron, { IPCMessages } from "../service.electron";
 import ServiceOutputExport from "../output/service.output.export";
-import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
+import { CancelablePromise } from "indexer-neon";
 
 /**
  * @class ServiceDLTDeamonConnector
@@ -25,7 +25,7 @@ class ServiceDLTDeamonConnector implements IService {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _connections: Map<string, DLTConnectionController> = new Map();
     private _connectionsHistory: string[] = [];
-    private _saver: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
+    //private _saver: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
 
     /**
      * Initialization function
@@ -33,6 +33,7 @@ class ServiceDLTDeamonConnector implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            /*
             this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.DLTDeamonConnectRequest, this._onDLTDeamonConnectRequest.bind(this)).then((subscription: Subscription) => {
@@ -56,6 +57,7 @@ class ServiceDLTDeamonConnector implements IService {
                 this._logger.error(`Fail to init module due error: ${error.message}`);
                 reject(error);
             });
+            */
         });
     }
 
@@ -86,6 +88,7 @@ class ServiceDLTDeamonConnector implements IService {
                     return resolve(undefined);
                 }
                 this._logger.info(`Saving`);
+                /*
                 this._saver = indexer.exportDltFile(target, type, filename, { sections: sections }).then(() => {
                     this._logger.info(`Saved`);
                     // Resolving
@@ -101,6 +104,7 @@ class ServiceDLTDeamonConnector implements IService {
                 }).on('progress', (event: Progress.ITicks) => {
                     // TODO: Do we need this event at all?
                 });
+                */
             }).catch((error: Error) => {
                 reject(error);
             });

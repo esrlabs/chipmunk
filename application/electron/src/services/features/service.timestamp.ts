@@ -1,17 +1,12 @@
 import ServiceElectron from '../service.electron';
 import Logger from '../../tools/env.logger';
-import ServiceStreams from "../service.streams";
-import MergeDiscover from '../../controllers/features/merge/merge.discover';
-import MergeFormat from '../../controllers/features/merge/merge.format';
-import TimestampExtract from '../../controllers/features/timestamp/timestamp.extract';
+import ServiceStreams from "../service.sessions";
 import ServiceTimestampFormatRecent from './service.timestamp.recent';
 
 import { IPCMessages } from '../service.electron';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import { dialog, SaveDialogReturnValue } from 'electron';
-
-import * as fs from 'fs';
 
 /**
  * @class ServiceTimestamp
@@ -22,7 +17,7 @@ class ServiceTimestamp implements IService {
 
     private _logger: Logger = new Logger('ServiceTimestamp');
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _tasks: Map<string, Map<string, MergeDiscover>> = new Map<string, Map<string, MergeDiscover>>();
+    // private _tasks: Map<string, Map<string, MergeDiscover>> = new Map<string, Map<string, MergeDiscover>>();
 
     /**
      * Initialization function
@@ -30,6 +25,7 @@ class ServiceTimestamp implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            /*
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.TimestampDiscoverRequest, this._onTimestampDiscoverRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.TimestampDiscoverRequest = subscription;
@@ -50,6 +46,7 @@ class ServiceTimestamp implements IService {
                 this._logger.error(`Fail to init module due error: ${error.message}`);
                 reject(error);
             });
+            */
         });
     }
 
@@ -67,6 +64,7 @@ class ServiceTimestamp implements IService {
     }
 
     private _onTimestampDiscoverRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        /*
         const req: IPCMessages.TimestampDiscoverRequest = request as IPCMessages.TimestampDiscoverRequest;
         const filedata: { streamId: string, file: string } | Error = ServiceStreams.getStreamFile(req.session);
         if (filedata instanceof Error) {
@@ -114,9 +112,11 @@ class ServiceTimestamp implements IService {
             // Store task
             this._addTask(req.signature, req.id, controller);
         });
+        */
     }
 
     private _onTimestampTestRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        /*
         const req: IPCMessages.TimestampTestRequest = request as IPCMessages.TimestampTestRequest;
         const controller: MergeFormat = new MergeFormat(req.format);
         controller.validate(req.flags).then((regexp: string) => {
@@ -141,9 +141,11 @@ class ServiceTimestamp implements IService {
                 error: error.message,
             }));
         });
+        */
     }
 
     private _onTimestampExtractRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        /*
         const req: IPCMessages.TimestampExtractRequest = request as IPCMessages.TimestampExtractRequest;
         const controller: TimestampExtract = new TimestampExtract(req.str, req.format);
         controller.extract(req.replacements).then((timestamp: number) => {
@@ -164,6 +166,7 @@ class ServiceTimestamp implements IService {
                 error: error.message,
             }));
         });
+        */
     }
 
     private _onTimestampExportCSVRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
@@ -191,7 +194,7 @@ class ServiceTimestamp implements IService {
             });
         });
     }
-
+/*
     private _addTask(session: string, taskId: string, controller: MergeDiscover) {
         const storage: Map<string, MergeDiscover> | undefined = this._tasks.get(session);
         if (storage === undefined) {
@@ -221,7 +224,7 @@ class ServiceTimestamp implements IService {
             this._tasks.delete(guid);
         }
     }
-
+*/
 }
 
 export default (new ServiceTimestamp());

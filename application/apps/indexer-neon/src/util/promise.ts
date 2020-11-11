@@ -1,3 +1,4 @@
+import UUID from './uuid';
 
 export type TResolver<T> = (value: T) => void;
 export type TRejector = (error: Error) => void;
@@ -8,17 +9,18 @@ export type TEventHandler = (...args: any[]) => any;
 
 export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandler> {
 
-    private _resolvers: Array<TResolver<T>> = [];
-    private _rejectors: TRejector[] = [];
-    private _cancelers: Array<TCanceler<C>> = [];
+    private readonly _resolvers: Array<TResolver<T>> = [];
+    private readonly _rejectors: TRejector[] = [];
+    private readonly _cancelers: Array<TCanceler<C>> = [];
+    private readonly _finishes: TFinally[] = [];
+    private readonly _handlers: Map<EN, EH[]> = new Map();
+    private readonly _uuid: string = UUID();
     private _cancellation: TCanceler<C> | undefined;
-    private _finishes: TFinally[] = [];
     private _canceled: boolean = false;
     private _canceling: boolean = false;
     private _resolved: boolean = false;
     private _rejected: boolean = false;
     private _finished: boolean = false;
-    private _handlers: Map<EN, EH[]> = new Map();
 
     constructor(
         executor: TExecutor<T, C, EN, EH>,
@@ -86,6 +88,10 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         return true;
     }
 
+    public isCanceling(): boolean {
+        return this._canceling || this._canceled;
+    }
+
     public emit(event: EN, ...args: any[]): void {
         const handlers: EH[] | undefined = this._handlers.get(event);
         if (handlers === undefined) {
@@ -101,6 +107,10 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
                 this._doReject(new Error(`Promise is rejected, because handler of event "${event}" finished due error: ${e.message}`));
             }
         });
+    }
+
+    public getUUID(): string {
+        return this._uuid;
     }
 
     private _refCancellationCallback(callback: TCanceler<C>) {
