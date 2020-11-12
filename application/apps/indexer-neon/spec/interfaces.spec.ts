@@ -134,7 +134,7 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
     });
 
     it('Self termination', (done: Function)=> {
-        const channel: DummyRustChannel = new DummyRustChannel(500);
+        const channel: DummyRustChannel = new DummyRustChannel(250);
         const computation: DummyComputation = new DummyComputation(channel, 'a');
         let destroyed: boolean = false;
         let error: boolean = false;
@@ -148,11 +148,11 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
             expect(destroyed).toBe(true);
             expect(error).toBe(false);
             done();
-        }, 1500);
+        }, 500);
     });
 
     it('Self termination & error', (done: Function)=> {
-        const channel: DummyRustChannel = new DummyRustChannel(1000, new Error('Test'));
+        const channel: DummyRustChannel = new DummyRustChannel(750, new Error('Test'));
         const computation: DummyComputation = new DummyComputation(channel, 'a');
         let destroyed: boolean = false;
         let error: boolean = false;
@@ -166,11 +166,11 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
             expect(destroyed).toBe(true);
             expect(error).toBe(true);
             done();
-        }, 1500);
+        }, 1000);
     });
 
     it('Attempt to destroy more than once', (done: Function)=> {
-        const channel: DummyRustChannel = new DummyRustChannel(500);
+        const channel: DummyRustChannel = new DummyRustChannel(250);
         const computation: DummyComputation = new DummyComputation(channel, 'a');
         let destroyed: boolean = false;
         let error: boolean = false;
@@ -189,7 +189,7 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
             }).finally(() => {
                 done();
             });
-        }, 1000);
+        }, 500);
     });
 
 
