@@ -92,6 +92,7 @@ class ServiceDLTDeamonConnector implements IService {
                     resolve(filename);
                 }).canceled(() => {
                     this._logger.info(`Saving was canceled`);
+                    resolve();
                 }).catch((error: Error) => {
                     this._logger.warn(`Exception during saving: ${error.message}`);
                     reject(error);

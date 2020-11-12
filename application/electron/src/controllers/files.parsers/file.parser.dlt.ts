@@ -116,7 +116,6 @@ export default class FileParser extends AFileParser {
                 statusUpdates: true,
             };
             this._logger.debug("calling indexDltAsync with params: " + JSON.stringify(dltParams));
-            let completeTicks: number = 0;
             this._task = indexer.indexDltAsync(dltParams).then(() => {
                 resolve(collectedChunks);
                 // Register exports callback
@@ -161,7 +160,6 @@ export default class FileParser extends AFileParser {
                 }
             }).on('progress', (event: Progress.ITicks) => {
                 if (onProgress !== undefined) {
-                    completeTicks = event.total;
                     onProgress(event);
                 }
             }).on('notification', (event: Progress.INeonNotification) => {

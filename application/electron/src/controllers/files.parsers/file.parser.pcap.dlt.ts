@@ -1,11 +1,18 @@
-import { AFileParser, IMapItem } from "./interface";
 import * as path from "path";
-import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
+import * as Tools from "../../tools/index";
+
+import indexer from "indexer-neon";
+import ServiceOutputExport from "../../services/output/service.output.export";
+import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 import ServiceStreams from "../../services/service.streams";
 import Logger from "../../tools/env.logger";
-import * as Tools from "../../tools/index";
-import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
+import ServiceElectron from "../../services/service.electron";
+
+import { AFileParser, IMapItem } from "./interface";
+import { DLT, Progress, CancelablePromise } from "indexer-neon";
 import { CommonInterfaces } from '../../interfaces/interface.common';
+import { CExportAllActionId } from '../../consts/output.actions';
+import { dialog, SaveDialogReturnValue } from 'electron';
 
 export const CMetaData = 'dlt';
 
@@ -16,6 +23,7 @@ export default class FileParser extends AFileParser {
     private _guid: string | undefined;
     private _logger: Logger = new Logger("DLT PCAP Indexing");
     private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
+    private _saves: Map<string, CancelablePromise<void, void, DLT.TPcap2DltEvents, DLT.TPcap2DltsEventObject>> = new Map();
 
     constructor() {
         super();
@@ -114,6 +122,12 @@ export default class FileParser extends AFileParser {
             };
             this._logger.debug("calling indexPcapDlt with params: " + JSON.stringify(dltParams));
             this._task = indexer.indexPcapDlt(dltParams).then(() => {
+                // Register exports callback
+                ServiceOutputExport.setAction(this._guid as string, CExportAllActionId, {
+                    caption: 'Save file as DLT',
+                    handler: this._saveAsDLT.bind(this, srcFile),
+                    isEnabled: () => true,
+                });
                 resolve(collectedChunks);
             }).catch((error: Error) => {
                 ServiceNotifications.notify({
@@ -161,12 +175,63 @@ export default class FileParser extends AFileParser {
 
     public abort(): Promise<void> {
         return new Promise((resolve) => {
+            this._saves.forEach(task => task.abort());
             if (this._task === undefined) {
                 return resolve();
             }
             this._task.canceled(() => {
                 resolve();
             }).abort();
+        });
+    }
+
+    private _saveAsDLT(target: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._getFileName().then((filename: string | undefined) => {
+                if (filename === undefined) {
+                    return;
+                }
+                this._logger.info(`Saving`);
+                const guid: string = Tools.guid();
+                const task: CancelablePromise<void, void, DLT.TPcap2DltEvents, DLT.TPcap2DltsEventObject> = indexer.pcapToDlt(target, filename).then(() => {
+                    this._logger.info(`Saved`);
+                    resolve();
+                }).canceled(() => {
+                    this._logger.info(`Saving was canceled`);
+                    resolve();
+                }).catch((error: Error) => {
+                    this._logger.warn(`Exception during saving: ${error.message}`);
+                    reject(error);
+                }).finally(() => {
+                    this._saves.delete(guid);
+                }).on('progress', (event: Progress.ITicks) => {
+                    // TODO: Do we need this event at all?
+                });
+                this._saves.set(guid, task);
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to select a file due error: ${error.message}`);
+            });
+        });
+    }
+
+    private _getFileName(): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            const win = ServiceElectron.getBrowserWindow();
+            if (win === undefined) {
+                return;
+            }
+            dialog.showSaveDialog(win, {
+                title: 'Converting PCAPNG to DLT',
+                filters: [{
+                    name: 'DLT Files',
+                    extensions: ['dlt'],
+                }],
+            }).then((returnValue: SaveDialogReturnValue) => {
+                resolve(returnValue.filePath);
+            }).catch((error: Error) => {
+                this._logger.error(`Fail get filename for saving due error: ${error.message}`);
+                reject(error);
+            });
         });
     }
 
