@@ -1,5 +1,39 @@
 # Changelog
 
+### [2.10.0] - 11/13/2020
+* [#951](refact) Remove outside path
+* [#946](refact) Change path of interface
+* [#946](fix) Show release note of installed version
+* Support converting PCAPNG to DLT
+* Support conversion from pcap to dlt file
+* Port async rust code to tokio runtime
+* [#944](refact) Change button text
+* [#944](fix) Select multiple files (merge/concat)
+* Upgrade chipmunk.clien.components 1.2.4 -> 1.2.5
+* [](refact) Remove padding when arrows appear
+* [](feat) Add rake command to replace local libs
+* [#877](fix) Correct calculation for arrows
+* [#717](refact) Change spelling for empty list
+* [#642](refact) change access to close-handler
+* [#642](refact) Bind column header in template
+* [#642](refact) Change button style
+* [#642](refact) Mat library button, CSS adjustment
+* [#642](feat) Click selected item en-/disables
+* [#642](refact) Fine adjustment of styling
+* [#642](refact) Replace with Material Library
+* [#642](feat) 3 Dots icon to open context menu
+* [#642](feat) Indicator for current selected color
+* [#642](feat) New features for DLT column options
+* Update versions.json
+* Upgrade electron 9.3.2 -> 10.1.5
+* [#762](fix) Save settings for each session
+* [#918](fix) Disable pointer events on bin
+* [#926](fix) Notification counter update
+* [#661](refact) Better naming of variables
+* [#661](feat) ENTER on multi-files dialog run merge
+* [#661](fix) Remove unused focus
+* [#661](feat) Open DLT file when enter pressed
+
 ## [2.9.0] - 10/16/2020
 ### Added
 * Implement on-the-fly grabbing of file content.
