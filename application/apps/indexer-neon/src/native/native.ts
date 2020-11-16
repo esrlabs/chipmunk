@@ -19,9 +19,9 @@ const {
     // RustGrabber: RustGrabberChannel,
     RustSession: RustSessionChannelNoType,
     RustAppendOperation: RustAppendOperationChannelNoType,
-} = require("../../../../native/index.node");
+} = getNativeModule();
 
-const addon = require("../../../../native/index.node");
+const addon = getNativeModule();
 
 // Reassign types
 
