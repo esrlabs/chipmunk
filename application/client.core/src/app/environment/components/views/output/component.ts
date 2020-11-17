@@ -26,6 +26,7 @@ import FileOpenerService from '../../../services/service.file.opener';
 import EventsHubService from '../../../services/standalone/service.eventshub';
 import ToolbarSessionsService from '../../../services/service.sessions.toolbar';
 import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
+import FocusOutputService from '../../../services/service.focus.output';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -98,9 +99,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
         this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
-        this._subscriptions.onFileOpen = FileOpenerService.getObservable().onFileOpen.subscribe(this._onFocus.bind(this));
-        // Set focus
-        this._scrollBoxCom.setFocus();
+        this._subscriptions.onFocus = FocusOutputService.getObservable().onFocus.subscribe(this._onFocus.bind(this));
+        this._onFocus();
     }
 
     ngAfterContentInit() {
