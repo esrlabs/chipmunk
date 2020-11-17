@@ -12,6 +12,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
 import FileOpenerService from '../../../services/service.file.opener';
+import FocusOutputService from '../../../services/service.focus.output';
 
 @Component({
     selector: 'app-views-dialogs-recentfilescation-map',
@@ -40,6 +41,7 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
 
     public ngOnDestroy() {
         this._destroyed = true;
+        FocusOutputService.focus();
     }
 
     public ngOnInit() {
