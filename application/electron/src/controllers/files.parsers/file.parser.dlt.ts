@@ -12,7 +12,7 @@ import indexer, { DLT, Progress, CancelablePromise } from "indexer-neon";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 
 import ServiceOutputExport from "../../services/output/service.output.export";
-import ServiceStreams from "../../services/service.streams";
+import ServiceStreams from "../../services/service.sessions";
 import ServiceDLTDeamonConnector from '../../services/connectors/service.dlt.deamon';
 
 export const CMetaData = 'dlt';

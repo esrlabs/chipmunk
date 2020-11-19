@@ -1,5 +1,5 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import ServiceStreams, { IStreamInfo } from '../service.streams';
+import ServiceStreams, { IStreamInfo } from '../service.sessions';
 import ServiceStorage, { IStorageScheme } from '../service.storage';
 import ServiceStreamSource from '../service.stream.sources';
 import ServiceHotkeys from '../service.hotkeys';

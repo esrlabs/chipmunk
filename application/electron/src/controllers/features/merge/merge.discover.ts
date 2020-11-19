@@ -8,7 +8,7 @@ import { IPCMessages } from '../../../services/service.electron';
 import Logger from "../../../tools/env.logger";
 import ServiceNotifications from "../../../services/service.notifications";
 import indexer from "indexer-neon";
-import ServiceStreams from "../../../services/service.streams";
+import ServiceStreams from "../../../services/service.sessions";
 
 export interface IDatetimeDiscoverResult {
     files: IPCMessages.IMergeFilesDiscoverResult[];

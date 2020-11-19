@@ -1,6 +1,6 @@
 import ServiceElectron from '../service.electron';
 import Logger from '../../tools/env.logger';
-import ServiceStreams from "../service.streams";
+import ServiceStreams from "../service.sessions";
 import MergeDiscover from '../../controllers/features/merge/merge.discover';
 import MergeFormat from '../../controllers/features/merge/merge.format';
 import TimestampExtract from '../../controllers/features/timestamp/timestamp.extract';

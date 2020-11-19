@@ -4,7 +4,7 @@ import * as Tools from "../../tools/index";
 import indexer from "indexer-neon";
 import ServiceOutputExport from "../../services/output/service.output.export";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
-import ServiceStreams from "../../services/service.streams";
+import ServiceStreams from "../../services/service.sessions";
 import Logger from "../../tools/env.logger";
 import ServiceElectron from "../../services/service.electron";
 

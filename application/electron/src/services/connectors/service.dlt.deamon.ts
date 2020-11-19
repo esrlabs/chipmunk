@@ -5,7 +5,7 @@ import { dialog, SaveDialogReturnValue } from 'electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
 
-import ServiceStreams from "../service.streams";
+import ServiceStreams from "../service.sessions";
 import Logger from "../../tools/env.logger";
 
 import ServiceStorage, { IStorageScheme } from '../service.storage';
