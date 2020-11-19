@@ -19,6 +19,7 @@ const {
     // RustGrabber: RustGrabberChannel,
     RustSession: RustSessionChannelNoType,
     RustAppendOperation: RustAppendOperationChannelNoType,
+    RustSearchOperation: RustSearchOperationChannelNoType,
 } = getNativeModule();
 
 const addon = getNativeModule();
@@ -41,5 +42,6 @@ export {
     // RustGrabberChannel,
     RustSessionChannelNoType,
     RustAppendOperationChannelNoType,
+    RustSearchOperationChannelNoType,
     addon
 };
