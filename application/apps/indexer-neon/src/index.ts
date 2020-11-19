@@ -13,7 +13,6 @@ export {
 	IEventMatchesUpdated,
 	IEventSearchUpdated,
 	IEventStreamUpdated,
-	IMapEntity,
-	IMatchEntity,
 } from './api/session';
 export { Units, Events };
+
