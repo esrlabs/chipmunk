@@ -13,6 +13,8 @@ import {
     IEventMapUpdated,
 } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
+import { Channel } from './controller.channel';
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export interface IRange {
     from: number;
@@ -35,11 +37,14 @@ export class Search extends Dependency {
     };
     private readonly _session: Session;
     private readonly _search: SessionSearch;
+    private readonly _channel: Channel;
+    private _filters: CommonInterfaces.API.IFilter[] = [];
 
-    constructor(session: Session) {
+    constructor(session: Session, channel: Channel) {
         super();
         this._logger = new Logger(`Search: ${session.getUUID()}`);
         this._session = session;
+        this._channel = channel;
         const search: SessionSearch | Error = session.getSearch();
         if (search instanceof Error) {
             this._logger.error(`Fail to get search controller due error: ${search.message}`);
@@ -70,6 +75,18 @@ export class Search extends Dependency {
             }
             this._ipc().subscribe().then(resolve).catch(reject);
         });
+    }
+
+    public setFilters(filters: CommonInterfaces.API.IFilter[]): Error | undefined {
+        const error: Error | undefined = this._search.setFilters(filters);
+        if (error instanceof Error) {
+            this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
+            return error;
+        } else {
+            this._filters = filters;
+            this._channel.getEvents().afterFiltersListUpdated.emit(this._filters.map(f => Object.assign({}, f)));
+            return undefined;
+        }
     }
 
     private _events(): {

@@ -1,7 +1,8 @@
 // tslint:disable: callable-types
 import { Session } from 'indexer-neon';
+import { Channel } from './controller.channel';
 
-export type DependencyConstructor<T> = new (session: Session) => Dependency & T;
+export type DependencyConstructor<T> = new (session: Session, channel: Channel) => Dependency & T;
 
 export abstract class Dependency {
 
