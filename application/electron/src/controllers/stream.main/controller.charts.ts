@@ -13,23 +13,31 @@ import {
     IEventMapUpdated,
 } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
+import { Channel } from './controller.channel';
+import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export class Charts extends Dependency {
     private readonly _logger: Logger;
     private readonly _subscriptions: {
         session: { [key: string]: Events.Subscription };
         ipc: { [key: string]: Subscription };
+        channel: { [key: string]: Subscription };
     } = {
         session: {},
         ipc: {},
+        channel: {},
     };
     private readonly _session: Session;
     private readonly _search: SessionSearch;
+    private readonly _sessionChannel: Channel;
+    private _charts: CommonInterfaces.API.IFilter[] = [];
+    private _filters: CommonInterfaces.API.IFilter[] = [];
 
-    constructor(session: Session) {
+    constructor(session: Session, channel: Channel) {
         super();
         this._logger = new Logger(`Charts: ${session.getUUID()}`);
         this._session = session;
+        this._sessionChannel = channel;
         const search: SessionSearch | Error = session.getSearch();
         if (search instanceof Error) {
             this._logger.error(`Fail to get search controller due error: ${search.message}`);
@@ -44,10 +52,9 @@ export class Charts extends Dependency {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            // Unsubscribe IPC messages / events
-            Object.keys(this._subscriptions).forEach((key: string) => {
-                (this._subscriptions as any)[key].destroy();
-            });
+            this._events().unsubscribe();
+            this._channel().unsubscribe();
+            this._ipc().unsubscribe();
             resolve();
         });
     }
@@ -58,8 +65,42 @@ export class Charts extends Dependency {
             if (error instanceof Error) {
                 return reject(error);
             }
-            this._ipc().subscribe().then(resolve).catch(reject);
+            this._ipc()
+                .subscribe()
+                .then(() => {
+                    this._channel().subscribe();
+                    resolve();
+                })
+                .catch(reject);
         });
+    }
+
+    public setCharts(filters: CommonInterfaces.API.IFilter[]): Error | undefined {
+        function getMixedFiltersList(
+            a: CommonInterfaces.API.IFilter[],
+            b: CommonInterfaces.API.IFilter[],
+        ): CommonInterfaces.API.IFilter[] {
+            const added: string[] = [];
+            const result: CommonInterfaces.API.IFilter[] = a.map((filter) => {
+                added.push(`${filter.filter}${JSON.stringify(filter.flags)}`);
+                return filter;
+            });
+            b.forEach((filter) => {
+                const hash: string = `${filter.filter}${JSON.stringify(filter.flags)}`;
+                if (!added.includes(hash)) {
+                    result.push(filter);
+                }
+            });
+            return result;
+        }
+        const error: Error | undefined = this._search.setMatches(getMixedFiltersList(this._charts, this._filters));
+        if (error instanceof Error) {
+            this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
+            return error;
+        } else {
+            this._charts = filters;
+            return undefined;
+        }
     }
 
     private _events(): {
@@ -124,7 +165,7 @@ export class Charts extends Dependency {
                             self._subscriptions.ipc.chart = subscription;
                         })
                         .catch((error: Error) => {
-                            this._logger.warn(
+                            self._logger.warn(
                                 `Fail to subscribe to render event "ChartRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`,
                             );
                         }),
@@ -143,6 +184,33 @@ export class Charts extends Dependency {
                     response: (instance: IPC.ChartRequestResults) => any,
                 ): void {
                     //
+                },
+            },
+        };
+    }
+
+    private _channel(): {
+        subscribe(): void;
+        unsubscribe(): void;
+        handlers: {
+            filters(filters: CommonInterfaces.API.IFilter[]): void;
+        };
+    } {
+        const self = this;
+        return {
+            subscribe(): void {
+                self._subscriptions.channel.filters = self._sessionChannel
+                    .getEvents()
+                    .afterFiltersListUpdated.subscribe(self._channel().handlers.filters);
+            },
+            unsubscribe(): void {
+                Object.keys(self._subscriptions.session).forEach((key: string) => {
+                    self._subscriptions.channel[key].destroy();
+                });
+            },
+            handlers: {
+                filters(filters: CommonInterfaces.API.IFilter[]): void {
+                    self._filters = filters;
                 },
             },
         };

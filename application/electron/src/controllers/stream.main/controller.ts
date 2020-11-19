@@ -8,11 +8,8 @@ import ServicePlugins from '../../services/service.plugins';
 import ServiceStreamSource from '../../services/service.stream.sources';
 import State from './state';
 import ControllerIPCPlugin from '../plugins/plugin.process.ipc';
-import ControllerStreamCharts from '../stream.charts/controller';
-import ControllerStreamRanges from '../stream.ranges/controller';
 import ControllerStreamPty from '../stream.pty/controller';
 
-import { EventsHub } from '../stream.common/events';
 import { DefaultOutputExport } from './output.export.default';
 import { IPCMessages as IPCPluginMessages } from '../plugins/plugin.process.ipc';
 import { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
@@ -20,7 +17,8 @@ import { Session } from "indexer-neon";
 import { Dependency, DependencyConstructor } from './controller.dependency';
 import { Socket } from './controller.socket';
 import { Search } from './controller.search';
-
+import { Charts } from './controller.charts';
+import { Channel } from './controller.channel';
 
 export interface ISubjects {
     destroyed: Tools.Subject<string>;
@@ -30,6 +28,7 @@ export interface ISubjects {
 export class ControllerSession {
 
     private readonly _subscriptions: { [key: string ]: Subscription } = { };
+    private readonly _events: Channel = new Channel();
     private readonly _subjects: ISubjects = {
         destroyed: new Tools.Subject('destroyed'),
         inited: new Tools.Subject('created'),
@@ -37,9 +36,11 @@ export class ControllerSession {
     private readonly _dependencies: {
         socket: Socket | undefined,
         search: Search | undefined,
+        charts: Charts | undefined,
     } = {
         socket: undefined,
         search: undefined,
+        charts: undefined,
     };
     private _logger: Logger;
     private _session: Session | undefined;
@@ -54,21 +55,33 @@ export class ControllerSession {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].destroy();
             });
-            if (this._session === undefined) {
-                this._logger.warn(`Attempt to destroy session even session wasn't inited at all`);
-                this._unsubscribe();
-                return resolve();
-            }
-            const guid: string = this._session.getUUID();
-            const session: Session = this._session;
-            session.destroy().catch((err: Error) => {
-                this._logger.error(`Fail to safely destroy session "${guid}" due error: ${err.message}`);
-            }).finally(() => {
-                this._session = undefined;
-                this._ipc().unsubscribe();
-                resolve();
-                this._subjects.destroyed.emit(guid);
-                this._unsubscribe();
+            // Kill all dependecies
+            Promise.all(([
+                this._dependencies.socket,
+                this._dependencies.search,
+                this._dependencies.charts,
+            ].filter(d => d !== undefined) as Dependency[]).map((dep: Dependency) => {
+                return dep.destroy().catch((err: Error) => {
+                    this._logger.warn(`Fail to destroy dependency due err: ${err.message}`);
+                    return Promise.resolve();
+                });
+            })).then(() => {
+                if (this._session === undefined) {
+                    this._logger.warn(`Attempt to destroy session even session wasn't inited at all`);
+                    this._unsubscribe();
+                    return resolve();
+                }
+                const guid: string = this._session.getUUID();
+                const session: Session = this._session;
+                session.destroy().catch((err: Error) => {
+                    this._logger.error(`Fail to safely destroy session "${guid}" due error: ${err.message}`);
+                }).finally(() => {
+                    this._session = undefined;
+                    this._ipc().unsubscribe();
+                    resolve();
+                    this._subjects.destroyed.emit(guid);
+                    this._unsubscribe();
+                });
             });
         });
     }
@@ -78,7 +91,7 @@ export class ControllerSession {
             // Factory for initialization of dependency
             function getDependency<T>(self: ControllerSession, sess: Session, Dep: DependencyConstructor<T>): Promise<Dependency & T> {
                 return new Promise((res, rej) => {
-                    const dependency = new Dep(sess);
+                    const dependency = new Dep(sess, self._events);
                     self._logger.debug(`Initing ${dependency.getName()} for session ${sess.getUUID()}`);
                     dependency.init().then(() => {
                         self._logger.debug(`${dependency.getName()} inited successfully`);
@@ -107,6 +120,9 @@ export class ControllerSession {
                     }),
                     getDependency<Search>(this, session, Search).then((dep: Search) => {
                         this._dependencies.search = dep;
+                    }),
+                    getDependency<Charts>(this, session, Charts).then((dep: Charts) => {
+                        this._dependencies.charts = dep;
                     }),
                 ]).then(() => {
                     this._logger.debug(`Session "${session.getUUID()}" is created`);

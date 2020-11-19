@@ -4,8 +4,9 @@ import * as Plugins from './interface.plugins';
 import * as Versions from './interface.versions';
 import * as Detect from './interface.detect';
 import * as TimeRanges from './interface.timerange';
+import * as API from './interface.rust.api.general';
 
-export { DLT, NodeGlobal, Plugins, Versions, Detect, TimeRanges };
+export { DLT, NodeGlobal, Plugins, Versions, Detect, TimeRanges, API };
 
 // describes a section of a file by indicies
 // to identify lines 10-12 (inclusively) => first_line = 10, last_line = 12
