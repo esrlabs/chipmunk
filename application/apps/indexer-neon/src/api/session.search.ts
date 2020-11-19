@@ -54,10 +54,14 @@ export class SessionSearch {
 	 * @cancelable no
 	 * @param filters { IFilter[] }
 	 */
-	public setFilters(filters: IFilter[]): Promise<void> {
-		return new Promise(() => {
-			this._channel.setSearch(filters);
-		});
+	public setFilters(filters: IFilter[]): Error | undefined {
+		const error: Error | undefined = this._channel.setSearch(filters);
+		if (error instanceof Error) {
+			this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
+			return error;
+		} else {
+			return undefined;
+		}
 	}
 
 	/**
@@ -67,10 +71,14 @@ export class SessionSearch {
 	 * @cancelable no
 	 * @param filters { IFilter[] }
 	 */
-	public setMatches(filters: IFilter[]): Promise<void> {
-		return new Promise(() => {
-			this._channel.setMatches(filters);
-		});
+	public setMatches(filters: IFilter[]): Error | undefined {
+		const error: Error | undefined = this._channel.setMatches(filters);
+		if (error instanceof Error) {
+			this._logger.warn(`Fail to set filters for matches due error: ${error.message}`);
+			return error;
+		} else {
+			return undefined;
+		}
 	}
 
 	public search(filters: IFilter[]): CancelablePromise<IMatchEntity[]> {
