@@ -4,7 +4,7 @@ import * as Tools from "../../tools/index";
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
-import ServiceStreams from "../../services/service.streams";
+import ServiceStreams from "../service.sessions";
 
 /**
  * @class ServiceDLTFiles

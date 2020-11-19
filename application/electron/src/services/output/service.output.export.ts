@@ -1,5 +1,5 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import ServiceStreams, { INewSessionEvent } from '../service.streams';
+import ServiceStreams, { INewSessionEvent } from '../service.sessions';
 
 import Logger from '../../tools/env.logger';
 

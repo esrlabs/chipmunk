@@ -7,7 +7,7 @@ import { IPCMessages, Subscription } from './service.electron';
 import { ImporterWriter } from '../controllers/importer/importer.writer';
 
 import ServiceElectron from './service.electron';
-import ServiceStreams from './service.streams';
+import ServiceStreams from './service.sessions';
 import Logger from '../tools/env.logger';
 
 /**

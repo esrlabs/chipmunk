@@ -1,5 +1,5 @@
 import ServiceElectron, { IPCMessages } from "../service.electron";
-import ServiceStreams, { IStreamInfo } from "../service.streams";
+import ServiceStreams, { IStreamInfo } from "../service.sessions";
 import Logger from "../../tools/env.logger";
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";

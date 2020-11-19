@@ -8,7 +8,7 @@ import * as Tools from "../../tools/index";
 import indexer, { CancelablePromise, Processor, Progress } from "indexer-neon";
 import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
 
-import ServiceStreams from "../../services/service.streams";
+import ServiceStreams from "../../services/service.sessions";
 import Logger from "../../tools/env.logger";
 
 export default class FileParser extends AFileParser {
