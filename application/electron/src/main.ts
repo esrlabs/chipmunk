@@ -16,7 +16,7 @@ import ServiceEnv from './services/service.env';
 import ServiceHotkeys from './services/service.hotkeys';
 import ServicePaths, { getHomeFolder } from './services/service.paths';
 import ServicePlugins from './services/service.plugins';
-import ServiceStreams from './services/service.streams';
+import ServiceStreams from './services/service.sessions';
 import ServiceSettings from './services/service.settings';
 import ServiceConfigDefault from './services/service.settings.default';
 import ServiceStorage from './services/service.storage';

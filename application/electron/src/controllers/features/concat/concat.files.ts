@@ -1,6 +1,6 @@
 // tslint:disable:max-classes-per-file
 import * as path from "path";
-import ServiceStreams from "../../../services/service.streams";
+import ServiceStreams from "../../../services/service.sessions";
 import ServiceStreamSource from "../../../services/service.stream.sources";
 import ServiceNotifications from "../../../services/service.notifications";
 import indexer, { CancelablePromise, Progress, Merge, Units } from "indexer-neon";

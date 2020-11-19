@@ -1,5 +1,5 @@
 import Logger from "../../tools/env.logger";
-import ServiceStreams from "../../services/service.streams";
+import ServiceStreams from "../../services/service.sessions";
 import ServiceStreamSource from '../../services/service.stream.sources';
 import ServiceNotifications from "../../services/service.notifications";
 
