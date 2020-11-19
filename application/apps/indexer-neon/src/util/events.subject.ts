@@ -1,4 +1,4 @@
-import Subscription from './events.subscription';
+import { Subscription } from './events.subscription';
 import uuid from './uuid';
 
 export interface IEventDesc {
@@ -8,7 +8,7 @@ export interface IEventDesc {
 
 const CSignature = '__subject_handler_guid';
 
-export default class Subject<T> {
+export class Subject<T> {
 
     private _handlers: Array<(value: T) => any> = [];
     private _name: string = '';

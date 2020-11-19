@@ -21,9 +21,11 @@
 // }
 
 // Get rid of default Jasmine timeout
-// jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 
-import Subject, { IEventDesc } from '../src/util/events.subject';
+import { Subject, IEventDesc } from '../src/util/events.subject';
+import { CancelablePromise } from '../src/util/promise';
+import { PromiseExecutor } from '../src/util/promise.executor';
 
 describe('Utils tests', () => {
 
@@ -54,5 +56,236 @@ describe('Utils tests', () => {
         done();
     });
 
+    it('Promises: cancel previous', (done: Function)=> {
+        const results = {
+            resolved: 0,
+            canceled: 0,
+        };
+        const executor: PromiseExecutor<number> = new PromiseExecutor();
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(true).toBe(false);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            results.canceled += 1;
+            expect(true).toBe(true);
+        });
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(true).toBe(false);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            results.canceled += 1;
+            expect(true).toBe(true);
+        });
+        // This task should be done
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(false);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(results.resolved).toBe(1);
+            }, 250);
+        })).then(() => {
+            expect(executor.getStat().done).toBe(1);
+            expect(executor.getStat().canceled).toBe(2);
+            expect(executor.getStat().actual).toBe(1);
+            expect(executor.getStat().rejected).toBe(0);
+            expect(results.resolved).toBe(1);
+            expect(results.canceled).toBe(2);
+            done();        
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            expect(true).toBe(false);
+        });
+
+    });
+
+    it('Promises: abort all', (done: Function)=> {
+        const results = {
+            resolved: 0,
+            canceled: 0,
+        };
+        const executor: PromiseExecutor<number> = new PromiseExecutor();
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(true).toBe(false);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            results.canceled += 1;
+            expect(true).toBe(true);
+        });
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(true).toBe(false);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            results.canceled += 1;
+            expect(true).toBe(true);
+        });
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(results.resolved).toBe(0);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            results.canceled += 1;
+            expect(true).toBe(true);
+        });
+        // Cancel all task
+        executor.abort().then(() => {
+            expect(executor.getStat().done).toBe(0);
+            expect(executor.getStat().canceled).toBe(3);
+            expect(executor.getStat().actual).toBe(0);
+            expect(executor.getStat().rejected).toBe(0);
+            expect(results.resolved).toBe(0);
+            expect(results.canceled).toBe(3);
+            done();        
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        });
+    });
+
+    it('Promises: abort all; cancel with delay', (done: Function)=> {
+        const results = {
+            resolved: 0,
+            canceled: 0,
+        };
+        const executor: PromiseExecutor<number> = new PromiseExecutor();
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(true).toBe(false);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            results.canceled += 1;
+            expect(true).toBe(true);
+        });
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(true).toBe(false);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            results.canceled += 1;
+            expect(true).toBe(true);
+        });
+        // This task should be canceled
+        executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
+            cancelRef(() => {
+                clearTimeout(timer);
+                setTimeout(() => {
+                    results.canceled += 1;
+                    // Cancel task with delay
+                    cancel();
+                }, 500);
+            });
+            self.canceled(() => {
+                expect(true).toBe(true);
+                clearTimeout(timer);
+            });
+            const timer = setTimeout(() => {
+                results.resolved += 1;
+                resolve(results.resolved);
+                expect(results.resolved).toBe(0);
+            }, 250);
+        })).then(() => {
+            expect(true).toBe(false);     
+        }).catch((err: Error) => {
+            expect(true).toBe(false);
+        }).canceled(() => {
+            expect(true).toBe(true);
+        });
+        setTimeout(() => {
+            // Cancel all task
+            executor.abort().then(() => {
+                expect(results.resolved).toBe(0);
+                expect(results.canceled).toBe(3);
+                expect(executor.getStat().done).toBe(0);
+                expect(executor.getStat().canceled).toBe(3);
+                expect(executor.getStat().actual).toBe(0);
+                expect(executor.getStat().rejected).toBe(0);
+                done();
+            });
+        }, 100);
+    });
 
 });

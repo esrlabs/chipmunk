@@ -1,19 +1,11 @@
 import * as Logs from '../util/logging';
 
-import { RustSessionChannel } from '../native/index';
+import { RustSessionChannel, RustSearchOperationChannelConstructor, RustSearchOperationChannel } from '../native/index';
 import { CancelablePromise } from '../util/promise';
+import { Subscription } from '../util/events.subscription';
 import { SessionComputation } from './session.computation';
-
-export interface IFilterFlags {
-	reg: boolean,
-	word: boolean,
-	cases: boolean,
-}
-
-export interface IFilter {
-	filter: string,
-	flags: IFilterFlags,
-}
+import { IFilter, IMatchEntity } from '../interfaces/index';
+import { StreamSearchComputation } from './session.stream.search.computation';
 
 export class SessionSearch {
 	
@@ -38,30 +30,110 @@ export class SessionSearch {
 		});
 	}
 
-
-	public grab(line_index: number, line_count: number): string {
-		return this._channel.grabSearch(line_index, line_count);
+	/**
+	 * Retruns a chunk of search results, which were gotten with filters by @method setFilters
+	 * @param start { number } - first row number in search result
+	 * @param len { number } - count of rows, which should be included into chank from @param start
+	 */
+	public grabSearchsChunk(start: number, len: number): string {
+		return this._channel.grabSearchChunk(start, len);
 	}
 
+	/**
+	 * Retruns a chunk of matches results, which were gotten with filters by @method setMatches
+	 * @param start { number } - first row number in search result
+	 * @param len { number } - count of rows, which should be included into chank from @param start
+	 */
+	public grabMatchesChunk(start: number, len: number): string {
+		return this._channel.grabMatchesChunk(start, len);
+	}
 
-	public search(filters: IFilter): CancelablePromise {
-		return new CancelablePromise(() => {
-			// Overwrite search results
+	/**
+	 * Method sets filters for current session. These filters should be applyed for any
+	 * session changes. If new data came into session - filters should be applyed.
+	 * @cancelable no
+	 * @param filters { IFilter[] }
+	 */
+	public setFilters(filters: IFilter[]): Promise<void> {
+		return new Promise(() => {
+			this._channel.setSearch(filters);
 		});
 	}
 
-	public matches(filters: IFilter): CancelablePromise {
-		return new CancelablePromise(() => {
-			// Should return all found matches
-			// But SHOULD NOT drop search results of main search
-			// This is independent search
+	/**
+	 * Method sets filters for current session to detect list of matches. These filters should 
+	 * be applyed for any session changes to update matches list. These filters aren't related
+	 * to regular search. It should not generate any search result file.
+	 * @cancelable no
+	 * @param filters { IFilter[] }
+	 */
+	public setMatches(filters: IFilter[]): Promise<void> {
+		return new Promise(() => {
+			this._channel.setMatches(filters);
 		});
 	}
 
-	public positions(): CancelablePromise {
-		return new CancelablePromise(() => {
-			// Should return row numbers for all found matches
-			// Based on main search
+	public search(filters: IFilter[]): CancelablePromise<IMatchEntity[]> {
+		return new CancelablePromise<IMatchEntity[]>((resolve, reject, cancel, refCancelCB, self) => {
+			const channel: RustSearchOperationChannel = new RustSearchOperationChannelConstructor();
+			const computation: StreamSearchComputation = new StreamSearchComputation(channel, this._uuid);
+			let error: Error | undefined;
+			// Setup subscriptions
+			const subscriptions: {
+				destroy: Subscription,
+				matches: Subscription,
+				error: Subscription,
+				unsunscribe(): void,
+			} = {
+				destroy: computation.getEvents().destroyed.subscribe(() => {
+					if (error) {
+						this._logger.warn('Search operation is failed');
+						reject(error);
+					} else {
+						reject(new Error(this._logger.warn('Search computation is destroyed, but it was not resolved/rejected')));
+					}
+				}),
+				matches: computation.getEvents().matches.subscribe((matches: IMatchEntity[]) => {
+					if (error) {
+						this._logger.warn('Search operation is failed');
+						reject(error);
+					} else {
+						this._logger.debug('Search operation is successful');
+						resolve(matches);
+					}
+				}),
+				error: computation.getEvents().error.subscribe((err: Error) => {
+					this._logger.warn(`Error on operation append: ${err.message}`);
+					error = err;
+				}),
+				unsunscribe(): void {
+					subscriptions.destroy.destroy();
+					subscriptions.error.destroy();
+					subscriptions.matches.destroy();
+				},
+			};
+			this._logger.debug('Search operation is started');
+			// Add cancel callback
+			refCancelCB(() => {
+				// Cancelation is started, but not canceled
+				this._logger.debug(`Get command "break" operation. Starting breaking.`);
+				// Destroy computation manually
+				computation.destroy().catch((err: Error) => {
+					this._logger.warn(`Fail to destroy correctly computation instance for "append" operation due error: ${err.message}`);
+				});
+			});
+			// Handle finale of promise
+			self.finally(() => {
+				this._logger.debug('Search operation promise is closed as well');
+				subscriptions.unsunscribe();
+			});
+			// Call operation
+			channel.search(this._uuid, filters);
+		});
+	}
+
+	public append(filename: string): CancelablePromise<void, void, void, void> {
+		return new CancelablePromise<void, void, void, void>((resolve, reject, cancel, refCancelCB, self) => {
 		});
 	}
 

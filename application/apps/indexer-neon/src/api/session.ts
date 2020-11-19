@@ -9,6 +9,16 @@ import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
 
 export {
+	ISessionEvents,
+	IEventMapUpdated,
+	IEventMatchesUpdated,
+	IEventSearchUpdated,
+	IEventStreamUpdated,
+	IMapEntity,
+	IMatchEntity
+} from './session.computation';
+
+export {
 	SessionComputation,
 	SessionStream,
 	SessionSearch,
@@ -102,6 +112,12 @@ export class Session {
 			return new Error(`SessionSearch wasn't created`);
 		}
 		return this._search;
+	}
+
+	public reset(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			
+		});
 	}
 
 	public getSocketPath(): string | Error {

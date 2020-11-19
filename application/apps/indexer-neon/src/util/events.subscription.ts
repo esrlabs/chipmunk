@@ -3,7 +3,7 @@ import uuid from './uuid';
 
 export type THandler = (...args: any[]) => any;
 
-export default class Subscription {
+export class Subscription {
 
     private _unsubsribe: THandler | undefined;
     private _event: string;

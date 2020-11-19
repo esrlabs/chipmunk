@@ -2,6 +2,7 @@ import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
 import { RustSessionChannel, RustAppendOperationChannel, RustAppendOperationChannelConstructor } from '../native/index';
+import { Subscription } from '../util/events.subscription';
 import { CancelablePromise } from '../util/promise';
 import { SessionComputation } from './session.computation';
 import { StreamAppendComputation } from './session.stream.append.computation';
@@ -40,45 +41,55 @@ export class SessionStream {
 		});
 	}
 
-	public grab(line_index: number, line_count: number): string {
-		return this._channel.grabStream(line_index, line_count);
+	public grab(start: number, len: number): string {
+		return this._channel.grabStreamChunk(start, len);
 	}
 
 	// Detecting of file type happens on rust level.
 	// Meta data comes to nodejs via "grabbing"
 	public append(filename: string): CancelablePromise<void, void, void, void> {
 		return new CancelablePromise<void, void, void, void>((resolve, reject, cancel, refCancelCB, self) => {
+			const channel: RustAppendOperationChannel = new RustAppendOperationChannelConstructor();
+			const computation: StreamAppendComputation = new StreamAppendComputation(channel, this._uuid);
+			let error: Error | undefined;
+			// Setup subscriptions
+			const subscriptions: {
+				destroy: Subscription,
+				error: Subscription,
+				unsunscribe(): void,
+			} = {
+				destroy: computation.getEvents().destroyed.subscribe(() => {
+					if (error) {
+						this._logger.warn('Append operation is failed');
+						reject(error);
+					} else {
+						this._logger.debug('Append operation is successful');
+						resolve();
+					}
+				}),
+				error: computation.getEvents().error.subscribe((err: Error) => {
+					this._logger.warn(`Error on operation append: ${err.message}`);
+					error = err;
+				}),
+				unsunscribe(): void {
+					subscriptions.destroy.destroy();
+					subscriptions.error.destroy();
+				},
+			};
 			this._logger.debug('Append operation is started');
 			// Add cancel callback
 			refCancelCB(() => {
 				// Cancelation is started, but not canceled
 				this._logger.debug(`Get command "break" operation. Starting breaking.`);
-				// We don't need to listen destroy event on cancel
-				destroySubscription.unsubscribe();
 				// Destroy computation manually
 				computation.destroy().catch((err: Error) => {
 					this._logger.warn(`Fail to destroy correctly computation instance for "append" operation due error: ${err.message}`);
 				});
 			});
-			const channel: RustAppendOperationChannel = new RustAppendOperationChannelConstructor();
-			const computation: StreamAppendComputation = new StreamAppendComputation(channel, this._uuid);
-			let error: Error | undefined;
-			computation.getEvents().error.subscribe((err: Error) => {
-				this._logger.warn(`Error on operation append: ${err.message}`);
-				error = err;
-			});
-			const destroySubscription = computation.getEvents().destroyed.subscribe(() => {
-				if (error) {
-					this._logger.warn('Append operation is failed');
-					reject(error);
-				} else {
-					this._logger.debug('Append operation is successful');
-					resolve();
-				}
-			});
 			// Handle finale of promise
 			self.finally(() => {
 				this._logger.debug('Append operation promise is closed as well');
+				subscriptions.unsunscribe();
 			});
 			// Call operation
 			channel.append(this._uuid, filename);

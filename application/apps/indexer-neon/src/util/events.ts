@@ -1,5 +1,5 @@
-import Subject from './events.subject';
-import Subscription from './events.subscription';
+import { Subject } from './events.subject';
+import { Subscription } from './events.subscription';
 import uuid from './uuid';
 
 import { IEventDesc } from './events.subject';
