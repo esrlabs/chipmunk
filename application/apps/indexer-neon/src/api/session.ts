@@ -14,8 +14,6 @@ export {
 	IEventMatchesUpdated,
 	IEventSearchUpdated,
 	IEventStreamUpdated,
-	IMapEntity,
-	IMatchEntity
 } from './session.computation';
 
 export {
