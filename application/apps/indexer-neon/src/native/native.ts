@@ -5,20 +5,25 @@ export function getNativeModule() {
 }
 
 const {
-    // RustIndexerEventEmitter: RustIndexerChannel,
-    // RustDltIndexerEventEmitter: RustDltIndexerChannel,
-    // RustDltStatsEventEmitter: RustDltStatsChannel,
-    // RustExporterEventEmitter: RustExportFileChannel,
+    // RustIndexerEventEmitter: RustIndexerChannel,                 // into append
+    // RustDltIndexerEventEmitter: RustDltIndexerChannel,           // into append
+    // RustDltStatsEventEmitter: RustDltStatsChannel,               
+    // RustExporterEventEmitter: RustExportFileChannel,             // channel
     // RustDltSocketEventEmitter: RustDltSocketChannel,
-    // RustDltPcapEventEmitter: RustDltPcapChannel,
-    // RustTimestampFormatDetectionEmitter: RustTimestampChannel,
-    // RustTimestampExtractEmitter: RustTimestampExtractChannel,
-    // RustFormatVerificationEmitter: RustFormatVerificationChannel,
-    // RustConcatenatorEmitter: RustConcatenatorChannel,
-    // RustMergerEmitter: RustMergerChannel,
-    // RustGrabber: RustGrabberChannel,
+    // RustDltPcapEventEmitter: RustDltPcapChannel,                 // into append
+    // RustTimestampFormatDetectionEmitter: RustTimestampChannel,   // channel   
+    // RustTimestampExtractEmitter: RustTimestampExtractChannel,    // channel
+    // RustFormatVerificationEmitter: RustFormatVerificationChannel,// synch
+    // RustConcatenatorEmitter: RustConcatenatorChannel,            // channel
+    // RustMergerEmitter: RustMergerChannel,                        // channel
+    // RustGrabber: RustGrabberChannel,                             // synch
     RustSession: RustSessionChannelNoType,
     RustAppendOperation: RustAppendOperationChannelNoType,
+    RustMergeOperation: RustMergeOperationChannelNoType,
+    RustTimeFormatDetectOperation: RustTimeFormatDetectOperationChannelNoType,
+    RustTimeFormatExtractOperation: RustTimeFormatExtractOperationChannelNoType,
+    RustExportOperation: RustExportOperationChannelNoType,
+    RustConcatOperation: RustConcatOperationChannelNoType,
     RustSearchOperation: RustSearchOperationChannelNoType,
 } = getNativeModule();
 
@@ -42,6 +47,11 @@ export {
     // RustGrabberChannel,
     RustSessionChannelNoType,
     RustAppendOperationChannelNoType,
+    RustMergeOperationChannelNoType,
+    RustConcatOperationChannelNoType,
+    RustTimeFormatDetectOperationChannelNoType,
+    RustTimeFormatExtractOperationChannelNoType,
+    RustExportOperationChannelNoType,
     RustSearchOperationChannelNoType,
     addon
 };
