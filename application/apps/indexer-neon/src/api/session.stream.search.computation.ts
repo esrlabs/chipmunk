@@ -1,30 +1,41 @@
 import { Computation } from './сomputation';
 import { RustSearchOperationChannel } from '../native/index';
 import { IMatchEntity } from '../interfaces/index';
+import {
+    IEventsInterfaces,
+    EventsInterfaces,
+    EventsSignatures,
+    IEventsSignatures,
+    IEvents,
+    IOperationProgress,
+} from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
 
-export interface IEvents {
+export interface ISearchEvents extends IEvents {
     matches: Events.Subject<IMatchEntity[]>,
-    error: Events.Subject<Error>,
-    destroyed: Events.Subject<void>,
 }
 
-interface IEventsSignatures {
+interface ISearchEventsSignatures extends IEventsSignatures {
     matches: 'matches';
-    error: 'error';
-    destroyed: 'destroyed';
 };
 
-const EventsInterface = {
+const SearchEventsSignatures = Object.assign({
+    matches: 'matches'
+}, EventsSignatures) as ISearchEventsSignatures;
+
+interface ISearchEventsInterfaces extends IEventsInterfaces {
+    matches: { self: 'object', matches: typeof Array }
+}
+
+const SearchEventsInterfaces = Object.assign({
     matches: { self: 'object', matches: Array },
-    error: { self: Error },
-    destroyed: { self: null },
-};
+}, EventsInterfaces) as ISearchEventsInterfaces;
 
 export class StreamSearchComputation extends Computation<IEvents> {
 
-    private readonly _events: IEvents = {
+    private readonly _events: ISearchEvents = {
+        progress: new Events.Subject<IOperationProgress>(),
         matches: new Events.Subject<IMatchEntity[]>(),
         error: new Events.Subject<Error>(),
         destroyed: new Events.Subject<void>(),
@@ -42,16 +53,12 @@ export class StreamSearchComputation extends Computation<IEvents> {
         return this._events;
     }
 
-    public getEventsSignatures(): IEventsSignatures {
-        return {
-            matches: 'matches',
-            error: 'error',
-            destroyed: 'destroyed',
-        };
+    public getEventsSignatures(): ISearchEventsSignatures {
+        return SearchEventsSignatures;
     }
 
-    public getEventsInterfaces() {
-        return EventsInterface;
+    public getEventsInterfaces(): ISearchEventsInterfaces {
+        return SearchEventsInterfaces;
     }
 
 

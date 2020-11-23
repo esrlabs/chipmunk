@@ -2,27 +2,7 @@ import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
 import { RustChannelRequiered } from '../native/native.channel.required';
-
-export interface IRequiredEvents {
-    error: Events.Subject<Error>,       // Event calls on any error on rust side. 
-    destroyed: Events.Subject<void>,    // Event calls always as soon as instance of computation is destroyed
-                                        // No any events should be called after "destroyed" event was emited.
-}
-
-export interface IEventsSignatures {
-    error: 'error';
-    destroyed: 'destroyed';
-}
-
-export const EventsSignatures: IEventsSignatures = {
-    error: 'error',
-    destroyed: 'destroyed',
-}
-
-export interface IEventsInterfaces {
-    error: { self: typeof Error },
-    destroyed: { self: null },
-}
+import { IEventsInterfaces, IEventsSignatures, IEvents } from '../interfaces/computation.minimal';
 
 type TShutdownComputationResolver = () => void;
 
@@ -58,7 +38,7 @@ export abstract class Computation<TEvents> {
 
     public abstract getName(): string;
 
-    public abstract getEvents(): TEvents & IRequiredEvents;
+    public abstract getEvents(): TEvents & IEvents;
 
     public abstract getEventsSignatures(): Required<IEventsSignatures>;
 

@@ -35,7 +35,7 @@ export class SessionSearch {
 	 * @param start { number } - first row number in search result
 	 * @param len { number } - count of rows, which should be included into chank from @param start
 	 */
-	public grabSearchsChunk(start: number, len: number): string {
+	public grabSearchChunk(start: number, len: number): string {
 		return this._channel.grabSearchChunk(start, len);
 	}
 
