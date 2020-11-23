@@ -21,11 +21,11 @@ export interface IDetectDTFormatResult {
 }
 
 export interface IDetectEvents extends IEvents {
-    matches: Events.Subject<IDetectDTFormatResult[]>,
+    results: Events.Subject<IDetectDTFormatResult[]>,
 }
 
 interface IDetectEventsSignatures extends IEventsSignatures {
-    matches: 'results';
+    results: 'results';
 };
 
 const DetectEventsSignatures = Object.assign({
@@ -40,29 +40,12 @@ const DetectEventsInterfaces = Object.assign({
     results: { self: 'object', matches: Array },
 }, EventsInterfaces) as IDetectEventsInterfaces;
 
-/*
-export interface IEvents {
-    results: Events.Subject<IDetectDTFormatResult>,
-    error: Events.Subject<Error>,
-    destroyed: Events.Subject<void>,
-}
-*/
-interface IEventsSignatures {
-    results: 'results';
-    error: 'error';
-    destroyed: 'destroyed';
-};
-
-const EventsInterface = {
-    results: { self: 'object', format: 'string', reg: 'string' },
-    error: { self: Error },
-    destroyed: { self: null },
-};
 
 export class StreamTimeFormatDetectComputation extends Computation<IEvents> {
 
-    private readonly _events: IEvents = {
-        results: new Events.Subject<any>(),
+    private readonly _events: IDetectEvents = {
+        progress: new Events.Subject<IOperationProgress>(),
+        results: new Events.Subject<IDetectDTFormatResult[]>(),
         error: new Events.Subject<Error>(),
         destroyed: new Events.Subject<void>(),
     };
@@ -79,16 +62,12 @@ export class StreamTimeFormatDetectComputation extends Computation<IEvents> {
         return this._events;
     }
 
-    public getEventsSignatures(): IEventsSignatures {
-        return {
-            results: 'results',
-            error: 'error',
-            destroyed: 'destroyed',
-        };
+    public getEventsSignatures(): IDetectEventsSignatures {
+        return DetectEventsSignatures;
     }
 
-    public getEventsInterfaces() {
-        return EventsInterface;
+    public getEventsInterfaces(): IDetectEventsInterfaces {
+        return DetectEventsInterfaces;
     }
 
 

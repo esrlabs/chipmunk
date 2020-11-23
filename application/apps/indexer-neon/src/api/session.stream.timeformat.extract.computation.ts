@@ -1,5 +1,13 @@
 import { Computation } from './сomputation';
 import { RustTimeFormatExtractOperationChannel } from '../native/index';
+import {
+    IEventsInterfaces,
+    EventsInterfaces,
+    EventsSignatures,
+    IEventsSignatures,
+    IEvents,
+    IOperationProgress,
+} from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
 
@@ -12,28 +20,31 @@ export interface IExtractDTFormatResult {
     reg: string;
 }
 
-export interface IEvents {
-    results: Events.Subject<IExtractDTFormatResult>,
-    error: Events.Subject<Error>,
-    destroyed: Events.Subject<void>,
+export interface IExtractEvents extends IEvents {
+    results: Events.Subject<IExtractDTFormatResult[]>,
 }
 
-interface IEventsSignatures {
+interface IExtractEventsSignatures extends IEventsSignatures {
     results: 'results';
-    error: 'error';
-    destroyed: 'destroyed';
 };
 
-const EventsInterface = {
-    results: { self: 'object' },
-    error: { self: Error },
-    destroyed: { self: null },
-};
+const ExtractEventsSignatures = Object.assign({
+    results: 'results'
+}, EventsSignatures) as IExtractEventsSignatures;
+
+interface IExtractEventsInterfaces extends IEventsInterfaces {
+    results: { self: 'object', matches: typeof Array }
+}
+
+const ExtractEventsInterfaces = Object.assign({
+    results: { self: 'object', matches: Array },
+}, EventsInterfaces) as IExtractEventsInterfaces;
 
 export class StreamTimeFormatExtractComputation extends Computation<IEvents> {
 
-    private readonly _events: IEvents = {
-        results: new Events.Subject<any>(),
+    private readonly _events: IExtractEvents = {
+        progress: new Events.Subject<IOperationProgress>(),
+        results: new Events.Subject<IExtractDTFormatResult[]>(),
         error: new Events.Subject<Error>(),
         destroyed: new Events.Subject<void>(),
     };
@@ -50,16 +61,12 @@ export class StreamTimeFormatExtractComputation extends Computation<IEvents> {
         return this._events;
     }
 
-    public getEventsSignatures(): IEventsSignatures {
-        return {
-            results: 'results',
-            error: 'error',
-            destroyed: 'destroyed',
-        };
+    public getEventsSignatures(): IExtractEventsSignatures {
+        return ExtractEventsSignatures;
     }
 
-    public getEventsInterfaces() {
-        return EventsInterface;
+    public getEventsInterfaces(): IExtractEventsInterfaces {
+        return ExtractEventsInterfaces;
     }
 
 
