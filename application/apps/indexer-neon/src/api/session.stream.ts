@@ -12,6 +12,15 @@ import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeform
 import { IExtractOptions, IExtractDTFormatResult } from './session.stream.timeformat.extract.computation';
 import { Executors } from './session.stream.executors';
 
+export {
+    IFileToBeMerged,
+    IExportOptions,
+    IDetectDTFormatResult,
+    IDetectOptions,
+    IExtractOptions,
+    IExtractDTFormatResult,
+}
+
 abstract class Connector<T> {
     public abstract disconnect(): Promise<void>; // Equal to destroy
     public abstract setOptions(options: T): Promise<void>; // To have a way update options in on fly

@@ -1,26 +1,20 @@
 import { Computation } from './сomputation';
 import { RustConcatOperationChannel  } from '../native/index';
+import {
+    IEventsInterfaces,
+    EventsInterfaces,
+    EventsSignatures,
+    IEventsSignatures,
+    IEvents,
+    IOperationProgress,
+} from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
-
-export interface IEvents {
-    error: Events.Subject<Error>,
-    destroyed: Events.Subject<void>,
-}
-
-interface IEventsSignatures {
-    error: 'error';
-    destroyed: 'destroyed';
-};
-
-const EventsInterface = {
-    error: { self: Error },
-    destroyed: { self: null },
-};
 
 export class StreamConcatComputation extends Computation<IEvents> {
 
     private readonly _events: IEvents = {
+        progress: new Events.Subject<IOperationProgress>(),
         error: new Events.Subject<Error>(),
         destroyed: new Events.Subject<void>(),
     };
@@ -38,14 +32,11 @@ export class StreamConcatComputation extends Computation<IEvents> {
     }
 
     public getEventsSignatures(): IEventsSignatures {
-        return {
-            error: 'error',
-            destroyed: 'destroyed',
-        };
+        return EventsSignatures;
     }
 
-    public getEventsInterfaces() {
-        return EventsInterface;
+    public getEventsInterfaces(): IEventsInterfaces {
+        return EventsInterfaces;
     }
 
 

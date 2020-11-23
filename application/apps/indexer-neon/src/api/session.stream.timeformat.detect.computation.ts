@@ -1,5 +1,13 @@
 import { Computation } from './сomputation';
 import { RustTimeFormatDetectOperationChannel } from '../native/index';
+import {
+    IEventsInterfaces,
+    EventsInterfaces,
+    EventsSignatures,
+    IEventsSignatures,
+    IEvents,
+    IOperationProgress,
+} from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
 
@@ -12,12 +20,33 @@ export interface IDetectDTFormatResult {
     reg: string;
 }
 
+export interface IDetectEvents extends IEvents {
+    matches: Events.Subject<IDetectDTFormatResult[]>,
+}
+
+interface IDetectEventsSignatures extends IEventsSignatures {
+    matches: 'results';
+};
+
+const DetectEventsSignatures = Object.assign({
+    results: 'results'
+}, EventsSignatures) as IDetectEventsSignatures;
+
+interface IDetectEventsInterfaces extends IEventsInterfaces {
+    results: { self: 'object', matches: typeof Array }
+}
+
+const DetectEventsInterfaces = Object.assign({
+    results: { self: 'object', matches: Array },
+}, EventsInterfaces) as IDetectEventsInterfaces;
+
+/*
 export interface IEvents {
     results: Events.Subject<IDetectDTFormatResult>,
     error: Events.Subject<Error>,
     destroyed: Events.Subject<void>,
 }
-
+*/
 interface IEventsSignatures {
     results: 'results';
     error: 'error';

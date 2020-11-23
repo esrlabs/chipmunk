@@ -11,7 +11,7 @@
 //
 // Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './dist' is not defined by "exports" in ./application/apps/indexer-neon/node_modules/ts-node/package.json
 //
-// Yeu have to resolve it by hands. Open "./application/apps/indexer-neon/node_modules/ts-node/package.json"
+// You have to resolve it by hands. Open "./application/apps/indexer-neon/node_modules/ts-node/package.json"
 // Add there ("./dist": "./dist/index.js") into "exports" sections. Like this:
 //
 // "exports": {
@@ -65,7 +65,7 @@ describe('Utils tests', () => {
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
             self.canceled(() => {
-                expect(true).toBe(true);
+                
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -79,12 +79,12 @@ describe('Utils tests', () => {
             expect(true).toBe(false);
         }).canceled(() => {
             results.canceled += 1;
-            expect(true).toBe(true);
+            
         });
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
             self.canceled(() => {
-                expect(true).toBe(true);
+                
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -98,7 +98,7 @@ describe('Utils tests', () => {
             expect(true).toBe(false);
         }).canceled(() => {
             results.canceled += 1;
-            expect(true).toBe(true);
+            
         });
         // This task should be done
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
@@ -136,7 +136,7 @@ describe('Utils tests', () => {
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
             self.canceled(() => {
-                expect(true).toBe(true);
+                
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -150,12 +150,12 @@ describe('Utils tests', () => {
             expect(true).toBe(false);
         }).canceled(() => {
             results.canceled += 1;
-            expect(true).toBe(true);
+            
         });
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
             self.canceled(() => {
-                expect(true).toBe(true);
+                
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -169,12 +169,12 @@ describe('Utils tests', () => {
             expect(true).toBe(false);
         }).canceled(() => {
             results.canceled += 1;
-            expect(true).toBe(true);
+            
         });
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
             self.canceled(() => {
-                expect(true).toBe(true);
+                
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -188,7 +188,7 @@ describe('Utils tests', () => {
             expect(true).toBe(false);
         }).canceled(() => {
             results.canceled += 1;
-            expect(true).toBe(true);
+            
         });
         // Cancel all task
         executor.abort().then(() => {
@@ -213,7 +213,6 @@ describe('Utils tests', () => {
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
             self.canceled(() => {
-                expect(true).toBe(true);
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -227,12 +226,10 @@ describe('Utils tests', () => {
             expect(true).toBe(false);
         }).canceled(() => {
             results.canceled += 1;
-            expect(true).toBe(true);
         });
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
             self.canceled(() => {
-                expect(true).toBe(true);
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -246,7 +243,7 @@ describe('Utils tests', () => {
             expect(true).toBe(false);
         }).canceled(() => {
             results.canceled += 1;
-            expect(true).toBe(true);
+            
         });
         // This task should be canceled
         executor.run(() => new CancelablePromise((resolve, reject, cancel, cancelRef, self) => {
@@ -259,7 +256,7 @@ describe('Utils tests', () => {
                 }, 500);
             });
             self.canceled(() => {
-                expect(true).toBe(true);
+                
                 clearTimeout(timer);
             });
             const timer = setTimeout(() => {
@@ -272,7 +269,7 @@ describe('Utils tests', () => {
         }).catch((err: Error) => {
             expect(true).toBe(false);
         }).canceled(() => {
-            expect(true).toBe(true);
+            
         });
         setTimeout(() => {
             // Cancel all task
