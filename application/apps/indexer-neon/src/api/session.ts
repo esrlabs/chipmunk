@@ -113,10 +113,10 @@ export class Session {
 	}
 
 	public reset(): Promise<void> {
-		return new Promise((resolve, reject) => {
-			
-		});
-	}
+        return new Promise((resolve) => {
+            resolve();
+        });
+    }
 
 	public getSocketPath(): string | Error {
 		if (this._channel === undefined) {
