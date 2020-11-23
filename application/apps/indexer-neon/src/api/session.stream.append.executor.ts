@@ -2,9 +2,11 @@ import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustAppendOperationChannel, RustAppendOperationChannelConstructor } from '../native/index';
 import { Subscription } from '../util/events.subscription';
 import { StreamAppendComputation } from './session.stream.append.computation';
+import { TFileOptions } from '../native/native.session.stream.append';
 
 export interface IExecuteAppendOptions {
     filename: string;
+    options: TFileOptions;
 }
 
 export const executor: TExecutor<void, IExecuteAppendOptions> = (
@@ -58,6 +60,6 @@ export const executor: TExecutor<void, IExecuteAppendOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.append(uuid, options.filename);
+        channel.append(uuid, options.filename, options.options);
     });
 };
