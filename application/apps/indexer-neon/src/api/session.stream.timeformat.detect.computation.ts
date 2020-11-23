@@ -58,7 +58,7 @@ export class StreamTimeFormatDetectComputation extends Computation<IEvents> {
         return 'StreamTimeFormatDetectComputation';
     }
 
-    public getEvents(): IEvents {
+    public getEvents(): IDetectEvents {
         return this._events;
     }
 
