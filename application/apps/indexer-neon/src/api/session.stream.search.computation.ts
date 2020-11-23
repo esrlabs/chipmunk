@@ -49,7 +49,7 @@ export class StreamSearchComputation extends Computation<IEvents> {
         return 'StreamSearchComputation';
     }
 
-    public getEvents(): IEvents {
+    public getEvents(): ISearchEvents {
         return this._events;
     }
 
