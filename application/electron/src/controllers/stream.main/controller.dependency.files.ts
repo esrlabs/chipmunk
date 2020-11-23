@@ -7,13 +7,17 @@ import Logger from '../../tools/env.logger';
 import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
 import {
     Session,
-    SessionSearch,
+    TFileOptions,
+    EFileOptionsRequirements,
+    PromiseExecutor,
+    SessionStream,
     Events,
     IEventMatchesUpdated,
     IEventMapUpdated,
+    
 } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
-import { Channel } from './controller.channel';
+import { Channel, IOperationProgress } from './controller.channel';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export class Files extends Dependency {
@@ -28,22 +32,25 @@ export class Files extends Dependency {
         channel: {},
     };
     private readonly _session: Session;
-    private readonly _search: SessionSearch;
+    private readonly _stream: SessionStream;
     private readonly _sessionChannel: Channel;
-    private _charts: CommonInterfaces.API.IFilter[] = [];
-    private _filters: CommonInterfaces.API.IFilter[] = [];
+    private readonly _tasts: {
+        append: PromiseExecutor<void>;
+    } = {
+        append: new PromiseExecutor<void>(),
+    };
 
     constructor(session: Session, channel: Channel) {
         super();
         this._logger = new Logger(`Files: ${session.getUUID()}`);
         this._session = session;
         this._sessionChannel = channel;
-        const search: SessionSearch | Error = session.getSearch();
-        if (search instanceof Error) {
-            this._logger.error(`Fail to get search controller due error: ${search.message}`);
-            throw search;
+        const stream: SessionStream | Error = session.getStream();
+        if (stream instanceof Error) {
+            this._logger.error(`Fail to get stream controller due error: ${stream.message}`);
+            throw stream;
         }
-        this._search = search;
+        this._stream = stream;
     }
 
     public getName(): string {
@@ -73,6 +80,40 @@ export class Files extends Dependency {
                 })
                 .catch(reject);
         });
+    }
+
+    public open(filename: string, options: TFileOptions): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            this._tasts.append.run(() => {
+                const progress = this._sessionChannel.addProgressiveTask();
+                return this._stream
+                    .append(filename, options)
+                    .on('progress', (event: IOperationProgress) => {
+                        progress.progress(event);
+                    })
+                    .catch((err: Error) => {
+                        this._logger.warn(
+                            `Fail append file "${filename}" due error: ${err.message}`,
+                        );
+                        reject(err);
+                    })
+                    .canceled(() => {
+                        this._logger.debug(`Appending file "${filename}" is canceled`);
+                        resolve(true);
+                    })
+                    .then(() => {
+                        this._logger.debug(`Appending file "${filename}" is done`);
+                        resolve(false);
+                    })
+                    .finally(() => {
+                        progress.done();
+                    });
+            });
+        });
+    }
+
+    public getFileOptionsRequirements(filename: string): EFileOptionsRequirements {
+        return this._stream.getFileOptionsRequirements(filename);
     }
 
     private _events(): {
@@ -162,27 +203,21 @@ export class Files extends Dependency {
                     if (request.session !== self._session.getUUID()) {
                         return;
                     }
-                    self.open(request.file, request.session, undefined, request.options)
-                        .then((result: IOpenFileResult) => {
-                            const info = ServiceStreamSource.get(result.sourceId);
-                            if (info !== undefined) {
-                                (info as IPC.IStreamSourceNew).id = result.sourceId;
-                            }
-                            response(
-                                new IPC.FileOpenResponse({
-                                    stream: info as IPC.IStreamSourceNew,
-                                    options: result.options,
-                                }),
-                            );
-                        })
-                        .catch((openError: Error) => {
-                            response(
-                                new IPC.FileOpenResponse({
-                                    error: openError.message,
-                                    stream: undefined,
-                                }),
-                            );
-                        });
+                    self.open(request.file, request.options).then((canceled: boolean) => {
+                        response(
+                            new IPC.FileOpenResponse({
+                                canceled: canceled,
+                            }),
+                        );
+                    }).catch((err: Error) => {
+                        self._logger.error(`Unexpected error during appending file "${request.file}": ${err.message}`);
+                        self._logger.error(err.stack);
+                        response(
+                            new IPC.FileOpenResponse({
+                                error: err.message,
+                            }),
+                        );
+                    });
                 },
                 list(
                     request: IPC.FileListRequest,
@@ -224,25 +259,18 @@ export class Files extends Dependency {
         subscribe(): void;
         unsubscribe(): void;
         handlers: {
-            filters(filters: CommonInterfaces.API.IFilter[]): void;
         };
     } {
         const self = this;
         return {
             subscribe(): void {
-                self._subscriptions.channel.filters = self._sessionChannel
-                    .getEvents()
-                    .afterFiltersListUpdated.subscribe(self._channel().handlers.filters);
+                //
             },
             unsubscribe(): void {
-                Object.keys(self._subscriptions.session).forEach((key: string) => {
-                    self._subscriptions.channel[key].destroy();
-                });
+                //
             },
             handlers: {
-                filters(filters: CommonInterfaces.API.IFilter[]): void {
-                    self._filters = filters;
-                },
+
             },
         };
     }

@@ -11,6 +11,7 @@ import { IExportOptions } from './session.stream.export.computation';
 import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.computation';
 import { IExtractOptions, IExtractDTFormatResult } from './session.stream.timeformat.extract.computation';
 import { Executors } from './session.stream.executors';
+import { TFileOptions, EFileOptionsRequirements } from '../native/native.session.stream.append';
 
 export {
     IFileToBeMerged,
@@ -60,10 +61,12 @@ export class SessionStream {
         return this._channel.grabStreamChunk(start, len);
     }
 
-    // Detecting of file type happens on rust level.
-    // Meta data comes to nodejs via "grabbing"
-    public append(filename: string): CancelablePromise<void> {
-        return Executors.append(this._logger, this._uuid, { filename: filename });
+    public getFileOptionsRequirements(filename: string): EFileOptionsRequirements {
+        return this._channel.getFileOptionsRequirements(filename);
+    }
+
+    public append(filename: string, options: TFileOptions): CancelablePromise<void> {
+        return Executors.append(this._logger, this._uuid, { filename: filename, options: options });
     }
 
     public concat(files: string[]): CancelablePromise<void> {
