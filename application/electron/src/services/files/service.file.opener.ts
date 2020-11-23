@@ -5,9 +5,7 @@ import ServiceHotkeys from '../service.hotkeys';
 import ServiceFileRecent from './service.file.recent';
 import Logger from '../../tools/env.logger';
 
-import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue } from 'electron';
-import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import { isHidden } from '../../tools/fs';
@@ -31,7 +29,6 @@ class ServiceFileOpener implements IService {
     private _logger: Logger = new Logger('ServiceFileOpener');
     // Should detect by executable file
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _active: Map<string, AFileParser> = new Map<string, AFileParser>();
 
     /**
      * Initialization function
@@ -341,7 +338,7 @@ class ServiceFileOpener implements IService {
                 fullFileName: fullFileName,
                 type: parser.getAlias(),
                 size: size,
-                session: ServiceStreams.getActiveStreamId(),
+                session: ServiceStreams.getActiveSessionUUID(),
             }), IPCMessages.FileGetOptionsResponse).then((response: IPCMessages.FileGetOptionsResponse) => {
                 if (!response.allowed) {
                     return resolve(false);
@@ -397,7 +394,7 @@ class ServiceFileOpener implements IService {
                         return resolve(undefined);
                     }
                     const file: string = returnValue.filePaths[0];
-                    this.open(file, ServiceStreams.getActiveStreamId(), parser).then(() => {
+                    this.open(file, ServiceStreams.getActiveSessionUUID(), parser).then(() => {
                         resolve(file);
                     }).catch((error: Error) => {
                         this._logger.warn(`Fail open file due error: ${error.message}`);
