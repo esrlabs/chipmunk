@@ -57,7 +57,7 @@ export class StreamTimeFormatExtractComputation extends Computation<IEvents> {
         return 'StreamTimeFormatExtractComputation';
     }
 
-    public getEvents(): IEvents {
+    public getEvents(): IExtractEvents {
         return this._events;
     }
 
