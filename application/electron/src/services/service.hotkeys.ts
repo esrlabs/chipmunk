@@ -156,8 +156,12 @@ class ServiceHotkeys implements IService {
         if ((this._subjects as any)[action] !== undefined) {
             (this._subjects as any)[action].emit();
         }
+        const session: string | undefined = ServiceStreams.getActiveSessionUUID();
+        if (session === undefined) {
+            return;
+        }
         ServiceElectron.IPC.send(new IPCMessages.HotkeyCall({
-            session: ServiceStreams.getActiveStreamId(),
+            session: session,
             unixtime: Date.now(),
             action: action,
             shortcut: shortcut,

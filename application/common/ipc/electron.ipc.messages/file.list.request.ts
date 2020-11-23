@@ -1,11 +1,13 @@
 export interface IFileListRequest {
     files: string[];
+    session: string;
 }
 
 export class FileListRequest {
     public static signature: string = 'FileListRequest';
     public signature: string = FileListRequest.signature;
     public files: string[];
+    public session: string;
 
     constructor(params: IFileListRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -19,6 +21,7 @@ export class FileListRequest {
                 throw new Error(`Elements of files should be of type <string>`);
             }
         });
+        this.session = params.session;
         this.files = params.files;
     }
 }
