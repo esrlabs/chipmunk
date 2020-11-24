@@ -30,7 +30,7 @@ import { PromiseExecutor } from '../src/util/promise.executor';
 describe('Utils tests', () => {
 
     it('Subject interface validator', (done: Function)=> {
-        
+
         let desc: IEventDesc = { self: 'object', propA: 'string', propB: 'number' };
         expect(Subject.validate(desc, { propA: 'this is string', propB: 1 })).toBe(undefined);
         expect(Subject.validate(desc, { propA: 'this is string', propB: '1' })).toBeInstanceOf(Error);
@@ -38,7 +38,7 @@ describe('Utils tests', () => {
         desc = { self: 'object', propA: 'string', propB: ['number', 'string'] };
         expect(Subject.validate(desc, { propA: 'this is string', propB: 1 })).toBe(undefined);
         expect(Subject.validate(desc, { propA: 'this is string', propB: '1' })).toBe(undefined);
-        
+
         desc = { self: Error };
         expect(Subject.validate(desc, new Error('Test'))).toBe(undefined);
         expect(Subject.validate(desc, {  })).toBeInstanceOf(Error);
