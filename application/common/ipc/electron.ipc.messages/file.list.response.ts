@@ -4,16 +4,14 @@ export interface IFileListResponse {
 }
 
 export interface IFile {
-    lastModified: number;
-    lastModifiedDate: Date;
-    name: string;
+    modified: number;
+    created: number;
+    basename: string;
     path: string;
+    filename: string;
+    extention: string;
     size: number;
-    type: string;
-    hasParser: boolean;
-    isHidden: boolean;
-    checked: boolean;
-    disabled: boolean;
+    hidden: boolean;
 }
 
 export class FileListResponse {
