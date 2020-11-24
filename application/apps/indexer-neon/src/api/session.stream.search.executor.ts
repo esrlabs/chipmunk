@@ -2,18 +2,18 @@ import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustSessionChannel } from '../native/index';
 import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
-import { IFilter, IMatchEntity } from '../interfaces/index';
+import { ISearchFilter, IMatchEntity } from '../interfaces/index';
 import {
     StreamSearchComputation,
 } from './session.stream.search.computation';
 import { IComputationError } from '../interfaces/errors';
 import { IGeneralError } from '../interfaces/errors';
 
-export const executor: TExecutor<IMatchEntity[], IFilter[]> = (
+export const executor: TExecutor<IMatchEntity[], ISearchFilter[]> = (
     channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
-    filters: IFilter[],
+    filters: ISearchFilter[],
 ): CancelablePromise<IMatchEntity[]> => {
     return new CancelablePromise<IMatchEntity[]>(
         (resolve, reject, cancel, refCancelCB, self) => {

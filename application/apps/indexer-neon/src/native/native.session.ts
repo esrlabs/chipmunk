@@ -4,7 +4,7 @@ import ServiceProduction from '../services/service.production';
 
 import { RustChannelRequiered } from './native.channel.required';
 import { ERustEmitterEvents, RustSessionChannelNoType, TEventEmitter, TCanceler } from './native';
-import { IFilter, IMatchEntity } from '../interfaces/index';
+import { ISearchFilter, IMatchEntity } from '../interfaces/index';
 import { RustChannelConstructorImpl } from './native';
 import { IGeneralError } from '../interfaces/errors';
 import { CancelablePromise } from '../util/promise';
@@ -30,7 +30,9 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      *
      * @error In case of incorrect range should return { IGeneralError }
      */
-    public abstract grabStreamChunk(start: number, len: number): string | IGeneralError;
+    public grabStreamChunk(start: number, len: number): string | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
     /**
      * Returns chunk of stream/session file.
@@ -39,12 +41,18 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      * @returns { string }
      * @error In case of incorrect range should return { IGeneralError }
      */
-    public abstract grabSearchChunk(start: number, len: number): string | IGeneralError;
+    public grabSearchChunk(start: number, len: number): string | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
     /**
      * TODO: @return needs interface. It should not be a string
      */
-    public abstract grabMatchesChunk(start: number, len: number): string | IGeneralError;
+    public grabMatchesChunk(start: number, len: number): string | IGeneralError {
+        throw 'NYI'; // TODO
+    }
+
+    public abstract id(): string;
 
     /**
      * Bind filters with current session. Rust core should break (stop) search (if it wasn't
@@ -58,7 +66,7 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      *
      * @error { IGeneralError }
      */
-    public abstract setSearch(filters: IFilter[]): IGeneralError | undefined;
+    public abstract setSearch(filters: ISearchFilter[]): IGeneralError | undefined;
 
     /**
      * Bind filters with current session. Rust core should break (stop) search of matches (if
@@ -69,7 +77,9 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      *
      * @error { IGeneralError }
      */
-    public abstract setMatches(filters: IFilter[]): IGeneralError | undefined;
+    public setMatches(filters: ISearchFilter[]): IGeneralError | undefined {
+        throw 'NYI'; // TODO
+    }
 
     /**
      * Returns reference to option's type, which should be defined for @method append
@@ -77,32 +87,38 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      * @param filename { string } full filename
      * @returns { EFileOptionsRequirements }
      */
-    public abstract getFileOptionsRequirements(filename: string): EFileOptionsRequirements;
+    public getFileOptionsRequirements(filename: string): EFileOptionsRequirements {
+        throw 'NYI'; // TODO
+    }
 
     /**
      * Returns length (count of rows) of session/stream file
      * @returns { nummber }
      */
-    public abstract getStreamLen(): number;
+    public getStreamLen(): number {
+        throw 'NYI'; // TODO
+    }
 
     /**
      * Returns length (count of rows) of search results stream
      * @returns { nummber }
      */
-    public abstract getSearchLen(): number;
+    // public abstract getSearchLen(): number;
 
     /**
      * Returns length (count of rows with matches) of getting matches in stream
      * @returns { nummber }
      */
-    public abstract getMatchesLen(): number;
+    // public abstract getMatchesLen(): number;
 
     /**
      * Returns path to socket, which can be used to pass data into session stream
      * @returns { string }
      */
-    public abstract getSocketPath(): string;
-    
+    public getSocketPath(): string {
+        throw 'NYI'; // TODO
+    }
+
      /**
      * Assigns session with the file. After the file was assigned, @method concat, @method merge cannot be used
      * and should return @error IGeneralError.
@@ -113,7 +129,9 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract assign(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler | IGeneralError;
+    public assign(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
     /**
      * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
@@ -124,7 +142,9 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract concat(emitter: TEventEmitter, files: string[]): TCanceler | IGeneralError;
+    public concat(emitter: TEventEmitter, files: string[]): TCanceler | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
     /**
      * Merge files and assigns it with session. After this operation, @method assign, @method concat cannot be used
@@ -135,17 +155,28 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler | IGeneralError;
+    public merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
-    public abstract export(emitter: TEventEmitter, options: IExportOptions): TCanceler | IGeneralError;
+    public export(emitter: TEventEmitter, options: IExportOptions): TCanceler | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
-    public abstract detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler | IGeneralError;
+    public detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
-    public abstract extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler | IGeneralError;
+    public extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 
-    public abstract search(emitter: TEventEmitter, filters: IFilter[]): TCanceler | IGeneralError;
+    public search(emitter: TEventEmitter, filters: ISearchFilter[]): TCanceler | IGeneralError {
+        throw 'NYI'; // TODO
+    }
 }
 
+/*
 export class RustSessionChannelDebug extends RustSessionChannel {
     private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionChannelDebug`);
     private readonly _emitter: TEventEmitter;
@@ -316,15 +347,16 @@ export class RustSessionChannelDebug extends RustSessionChannel {
         return () => {};
     }
 }
+*/
 
-let RustSessionChannelDebugConstructor: RustChannelConstructorImpl<RustSessionChannelDebug> = RustSessionChannelDebug;
+// let RustSessionChannelDebugConstructor: RustChannelConstructorImpl<RustSessionChannelDebug> = RustSessionChannelDebug;
 
 let RustSessionChannelConstructor: RustChannelConstructorImpl<RustSessionChannel>;
 
 if (ServiceProduction.isProd()) {
     RustSessionChannelConstructor = RustSessionChannelNoType;
 } else {
-    RustSessionChannelConstructor = RustSessionChannelDebugConstructor;
+    // RustSessionChannelConstructor = RustSessionChannelDebugConstructor;
 }
 
 export { RustSessionChannelConstructor };
