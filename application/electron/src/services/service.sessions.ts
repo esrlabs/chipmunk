@@ -12,7 +12,7 @@ import ServicePlugins from './service.plugins';
 import ServiceElectron from './service.electron';
 import Logger from '../tools/env.logger';
 
-import { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
+import { IPCMessages as IPC, Subscription } from './service.electron';
 import { EventsHub } from '../controllers/stream.common/events';
 import { IService } from '../interfaces/interface.service';
 import { ControllerSession } from '../controllers/stream.main/controller';
@@ -85,7 +85,6 @@ class ServiceSessions implements IService  {
         return this._subjects;
     }
 
-
     public getActiveSessionUUID(): string | undefined {
         return this._session !== undefined ? this._session.get().UUID() : undefined;
     }
@@ -94,6 +93,22 @@ class ServiceSessions implements IService  {
         return this._session !== undefined ? this._session : undefined;
     }
 
+/*
+    public add(): Promise<ControllerSession> {
+        return new Promise((resolve, reject) => {
+            ServiceElectron.IPC.request(new IPC.RenderSessionAddRequest(), IPC.RenderSessionAddResponse).then((response: IPC.RenderSessionAddResponse) => {
+                if (response.error !== undefined) {
+                    this._logger.warn(`Fail to add new session due error: ${response.error}`);
+                    return reject(new Error(response.error));
+                }
+                resolve();
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to add new session due error: ${err.message}`);
+                reject(err);
+            });
+        });
+    }
+*/
     /**
      * Creates new session instance
      * @returns Promise<ControllerSession>
@@ -141,26 +156,26 @@ class ServiceSessions implements IService  {
         subscribe(): Promise<void>;
         unsubscribe(): void;
         handlers: {
-            add(message: IPCElectronMessages.StreamAddRequest, response: (res: IPCElectronMessages.TMessage) => any): void;
-            remove(message: IPCElectronMessages.StreamRemoveRequest, response: (res: IPCElectronMessages.TMessage) => any): void;
-            activate(message: IPCElectronMessages.StreamSetActive, response: (res: IPCElectronMessages.TMessage) => any): void;
+            add(message: IPC.StreamAddRequest, response: (res: IPC.TMessage) => any): void;
+            remove(message: IPC.StreamRemoveRequest, response: (res: IPC.TMessage) => any): void;
+            activate(message: IPC.StreamSetActive, response: (res: IPC.TMessage) => any): void;
         };
     } {
         const self = this;
         return {
             subscribe(): Promise<void> {
                 return Promise.all([
-                    ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamAddRequest, self._ipc().handlers.add as any).then((subscription: Subscription) => {
+                    ServiceElectron.IPC.subscribe(IPC.StreamAddRequest, self._ipc().handlers.add as any).then((subscription: Subscription) => {
                         self._subscriptions.ipc.add = subscription;
                     }).catch((error: Error) => {
                         return Promise.reject(new Error(self._logger.warn(`Fail to subscribe to render event "StreamAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`)));
                     }),
-                    ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamRemoveRequest, self._ipc().handlers.remove as any).then((subscription: Subscription) => {
+                    ServiceElectron.IPC.subscribe(IPC.StreamRemoveRequest, self._ipc().handlers.remove as any).then((subscription: Subscription) => {
                         self._subscriptions.ipc.remove = subscription;
                     }).catch((error: Error) => {
                         return Promise.reject(new Error(self._logger.warn(`Fail to subscribe to render event "StreamRemove" due error: ${error.message}. This is not blocked error, loading will be continued.`)));
                     }),
-                    ServiceElectron.IPC.subscribe(IPCElectronMessages.StreamSetActive, self._ipc().handlers.activate as any).then((subscription: Subscription) => {
+                    ServiceElectron.IPC.subscribe(IPC.StreamSetActive, self._ipc().handlers.activate as any).then((subscription: Subscription) => {
                         self._subscriptions.ipc.activate = subscription;
                     }).catch((error: Error) => {
                         return Promise.reject(new Error(self._logger.warn(`Fail to subscribe to render event "StreamSetActive" due error: ${error.message}. This is not blocked error, loading will be continued.`)));
@@ -175,7 +190,7 @@ class ServiceSessions implements IService  {
                 });
             },
             handlers: {
-                add(message: IPCElectronMessages.StreamAddRequest, response: (res: IPCElectronMessages.TMessage) => any): void {
+                add(message: IPC.StreamAddRequest, response: (res: IPC.TMessage) => any): void {
                     // Create stream
                     self._create().then((controller: ControllerSession) => {
                         // Check active
@@ -183,28 +198,28 @@ class ServiceSessions implements IService  {
                             self._session = controller;
                         }
                         // Response
-                        response(new IPCElectronMessages.StreamAddResponse({
+                        response(new IPC.StreamAddResponse({
                             guid: controller.get().UUID(),
                         }));
                     }).catch((streamCreateError: Error) => {
                         const errMsg: string = `Fail to create stream due error: ${streamCreateError.message}`;
                         // Response
-                        response(new IPCElectronMessages.StreamAddResponse({
+                        response(new IPC.StreamAddResponse({
                             guid: '',
                             error: errMsg,
                         }));
                         self._logger.error(errMsg);
                     });
                 },
-                remove(message: IPCElectronMessages.StreamRemoveRequest, response: (res: IPCElectronMessages.TMessage) => any): void {
+                remove(message: IPC.StreamRemoveRequest, response: (res: IPC.TMessage) => any): void {
                     self._destroy(message.guid).then(() => {
-                        response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid }));
+                        response(new IPC.StreamRemoveResponse({ guid: message.guid }));
                     }).catch((destroyError: Error) => {
                         self._logger.error(`Fail to correctly destroy session "${message.guid}" due error: ${destroyError.message}.`);
-                        response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid, error: destroyError.message }));
+                        response(new IPC.StreamRemoveResponse({ guid: message.guid, error: destroyError.message }));
                     });
                 },
-                activate(message: IPCElectronMessages.StreamSetActive, response: (res: IPCElectronMessages.TMessage) => any): void {
+                activate(message: IPC.StreamSetActive, response: (res: IPC.TMessage) => any): void {
                     if (self._session !== undefined && self._session.get().UUID() === message.guid) {
                         return;
                     }
