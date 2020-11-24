@@ -14,11 +14,10 @@ import {
     Events,
     IEventMatchesUpdated,
     IEventMapUpdated,
-    
 } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
 import { Channel, IOperationProgress } from './controller.channel';
-import { CommonInterfaces } from '../../interfaces/interface.common';
+import { getExtendFilesInfo } from '../../tools/fs';
 
 export class Files extends Dependency {
     private readonly _logger: Logger;
@@ -168,6 +167,10 @@ export class Files extends Dependency {
                 request: IPC.FileListRequest,
                 response: (instance: IPC.FileListResponse) => any,
             ): void;
+            options(
+                request: IPC.FileGetOptionsRequest,
+                response: (instance: IPC.FileGetOptionsResponse) => any,
+            ): void;
         };
     } {
         const self = this;
@@ -185,6 +188,12 @@ export class Files extends Dependency {
                         self._ipc().handlers.list,
                     ).then((subscription: Subscription) => {
                         this._subscriptions.FileListRequest = subscription;
+                    }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.FileGetOptionsRequest,
+                        self._ipc().handlers.options,
+                    ).then((subscription: Subscription) => {
+                        this._subscriptions.FileGetOptionsRequest = subscription;
                     }),
                 ]).then(() => {
                     return Promise.resolve();
@@ -226,31 +235,32 @@ export class Files extends Dependency {
                     if (request.session !== self._session.getUUID()) {
                         return;
                     }
-                    Promise.all(
-                        request.files.map((file: string) => {
-                            return this._listFiles(file);
-                        }),
-                    )
-                        .then((fileLists: IPC.IFile[][]) => {
-                            response(
-                                new IPC.FileListResponse({
-                                    files: this._concatFileList(fileLists),
-                                }),
-                            ).catch((error: Error) => {
-                                this._logger.error(
-                                    `Fail to respond to files ${request.files} due error: ${error.message}`,
-                                );
-                            });
-                        })
-                        .catch((error: Error) => {
-                            response(
-                                new IPC.FileListResponse({
-                                    files: [],
-                                    error: error.message,
-                                }),
-                            );
-                        });
+                    getExtendFilesInfo(request.files).then((info) => {
+                        response(
+                            new IPC.FileListResponse({
+                                files: info.files,
+                            }),
+                        );
+                    }).catch((err: Error) => {
+                        response(
+                            new IPC.FileListResponse({
+                                files: [],
+                                error: err.message,
+                            }),
+                        );
+                    });
                 },
+                options(
+                    request: IPC.FileGetOptionsRequest,
+                    response: (instance: IPC.FileGetOptionsResponse) => any,
+                ): void {
+                    if (request.session !== self._session.getUUID()) {
+                        return;
+                    }
+                    response(new IPC.FileGetOptionsResponse({
+                        options: self._stream.getFileOptionsRequirements(request.filename),
+                    }));
+                }
             },
         };
     }

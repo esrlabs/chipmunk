@@ -280,6 +280,65 @@ export function copyFolder(source: string, dest: string) {
     }
 }
 
+export interface IExtendFileInfo {
+    modified: number;
+    created: number;
+    basename: string;
+    path: string;
+    filename: string;
+    extention: string;
+    size: number;
+    hidden: boolean;
+}
+
+export function getExtendFileInfo(filename: string): Promise<IExtendFileInfo> {
+    return new Promise((resolve, reject) => {
+        fs.lstat(filename, (lsErr, stats) => {
+            if (lsErr) {
+                return reject(lsErr);
+            }
+            if (!stats.isFile()) {
+                return reject(new Error(`${filename} isn't a file`));
+            }
+            isHidden(filename).then((hidden: boolean) => {
+                resolve({
+                    modified: stats.mtimeMs,
+                    created: stats.ctimeMs,
+                    basename: Path.basename(filename),
+                    path: Path.dirname(filename),
+                    filename: filename,
+                    extention: Path.extname(filename),
+                    size: stats.size,
+                    hidden: hidden,
+                });
+            }).catch(reject);
+        });
+    });
+}
+
+export interface IExtendFilesInfo {
+    files: IExtendFileInfo[];
+    errors: Error[];
+}
+
+export function getExtendFilesInfo(files: string[]): Promise<IExtendFilesInfo> {
+    return new Promise((resolve, reject) => {
+        const result: IExtendFilesInfo = {
+            files: [],
+            errors: [],
+        };
+        Promise.all(files.map((filename: string) => {
+            return getExtendFileInfo(filename).then((info: IExtendFileInfo) => {
+                result.files.push(info);
+            }).catch((err: Error) => {
+                result.errors.push(err);
+            });
+        })).then(() => {
+            resolve(result);
+        }).catch(reject);
+    });
+}
+
 export function isHidden(path: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
         const ops = os.getPlatform();
