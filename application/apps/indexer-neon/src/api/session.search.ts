@@ -6,7 +6,7 @@ import {
 import { CancelablePromise } from '../util/promise';
 import { Subscription } from '../util/events.subscription';
 import { SessionComputation } from './session.computation';
-import { IFilter, IMatchEntity } from '../interfaces/index';
+import { ISearchFilter, IMatchEntity } from '../interfaces/index';
 import { StreamSearchComputation } from './session.stream.search.computation';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
 import { TCanceler } from '../native/native';
@@ -61,7 +61,7 @@ export class SessionSearch {
      * @cancelable no
      * @param filters { IFilter[] }
      */
-    public setFilters(filters: IFilter[]): Error | undefined {
+    public setFilters(filters: ISearchFilter[]): Error | undefined {
         const error: IGeneralError  | undefined = this._channel.setSearch(filters);
         if (error !== undefined) {
             this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
@@ -78,7 +78,7 @@ export class SessionSearch {
      * @cancelable no
      * @param filters { IFilter[] }
      */
-    public setMatches(filters: IFilter[]): Error | undefined {
+    public setMatches(filters: ISearchFilter[]): Error | undefined {
         const error: IGeneralError | undefined = this._channel.setMatches(filters);
         if (error !== undefined) {
             this._logger.warn(`Fail to set filters for matches due error: ${error.message}`);
@@ -88,7 +88,7 @@ export class SessionSearch {
         }
     }
 
-    public search(filters: IFilter[]): CancelablePromise<IMatchEntity[]> {
+    public search(filters: ISearchFilter[]): CancelablePromise<IMatchEntity[]> {
         return Executors.search(this._channel, this._logger, this._uuid, filters);
     }
 

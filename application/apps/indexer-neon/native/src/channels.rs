@@ -81,9 +81,12 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
                 o.upcast()
             }
             Ok(IndexingProgress::GotItem { item: chunk }) => {
-                let event_name = cx.string("GotItem");
                 trace!("GotItem...{:?}", chunk);
-                match neon_serde::to_value(&mut cx, &chunk) {
+                error!("item parsing to JsObject not implemented!");
+                cx.empty_object().upcast()
+                /*
+                let event_name = cx.string("GotItem");
+                match serde_json::to_value(&mut cx, &chunk) {
                     Ok(js_value) => {
                         trace!("Try to downcast {:?}", chunk);
                         match js_value.downcast::<JsObject>() {
@@ -104,6 +107,7 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
                         cx.empty_object().upcast()
                     }
                 }
+                */
             }
             Ok(IndexingProgress::Stopped) => {
                 let o = cx.empty_object();

@@ -1,0 +1,41 @@
+
+
+e.g. show text file content
+
+1. create session => RustSessionChannel
+
+//
+//-js-------------------------> Rust:
+
+let text_session = new RustSessionChannel(emitter callback);
+
+ ----------------------------> rust-session-channel
+
+JS -> RUST: assign file to session
+// rust will build index asynchronically
+
+ ----------------------------> rust-session-channel.file = "path/to/textfile.txt"
+ ----------------------------> rust is indexing
+ // [xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]
+ // [xxxxx] => report progress 100 rows from 1000 rows
+ //...
+ JS <- RUST: Event::Progress (callback(PROGRESS, (100, 1000)))
+ ...
+ JS -> RUST: grabStreamChunk(20, 10)
+ JS <- RUST: content [20..30]
+ JS -> RUST: grabStreamChunk(900, 10)
+ JS <- RUST: Error(content not yet available)
+ ...
+ JS <- RUST: Event::Progress (callback(PROGRESS, 1000, 1000))
+ JS <- RUST: Event::Finished (callback(FINISHED))
+ ...fully initialized
+
+ JS -> RUST: grabStreamChunk(900, 10)
+ JS <- RUST: content [900..910]
+ ...
+ Js -> RUST: setSearch(filters)
+ // Rust: session-file: Path, index-of-file, search-filters: [String], index-of-search-results
+ RUST -> RipGrep: create search result file & index
+ JS <- RUST: Event::Progress (callback(SEARCH_PROGRESS, 40))
+
+

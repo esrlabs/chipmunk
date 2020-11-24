@@ -3,9 +3,9 @@ export interface IDebugSettings {
 }
 
 export class ServiceProduction {
-    
+
     public isProd(): boolean {
-        return false;
+        return true;
     }
 
     public getDebugSettings(): IDebugSettings {

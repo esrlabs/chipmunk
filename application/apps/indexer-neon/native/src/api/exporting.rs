@@ -101,30 +101,36 @@ declare_types! {
             i += 1;
             let destination_path = path::PathBuf::from(cx.argument::<JsString>(i)?.value().as_str());
             i += 1;
-            let arg_sections_conf = cx.argument::<JsValue>(i)?;
-            let sections_conf: SectionConfig = neon_serde::from_value(&mut cx, arg_sections_conf)?;
+            let arg_sections_conf = cx.argument::<JsString>(i)?.value();
+            let sections_conf: Result<SectionConfig, serde_json::Error> =
+                serde_json::from_str(arg_sections_conf.as_str());
             i += 1;
             let was_session_file = cx.argument::<JsBoolean>(i)?.value();
 
-            let shutdown_channel = sync::mpsc::channel(1);
-            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-            let mut emitter = ExporterEventEmitter {
-                event_receiver: rx,
-                shutdown_sender: shutdown_channel.0,
-                task_thread: None,
-            };
+            match sections_conf {
+                Ok(sections_conf) => {
+                    let shutdown_channel = sync::mpsc::channel(1);
+                    let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+                    let mut emitter = ExporterEventEmitter {
+                        event_receiver: rx,
+                        shutdown_sender: shutdown_channel.0,
+                        task_thread: None,
+                    };
 
-            match emitter.start_exporting_file_in_thread(
-                source,
-                source_type,
-                destination_path,
-                sections_conf,
-                was_session_file,
-                shutdown_channel.1,
-                tx,
-            ) {
-                Ok(()) => Ok(emitter),
-                Err(_) => Err(neon::result::Throw)
+                    match emitter.start_exporting_file_in_thread(
+                        source,
+                        source_type,
+                        destination_path,
+                        sections_conf,
+                        was_session_file,
+                        shutdown_channel.1,
+                        tx,
+                    ) {
+                        Ok(()) => Ok(emitter),
+                        Err(_) => Err(neon::result::Throw)
+                    }
+                }
+                Err(e) => cx.throw_error("The sections-configuration was not valid"),
             }
         }
 
