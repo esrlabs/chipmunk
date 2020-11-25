@@ -7,6 +7,7 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
+    IError,
 } from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
@@ -46,7 +47,7 @@ export class StreamTimeFormatDetectComputation extends Computation<IEvents> {
     private readonly _events: IDetectEvents = {
         progress: new Events.Subject<IOperationProgress>(),
         results: new Events.Subject<IDetectDTFormatResult[]>(),
-        error: new Events.Subject<Error>(),
+        error: new Events.Subject<IError>(),
         destroyed: new Events.Subject<void>(),
     };
 

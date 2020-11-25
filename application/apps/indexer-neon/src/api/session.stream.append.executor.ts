@@ -3,6 +3,7 @@ import { RustAppendOperationChannel, RustAppendOperationChannelConstructor } fro
 import { Subscription } from '../util/events.subscription';
 import { StreamAppendComputation } from './session.stream.append.computation';
 import { TFileOptions } from '../native/native.session.stream.append';
+import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
 
 export interface IExecuteAppendOptions {
     filename: string;
@@ -33,9 +34,9 @@ export const executor: TExecutor<void, IExecuteAppendOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: Error) => {
-                logger.warn(`Error on operation append: ${err.message}`);
-                error = err;
+            error: computation.getEvents().error.subscribe((err: IError) => {
+                logger.warn(`Error on operation append: ${err.content}`);
+                error = new Error(err.content);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();

@@ -2,6 +2,7 @@ import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustTimeFormatDetectOperationChannel, RustTimeFormatDetectOperationChannelConstructor } from '../native/index';
 import { Subscription } from '../util/events.subscription';
 import { StreamTimeFormatDetectComputation, IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.computation';
+import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
 
 export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
     logger: Logger,
@@ -33,9 +34,9 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
                     });
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: Error) => {
-                logger.warn(`Error on operation append: ${err.message}`);
-                error = err;
+            error: computation.getEvents().error.subscribe((err: IError) => {
+                logger.warn(`Error on operation append: ${err.content}`);
+                error = new Error(err.content);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
