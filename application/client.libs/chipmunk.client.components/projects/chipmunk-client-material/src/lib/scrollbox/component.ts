@@ -560,20 +560,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._selection_copy();
     }
 
-    public scrollToBegin() {
-        if (this._state.start === 0) {
-            return;
-        }
-        this._onScrollTo(false, 0, true);
-    }
-
-    public scrollToEnd() {
-        if (this._state.start === this._storageInfo.count - 1) {
-            return;
-        }
-        this._onScrollTo(false, this._storageInfo.count - 1, true);
-    }
-
     private _setFrame(start: number, outside: boolean) {
         this._state.start = start;
         if (this._state.start < 0) {
@@ -644,10 +630,16 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 this._onScrollTo(false, this._state.start - this._state.count, true);
                 break;
             case EKeys.End:
-                this.scrollToEnd();
+                if (this._state.start === this._storageInfo.count - 1) {
+                    return;
+                }
+                this._onScrollTo(false, this._storageInfo.count - 1, true);
                 break;
             case EKeys.Home:
-                this.scrollToBegin();
+                if (this._state.start === 0) {
+                    return;
+                }
+                this._onScrollTo(false, 0, true);
                 break;
             case EKeys.KeyC:
             case EKeys.KeyX:
