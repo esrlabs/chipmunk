@@ -17,7 +17,7 @@ import {
 } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
 import { Channel, IOperationProgress } from './controller.channel';
-import { getExtendFilesInfo } from '../../tools/fs';
+import { getExtendFilesInfo, getExtendFileInfo } from '../../tools/fs';
 
 export class Files extends Dependency {
     private readonly _logger: Logger;
@@ -171,6 +171,10 @@ export class Files extends Dependency {
                 request: IPC.FileGetOptionsRequest,
                 response: (instance: IPC.FileGetOptionsResponse) => any,
             ): void;
+            info(
+                request: IPC.FileInfoRequest,
+                response: (instance: IPC.FileInfoResponse) => any,
+            ): void;
         };
     } {
         const self = this;
@@ -181,19 +185,25 @@ export class Files extends Dependency {
                         IPC.FileOpenRequest,
                         self._ipc().handlers.open,
                     ).then((subscription: Subscription) => {
-                        this._subscriptions.FileOpenRequest = subscription;
+                        self._subscriptions.ipc.FileOpenRequest = subscription;
                     }),
                     ServiceElectron.IPC.subscribe(
                         IPC.FileListRequest,
                         self._ipc().handlers.list,
                     ).then((subscription: Subscription) => {
-                        this._subscriptions.FileListRequest = subscription;
+                        self._subscriptions.ipc.FileListRequest = subscription;
                     }),
                     ServiceElectron.IPC.subscribe(
                         IPC.FileGetOptionsRequest,
                         self._ipc().handlers.options,
                     ).then((subscription: Subscription) => {
-                        this._subscriptions.FileGetOptionsRequest = subscription;
+                        self._subscriptions.ipc.FileGetOptionsRequest = subscription;
+                    }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.FileInfoRequest,
+                        self._ipc().handlers.info,
+                    ).then((subscription: Subscription) => {
+                        self._subscriptions.ipc.FileGetParserRequest = subscription;
                     }),
                 ]).then(() => {
                     return Promise.resolve();
@@ -212,21 +222,25 @@ export class Files extends Dependency {
                     if (request.session !== self._session.getUUID()) {
                         return;
                     }
-                    self.open(request.file, request.options).then((canceled: boolean) => {
-                        response(
-                            new IPC.FileOpenResponse({
-                                canceled: canceled,
-                            }),
-                        );
-                    }).catch((err: Error) => {
-                        self._logger.error(`Unexpected error during appending file "${request.file}": ${err.message}`);
-                        self._logger.error(err.stack);
-                        response(
-                            new IPC.FileOpenResponse({
-                                error: err.message,
-                            }),
-                        );
-                    });
+                    self.open(request.file, request.options)
+                        .then((canceled: boolean) => {
+                            response(
+                                new IPC.FileOpenResponse({
+                                    canceled: canceled,
+                                }),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            self._logger.error(
+                                `Unexpected error during appending file "${request.file}": ${err.message}`,
+                            );
+                            self._logger.error(err.stack);
+                            response(
+                                new IPC.FileOpenResponse({
+                                    error: err.message,
+                                }),
+                            );
+                        });
                 },
                 list(
                     request: IPC.FileListRequest,
@@ -235,20 +249,22 @@ export class Files extends Dependency {
                     if (request.session !== self._session.getUUID()) {
                         return;
                     }
-                    getExtendFilesInfo(request.files).then((info) => {
-                        response(
-                            new IPC.FileListResponse({
-                                files: info.files,
-                            }),
-                        );
-                    }).catch((err: Error) => {
-                        response(
-                            new IPC.FileListResponse({
-                                files: [],
-                                error: err.message,
-                            }),
-                        );
-                    });
+                    getExtendFilesInfo(request.files)
+                        .then((info) => {
+                            response(
+                                new IPC.FileListResponse({
+                                    files: info.files,
+                                }),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            response(
+                                new IPC.FileListResponse({
+                                    files: [],
+                                    error: err.message,
+                                }),
+                            );
+                        });
                 },
                 options(
                     request: IPC.FileGetOptionsRequest,
@@ -257,9 +273,29 @@ export class Files extends Dependency {
                     if (request.session !== self._session.getUUID()) {
                         return;
                     }
-                    response(new IPC.FileGetOptionsResponse({
-                        options: self._stream.getFileOptionsRequirements(request.filename),
-                    }));
+                    response(
+                        new IPC.FileGetOptionsResponse({
+                            options: self._stream.getFileOptionsRequirements(request.filename),
+                        }),
+                    );
+                },
+                info(
+                    request: IPC.FileInfoRequest,
+                    response: (instance: IPC.FileInfoResponse) => any,
+                ): void {
+                    getExtendFileInfo(request.file).then((info) => {
+                        response(
+                            new IPC.FileInfoResponse({
+                                info: info,
+                            }),
+                        );
+                    }).catch((err: Error) => {
+                        response(
+                            new IPC.FileInfoResponse({
+                                error: err.message,
+                            }),
+                        );
+                    });
                 }
             },
         };
@@ -268,8 +304,7 @@ export class Files extends Dependency {
     private _channel(): {
         subscribe(): void;
         unsubscribe(): void;
-        handlers: {
-        };
+        handlers: {};
     } {
         const self = this;
         return {
@@ -279,9 +314,7 @@ export class Files extends Dependency {
             unsubscribe(): void {
                 //
             },
-            handlers: {
-
-            },
+            handlers: {},
         };
     }
 }
