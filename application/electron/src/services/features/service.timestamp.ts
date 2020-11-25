@@ -8,8 +8,6 @@ import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import { dialog, SaveDialogReturnValue } from 'electron';
 
-import * as fs from 'fs';
-
 /**
  * @class ServiceTimestamp
  * @description Providers access to merge files functionality from render
