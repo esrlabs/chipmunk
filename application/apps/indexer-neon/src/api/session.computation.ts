@@ -1,8 +1,17 @@
 import { Computation } from './сomputation';
 import { RustSessionChannel } from '../native/index';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';
-
+import {
+    IEventsInterfaces,
+    EventsInterfaces,
+    EventsSignatures,
+    IEventsSignatures,
+    IEvents,
+    IError,
+} from '../interfaces/computation.minimal';
 import * as Events from '../util/events';
+
+export { IError };
 
 export interface IEventStreamUpdated {
     rows: number;
@@ -20,7 +29,7 @@ export interface IEventMatchesUpdated {
     matches: IMatchEntity[];
 }
 
-export interface ISessionEvents {
+export interface ISessionEvents extends IEvents {
     /**
      * @event stream should be triggered with each update of stream/session file:
      * - new content in stream file
@@ -69,48 +78,44 @@ export interface ISessionEvents {
 	 * 		@param row { number } - number or row (in stream file, which has match)
      */
     matches: Events.Subject<IEventMatchesUpdated>,
-
     /**
-     * @event error should be triggered only in case of some error on stream
-     * @type repeatable
-     * @subject { Error }
-     */
-    error: Events.Subject<Error>,
-
-    /**
-     * @event destroyed should be triggered in case of session/stream is destroyed and no more
-     * possobility to use API of session. Any attempt to use API of session after this event
-     * should throw an error
-     * @type once
-     */
-    destroyed: Events.Subject<void>,
-
-    /**
-     * @event done should be triggered as soon as session API is ready to use
+     * @event ready should be triggered as soon as session API is ready to use
      * @type once 
      */
-    done: Events.Subject<void>,
+    ready: Events.Subject<void>,
 }
 
-interface ISessionEventsSignatures {
+interface ISessionEventsSignatures extends IEventsSignatures {
     stream: 'stream';
     search: 'search';
     map: 'map';
     matches: 'matches';
-    error: 'error';
-    destroyed: 'destroyed';
-    done: 'done';
+    ready: 'ready';
 };
 
-const SessionEventsInterface = {
+const SessionEventsSignatures = Object.assign({
+    stream: 'stream',
+    search: 'search',
+    map: 'map',
+    matches: 'matches',
+    ready: 'ready',
+}, EventsSignatures) as ISessionEventsSignatures;
+
+interface ISessionEventsInterfaces extends IEventsInterfaces {
+    stream: { self: 'object', rows: 'number' };
+    search: { self: 'object', rows: 'number' };
+    map: { self: 'object', map: typeof Array };
+    matches: { self: 'object', matches: typeof Array };
+    ready: { self: null };
+}
+
+const SessionEventsInterfaces = Object.assign({
     stream: { self: 'object', rows: 'number' },
     search: { self: 'object', rows: 'number' },
     map: { self: 'object', map: Array },
     matches: { self: 'object', matches: Array },
-    error: { self: Error },
-    destroyed: { self: null },
-    done: { self: null }
-};
+    ready: { self: null }
+}, EventsInterfaces) as ISessionEventsInterfaces;
 
 export class SessionComputation extends Computation<ISessionEvents> {
 
@@ -119,9 +124,9 @@ export class SessionComputation extends Computation<ISessionEvents> {
         search: new Events.Subject<IEventSearchUpdated>(),
         map: new Events.Subject<IEventMapUpdated>(),
         matches: new Events.Subject<IEventMatchesUpdated>(),
-        error: new Events.Subject<Error>(),
+        error: new Events.Subject<IError>(),
         destroyed: new Events.Subject<void>(),
-        done: new Events.Subject<void>(),
+        ready: new Events.Subject<void>(),
     };
 
     constructor(channel: RustSessionChannel, uuid: string) {
@@ -137,19 +142,11 @@ export class SessionComputation extends Computation<ISessionEvents> {
     }
 
     public getEventsSignatures(): ISessionEventsSignatures {
-        return {
-            stream: 'stream',
-            search: 'search',
-            map: 'map',
-            matches: 'matches',
-            error: 'error',
-            destroyed: 'destroyed',
-            done: 'done',
-        };
+        return SessionEventsSignatures;
     }
 
-    public getEventsInterfaces() {
-        return SessionEventsInterface;
+    public getEventsInterfaces(): ISessionEventsInterfaces {
+        return SessionEventsInterfaces;
     }
 
 

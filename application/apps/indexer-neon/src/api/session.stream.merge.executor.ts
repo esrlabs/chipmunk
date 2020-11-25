@@ -2,6 +2,7 @@ import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustMergeOperationChannel, RustMergeOperationChannelConstructor } from '../native/index';
 import { Subscription } from '../util/events.subscription';
 import { StreamMergeComputation, IFileToBeMerged } from './session.stream.merge.computation';
+import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
 
 export interface IExecuteMergeOptions {
     files: IFileToBeMerged[];
@@ -34,9 +35,9 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: Error) => {
-                logger.warn(`Error on operation append: ${err.message}`);
-                error = err;
+            error: computation.getEvents().error.subscribe((err: IError) => {
+                logger.warn(`Error on operation append: ${err.content}`);
+                error = new Error(err.content);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();

@@ -2,7 +2,7 @@ import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
 import { RustChannelRequiered } from '../native/native.channel.required';
-import { IEventsInterfaces, IEventsSignatures, IEvents } from '../interfaces/computation.minimal';
+import { IEventsInterfaces, IEventsSignatures, IEvents, EErrorSeverity } from '../interfaces/computation.minimal';
 
 type TShutdownComputationResolver = () => void;
 
@@ -60,7 +60,10 @@ export abstract class Computation<TEvents> {
             args: { [key: string]: any } | undefined | null) => {
             if (err) {
                 this._logger.error("Error on pull: " + err);
-                this.getEvents().error.emit(new Error(err));
+                this.getEvents().error.emit({ 
+                    severity: EErrorSeverity.error,
+                    content: err
+                });
             }
             else if (event) {
                 if (event == this.getEventsSignatures().destroyed) {
@@ -89,14 +92,21 @@ export abstract class Computation<TEvents> {
 
     private _emit(event: string, data: any) {
         if ((this.getEventsSignatures() as any)[event] === undefined) {
-            const err: Error = new Error(`Has been gotten unsupported event: "${event}".`);
-            this.getEvents().error.emit(err);
-            this._logger.error(err.message);
+            const errMsg = `Has been gotten unsupported event: "${event}".`;
+            this.getEvents().error.emit({
+                severity: EErrorSeverity.logs,
+                content: errMsg,
+            });
+            this._logger.error(errMsg);
         } else {
             const err: Error | undefined = Events.Subject.validate((this.getEventsInterfaces() as any)[event], data);
             if (err instanceof Error) {
-                this.getEvents().error.emit(err);
-                this._logger.error(`Fail to parse event "${event}" due error: ${err.message}`);
+                const errMsg = `Fail to parse event "${event}" due error: ${err.message}`;
+                this.getEvents().error.emit({
+                    severity: EErrorSeverity.logs,
+                    content: errMsg,
+                });
+                this._logger.error(errMsg);
             } else {
                 (this.getEvents() as any)[event].emit(data);
             }

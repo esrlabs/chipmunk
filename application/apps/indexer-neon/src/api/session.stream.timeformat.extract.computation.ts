@@ -7,6 +7,7 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
+    IError,
 } from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
@@ -45,7 +46,7 @@ export class StreamTimeFormatExtractComputation extends Computation<IEvents> {
     private readonly _events: IExtractEvents = {
         progress: new Events.Subject<IOperationProgress>(),
         results: new Events.Subject<IExtractDTFormatResult[]>(),
-        error: new Events.Subject<Error>(),
+        error: new Events.Subject<IError>(),
         destroyed: new Events.Subject<void>(),
     };
 

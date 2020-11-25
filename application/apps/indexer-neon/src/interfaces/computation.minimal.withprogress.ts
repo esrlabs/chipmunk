@@ -1,4 +1,7 @@
 import * as Events from '../util/events';
+import { IError, EErrorSeverity } from './computation.minimal';
+
+export { IError, EErrorSeverity };
 
 export interface IOperationProgress {
     /**
@@ -26,11 +29,11 @@ export interface IEvents {
      */
     progress: Events.Subject<IOperationProgress>,
     /**
-     * @event error { Error }
+     * @event error { IError }
      * Calls on any error on rust side. Emitting of @event error doesn't mean 
      * stopping of operation.
      */
-    error: Events.Subject<Error>,
+    error: Events.Subject<IError>,
     /**
      * @event destroyed { void }
      * Calls always as soon as instance of computation is destroyed. No any
@@ -53,12 +56,12 @@ export const EventsSignatures: IEventsSignatures = {
 
 export interface IEventsInterfaces {
     progress: { self: 'object', percentage: 'number' };
-    error: { self: typeof Error };
+    error: { self: 'object', severity: 'string', content: 'string' };
     destroyed: { self: null };
 }
 
 export const EventsInterfaces: IEventsInterfaces = {
     progress: { self: 'object', percentage: 'number' },
-    error: { self: Error },
+    error: { self: 'object', severity: 'string', content: 'string' },
     destroyed: { self: null },
 }
