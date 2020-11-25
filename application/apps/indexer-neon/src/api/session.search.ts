@@ -6,6 +6,7 @@ import { Subscription } from '../util/events.subscription';
 import { SessionComputation } from './session.computation';
 import { IFilter, IMatchEntity } from '../interfaces/index';
 import { StreamSearchComputation } from './session.stream.search.computation';
+import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
 
 export class SessionSearch {
 	
@@ -110,9 +111,9 @@ export class SessionSearch {
 						resolve(matches);
 					}
 				}),
-				error: computation.getEvents().error.subscribe((err: Error) => {
-					this._logger.warn(`Error on operation append: ${err.message}`);
-					error = err;
+				error: computation.getEvents().error.subscribe((err: IError) => {
+					this._logger.warn(`Error on operation append: ${err.content}`);
+					error = new Error(err.content);
 				}),
 				unsunscribe(): void {
 					subscriptions.destroy.destroy();

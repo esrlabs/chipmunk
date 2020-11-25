@@ -8,6 +8,7 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
+    IError,
 } from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
@@ -37,7 +38,7 @@ export class StreamSearchComputation extends Computation<IEvents> {
     private readonly _events: ISearchEvents = {
         progress: new Events.Subject<IOperationProgress>(),
         matches: new Events.Subject<IMatchEntity[]>(),
-        error: new Events.Subject<Error>(),
+        error: new Events.Subject<IError>(),
         destroyed: new Events.Subject<void>(),
     };
 

@@ -2,6 +2,7 @@ import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustConcatOperationChannel, RustConcatOperationChannelConstructor } from '../native/index';
 import { Subscription } from '../util/events.subscription';
 import { StreamConcatComputation } from './session.stream.concat.computation';
+import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
 
 export interface IExecuteConcatOptions {
     files: string[];
@@ -14,10 +15,7 @@ export const executor: TExecutor<void, IExecuteConcatOptions> = (
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         const channel: RustConcatOperationChannel = new RustConcatOperationChannelConstructor();
-        const computation: StreamConcatComputation = new StreamConcatComputation(
-            channel,
-            uuid,
-        );
+        const computation: StreamConcatComputation = new StreamConcatComputation(channel, uuid);
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -34,9 +32,9 @@ export const executor: TExecutor<void, IExecuteConcatOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: Error) => {
-                logger.warn(`Error on operation append: ${err.message}`);
-                error = err;
+            error: computation.getEvents().error.subscribe((err: IError) => {
+                logger.warn(`Error on operation append: ${err.content}`);
+                error = new Error(err.content);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();

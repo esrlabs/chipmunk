@@ -7,6 +7,7 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
+    IError,
 } from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
@@ -21,7 +22,7 @@ export class StreamMergeComputation extends Computation<IEvents> {
 
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
-        error: new Events.Subject<Error>(),
+        error: new Events.Subject<IError>(),
         destroyed: new Events.Subject<void>(),
     };
 
