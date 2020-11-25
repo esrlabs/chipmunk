@@ -13,7 +13,6 @@ import ServiceElectron from './service.electron';
 import Logger from '../tools/env.logger';
 
 import { IPCMessages as IPC, Subscription } from './service.electron';
-import { EventsHub } from '../controllers/stream.common/events';
 import { IService } from '../interfaces/interface.service';
 import { ControllerSession } from '../controllers/stream.main/controller';
 

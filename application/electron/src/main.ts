@@ -23,13 +23,9 @@ import ServiceStorage from './services/service.storage';
 import ServiceWindowState from './services/service.window.state';
 import ServiceElectronState from './services/service.electron.state';
 import ServiceProduction from './services/service.production';
-import ServiceFileInfo from './services/files/service.file.info';
-import ServiceMergeFiles from './services/features/service.merge.files';
-import ServiceConcatFiles from './services/features/service.concat.files';
 import ServiceTimestamp from './services/features/service.timestamp';
 import ServiceFileReader from './services/files/service.file.reader';
 import ServiceFileSearch from './services/files/service.file.search';
-import ServiceFileOpener from './services/files/service.file.opener';
 import ServiceFilePicker from './services/files/service.file.picker';
 import ServiceFileRecent from './services/files/service.file.recent';
 import ServiceFileWriter from './services/files/service.file.writer';
@@ -37,7 +33,6 @@ import ServiceStreamSources from './services/service.stream.sources';
 import ServiceFilters from './services/service.filters';
 import ServiceAppState from './services/service.app.state';
 import ServiceUpdate from './services/service.update';
-import ServiceDLTFiles from './services/parsers/service.dlt.files';
 import ServicePatchesBefore from './services/service.patches.before';
 import ServiceDLTDeamonConnector from './services/connectors/service.dlt.deamon';
 import ServiceOutputExport from './services/output/service.output.export';
@@ -95,11 +90,10 @@ const InitializeStages = [
     // Stage #9. Stream service
     [   ServiceStreamSources, ServiceStreams ],
     // Stage #10. Common functionality
-    [   ServiceFileInfo, ServiceMergeFiles,
-        ServiceConcatFiles, ServiceFileSearch,
+    [   ServiceFileSearch,
         ServiceFilters, ServiceFileReader,
-        ServiceFileOpener, ServiceAppState,
-        ServiceDLTFiles, ServiceHotkeys,
+        ServiceAppState,
+        ServiceHotkeys,
         ServiceFilePicker, ServiceDLTDeamonConnector,
         ServiceOutputExport, ServiceLogsExtractor,
         ServiceFileRecent, ServiceTimestamp,
@@ -194,7 +188,7 @@ class Application implements IApplication {
                 this._logger.warn(`Fail to close browser window before close due error: ${closeWinErr.message}`);
             }).finally(() => {
                 // Close all active sessions
-                ServiceStreams.closeAll().then(() => {
+                ServiceStreams.destroy().then(() => {
                     this._logger.debug(`All streams are closed`);
                 }).catch((closeErr: Error) => {
                     this._logger.warn(`Fail to close all session before close due error: ${closeErr.message}`);

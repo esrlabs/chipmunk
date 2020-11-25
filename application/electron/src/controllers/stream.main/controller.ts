@@ -21,6 +21,7 @@ import {
     IDetectOptions,
     IExtractOptions,
     IExtractDTFormatResult,
+    TFileOptions,
 } from 'indexer-neon';
 
 export interface ISubjects {
@@ -198,7 +199,7 @@ export class ControllerSession {
     }
 
     public operations(): {
-        append(filename: string): CancelablePromise<void>;
+        append(filename: string, options: TFileOptions): CancelablePromise<void>;
         concat(files: string[]): CancelablePromise<void>;
         merge(files: IFileToBeMerged[]): CancelablePromise<void>;
         export(options: IExportOptions): CancelablePromise<void>;
@@ -214,8 +215,8 @@ export class ControllerSession {
             return stream;
         }
         return {
-            append(filename: string): CancelablePromise<void> {
-                return getStream().append(filename);
+            append(filename: string, options: TFileOptions): CancelablePromise<void> {
+                return getStream().append(filename, options);
             },
             concat(files: string[]): CancelablePromise<void> {
                 return getStream().concat(files);
