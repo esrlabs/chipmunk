@@ -32,6 +32,8 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'],         description: 'Show filters tab',                category: EHotkeyCategory.Areas },
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                          description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
     [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                          description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
+    [IPCMessages.EHotkeyActionRef.scrollToBegin]:           { shortkeys: ['Shift + J'],                                   description: 'Scroll to beginning of main output', category: EHotkeyCategory.Movement},
+    [IPCMessages.EHotkeyActionRef.scrollToEnd]:             { shortkeys: ['Shift + J + J'],                               description: 'Scroll to end of main output',    category: EHotkeyCategory.Movement},
     [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { shortkeys: ['⌘ + F', 'Ctrl + F', '/'],                    description: 'Focus on search input',           category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.focusMainView]:           { shortkeys: ['⌘ + 1', 'Ctrl + 1'],                         description: 'Focus on main output',            category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
@@ -62,6 +64,8 @@ export class HotkeysService implements IService {
     private _dialogGuid: string = Toolkit.guid();
     private _paused: boolean = false;
     private _input: boolean = false;
+    private _combinationTimer: number = -1;
+    private _combinationCounter: number = 0;
     private _localKeys: string[] = [];
 
     private _subjects = {
@@ -72,6 +76,8 @@ export class HotkeysService implements IService {
         openSearchFiltersTab: new Subject<IHotkeyEvent>(),
         selectNextRow: new Subject<IHotkeyEvent>(),
         selectPrevRow: new Subject<IHotkeyEvent>(),
+        scrollToBegin: new Subject<IHotkeyEvent>(),
+        scrollToEnd: new Subject<IHotkeyEvent>(),
         focusMainView: new Subject<IHotkeyEvent>(),
         focusSearchView: new Subject<IHotkeyEvent>(),
         showHotkeysMapDialog: new Subject<IHotkeyEvent>(),
@@ -97,11 +103,11 @@ export class HotkeysService implements IService {
             this._cleanupShortcuts();
             this._subscriptions.onHotkeyCall = ElectronIpcService.subscribe(IPCMessages.HotkeyCall, this._onHotkeyCall.bind(this));
             this._subscriptions.onShowHotkeysMapDialog = this.getObservable().showHotkeysMapDialog.subscribe(this._onShowHotkeysMapDialog.bind(this));
-            this._copySelectionsToClipboard = this._copySelectionsToClipboard.bind(this);
+            this._keydownCombination = this._keydownCombination.bind(this);
             this._checkFocusedElement = this._checkFocusedElement.bind(this);
             window.addEventListener('mouseup', this._checkFocusedElement, true);
             window.addEventListener('keyup', this._checkFocusedElement, true);
-            window.addEventListener('keydown', this._copySelectionsToClipboard, true);
+            window.addEventListener('keydown', this._keydownCombination, true);
             resolve();
         });
     }
@@ -117,7 +123,7 @@ export class HotkeysService implements IService {
             });
             window.removeEventListener('mouseup', this._checkFocusedElement);
             window.removeEventListener('keyup', this._checkFocusedElement);
-            window.removeEventListener('keydown', this._copySelectionsToClipboard);
+            window.removeEventListener('keydown', this._keydownCombination);
             resolve();
         });
     }
@@ -130,6 +136,8 @@ export class HotkeysService implements IService {
         openSearchFiltersTab: Observable<IHotkeyEvent>,
         selectNextRow: Observable<IHotkeyEvent>,
         selectPrevRow: Observable<IHotkeyEvent>,
+        scrollToBegin: Observable<IHotkeyEvent>,
+        scrollToEnd: Observable<IHotkeyEvent>,
         focusMainView: Observable<IHotkeyEvent>,
         focusSearchView: Observable<IHotkeyEvent>,
         showHotkeysMapDialog: Observable<IHotkeyEvent>,
@@ -150,6 +158,8 @@ export class HotkeysService implements IService {
             openSearchFiltersTab: this._subjects.openSearchFiltersTab.asObservable(),
             selectNextRow: this._subjects.selectNextRow.asObservable(),
             selectPrevRow: this._subjects.selectPrevRow.asObservable(),
+            scrollToBegin: this._subjects.scrollToBegin.asObservable(),
+            scrollToEnd: this._subjects.scrollToEnd.asObservable(),
             focusMainView: this._subjects.focusMainView.asObservable(),
             focusSearchView: this._subjects.focusSearchView.asObservable(),
             showHotkeysMapDialog: this._subjects.showHotkeysMapDialog.asObservable(),
@@ -249,17 +259,36 @@ export class HotkeysService implements IService {
         }, 150);
     }
 
-    private _copySelectionsToClipboard(event: KeyboardEvent) {
-        if (!event.ctrlKey && !event.metaKey) {
-            return;
+    private _keydownCombination(event: KeyboardEvent) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+            this._subjects.ctrlC.next({
+                session: undefined,
+                unixtime: Date.now(),
+            });
+        } else if (event.shiftKey && event.key === 'J' && !this._input) {
+            this._shiftJ();
         }
-        if (event.key !== 'c') {
-            return;
+    }
+
+    private _shiftJ() {
+        this._combinationCounter++;
+        if (this._combinationTimer === -1) {
+            this._combinationTimer = window.setTimeout(() => {
+                if (this._combinationCounter === 1) {
+                    this._subjects.scrollToBegin.next({
+                        session: undefined,
+                        unixtime: Date.now(),
+                    });
+                } else {
+                    this._subjects.scrollToEnd.next({
+                        session: undefined,
+                        unixtime: Date.now(),
+                    });
+                }
+                this._combinationCounter = 0;
+                this._combinationTimer = -1;
+            }, 250);
         }
-        this._subjects.ctrlC.next({
-            session: undefined,
-            unixtime: Date.now(),
-        });
     }
 
     private _getRefByKey(key: string): IPCMessages.EHotkeyActionRef | undefined {

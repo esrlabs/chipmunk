@@ -6,6 +6,8 @@ export enum EHotkeyActionRef {
     openSearchFiltersTab = 'openSearchFiltersTab',
     selectNextRow = 'selectNextRow',
     selectPrevRow = 'selectPrevRow',
+    scrollToBegin = 'scrollToBegin',
+    scrollToEnd = 'scrollToEnd',
     focusMainView = 'focusMainView',
     focusSearchView = 'focusSearchView',
     showHotkeysMapDialog = 'showHotkeysMapDialog',
