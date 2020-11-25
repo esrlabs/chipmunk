@@ -13,6 +13,7 @@ import { FilterRequest } from '../../../../controller/controller.session.tab.sea
 import { copyTextToClipboard } from '../../../../controller/helpers/clipboard';
 import { fullClearRowStr } from '../../../../controller/helpers/row.helpers';
 
+import FocusOutputService from '../../../../services/service.focus.output';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import EventsHubService from '../../../../services/standalone/service.eventshub';
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
@@ -165,6 +166,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._subscriptions.onScrolled = this._scrollBoxCom.getObservable().onScrolled.subscribe(this._onScrolled.bind(this));
         this._subscriptions.onKeepScrollPrevent = EventsHubService.getObservable().onKeepScrollPrevent.subscribe(this._onKeepScrollPrevent.bind(this));
         this._ng_outputAPI.onRedraw.next();
+        FocusOutputService.addScrollbox(this._scrollBoxCom);
     }
 
     ngAfterContentInit() {
@@ -183,6 +185,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     public ngOnDestroy() {
+        FocusOutputService.removeScrollbox(this._scrollBoxCom);
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });

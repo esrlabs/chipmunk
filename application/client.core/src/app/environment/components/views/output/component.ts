@@ -128,6 +128,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public ngOnDestroy() {
         this._destroyed = true;
+        FocusOutputService.removeScrollbox(this._scrollBoxCom);
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -647,6 +648,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._scrollBoxCom.setFocus();
+        FocusOutputService.addScrollbox(this._scrollBoxCom);
     }
 
     private _forceUpdate() {
