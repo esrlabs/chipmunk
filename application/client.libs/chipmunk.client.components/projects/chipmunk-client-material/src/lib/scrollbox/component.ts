@@ -89,7 +89,6 @@ enum EKeys {
     End = 'End',
     KeyC = 'KeyC',
     KeyX = 'KeyX',
-    KeyJ = 'KeyJ',
     undefined = 'undefined'
 }
 
@@ -180,8 +179,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
     private _destroyed: boolean = false;
     private _horScrollingTimer: any = -1;
-    private _combinationTimer: number = -1;
-    private _combinationCounter: number = 0;
     private _localMouseDown: boolean = false;
     private _selection: {
         focus: ISelectedNodeInfo,
@@ -442,12 +439,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 return true;
             }
         }
-        if (event.code === EKeys.KeyJ) {
-            if (!event.shiftKey) {
-                return true;
-            }
-        }
-        if ([EKeys.KeyC, EKeys.KeyX, EKeys.KeyJ, EKeys.ArrowLeft, EKeys.ArrowRight, EKeys.ArrowDown, EKeys.ArrowUp, EKeys.End, EKeys.Home, EKeys.PageDown, EKeys.PageUp].indexOf(event.code as EKeys) === -1) {
+        if ([EKeys.KeyC, EKeys.KeyX, EKeys.ArrowLeft, EKeys.ArrowRight, EKeys.ArrowDown, EKeys.ArrowUp, EKeys.End, EKeys.Home, EKeys.PageDown, EKeys.PageUp].indexOf(event.code as EKeys) === -1) {
             return true;
         }
         event.preventDefault();
@@ -651,9 +643,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 }
                 this._onScrollTo(false, this._state.start - this._state.count, true);
                 break;
-            case EKeys.KeyJ:
-                this._scrollComination();
-                break;
             case EKeys.End:
                 this.scrollToEnd();
                 break;
@@ -665,25 +654,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 this._selection_copy();
                 this._selection_restore();
                 break;
-        }
-    }
-
-    private _scrollComination() {
-        this._combinationCounter++;
-        if (this._combinationTimer === -1) {
-            this._combinationTimer = window.setTimeout(() => {
-                if (this._combinationCounter === 1) {
-                    if (this._state.start !== 0) {
-                        this._onScrollTo(false, 0, true);
-                    }
-                } else {
-                    if (this._state.start !== this._storageInfo.count - 1) {
-                        this._onScrollTo(false, this._storageInfo.count - 1, true);
-                    }
-                }
-                this._combinationCounter = 0;
-                this._combinationTimer = -1;
-            }, 250);
         }
     }
 
