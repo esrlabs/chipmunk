@@ -482,7 +482,7 @@ export default class ControllerPluginInstalled {
             const _cwd = cwd === undefined ? ServicePaths.getPlugins() : cwd;
             tar.x({
                 file: tgzfile,
-                cwd: cwd === undefined ? ServicePaths.getPlugins() : cwd,
+                cwd: _cwd,
             }).then(() => {
                 if (!removetgz) {
                     return resolve(_cwd);
