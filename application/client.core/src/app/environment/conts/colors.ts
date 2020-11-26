@@ -6,7 +6,7 @@ export const CColors = [
     '#b2bec3',
     '#c0c0c0',
     '#dfe6e9',
-    '#dfe6e9',
+    '#eaeaea',
     '#ffffff',
     '#2ecc71',
     '#55efc4',
