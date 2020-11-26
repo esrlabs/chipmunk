@@ -170,6 +170,7 @@ class ServiceTimestamp implements IService {
     }
 
     private _onTimestampExportCSVRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        /*
         const req: IPCMessages.TimestampExportCSVRequest = request as IPCMessages.TimestampExportCSVRequest;
         dialog.showSaveDialog({
             title: 'Saving filters',
@@ -193,6 +194,7 @@ class ServiceTimestamp implements IService {
                 }
             });
         });
+        */
     }
 /*
     private _addTask(session: string, taskId: string, controller: MergeDiscover) {

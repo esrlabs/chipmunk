@@ -157,7 +157,7 @@ export function writeTextFile(
     file: string,
     content: string,
     overwrite: boolean = true,
-): Promise<string> {
+): Promise<void> {
     return new Promise((resolve, reject) => {
         if (!overwrite && isExist(file)) {
             return reject(new Error(`File "${file}" already exists.`));

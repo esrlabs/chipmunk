@@ -22,7 +22,7 @@ export function sequences(pendings: Array<(...args: any[]) => Promise<any>>, err
                     if (pendings.length > 0) {
                         next(undefined);
                     } else {
-                        resolveSequence();
+                        resolveSequence(undefined);
                     }
                 }
             });

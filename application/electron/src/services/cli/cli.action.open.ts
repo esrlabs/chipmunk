@@ -61,7 +61,7 @@ export class OpenFiles extends CLIAction {
                         }).catch((err: Error) => {
                             this._logger.error(err.message);
                         }).finally(() => {
-                            done();
+                            done(undefined);
                         });
                     });
                 };
