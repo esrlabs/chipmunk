@@ -99,7 +99,7 @@ class ServiceConfig implements IService {
                 if (Field.isInstance(entry) || RemoteField.isInstance(entry) || PluginField.isInstance(entry)) {
                     return reject(new Error(`Entry "${entry.getName()}" is already registered.`));
                 } else {
-                    return resolve();
+                    return resolve(undefined);
                 }
             }
             entry.extract(this._storage.get()).then(() => {
@@ -108,7 +108,7 @@ class ServiceConfig implements IService {
                     if (Field.isInstance(entry) || RemoteField.isInstance(entry) || PluginField.isInstance(entry)) {
                         resolve((entry as Field<T>).read(this._storage.get()));
                     } else {
-                        resolve();
+                        resolve(undefined);
                     }
                 }).catch((wrtErr: Error) => {
                     reject(wrtErr);
