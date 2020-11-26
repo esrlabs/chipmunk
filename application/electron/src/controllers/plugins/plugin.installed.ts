@@ -483,7 +483,7 @@ export default class ControllerPluginInstalled {
             this._logger.debug(`Unpacking ${tgzfile} from ${_cwd}`);
             tar.x({
                 file: tgzfile,
-                cwd: cwd === undefined ? ServicePaths.getPlugins() : cwd,
+                cwd: _cwd,
             }).then(() => {
                 this._logger.debug(`Unpacking of ${tgzfile} is done.`);
                 const included: boolean = ServicePaths.getIncludedPlugins().indexOf(path.dirname(tgzfile)) === 0;
