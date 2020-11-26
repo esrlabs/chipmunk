@@ -19,3 +19,13 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
 }
 
 export const RustSessionChannelConstructor: RustChannelConstructorImpl<RustSessionChannel> = RustSessionChannelNoType;
+
+/**
+ open file workflow
+  - FE -> BE: what is this file about?: is it text/ is it dlt ...
+  - BE - FE: this is DLT, open options
+  - FE: opens options and wait for user
+  - FE -> BE: filename + options to open
+  - BE: opens file
+ 
+ */
