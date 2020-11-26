@@ -63,7 +63,8 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     private _filterChecked(fileList: IPCMessages.IFile[]): IPCMessages.IFile[] {
-        return fileList.filter((file: IPCMessages.IFile) => file.checked === true);
+        return fileList;
+        // return fileList.filter((file: IPCMessages.IFile) => file.checked === true);
     }
 
     public open(files: IPCMessages.IFile[]): Promise<void> {
@@ -71,6 +72,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
             if (files.length === 0) {
                 return resolve();
             }
+            /*
             ServiceElectronIpc.request(new IPCMessages.FileListRequest({
                 files: files.map((file: IPCMessages.IFile) => file.path),
             }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
@@ -121,6 +123,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
             }).catch((error: Error) => {
                 return reject(new Error(this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`)));
             });
+            */
         });
     }
 

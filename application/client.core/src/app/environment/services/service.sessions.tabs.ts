@@ -10,7 +10,7 @@ import { fullClearRowStr } from '../controller/helpers/row.helpers';
 import { ISearchSettings } from '../components/views/search/component';
 
 import EventsSessionService from './standalone/service.events.session';
-import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
+import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
 import SourcesService from './service.sources';
 import HotkeysService from './service.hotkeys';
 import PluginsService from './service.plugins';
@@ -67,8 +67,8 @@ export class TabsSessionsService implements IService {
         // (which will happen if try to access to this service from Plugin Service)
         PluginsService.setPluginAPIGetter(this.getPluginAPI);
         // Listen stream events
-        this._subscriptions.onStreamUpdated = ElectronIpcService.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
-        this._subscriptions.onSearchUpdated = ElectronIpcService.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
+        this._subscriptions.onStreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
+        this._subscriptions.onSearchUpdated = ServiceElectronIpc.subscribe(IPCMessages.SearchUpdated, this._ipc_onSearchUpdated.bind(this));
     }
 
     public init(): Promise<void> {
@@ -80,7 +80,7 @@ export class TabsSessionsService implements IService {
             this._subscriptions.onNextTab = HotkeysService.getObservable().nextTab.subscribe(this._onNextTab.bind(this));
             this._subscriptions.onPrevTab = HotkeysService.getObservable().prevTab.subscribe(this._onPrevTab.bind(this));
             this._subscriptions.onCtrlC = HotkeysService.getObservable().ctrlC.subscribe(this._onCtrlC.bind(this));
-            this._subscriptions.RenderSessionAddRequest = ElectronIpcService.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
+            this._subscriptions.RenderSessionAddRequest = ServiceElectronIpc.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
             OutputRedirectionsService.init(this._currentSessionGuid);
             resolve();
         });
@@ -119,19 +119,24 @@ export class TabsSessionsService implements IService {
 
     public add(custom?: ICustomTab): Promise<ControllerSessionTab | ICustomTab> {
         return new Promise((resolve, reject) => {
-            const guid: string = custom !== undefined ? custom.id : Toolkit.guid();
+            let guid: string = custom !== undefined ? custom.id : Toolkit.guid();
             if (this._sessions.has(guid)) {
                 return reject(new Error(`Tab guid "${guid}" already exist`));
             }
             if (custom === undefined) {
-                const session = new ControllerSessionTab({
+                ServiceElectronIpc.request(new IPCMessages.StreamAddRequest({
                     guid: guid,
-                    api: this.getPluginAPI(undefined),
-                    sessionsEventsHub: this._sessionsEventsHub,
-                });
-                session.init().then(() => {
-                    this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
-                    this._sessions.set(guid, session);
+                }), IPCMessages.StreamAddResponse).then((response: IPCMessages.StreamAddResponse) => {
+                    if (response.error) {
+                        return reject(new Error(`Fail to init stream due error: ${response.error}`));
+                    }
+                    guid = response.guid;
+                    this._logger.env(`Stream "${guid}" is inited`);
+                    const session = new ControllerSessionTab({
+                        guid: guid,
+                        api: this.getPluginAPI(undefined),
+                        sessionsEventsHub: this._sessionsEventsHub,
+                    });
                     const tabAPI: ITabAPI | undefined = this._tabsService.add({
                         guid: guid,
                         name: 'New',
@@ -146,17 +151,14 @@ export class TabsSessionsService implements IService {
                             }
                         }
                     });
+                    this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
+                    this._sessions.set(guid, session);
                     session.setTabAPI(tabAPI);
                     this._sessionsEventsHub.emit().onSessionOpen(guid);
                     this.setActive(guid);
-                    resolve(session);
+
                 }).catch((error: Error) => {
-                    session.destroy().catch((destroyErr: Error) => {
-                        this._logger.error(`Fail to destroy incorrectly created session due error: ${destroyErr.message}`);
-                    }).finally(() => {
-                        this._logger.error(`Fail to create new session due error: ${error.message}`);
-                        reject(error);
-                    });
+                    reject(error);
                 });
             } else {
                 let tabAPI: ITabAPI | undefined;
@@ -203,7 +205,7 @@ export class TabsSessionsService implements IService {
         if (session instanceof ControllerSessionTab) {
             LayoutStateService.unlock();
             session.setActive();
-            ElectronIpcService.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
+            ServiceElectronIpc.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
                 EventsSessionService.getSubject().onSessionChange.next(session);
                 this._sessionsEventsHub.emit().onSessionChange(guid);
             }).catch((error: Error) => {

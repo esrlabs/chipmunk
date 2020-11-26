@@ -120,6 +120,7 @@ export class FileOptionsService implements IService {
     private _onRequest(request: IPCMessages.FileGetOptionsRequest, response: TResponseFunc) {
         this._subjects.onFileOpenRequest.next();
         EventsHubService.getSubject().onKeepScrollPrevent.next();
+        /*
         const fileType: string = request.type;
         if (CControllers[fileType] === undefined) {
             return response(new IPCMessages.FileGetOptionsResponse({
@@ -148,6 +149,7 @@ export class FileOptionsService implements IService {
                 this._logger.error(`Fail to send response due error: ${error.message}`);
             });
         });
+        */
     }
 
 }

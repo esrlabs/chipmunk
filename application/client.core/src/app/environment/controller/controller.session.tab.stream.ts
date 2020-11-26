@@ -68,23 +68,6 @@ export class ControllerSessionTabStream {
         });
     }
 
-    public init(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Notify electron about new stream
-            ServiceElectronIpc.request(new IPCMessages.StreamAddRequest({
-                guid: this._guid,
-            }), IPCMessages.StreamAddResponse).then((response: IPCMessages.StreamAddResponse) => {
-                if (response.error) {
-                    return reject(new Error(`Fail to init stream due error: ${response.error}`));
-                }
-                this._logger.env(`Stream "${response.guid}" is inited`);
-                resolve();
-            }).catch((error: Error) => {
-                reject(error);
-            });
-        });
-    }
-
     public getGuid(): string {
         return this._guid;
     }

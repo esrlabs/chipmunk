@@ -142,6 +142,8 @@ export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOpt
 
     public cancel(requestId: string): Promise<void> {
         return new Promise((resolve, reject) => {
+            resolve();
+            /*
             if (!this._state.equal(requestId)) {
                 this._logger.env(`Request ${requestId} isn't actual. No need to cancel.`);
                 return resolve();
@@ -160,6 +162,7 @@ export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOpt
             }).catch((error: Error) => {
                 reject(error);
             });
+            */
         });
     }
 

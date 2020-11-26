@@ -151,6 +151,7 @@ export class ControllerFileConcatSession {
     public concat(): CancelablePromise<void> {
         const id: string = Toolkit.guid();
         const task: CancelablePromise<void> = new CancelablePromise<void>((resolve, reject) => {
+            /*
             EventsHubService.getSubject().onKeepScrollPrevent.next();
             ElectronIpcService.request(new IPCMessages.ConcatFilesRequest({
                 files: Array.from(this._files.values()).map((file: IConcatFile) => {
@@ -171,6 +172,7 @@ export class ControllerFileConcatSession {
                 this._logger.error(`Fail to do concat due error: ${concatErr.message}`);
                 reject(concatErr);
             });
+            */
         }).finally(() => {
             this._tasks.delete(id);
         });
@@ -234,6 +236,7 @@ export class ControllerFileConcatSession {
             if (this._files.has(path)) {
                 return resolve();
             }
+            /*
             this._getFileStats(path).then((stats: IPCMessages.FileInfoResponse) => {
                 this._files.set(path, {
                     path: stats.path,
@@ -252,6 +255,7 @@ export class ControllerFileConcatSession {
             }).catch((parserError: Error) => {
                 reject(new Error(`Fail detect file parser due error: ${parserError.message}`));
             });
+            */
         }).finally(() => {
             this._tasks.delete(id);
         });
@@ -265,9 +269,11 @@ export class ControllerFileConcatSession {
             ElectronIpcService.request(new IPCMessages.FileInfoRequest({
                 file: file,
             }), IPCMessages.FileInfoResponse).then((stats: IPCMessages.FileInfoResponse) => {
+                /*
                 if (stats.parser === undefined) {
                     return reject(new Error('Fail to find parser for selected file.'));
                 }
+                */
                 resolve(stats);
             }).catch((error: Error) => {
                 reject(error);
