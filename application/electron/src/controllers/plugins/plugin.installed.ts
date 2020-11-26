@@ -244,7 +244,7 @@ export default class ControllerPluginInstalled {
                 return reject(new Error(this._logger.warn(`Cannot update plugin, because it isn't initialized.`)));
             }
             if (typeof version !== 'string' || !semver.valid(version)) {
-                version = this._store.getLatestVersion(name)?.version;
+                version = this._store.getLatestVersion(this._name)?.version;
                 if (version === undefined) {
                     return reject(new Error(this._logger.warn(`Fail to find a suitable version for plugin "${this.getName()}"`)));
                 }
@@ -288,7 +288,7 @@ export default class ControllerPluginInstalled {
                 return reject(new Error(this._logger.warn(`Plugin will not be installed, because there are no such plugin in store`)));
             }
             if (typeof version !== 'string' || !semver.valid(version)) {
-                version = this._store.getLatestVersion(name)?.version;
+                version = this._store.getLatestVersion(this._name)?.version;
                 if (version === undefined) {
                     return reject(new Error(this._logger.warn(`Fail to find a suitable version for plugin "${this.getName()}"`)));
                 }
@@ -479,17 +479,18 @@ export default class ControllerPluginInstalled {
 
     private _unpack(tgzfile: string, removetgz: boolean = true, cwd?: string): Promise<string> {
         return new Promise((resolve, reject) => {
+            const _cwd = cwd === undefined ? ServicePaths.getPlugins() : cwd;
             tar.x({
                 file: tgzfile,
-                cwd: cwd === undefined ? ServicePaths.getPlugins() : cwd,
+                cwd: _cwd,
             }).then(() => {
                 if (!removetgz) {
-                    return resolve(cwd);
+                    return resolve(_cwd);
                 }
                 FS.unlink(tgzfile).catch((removeErr: Error) => {
                     this._logger.warn(`Fail to remove ${tgzfile} due error: ${removeErr.message}`);
                 }).finally(() => {
-                    resolve(cwd);
+                    resolve(_cwd);
                 });
             }).catch(reject);
         });

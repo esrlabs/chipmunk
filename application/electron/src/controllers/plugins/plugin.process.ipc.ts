@@ -56,7 +56,7 @@ export default class ControllerIPCPlugin extends EventEmitter implements IContro
                 sequence: sequence,
             });
             this._send(messagePackage).then(() => {
-                resolve();
+                resolve(undefined);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -74,7 +74,7 @@ export default class ControllerIPCPlugin extends EventEmitter implements IContro
                 sequence: sequence,
             });
             this._send(messagePackage).then(() => {
-                resolve();
+                resolve(undefined);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -155,7 +155,7 @@ export default class ControllerIPCPlugin extends EventEmitter implements IContro
                     return reject(error);
                 }
                 if (!expectResponse) {
-                    return resolve();
+                    return resolve(undefined);
                 }
             });
         });
