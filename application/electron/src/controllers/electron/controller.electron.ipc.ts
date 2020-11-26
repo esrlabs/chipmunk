@@ -40,7 +40,7 @@ export default class ControllerElectronIpc {
                 return reject(new Error(`Incorrect type of message`));
             }
             this._send(message, false, sequence).then(() => {
-                resolve();
+                resolve(undefined);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -54,7 +54,7 @@ export default class ControllerElectronIpc {
                 return reject(new Error(`Incorrect type of message`));
             }
             this._send(message, false, sequence).then(() => {
-                resolve();
+                resolve(undefined);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -175,7 +175,7 @@ export default class ControllerElectronIpc {
             // Format:         | channel  |  event  | instance |
             this._contents.send(signature, signature, messagePackage.serialize());
             if (!expectResponse) {
-                return resolve();
+                return resolve(undefined);
             }
         });
     }
