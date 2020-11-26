@@ -23,6 +23,7 @@ export class ControllerColumns {
 
     private _columns: IColumn[] = [];
     private _hash: string;
+    private _defaultColor: string = '#eaeaea';
     private _subjects: {
         onResized: Subject<IColumn[]>,
         onUpdated: Subject<IColumn[]>,
@@ -109,7 +110,7 @@ export class ControllerColumns {
                 header: header,
                 visible: true,
                 index: index,
-                color: undefined,
+                color: this._defaultColor,
             });
         });
     }
