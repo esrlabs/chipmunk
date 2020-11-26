@@ -14,8 +14,8 @@ export const executor: TExecutor<void, IExecuteConcatOptions> = (
     options: IExecuteConcatOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
-        const channel: RustConcatOperationChannel = new RustConcatOperationChannelConstructor();
-        const computation: StreamConcatComputation = new StreamConcatComputation(channel, uuid);
+        const computation: StreamConcatComputation = new StreamConcatComputation(uuid);
+        const channel: RustConcatOperationChannel = new RustConcatOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {

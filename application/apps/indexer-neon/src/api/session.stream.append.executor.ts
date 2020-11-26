@@ -16,8 +16,8 @@ export const executor: TExecutor<void, IExecuteAppendOptions> = (
     options: IExecuteAppendOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
-        const channel: RustAppendOperationChannel = new RustAppendOperationChannelConstructor();
-        const computation: StreamAppendComputation = new StreamAppendComputation(channel, uuid);
+        const computation: StreamAppendComputation = new StreamAppendComputation(uuid);
+        const channel: RustAppendOperationChannel = new RustAppendOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {

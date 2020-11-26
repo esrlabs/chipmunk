@@ -10,11 +10,8 @@ export const executor: TExecutor<IExtractDTFormatResult, IExtractOptions> = (
     options: IExtractOptions,
 ): CancelablePromise<IExtractDTFormatResult> => {
     return new CancelablePromise<IExtractDTFormatResult>((resolve, reject, cancel, refCancelCB, self) => {
-        const channel: RustTimeFormatExtractOperationChannel = new RustTimeFormatExtractOperationChannelConstructor();
-        const computation: StreamTimeFormatExtractComputation = new StreamTimeFormatExtractComputation(
-            channel,
-            uuid,
-        );
+        const computation: StreamTimeFormatExtractComputation = new StreamTimeFormatExtractComputation(uuid);
+        const channel: RustTimeFormatExtractOperationChannel = new RustTimeFormatExtractOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {

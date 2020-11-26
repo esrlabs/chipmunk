@@ -39,7 +39,7 @@ export interface ISessionEvents extends IEvents {
      * @interface IEventStreamUpdated
      *      @param rows - count of rows in updated stream
      */
-    stream: Events.Subject<IEventStreamUpdated>,
+    stream: Events.Subject<IEventStreamUpdated>;
 
     /**
      * @event search should be triggered with each update of search result file:
@@ -49,8 +49,8 @@ export interface ISessionEvents extends IEvents {
      * @interface IEventSearchUpdated includes
      *      @param rows - count of rows in updated search result file
      */
-    search: Events.Subject<IEventSearchUpdated>,
-    
+    search: Events.Subject<IEventSearchUpdated>;
+
     /**
      * @event map should be triggered as soon as map of search results updated.
      * Map of search results includes information about matches for each filters (which was
@@ -63,7 +63,7 @@ export interface ISessionEvents extends IEvents {
      *      @param filter {string} - value of filter
      *      @param rows {number[]} - an array with rows number, which have match for @param filter
      */
-    map: Events.Subject<IEventMapUpdated>,
+    map: Events.Subject<IEventMapUpdated>;
 
     /**
      * @event matches should be triggered as soon as matches list are updated. This event isn't
@@ -73,16 +73,16 @@ export interface ISessionEvents extends IEvents {
      * @interface IEventMatchesUpdated
      *      @param matches {IMatchEntity[]} - an array with matches data
      * @interface IMatchEntity includes next fields:
-	 * 		@param filter { string } - string representation of filter
-	 * 		@param match { string } - match. 
-	 * 		@param row { number } - number or row (in stream file, which has match)
+     * 		@param filter { string } - string representation of filter
+     * 		@param match { string } - match.
+     * 		@param row { number } - number or row (in stream file, which has match)
      */
-    matches: Events.Subject<IEventMatchesUpdated>,
+    matches: Events.Subject<IEventMatchesUpdated>;
     /**
      * @event ready should be triggered as soon as session API is ready to use
-     * @type once 
+     * @type once
      */
-    ready: Events.Subject<void>,
+    ready: Events.Subject<void>;
 }
 
 interface ISessionEventsSignatures extends IEventsSignatures {
@@ -91,34 +91,39 @@ interface ISessionEventsSignatures extends IEventsSignatures {
     map: 'map';
     matches: 'matches';
     ready: 'ready';
-};
+}
 
-const SessionEventsSignatures = Object.assign({
-    stream: 'stream',
-    search: 'search',
-    map: 'map',
-    matches: 'matches',
-    ready: 'ready',
-}, EventsSignatures) as ISessionEventsSignatures;
+const SessionEventsSignatures = Object.assign(
+    {
+        stream: 'stream',
+        search: 'search',
+        map: 'map',
+        matches: 'matches',
+        ready: 'ready',
+    },
+    EventsSignatures,
+) as ISessionEventsSignatures;
 
 interface ISessionEventsInterfaces extends IEventsInterfaces {
-    stream: { self: 'object', rows: 'number' };
-    search: { self: 'object', rows: 'number' };
-    map: { self: 'object', map: typeof Array };
-    matches: { self: 'object', matches: typeof Array };
+    stream: { self: 'object'; rows: 'number' };
+    search: { self: 'object'; rows: 'number' };
+    map: { self: 'object'; map: typeof Array };
+    matches: { self: 'object'; matches: typeof Array };
     ready: { self: null };
 }
 
-const SessionEventsInterfaces = Object.assign({
-    stream: { self: 'object', rows: 'number' },
-    search: { self: 'object', rows: 'number' },
-    map: { self: 'object', map: Array },
-    matches: { self: 'object', matches: Array },
-    ready: { self: null }
-}, EventsInterfaces) as ISessionEventsInterfaces;
+const SessionEventsInterfaces = Object.assign(
+    {
+        stream: { self: 'object', rows: 'number' },
+        search: { self: 'object', rows: 'number' },
+        map: { self: 'object', map: Array },
+        matches: { self: 'object', matches: Array },
+        ready: { self: null },
+    },
+    EventsInterfaces,
+) as ISessionEventsInterfaces;
 
 export class SessionComputation extends Computation<ISessionEvents> {
-
     private readonly _events: ISessionEvents = {
         stream: new Events.Subject<IEventStreamUpdated>(),
         search: new Events.Subject<IEventSearchUpdated>(),
@@ -129,8 +134,8 @@ export class SessionComputation extends Computation<ISessionEvents> {
         ready: new Events.Subject<void>(),
     };
 
-    constructor(channel: RustSessionChannel, uuid: string) {
-        super(channel, uuid);
+    constructor(uuid: string) {
+        super(uuid);
     }
 
     public getName(): string {
@@ -148,6 +153,4 @@ export class SessionComputation extends Computation<ISessionEvents> {
     public getEventsInterfaces(): ISessionEventsInterfaces {
         return SessionEventsInterfaces;
     }
-
-
 }

@@ -42,8 +42,8 @@ export class StreamSearchComputation extends Computation<IEvents> {
         destroyed: new Events.Subject<void>(),
     };
 
-    constructor(channel: RustSearchOperationChannel, uuid: string) {
-        super(channel, uuid);
+    constructor(uuid: string) {
+        super(uuid);
     }
 
     public getName(): string {

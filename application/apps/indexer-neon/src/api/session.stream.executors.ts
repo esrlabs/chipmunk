@@ -12,4 +12,4 @@ export const Executors = {
     export: ExportExecutor,
     timeformatDetect: TimeformatDetectExecutor,
     timeformatExtract: TimeformatExtractExecutor,
-}
+};
