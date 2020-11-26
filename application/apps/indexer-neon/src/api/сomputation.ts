@@ -1,26 +1,23 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
-import { RustChannelRequiered } from '../native/native.channel.required';
-import { IEventsInterfaces, IEventsSignatures, IEvents, EErrorSeverity } from '../interfaces/computation.minimal';
-
-type TShutdownComputationResolver = () => void;
+import { ERustEmitterEvents, TEventEmitter } from '../native/native';
+import {
+    IEventsInterfaces,
+    IEventsSignatures,
+    IEvents,
+    EErrorSeverity,
+} from '../interfaces/computation.minimal';
 
 export abstract class Computation<TEvents> {
-
-    private _shutdownResolver: TShutdownComputationResolver | undefined;
     private _destroyed: boolean = false;
     private _uuid: string;
-    private readonly _channel: Required<RustChannelRequiered>;
     private readonly _logger: Logs.Logger;
 
-    constructor(channel: Required<RustChannelRequiered>, uuid: string) {
-        this._channel = channel;
+    constructor(uuid: string) {
         this._uuid = uuid;
-        this._polling = this._polling.bind(this);
+        this._emitter = this._emitter.bind(this);
         this._logger = Logs.getLogger(`${this.getName()}: ${uuid}`);
-        // Start the polling loop on next iteration of the JS event loop
-        setImmediate(this._polling);
     }
 
     public destroy(): Promise<void> {
@@ -28,11 +25,8 @@ export abstract class Computation<TEvents> {
             if (this._destroyed) {
                 return reject(new Error(`Computation is already destroying`));
             }
-            if (this._shutdownResolver !== undefined) {
-                return reject(new Error(`Destroy method was already called.`));
-            }
-            // Store resolver
-            this._shutdownResolver = resolve;
+            this._destroy();
+            resolve();
         });
     }
 
@@ -44,35 +38,15 @@ export abstract class Computation<TEvents> {
 
     public abstract getEventsInterfaces(): Required<IEventsInterfaces>;
 
-    private _polling() {
-        if (this._shutdownResolver !== undefined) {
-            this._logger.debug("shutdown had been requested, now accepted!");
-            this._channel.shutdown();
+    private _emitter(event: ERustEmitterEvents, data: any) {
+        if (event == this.getEventsSignatures().destroyed) {
+            return this._destroy();
         }
-        if (this._destroyed) {
-            // In case if shutdown operation was done too fast
-            return;
-        }
-        // Poll for data
-        this._channel.poll((
-            err: string | undefined | null,
-            event: string | undefined | null,
-            args: { [key: string]: any } | undefined | null) => {
-            if (err) {
-                this._logger.error("Error on pull: " + err);
-                this.getEvents().error.emit({ 
-                    severity: EErrorSeverity.error,
-                    content: err
-                });
-            }
-            else if (event) {
-                if (event == this.getEventsSignatures().destroyed) {
-                    return this._destroy();
-                }
-                this._emit(event, args);
-            }
-            setImmediate(this._polling);
-        });
+        this._emit(event, data);
+    }
+
+    public getEmitter(): TEventEmitter {
+        return this._emitter;
     }
 
     private _destroy() {
@@ -83,11 +57,7 @@ export abstract class Computation<TEvents> {
         Object.keys(this.getEvents()).forEach((key: string) => {
             (this.getEvents() as any)[key].destroy();
         });
-        // Call resolver
-        if (this._shutdownResolver !== undefined) { 
-            this._shutdownResolver();
-        }
-        this._logger.debug("shutdown is done");
+        this._logger.debug('destroyed');
     }
 
     private _emit(event: string, data: any) {
@@ -99,7 +69,10 @@ export abstract class Computation<TEvents> {
             });
             this._logger.error(errMsg);
         } else {
-            const err: Error | undefined = Events.Subject.validate((this.getEventsInterfaces() as any)[event], data);
+            const err: Error | undefined = Events.Subject.validate(
+                (this.getEventsInterfaces() as any)[event],
+                data,
+            );
             if (err instanceof Error) {
                 const errMsg = `Fail to parse event "${event}" due error: ${err.message}`;
                 this.getEvents().error.emit({
@@ -112,5 +85,4 @@ export abstract class Computation<TEvents> {
             }
         }
     }
-
 }

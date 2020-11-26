@@ -1,5 +1,6 @@
 import { RustChannelRequiered } from './native.channel.required';
 import { RustAppendOperationChannelNoType } from './native';
+import { RustChannelConstructorImpl } from './native';
 
 export enum EFileOptionsRequirements {
     DLTOptions = 'DLTOptions',
@@ -17,8 +18,5 @@ export abstract class RustAppendOperationChannel extends RustChannelRequiered {
     public abstract append(session: string, filename: string, options: IFileOptionsDLT | undefined): void;
 }
 
-// Create a type for constructor, because abstract class doesn't have constructor
-export type RustAppendOperationChannelConstructorImpl = new () => RustAppendOperationChannel;
-
 // Assing type
-export const RustAppendOperationChannelConstructor: RustAppendOperationChannelConstructorImpl = RustAppendOperationChannelNoType;
+export const RustAppendOperationChannelConstructor: RustChannelConstructorImpl<RustAppendOperationChannel> = RustAppendOperationChannelNoType;
