@@ -106,6 +106,7 @@ export class ControllerSessionTab {
         this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(
             this._onOpenSearchFiltersTab.bind(this),
         );
+        PluginsService.fire().onSessionOpen(this._sessionId);
     }
 
     public destroy(): Promise<void> {
@@ -154,27 +155,6 @@ export class ControllerSessionTab {
                                 `Fail to destroy session "${this.getGuid()}" due IPC error: ${
                                     sendingError.message
                                 }`,
-                            ),
-                        ),
-                    );
-                });
-        });
-    }
-
-    public init(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._stream
-                .init()
-                .then(() => {
-                    PluginsService.fire().onSessionOpen(this._sessionId);
-                    // this._sidebar();
-                    resolve();
-                })
-                .catch((error: Error) => {
-                    reject(
-                        new Error(
-                            this._logger.error(
-                                `Fail to init controller due error: ${error.message}`,
                             ),
                         ),
                     );
