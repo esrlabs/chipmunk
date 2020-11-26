@@ -38,7 +38,7 @@
             <mat-spinner *ngIf="_ng_state === 'discover'" [diameter]="32" mode="indeterminate"></mat-spinner>
             Add File(s)
         </button>
-        <button mat-stroked-button color="primary" (click)="_ng_onMerge()" [disabled]="_ng_disabled()">
+        <button appFocusDefaultButton mat-stroked-button color="primary" (click)="_ng_onMerge()" [disabled]="_ng_disabled()">
             <mat-spinner *ngIf="_ng_state === 'merge'" [diameter]="32" mode="indeterminate"></mat-spinner>
             Merge
         </button>

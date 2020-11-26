@@ -15,8 +15,6 @@ import ContextMenuService, { IMenuItem } from '../../../services/standalone/serv
 export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDestroy {
 
     @Input() fileList: FilesList;
-    @Input() onDefaultOkAction: Observable<void>;
-    @Input() defaultAction: () => void;
 
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription | undefined } = { };
@@ -28,7 +26,6 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
 
     ngAfterViewInit() {
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
-        this._subscriptions.onDefaultOkAction = this.onDefaultOkAction.subscribe(this.defaultAction.bind(this));
         this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
     }
 
