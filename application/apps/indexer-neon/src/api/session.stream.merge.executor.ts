@@ -14,11 +14,8 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
     options: IExecuteMergeOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
-        const channel: RustMergeOperationChannel = new RustMergeOperationChannelConstructor();
-        const computation: StreamMergeComputation = new StreamMergeComputation(
-            channel,
-            uuid,
-        );
+        const computation: StreamMergeComputation = new StreamMergeComputation(uuid);
+        const channel: RustMergeOperationChannel = new RustMergeOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {

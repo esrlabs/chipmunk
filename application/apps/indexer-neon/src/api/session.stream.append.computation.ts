@@ -7,7 +7,7 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-    IError
+    IError,
 } from '../interfaces/computation.minimal.withprogress';
 
 import * as Events from '../util/events';
@@ -19,8 +19,8 @@ export class StreamAppendComputation extends Computation<IEvents> {
         destroyed: new Events.Subject<void>(),
     };
 
-    constructor(channel: RustAppendOperationChannel, uuid: string) {
-        super(channel, uuid);
+    constructor(uuid: string) {
+        super(uuid);
     }
 
     public getName(): string {

@@ -1,5 +1,5 @@
 import { Computation } from './сomputation';
-import { RustMergeOperationChannel  } from '../native/index';
+import { RustMergeOperationChannel } from '../native/index';
 import {
     IEventsInterfaces,
     EventsInterfaces,
@@ -19,15 +19,14 @@ export interface IFileToBeMerged {
 }
 
 export class StreamMergeComputation extends Computation<IEvents> {
-
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
         error: new Events.Subject<IError>(),
         destroyed: new Events.Subject<void>(),
     };
 
-    constructor(channel: RustMergeOperationChannel, uuid: string) {
-        super(channel, uuid);
+    constructor(uuid: string) {
+        super(uuid);
     }
 
     public getName(): string {
@@ -45,6 +44,4 @@ export class StreamMergeComputation extends Computation<IEvents> {
     public getEventsInterfaces(): IEventsInterfaces {
         return EventsInterfaces;
     }
-
-
 }

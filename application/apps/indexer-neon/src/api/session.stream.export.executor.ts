@@ -10,11 +10,8 @@ export const executor: TExecutor<void, IExportOptions> = (
     options: IExportOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
-        const channel: RustExportOperationChannel = new RustExportOperationChannelConstructor();
-        const computation: StreamExportComputation = new StreamExportComputation(
-            channel,
-            uuid,
-        );
+        const computation: StreamExportComputation = new StreamExportComputation(uuid);
+        const channel: RustExportOperationChannel = new RustExportOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {

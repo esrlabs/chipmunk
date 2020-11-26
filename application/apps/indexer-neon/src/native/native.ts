@@ -17,6 +17,7 @@ const {
     // RustConcatenatorEmitter: RustConcatenatorChannel,            // channel
     // RustMergerEmitter: RustMergerChannel,                        // channel
     // RustGrabber: RustGrabberChannel,                             // synch
+    RustEmitterEvents: RustEmitterEvents,
     RustSession: RustSessionChannelNoType,
     RustAppendOperation: RustAppendOperationChannelNoType,
     RustMergeOperation: RustMergeOperationChannelNoType,
@@ -29,8 +30,15 @@ const {
 
 const addon = getNativeModule();
 
-// Reassign types
+export enum ERustEmitterEvents {
+    error = 'error',
+    destroyed = 'destroyed',
+    ready = 'ready',
+}
 
+export type TEventEmitter = (name: ERustEmitterEvents, data: any) => void;
+
+export type RustChannelConstructorImpl<T> = new (emitter: TEventEmitter) => T;
 
 export {
     // RustIndexerChannel,
@@ -45,6 +53,7 @@ export {
     // RustConcatenatorChannel,
     // RustMergerChannel,
     // RustGrabberChannel,
+    RustEmitterEvents,
     RustSessionChannelNoType,
     RustAppendOperationChannelNoType,
     RustMergeOperationChannelNoType,

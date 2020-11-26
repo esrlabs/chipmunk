@@ -1,5 +1,6 @@
 import { RustChannelRequiered } from './native.channel.required';
 import { RustExportOperationChannelNoType } from './native';
+import { RustChannelConstructorImpl } from './native';
 
 export interface IExportOptions {
     from: number;
@@ -13,8 +14,5 @@ export abstract class RustExportOperationChannel extends RustChannelRequiered {
     public abstract export(session: string, options: IExportOptions): void;
 }
 
-// Create a type for constructor, because abstract class doesn't have constructor
-export type RustExportOperationChannelConstructorImpl = new () => RustExportOperationChannel;
-
 // Assing type
-export const RustExportOperationChannelConstructor: RustExportOperationChannelConstructorImpl = RustExportOperationChannelNoType;
+export const RustExportOperationChannelConstructor: RustChannelConstructorImpl<RustExportOperationChannel> = RustExportOperationChannelNoType;
