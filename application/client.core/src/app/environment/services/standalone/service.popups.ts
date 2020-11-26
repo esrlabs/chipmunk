@@ -7,11 +7,9 @@ export class PopupsService {
     private _subjects: {
         onNew: Subject<Toolkit.IPopup>,
         onRemove: Subject<string>,
-        onEnter: Subject<void>,
     } = {
         onNew: new Subject<Toolkit.IPopup>(),
         onRemove: new Subject<string>(),
-        onEnter: new Subject<void>(),
     };
 
     private _opened: Map<string, boolean> = new Map();
@@ -24,12 +22,10 @@ export class PopupsService {
     public getObservable(): {
         onNew: Observable<Toolkit.IPopup>,
         onRemove: Observable<string>,
-        onEnter: Observable<void>,
     } {
         return {
             onNew: this._subjects.onNew.asObservable(),
             onRemove: this._subjects.onRemove.asObservable(),
-            onEnter: this._subjects.onEnter.asObservable(),
         };
     }
 
@@ -89,8 +85,6 @@ export class PopupsService {
         }
         if (event.key === 'Escape') {
             this.close();
-        } else if (event.key === 'Enter') {
-            this._subjects.onEnter.next();
         }
     }
 

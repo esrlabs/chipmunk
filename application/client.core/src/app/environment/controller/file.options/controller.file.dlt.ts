@@ -30,7 +30,6 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
                             PopupsService.remove(guid);
                             reject(new Error(`Cancel opening file`));
                         },
-                        onDefaultOkAction: PopupsService.getObservable().onEnter
                     }
                 }
             });
@@ -60,7 +59,6 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
                             PopupsService.remove(guid);
                             reject(new Error(`Cancel reopening file`));
                         },
-                        onDefaultOkAction: PopupsService.getObservable().onEnter
                     }
                 }
             });
