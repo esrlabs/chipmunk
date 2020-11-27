@@ -49,10 +49,6 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
         this.provider.select().context(event, entity);
     }
 
-    public _ng_onDoubleClick(event: MouseEvent, entity: Entity<ChartRequest>) {
-        this.provider.select().doubleclick(event, entity);
-    }
-
     public _ng_viablePredicate(): () => boolean {
         return this.provider.isViable.bind(this);
     }
