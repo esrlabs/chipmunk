@@ -100,6 +100,10 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         this._forceUpdate();
     }
 
+    public _ng_onDoubleClick(event: MouseEvent) {
+        this.provider.select().doubleclick(event, this.entity);
+    }
+
     private _init() {
         const desc = this.entity.getEntity().asDesc();
         this._ng_request = desc.request;

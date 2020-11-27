@@ -1,15 +1,17 @@
 <mat-checkbox [checked]="_ng_state" (change)="_ng_onStateChange($event)" (click)="_ng_onStateClick($event)"></mat-checkbox>
-<span class="color" [ngStyle]="{'background': _ng_color}"></span>
-<span class="background" [ngStyle]="{'background': _ng_background}"></span>
-<span class="request" *ngIf="!entity.getEditState().state()">{{_ng_request}}</span>
-<input #requestInput *ngIf="entity.getEditState().state()"
-    matInput
-    class="request"
-    placeholder="Request"
-    (keyup)="_ng_onRequestInputKeyUp($event)"
-    (blur)="_ng_onRequestInputBlur()"
-    [(ngModel)]="_ng_request"
-    [errorStateMatcher]="_ng_errorStateMatcher"/>
+<div class="doubleclick" (dblclick)="_ng_onDoubleClick($event)">
+    <span class="color" [ngStyle]="{'background': _ng_color}"></span>
+    <span class="background" [ngStyle]="{'background': _ng_background}"></span>
+    <span class="request" *ngIf="!entity.getEditState().state()">{{_ng_request}}</span>
+    <input #requestInput *ngIf="entity.getEditState().state()"
+        matInput
+        class="request"
+        placeholder="Request"
+        (keyup)="_ng_onRequestInputKeyUp($event)"
+        (blur)="_ng_onRequestInputBlur()"
+        [(ngModel)]="_ng_request"
+        [errorStateMatcher]="_ng_errorStateMatcher"/>
+</div>
 <span class="flags">
     <span [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (_ng_flags.casesensitive ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'casesensitive')"></span>
     <span [attr.class]="'small-icon-button codicon codicon-whole-word ' + (_ng_flags.wholeword ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'wholeword')"></span>

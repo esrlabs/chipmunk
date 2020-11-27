@@ -1,12 +1,14 @@
 <mat-checkbox [checked]="_ng_state" (change)="_ng_onStateChange($event)" (click)="_ng_onStateClick($event)"></mat-checkbox>
-<span class="type far fa-chart-bar"></span>
-<span class="color" [ngStyle]="{'background': _ng_color}"></span>
-<span class="request" *ngIf="!entity.getEditState().state()">{{_ng_request}}</span>
-<input #requestInput *ngIf="entity.getEditState().state()"
-    matInput
-    class="request"
-    placeholder="Request"
-    (keyup)="_ng_onRequestInputKeyUp($event)"
-    (blur)="_ng_onRequestInputBlur()"
-    [(ngModel)]="_ng_request"
-    [errorStateMatcher]="_ng_errorStateMatcher"/>
+<div class="doubleclick" (dblclick)="_ng_onDoubleClick($event)">
+    <span class="type far fa-chart-bar"></span>
+    <span class="color" [ngStyle]="{'background': _ng_color}"></span>
+    <span class="request" *ngIf="!entity.getEditState().state()">{{_ng_request}}</span>
+    <input #requestInput *ngIf="entity.getEditState().state()"
+        matInput
+        class="request"
+        placeholder="Request"
+        (keyup)="_ng_onRequestInputKeyUp($event)"
+        (blur)="_ng_onRequestInputBlur()"
+        [(ngModel)]="_ng_request"
+        [errorStateMatcher]="_ng_errorStateMatcher"/>
+</div>
