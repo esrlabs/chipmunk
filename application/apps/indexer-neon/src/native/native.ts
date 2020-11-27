@@ -1,3 +1,5 @@
+import ServiceProduction from '../services/service.production';
+
 export interface IRustModuleExports {
     RustEmitterEvents: any;
     RustSession: any;
@@ -9,19 +11,24 @@ export interface IRustModuleExports {
     RustConcatOperation: any;
     RustSearchOperation: any;
 }
+
 export function getNativeModule(): IRustModuleExports {
-    // const native = require("../../native/index.node");
-    return {
-        RustEmitterEvents: {},
-        RustSession: {},
-        RustAppendOperation: {},
-        RustMergeOperation: {},
-        RustTimeFormatDetectOperation: {},
-        RustTimeFormatExtractOperation: {},
-        RustExportOperation: {},
-        RustConcatOperation: {},
-        RustSearchOperation: {},
-    };
+    if (ServiceProduction.isProd()) {
+        const native = require("../../native/index.node");
+        return native;
+    } else {
+        return {
+            RustEmitterEvents: {},
+            RustSession: {},
+            RustAppendOperation: {},
+            RustMergeOperation: {},
+            RustTimeFormatDetectOperation: {},
+            RustTimeFormatExtractOperation: {},
+            RustExportOperation: {},
+            RustConcatOperation: {},
+            RustSearchOperation: {},
+        };    
+    }
 }
 
 const {
