@@ -6,8 +6,8 @@ import {
     IEventsInterfaces,
     IEventsSignatures,
     IEvents,
-    EErrorSeverity,
 } from '../interfaces/computation.minimal';
+import { EErrorSeverity } from '../interfaces/errors';
 
 export abstract class Computation<TEvents> {
     private _destroyed: boolean = false;
@@ -65,7 +65,7 @@ export abstract class Computation<TEvents> {
             const errMsg = `Has been gotten unsupported event: "${event}".`;
             this.getEvents().error.emit({
                 severity: EErrorSeverity.logs,
-                content: errMsg,
+                message: errMsg,
             });
             this.logger.error(errMsg);
         } else {
@@ -77,7 +77,7 @@ export abstract class Computation<TEvents> {
                 const errMsg = `Fail to parse event "${event}" due error: ${err.message}`;
                 this.getEvents().error.emit({
                     severity: EErrorSeverity.logs,
-                    content: errMsg,
+                    message: errMsg,
                 });
                 this.logger.error(errMsg);
             } else {
