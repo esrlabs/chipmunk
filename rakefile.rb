@@ -663,7 +663,7 @@ task :deliver_defaults_plugins do
 end
 
 # put the neon library in place
-task :deliver_neon_indexer_into_local_runtime do
+task :deliver_neon_indexer_into_local_runtime => ELECTRON_DIR do
   copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
 end
 

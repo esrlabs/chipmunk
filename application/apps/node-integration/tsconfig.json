@@ -16,7 +16,7 @@
     "types": ["node"]
   },
   "include": [
-    "src/**/*",
+    "src/**/*"
   ],
   "exclude": [
     "node_modules"

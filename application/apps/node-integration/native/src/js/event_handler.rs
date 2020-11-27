@@ -1,6 +1,7 @@
+use crate::js::events::*;
 use crossbeam_channel as cc;
-use indexer_base::progress::IndexingResults;
-use neon::prelude::*;
+use indexer_base::progress::{IndexingProgress, IndexingResults};
+use neon::{handle::Handle, prelude::*, types::JsString};
 use processor::grabber::{GrabMetadata, Grabber, LineRange};
 use std::thread;
 
@@ -12,6 +13,56 @@ pub struct GrabberHolder {
     pub shutdown_channel: Channel<()>,
     pub event_channel: Channel<IndexingResults<()>>,
     pub metadata_channel: Channel<Option<GrabMetadata>>,
+}
+impl GrabberHolder {
+    fn listen_for_progress_in_thread(
+        progress_event_handler: neon::event::EventHandler,
+        progress_receiver: cc::Receiver<IndexingResults<()>>,
+    ) {
+        thread::spawn(move || {
+            println!("RUST: in progress listener thread");
+
+            loop {
+                match progress_receiver.recv() {
+                    Ok(indexing_res) => match indexing_res {
+                        Ok(progress) => match progress {
+                            IndexingProgress::Stopped => {
+                                println!("RUST: We were stopped");
+                                break;
+                            }
+                            IndexingProgress::Finished => {
+                                println!("RUST: We are finished");
+                                break;
+                            }
+                            IndexingProgress::Progress { ticks } => {
+                                let new_progress_percentage: u64 =
+                                    (ticks.0 as f64 / ticks.1 as f64 * 100.0).round() as u64;
+                                println!(
+                                    "RUST: We made progress: {:.0?}%",
+                                    new_progress_percentage
+                                );
+                                progress_event_handler.schedule_with(move |cx, this, callback| {
+                                    let args: Vec<Handle<JsValue>> = vec![
+                                        cx.string(CallbackEvent::Progress.to_string()).upcast(),
+                                        cx.number(ticks.0 as f64).upcast(),
+                                        cx.number(ticks.1 as f64).upcast(),
+                                    ];
+                                    if let Err(e) = callback.call(cx, this, args) {
+                                        println!("Error on calling js callback: {}", e);
+                                    }
+                                });
+                            }
+                            IndexingProgress::GotItem { item } => {
+                                println!("We got an item: {:?}", item);
+                            }
+                        },
+                        Err(notification) => println!("got a notification: {:?}", notification),
+                    },
+                    Err(e) => println!("Error receiving progress: {}", e),
+                }
+            }
+        });
+    }
 }
 
 declare_types! {
@@ -89,16 +140,21 @@ declare_types! {
         method start(mut cx) {
             println!("RUST: start");
             let this = cx.this();
-            let (handler, grab_path, progress_sender, shutdown_receiver, metadata_sender) = {
+            let (handler, grab_path, progress_sender, progress_receiver, shutdown_receiver, metadata_sender) = {
                 let guard = cx.lock();
                 let this = this.borrow(&guard);
                 (this.handler.clone(),
                 this.grabber.path.clone(),
                 this.event_channel.0.clone(),
+                this.event_channel.1.clone(),
                 this.shutdown_channel.1.clone(),
                 this.metadata_channel.0.clone())
             };
             if let Some(event_handler) = handler {
+                let progress_event_handler = event_handler.clone();
+                GrabberHolder::listen_for_progress_in_thread(progress_event_handler, progress_receiver);
+
+
                 thread::spawn(move || {
                     println!("RUST: in new thread");
                      match Grabber::create_metadata_for_file(grab_path, &progress_sender, Some(shutdown_receiver)) {
@@ -112,7 +168,7 @@ declare_types! {
                     }
 
                     event_handler.schedule_with(move |cx, this, callback| {
-                        let args : Vec<Handle<JsValue>> = vec![cx.string("done").upcast()];
+                        let args : Vec<Handle<JsValue>> = vec![cx.string(CallbackEvent::Done.to_string()).upcast()];
                         if let Err(e) = callback.call(cx, this, args) {
                             println!("Error on calling js callback: {}", e);
                         }

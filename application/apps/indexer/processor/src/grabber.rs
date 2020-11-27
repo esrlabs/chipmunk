@@ -196,6 +196,7 @@ impl Grabber {
                 ticks: (byte_index, input_file_size),
             }))?;
         }
+        result_sender.send(Ok(IndexingProgress::Finished))?;
         Ok(Some(GrabMetadata {
             slots,
             line_count: processed_lines as usize,
