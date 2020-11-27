@@ -537,17 +537,15 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._blur();
     }
 
-    private _focus(hidePanel: boolean = false, delay: number = 150) {
-        setTimeout(() => {
-            if (this._ng_inputComRef === undefined || this._ng_inputComRef === null) {
-                return;
-            }
-            this._ng_inputComRef.focus();
-            this._selectTextInInput();
-            if (hidePanel && this._ng_autoComRef !== undefined && this._ng_autoComRef !== null) {
-                this._ng_autoComRef.closePanel();
-            }
-        }, delay);
+    private _focus(hidePanel: boolean = false) {
+        if (this._ng_inputComRef === undefined || this._ng_inputComRef === null) {
+            return;
+        }
+        this._ng_inputComRef.focus();
+        this._selectTextInInput();
+        if (hidePanel && this._ng_autoComRef !== undefined && this._ng_autoComRef !== null) {
+            this._ng_autoComRef.closePanel();
+        }
     }
 
     private _blur() {
