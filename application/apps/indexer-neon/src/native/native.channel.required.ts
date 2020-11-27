@@ -1,4 +1,4 @@
 
 export abstract class RustChannelRequiered {
-    public abstract shutdown(): void;
+    public abstract destroy(): void;
 }

@@ -34,6 +34,10 @@ export class Socket extends Dependency{
             if (path instanceof Error) {
                 return reject(path);
             }
+            if (path.trim() === '') {
+                // This is debug mode. There is no any socket
+                return resolve();
+            }
             this._connect(path).then((socket: Net.Socket) => {
                 this._socket = socket;
                 this._logger.debug(`Created new connection socket: ${path} for session "${this._session.getUUID()}".`);
