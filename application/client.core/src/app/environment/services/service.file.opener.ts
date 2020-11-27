@@ -72,8 +72,12 @@ export class FileOpenerService implements IService, IFileOpenerService {
             if (files.length === 0) {
                 return resolve();
             }
-            /*
+            const active = TabsSessionsService.getActive();
+            if (active === undefined) {
+                return reject(new Error(`No active session found`));
+            }
             ServiceElectronIpc.request(new IPCMessages.FileListRequest({
+                session: active.getGuid(),
                 files: files.map((file: IPCMessages.IFile) => file.path),
             }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
                 this._setSessionForFile().then((session: ControllerSessionTab) => {
@@ -123,7 +127,6 @@ export class FileOpenerService implements IService, IFileOpenerService {
             }).catch((error: Error) => {
                 return reject(new Error(this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`)));
             });
-            */
         });
     }
 

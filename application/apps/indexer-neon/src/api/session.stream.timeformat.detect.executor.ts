@@ -1,17 +1,17 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustTimeFormatDetectOperationChannel, RustTimeFormatDetectOperationChannelConstructor } from '../native/index';
+import { RustSessionChannel } from '../native/index';
 import { Subscription } from '../util/events.subscription';
 import { StreamTimeFormatDetectComputation, IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.computation';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
+import { IComputationError } from '../interfaces/errors';
 
 export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
+    channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
     options: IDetectOptions,
 ): CancelablePromise<IDetectDTFormatResult> => {
     return new CancelablePromise<IDetectDTFormatResult>((resolve, reject, cancel, refCancelCB, self) => {
         const computation: StreamTimeFormatDetectComputation = new StreamTimeFormatDetectComputation(uuid);
-        const channel: RustTimeFormatDetectOperationChannel = new RustTimeFormatDetectOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -31,9 +31,9 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
                     });
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IError) => {
-                logger.warn(`Error on operation append: ${err.content}`);
-                error = new Error(err.content);
+            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+                logger.warn(`Error on operation append: ${err.message}`);
+                error = new Error(err.message);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
@@ -58,6 +58,6 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.detect(uuid);
+        channel.detect(computation.getEmitter(), options);
     });
 };

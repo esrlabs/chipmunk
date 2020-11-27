@@ -10,6 +10,7 @@ import { Dependency, DependencyConstructor } from './controller.dependency';
 import { Socket } from './controller.dependency.socket';
 import { Search } from './controller.dependency.search';
 import { Charts } from './controller.dependency.charts';
+import { Files } from './controller.dependency.files';
 import { Channel } from './controller.channel';
 import {
     Session,
@@ -44,10 +45,12 @@ export class ControllerSession {
         socket: Socket | undefined;
         search: Search | undefined;
         charts: Charts | undefined;
+        files: Files | undefined;
     } = {
         socket: undefined,
         search: undefined,
         charts: undefined,
+        files: undefined,
     };
     private _logger: Logger;
     private _session: Session | undefined;
@@ -66,6 +69,7 @@ export class ControllerSession {
                     this._dependencies.socket,
                     this._dependencies.search,
                     this._dependencies.charts,
+                    this._dependencies.files,
                 ].filter((d) => d !== undefined) as Dependency[]).map((dep: Dependency) => {
                     return dep.destroy().catch((err: Error) => {
                         this._logger.warn(`Fail to destroy dependency due err: ${err.message}`);
@@ -156,6 +160,9 @@ export class ControllerSession {
                         }),
                         getDependency<Charts>(this, session, Charts).then((dep: Charts) => {
                             this._dependencies.charts = dep;
+                        }),
+                        getDependency<Files>(this, session, Files).then((dep: Files) => {
+                            this._dependencies.files = dep;
                         }),
                     ])
                         .then(() => {

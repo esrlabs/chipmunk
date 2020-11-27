@@ -1,5 +1,4 @@
 import { Computation } from './сomputation';
-import { RustSearchOperationChannel } from '../native/index';
 import { IMatchEntity } from '../interfaces/index';
 import {
     IEventsInterfaces,
@@ -8,8 +7,8 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-    IError,
 } from '../interfaces/computation.minimal.withprogress';
+import { IComputationError } from '../interfaces/errors';
 
 import * as Events from '../util/events';
 
@@ -38,7 +37,7 @@ export class StreamSearchComputation extends Computation<IEvents> {
     private readonly _events: ISearchEvents = {
         progress: new Events.Subject<IOperationProgress>(),
         matches: new Events.Subject<IMatchEntity[]>(),
-        error: new Events.Subject<IError>(),
+        error: new Events.Subject<IComputationError>(),
         destroyed: new Events.Subject<void>(),
     };
 

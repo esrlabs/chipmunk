@@ -2,15 +2,13 @@ import * as Logs from '../util/logging';
 
 import {
     RustSessionChannel,
-    RustSearchOperationChannelConstructor,
-    RustSearchOperationChannel,
 } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { Subscription } from '../util/events.subscription';
 import { SessionComputation } from './session.computation';
 import { IFilter, IMatchEntity } from '../interfaces/index';
 import { StreamSearchComputation } from './session.stream.search.computation';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
+import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
 
 export class SessionSearch {
     private readonly _computation: SessionComputation;
@@ -42,7 +40,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabSearchChunk(start: number, len: number): string {
+    public grabSearchChunk(start: number, len: number): string | IGeneralError {
         return this._channel.grabSearchChunk(start, len);
     }
 
@@ -51,7 +49,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabMatchesChunk(start: number, len: number): string {
+    public grabMatchesChunk(start: number, len: number): string | IGeneralError  {
         return this._channel.grabMatchesChunk(start, len);
     }
 
@@ -62,10 +60,10 @@ export class SessionSearch {
      * @param filters { IFilter[] }
      */
     public setFilters(filters: IFilter[]): Error | undefined {
-        const error: Error | undefined = this._channel.setSearch(filters);
-        if (error instanceof Error) {
+        const error: IGeneralError  | undefined = this._channel.setSearch(filters);
+        if (error !== undefined) {
             this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
-            return error;
+            return new Error(error.message);
         } else {
             return undefined;
         }
@@ -79,10 +77,10 @@ export class SessionSearch {
      * @param filters { IFilter[] }
      */
     public setMatches(filters: IFilter[]): Error | undefined {
-        const error: Error | undefined = this._channel.setMatches(filters);
-        if (error instanceof Error) {
+        const error: IGeneralError | undefined = this._channel.setMatches(filters);
+        if (error !== undefined) {
             this._logger.warn(`Fail to set filters for matches due error: ${error.message}`);
-            return error;
+            return new Error(error.message);
         } else {
             return undefined;
         }
@@ -94,7 +92,6 @@ export class SessionSearch {
                 const computation: StreamSearchComputation = new StreamSearchComputation(
                     this._uuid,
                 );
-                const channel: RustSearchOperationChannel = new RustSearchOperationChannelConstructor(computation.getEmitter());
                 let error: Error | undefined;
                 // Setup subscriptions
                 const subscriptions: {
@@ -128,9 +125,9 @@ export class SessionSearch {
                                 resolve(matches);
                             }
                         }),
-                    error: computation.getEvents().error.subscribe((err: IError) => {
-                        this._logger.warn(`Error on operation append: ${err.content}`);
-                        error = new Error(err.content);
+                    error: computation.getEvents().error.subscribe((err: IGeneralError) => {
+                        this._logger.warn(`Error on operation append: ${err.message}`);
+                        error = new Error(err.message);
                     }),
                     unsunscribe(): void {
                         subscriptions.destroy.destroy();
@@ -156,7 +153,7 @@ export class SessionSearch {
                     subscriptions.unsunscribe();
                 });
                 // Call operation
-                channel.search(this._uuid, filters);
+                this._channel.search(computation.getEmitter(), filters);
             },
         );
     }

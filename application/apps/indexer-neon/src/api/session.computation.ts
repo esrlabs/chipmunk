@@ -11,10 +11,8 @@ import {
     EventsSignatures,
     IEventsSignatures,
     IEvents,
-    IError,
 } from '../interfaces/computation.minimal';
-
-export { IError };
+import { IComputationError } from '../interfaces/errors';
 
 export interface IEventStreamUpdated {
     rows: number;
@@ -133,7 +131,7 @@ export class SessionComputation extends Computation<ISessionEvents> {
         search: new Events.Subject<IEventSearchUpdated>(),
         map: new Events.Subject<IEventMapUpdated>(),
         matches: new Events.Subject<IEventMatchesUpdated>(),
-        error: new Events.Subject<IError>(),
+        error: new Events.Subject<IComputationError>(),
         destroyed: new Events.Subject<void>(),
         ready: new Events.Subject<void>(),
     };

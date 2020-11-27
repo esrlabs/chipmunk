@@ -1,23 +1,21 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustAppendOperationChannel, RustAppendOperationChannelConstructor } from '../native/index';
+import { RustSessionChannel } from '../native/index';
 import { Subscription } from '../util/events.subscription';
-import { StreamAppendComputation } from './session.stream.append.computation';
-import { TFileOptions } from '../native/native.session.stream.append';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
-
-export interface IExecuteAppendOptions {
-    filename: string;
-    options: TFileOptions;
-}
+import {
+    StreamAppendComputation,
+    IExecuteAppendOptions,
+} from './session.stream.append.computation';
+import { IComputationError } from '../interfaces/errors';
 
 export const executor: TExecutor<void, IExecuteAppendOptions> = (
+    channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
     options: IExecuteAppendOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         const computation: StreamAppendComputation = new StreamAppendComputation(uuid);
-        const channel: RustAppendOperationChannel = new RustAppendOperationChannelConstructor(computation.getEmitter());
+        channel.append(computation.getEmitter(), options.filename, options.options);
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -34,9 +32,9 @@ export const executor: TExecutor<void, IExecuteAppendOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IError) => {
-                logger.warn(`Error on operation append: ${err.content}`);
-                error = new Error(err.content);
+            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+                logger.warn(`Error on operation append: ${err.message}`);
+                error = new Error(err.message);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
@@ -61,6 +59,6 @@ export const executor: TExecutor<void, IExecuteAppendOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.append(uuid, options.filename, options.options);
+        channel.append(computation.getEmitter(), options.filename, options.options);
     });
 };

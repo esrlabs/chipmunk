@@ -4,9 +4,10 @@ import * as Logs from '../util/logging';
 import uuid from '../util/uuid';
 
 import { RustSessionChannel, RustSessionChannelConstructor } from '../native/index';
-import { SessionComputation, ISessionEvents, IError } from './session.computation';
+import { SessionComputation, ISessionEvents } from './session.computation';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
+import { IComputationError } from '../interfaces/errors';
 
 export {
     ISessionEvents,
@@ -32,12 +33,12 @@ export class Session {
 
     public init(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            const ready = (err?: IError) => {
+            const ready = (err?: IComputationError) => {
                 Object.keys(subs).forEach((key: string) => {
                     subs[key].destroy();
                 });
                 if (err) {
-                    reject(new Error(err.content));
+                    reject(new Error(err.message));
                 } else {
                     this._channel = channel;
                     this._computation = computation;
@@ -52,7 +53,7 @@ export class Session {
             subs.ready = computation.getEvents().ready.subscribe(() => {
                 ready();
             });
-            subs.error = computation.getEvents().error.subscribe((err: IError) => {
+            subs.error = computation.getEvents().error.subscribe((err: IComputationError) => {
                 ready(err);
             });
         });

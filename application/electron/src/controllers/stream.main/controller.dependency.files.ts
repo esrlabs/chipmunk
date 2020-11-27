@@ -183,25 +183,25 @@ export class Files extends Dependency {
                 return Promise.all([
                     ServiceElectron.IPC.subscribe(
                         IPC.FileOpenRequest,
-                        self._ipc().handlers.open,
+                        self._ipc().handlers.open as any,
                     ).then((subscription: Subscription) => {
                         self._subscriptions.ipc.FileOpenRequest = subscription;
                     }),
                     ServiceElectron.IPC.subscribe(
                         IPC.FileListRequest,
-                        self._ipc().handlers.list,
+                        self._ipc().handlers.list as any,
                     ).then((subscription: Subscription) => {
                         self._subscriptions.ipc.FileListRequest = subscription;
                     }),
                     ServiceElectron.IPC.subscribe(
                         IPC.FileGetOptionsRequest,
-                        self._ipc().handlers.options,
+                        self._ipc().handlers.options as any,
                     ).then((subscription: Subscription) => {
                         self._subscriptions.ipc.FileGetOptionsRequest = subscription;
                     }),
                     ServiceElectron.IPC.subscribe(
                         IPC.FileInfoRequest,
-                        self._ipc().handlers.info,
+                        self._ipc().handlers.info as any,
                     ).then((subscription: Subscription) => {
                         self._subscriptions.ipc.FileGetParserRequest = subscription;
                     }),

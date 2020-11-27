@@ -1,5 +1,4 @@
 import { Computation } from './сomputation';
-import { RustConcatOperationChannel } from '../native/index';
 import {
     IEventsInterfaces,
     EventsInterfaces,
@@ -7,15 +6,15 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-    IError,
 } from '../interfaces/computation.minimal.withprogress';
+import { IComputationError } from '../interfaces/errors';
 
 import * as Events from '../util/events';
 
 export class StreamConcatComputation extends Computation<IEvents> {
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
-        error: new Events.Subject<IError>(),
+        error: new Events.Subject<IComputationError>(),
         destroyed: new Events.Subject<void>(),
     };
 
