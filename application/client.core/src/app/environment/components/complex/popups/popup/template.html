@@ -3,7 +3,7 @@
         <p class="caption">{{popup.caption}}<span *ngIf="popup.options.closable" class="close-button fas fa-times" (click)="onClose()"></span></p>
         <p class="content">{{popup.message}}</p>
         <div *ngIf="popup.buttons !== undefined" class="buttons">
-            <lib-primitive-button *ngFor="let button of popup.buttons" [caption]="button.caption" [handler]="button.handler"></lib-primitive-button>
+            <button mat-stroked-button *ngFor="let button of popup.buttons" (click)="button.handler()">{{button.caption}}</button>
         </div>
     </div>
     <div *ngIf="popup.component !== undefined" class="wrapper">
