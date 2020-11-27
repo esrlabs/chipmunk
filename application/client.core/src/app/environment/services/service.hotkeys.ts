@@ -32,8 +32,8 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'],         description: 'Show filters tab',                category: EHotkeyCategory.Areas },
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                          description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
     [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                          description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
-    [IPCMessages.EHotkeyActionRef.scrollToBegin]:           { shortkeys: ['Shift + J'],                                   description: 'Scroll to beginning of main output', category: EHotkeyCategory.Movement},
-    [IPCMessages.EHotkeyActionRef.scrollToEnd]:             { shortkeys: ['Shift + J + J'],                               description: 'Scroll to end of main output',    category: EHotkeyCategory.Movement},
+    [IPCMessages.EHotkeyActionRef.scrollToBegin]:           { shortkeys: ['gg'],                                          description: 'Scroll to beginning of main output', category: EHotkeyCategory.Movement},
+    [IPCMessages.EHotkeyActionRef.scrollToEnd]:             { shortkeys: ['G'],                                           description: 'Scroll to end of main output',    category: EHotkeyCategory.Movement},
     [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { shortkeys: ['⌘ + F', 'Ctrl + F', '/'],                    description: 'Focus on search input',           category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.focusMainView]:           { shortkeys: ['⌘ + 1', 'Ctrl + 1'],                         description: 'Focus on main output',            category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
@@ -265,22 +265,24 @@ export class HotkeysService implements IService {
                 session: undefined,
                 unixtime: Date.now(),
             });
-        } else if (event.shiftKey && event.key === 'J' && !this._input) {
-            this._shiftJ();
+        } else if (!this._input) {
+            if (event.key === 'G') {
+                this._subjects.scrollToEnd.next({
+                    session: undefined,
+                    unixtime: Date.now(),
+                });
+            } else if (event.key === 'g') {
+                this._gLowercase();
+            }
         }
     }
 
-    private _shiftJ() {
+    private _gLowercase() {
         this._combinationCounter++;
         if (this._combinationTimer === -1) {
             this._combinationTimer = window.setTimeout(() => {
-                if (this._combinationCounter === 1) {
+                if (this._combinationCounter > 1) {
                     this._subjects.scrollToBegin.next({
-                        session: undefined,
-                        unixtime: Date.now(),
-                    });
-                } else {
-                    this._subjects.scrollToEnd.next({
                         session: undefined,
                         unixtime: Date.now(),
                     });
