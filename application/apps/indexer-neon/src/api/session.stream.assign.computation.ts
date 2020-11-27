@@ -1,5 +1,4 @@
 import { Computation } from './сomputation';
-import { RustAppendOperationChannel } from '../native/index';
 import {
     IEventsInterfaces,
     EventsInterfaces,
@@ -7,15 +6,31 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-    IError,
 } from '../interfaces/computation.minimal.withprogress';
+import { IComputationError } from '../interfaces/errors';
 
 import * as Events from '../util/events';
 
-export class StreamAppendComputation extends Computation<IEvents> {
+export interface IFileOptionsDLT {
+
+}
+
+export enum EFileOptionsRequirements {
+    DLTOptions = 'DLTOptions',
+    NoOptionsRequired = 'NoOptionsRequires',
+}
+
+export type TFileOptions = IFileOptionsDLT | undefined;
+
+export interface IExecuteAssignOptions {
+    filename: string;
+    options: TFileOptions;
+}
+
+export class StreamAssignComputation extends Computation<IEvents> {
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
-        error: new Events.Subject<IError>(),
+        error: new Events.Subject<IComputationError>(),
         destroyed: new Events.Subject<void>(),
     };
 
@@ -24,7 +39,7 @@ export class StreamAppendComputation extends Computation<IEvents> {
     }
 
     public getName(): string {
-        return 'StreamAppendComputation';
+        return 'StreamAssignComputation';
     }
 
     public getEvents(): IEvents {

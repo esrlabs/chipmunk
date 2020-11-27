@@ -9,7 +9,9 @@ import { IPCMessages as IPC, Subscription } from '../../services/service.electro
 import { Dependency, DependencyConstructor } from './controller.dependency';
 import { Socket } from './controller.dependency.socket';
 import { Search } from './controller.dependency.search';
+import { Stream } from './controller.dependency.stream';
 import { Charts } from './controller.dependency.charts';
+import { Files } from './controller.dependency.files';
 import { Channel } from './controller.channel';
 import {
     Session,
@@ -42,12 +44,16 @@ export class ControllerSession {
     };
     private readonly _dependencies: {
         socket: Socket | undefined;
+        stream: Stream | undefined;
         search: Search | undefined;
         charts: Charts | undefined;
+        files: Files | undefined;
     } = {
         socket: undefined,
+        stream: undefined,
         search: undefined,
         charts: undefined,
+        files: undefined,
     };
     private _logger: Logger;
     private _session: Session | undefined;
@@ -64,8 +70,10 @@ export class ControllerSession {
             Promise.all(
                 ([
                     this._dependencies.socket,
+                    this._dependencies.stream,
                     this._dependencies.search,
                     this._dependencies.charts,
+                    this._dependencies.files,
                 ].filter((d) => d !== undefined) as Dependency[]).map((dep: Dependency) => {
                     return dep.destroy().catch((err: Error) => {
                         this._logger.warn(`Fail to destroy dependency due err: ${err.message}`);
@@ -151,11 +159,17 @@ export class ControllerSession {
                         getDependency<Socket>(this, session, Socket).then((dep: Socket) => {
                             this._dependencies.socket = dep;
                         }),
+                        getDependency<Stream>(this, session, Stream).then((dep: Stream) => {
+                            this._dependencies.stream = dep;
+                        }),
                         getDependency<Search>(this, session, Search).then((dep: Search) => {
                             this._dependencies.search = dep;
                         }),
                         getDependency<Charts>(this, session, Charts).then((dep: Charts) => {
                             this._dependencies.charts = dep;
+                        }),
+                        getDependency<Files>(this, session, Files).then((dep: Files) => {
+                            this._dependencies.files = dep;
                         }),
                     ])
                         .then(() => {
@@ -177,8 +191,14 @@ export class ControllerSession {
     public get(): {
         UUID(): string;
         session(): Session;
+        socket(): Socket;
+        stream(): Stream;
+        search(): Search;
+        charts(): Charts;
+        files(): Files;
     } {
-        const session = this._session;
+        const self = this;
+        const session = self._session;
         if (session === undefined) {
             throw new Error(
                 this._logger.error(`Cannot return session's UUID because session isn't inited`),
@@ -191,6 +211,21 @@ export class ControllerSession {
             session(): Session {
                 return session;
             },
+            socket(): Socket {
+                return self._dependencies.socket as Socket;
+            },
+            stream(): Stream {
+                return self._dependencies.stream as Stream;
+            },
+            search(): Search {
+                return self._dependencies.search as Search;
+            },
+            charts(): Charts {
+                return self._dependencies.charts as Charts;
+            },
+            files(): Files {
+                return self._dependencies.files as Files;
+            },
         };
     }
 
@@ -199,7 +234,7 @@ export class ControllerSession {
     }
 
     public operations(): {
-        append(filename: string, options: TFileOptions): CancelablePromise<void>;
+        assign(filename: string, options: TFileOptions): CancelablePromise<void>;
         concat(files: string[]): CancelablePromise<void>;
         merge(files: IFileToBeMerged[]): CancelablePromise<void>;
         export(options: IExportOptions): CancelablePromise<void>;
@@ -215,8 +250,8 @@ export class ControllerSession {
             return stream;
         }
         return {
-            append(filename: string, options: TFileOptions): CancelablePromise<void> {
-                return getStream().append(filename, options);
+            assign(filename: string, options: TFileOptions): CancelablePromise<void> {
+                return getStream().assign(filename, options);
             },
             concat(files: string[]): CancelablePromise<void> {
                 return getStream().concat(files);
@@ -403,19 +438,19 @@ export class ControllerSession {
                     message: IPC.MergeFilesTestRequest,
                     response: (instance: IPC.IMergeFilesDiscoverResult) => any,
                 ): void {
-                    //TODO: Implement
+                    // TODO: Implement
                 },
                 timeformat_discover(
                     message: IPC.MergeFilesDiscoverRequest,
                     response: (instance: IPC.MergeFilesDiscoverResponse) => any,
                 ): void {
-                    //TODO: Implement
+                    // TODO: Implement
                 },
                 timeformat_request(
                     message: IPC.MergeFilesFormatRequest,
                     response: (instance: IPC.MergeFilesFormatResponse) => any,
                 ): void {
-                    //TODO: Implement
+                    // TODO: Implement
                 }
             },
         };

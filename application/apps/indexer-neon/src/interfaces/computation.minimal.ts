@@ -1,17 +1,5 @@
 import * as Events from '../util/events';
-
-export enum EErrorSeverity {
-    warn = 'warn',
-    error = 'error',
-    logs = 'logs',
-}
-
-export interface IError {
-    severity: EErrorSeverity;
-    content: string;
-    row?: number;
-    filename?: string;
-}
+import { IComputationError } from './errors';
 
 export interface IEvents {
     /**
@@ -19,7 +7,7 @@ export interface IEvents {
      * Calls on any error on rust side. Emitting of @event error doesn't mean 
      * stopping of operation.
      */
-    error: Events.Subject<IError>,
+    error: Events.Subject<IComputationError>,
     /**
      * @event destroyed { void }
      * Calls always as soon as instance of computation is destroyed. No any
@@ -39,12 +27,12 @@ export const EventsSignatures: IEventsSignatures = {
 }
 
 export interface IEventsInterfaces {
-    error: { self: 'object', severity: 'string', content: 'string' };
+    error: { self: 'object', severity: 'string', message: 'string' };
     destroyed: { self: null };
 }
 
 
 export const EventsInterfaces: IEventsInterfaces = {
-    error: { self: 'object', severity: 'string', content: 'string' },
+    error: { self: 'object', severity: 'string', message: 'string' },
     destroyed: { self: null },
 }

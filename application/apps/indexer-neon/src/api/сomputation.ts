@@ -6,18 +6,18 @@ import {
     IEventsInterfaces,
     IEventsSignatures,
     IEvents,
-    EErrorSeverity,
 } from '../interfaces/computation.minimal';
+import { EErrorSeverity } from '../interfaces/errors';
 
 export abstract class Computation<TEvents> {
     private _destroyed: boolean = false;
     private _uuid: string;
-    private readonly _logger: Logs.Logger;
+    public readonly logger: Logs.Logger;
 
     constructor(uuid: string) {
         this._uuid = uuid;
         this._emitter = this._emitter.bind(this);
-        this._logger = Logs.getLogger(`${this.getName()}: ${uuid}`);
+        this.logger = Logs.getLogger(`${this.getName()}: ${uuid}`);
     }
 
     public destroy(): Promise<void> {
@@ -57,7 +57,7 @@ export abstract class Computation<TEvents> {
         Object.keys(this.getEvents()).forEach((key: string) => {
             (this.getEvents() as any)[key].destroy();
         });
-        this._logger.debug('destroyed');
+        this.logger.debug('destroyed');
     }
 
     private _emit(event: string, data: any) {
@@ -65,9 +65,9 @@ export abstract class Computation<TEvents> {
             const errMsg = `Has been gotten unsupported event: "${event}".`;
             this.getEvents().error.emit({
                 severity: EErrorSeverity.logs,
-                content: errMsg,
+                message: errMsg,
             });
-            this._logger.error(errMsg);
+            this.logger.error(errMsg);
         } else {
             const err: Error | undefined = Events.Subject.validate(
                 (this.getEventsInterfaces() as any)[event],
@@ -77,9 +77,9 @@ export abstract class Computation<TEvents> {
                 const errMsg = `Fail to parse event "${event}" due error: ${err.message}`;
                 this.getEvents().error.emit({
                     severity: EErrorSeverity.logs,
-                    content: errMsg,
+                    message: errMsg,
                 });
-                this._logger.error(errMsg);
+                this.logger.error(errMsg);
             } else {
                 (this.getEvents() as any)[event].emit(data);
             }

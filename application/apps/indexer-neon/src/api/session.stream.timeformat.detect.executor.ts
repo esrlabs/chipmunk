@@ -1,17 +1,19 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustTimeFormatDetectOperationChannel, RustTimeFormatDetectOperationChannelConstructor } from '../native/index';
+import { RustSessionChannel } from '../native/index';
+import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
 import { StreamTimeFormatDetectComputation, IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.computation';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
+import { IComputationError } from '../interfaces/errors';
+import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
+    channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
     options: IDetectOptions,
 ): CancelablePromise<IDetectDTFormatResult> => {
     return new CancelablePromise<IDetectDTFormatResult>((resolve, reject, cancel, refCancelCB, self) => {
         const computation: StreamTimeFormatDetectComputation = new StreamTimeFormatDetectComputation(uuid);
-        const channel: RustTimeFormatDetectOperationChannel = new RustTimeFormatDetectOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -31,9 +33,9 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
                     });
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IError) => {
-                logger.warn(`Error on operation append: ${err.content}`);
-                error = new Error(err.content);
+            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+                logger.warn(`Error on operation append: ${err.message}`);
+                error = new Error(err.message);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
@@ -45,12 +47,7 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
         refCancelCB(() => {
             // Cancelation is started, but not canceled
             logger.debug(`Get command "break" operation. Starting breaking.`);
-            // Destroy computation manually
-            computation.destroy().catch((err: Error) => {
-                logger.warn(
-                    `Fail to destroy correctly computation instance for "append" operation due error: ${err.message}`,
-                );
-            });
+            (canceler as TCanceler)();
         });
         // Handle finale of promise
         self.finally(() => {
@@ -58,6 +55,9 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.detect(uuid);
+        const canceler: TCanceler | IGeneralError = channel.detect(computation.getEmitter(), options);
+        if (typeof canceler !== 'function') {
+            return reject(new Error(`Fail to call detect method due error: ${canceler.message}`));
+        }
     });
 };
