@@ -5,7 +5,8 @@ import { PopupsComponent                        } from './component';
 import { PopupComponent                         } from './popup/component';
 
 import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
-import { MatButtonModule } from '@angular/material/button';
+import { MatButtonModule                        } from '@angular/material/button';
+import { A11yModule                             } from '@angular/cdk/a11y';
 
 const entryComponents = [ PopupComponent ];
 const components = [ PopupsComponent, ...entryComponents ];
@@ -16,7 +17,8 @@ const components = [ PopupsComponent, ...entryComponents ];
         CommonModule,
         PrimitiveModule,
         ContainersModule,
-        MatButtonModule
+        MatButtonModule,
+        A11yModule
     ],
     declarations    : [ ...components ],
     exports         : [ ...components ]
