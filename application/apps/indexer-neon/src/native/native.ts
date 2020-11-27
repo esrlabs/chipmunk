@@ -1,22 +1,30 @@
-
-export function getNativeModule() {
-    const native = require("../../../../native/index.node");
-    return native;
+export interface IRustModuleExports {
+    RustEmitterEvents: any;
+    RustSession: any;
+    RustAppendOperation: any;
+    RustMergeOperation: any;
+    RustTimeFormatDetectOperation: any;
+    RustTimeFormatExtractOperation: any;
+    RustExportOperation: any;
+    RustConcatOperation: any;
+    RustSearchOperation: any;
+}
+export function getNativeModule(): IRustModuleExports {
+    // const native = require("../../native/index.node");
+    return {
+        RustEmitterEvents: {},
+        RustSession: {},
+        RustAppendOperation: {},
+        RustMergeOperation: {},
+        RustTimeFormatDetectOperation: {},
+        RustTimeFormatExtractOperation: {},
+        RustExportOperation: {},
+        RustConcatOperation: {},
+        RustSearchOperation: {},
+    };
 }
 
 const {
-    // RustIndexerEventEmitter: RustIndexerChannel,                 // into append
-    // RustDltIndexerEventEmitter: RustDltIndexerChannel,           // into append
-    // RustDltStatsEventEmitter: RustDltStatsChannel,               
-    // RustExporterEventEmitter: RustExportFileChannel,             // channel
-    // RustDltSocketEventEmitter: RustDltSocketChannel,
-    // RustDltPcapEventEmitter: RustDltPcapChannel,                 // into append
-    // RustTimestampFormatDetectionEmitter: RustTimestampChannel,   // channel   
-    // RustTimestampExtractEmitter: RustTimestampExtractChannel,    // channel
-    // RustFormatVerificationEmitter: RustFormatVerificationChannel,// synch
-    // RustConcatenatorEmitter: RustConcatenatorChannel,            // channel
-    // RustMergerEmitter: RustMergerChannel,                        // channel
-    // RustGrabber: RustGrabberChannel,                             // synch
     RustEmitterEvents: RustEmitterEvents,
     RustSession: RustSessionChannelNoType,
     RustAppendOperation: RustAppendOperationChannelNoType,
@@ -41,18 +49,6 @@ export type TEventEmitter = (name: ERustEmitterEvents, data: any) => void;
 export type RustChannelConstructorImpl<T> = new (emitter: TEventEmitter) => T;
 
 export {
-    // RustIndexerChannel,
-    // RustDltIndexerChannel,
-    // RustDltStatsChannel,
-    // RustExportFileChannel,
-    // RustDltSocketChannel,
-    // RustDltPcapChannel,
-    // RustTimestampChannel,
-    // RustTimestampExtractChannel,
-    // RustFormatVerificationChannel,
-    // RustConcatenatorChannel,
-    // RustMergerChannel,
-    // RustGrabberChannel,
     RustEmitterEvents,
     RustSessionChannelNoType,
     RustAppendOperationChannelNoType,
