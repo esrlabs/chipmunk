@@ -33,6 +33,7 @@ class ServiceDLTDeamonConnector implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            resolve();
             /*
             this._subscriptions.onSessionClosed = ServiceStreams.getSubjects().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
             Promise.all([

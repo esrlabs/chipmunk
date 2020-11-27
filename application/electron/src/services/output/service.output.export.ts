@@ -31,6 +31,7 @@ class ServiceOutputExport implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            resolve();
             /*
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.OutputExportFeaturesRequest, this._onOutputExportFeaturesRequest.bind(this)).then((subscription: Subscription) => {
