@@ -1,4 +1,4 @@
-import { Component, Input, HostBinding, AfterContentInit } from '@angular/core';
+import { Component, Input, HostBinding, AfterContentInit, AfterViewInit } from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
@@ -7,7 +7,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     styleUrls: ['./styles.less']
 })
 
-export class PopupComponent implements AfterContentInit {
+export class PopupComponent implements AfterContentInit, AfterViewInit {
 
     @Input() public popup: Toolkit.IPopup = { caption: '', message: '' };
 
@@ -26,4 +26,10 @@ export class PopupComponent implements AfterContentInit {
         }
     }
 
+    public ngAfterViewInit() {
+        const containers = Array.from(document.getElementsByClassName('buttons'));
+        if (containers.length > 0 && containers[0].firstChild !== null) {
+            (containers[0].firstChild as HTMLElement).focus();
+        }
+    }
 }

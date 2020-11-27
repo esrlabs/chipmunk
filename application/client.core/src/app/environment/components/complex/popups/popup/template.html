@@ -1,4 +1,4 @@
-<div *ngIf="!popup.options.minimalistic" class="container minimalistic">
+<div cdkTrapFocus *ngIf="!popup.options.minimalistic" class="container minimalistic">
     <div *ngIf="popup.message !== undefined" class="wrapper">
         <p class="caption">{{popup.caption}}<span *ngIf="popup.options.closable" class="close-button fas fa-times" (click)="onClose()"></span></p>
         <p class="content">{{popup.message}}</p>
