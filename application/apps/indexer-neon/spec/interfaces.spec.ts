@@ -26,77 +26,62 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 import * as Events from '../src/util/events';
 
 import { RustChannelRequiered } from '../src/native/native.channel.required';
-import { EventsSignatures } from '../src/api/сomputation';
+import { RustChannelConstructorImpl, TEventEmitter, ERustEmitterEvents } from '../src/native/native';
+
 import { Computation } from '../src/api/сomputation';
+import {
+    IEventsInterfaces,
+    EventsInterfaces,
+    EventsSignatures,
+    IEventsSignatures,
+    IEvents,
+    IOperationProgress,
+} from '../src/interfaces/computation.minimal.withprogress';
+import { IComputationError, EErrorSeverity } from '../src/interfaces/errors';
 
 class DummyRustChannel extends RustChannelRequiered {
 
-    private _shutdown: boolean = false;
-    private _stopped: boolean = false;
-    private _error?: Error;
+    private _destroyed: boolean = false;
+    private _emitter: TEventEmitter;
 
-    constructor(selfTerminationAfter?: number, error?: Error) {
+    constructor(emitter: TEventEmitter, selfTerminationAfter?: number, error?: IComputationError) {
         super();
+        this._emitter = emitter;
         if (typeof selfTerminationAfter === 'number') {
             setTimeout(() => {
-                this.shutdown();
+                this.destroy();
             }, selfTerminationAfter);
         }
-        if (error instanceof Error) {
+        if (error !== undefined) {
             setTimeout(() => {
-                this._error = error;
+                this._emitter(ERustEmitterEvents.error, error);
             }, 200);
         }
     }
 
-    public poll(callback: (
-        err: string | undefined | null,
-        event: string | undefined | null,
-        args: { [key: string]: any } | undefined | null) => void): void {
-        if (this._stopped) {
-            return;
+    public destroy(): void {
+        if (this._destroyed) {
+            return
         }
-        if (this._shutdown) {
-            this._stopped = true;
-            return callback(null, EventsSignatures.destroyed, null);
-        }
-        if (this._error instanceof Error) {
-            callback(this._error.message, undefined, undefined);
-            return this._error = undefined;
-        }
-        callback(undefined, undefined, undefined);
-    }
-
-    public shutdown(): void {
-        this._shutdown = true;
+        this._destroyed = true;
+        this._emitter(ERustEmitterEvents.destroyed, undefined);
     }
 
 }
 
-interface IEvents {
-    error: Events.Subject<Error>,
-    destroyed: Events.Subject<void>,
-}
-
-interface IEventsSignatures {
-    error: 'error';
-    destroyed: 'destroyed';
-};
-
-const EventsInterface = {
-    error: { self: Error },
-    destroyed: { self: null },
-};
+// Check also correct type declaration binding
+let DummyRustChannelConstructor: RustChannelConstructorImpl<DummyRustChannel> = DummyRustChannel
 
 class DummyComputation extends Computation<IEvents> {
 
     private readonly _events: IEvents = {
-        error: new Events.Subject<Error>(),
+        progress: new Events.Subject<IOperationProgress>(),
+        error: new Events.Subject<IComputationError>(),
         destroyed: new Events.Subject<void>(),
     };
 
-    constructor(channel: DummyRustChannel, uuid: string) {
-        super(channel, uuid);
+    constructor(uuid: string) {
+        super(uuid);
     }
 
     public getName(): string {
@@ -108,25 +93,20 @@ class DummyComputation extends Computation<IEvents> {
     }
 
     public getEventsSignatures(): IEventsSignatures {
-        return {
-            error: 'error',
-            destroyed: 'destroyed',
-        };
+        return EventsSignatures;
     }
 
-    public getEventsInterfaces() {
-        return EventsInterface;
+    public getEventsInterfaces(): IEventsInterfaces {
+        return EventsInterfaces;
     }
-
 
 }
-
 
 describe('Iterfaces testsComputation Events Life Circle', () => {
 
     it('Call destroy', (done: Function)=> {
-        const channel: DummyRustChannel = new DummyRustChannel();
-        const computation: DummyComputation = new DummyComputation(channel, 'a');
+        const computation: DummyComputation = new DummyComputation('a');
+        const channel: DummyRustChannel = new DummyRustChannelConstructor(computation.getEmitter());
         let destroyed: boolean = false;
         let error: boolean = false;
         computation.getEvents().destroyed.subscribe(() => {
@@ -135,20 +115,17 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
         computation.getEvents().error.subscribe(() => {
             error = true;
         });
-        computation.destroy().then(() => {
+        channel.destroy();
+        setTimeout(() => {
             expect(destroyed).toBe(true);
             expect(error).toBe(false);
-        }).catch((err) => {
-            console.log(err);
-            expect(true).toBe(false);
-        }).finally(() => {
             done();
-        });
+        }, 500);
     });
 
     it('Self termination', (done: Function)=> {
-        const channel: DummyRustChannel = new DummyRustChannel(250);
-        const computation: DummyComputation = new DummyComputation(channel, 'a');
+        const computation: DummyComputation = new DummyComputation('a');
+        const channel: DummyRustChannel = new DummyRustChannel(computation.getEmitter(), 250);
         let destroyed: boolean = false;
         let error: boolean = false;
         computation.getEvents().destroyed.subscribe(() => {
@@ -165,8 +142,11 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
     });
 
     it('Self termination & error', (done: Function)=> {
-        const channel: DummyRustChannel = new DummyRustChannel(750, new Error('Test'));
-        const computation: DummyComputation = new DummyComputation(channel, 'a');
+        const computation: DummyComputation = new DummyComputation('a');
+        const channel: DummyRustChannel = new DummyRustChannel(computation.getEmitter(), 750, {
+            message: 'Test for Error',
+            severity: EErrorSeverity.error
+        });
         let destroyed: boolean = false;
         let error: boolean = false;
         computation.getEvents().destroyed.subscribe(() => {
@@ -183,8 +163,8 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
     });
 
     it('Attempt to destroy more than once', (done: Function)=> {
-        const channel: DummyRustChannel = new DummyRustChannel(250);
-        const computation: DummyComputation = new DummyComputation(channel, 'a');
+        const computation: DummyComputation = new DummyComputation('a');
+        const channel: DummyRustChannel = new DummyRustChannel(computation.getEmitter(), 250);
         let destroyed: boolean = false;
         let error: boolean = false;
         computation.getEvents().destroyed.subscribe(() => {
@@ -195,7 +175,7 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
         });
         setTimeout(() => {
             computation.destroy().then(() => {
-                expect(false).toBe(true);
+                fail(`Computation is resolved, but expectation: computation would be rejected`);
             }).catch((err: Error) => {
                 expect(destroyed).toBe(true);
                 expect(error).toBe(false);    

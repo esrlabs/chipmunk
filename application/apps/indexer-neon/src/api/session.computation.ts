@@ -1,17 +1,18 @@
+import * as Events from '../util/events';
+
+import ServiceProduction from '../services/service.production';
+
 import { Computation } from './сomputation';
-import { RustSessionChannel } from '../native/index';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';
+import { ERustEmitterEvents } from '../native/native';
 import {
     IEventsInterfaces,
     EventsInterfaces,
     EventsSignatures,
     IEventsSignatures,
     IEvents,
-    IError,
 } from '../interfaces/computation.minimal';
-import * as Events from '../util/events';
-
-export { IError };
+import { IComputationError } from '../interfaces/errors';
 
 export interface IEventStreamUpdated {
     rows: number;
@@ -124,18 +125,22 @@ const SessionEventsInterfaces = Object.assign(
 ) as ISessionEventsInterfaces;
 
 export class SessionComputation extends Computation<ISessionEvents> {
+
     private readonly _events: ISessionEvents = {
         stream: new Events.Subject<IEventStreamUpdated>(),
         search: new Events.Subject<IEventSearchUpdated>(),
         map: new Events.Subject<IEventMapUpdated>(),
         matches: new Events.Subject<IEventMatchesUpdated>(),
-        error: new Events.Subject<IError>(),
+        error: new Events.Subject<IComputationError>(),
         destroyed: new Events.Subject<void>(),
         ready: new Events.Subject<void>(),
     };
 
     constructor(uuid: string) {
         super(uuid);
+        if (!ServiceProduction.isProd()) {
+            this._debug();
+        }
     }
 
     public getName(): string {
@@ -152,5 +157,14 @@ export class SessionComputation extends Computation<ISessionEvents> {
 
     public getEventsInterfaces(): ISessionEventsInterfaces {
         return SessionEventsInterfaces;
+    }
+
+    private _debug() {
+        this.logger.debug(`switched to debug mode`);
+        // Trigger ready event
+        setTimeout(() => {
+            this.logger.debug(`triggering ready event`);
+            this.getEmitter()(ERustEmitterEvents.ready, undefined);
+        }, ServiceProduction.getDebugSettings().initChannelDelay);
     }
 }

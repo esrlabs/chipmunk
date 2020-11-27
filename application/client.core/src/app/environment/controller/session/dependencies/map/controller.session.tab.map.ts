@@ -373,7 +373,7 @@ export class ControllerSessionTabMap implements Dependency {
         if (message.guid !== this._guid) {
             return;
         }
-        this._state.count = message.rowsCount;
+        this._state.count = message.rows;
         this._saveTriggerStateUpdate();
     }
 }
