@@ -12,13 +12,17 @@ name = "example"
 crate-type = ["cdylib"]
 
 [build-dependencies]
-neon-build = "0.5.1"
+neon-build = "0.5.3"
 
 [dependencies]
 crossbeam-channel = "0.5.0"
+dirs = "3.0.1"
 dlt = { path = "../../indexer/dlt" }
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
+log4rs = "0.13.0"
 merging = { path = "../../indexer/merging" }
 neon = { version = "0.5", features = ["event-handler-api"] }
 processor = { path = "../../indexer/processor" }
+strum_macros = "0.20.1"
+thiserror = "1.0.22"

@@ -3,7 +3,6 @@ TSC = './node_modules/.bin/tsc'
 ELECTRON_BUILD_ENV = 'node_modules/.bin/electron-build-env'
 TEST_RUNNER = './node_modules/.bin/jasmine-ts'
 LOCAL_EXAMPLE_DIR = "#{Dir.home}/tmp/logviewer_usecases"
-TESTS_JS_REQUIRE = 'require("./dist/apps/indexer-neon/src/tests.js")'
 HUGE_LOGFILE = "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log"
 
 desc 'build'
@@ -41,10 +40,4 @@ def escape_strings(arg)
   else
     "\"#{arg}\""
   end
-end
-
-def call_test_function(function_name, *args)
-  func_args = args.map { |a| escape_strings(a) }.join(',')
-  node_exp = "#{TESTS_JS_REQUIRE}.#{function_name}(#{func_args})"
-  exec_node_expression(node_exp)
 end

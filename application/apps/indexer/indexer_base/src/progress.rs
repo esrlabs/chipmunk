@@ -30,6 +30,8 @@ pub enum IndexingProgress<T> {
     Stopped,
     Finished,
 }
+
+#[derive(Debug)]
 pub struct Notification {
     pub severity: Severity,
     pub content: String,

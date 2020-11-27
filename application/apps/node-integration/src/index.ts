@@ -1,5 +1,7 @@
 var addon = require('../native');
 
+export { done };
+
 console.log(addon.hello());
 
 function done() {
