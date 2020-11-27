@@ -1,17 +1,22 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
-import {
-    RustSessionChannel,
-} from '../native/index';
+import { RustSessionChannel } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { SessionComputation } from './session.computation';
 import { IFileToBeMerged } from './session.stream.merge.computation';
 import { IExportOptions } from './session.stream.export.computation';
-import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.computation';
-import { IExtractOptions, IExtractDTFormatResult } from './session.stream.timeformat.extract.computation';
+import {
+    IDetectDTFormatResult,
+    IDetectOptions,
+} from './session.stream.timeformat.detect.computation';
+import {
+    IExtractOptions,
+    IExtractDTFormatResult,
+} from './session.stream.timeformat.extract.computation';
 import { Executors } from './session.stream.executors';
-import { TFileOptions, EFileOptionsRequirements } from '../native/native.session.stream.append';
+import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.computation';
+import { IGeneralError } from '../interfaces/errors';
 
 export {
     IFileToBeMerged,
@@ -20,7 +25,7 @@ export {
     IDetectOptions,
     IExtractOptions,
     IExtractDTFormatResult,
-}
+};
 
 abstract class Connector<T> {
     public abstract disconnect(): Promise<void>; // Equal to destroy
@@ -57,7 +62,7 @@ export class SessionStream {
         });
     }
 
-    public grab(start: number, len: number): string {
+    public grab(start: number, len: number): string | IGeneralError {
         return this._channel.grabStreamChunk(start, len);
     }
 
@@ -65,28 +70,31 @@ export class SessionStream {
         return this._channel.getFileOptionsRequirements(filename);
     }
 
-    public append(filename: string, options: TFileOptions): CancelablePromise<void> {
-        return Executors.append(this._logger, this._uuid, { filename: filename, options: options });
+    public assign(filename: string, options: TFileOptions): CancelablePromise<void> {
+        return Executors.assign(this._channel, this._logger, this._uuid, {
+            filename: filename,
+            options: options,
+        });
     }
 
     public concat(files: string[]): CancelablePromise<void> {
-        return Executors.concat(this._logger, this._uuid, { files: files });
+        return Executors.concat(this._channel, this._logger, this._uuid, { files: files });
     }
 
     public merge(files: IFileToBeMerged[]): CancelablePromise<void> {
-        return Executors.merge(this._logger, this._uuid, { files: files });
+        return Executors.merge(this._channel, this._logger, this._uuid, { files: files });
     }
 
     public export(options: IExportOptions): CancelablePromise<void> {
-        return Executors.export(this._logger, this._uuid, options);
+        return Executors.export(this._channel, this._logger, this._uuid, options);
     }
-    
+
     public detectTimeformat(options: IDetectOptions): CancelablePromise<IDetectDTFormatResult> {
-        return Executors.timeformatDetect(this._logger, this._uuid, options);
+        return Executors.timeformatDetect(this._channel, this._logger, this._uuid, options);
     }
 
     public extractTimeformat(options: IExportOptions): CancelablePromise<IExtractDTFormatResult> {
-        return Executors.timeformatExtract(this._logger, this._uuid, options);
+        return Executors.timeformatExtract(this._channel, this._logger, this._uuid, options);
     }
 
     public connect(): {

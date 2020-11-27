@@ -1,21 +1,23 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustMergeOperationChannel, RustMergeOperationChannelConstructor } from '../native/index';
+import { RustSessionChannel } from '../native/index';
+import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
 import { StreamMergeComputation, IFileToBeMerged } from './session.stream.merge.computation';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
+import { IComputationError } from '../interfaces/errors';
+import { IGeneralError } from '../interfaces/errors';
 
 export interface IExecuteMergeOptions {
     files: IFileToBeMerged[];
 }
 
 export const executor: TExecutor<void, IExecuteMergeOptions> = (
+    channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
     options: IExecuteMergeOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         const computation: StreamMergeComputation = new StreamMergeComputation(uuid);
-        const channel: RustMergeOperationChannel = new RustMergeOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -32,9 +34,9 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IError) => {
-                logger.warn(`Error on operation append: ${err.content}`);
-                error = new Error(err.content);
+            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+                logger.warn(`Error on operation append: ${err.message}`);
+                error = new Error(err.message);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
@@ -46,12 +48,7 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
         refCancelCB(() => {
             // Cancelation is started, but not canceled
             logger.debug(`Get command "break" operation. Starting breaking.`);
-            // Destroy computation manually
-            computation.destroy().catch((err: Error) => {
-                logger.warn(
-                    `Fail to destroy correctly computation instance for "append" operation due error: ${err.message}`,
-                );
-            });
+            (canceler as TCanceler)();
         });
         // Handle finale of promise
         self.finally(() => {
@@ -59,6 +56,9 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.merge(uuid, options.files);
+        const canceler: TCanceler | IGeneralError = channel.merge(computation.getEmitter(), options.files);
+        if (typeof canceler !== 'function') {
+            return reject(new Error(`Fail to call merge method due error: ${canceler.message}`));
+        }
     });
 };

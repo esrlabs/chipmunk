@@ -1,5 +1,4 @@
 import { Computation } from './сomputation';
-import { RustExportOperationChannel } from '../native/index';
 import {
     IEventsInterfaces,
     EventsInterfaces,
@@ -7,17 +6,22 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-    IError,
 } from '../interfaces/computation.minimal.withprogress';
+import { IComputationError } from '../interfaces/errors';
 
 import * as Events from '../util/events';
 
-export { IExportOptions } from '../native/native.session.stream.export';
+export interface IExportOptions {
+    from: number;
+    to: number;
+    destFilename: string;
+    keepFormat: boolean;
+}
 
 export class StreamExportComputation extends Computation<IEvents> {
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
-        error: new Events.Subject<IError>(),
+        error: new Events.Subject<IComputationError>(),
         destroyed: new Events.Subject<void>(),
     };
 

@@ -4,9 +4,10 @@ import ServiceElectronService from './service.electron.state';
 import ServiceRenderState from './service.render.state';
 import ControllerIPCPlugin from '../controllers/plugins/plugin.process.ipc';
 import ControllerPluginStore from '../controllers/plugins/plugins.store';
-import ControllerPluginStorage, { InstalledPlugin, TConnectionFactory } from '../controllers/plugins/plugins.storage';
+import ControllerPluginStorage, { InstalledPlugin } from '../controllers/plugins/plugins.storage';
 import ControllerPluginsManager from '../controllers/plugins/plugins.manager';
 
+import { ControllerSession } from '../controllers/stream.main/controller';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron';
 import { IApplication } from '../interfaces/interface.app';
@@ -136,8 +137,8 @@ export class ServicePlugins implements IService {
         });
     }
 
-    public addStream(session: string, connectionFactory: TConnectionFactory): Promise<void> {
-        return this._storage.bindWithSession(session, connectionFactory);
+    public addStream(session: ControllerSession): Promise<void> {
+        return this._storage.bindWithSession(session);
     }
 
     public removedStream(session: string): Promise<void> {

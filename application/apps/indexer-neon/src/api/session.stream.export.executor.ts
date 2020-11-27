@@ -1,17 +1,19 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustExportOperationChannel, RustExportOperationChannelConstructor } from '../native/index';
+import { RustSessionChannel } from '../native/index';
+import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
 import { StreamExportComputation, IExportOptions } from './session.stream.export.computation';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
+import { IComputationError } from '../interfaces/errors';
+import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<void, IExportOptions> = (
+    channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
     options: IExportOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         const computation: StreamExportComputation = new StreamExportComputation(uuid);
-        const channel: RustExportOperationChannel = new RustExportOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -28,9 +30,9 @@ export const executor: TExecutor<void, IExportOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IError) => {
-                logger.warn(`Error on operation append: ${err.content}`);
-                error = new Error(err.content);
+            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+                logger.warn(`Error on operation append: ${err.message}`);
+                error = new Error(err.message);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
@@ -42,12 +44,7 @@ export const executor: TExecutor<void, IExportOptions> = (
         refCancelCB(() => {
             // Cancelation is started, but not canceled
             logger.debug(`Get command "break" operation. Starting breaking.`);
-            // Destroy computation manually
-            computation.destroy().catch((err: Error) => {
-                logger.warn(
-                    `Fail to destroy correctly computation instance for "append" operation due error: ${err.message}`,
-                );
-            });
+            (canceler as TCanceler)();
         });
         // Handle finale of promise
         self.finally(() => {
@@ -55,6 +52,9 @@ export const executor: TExecutor<void, IExportOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.export(uuid, options);
+        const canceler: TCanceler | IGeneralError = channel.export(computation.getEmitter(), options);
+        if (typeof canceler !== 'function') {
+            return reject(new Error(`Fail to call export method due error: ${canceler.message}`));
+        }
     });
 };
