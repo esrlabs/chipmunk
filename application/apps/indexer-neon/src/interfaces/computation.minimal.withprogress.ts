@@ -1,7 +1,5 @@
 import * as Events from '../util/events';
-import { IError, EErrorSeverity } from './computation.minimal';
-
-export { IError, EErrorSeverity };
+import { IComputationError } from './errors';
 
 export interface IOperationProgress {
     /**
@@ -33,7 +31,7 @@ export interface IEvents {
      * Calls on any error on rust side. Emitting of @event error doesn't mean 
      * stopping of operation.
      */
-    error: Events.Subject<IError>,
+    error: Events.Subject<IComputationError>,
     /**
      * @event destroyed { void }
      * Calls always as soon as instance of computation is destroyed. No any

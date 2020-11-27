@@ -1,17 +1,17 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustExportOperationChannel, RustExportOperationChannelConstructor } from '../native/index';
+import { RustSessionChannel } from '../native/index';
 import { Subscription } from '../util/events.subscription';
 import { StreamExportComputation, IExportOptions } from './session.stream.export.computation';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
+import { IComputationError } from '../interfaces/errors';
 
 export const executor: TExecutor<void, IExportOptions> = (
+    channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
     options: IExportOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         const computation: StreamExportComputation = new StreamExportComputation(uuid);
-        const channel: RustExportOperationChannel = new RustExportOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -28,9 +28,9 @@ export const executor: TExecutor<void, IExportOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IError) => {
-                logger.warn(`Error on operation append: ${err.content}`);
-                error = new Error(err.content);
+            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+                logger.warn(`Error on operation append: ${err.message}`);
+                error = new Error(err.message);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
@@ -55,6 +55,6 @@ export const executor: TExecutor<void, IExportOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.export(uuid, options);
+        channel.export(computation.getEmitter(), options);
     });
 };

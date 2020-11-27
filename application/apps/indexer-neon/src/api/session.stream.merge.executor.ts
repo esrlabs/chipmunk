@@ -1,21 +1,21 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustMergeOperationChannel, RustMergeOperationChannelConstructor } from '../native/index';
+import { RustSessionChannel } from '../native/index';
 import { Subscription } from '../util/events.subscription';
 import { StreamMergeComputation, IFileToBeMerged } from './session.stream.merge.computation';
-import { IError, EErrorSeverity } from '../interfaces/computation.minimal';
+import { IComputationError } from '../interfaces/errors';
 
 export interface IExecuteMergeOptions {
     files: IFileToBeMerged[];
 }
 
 export const executor: TExecutor<void, IExecuteMergeOptions> = (
+    channel: RustSessionChannel,
     logger: Logger,
     uuid: string,
     options: IExecuteMergeOptions,
 ): CancelablePromise<void> => {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         const computation: StreamMergeComputation = new StreamMergeComputation(uuid);
-        const channel: RustMergeOperationChannel = new RustMergeOperationChannelConstructor(computation.getEmitter());
         let error: Error | undefined;
         // Setup subscriptions
         const subscriptions: {
@@ -32,9 +32,9 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IError) => {
-                logger.warn(`Error on operation append: ${err.content}`);
-                error = new Error(err.content);
+            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+                logger.warn(`Error on operation append: ${err.message}`);
+                error = new Error(err.message);
             }),
             unsunscribe(): void {
                 subscriptions.destroy.destroy();
@@ -59,6 +59,6 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.merge(uuid, options.files);
+        channel.merge(computation.getEmitter(), options.files);
     });
 };
