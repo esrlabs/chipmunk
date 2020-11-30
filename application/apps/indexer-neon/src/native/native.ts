@@ -1,6 +1,10 @@
 import ServiceProduction from '../services/service.production';
 
 export enum ERustEmitterEvents {
+    stream = 'stream',
+    search = 'search',
+    map = 'map',
+    matches = 'matches',
     error = 'error',
     destroyed = 'destroyed',
     ready = 'ready',

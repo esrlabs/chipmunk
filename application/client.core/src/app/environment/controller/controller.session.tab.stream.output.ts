@@ -224,7 +224,7 @@ export class ControllerSessionTabStreamOutput {
             }
             this._requestDataHandler(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
                 const packets: IStreamPacket[] = [];
-                this._parse(message.data, packets);
+                this._parse(message.data, message.start, packets);
                 resolve(packets.filter((packet: IStreamPacket) => {
                     return packet.position >= range.start && packet.position <= range.end;
                 }));
@@ -287,7 +287,7 @@ export class ControllerSessionTabStreamOutput {
      */
     public updateStreamState(message: IPCMessages.StreamUpdated): void {
         // Update count of rows
-        this._setTotalStreamCount(message.rowsCount);
+        this._setTotalStreamCount(message.rows);
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
 
@@ -383,13 +383,13 @@ export class ControllerSessionTabStreamOutput {
                 if (this._state.lastLoadingRequestId !== undefined) {
                     // No need to parse - new request was created
                     this._lastRequestedRows = [];
-                    this._parse(message.data, this._lastRequestedRows, frame);
+                    this._parse(message.data, message.start, this._lastRequestedRows, frame);
                     return;
                 }
                 // Update size of whole stream (real size - count of rows in stream file)
                 this._setTotalStreamCount(message.rows);
                 // Parse and accept rows
-                this._parse(message.data);
+                this._parse(message.data, message.start);
                 // Check again last requested frame
                 if (stored.start <= frame.start && stored.end >= frame.end) {
                     // Send notification about update
@@ -425,7 +425,7 @@ export class ControllerSessionTabStreamOutput {
                 // Update size of whole stream (real size - count of rows in stream file)
                 this._setTotalStreamCount(message.rows);
                 // Parse and accept rows
-                this._parse(message.data);
+                this._parse(message.data, range.start);
                 // Return actual preloaded range
                 resolve({ start: message.start, end: message.end});
             }).catch((error: Error) => {
@@ -445,13 +445,26 @@ export class ControllerSessionTabStreamOutput {
      * @param { number } count - total count of rows in whole stream (not in input, but in whole stream)
      * @returns void
      */
-    private _parse(input: string, dest?: IStreamPacket[], frame?: IRange): void {
+    private _parse(input: string, start: number, dest?: IStreamPacket[], frame?: IRange): void {
         // TODO: filter here should be removed -> bad data comes from process, it should be resolved there
         const rows: string[] = input.split(/\n/gi);
         let packets: IStreamPacket[] = [];
         // Conver rows to packets
         try {
             rows.forEach((str: string, i: number) => {
+                packets.push({
+                    str: clearRowStr(str),
+                    position: start + i,
+                    pluginId: 0,
+                    rank: this._state.countRank,
+                    sessionId: this._guid,
+                    controller: this,
+                    bookmarks: this._bookmarks,
+                    scope: this._scope,
+                    parent: EParent.output,
+                    timestamp: this._timestamp,
+                });
+                /*
                 const position: number = extractRowPosition(str); // Get position
                 const pluginId: number = extractPluginId(str);    // Get plugin id
                 if (frame !== undefined) {
@@ -475,6 +488,7 @@ export class ControllerSessionTabStreamOutput {
                     parent: EParent.output,
                     timestamp: this._timestamp,
                 });
+                */
             });
         } catch (e) {
             // do nothing
