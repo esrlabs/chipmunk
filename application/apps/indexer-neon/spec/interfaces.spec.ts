@@ -115,15 +115,12 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
         computation.getEvents().error.subscribe(() => {
             error = true;
         });
-        computation.destroy().then(() => {
+        channel.destroy();
+        setTimeout(() => {
             expect(destroyed).toBe(true);
             expect(error).toBe(false);
-        }).catch((err: Error) => {
-            console.log(err);
-            fail(`Unexpected error: ${err.message}`);
-        }).finally(() => {
             done();
-        });
+        }, 500);
     });
 
     it('Self termination', (done: Function)=> {
