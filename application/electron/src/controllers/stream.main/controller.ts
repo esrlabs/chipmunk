@@ -9,6 +9,7 @@ import { IPCMessages as IPC, Subscription } from '../../services/service.electro
 import { Dependency, DependencyConstructor } from './controller.dependency';
 import { Socket } from './controller.dependency.socket';
 import { Search } from './controller.dependency.search';
+import { Stream } from './controller.dependency.stream';
 import { Charts } from './controller.dependency.charts';
 import { Files } from './controller.dependency.files';
 import { Channel } from './controller.channel';
@@ -43,11 +44,13 @@ export class ControllerSession {
     };
     private readonly _dependencies: {
         socket: Socket | undefined;
+        stream: Stream | undefined;
         search: Search | undefined;
         charts: Charts | undefined;
         files: Files | undefined;
     } = {
         socket: undefined,
+        stream: undefined,
         search: undefined,
         charts: undefined,
         files: undefined,
@@ -67,6 +70,7 @@ export class ControllerSession {
             Promise.all(
                 ([
                     this._dependencies.socket,
+                    this._dependencies.stream,
                     this._dependencies.search,
                     this._dependencies.charts,
                     this._dependencies.files,
@@ -154,6 +158,9 @@ export class ControllerSession {
                     Promise.all([
                         getDependency<Socket>(this, session, Socket).then((dep: Socket) => {
                             this._dependencies.socket = dep;
+                        }),
+                        getDependency<Stream>(this, session, Stream).then((dep: Stream) => {
+                            this._dependencies.stream = dep;
                         }),
                         getDependency<Search>(this, session, Search).then((dep: Search) => {
                             this._dependencies.search = dep;

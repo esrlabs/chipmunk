@@ -116,10 +116,13 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
 
 export class RustSessionChannelDebug extends RustSessionChannel {
     private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionChannelDebug`);
+    private readonly _emitter: TEventEmitter;
+    private _assigned: boolean = false;
 
-    constructor() {
+    constructor(emitter: TEventEmitter) {
         super();
         this._logger.debug(`created`);
+        this._emitter = emitter;
     }
 
     public destroy() {
@@ -128,7 +131,7 @@ export class RustSessionChannelDebug extends RustSessionChannel {
 
     public grabStreamChunk(start: number, len: number): string {
         let output: string = '';
-        for (let i = start; i <= len; i += 1) {
+        for (let i = start; i <= (start + len); i += 1) {
             output += `output: ${i}\n`;
         }
         return output;
@@ -136,7 +139,7 @@ export class RustSessionChannelDebug extends RustSessionChannel {
 
     public grabSearchChunk(start: number, len: number): string {
         let output: string = '';
-        for (let i = start; i <= len; i += 1) {
+        for (let i = start; i <= (start + len); i += 1) {
             output += `search: ${i}\n`;
         }
         return output;
@@ -163,15 +166,15 @@ export class RustSessionChannelDebug extends RustSessionChannel {
     }
 
     public getStreamLen(): number {
-        return 100000;
+        return this._assigned ? 100000 : 0;
     }
 
     public getSearchLen(): number {
-        return 10000;
+        return this._assigned ? 10000 : 0;
     }
 
     public getMatchesLen(): number {
-        return 1000;
+        return this._assigned ? 1000 : 0;
     }
 
     public getSocketPath(): string {
@@ -179,9 +182,48 @@ export class RustSessionChannelDebug extends RustSessionChannel {
     }
 
     public append(emitter: TEventEmitter, filename: string, options: TFileOptions): void {
-        setTimeout(() => {
-            emitter(ERustEmitterEvents.destroyed, undefined);
-        }, 500);
+        const self = this;
+        const events = [
+            { duration: 150, handler: function() {
+                self._emitter(ERustEmitterEvents.stream, {
+                    rows: 10000
+                });
+            }},
+            { duration: 150, handler: function() {
+                self._emitter(ERustEmitterEvents.stream, {
+                    rows: 20000
+                });
+            }},
+            { duration: 150, handler: function() {
+                self._emitter(ERustEmitterEvents.stream, {
+                    rows: 40000
+                });
+            }},
+            { duration: 150, handler: function() {
+                self._emitter(ERustEmitterEvents.stream, {
+                    rows: 100000
+                });
+            }},
+            { duration: 250, handler: function() {
+                emitter(ERustEmitterEvents.destroyed, undefined);
+            }},
+        ];
+        function next(pos: number) {
+            const event = events[pos];
+            setTimeout(() => {
+                event.handler();
+                pos += 1;
+                if (pos < events.length) {
+                    next(pos);
+                }
+            }, event.duration);
+        }
+        if (!this._assigned) {
+            next(0);
+        } else {
+            next(events.length - 1);
+        }
+        this._assigned = true;
     }
 
     public concat(emitter: TEventEmitter, files: string[]): void {
@@ -222,12 +264,14 @@ export class RustSessionChannelDebug extends RustSessionChannel {
 
 }
 
+let RustSessionChannelDebugConstructor: RustChannelConstructorImpl<RustSessionChannelDebug> = RustSessionChannelDebug
+
 let RustSessionChannelConstructor: RustChannelConstructorImpl<RustSessionChannel>;
 
 if (ServiceProduction.isProd()) {
     RustSessionChannelConstructor = RustSessionChannelNoType;
 } else {
-    RustSessionChannelConstructor = RustSessionChannelDebug;
+    RustSessionChannelConstructor = RustSessionChannelDebugConstructor;
 }
 
 export { RustSessionChannelConstructor };
