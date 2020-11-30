@@ -3,16 +3,22 @@ import * as Logs from '../util/logging';
 import ServiceProduction from '../services/service.production';
 
 import { RustChannelRequiered } from './native.channel.required';
-import { ERustEmitterEvents, RustSessionChannelNoType, TEventEmitter } from './native';
+import { ERustEmitterEvents, RustSessionChannelNoType, TEventEmitter, TCanceler } from './native';
 import { IFilter, IMatchEntity } from '../interfaces/index';
 import { RustChannelConstructorImpl } from './native';
 import { IGeneralError } from '../interfaces/errors';
 import { CancelablePromise } from '../util/promise';
-import { EFileOptionsRequirements, TFileOptions} from '../api/session.stream.append.computation';
-import { IFileToBeMerged} from '../api/session.stream.merge.computation';
-import { IDetectOptions, IDetectDTFormatResult } from '../api/session.stream.timeformat.detect.computation';
-import { IExtractOptions, IExtractDTFormatResult } from '../api/session.stream.timeformat.extract.computation';
-import { IExportOptions } from '../api/session.stream.export.computation'
+import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.append.computation';
+import { IFileToBeMerged } from '../api/session.stream.merge.computation';
+import {
+    IDetectOptions,
+    IDetectDTFormatResult,
+} from '../api/session.stream.timeformat.detect.computation';
+import {
+    IExtractOptions,
+    IExtractDTFormatResult,
+} from '../api/session.stream.timeformat.extract.computation';
+import { IExportOptions } from '../api/session.stream.export.computation';
 
 // Create abstract class to declare available methods
 export abstract class RustSessionChannel extends RustChannelRequiered {
@@ -21,11 +27,11 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      * @param start { number } row number of range's start
      * @param len { number } length of the chunk's range
      * @returns { string }
-     * 
+     *
      * @error In case of incorrect range should return { IGeneralError }
      */
     public abstract grabStreamChunk(start: number, len: number): string | IGeneralError;
-    
+
     /**
      * Returns chunk of stream/session file.
      * @param start { number } row number of range's start
@@ -41,26 +47,26 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
     public abstract grabMatchesChunk(start: number, len: number): string | IGeneralError;
 
     /**
-     * Bind filters with current session. Rust core should break (stop) search (if it wasn't 
+     * Bind filters with current session. Rust core should break (stop) search (if it wasn't
      * finished before) and start new with defined filters. Search results should be stored
-     * in search results file. 
-     * Search results would be requested with @method grabSearchChunk, which should return 
+     * in search results file.
+     * Search results would be requested with @method grabSearchChunk, which should return
      * whole rows with matches
-     * 
+     *
      * @param filters { IFilter[] } list of filters for session search
      * @returns { void }
-     * 
+     *
      * @error { IGeneralError }
      */
     public abstract setSearch(filters: IFilter[]): IGeneralError | undefined;
 
     /**
-     * Bind filters with current session. Rust core should break (stop) search of matches (if  
+     * Bind filters with current session. Rust core should break (stop) search of matches (if
      * it wasn't finished before) and start new with defined filters.
      * Results of search matches would be requested with @method grabMatchesChunk
      * @param filters { IFilter[] } list of filters for session search
      * @returns { void }
-     * 
+     *
      * @error { IGeneralError }
      */
     public abstract setMatches(filters: IFilter[]): IGeneralError | undefined;
@@ -97,21 +103,19 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      */
     public abstract getSocketPath(): string;
 
-    public abstract append(emitter: TEventEmitter, filename: string, options: TFileOptions): void;
+    public abstract append(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler;
 
-    public abstract concat(emitter: TEventEmitter, files: string[]): void; 
+    public abstract concat(emitter: TEventEmitter, files: string[]): TCanceler;
 
-    public abstract merge(emitter: TEventEmitter, files: IFileToBeMerged[]): void;
+    public abstract merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler;
 
-    public abstract export(emitter: TEventEmitter, options: IExportOptions): void; 
+    public abstract export(emitter: TEventEmitter, options: IExportOptions): TCanceler;
 
-    public abstract detect(emitter: TEventEmitter, options: IDetectOptions): void;
+    public abstract detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler;
 
-    public abstract extract(emitter: TEventEmitter, options: IExtractOptions): void;
+    public abstract extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler;
 
-    public abstract search(emitter: TEventEmitter, filters: IFilter[]): void;
-
-
+    public abstract search(emitter: TEventEmitter, filters: IFilter[]): TCanceler;
 }
 
 export class RustSessionChannelDebug extends RustSessionChannel {
@@ -131,7 +135,7 @@ export class RustSessionChannelDebug extends RustSessionChannel {
 
     public grabStreamChunk(start: number, len: number): string {
         let output: string = '';
-        for (let i = start; i <= (start + len); i += 1) {
+        for (let i = start; i <= start + len; i += 1) {
             output += `output: ${i}\n`;
         }
         return output;
@@ -139,7 +143,7 @@ export class RustSessionChannelDebug extends RustSessionChannel {
 
     public grabSearchChunk(start: number, len: number): string {
         let output: string = '';
-        for (let i = start; i <= (start + len); i += 1) {
+        for (let i = start; i <= start + len; i += 1) {
             output += `search: ${i}\n`;
         }
         return output;
@@ -181,32 +185,47 @@ export class RustSessionChannelDebug extends RustSessionChannel {
         return '';
     }
 
-    public append(emitter: TEventEmitter, filename: string, options: TFileOptions): void {
+    public append(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler {
         const self = this;
         const events = [
-            { duration: 150, handler: function() {
-                self._emitter(ERustEmitterEvents.stream, {
-                    rows: 10000
-                });
-            }},
-            { duration: 150, handler: function() {
-                self._emitter(ERustEmitterEvents.stream, {
-                    rows: 20000
-                });
-            }},
-            { duration: 150, handler: function() {
-                self._emitter(ERustEmitterEvents.stream, {
-                    rows: 40000
-                });
-            }},
-            { duration: 150, handler: function() {
-                self._emitter(ERustEmitterEvents.stream, {
-                    rows: 100000
-                });
-            }},
-            { duration: 250, handler: function() {
-                emitter(ERustEmitterEvents.destroyed, undefined);
-            }},
+            {
+                duration: 150,
+                handler: function () {
+                    self._emitter(ERustEmitterEvents.stream, {
+                        rows: 10000,
+                    });
+                },
+            },
+            {
+                duration: 150,
+                handler: function () {
+                    self._emitter(ERustEmitterEvents.stream, {
+                        rows: 20000,
+                    });
+                },
+            },
+            {
+                duration: 150,
+                handler: function () {
+                    self._emitter(ERustEmitterEvents.stream, {
+                        rows: 40000,
+                    });
+                },
+            },
+            {
+                duration: 150,
+                handler: function () {
+                    self._emitter(ERustEmitterEvents.stream, {
+                        rows: 100000,
+                    });
+                },
+            },
+            {
+                duration: 250,
+                handler: function () {
+                    emitter(ERustEmitterEvents.destroyed, undefined);
+                },
+            },
         ];
         function next(pos: number) {
             const event = events[pos];
@@ -224,47 +243,53 @@ export class RustSessionChannelDebug extends RustSessionChannel {
             next(events.length - 1);
         }
         this._assigned = true;
+        return () => {};
     }
 
-    public concat(emitter: TEventEmitter, files: string[]): void {
+    public concat(emitter: TEventEmitter, files: string[]): TCanceler {
         setTimeout(() => {
             emitter(ERustEmitterEvents.destroyed, undefined);
         }, 500);
+        return () => {};
     }
 
-    public merge(emitter: TEventEmitter, files: IFileToBeMerged[]): void {
+    public merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler {
         setTimeout(() => {
             emitter(ERustEmitterEvents.destroyed, undefined);
         }, 500);
+        return () => {};
     }
 
-    public export(emitter: TEventEmitter, options: IExportOptions): void {
+    public export(emitter: TEventEmitter, options: IExportOptions): TCanceler {
         setTimeout(() => {
             emitter(ERustEmitterEvents.destroyed, undefined);
         }, 500);
+        return () => {};
     }
 
-    public detect(emitter: TEventEmitter, options: IDetectOptions): void {
+    public detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler {
         setTimeout(() => {
             emitter(ERustEmitterEvents.destroyed, undefined);
         }, 500);
+        return () => {};
     }
 
-    public extract(emitter: TEventEmitter, options: IExtractOptions): void {
+    public extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler {
         setTimeout(() => {
             emitter(ERustEmitterEvents.destroyed, undefined);
         }, 500);
+        return () => {};
     }
 
-    public search(emitter: TEventEmitter, filters: IFilter[]): void {
+    public search(emitter: TEventEmitter, filters: IFilter[]): TCanceler {
         setTimeout(() => {
             emitter(ERustEmitterEvents.destroyed, undefined);
         }, 500);
+        return () => {};
     }
-
 }
 
-let RustSessionChannelDebugConstructor: RustChannelConstructorImpl<RustSessionChannelDebug> = RustSessionChannelDebug
+let RustSessionChannelDebugConstructor: RustChannelConstructorImpl<RustSessionChannelDebug> = RustSessionChannelDebug;
 
 let RustSessionChannelConstructor: RustChannelConstructorImpl<RustSessionChannel>;
 
