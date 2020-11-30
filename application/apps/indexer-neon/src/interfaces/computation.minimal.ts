@@ -27,12 +27,12 @@ export const EventsSignatures: IEventsSignatures = {
 }
 
 export interface IEventsInterfaces {
-    error: { self: 'object', severity: 'string', content: 'string' };
+    error: { self: 'object', severity: 'string', message: 'string' };
     destroyed: { self: null };
 }
 
 
 export const EventsInterfaces: IEventsInterfaces = {
-    error: { self: 'object', severity: 'string', content: 'string' },
+    error: { self: 'object', severity: 'string', message: 'string' },
     destroyed: { self: null },
 }
