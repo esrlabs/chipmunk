@@ -118,9 +118,9 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
         computation.destroy().then(() => {
             expect(destroyed).toBe(true);
             expect(error).toBe(false);
-        }).catch((err) => {
+        }).catch((err: Error) => {
             console.log(err);
-            expect(true).toBe(false);
+            fail(`Unexpected error: ${err.message}`);
         }).finally(() => {
             done();
         });
@@ -178,7 +178,7 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
         });
         setTimeout(() => {
             computation.destroy().then(() => {
-                expect(false).toBe(true);
+                fail(`Computation is resolved, but expectation: computation would be rejected`);
             }).catch((err: Error) => {
                 expect(destroyed).toBe(true);
                 expect(error).toBe(false);    
