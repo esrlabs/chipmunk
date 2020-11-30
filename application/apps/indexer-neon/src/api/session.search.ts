@@ -9,6 +9,7 @@ import { SessionComputation } from './session.computation';
 import { IFilter, IMatchEntity } from '../interfaces/index';
 import { StreamSearchComputation } from './session.stream.search.computation';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
+import { TCanceler } from '../native/native';
 
 export class SessionSearch {
     private readonly _computation: SessionComputation;
@@ -140,12 +141,7 @@ export class SessionSearch {
                 refCancelCB(() => {
                     // Cancelation is started, but not canceled
                     this._logger.debug(`Get command "break" operation. Starting breaking.`);
-                    // Destroy computation manually
-                    computation.destroy().catch((err: Error) => {
-                        this._logger.warn(
-                            `Fail to destroy correctly computation instance for "append" operation due error: ${err.message}`,
-                        );
-                    });
+                    canceler();
                 });
                 // Handle finale of promise
                 self.finally(() => {
@@ -153,7 +149,7 @@ export class SessionSearch {
                     subscriptions.unsunscribe();
                 });
                 // Call operation
-                this._channel.search(computation.getEmitter(), filters);
+                const canceler: TCanceler = this._channel.search(computation.getEmitter(), filters);
             },
         );
     }

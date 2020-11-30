@@ -1,5 +1,6 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustSessionChannel} from '../native/index';
+import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
 import { StreamConcatComputation } from './session.stream.concat.computation';
 import { IComputationError } from '../interfaces/errors';
@@ -46,12 +47,7 @@ export const executor: TExecutor<void, IExecuteConcatOptions> = (
         refCancelCB(() => {
             // Cancelation is started, but not canceled
             logger.debug(`Get command "break" operation. Starting breaking.`);
-            // Destroy computation manually
-            computation.destroy().catch((err: Error) => {
-                logger.warn(
-                    `Fail to destroy correctly computation instance for "append" operation due error: ${err.message}`,
-                );
-            });
+            canceler();
         });
         // Handle finale of promise
         self.finally(() => {
@@ -59,6 +55,6 @@ export const executor: TExecutor<void, IExecuteConcatOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        channel.concat(computation.getEmitter(), options.files);
+        const canceler: TCanceler = channel.concat(computation.getEmitter(), options.files);
     });
 };

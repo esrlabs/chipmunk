@@ -61,10 +61,11 @@ export class Session {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._computation === undefined) {
+            if (this._computation === undefined || this._channel === undefined) {
                 return reject(new Error(`SessionComputation wasn't created`));
             }
             const computation = this._computation;
+            const channel = this._channel;
             Promise.all([
                 // Destroy stream controller
                 (this._stream as SessionStream).destroy().catch((err: Error) => {
@@ -83,8 +84,10 @@ export class Session {
                     this._logger.error(`Error while destroying: ${err.message}`);
                 })
                 .finally(() => {
-                    // And as last point destroy computation
-                    computation.destroy().then(resolve).catch(reject);
+                    channel.destroy();
+                    computation.getEvents().destroyed.subscribe(() => {
+                        computation.destroy().then(resolve).catch(reject);
+                    });
                 });
         });
     }
