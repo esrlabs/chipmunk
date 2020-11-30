@@ -417,19 +417,19 @@ export class ControllerSession {
                     message: IPC.MergeFilesTestRequest,
                     response: (instance: IPC.IMergeFilesDiscoverResult) => any,
                 ): void {
-                    //TODO: Implement
+                    // TODO: Implement
                 },
                 timeformat_discover(
                     message: IPC.MergeFilesDiscoverRequest,
                     response: (instance: IPC.MergeFilesDiscoverResponse) => any,
                 ): void {
-                    //TODO: Implement
+                    // TODO: Implement
                 },
                 timeformat_request(
                     message: IPC.MergeFilesFormatRequest,
                     response: (instance: IPC.MergeFilesFormatResponse) => any,
                 ): void {
-                    //TODO: Implement
+                    // TODO: Implement
                 }
             },
         };

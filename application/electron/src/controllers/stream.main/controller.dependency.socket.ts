@@ -17,7 +17,7 @@ export class Socket extends Dependency{
 
     constructor(session: Session) {
         super();
-        this._logger = new Logger(`${this.getName()}: ${session.getUUID()}`)
+        this._logger = new Logger(`${this.getName()}: ${session.getUUID()}`);
         this._session = session;
     }
 

@@ -10,7 +10,7 @@ import { EventEmitter } from 'events';
 export { IConnectionOptions };
 
 export interface IDLTOptions {
-    //filters: DLT.DltFilterConf;
+    // filters: DLT.DltFilterConf;
     stdout?: boolean;
     statusUpdates?: boolean;
 }
@@ -24,11 +24,11 @@ export class DLTConnectionController extends EventEmitter {
     };
 
     private _connection: IConnectionOptions;
-    //private _dlt: IDLTOptions;
+    // private _dlt: IDLTOptions;
     private _session: string;
     private _guid: string;
     private _logger: Logger;
-    //private _connector: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
+    // private _connector: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
     private _bytes: number = 0;
 
     constructor(guid: string, session: string, connection: IConnectionOptions, dlt?: IDLTOptions) {
