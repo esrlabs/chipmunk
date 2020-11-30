@@ -25,7 +25,7 @@ class ServiceDLTDeamonConnector implements IService {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _connections: Map<string, DLTConnectionController> = new Map();
     private _connectionsHistory: string[] = [];
-    //private _saver: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
+    // private _saver: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
 
     /**
      * Initialization function
