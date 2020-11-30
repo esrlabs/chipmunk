@@ -10,6 +10,7 @@ import { IFilter, IMatchEntity } from '../interfaces/index';
 import { StreamSearchComputation } from './session.stream.search.computation';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
 import { TCanceler } from '../native/native';
+import { Executors } from './session.stream.executors';
 
 export class SessionSearch {
     private readonly _computation: SessionComputation;
@@ -88,76 +89,7 @@ export class SessionSearch {
     }
 
     public search(filters: IFilter[]): CancelablePromise<IMatchEntity[]> {
-        return new CancelablePromise<IMatchEntity[]>(
-            (resolve, reject, cancel, refCancelCB, self) => {
-                const computation: StreamSearchComputation = new StreamSearchComputation(
-                    this._uuid,
-                );
-                let error: Error | undefined;
-                // Setup subscriptions
-                const subscriptions: {
-                    destroy: Subscription;
-                    matches: Subscription;
-                    error: Subscription;
-                    unsunscribe(): void;
-                } = {
-                    destroy: computation.getEvents().destroyed.subscribe(() => {
-                        if (error) {
-                            this._logger.warn('Search operation is failed');
-                            reject(error);
-                        } else {
-                            reject(
-                                new Error(
-                                    this._logger.warn(
-                                        'Search computation is destroyed, but it was not resolved/rejected',
-                                    ),
-                                ),
-                            );
-                        }
-                    }),
-                    matches: computation
-                        .getEvents()
-                        .matches.subscribe((matches: IMatchEntity[]) => {
-                            if (error) {
-                                this._logger.warn('Search operation is failed');
-                                reject(error);
-                            } else {
-                                this._logger.debug('Search operation is successful');
-                                resolve(matches);
-                            }
-                        }),
-                    error: computation.getEvents().error.subscribe((err: IGeneralError) => {
-                        this._logger.warn(`Error on operation append: ${err.message}`);
-                        error = new Error(err.message);
-                    }),
-                    unsunscribe(): void {
-                        subscriptions.destroy.destroy();
-                        subscriptions.error.destroy();
-                        subscriptions.matches.destroy();
-                    },
-                };
-                this._logger.debug('Search operation is started');
-                // Add cancel callback
-                refCancelCB(() => {
-                    // Cancelation is started, but not canceled
-                    this._logger.debug(`Get command "break" operation. Starting breaking.`);
-                    canceler();
-                });
-                // Handle finale of promise
-                self.finally(() => {
-                    this._logger.debug('Search operation promise is closed as well');
-                    subscriptions.unsunscribe();
-                });
-                // Call operation
-                const canceler: TCanceler = this._channel.search(computation.getEmitter(), filters);
-            },
-        );
-    }
-
-    public append(filename: string): CancelablePromise<void, void, void, void> {
-        return new CancelablePromise<void, void, void, void>(
-            (resolve, reject, cancel, refCancelCB, self) => {},
-        );
+        return Executors.search(this._channel, this._logger, this._uuid, filters);
     }
 
     public len(): number {

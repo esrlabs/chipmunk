@@ -1,3 +1,4 @@
+import { executor as SearchExecutor } from './session.stream.search.executor';
 import { executor as AppendExecutor } from './session.stream.append.executor';
 import { executor as ConcatExecutor } from './session.stream.concat.executor';
 import { executor as MergeExecutor } from './session.stream.merge.executor';
@@ -6,6 +7,7 @@ import { executor as TimeformatDetectExecutor } from './session.stream.timeforma
 import { executor as TimeformatExtractExecutor } from './session.stream.timeformat.detect.executor';
 
 export const Executors = {
+    search: SearchExecutor,
     append: AppendExecutor,
     concat: ConcatExecutor,
     merge: MergeExecutor,
