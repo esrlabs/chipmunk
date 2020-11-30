@@ -1,7 +1,13 @@
 import ServiceProduction from '../services/service.production';
 
+export enum ERustEmitterEvents {
+    error = 'error',
+    destroyed = 'destroyed',
+    ready = 'ready',
+}
+
 export interface IRustModuleExports {
-    RustEmitterEvents: any;
+    RustEmitterEvents: { [key: string]: ERustEmitterEvents };
     RustSession: any;
 }
 
@@ -23,12 +29,6 @@ const {
 } = getNativeModule();
 
 const addon = getNativeModule();
-
-export enum ERustEmitterEvents {
-    error = 'error',
-    destroyed = 'destroyed',
-    ready = 'ready',
-}
 
 export type TEventEmitter = (name: ERustEmitterEvents, data: any) => void;
 
