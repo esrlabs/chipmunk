@@ -54,12 +54,12 @@ export const EventsSignatures: IEventsSignatures = {
 
 export interface IEventsInterfaces {
     progress: { self: 'object', percentage: 'number' };
-    error: { self: 'object', severity: 'string', content: 'string' };
+    error: { self: 'object', severity: 'string', message: 'string' };
     destroyed: { self: null };
 }
 
 export const EventsInterfaces: IEventsInterfaces = {
     progress: { self: 'object', percentage: 'number' },
-    error: { self: 'object', severity: 'string', content: 'string' },
+    error: { self: 'object', severity: 'string', message: 'string' },
     destroyed: { self: null },
 }
