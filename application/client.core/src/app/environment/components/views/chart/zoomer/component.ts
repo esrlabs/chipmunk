@@ -83,7 +83,9 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
         this._ng_width = size.width;
         this._ng_height = size.height;
-        this._forceUpdate();
+        if (!this._updateCursor()) {
+            this._forceUpdate();
+        }
         if (this._filters !== undefined && (force || this._ng_offset === 0)) {
             this._filters.resize();
             this._ng_offset = this._filters.chartArea.left;
@@ -104,7 +106,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._ng_onOffsetUpdated.emit();
     }
 
-    private _updateCursor() {
+    private _updateCursor(): boolean {
         const prev: boolean = this._ng_isCursorVisible;
         if (this._ng_width < this.serviceData.getStreamSize()) {
             this._ng_isCursorVisible = true;
@@ -113,7 +115,9 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         }
         if (this._ng_isCursorVisible !== prev) {
             this._forceUpdate();
+            return true;
         }
+        return false;
     }
 
     private _buildFilters() {
