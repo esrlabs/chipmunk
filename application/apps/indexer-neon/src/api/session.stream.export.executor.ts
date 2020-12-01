@@ -4,6 +4,7 @@ import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
 import { StreamExportComputation, IExportOptions } from './session.stream.export.computation';
 import { IComputationError } from '../interfaces/errors';
+import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<void, IExportOptions> = (
     channel: RustSessionChannel,
@@ -43,7 +44,7 @@ export const executor: TExecutor<void, IExportOptions> = (
         refCancelCB(() => {
             // Cancelation is started, but not canceled
             logger.debug(`Get command "break" operation. Starting breaking.`);
-            canceler();
+            (canceler as TCanceler)();
         });
         // Handle finale of promise
         self.finally(() => {
@@ -51,6 +52,9 @@ export const executor: TExecutor<void, IExportOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        const canceler: TCanceler = channel.export(computation.getEmitter(), options);
+        const canceler: TCanceler | IGeneralError = channel.export(computation.getEmitter(), options);
+        if (typeof canceler !== 'function') {
+            return reject(new Error(`Fail to call export method due error: ${canceler.message}`));
+        }
     });
 };

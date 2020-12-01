@@ -22,12 +22,12 @@ export enum EFileOptionsRequirements {
 
 export type TFileOptions = IFileOptionsDLT | undefined;
 
-export interface IExecuteAppendOptions {
+export interface IExecuteAssignOptions {
     filename: string;
     options: TFileOptions;
 }
 
-export class StreamAppendComputation extends Computation<IEvents> {
+export class StreamAssignComputation extends Computation<IEvents> {
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
         error: new Events.Subject<IComputationError>(),
@@ -39,7 +39,7 @@ export class StreamAppendComputation extends Computation<IEvents> {
     }
 
     public getName(): string {
-        return 'StreamAppendComputation';
+        return 'StreamAssignComputation';
     }
 
     public getEvents(): IEvents {

@@ -7,6 +7,7 @@ import {
     StreamSearchComputation,
 } from './session.stream.search.computation';
 import { IComputationError } from '../interfaces/errors';
+import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<IMatchEntity[], IFilter[]> = (
     channel: RustSessionChannel,
@@ -67,7 +68,7 @@ export const executor: TExecutor<IMatchEntity[], IFilter[]> = (
             refCancelCB(() => {
                 // Cancelation is started, but not canceled
                 logger.debug(`Get command "break" operation. Starting breaking.`);
-                canceler();
+                (canceler as TCanceler)();
             });
             // Handle finale of promise
             self.finally(() => {
@@ -75,7 +76,10 @@ export const executor: TExecutor<IMatchEntity[], IFilter[]> = (
                 subscriptions.unsunscribe();
             });
             // Call operation
-            const canceler: TCanceler = channel.search(computation.getEmitter(), filters);
+            const canceler: TCanceler | IGeneralError = channel.search(computation.getEmitter(), filters);
+            if (typeof canceler !== 'function') {
+                return reject(new Error(`Fail to call search method due error: ${canceler.message}`));
+            }
         },
     );
 };
