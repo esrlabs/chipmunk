@@ -8,7 +8,7 @@ import { IFilter, IMatchEntity } from '../interfaces/index';
 import { RustChannelConstructorImpl } from './native';
 import { IGeneralError } from '../interfaces/errors';
 import { CancelablePromise } from '../util/promise';
-import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.append.computation';
+import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.computation';
 import { IFileToBeMerged } from '../api/session.stream.merge.computation';
 import {
     IDetectOptions,
@@ -102,20 +102,48 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      * @returns { string }
      */
     public abstract getSocketPath(): string;
+    
+     /**
+     * Assigns session with the file. After the file was assigned, @method concat, @method merge cannot be used
+     * and should return @error IGeneralError.
+     * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
+     * @param filename { string } file, which should be assigned to session
+     * @param options { TFileOptions } options to open file
+     * @returns { TCanceler | IGeneralError } - callback, which can be called on NodeJS level to cancel
+     * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
+     * confirm cancelation.
+     */
+    public abstract assign(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler | IGeneralError;
 
-    public abstract append(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler;
+    /**
+     * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
+     * and should return @error IGeneralError.
+     * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
+     * @param files { string[] } file to be concat
+     * @returns { TCanceler | IGeneralError } - callback, which can be called on NodeJS level to cancel
+     * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
+     * confirm cancelation.
+     */
+    public abstract concat(emitter: TEventEmitter, files: string[]): TCanceler | IGeneralError;
 
-    public abstract concat(emitter: TEventEmitter, files: string[]): TCanceler;
+    /**
+     * Merge files and assigns it with session. After this operation, @method assign, @method concat cannot be used
+     * and should return @error IGeneralError.
+     * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
+     * @param files { IFileToBeMerged[] } file to be merge
+     * @returns { TCanceler | IGeneralError } - callback, which can be called on NodeJS level to cancel
+     * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
+     * confirm cancelation.
+     */
+    public abstract merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler | IGeneralError;
 
-    public abstract merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler;
+    public abstract export(emitter: TEventEmitter, options: IExportOptions): TCanceler | IGeneralError;
 
-    public abstract export(emitter: TEventEmitter, options: IExportOptions): TCanceler;
+    public abstract detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler | IGeneralError;
 
-    public abstract detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler;
+    public abstract extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler | IGeneralError;
 
-    public abstract extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler;
-
-    public abstract search(emitter: TEventEmitter, filters: IFilter[]): TCanceler;
+    public abstract search(emitter: TEventEmitter, filters: IFilter[]): TCanceler | IGeneralError;
 }
 
 export class RustSessionChannelDebug extends RustSessionChannel {
@@ -185,7 +213,7 @@ export class RustSessionChannelDebug extends RustSessionChannel {
         return '';
     }
 
-    public append(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler {
+    public assign(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler {
         const self = this;
         const events = [
             {

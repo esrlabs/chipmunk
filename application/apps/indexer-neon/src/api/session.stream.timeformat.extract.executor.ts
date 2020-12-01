@@ -4,6 +4,7 @@ import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
 import { StreamTimeFormatExtractComputation, IExtractDTFormatResult, IExtractOptions } from './session.stream.timeformat.extract.computation';
 import { IComputationError } from '../interfaces/errors';
+import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<IExtractDTFormatResult, IExtractOptions> = (
     channel: RustSessionChannel,
@@ -46,7 +47,7 @@ export const executor: TExecutor<IExtractDTFormatResult, IExtractOptions> = (
         refCancelCB(() => {
             // Cancelation is started, but not canceled
             logger.debug(`Get command "break" operation. Starting breaking.`);
-            canceler();
+            (canceler as TCanceler)();
         });
         // Handle finale of promise
         self.finally(() => {
@@ -54,6 +55,9 @@ export const executor: TExecutor<IExtractDTFormatResult, IExtractOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        const canceler: TCanceler = channel.extract(computation.getEmitter(), options);
+        const canceler: TCanceler | IGeneralError = channel.extract(computation.getEmitter(), options);
+        if (typeof canceler !== 'function') {
+            return reject(new Error(`Fail to call extract method due error: ${canceler.message}`));
+        }
     });
 };

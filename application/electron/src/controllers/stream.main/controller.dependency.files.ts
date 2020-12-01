@@ -86,7 +86,7 @@ export class Files extends Dependency {
             this._tasts.append.run(() => {
                 const progress = this._sessionChannel.addProgressiveTask();
                 return this._stream
-                    .append(filename, options)
+                    .assign(filename, options)
                     .on('progress', (event: IOperationProgress) => {
                         progress.progress(event);
                     })

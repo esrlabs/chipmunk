@@ -15,7 +15,7 @@ import {
     IExtractDTFormatResult,
 } from './session.stream.timeformat.extract.computation';
 import { Executors } from './session.stream.executors';
-import { TFileOptions, EFileOptionsRequirements } from './session.stream.append.computation';
+import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.computation';
 import { IGeneralError } from '../interfaces/errors';
 
 export {
@@ -70,8 +70,8 @@ export class SessionStream {
         return this._channel.getFileOptionsRequirements(filename);
     }
 
-    public append(filename: string, options: TFileOptions): CancelablePromise<void> {
-        return Executors.append(this._channel, this._logger, this._uuid, {
+    public assign(filename: string, options: TFileOptions): CancelablePromise<void> {
+        return Executors.assign(this._channel, this._logger, this._uuid, {
             filename: filename,
             options: options,
         });
