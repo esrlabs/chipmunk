@@ -4,6 +4,7 @@ import { TCanceler } from '../native/native';
 import { Subscription } from '../util/events.subscription';
 import { StreamMergeComputation, IFileToBeMerged } from './session.stream.merge.computation';
 import { IComputationError } from '../interfaces/errors';
+import { IGeneralError } from '../interfaces/errors';
 
 export interface IExecuteMergeOptions {
     files: IFileToBeMerged[];
@@ -47,8 +48,7 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
         refCancelCB(() => {
             // Cancelation is started, but not canceled
             logger.debug(`Get command "break" operation. Starting breaking.`);
-            canceler();
-
+            (canceler as TCanceler)();
         });
         // Handle finale of promise
         self.finally(() => {
@@ -56,6 +56,9 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
             subscriptions.unsunscribe();
         });
         // Call operation
-        const canceler: TCanceler = channel.merge(computation.getEmitter(), options.files);
+        const canceler: TCanceler | IGeneralError = channel.merge(computation.getEmitter(), options.files);
+        if (typeof canceler !== 'function') {
+            return reject(new Error(`Fail to call merge method due error: ${canceler.message}`));
+        }
     });
 };
