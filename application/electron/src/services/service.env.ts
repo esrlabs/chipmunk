@@ -198,14 +198,21 @@ class ServiceEnv implements IService {
                             (this._env as any)[env] = value;
                         }
                     }
+                }).catch((err: Error) => {
+                    this._logger.warn(`Cannot detect env "${env}" due error: ${err.message}`);
+                    (this._env as any)[env] = undefined;
                 });
-            })).then(() => {
+            })).catch((error: Error) => {
+                // Drop all to default
+                list.forEach((env: string) => {
+                    (this._env as any)[env] = undefined;
+                });
+                this._logger.error(`Fail to detect OS env due error: ${error.message}`);
+            }).finally(() => {
                 this._logger.debug(`Next env vars are detected:\n${list.map((env: string) => {
                     return `\t${env}=${(this._env as any)[env]}`;
                 }).join('\n')}`);
                 resolve();
-            }).catch((error: Error) => {
-                reject(new Error(this._logger.error(`Fail to detect OS env due error: ${error.message}`)));
             });
         });
     }
