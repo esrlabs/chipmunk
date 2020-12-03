@@ -320,6 +320,18 @@ export default class ControllerPluginsManager {
         });
     }
 
+    public uninstallDefaultPlugin(params: IPCMessages.IPluginDefault) {
+        ElectronIpcService.send(new IPCMessages.PluginDefaultUninstall(params)).catch((error: Error) => {
+            this._logger.error(`Fail to set status of default plugin as uninstalled due error: ${error.message}`);
+        });
+    }
+
+    public reinstallDefaultPlugin(params: IPCMessages.IPluginDefault) {
+        ElectronIpcService.send(new IPCMessages.PluginDefaultReinstall(params)).catch((error: Error) => {
+            this._logger.error(`Fail to set status of default plugin as reinstalled due error: ${error.message}`);
+        });
+    }
+
     public getVersionsToBeUpdated(name: string): string[] | undefined {
         const plugin: IPlugin | undefined = this._plugins.get(name);
         if (plugin === undefined) {
