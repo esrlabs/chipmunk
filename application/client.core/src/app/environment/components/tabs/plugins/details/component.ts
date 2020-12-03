@@ -77,6 +77,9 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
     }
 
     public _ng_onInstallPlugin() {
+        if (this._ng_plugin.default) {
+            PluginsService.getManager().reinstallDefaultPlugin({ name: this._ng_plugin.name});
+        }
         PluginsService.getManager().install(this._ng_plugin.name, this._ng_version).catch((error: Error) => {
             this._logger.error(`Fail to request install of plugin due error: ${error.message}`);
             this._ng_error = error.message;
@@ -119,6 +122,9 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
 
     public _ng_onUninstallPlugin() {
         if (this._ng_version === this._ng_plugin.version) {
+            if (this._ng_plugin.default) {
+                PluginsService.getManager().uninstallDefaultPlugin({ name: this._ng_plugin.name});
+            }
             // Uninstall
             PluginsService.getManager().uninstall(this._ng_plugin.name).catch((error: Error) => {
                 this._logger.error(`Fail to request uninstall of plugin due error: ${error.message}`);

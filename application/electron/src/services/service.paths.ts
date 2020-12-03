@@ -18,6 +18,7 @@ const DOWNLOADS_FOLDER = 'downloads';
 const TMP_FOLDER = 'tmp';
 const APPS_FOLDER = 'apps';
 const DEFAULT_PLUGINS_SANDBOX_PATH = '../../../sandbox';
+const DEFAULT_PLUGINS_UNINSTALLED = 'default.plugins.uninstalled.json';
 
 export function getHomeFolder(): string {
     return Path.resolve(OS.homedir(), HOME_FOLDER);
@@ -34,6 +35,7 @@ class ServicePaths implements IService {
     private _home: string = '';
     private _plugins: string = '';
     private _pluginsCfgFolder: string = '';
+    private _uninstalledDefaultPlugins: string = '';
     private _app: string = '';
     private _root: string = '';
     private _exec: string = '';
@@ -62,6 +64,7 @@ class ServicePaths implements IService {
             this._tmp = Path.resolve(this._home, TMP_FOLDER);
             this._apps = Path.resolve(this._home, APPS_FOLDER);
             this._pluginsCfgFolder = Path.resolve(this._home, PLUGINS_CONFIG_FOLDER);
+            this._uninstalledDefaultPlugins = Path.resolve(this._home, DEFAULT_PLUGINS_UNINSTALLED);
             const resources: Error | string = this._getResourcePath();
             if (resources instanceof Error) {
                 return reject(resources);
@@ -221,6 +224,14 @@ class ServicePaths implements IService {
      */
     public getRG(): string {
         return this._rg;
+    }
+
+    /**
+     * Returns path to uninstalled default plugins
+     * @returns string
+     */
+    public getUninstalledDefaultPlugins(): string {
+        return this._uninstalledDefaultPlugins;
     }
 
     /**

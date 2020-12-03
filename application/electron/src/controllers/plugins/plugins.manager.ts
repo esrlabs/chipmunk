@@ -98,6 +98,12 @@ export default class ControllerPluginsManager {
                 ServiceElectron.IPC.subscribe(IPCMessages.PluginAddRequest, this._ipc_PluginAddRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscriptions.PluginAddRequest = subscription;
                 }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginDefaultUninstall, this._ipc_PluginDefaultUninstall.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginDefaultUninstall = subscription;
+                }),
+                ServiceElectron.IPC.subscribe(IPCMessages.PluginDefaultReinstall, this._ipc_PluginDefaultReinstall.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.PluginDefaultReinstall = subscription;
+                }),
             ]).then(() => {
                 this._logger.debug(`All subscriptions are done`);
             }).catch((error: Error) => {
@@ -293,10 +299,14 @@ export default class ControllerPluginsManager {
                 return resolve();
             }
             this._logger.debug(`Installing default plugins`);
-            this.install(required).catch((error: Error) => {
-                this._logger.warn(`Error during installation of plugins: ${error.message}`);
-            }).finally(() => {
-                resolve();
+            this._filterDefault(required).then((tasks: IQueueTask[]) => {
+                this.install(tasks).catch((error: Error) => {
+                    this._logger.warn(`Error during installation of plugins: ${error.message}`);
+                }).finally(() => {
+                    resolve();
+                });
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to filter uninstalled default plugins due error: ${error.message}`);
             });
         });
     }
@@ -432,6 +442,49 @@ export default class ControllerPluginsManager {
                     });
                 });
             });
+        });
+    }
+
+    private _ipc_PluginDefaultUninstall(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const arr: string[] = [];
+        const fullfilename = ServicePaths.getUninstalledDefaultPlugins();
+        const req: IPCMessages.PluginDefaultUninstall = request as IPCMessages.PluginDefaultUninstall;
+        FS.exist(ServicePaths.getUninstalledDefaultPlugins()).then((exist: boolean) => {
+            if (!exist) {
+                FS.writeTextFile(fullfilename, JSON.stringify([req.name]));
+            } else {
+                FS.readTextFile(fullfilename).then((json: string) => {
+                    JSON.parse(json).forEach((entry: string) => {
+                        if (entry !== req.name) {
+                            arr.push(entry);
+                        }
+                    });
+                    arr.push(req.name);
+                    FS.writeTextFile(fullfilename, JSON.stringify(arr));
+                });
+            }
+        }).catch((existErr: Error) => {
+            this._logger.warn(`Fail to save ${req.name} as uninstalled due error: ${existErr.message}`);
+        });
+    }
+
+    private _ipc_PluginDefaultReinstall(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const arr: string[] = [];
+        const fullfilename = ServicePaths.getUninstalledDefaultPlugins();
+        const req: IPCMessages.PluginDefaultUninstall = request as IPCMessages.PluginDefaultUninstall;
+        FS.exist(ServicePaths.getUninstalledDefaultPlugins()).then((exist: boolean) => {
+            if (exist) {
+                FS.readTextFile(fullfilename).then((json: string) => {
+                    JSON.parse(json).forEach((entry: string) => {
+                        if (entry !== req.name) {
+                            arr.push(entry);
+                        }
+                    });
+                    FS.writeTextFile(fullfilename, JSON.stringify(arr));
+                });
+            }
+        }).catch((existErr: Error) => {
+            this._logger.warn(`Fail to save ${req.name} as reinstalled due error: ${existErr.message}`);
         });
     }
 
@@ -620,6 +673,24 @@ export default class ControllerPluginsManager {
             response(new IPCMessages.PluginAddResponse({
                 error: this._logger.error(`Fail open file due error: ${error.message}`),
             }));
+        });
+    }
+
+    private _filterDefault(tasks: IQueueTask[]): Promise<IQueueTask[]> {
+        return new Promise((resolve, reject) => {
+            const fullfilename: string = ServicePaths.getUninstalledDefaultPlugins();
+            FS.exist(ServicePaths.getUninstalledDefaultPlugins()).then((exist: boolean) => {
+                if (exist) {
+                    FS.readTextFile(fullfilename).then((json: string) => {
+                        const content: string[] = JSON.parse(json);
+                        resolve(tasks.filter((task: IQueueTask) => !content.includes(task.name)));
+                    });
+                } else {
+                    resolve(tasks);
+                }
+            }).catch((existErr: Error) => {
+                reject(existErr.message);
+            });
         });
     }
 
