@@ -94,35 +94,40 @@ declare_types! {
             let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
             let append: bool = cx.argument::<JsBoolean>(3)?.value();
             let chunk_size: usize = cx.argument::<JsNumber>(4)?.value() as usize;
-            let arg_filter_conf = cx.argument::<JsValue>(5)?;
-            let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
+            let arg_filter_conf = cx.argument::<JsString>(5)?.value();
+            let filter_conf: Result<dlt::filtering::DltFilterConfig, serde_json::Error> =
+                serde_json::from_str(arg_filter_conf.as_str());
             trace!("{:?}", filter_conf);
-            let arg_fibex_conf = cx.argument::<JsValue>(6)?;
-            let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
+            let arg_fibex_conf = cx.argument::<JsString>(6)?.value();
+            let fibex_conf: Result<FibexConfig, serde_json::Error> = serde_json::from_str(arg_fibex_conf.as_str());
+            match (filter_conf, fibex_conf) {
+                (Ok(filter_conf), Ok(fibex_conf)) => {
+                    let shutdown_channel = cc::unbounded();
+                    let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+                    let mut emitter = IndexingDltEventEmitter {
+                        event_receiver: rx,
+                        shutdown_sender: shutdown_channel.0,
+                        task_thread: None,
+                    };
 
-            let shutdown_channel = cc::unbounded();
-            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-            let mut emitter = IndexingDltEventEmitter {
-                event_receiver: rx,
-                shutdown_sender: shutdown_channel.0,
-                task_thread: None,
-            };
-
-            let file_path = path::PathBuf::from(&file);
-            emitter.start_indexing_dlt_in_thread(shutdown_channel.1,
-                tx,
-                chunk_size,
-                IndexingThreadConfig {
-                    in_file: file_path,
-                    out_path,
-                    append,
-                    tag,
-                    timestamps: false,
-                },
-                Some(filter_conf),
-                fibex_conf,
-            );
-            Ok(emitter)
+                    let file_path = path::PathBuf::from(&file);
+                    emitter.start_indexing_dlt_in_thread(shutdown_channel.1,
+                        tx,
+                        chunk_size,
+                        IndexingThreadConfig {
+                            in_file: file_path,
+                            out_path,
+                            append,
+                            tag,
+                            timestamps: false,
+                        },
+                        Some(filter_conf),
+                        fibex_conf,
+                    );
+                    Ok(emitter)
+                }
+                _ => cx.throw_error("The filter or fibex config was not valid"),
+            }
         }
 
         // will be called by JS to receive data in a loop, but care should be taken to only call it once at a time.

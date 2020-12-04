@@ -16,8 +16,12 @@ mod api;
 mod channels;
 mod config;
 mod fibex_utils;
+mod js;
 mod logging;
+mod mock;
 use crate::api::dlt_pcap_converter::JsDltPcapConverterEventEmitter;
+use crate::js::events::CallbackEvent;
+use crate::js::session::JsSession;
 use logging::init_logging;
 
 use api::{
@@ -58,6 +62,16 @@ register_module!(mut cx, {
     cx.export_class::<JsExporterEventEmitter>("RustExporterEventEmitter")?;
     cx.export_class::<JsFormatVerificationEmitter>("RustFormatVerificationEmitter")?;
     cx.export_class::<JsGrabber>("RustGrabber")?;
+
+    // API v2
+    let progress_value = cx.string(CallbackEvent::Progress.to_string());
+    let notification_value = cx.string(CallbackEvent::Notification.to_string());
+    let done_value = cx.string(CallbackEvent::Done.to_string());
+    cx.export_value("PROGRESS", progress_value)?;
+    cx.export_value("NOTIFICATION", notification_value)?;
+    cx.export_value("DONE", done_value)?;
+    // cx.export_class::<JsGrabberHolder>("GrabberHolder")?;
+    cx.export_class::<JsSession>("ComputationMock")?;
 
     Ok(())
 });

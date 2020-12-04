@@ -63,37 +63,43 @@ declare_types! {
             let tag = cx.argument::<JsString>(1)?.value();
             let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
             let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;
-            let arg_filter_conf = cx.argument::<JsValue>(4)?;
-            let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
+            let arg_filter_conf = cx.argument::<JsString>(4)?.value();
+            let filter_conf: Result<dlt::filtering::DltFilterConfig, serde_json::Error> =
+                serde_json::from_str(arg_filter_conf.as_str());
             let append: bool = cx.argument::<JsBoolean>(5)?.value();
 
-            let arg_fibex_conf = cx.argument::<JsValue>(6)?;
-            let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
+            let arg_fibex_conf = cx.argument::<JsString>(6)?.value();
+            let fibex_conf: Result<FibexConfig, serde_json::Error> = serde_json::from_str(arg_fibex_conf.as_str());
 
-            let shutdown_channel = sync::mpsc::channel(1);
-            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-            let mut emitter = PcapDltEventEmitter {
-                event_receiver: rx,
-                shutdown_sender: shutdown_channel.0,
-                task_thread: None,
-            };
-            let file_path = path::PathBuf::from(&file);
+            match (filter_conf, fibex_conf) {
+                (Ok(filter_conf), Ok(fibex_conf)) => {
+                    let shutdown_channel = sync::mpsc::channel(1);
+                    let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+                    let mut emitter = PcapDltEventEmitter {
+                        event_receiver: rx,
+                        shutdown_sender: shutdown_channel.0,
+                        task_thread: None,
+                    };
+                    let file_path = path::PathBuf::from(&file);
 
-            emitter.start_indexing_pcap_file_in_thread(
-                chunk_size,
-                shutdown_channel.1,
-                tx,
-                IndexingThreadConfig {
-                    in_file: file_path,
-                    out_path,
-                    append,
-                    tag,
-                    timestamps: false,
-                },
-                Some(filter_conf),
-                fibex_conf,
-            );
-            Ok(emitter)
+                    emitter.start_indexing_pcap_file_in_thread(
+                        chunk_size,
+                        shutdown_channel.1,
+                        tx,
+                        IndexingThreadConfig {
+                            in_file: file_path,
+                            out_path,
+                            append,
+                            tag,
+                            timestamps: false,
+                        },
+                        Some(filter_conf),
+                        fibex_conf,
+                    );
+                    Ok(emitter)
+                }
+                _ => cx.throw_error("The filter or fibex config was not valid"),
+            }
         }
 
         // will be called by JS to receive data in a loop, but care should be taken to only call it once at a time.

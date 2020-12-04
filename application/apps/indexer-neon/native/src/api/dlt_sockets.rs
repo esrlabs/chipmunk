@@ -66,37 +66,44 @@ declare_types! {
         init(mut cx) {
             trace!("Rust: JsDltSocketEventEmitter");
             let session_id = cx.argument::<JsString>(0)?.value();
-            let arg_socket_conf = cx.argument::<JsValue>(1)?;
-            let socket_conf: SocketConfig = neon_serde::from_value(&mut cx, arg_socket_conf)?;
+            let arg_socket_conf = cx.argument::<JsString>(1)?.value();
+            let socket_conf: Result<SocketConfig, serde_json::Error> = serde_json::from_str(arg_socket_conf.as_str());
             let tag = cx.argument::<JsString>(2)?.value();
             let out_path = path::PathBuf::from(cx.argument::<JsString>(3)?.value().as_str());
-            let arg_filter_conf = cx.argument::<JsValue>(4)?;
-            let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
+            let arg_filter_conf = cx.argument::<JsString>(4)?.value();
 
-            let arg_fibex_conf = cx.argument::<JsValue>(5)?;
-            let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
+            let filter_conf: Result<dlt::filtering::DltFilterConfig, serde_json::Error> =
+                serde_json::from_str(arg_filter_conf.as_str());
 
-            let shutdown_channel = sync::mpsc::channel(1);
-            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-            let mut emitter = SocketDltEventEmitter {
-                event_receiver: rx,
-                shutdown_sender: shutdown_channel.0,
-                task_thread: None,
-            };
+            let arg_fibex_conf = cx.argument::<JsString>(5)?.value();
+            let fibex_conf: Result<FibexConfig, serde_json::Error> = serde_json::from_str(arg_fibex_conf.as_str());
 
-            emitter.start_indexing_socket_in_thread(
-                session_id,
-                shutdown_channel.1,
-                tx,
-                SocketThreadConfig {
-                    out_path,
-                    tag,
+            match (socket_conf, fibex_conf, filter_conf) {
+                (Ok(socket_conf), Ok(fibex_conf), Ok(filter_conf)) => {
+                    let shutdown_channel = sync::mpsc::channel(1);
+                    let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+                    let mut emitter = SocketDltEventEmitter {
+                        event_receiver: rx,
+                        shutdown_sender: shutdown_channel.0,
+                        task_thread: None,
+                    };
+
+                    emitter.start_indexing_socket_in_thread(
+                        session_id,
+                        shutdown_channel.1,
+                        tx,
+                        SocketThreadConfig {
+                            out_path,
+                            tag,
+                        },
+                        socket_conf,
+                        Some(filter_conf),
+                        fibex_conf,
+                    );
+                    Ok(emitter)
                 },
-                socket_conf,
-                Some(filter_conf),
-                fibex_conf,
-            );
-            Ok(emitter)
+                _ => cx.throw_error("The socket/filter/fibex config was not valid"),
+            }
         }
 
         // will be called by JS to receive data in a loop, but care should be taken to only call it once at a time.

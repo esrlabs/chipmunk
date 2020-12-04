@@ -19,6 +19,7 @@
 //     "./dist": "./dist/index.js",
 //     ...
 // }
+var addon = require('../native');
 
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
@@ -178,7 +179,7 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
                 fail(`Computation is resolved, but expectation: computation would be rejected`);
             }).catch((err: Error) => {
                 expect(destroyed).toBe(true);
-                expect(error).toBe(false);    
+                expect(error).toBe(false);
             }).finally(() => {
                 done();
             });
@@ -186,4 +187,90 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
     });
 
 
+});
+
+describe('MockComputation', function() {
+	it('full lifecycle should work', function(done) {
+
+		let current_progress: number = 0.0;
+		const computation = new addon.ComputationMock("MOCK", "", "", function(cmd: string, data: any, data2: any) {
+			if (cmd == addon.DONE) {
+				console.log(`JS: Done`);
+				expect(current_progress).toBeCloseTo(100.0);
+				// release the underlying EventHandler
+				computation.shutdown();
+				setTimeout(done);
+			} else if (cmd == addon.PROGRESS) {
+				current_progress = (data as number / data2 as number * 100.0);
+				console.log('JS: got progress: ' + current_progress.toFixed(1));
+			} else {
+				console.log(`JS: invalid command: ${cmd}`);
+			}
+		});
+		computation.async_function();
+		console.log('JS: exiting synchronous code execution');
+	});
+
+	it('shutdown should work', function(done) {
+
+		let shutdown_called = false;
+		const computation = new addon.ComputationMock("MOCK", "", "", function(cmd: string, data: any, data2: any) {
+			if (cmd == addon.DONE) {
+				console.log(`JS: Done`);
+				expect(shutdown_called).toBe(true);
+				setTimeout(done);
+			} else if (cmd == addon.PROGRESS) {
+				expect(shutdown_called).toBe(false);
+				let current_progress = (data as number / data2 as number * 100.0);
+				console.log('JS: got progress: ' + current_progress.toFixed(1));
+				// now call shutdown to interrupt the operation
+				computation.shutdown();
+				shutdown_called = true;
+			} else if (cmd == addon.PROGRESS) {
+				console.log(`JS: got a notification: ${data}`);
+			} else {
+				console.log(`JS: invalid command: ${cmd}`);
+			}
+		});
+		computation.async_function();
+		console.log('JS: exiting synchronous code execution');
+	});
+});
+
+describe('GrabberComputation', function() {
+	it('basic example should work', function(done) {
+        const tmp = require('tmp');
+        const fs = require('fs');
+
+        const tmpobj = tmp.fileSync();
+        console.log('File: ', tmpobj.name);
+        console.log('Filedescriptor: ', tmpobj.fd);
+
+        for (let i = 0; i < 10000; i++) {
+            fs.appendFileSync(tmpobj.name, `some line data: ${i}\n`);
+        }
+        var stats = fs.statSync(tmpobj.name)
+        console.log(`file-size: ${stats.size}`);
+
+		let current_progress: number = 0.0;
+		const computation = new addon.ComputationMock("GRABBER", tmpobj.name, "", function(cmd: string, data: any, data2: any) {
+			if (cmd == addon.DONE) {
+				console.log(`JS: Done`);
+				expect(current_progress).toBeCloseTo(100.0);
+                let result = computation.sync_function(500, 7);
+                console.log(`sync result: ${result}`);
+				// release the underlying EventHandler
+				computation.shutdown();
+                tmpobj.removeCallback();
+                setTimeout(done);
+			} else if (cmd == addon.PROGRESS) {
+				current_progress = (data as number / data2 as number * 100.0);
+				console.log('JS: got progress: ' + current_progress.toFixed(1));
+			} else {
+				console.log(`JS: invalid command: ${cmd}`);
+			}
+		});
+		computation.async_function();
+		console.log('JS: exiting synchronous code execution');
+	});
 });

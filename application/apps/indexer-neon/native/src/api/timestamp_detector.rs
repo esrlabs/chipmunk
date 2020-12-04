@@ -83,15 +83,21 @@ pub class JsTimestampFormatDetectionEmitter for TimestampDetectorEmitter {
     }
 
     method start(mut cx) {
-        let file_names = cx.argument::<JsValue>(0)?;
-        let items: Vec<DiscoverItem> = neon_serde::from_value(&mut cx, file_names)?;
-        let mut this = cx.this();
-        cx.borrow_mut(&mut this, |mut detector| {
-            detector.start_timespan_detection_in_thread(
-                items,
-            );
-        });
-        Ok(JsUndefined::new().upcast())
+        let arg = cx.argument::<JsString>(0)?.value();
+        let file_names = arg.as_str();
+        let items: Result<Vec<DiscoverItem>, serde_json::Error> = serde_json::from_str(file_names);
+        match items {
+            Ok(items) => {
+                let mut this = cx.this();
+                cx.borrow_mut(&mut this, |mut detector| {
+                    detector.start_timespan_detection_in_thread(
+                        items,
+                    );
+                });
+                Ok(JsUndefined::new().upcast())
+            }
+            Err(e) => cx.throw_error("The discover-items argument was not valid"),
+        }
     }
 
     method poll(mut cx) {
