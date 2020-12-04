@@ -232,7 +232,7 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
                     return resolve();
                 }
                 row.match = this.getMatch(row.str);
-                if (this._open.timestamp > row.timestamp) {
+                if (this._open.timestamp > row.timestamp || this._open.position > row.position) {
                     const backup = this._open;
                     this._open = row;
                     row = backup;
