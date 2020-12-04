@@ -49,12 +49,6 @@ export { IPluginsStoreAvailableResponse, PluginsStoreAvailableResponse };
 import { IPluginInternalMessage, PluginInternalMessage } from './plugin.internal.message';
 export { IPluginInternalMessage, PluginInternalMessage };
 
-import { IPluginDefault, PluginDefaultUninstall } from './plugin.default.uninstall';
-export { IPluginDefault, PluginDefaultUninstall };
-
-import { PluginDefaultReinstall } from './plugin.default.reinstall';
-export { PluginDefaultReinstall };
-
 import { IPluginError, PluginError } from './plugin.error';
 export { IPluginError, PluginError };
 
@@ -581,8 +575,6 @@ export type TMessage =  AppRestartRequest |
                         OSInfoRequest |
                         OSInfoResponse |
                         PluginInternalMessage |
-                        PluginDefaultUninstall |
-                        PluginDefaultReinstall |
                         PluginError |
                         PluginsInstalledRequest |
                         PluginsInstalledResponse |
@@ -778,8 +770,6 @@ export const Map = {
     [OSInfoResponse.signature                   ]: OSInfoResponse,
 
     [PluginInternalMessage.signature            ]: PluginInternalMessage,
-    [PluginDefaultUninstall.signature           ]: PluginDefaultUninstall,
-    [PluginDefaultReinstall.signature           ]: PluginDefaultReinstall,
     [PluginError.signature                      ]: PluginError,
     [PluginsInstalledRequest.signature          ]: PluginsInstalledRequest,
     [PluginsInstalledResponse.signature         ]: PluginsInstalledResponse,
