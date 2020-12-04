@@ -6,7 +6,10 @@ require '../../../rake_extensions'
 LOCAL_EXAMPLE_DIR = "#{Dir.home}/tmp/logviewer_usecases"
 TEST_DIR = './tests'
 OUT_DIR = './out'
+NEON = './node_modules/.bin/neon'
+TSC = './node_modules/.bin/tsc'
 TESTS_JS_REQUIRE = 'require("./dist/apps/indexer-neon/src/tests.js")'
+TEST_RUNNER = './node_modules/.bin/jasmine-ts'
 HUGE_LOGFILE = "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log"
 MONSTER_LOGFILE = "#{LOCAL_EXAMPLE_DIR}/indexing/test_huge.log"
 
@@ -16,11 +19,18 @@ CLEAN.include(["#{OUT_DIR}/*.*",
                "#{LOCAL_EXAMPLE_DIR}/merging/merging_big/merged.out"])
 # FileList["#{LOCAL_EXAMPLE_DIR}/dlt/*.out"].each { |f| rm f }
 
+desc 'test'
+task :test do
+  sh "#{TSC} -p ./tsconfig.json"
+  sh "#{NEON} build --release"
+  sh TEST_RUNNER
+end
+
 namespace :neon do
   desc 'rebuild neon'
   task :rebuild => :ts_build do
-    # sh 'neon build --release'
-    sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
+    sh "#{TSC} -p ./tsconfig.json"
+    sh "#{NEON} build --release"
   end
 
   desc 'test all but super huge'

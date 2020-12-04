@@ -63,6 +63,7 @@ export class SessionStream {
     }
 
     public grab(start: number, len: number): string | IGeneralError {
+        // TODO grab content
         return this._channel.grabStreamChunk(start, len);
     }
 
@@ -71,6 +72,7 @@ export class SessionStream {
     }
 
     public assign(filename: string, options: TFileOptions): CancelablePromise<void> {
+        // TODO create grabber
         return Executors.assign(this._channel, this._logger, this._uuid, {
             filename: filename,
             options: options,

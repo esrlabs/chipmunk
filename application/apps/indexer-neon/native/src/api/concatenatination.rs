@@ -80,30 +80,36 @@ declare_types! {
 
     pub class JsConcatenatorEmitter for ConcatenatorEmitter {
         init(mut cx) {
-            let arg_concat_inputs = cx.argument::<JsValue>(0)?;
-            let concat_inputs: Vec<ConcatenatorInput> = neon_serde::from_value(&mut cx, arg_concat_inputs)?;
-            let out_path = path::PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
-            let append: bool = cx.argument::<JsBoolean>(2)?.value();
-            let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;
-            trace!("out_path: {:?}", out_path);
-            trace!("append: {:?}", append);
+            let arg_concat_inputs = cx.argument::<JsString>(0)?.value();
+            let concat_conf: Result<Vec<ConcatenatorInput>, serde_json::Error> =
+                serde_json::from_str(arg_concat_inputs.as_str());
+            match concat_conf {
+                Ok(concat_inputs) => {
+                    let out_path = path::PathBuf::from(cx.argument::<JsString>(1)?.value().as_str());
+                    let append: bool = cx.argument::<JsBoolean>(2)?.value();
+                    let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;
+                    trace!("out_path: {:?}", out_path);
+                    trace!("append: {:?}", append);
 
-            let chunk_result_channel: (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-            let shutdown_channel = cc::unbounded();
-            let mut emitter = ConcatenatorEmitter{
-                event_receiver: chunk_result_channel.1,
-                shutdown_sender: shutdown_channel.0,
-                task_thread: None,
-            };
-            emitter.start_concatenation_in_thread(
-                concat_inputs,
-                out_path,
-                append,
-                chunk_size,
-                chunk_result_channel.0,
-                shutdown_channel.1,
-            );
-            Ok(emitter)
+                    let chunk_result_channel: (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
+                    let shutdown_channel = cc::unbounded();
+                    let mut emitter = ConcatenatorEmitter{
+                        event_receiver: chunk_result_channel.1,
+                        shutdown_sender: shutdown_channel.0,
+                        task_thread: None,
+                    };
+                    emitter.start_concatenation_in_thread(
+                        concat_inputs,
+                        out_path,
+                        append,
+                        chunk_size,
+                        chunk_result_channel.0,
+                        shutdown_channel.1,
+                    );
+                    Ok(emitter)
+                },
+                Err(e) => cx.throw_error("The concat-configuration was not valid"),
+            }
         }
 
         method poll(mut cx) {
