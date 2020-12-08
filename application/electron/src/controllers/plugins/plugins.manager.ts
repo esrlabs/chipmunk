@@ -9,6 +9,7 @@ import ServiceElectron from '../../services/service.electron';
 import ServiceElectronService from '../../services/service.electron.state';
 import ServiceEnv from '../../services/service.env';
 import ServiceSettings from '../../services/service.settings';
+import ServiceStorage, { IStorageScheme } from '../../services/service.storage';
 
 import InstalledPlugin from './plugin.installed';
 import ControllerPluginStore from './plugins.store';
@@ -293,14 +294,10 @@ export default class ControllerPluginsManager {
                 return resolve();
             }
             this._logger.debug(`Installing default plugins`);
-            this._filterDefault(required).then((tasks: IQueueTask[]) => {
-                this.install(tasks).catch((error: Error) => {
-                    this._logger.warn(`Error during installation of plugins: ${error.message}`);
-                }).finally(() => {
-                    resolve();
-                });
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to filter uninstalled default plugins due error: ${error.message}`);
+            this.install(this._filterDefault(required)).catch((error: Error) => {
+                this._logger.warn(`Error during installation of plugins: ${error.message}`);
+            }).finally(() => {
+                resolve();
             });
         });
     }
@@ -439,50 +436,34 @@ export default class ControllerPluginsManager {
         });
     }
 
-    private _uninstalledDefaultPlugin(pluginName: string) {
-        if (!this._store.isDefault(pluginName)) {
+    private _uninstalledDefaultPlugin(plugin: string) {
+        if (!this._store.isDefault(plugin)) {
             return;
         }
-        const arr: string[] = [];
-        const fullfilename = ServicePaths.getUninstalledDefaultPlugins();
-        FS.exist(ServicePaths.getUninstalledDefaultPlugins()).then((exist: boolean) => {
-            if (!exist) {
-                FS.writeTextFile(fullfilename, JSON.stringify([pluginName]));
-            } else {
-                FS.readTextFile(fullfilename).then((json: string) => {
-                    JSON.parse(json).forEach((entry: string) => {
-                        if (entry !== pluginName) {
-                            arr.push(entry);
-                        }
-                    });
-                    arr.push(pluginName);
-                    FS.writeTextFile(fullfilename, JSON.stringify(arr));
-                });
-            }
-        }).catch((existErr: Error) => {
-            this._logger.warn(`Fail to save ${pluginName} as uninstalled due error: ${existErr.message}`);
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        const plugins: string[] = stored.pluginDefaultUninstalled;
+        if (plugins.includes(plugin)) {
+            return;
+        }
+        plugins.unshift(plugin);
+        ServiceStorage.get().set({
+            pluginDefaultUninstalled: plugins,
         });
     }
 
-    private _reinstalledDefaultPlugin(pluginName: string) {
-        if (!this._store.isDefault(pluginName)) {
+    private _reinstalledDefaultPlugin(plugin: string) {
+        if (!this._store.isDefault(plugin)) {
             return;
         }
-        const arr: string[] = [];
-        const fullfilename = ServicePaths.getUninstalledDefaultPlugins();
-        FS.exist(ServicePaths.getUninstalledDefaultPlugins()).then((exist: boolean) => {
-            if (exist) {
-                FS.readTextFile(fullfilename).then((json: string) => {
-                    JSON.parse(json).forEach((entry: string) => {
-                        if (entry !== pluginName) {
-                            arr.push(entry);
-                        }
-                    });
-                    FS.writeTextFile(fullfilename, JSON.stringify(arr));
-                });
-            }
-        }).catch((existErr: Error) => {
-            this._logger.warn(`Fail to save ${pluginName} as reinstalled due error: ${existErr.message}`);
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        const plugins: string[] = stored.pluginDefaultUninstalled;
+        const index: number = plugins.indexOf(plugin);
+        if (index === -1) {
+            return;
+        }
+        plugins.splice(index, 1);
+        ServiceStorage.get().set({
+            pluginDefaultUninstalled: plugins,
         });
     }
 
@@ -676,21 +657,10 @@ export default class ControllerPluginsManager {
         });
     }
 
-    private _filterDefault(tasks: IQueueTask[]): Promise<IQueueTask[]> {
-        return new Promise((resolve, reject) => {
-            const fullfilename: string = ServicePaths.getUninstalledDefaultPlugins();
-            FS.exist(ServicePaths.getUninstalledDefaultPlugins()).then((exist: boolean) => {
-                if (exist) {
-                    FS.readTextFile(fullfilename).then((json: string) => {
-                        const content: string[] = JSON.parse(json);
-                        resolve(tasks.filter((task: IQueueTask) => !content.includes(task.name)));
-                    });
-                } else {
-                    resolve(tasks);
-                }
-            }).catch((existErr: Error) => {
-                reject(existErr.message);
-            });
+    private _filterDefault(tasks: IQueueTask[]): IQueueTask[] {
+        const plugins: string[] = ServiceStorage.get().get().pluginDefaultUninstalled;
+        return tasks.filter((task: IQueueTask) => {
+            return !plugins.includes(task.name);
         });
     }
 
