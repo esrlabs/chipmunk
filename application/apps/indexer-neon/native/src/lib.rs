@@ -70,8 +70,7 @@ register_module!(mut cx, {
     cx.export_value("PROGRESS", progress_value)?;
     cx.export_value("NOTIFICATION", notification_value)?;
     cx.export_value("DONE", done_value)?;
-    // cx.export_class::<JsGrabberHolder>("GrabberHolder")?;
-    cx.export_class::<JsSession>("ComputationMock")?;
+    cx.export_class::<JsSession>("Session")?;
 
     Ok(())
 });
