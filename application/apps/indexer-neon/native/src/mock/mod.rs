@@ -1,5 +1,5 @@
 use crate::js::events::{ComputationError, ShutdownReceiver};
-use crate::js::session::SessionAction;
+use crate::js::session::OperationAction;
 use crossbeam_channel as cc;
 use indexer_base::{
     progress::{IndexingProgress, IndexingResults},
@@ -14,8 +14,8 @@ impl MockWork {
     }
 }
 
-impl SessionAction for MockWork {
-    fn execute(
+impl OperationAction for MockWork {
+    fn prepare_async(
         &self,
         result_sender: cc::Sender<IndexingResults<()>>,
         shutdown_rx: Option<ShutdownReceiver>,
