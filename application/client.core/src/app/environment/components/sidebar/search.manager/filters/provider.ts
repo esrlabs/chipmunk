@@ -1,10 +1,10 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
-import { FilterRequest, IFiltersStorageUpdated } from '../../../../controller/controller.session.tab.search.filters.storage';
-import { ChartRequest  } from '../../../../controller/controller.session.tab.search.charts.storage';
-import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
+import { FilterRequest, IFiltersStorageUpdated } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
+import { ChartRequest  } from '../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.storage';
+import { DisabledRequest } from '../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerFiltersComponent } from './list/component';
 import { SidebarAppSearchManagerFiltersPlaceholderComponent } from './placeholder/component';
@@ -33,7 +33,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         });
     }
 
-    public setSessionController(session: ControllerSessionTab | undefined) {
+    public setSessionController(session: Session | undefined) {
         this.unsubscribe();
         if (session === undefined) {
             return;

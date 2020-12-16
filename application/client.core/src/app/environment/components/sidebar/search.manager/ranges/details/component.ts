@@ -1,9 +1,9 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
-import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
+import { FilterRequest } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { CColors } from '../../../../../conts/colors';
-import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
+import { RangeRequest } from '../../../../../controller/session/dependencies/search/dependencies/timeranges/controller.session.tab.search.ranges.request';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 

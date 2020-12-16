@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { ISelectionAccessor, IRange } from '../../../services/standalone/service.output.redirections';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -29,7 +29,7 @@ export class AppsStatusBarSelectionStateComponent implements OnDestroy, AfterVie
     public ngAfterViewInit() {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-        const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        const controller: Session | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             return;
         }
@@ -49,7 +49,7 @@ export class AppsStatusBarSelectionStateComponent implements OnDestroy, AfterVie
         return this._ranges.join('; ');
     }
 
-    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+    private _onSessionChange(controller: Session | undefined) {
         if (controller === undefined) {
             return;
         }

@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewChild } from '@angular/core';
-import { RangeRequest, IRangeUpdateEvent } from '../../../../../controller/controller.session.tab.search.ranges.request';
+import { RangeRequest, IRangeUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/timeranges/controller.session.tab.search.ranges.request';
 import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';

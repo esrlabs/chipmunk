@@ -1,5 +1,5 @@
 import { Subscription, Subject, Observable } from 'rxjs';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { IPCMessages } from './service.electron.ipc';
 import { ControllerFileConcatSession } from '../controller/controller.file.concat.session';
 import { IService } from '../interfaces/interface.service';
@@ -52,7 +52,7 @@ export class ConcatFilesService implements IService, IConcatFilesService {
 
     public getController(session?: string): ControllerFileConcatSession | undefined {
         if (session === undefined) {
-            const controller: ControllerSessionTab | undefined = SessionsService.getActive();
+            const controller: Session | undefined = SessionsService.getActive();
             if (controller === undefined) {
                 return undefined;
             } else {
@@ -66,7 +66,7 @@ export class ConcatFilesService implements IService, IConcatFilesService {
         SidebarSessionsService.remove(CGuids.concat);
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             return;
         }

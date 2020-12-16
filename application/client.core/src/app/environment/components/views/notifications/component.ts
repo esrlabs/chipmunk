@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
+import { Session } from '../../../controller/session/session';
+import { ControllerSessionScope } from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
 import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from 'chipmunk.client.toolkit';
 import { sortPairs, IPair } from '../../../thirdparty/code/engine';
@@ -76,7 +76,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
     }
 
     public ngAfterContentInit() {
-        const session: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        const session: Session | undefined = TabsSessionsService.getActive();
         if (session === undefined) {
             return;
         }
@@ -213,7 +213,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         if (this._ng_session === undefined) {
             return;
         }
-        const session: ControllerSessionTab | Error = TabsSessionsService.getSessionController(this._ng_session);
+        const session: Session | Error = TabsSessionsService.getSessionController(this._ng_session);
         if (session instanceof Error) {
             return;
         }
@@ -235,7 +235,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         if (this._ng_session === undefined) {
             return;
         }
-        const session: ControllerSessionTab | Error = TabsSessionsService.getSessionController(this._ng_session);
+        const session: Session | Error = TabsSessionsService.getSessionController(this._ng_session);
         if (session instanceof Error) {
             return;
         }
@@ -261,7 +261,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         this._forceUpdate();
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         this._saveState();
         if (session === undefined) {
             this._ng_session = undefined;

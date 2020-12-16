@@ -1,7 +1,7 @@
 import { TabsService, IComponentDesc, ITab } from 'chipmunk-client-material';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { IPluginData } from '../services/service.plugins';
 import { getSharedServices } from './shared.services.sidebar';
 import { DefaultSidebarApps, IDefaultSidebarApp } from '../states/state.default.sidebar.apps';
@@ -330,7 +330,7 @@ export class SidebarSessionsService implements IService {
         return tabs;
     }
 
-    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+    private _onSessionChange(controller: Session | undefined) {
         if (controller === undefined) {
             return;
         }

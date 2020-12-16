@@ -1,6 +1,6 @@
 import { Component, ChangeDetectorRef, Input, AfterViewInit, AfterContentInit, ViewChild } from '@angular/core';
 import { MatInput } from '@angular/material/input';
-import { IComment } from '../../../controller/controller.session.tab.stream.comments.types';
+import { IComment } from '../../../controller/session/dependencies/comments/session.dependency.comments.types';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { ErrorStateMatcher } from '@angular/material/core';
 

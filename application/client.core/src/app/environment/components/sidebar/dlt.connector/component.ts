@@ -3,7 +3,7 @@ import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { Subscription, Subject } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -159,7 +159,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     @Input() public onBeforeTabRemove: Subject<void>;
     @Input() public close: () => void;
 
-    public _ng_session: ControllerSessionTab | undefined;
+    public _ng_session: Session | undefined;
     public _ng_state: 'progress' | 'connected' | 'disconnected' = 'disconnected';
     public _ng_recent: string[] = [];
     public _ng_settings: IDLTDeamonSettings = {
@@ -532,7 +532,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         return `${SidebarAppDLTConnectorComponent.StateKey}:${this._ng_session.getGuid()}`;
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             return;
         }

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamps';
+import { Session } from '../../../controller/session/session';
+import { ControllerSessionTabTimestamp } from '../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { DataService } from './service.data';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -21,7 +21,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementComponent');
-    private _session: ControllerSessionTab | undefined;
+    private _session: Session | undefined;
     private _destroy: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -57,7 +57,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         return this._session.getTimestamp();
     }
 
-    private _onSessionChange(controller?: ControllerSessionTab) {
+    private _onSessionChange(controller?: Session) {
         if (controller === undefined) {
             return;
         }

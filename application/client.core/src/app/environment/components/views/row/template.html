@@ -27,7 +27,7 @@
         [pluginId]="pluginId"
         [source]="_ng_sourceName"
         [parent]="parent"
-        [scope]="scope"
+        [api]="api"
         (click)="_ng_onRowSelect($event)"></app-views-output-row-standard>
     <app-views-output-row-columns
         #rendercomp  
@@ -37,11 +37,9 @@
         [position]="position" 
         [pluginId]="pluginId"
         [source]="_ng_sourceName"
-        [scope]="scope"
+        [api]="api"
         [parent]="parent"
-        [output]="controller"
-        [timestamp]="timestamp"
-        [api]="_ng_render_api" 
+        [render]="_ng_render_api" 
         (click)="_ng_onRowSelect($event)"></app-views-output-row-columns>
     <app-views-output-row-external
         #rendercomp
@@ -52,7 +50,7 @@
         [pluginId]="pluginId"
         [source]="_ng_sourceName"
         [parent]="parent"
-        [scope]="scope"
+        [api]="api"
         [component]="_ng_component"
         (click)="_ng_onRowSelect($event)"></app-views-output-row-external>
 </div>

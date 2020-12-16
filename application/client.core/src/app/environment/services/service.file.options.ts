@@ -4,7 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { AControllerFileOptions } from '../interfaces/interface.controller.file.options';
 import { ControllerDltFileOptions } from '../controller/file.options/controller.file.dlt';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { Storage } from '../controller/helpers/virtualstorage';
 
 import ServiceElectronIpc, { IPCMessages, Subscription, TResponseFunc } from './service.electron.ipc';
@@ -69,7 +69,7 @@ export class FileOptionsService implements IService {
         return this._getOptionsController(meta) !== undefined;
     }
 
-    public getReopenOptionsCallback<T>(session: ControllerSessionTab, meta: string, file: string, storage: Storage<T>): TReopenCallback | undefined {
+    public getReopenOptionsCallback<T>(session: Session, meta: string, file: string, storage: Storage<T>): TReopenCallback | undefined {
         const classRef: Function = this._getOptionsController(meta);
         if (classRef === undefined) {
             return undefined;

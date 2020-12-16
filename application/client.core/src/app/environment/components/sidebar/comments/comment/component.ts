@@ -2,8 +2,8 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges, SimpleChanges, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { IComment, ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
+import { Session } from '../../../../controller/session/session';
+import { IComment, ICommentResponse } from '../../../../controller/session/dependencies/comments/session.dependency.comments.types';
 import { CShortColors } from '../../../../conts/colors';
 import { shadeColor } from '../../../../theme/colors';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
@@ -23,7 +23,7 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
 export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentInit, OnChanges {
 
     @Input() comment: IComment;
-    @Input() controller: ControllerSessionTab;
+    @Input() controller: Session;
     @Input() broadcastEditorUsage: Subject<string>;
 
     public _ng_colors: string[] = CShortColors.slice();

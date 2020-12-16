@@ -1,8 +1,8 @@
 import { TabsService, ITab, ITabAPI } from 'chipmunk-client-material';
 import { Subscription } from './service.electron.ipc';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { IService } from '../interfaces/interface.service';
-import { Observable, Subject, Subscription as SubscriptionRX } from 'rxjs';
+import { Subject, Subscription as SubscriptionRX } from 'rxjs';
 import { IDefaultView } from '../states/state.default';
 import { IAPI, IPopup, IComponentDesc, ISettingsAPI } from 'chipmunk.client.toolkit';
 import { copyTextToClipboard } from '../controller/helpers/clipboard';
@@ -22,7 +22,7 @@ import SettingsService from './service.settings';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export { ITabAPI };
-export { ControllerSessionTabSearch } from '../controller/controller.session.tab.search';
+export { ControllerSessionTabSearch } from '../controller/session/dependencies/search/controller.session.tab.search';
 
 export type TSessionGuid = string;
 export type TSidebarTabOpener = (guid: string, session: string | undefined, silence: boolean) => Error | undefined;
@@ -30,7 +30,7 @@ export type TToolbarTabOpener = (guid: string, session: string | undefined, sile
 export type TNotificationOpener = (notification: Toolkit.INotification) => void;
 
 export interface IServiceSubjects {
-    onSessionChange: Subject<ControllerSessionTab | undefined>;
+    onSessionChange: Subject<Session | undefined>;
     onSessionClosed: Subject<string>;
 }
 
@@ -43,7 +43,7 @@ export interface ICustomTab {
 export class TabsSessionsService implements IService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsSessionsService');
-    private _sessions: Map<TSessionGuid, ControllerSessionTab | ICustomTab> = new Map();
+    private _sessions: Map<TSessionGuid, Session | ICustomTab> = new Map();
     private _sources: Map<TSessionGuid, number> = new Map();
     private _tabsService: TabsService = new TabsService();
     private _subscriptions: { [key: string]: Subscription | SubscriptionRX | undefined } = { };
@@ -117,7 +117,7 @@ export class TabsSessionsService implements IService {
         return this._sessions.has(guid);
     }
 
-    public add(custom?: ICustomTab): Promise<ControllerSessionTab | ICustomTab> {
+    public add(custom?: ICustomTab): Promise<Session | ICustomTab> {
         return new Promise((resolve, reject) => {
             let guid: string = custom !== undefined ? custom.id : Toolkit.guid();
             if (this._sessions.has(guid)) {
@@ -132,31 +132,35 @@ export class TabsSessionsService implements IService {
                     }
                     guid = response.guid;
                     this._logger.env(`Stream "${guid}" is inited`);
-                    const session = new ControllerSessionTab({
+                    const session = new Session({
                         guid: guid,
                         api: this.getPluginAPI(undefined),
                         sessionsEventsHub: this._sessionsEventsHub,
                     });
-                    const tabAPI: ITabAPI | undefined = this._tabsService.add({
-                        guid: guid,
-                        name: 'New',
-                        active: true,
-                        content: {
-                            factory: this._defaults.views[0].component,
-                            inputs: {
-                                session: session,
-                                getTabAPI: (): ITabAPI => {
-                                    return tabAPI;
+                    session.init().then(() => {
+                        const tabAPI: ITabAPI | undefined = this._tabsService.add({
+                            guid: guid,
+                            name: 'New',
+                            active: true,
+                            content: {
+                                factory: this._defaults.views[0].component,
+                                inputs: {
+                                    session: session,
+                                    getTabAPI: (): ITabAPI => {
+                                        return tabAPI;
+                                    }
                                 }
                             }
-                        }
+                        });
+                        this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
+                        this._sessions.set(guid, session);
+                        session.setTabAPI(tabAPI);
+                        this._sessionsEventsHub.emit().onSessionOpen(guid);
+                        this.setActive(guid);
+                        resolve(session);
+                    }).catch((err: Error) => {
+                        reject(new Error(this._logger.error(`Fail to init session due error: ${err.message}`)));
                     });
-                    this._subscriptions[`onSourceChanged:${guid}`] = session.getObservable().onSourceChanged.subscribe(this._onSourceChanged.bind(this, guid));
-                    this._sessions.set(guid, session);
-                    session.setTabAPI(tabAPI);
-                    this._sessionsEventsHub.emit().onSessionOpen(guid);
-                    this.setActive(guid);
-
                 }).catch((error: Error) => {
                     reject(error);
                 });
@@ -182,12 +186,12 @@ export class TabsSessionsService implements IService {
         return this._tabsService;
     }
 
-    public getSessionController(session: string): ControllerSessionTab | Error {
+    public getSessionController(session: string): Session | Error {
         if (session === undefined) {
             session = this._currentSessionGuid;
         }
-        const controller: ControllerSessionTab | ICustomTab | undefined = this._sessions.get(session);
-        if (!(controller instanceof ControllerSessionTab)) {
+        const controller: Session | ICustomTab | undefined = this._sessions.get(session);
+        if (!(controller instanceof Session)) {
             return new Error(`Fail to find defiend session "${session}"`);
         }
         return controller;
@@ -197,12 +201,12 @@ export class TabsSessionsService implements IService {
         if (guid === this._currentSessionGuid) {
             return;
         }
-        const session: ControllerSessionTab | ICustomTab | undefined = this._sessions.get(guid);
+        const session: Session | ICustomTab | undefined = this._sessions.get(guid);
         if (session === undefined) {
             return this._logger.warn(`Cannot fild session ${guid}. Cannot make this session active.`);
         }
         this._currentSessionGuid = guid;
-        if (session instanceof ControllerSessionTab) {
+        if (session instanceof Session) {
             LayoutStateService.unlock();
             session.setActive();
             ServiceElectronIpc.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
@@ -219,23 +223,23 @@ export class TabsSessionsService implements IService {
         this._tabsService.setActive(this._currentSessionGuid);
     }
 
-    public getActive(): ControllerSessionTab | undefined {
-        const controller: ControllerSessionTab | ICustomTab | undefined = this._sessions.get(this._currentSessionGuid);
-        return !(controller instanceof ControllerSessionTab) ? undefined : controller;
+    public getActive(): Session | undefined {
+        const controller: Session | ICustomTab | undefined = this._sessions.get(this._currentSessionGuid);
+        return !(controller instanceof Session) ? undefined : controller;
     }
 
-    public getEmpty(): ControllerSessionTab | undefined {
-        let target: ControllerSessionTab | ICustomTab | undefined = this._sessions.get(this._currentSessionGuid);
-        if (target instanceof ControllerSessionTab) {
+    public getEmpty(): Session | undefined {
+        let target: Session | ICustomTab | undefined = this._sessions.get(this._currentSessionGuid);
+        if (target instanceof Session) {
             return target;
         }
         target = undefined;
-        this._sessions.forEach((controller: ControllerSessionTab | ICustomTab) => {
-            if (controller instanceof ControllerSessionTab && controller.getSessionStream().getOutputStream().getRowsCount() === 0) {
+        this._sessions.forEach((controller: Session | ICustomTab) => {
+            if (controller instanceof Session && controller.getStreamOutput().getRowsCount() === 0) {
                 target = controller;
             }
         });
-        return target as ControllerSessionTab;
+        return target as Session;
     }
 
     public getSessionEventsHub(): Toolkit.ControllerSessionsEvents {
@@ -284,19 +288,19 @@ export class TabsSessionsService implements IService {
                 return SettingsService.getPluginsAPI();
             },
             getActiveSessionId: () => {
-                const controller: ControllerSessionTab | undefined = this.getActive();
+                const controller: Session | undefined = this.getActive();
                 return controller === undefined ? undefined : controller.getGuid();
             },
             addOutputInjection: (injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) => {
-                const controller: ControllerSessionTab | undefined = this.getActive();
+                const controller: Session | undefined = this.getActive();
                 return controller === undefined ? undefined : controller.addOutputInjection(injection, type);
             },
             removeOutputInjection: (id: string, type: Toolkit.EViewsTypes) => {
-                const controller: ControllerSessionTab | undefined = this.getActive();
+                const controller: Session | undefined = this.getActive();
                 return controller === undefined ? undefined : controller.removeOutputInjection(id, type);
             },
             getViewportEventsHub: () => {
-                const controller: ControllerSessionTab | undefined = this.getActive();
+                const controller: Session | undefined = this.getActive();
                 return controller === undefined ? undefined : controller.getViewportEventsHub();
             },
             getSessionsEventsHub: () => {
@@ -362,11 +366,11 @@ export class TabsSessionsService implements IService {
 
     private _onSessionTabClosed(session: string) {
         // Get session controller
-        const controller: ControllerSessionTab | ICustomTab | undefined = this._sessions.get(session);
+        const controller: Session | ICustomTab | undefined = this._sessions.get(session);
         if (controller === undefined) {
             return this._logger.warn(`Fail to destroy session "${session}" because cannot find this session.`);
         }
-        if (controller instanceof ControllerSessionTab) {
+        if (controller instanceof Session) {
             controller.destroy().then(() => {
                 this._removeSession(session);
                 this._logger.env(`Session "${session}" is destroyed`);
@@ -434,7 +438,7 @@ export class TabsSessionsService implements IService {
     }
 
     private _ipc_RenderSessionAddRequest(message: IPCMessages.RenderSessionAddRequest, response: (message: IPCMessages.TMessage) => void) {
-        this.add().then((session: ControllerSessionTab) => {
+        this.add().then((session: Session) => {
             response(new IPCMessages.RenderSessionAddResponse({ session: session.getGuid() }));
         }).catch((error: Error) => {
             response(new IPCMessages.RenderSessionAddResponse({ session: '', error: error.message }));

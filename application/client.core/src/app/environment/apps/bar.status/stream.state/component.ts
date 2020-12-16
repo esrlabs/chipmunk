@@ -1,5 +1,5 @@
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { TasksHistoryComponent } from './history/component';
 import { IComponentDesc, IFrameOptions } from 'chipmunk-client-material';
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
@@ -54,7 +54,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         this._ng_onToggleHistory = this._ng_onToggleHistory.bind(this);
         this._ng_frame_options.onClose = this._ng_onToggleHistory;
         this._ng_component.inputs.updated = this._updated.asObservable();
-        const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        const controller: Session | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             return;
         }
@@ -128,7 +128,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         this._switch();
     }
 
-    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+    private _onSessionChange(controller: Session | undefined) {
         if (controller === undefined) {
             return;
         }
@@ -142,7 +142,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         this._remove(sessionId);
         this._ng_showHistory = false;
         if (this._sessionId === sessionId) {
-            const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+            const controller: Session | undefined = TabsSessionsService.getActive();
             if (controller === undefined) {
                 this._sessionId = undefined;
             } else {

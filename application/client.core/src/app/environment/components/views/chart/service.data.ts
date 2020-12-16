@@ -1,8 +1,8 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import { ControllerSessionTab, IStreamState } from '../../../controller/controller.session.tab';
-import { ChartRequest } from '../../../controller/controller.session.tab.search.charts.request';
-import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.request';
-import { IMapState, IMapPoint } from '../../../controller/controller.session.tab.map';
+import { Session, IStreamState } from '../../../controller/session/session';
+import { ChartRequest } from '../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
+import { FilterRequest } from '../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
+import { IMapState, IMapPoint } from '../../../controller/session/dependencies/map/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { AChart } from './charts/charts';
 import { IPCMessages } from '../../../services/service.electron.ipc';
@@ -44,7 +44,7 @@ export interface IChartsResults {
 export class ServiceData {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
-    private _sessionController: ControllerSessionTab | undefined;
+    private _sessionController: Session | undefined;
     private _stream: IStreamState | undefined;
     private _matches: IMapState | undefined;
     private _charts: IPCMessages.TChartResults = {};
@@ -340,7 +340,7 @@ export class ServiceData {
         return chart === undefined ? this._getFilterBySource(source) : chart;
     }
 
-    private _init(controller?: ControllerSessionTab) {
+    private _init(controller?: Session) {
         controller = controller === undefined ? TabsSessionsService.getActive() : controller;
         if (controller === undefined) {
             return;
@@ -357,8 +357,7 @@ export class ServiceData {
             .getObservable()
             .onStateUpdate.subscribe(this._onSearchMapStateUpdate.bind(this));
         this._sessionSubscriptions.onStreamStateUpdated = controller
-            .getSessionStream()
-            .getOutputStream()
+            .getStreamOutput()
             .getObservable()
             .onStateUpdated.subscribe(this._onStreamStateUpdated.bind(this));
         this._sessionSubscriptions.onRequestsUpdated = controller
@@ -378,8 +377,7 @@ export class ServiceData {
             .onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
         // Get default data
         this._stream = controller
-            .getSessionStream()
-            .getOutputStream()
+            .getStreamOutput()
             .getState();
         this._matches = controller.getStreamMap().getState();
         this._charts = controller
@@ -390,7 +388,7 @@ export class ServiceData {
         this._subjects.onCharts.next();
     }
 
-    private _onSessionChange(controller: ControllerSessionTab) {
+    private _onSessionChange(controller: Session) {
         if (controller === undefined) {
             return;
         }

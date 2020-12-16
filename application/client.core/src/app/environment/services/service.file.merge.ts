@@ -1,5 +1,5 @@
 import { Subscription, Subject, Observable } from 'rxjs';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { CommonInterfaces} from '../interfaces/interface.common';
 import { IPCMessages } from './service.electron.ipc';
 import { ControllerFileMergeSession } from '../controller/controller.file.merge.session';
@@ -67,7 +67,7 @@ export class MergeFilesService implements IService, IMergeFilesService {
 
     public getController(session?: string): ControllerFileMergeSession | undefined {
         if (session === undefined) {
-            const controller: ControllerSessionTab | undefined = SessionsService.getActive();
+            const controller: Session | undefined = SessionsService.getActive();
             if (controller === undefined) {
                 return undefined;
             } else {
@@ -81,7 +81,7 @@ export class MergeFilesService implements IService, IMergeFilesService {
         SidebarSessionsService.remove(CGuids.merging);
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             return;
         }

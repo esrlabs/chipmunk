@@ -2,10 +2,10 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Inpu
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ViewSearchOutputComponent } from './output/component';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
-import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
-import { FiltersStorage, FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
-import { ChartsStorage, ChartRequest } from '../../../controller/controller.session.tab.search.charts.storage';
+import { Session } from '../../../controller/session/session';
+import { ControllerSessionScope } from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
+import { FiltersStorage, FilterRequest } from '../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
+import { ChartsStorage, ChartRequest } from '../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.storage';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { rankedNumberAsString } from '../../../controller/helpers/ranks';
 import { ControllerToolbarLifecircle } from '../../../controller/controller.toolbar.lifecircle';
@@ -71,14 +71,14 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     @ViewChild('requestinput') _ng_requestInputComRef: ElementRef;
     @ViewChild(MatAutocompleteTrigger) _ng_autoComRef: MatAutocompleteTrigger;
 
-    public _ng_session: ControllerSessionTab | undefined;
+    public _ng_session: Session | undefined;
     public _ng_searchRequestId: string | undefined;
     public _ng_isRequestValid: boolean = true;
     public _ng_isRequestSaved: boolean = false;
     public _ng_read: number = -1;
     public _ng_found: number = -1;
     // Out of state (stored in controller)
-    public _ng_onSessionChanged: Subject<ControllerSessionTab> = new Subject<ControllerSessionTab>();
+    public _ng_onSessionChanged: Subject<Session> = new Subject<Session>();
     public _ng_inputCtrl = new FormControl();
     public _ng_recent: Observable<IPair[]>;
     public _ng_flags: ISearchSettings = {
@@ -327,10 +327,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_isButtonsVisible(): boolean {
         if (this._prevRequest === this._ng_inputCtrl.value && this._ng_inputCtrl.value !== '') {
-            this._ng_session.getSessionSearch().getFiltersAPI().getState().lock();
+            this._ng_session.getSessionSearch().getState().lock();
             return true;
         } else {
-            this._ng_session.getSessionSearch().getFiltersAPI().getState().unlock();
+            this._ng_session.getSessionSearch().getState().unlock();
             return false;
         }
     }
@@ -343,7 +343,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_flagsToggle(event: MouseEvent, key: string) {
         this._ng_flags[key] = !this._ng_flags[key];
         this._forceUpdate();
-        if (this._ng_session.getSessionSearch().getFiltersAPI().getState().isLocked()) {
+        if (this._ng_session.getSessionSearch().getState().isLocked()) {
             // Trigger re-search only if it was done already before
             this._search(false);
         }
@@ -493,7 +493,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         SidebarSessionsService.setActive('search', this._ng_session.getGuid());
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         Object.keys(this._sessionSubscriptions).forEach((prop: string) => {
             this._sessionSubscriptions[prop].unsubscribe();
         });
@@ -508,7 +508,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._forceUpdate();
     }
 
-    private _setActiveSession(session?: ControllerSessionTab) {
+    private _setActiveSession(session?: Session) {
         if (session === undefined) {
             session = TabsSessionsService.getActive();
         } else {
@@ -606,9 +606,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_read = state.read;
             // Get actual data if active search is present
             if (this._ng_searchRequestId !== undefined) {
-                this._ng_searchRequestId = this._ng_session.getSessionSearch().getFiltersAPI().getState().getId();
+                this._ng_searchRequestId = this._ng_session.getSessionSearch().getState().getId();
                 if (this._ng_searchRequestId !== undefined) {
-                    this._ng_read = this._ng_session.getSessionStream().getOutputStream().getRowsCount();
+                    this._ng_read = this._ng_session.getStreamOutput().getRowsCount();
                     this._ng_found = this._ng_session.getSessionSearch().getOutputStream().getRowsCount();
                 } else {
                     this._ng_searchRequestId = undefined;
@@ -677,7 +677,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_found = event.rows;
         // Check state of read
         if (this._ng_read <= 0) {
-            this._ng_read = this._ng_session.getSessionStream().getOutputStream().getRowsCount();
+            this._ng_read = this._ng_session.getStreamOutput().getRowsCount();
         }
         this._forceUpdate();
     }

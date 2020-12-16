@@ -1,15 +1,14 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewEncapsulation } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
+import { ControllerSessionScope } from '../../../../controller/session/dependencies/scope/controller.session.tab.scope';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { ControllerColumns, IColumn } from './controller.columns';
 import { Subscription, Subject } from 'rxjs';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
+import { Session } from '../../../../controller/session/session';
+import { ControllerSessionTabStreamOutput } from '../../../../controller/session/dependencies/output/controller.session.tab.stream.output';
 import { ViewOutputRowColumnsHeadersComponent, CColumnsHeadersKey } from './headers/component';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
-import { ControllerSessionTabTimestamp } from '../../../../controller/controller.session.tab.timestamps';
-import { EApplyTo } from 'chipmunk.client.toolkit';
+import { ControllerRowAPI } from '../../../../controller/session/dependencies/row/controller.row.api';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
@@ -28,6 +27,7 @@ const CControllerColumnsKey = 'row.columns.service';
     selector: 'app-views-output-row-columns',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None
 })
 
@@ -38,10 +38,8 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public source: string | undefined;
-    @Input() public api: IAPI | undefined;
-    @Input() public scope: ControllerSessionScope | undefined;
-    @Input() public output: ControllerSessionTabStreamOutput | undefined;
-    @Input() public timestamp: ControllerSessionTabTimestamp | undefined;
+    @Input() public render: IAPI | undefined;
+    @Input() public api: ControllerRowAPI;
     @Input() public parent: EParent;
 
     public _ng_columns: Array<{ html: SafeHtml, index: number }> = [];
@@ -143,7 +141,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         let chunk = '';
         const tags: Array<{ value: string, name: string }> = [];
         const columns: Array<{ html: string, index: number }> = [];
-        const delimiter: string = this.api.getDelimiter();
+        const delimiter: string = this.render.getDelimiter();
         let cNum: number = 0;
         try {
             let pos: number = 0;
@@ -203,16 +201,16 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     }
 
     private _getControllerColumns(): ControllerColumns | undefined {
-        if (this.scope === undefined) {
+        if (this.api === undefined) {
             return undefined;
         }
-        let controller: ControllerColumns | undefined = this.scope.get<ControllerColumns>(CControllerColumnsKey);
+        let controller: ControllerColumns | undefined = this.api.getScope().get<ControllerColumns>(CControllerColumnsKey);
         if (!(controller instanceof ControllerColumns)) {
             controller = new ControllerColumns(
-                this.api.getDefaultWidths(),
-                this.api.getHeaders()
+                this.render.getDefaultWidths(),
+                this.render.getHeaders()
             );
-            this.scope.set(CControllerColumnsKey, controller);
+            this.api.getScope().set(CControllerColumnsKey, controller);
         }
         return controller as ControllerColumns;
     }
@@ -229,24 +227,22 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     }
 
     private _headers() {
-        const headerScopeValue: boolean | undefined = this.scope.get(CColumnsHeadersKey);
+        const headerScopeValue: boolean | undefined = this.api.getScope().get(CColumnsHeadersKey);
         const headersState: boolean = headerScopeValue === undefined ? false : headerScopeValue;
         if (headersState) {
             return;
         }
-        const session: ControllerSessionTab = TabsSessionsService.getActive();
+        const session: Session = TabsSessionsService.getActive();
         session.addOutputInjection({
             factory: ViewOutputRowColumnsHeadersComponent,
             resolved: false,
             id: CColumnsHeadersKey,
             inputs: {
                 controller: this._getControllerColumns(),
-                scope: this.scope,
-                output: this.output,
-                timestamp: this.timestamp,
+                api: this.api,
             }
         }, Toolkit.EViewsTypes.outputTop);
-        this.scope.set(CColumnsHeadersKey, true);
+        this.api.getScope().set(CColumnsHeadersKey, true);
     }
 
 }

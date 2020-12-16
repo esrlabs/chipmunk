@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
-import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
+import { ChartRequest } from '../../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';

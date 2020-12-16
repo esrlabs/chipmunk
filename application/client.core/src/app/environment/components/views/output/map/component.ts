@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabMap, IMapPoint, IMapState } from '../../../../controller/controller.session.tab.map';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
+import { ControllerSessionTabMap, IMapPoint, IMapState } from '../../../../controller/session/dependencies/map/controller.session.tab.map';
+import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
 

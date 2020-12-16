@@ -2,7 +2,7 @@ import { TabsService, IComponentDesc, ITab } from 'chipmunk-client-material';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { DefaultViews, CDefaultTabsGuids } from '../states/state.default.toolbar.apps';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { ControllerToolbarLifecircle } from '../controller/controller.toolbar.lifecircle';
 
 import EventsSessionService from './standalone/service.events.session';
@@ -229,7 +229,7 @@ export class ToolbarSessionsService implements IService {
         }
     }
 
-    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+    private _onSessionChange(controller: Session | undefined) {
         if (controller === undefined) {
             // No any active sessions
             return;

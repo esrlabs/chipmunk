@@ -1,8 +1,8 @@
 import { Component, OnDestroy, Input,  ChangeDetectorRef, AfterContentInit, AfterViewInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { IServices } from '../../../services/shared.services.sidebar';
-import { IComment } from '../../../controller/controller.session.tab.stream.comments.types';
+import { IComment } from '../../../controller/session/dependencies/comments/session.dependency.comments.types';
 import { CShortColors } from '../../../conts/colors';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -30,7 +30,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     @Input() public close: () => void;
 
     public _ng_comments: IComment[] = [];
-    public _ng_controller: ControllerSessionTab | undefined;
+    public _ng_controller: Session | undefined;
     public _ng_broadcastEditorUsage: Subject<string> = new Subject<string>();
     public _ng_colors: string[] = CShortColors.slice();
     public _ng_ordring: ECommentsOrdering = ECommentsOrdering.position;
@@ -94,7 +94,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         this._load();
     }
 
-    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+    private _onSessionChange(controller: Session | undefined) {
         this._ng_controller = controller;
         Object.keys(this._sessionSubs).forEach((key: string) => {
             this._sessionSubs[key].unsubscribe();

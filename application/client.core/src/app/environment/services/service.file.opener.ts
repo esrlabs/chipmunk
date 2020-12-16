@@ -2,7 +2,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages, Subscription } from './service.electron.ipc';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { FilesList } from '../controller/controller.file.storage';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
 import { CGuids } from '../states/state.default.sidebar.apps';
@@ -80,7 +80,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 session: active.getGuid(),
                 files: files.map((file: IPCMessages.IFile) => file.path),
             }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
-                this._setSessionForFile().then((session: ControllerSessionTab) => {
+                this._setSessionForFile().then((session: Session) => {
                     TabsSessionsService.setActive(session.getGuid());
                     if (checkResponse.error !== undefined) {
                         return reject(new Error(this._logger.error(`Fail check paths due error: ${checkResponse.error}`)));
@@ -132,7 +132,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     public openFileByName(file: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._setSessionForFile().then((session: ControllerSessionTab) => {
+            this._setSessionForFile().then((session: Session) => {
                 TabsSessionsService.setActive(session.getGuid());
                 ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
                     file: file,
@@ -195,7 +195,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     private _setReopenCallback(
-        session: ControllerSessionTab,
+        session: Session,
         file: string,
         stream: IPCMessages.IStreamSourceNew | undefined,
         options: any
@@ -228,16 +228,16 @@ export class FileOpenerService implements IService, IFileOpenerService {
         }
     }
 
-    private _setSessionForFile(): Promise<ControllerSessionTab> {
+    private _setSessionForFile(): Promise<Session> {
         return new Promise((resolve, reject) => {
             // Check active session before
-            const active: ControllerSessionTab = TabsSessionsService.getEmpty();
-            if (active !== undefined && active.getSessionStream().getOutputStream().getRowsCount() === 0) {
+            const active: Session = TabsSessionsService.getEmpty();
+            if (active !== undefined && active.getStreamOutput().getRowsCount() === 0) {
                 // Active session is empty, we can use it
                 return resolve(active);
             }
             // Active session has content, create new one
-            TabsSessionsService.add().then((session: ControllerSessionTab) => {
+            TabsSessionsService.add().then((session: Session) => {
                 resolve(session);
             }).catch((addSessionErr: Error) => {
                 reject(addSessionErr);
@@ -246,7 +246,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     private _onFileOpenDoneEvent(msg: IPCMessages.FileOpenDoneEvent) {
-        const session: ControllerSessionTab | Error = TabsSessionsService.getSessionController(msg.session);
+        const session: Session | Error = TabsSessionsService.getSessionController(msg.session);
         if (session instanceof Error) {
             this._logger.warn(`Fail to find a session "${msg.session}"`);
             return;
@@ -255,7 +255,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     private _onFileOpenInprogressEvent(msg: IPCMessages.FileOpenInprogressEvent) {
-        const session: ControllerSessionTab | Error = TabsSessionsService.getSessionController(msg.session);
+        const session: Session | Error = TabsSessionsService.getSessionController(msg.session);
         if (session instanceof Error) {
             this._logger.warn(`Fail to find a session "${msg.session}"`);
             return;

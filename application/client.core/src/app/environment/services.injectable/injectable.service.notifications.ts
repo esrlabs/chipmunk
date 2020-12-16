@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 import { INotification, ENotificationType, INotificationButton as IButton } from 'chipmunk.client.toolkit';
 import { IPCMessages, Subscription } from '../services/service.electron.ipc';
 
@@ -137,7 +137,7 @@ export class NotificationsService {
     }
 
     private _validate(notification: INotification): INotification | Error {
-        const active: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        const active: Session | undefined = TabsSessionsService.getActive();
         if (notification.session !== undefined && active === undefined) {
             return new Error(`No any session.`);
         }

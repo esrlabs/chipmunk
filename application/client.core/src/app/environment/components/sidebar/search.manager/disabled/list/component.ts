@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild } from '@angular/core';
-import { DisabledRequest } from '../../../../../controller/controller.session.tab.search.disabled.request';
+import { DisabledRequest } from '../../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';

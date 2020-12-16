@@ -3,7 +3,7 @@ import { Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import { ServiceData, IResults, IChartsResults, IScaleState, EScaleType } from '../service.data';
 import { ServicePosition } from '../service.position';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
@@ -316,7 +316,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._resize(false);
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             return;
         }

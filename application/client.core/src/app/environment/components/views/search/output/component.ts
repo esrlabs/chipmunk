@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, HostListener } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
+import { Session } from '../../../../controller/session/session';
+import { ControllerSessionTabSearchOutput, IStreamState, ILoadedRange } from '../../../../controller/session/dependencies/search/dependencies/output/controller.session.tab.search.output';
 import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ViewOutputRowComponent } from '../../row/component';
@@ -9,9 +9,10 @@ import { ViewSearchControlsComponent, IButton } from './controls/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { ISelectionParser } from '../../../../services/standalone/service.selection.parsers';
 import { cleanupOutput } from '../../row/helpers';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
+import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { copyTextToClipboard } from '../../../../controller/helpers/clipboard';
 import { fullClearRowStr } from '../../../../controller/helpers/row.helpers';
+import { IRow } from '../../../../controller/session/dependencies/row/controller.row.api';
 
 import FocusOutputService from '../../../../services/service.focus.output';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
@@ -40,8 +41,8 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
 
-    @Input() public session: ControllerSessionTab | undefined;
-    @Input() public onSessionChanged: Subject<ControllerSessionTab> | undefined;
+    @Input() public session: Session | undefined;
+    @Input() public onSessionChanged: Subject<Session> | undefined;
     @Input() public injectionIntoTitleBar: Subject<IComponentDesc>;
 
     public _ng_outputAPI: IDataAPI;
@@ -109,7 +110,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             window.getSelection().removeAllRanges();
         }
         if (contextRowNumber !== -1) {
-            const row: ISearchStreamPacket | undefined = this._output.getRowByPosition(contextRowNumber);
+            const row: IRow | undefined = this._output.getRowByPosition(contextRowNumber);
             if (row !== undefined) {
                 items.push(...[
                     { /* delimiter */ },
@@ -194,7 +195,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     private _subscribeOutputEvents() {
-        this._outputSubscriptions.onBookmarkSelected = this.session.getSessionBooksmarks().getObservable().onSelected.subscribe(this._onScrollTo.bind(this, true));
+        this._outputSubscriptions.onBookmarkSelected = this.session.getBookmarks().getObservable().onSelected.subscribe(this._onScrollTo.bind(this, true));
         this._outputSubscriptions.onStateUpdated = this._output.getObservable().onStateUpdated.subscribe(this._onStateUpdated.bind(this));
         this._outputSubscriptions.onRangeLoaded = this._output.getObservable().onRangeLoaded.subscribe(this._onRangeLoaded.bind(this));
         this._outputSubscriptions.onBookmarksChanged = this._output.getObservable().onBookmarksChanged.subscribe(this._onBookmarksChanged.bind(this));
@@ -221,7 +222,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
     }
 
     private _api_getRange(range: IRange, antiLoopCounter: number = 0): IRowsPacket {
-        const rows: ISearchStreamPacket[] | Error = this._output.getRange(range);
+        const rows: IRow[] | Error = this._output.getRange(range);
         if (rows instanceof Error) {
             if (antiLoopCounter > 1000) {
                 throw rows;
@@ -259,7 +260,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         }
     }
 
-    private _onSessionChanged(session: ControllerSessionTab) {
+    private _onSessionChanged(session: Session) {
         // Get current frame (cursor)
         const storedFrame: IRange | undefined = this._frames.get(session.getGuid());
         const frameToStore: IRange = this._output.getFrame();
@@ -298,7 +299,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         });
     }
 
-    private _onBookmarksChanged(rows: ISearchStreamPacket[]) {
+    private _onBookmarksChanged(rows: IRow[]) {
         this._ng_outputAPI.onRerequest.next();
     }
 

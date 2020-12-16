@@ -1,9 +1,8 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
-import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
-import { EApplyTo } from 'chipmunk.client.toolkit';
+import { ControllerRowAPI } from '../../../../controller/session/dependencies/row/controller.row.api';
 
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 
@@ -11,6 +10,7 @@ import OutputParsersService from '../../../../services/standalone/service.output
     selector: 'app-views-output-row-standard',
     styleUrls: ['./styles.less'],
     template: '',
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class ViewOutputRowStandardComponent extends AOutputRenderComponent implements AfterContentInit, AfterContentChecked, OnDestroy {
@@ -20,8 +20,8 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public source: string | undefined;
-    @Input() public scope: ControllerSessionScope | undefined;
     @Input() public parent: EParent;
+    @Input() public api: ControllerRowAPI;
 
     private _safeHtml: SafeHtml = null;
 

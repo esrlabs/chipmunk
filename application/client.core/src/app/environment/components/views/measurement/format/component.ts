@@ -1,6 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { IFormat } from '../../../../controller/controller.session.tab.timestamps';
+import { IFormat } from '../../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 

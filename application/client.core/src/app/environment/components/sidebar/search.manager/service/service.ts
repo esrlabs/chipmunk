@@ -1,9 +1,9 @@
 import { Observable, Subject } from 'rxjs';
 import { Entity } from '../providers/entity';
-import { FilterRequest } from 'src/app/environment/controller/controller.session.tab.search.filters';
-import { ChartRequest } from 'src/app/environment/controller/controller.session.tab.search.charts.request';
-import { DisabledRequest } from 'src/app/environment/controller/controller.session.tab.search.disabled';
-import { RangeRequest } from 'src/app/environment/controller/controller.session.tab.search.ranges';
+import { FilterRequest } from 'src/app/environment/controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters';
+import { ChartRequest } from 'src/app/environment/controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
+import { DisabledRequest } from 'src/app/environment/controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled';
+import { RangeRequest } from 'src/app/environment/controller/session/dependencies/search/dependencies/timeranges/controller.session.tab.search.ranges';
 
 export type TRequest = FilterRequest | ChartRequest | DisabledRequest | RangeRequest;
 

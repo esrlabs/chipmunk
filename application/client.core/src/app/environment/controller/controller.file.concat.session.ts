@@ -1,6 +1,6 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../services/service.electron.ipc';
-import { ControllerSessionTab } from './controller.session.tab';
+import { Session } from './session/session';
 import { CommonInterfaces} from '../interfaces/interface.common';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 

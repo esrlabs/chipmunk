@@ -1,21 +1,22 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
-import { ControllerSessionTab, IInjectionAddEvent, IInjectionRemoveEvent } from '../../../controller/controller.session.tab';
-import { ControllerSessionTabMap } from '../../../controller/controller.session.tab.map';
-import { ControllerSessionTabStreamOutput, IStreamPacket, IStreamState, ILoadedRange } from '../../../controller/controller.session.tab.stream.output';
+import { Session, IInjectionAddEvent, IInjectionRemoveEvent } from '../../../controller/session/session';
+import { ControllerSessionTabMap } from '../../../controller/session/dependencies/map/controller.session.tab.map';
+import { ControllerSessionTabStreamOutput, IStreamState, ILoadedRange } from '../../../controller/session/dependencies/output/controller.session.tab.stream.output';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import { IDataAPI, IRange, IRow, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
+import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
 import { ViewOutputRowComponent, IScope } from '../row/component';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { cleanupOutput } from '../row/helpers';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { ISelectionParser } from '../../../services/standalone/service.selection.parsers';
 import { IExportAction } from '../../../services/standalone/service.output.exports';
-import { FilterRequest } from '../../../controller/controller.session.tab.search.filters.storage';
+import { FilterRequest } from '../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { IPCMessages } from '../../../interfaces/interface.ipc';
 import { CDefaultTabsGuids } from '../../../services/service.sessions.toolbar';
 import { copyTextToClipboard } from '../../../controller/helpers/clipboard';
 import { fullClearRowStr } from '../../../controller/helpers/row.helpers';
+import { IRow } from '../../../controller/session/dependencies/row/controller.row.api';
 
 import PluginsService from '../../../services/service.plugins';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
@@ -46,7 +47,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
 
     @ViewChild(ComplexScrollBoxComponent) _scrollBoxCom: ComplexScrollBoxComponent;
 
-    @Input() public session: ControllerSessionTab | undefined;
+    @Input() public session: Session | undefined;
 
     public _ng_outputAPI: IDataAPI;
     public _ng_injections: {
@@ -108,7 +109,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         // Get reference to stream wrapper
-        this._output = this.session.getSessionStream().getOutputStream();
+        this._output = this.session.getStreamOutput();
         // Get injections
         this._ng_injections.bottom = this.session.getOutputInjections(Toolkit.EViewsTypes.outputBottom);
         this._ng_injections.top = this.session.getOutputInjections(Toolkit.EViewsTypes.outputTop);
@@ -144,7 +145,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         const textSelection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
         const rowsSelection = OutputRedirectionsService.getSelectionRanges(this.session.getGuid());
         const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
-        const current: IStreamPacket | undefined = contextRowNumber !== -1 ? this._output.getRowByPosition(contextRowNumber) : undefined;
+        const current: IRow | undefined = contextRowNumber !== -1 ? this._output.getRowByPosition(contextRowNumber) : undefined;
         const items: IMenuItem[] = [
             {
                 caption: 'Copy',
@@ -438,7 +439,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _api_getRange(range: IRange, antiLoopCounter: number = 0): IRowsPacket {
-        const rows: IStreamPacket[] | Error = this._output.getRange(range);
+        const rows: IRow[] | Error = this._output.getRange(range);
         if (rows instanceof Error) {
             if (antiLoopCounter > 1000) {
                 throw rows;
