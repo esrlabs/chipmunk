@@ -1,6 +1,6 @@
 import { Subscription, Subject, Observable } from 'rxjs';
-import { IRange, EChartMode } from '../../../controller/controller.session.tab.timestamps';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { IRange, EChartMode } from '../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
+import { Session } from '../../../controller/session/session';
 import { IPCMessages } from '../../../services/service.electron.ipc';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -35,7 +35,7 @@ export class DataService {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('MeasurementDataService');
-    private _session: ControllerSessionTab | undefined;
+    private _session: Session | undefined;
     private _mode: EChartMode = EChartMode.aligned;
     private _offset: number = 1;
     private _subjects: {
@@ -536,7 +536,7 @@ export class DataService {
         }
     }
 
-    private _onSessionChange(controller?: ControllerSessionTab) {
+    private _onSessionChange(controller?: Session) {
         Object.keys(this._sessionSubscriptions).forEach((key: string) => {
             this._sessionSubscriptions[key].unsubscribe();
         });

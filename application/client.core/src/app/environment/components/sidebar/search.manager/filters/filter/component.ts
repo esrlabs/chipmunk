@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewChild, ChangeDetectionStrategy } from '@angular/core';
-import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/controller.session.tab.search.filters.request';
+import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { MatCheckbox } from '@angular/material/checkbox';

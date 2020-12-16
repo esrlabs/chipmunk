@@ -4,8 +4,8 @@ import { Observable, Subject } from 'rxjs';
 import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
 import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
-import { FilterRequest } from '../../controller/controller.session.tab.search.filters.request';
-import { ControllerSessionTab } from '../../controller/controller.session.tab';
+import { FilterRequest } from '../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
+import { Session } from '../../controller/session/session';
 import { Subscription } from 'rxjs';
 import { EKey, EParent } from '../../services/standalone/service.output.redirections';
 import { IRequest, Modifier, EApplyTo } from 'chipmunk.client.toolkit';
@@ -71,7 +71,7 @@ export class OutputParsersService {
     private _typedRowRenders: Map<string, Toolkit.ATypedRowRender<any>> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
-    private _controller: ControllerSessionTab | undefined;
+    private _controller: Session | undefined;
     private _sequence: number = 0;
     private _typedRowRendersHistory: {
         sources: string[],
@@ -395,7 +395,7 @@ export class OutputParsersService {
         return true;
     }
 
-    private _onSessionChange(controller?: ControllerSessionTab) {
+    private _onSessionChange(controller?: Session) {
         Object.keys(this._sessionSubscriptions).forEach((key: string) => {
             this._sessionSubscriptions[key].unsubscribe();
         });

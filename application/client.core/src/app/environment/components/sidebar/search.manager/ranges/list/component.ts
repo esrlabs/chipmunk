@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
-import { RangeRequest } from '../../../../../controller/controller.session.tab.search.ranges.request';
+import { RangeRequest } from '../../../../../controller/session/dependencies/search/dependencies/timeranges/controller.session.tab.search.ranges.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';

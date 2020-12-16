@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
-import { ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
+import { ICommentResponse } from '../../../../controller/session/dependencies/comments/session.dependency.comments.types';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 

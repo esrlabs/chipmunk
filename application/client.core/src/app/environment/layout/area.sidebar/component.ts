@@ -1,6 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { TabsService, TabsOptions, ETabsListDirection } from 'chipmunk-client-material';
-import { ControllerSessionTab } from '../../controller/controller.session.tab';
+import { Session } from '../../controller/session/session';
 import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
 import { LayoutSessionSidebarControlsComponent } from './controls/component';
@@ -67,11 +67,11 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
         this._cdRef.detectChanges();
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         this._setActiveTabsService(session);
     }
 
-    private _setActiveTabsService(session?: ControllerSessionTab | undefined) {
+    private _setActiveTabsService(session?: Session | undefined) {
         if (session === undefined || session === null) {
             session = TabsSessionsService.getActive();
         }

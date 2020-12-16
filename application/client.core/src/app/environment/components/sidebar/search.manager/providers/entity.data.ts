@@ -1,5 +1,5 @@
 import { Entity } from './entity';
-import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
+import { DisabledRequest } from '../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled';
 
 export class EntityData<T> {
 

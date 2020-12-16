@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, Provider } from '@angular/core';
-import { DisabledRequest } from '../../../../../controller/controller.session.tab.search.disabled.request';
+import { DisabledRequest } from '../../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';

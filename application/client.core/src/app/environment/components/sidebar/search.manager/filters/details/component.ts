@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild, ChangeDetectionStrategy } from '@angular/core';
-import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
+import { FilterRequest } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';

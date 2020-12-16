@@ -1,10 +1,10 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
-import { ChartRequest, IChartsStorageUpdated,  } from '../../../../controller/controller.session.tab.search.charts.storage';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters';
-import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
+import { ChartRequest, IChartsStorageUpdated,  } from '../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.storage';
+import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters';
+import { DisabledRequest } from '../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { SidebarAppSearchManagerChartsComponent } from './list/component';
@@ -33,7 +33,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
         });
     }
 
-    public setSessionController(session: ControllerSessionTab | undefined) {
+    public setSessionController(session: Session | undefined) {
         this.unsubscribe();
         if (session === undefined) {
             return;

@@ -1,10 +1,9 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ChangeDetectionStrategy } from '@angular/core';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
 import { Subject } from 'rxjs';
-import { ControllerSessionScope } from '../../../../controller/controller.session.tab.scope';
-import { EApplyTo } from 'chipmunk.client.toolkit';
+import { ControllerRowAPI } from '../../../../controller/session/dependencies/row/controller.row.api';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
@@ -14,6 +13,7 @@ import OutputParsersService from '../../../../services/standalone/service.output
     selector: 'app-views-output-row-external',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     // encapsulation: ViewEncapsulation.None
 })
 
@@ -25,8 +25,8 @@ export class ViewOutputRowExternalComponent extends AOutputRenderComponent imple
     @Input() public pluginId: number | undefined;
     @Input() public source: string | undefined;
     @Input() public component: IComponentDesc | undefined;
-    @Input() public scope: ControllerSessionScope | undefined;
     @Input() public parent: EParent;
+    @Input() public api: ControllerRowAPI;
 
     public _ng_component: IComponentDesc | undefined;
 

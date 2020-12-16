@@ -1,5 +1,5 @@
-import { ControllerSessionScope } from '../controller/controller.session.tab.scope';
-import { ControllerSessionTabStreamOutput } from '../controller/controller.session.tab.stream.output';
+import { ControllerSessionScope } from '../controller/session/dependencies/scope/controller.session.tab.scope';
+import { ControllerSessionTabStreamOutput } from '../controller/session/dependencies/output/controller.session.tab.stream.output';
 
 export interface IOutputRenderInputs {
     str: string;

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef, Input, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { ControllerSessionTabTimestamp, IRange, EChartMode } from '../../../../controller/controller.session.tab.timestamps';
+import { Session } from '../../../../controller/session/session';
+import { ControllerSessionTabTimestamp, IRange, EChartMode } from '../../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { scheme_color_2, getContrastColor } from '../../../../theme/colors';
 import { Chart } from 'chart.js';
@@ -55,7 +55,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
     };
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementChartComponent');
-    private _session: ControllerSessionTab | undefined;
+    private _session: Session | undefined;
     private _destroy: boolean = false;
     private _chart: {
         instance?: Chart,
@@ -426,7 +426,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         };
     }
 
-    private _onSessionChange(controller?: ControllerSessionTab) {
+    private _onSessionChange(controller?: Session) {
         if (controller === undefined) {
             return;
         }
