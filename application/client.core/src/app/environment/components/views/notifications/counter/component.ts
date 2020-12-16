@@ -2,7 +2,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 import { NotificationsService, INotification } from '../../../../services.injectable/injectable.service.notifications';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
@@ -31,7 +31,7 @@ export class SidebarAppNotificationsCounterComponent implements OnDestroy, After
     }
 
     public ngAfterContentInit() {
-        const session: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        const session: Session | undefined = TabsSessionsService.getActive();
         if (session === undefined) {
             return;
         }
@@ -61,7 +61,7 @@ export class SidebarAppNotificationsCounterComponent implements OnDestroy, After
         this._cdRef.detectChanges();
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             this._ng_session = undefined;
             this._ng_count = 0;

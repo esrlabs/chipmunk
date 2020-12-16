@@ -1,17 +1,18 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
+import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit, HostListener, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabStreamOutput } from '../../../controller/controller.session.tab.stream.output';
-import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/controller.session.tab.stream.bookmarks';
-import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from '../../../controller/controller.session.tab.timestamps';
+import { ControllerSessionTabStreamOutput } from '../../../controller/session/dependencies/output/controller.session.tab.stream.output';
+import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/session/dependencies/bookmarks/controller.session.tab.stream.bookmarks';
+import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
+import { ControllerSessionTabTimestamp } from '../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
 import { scheme_color_accent } from '../../../theme/colors';
 import { EParent } from '../../../services/standalone/service.output.redirections';
+import { IRowAPI, ControllerRowAPI } from '../../../controller/session/dependencies/row/controller.row.api';
 
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
@@ -40,6 +41,7 @@ interface ITooltip {
     selector: 'app-views-output-row',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     // encapsulation: ViewEncapsulation.None
 })
 
@@ -53,12 +55,9 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public position: number | undefined;
     @Input() public positionInStream: number | undefined;
     @Input() public pluginId: number | undefined;
-    @Input() public controller: ControllerSessionTabStreamOutput | undefined;
-    @Input() public bookmarks: ControllerSessionTabStreamBookmarks | undefined;
-    @Input() public scope: ControllerSessionScope | undefined;
-    @Input() public timestamp: ControllerSessionTabTimestamp | undefined;
     @Input() public rank: number = 1;
     @Input() public parent: EParent;
+    @Input() public api: ControllerRowAPI;
 
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
@@ -77,6 +76,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger(`RowWrapper`);
     private _hovered: number = -1;
+    private _guid: string = Toolkit.guid();
 
     @HostListener('mouseover', ['$event', '$event.target']) onMouseIn(event: MouseEvent, target: HTMLElement) {
         if (target === undefined || target === null) {
@@ -126,13 +126,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
-        this._onRankChanged = this._onRankChanged.bind(this);
-        this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onUpdatedSearch.bind(this));
-        this._subscriptions.onRepain = OutputParsersService.getObservable().onRepain.subscribe(this._onRepain.bind(this));
-        this._subscriptions.onRowHover = ViewsEventsService.getObservable().onRowHover.subscribe(this._onRowHover.bind(this));
     }
 
     public ngOnDestroy() {
+        this.api.unregister(this._guid);
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -140,7 +137,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public ngAfterContentInit() {
-        if (this.controller === undefined) {
+        if (this.api === undefined) {
             return;
         }
         if (this._subscriptions.onRankChanged !== undefined) {
@@ -166,18 +163,13 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             this._ng_sourceName = sourceName;
         }
         this._sourceMeta = SourcesService.getSourceMeta(this.pluginId);
-        this._subscriptions.onRankChanged = this.controller.getObservable().onRankChanged.subscribe(this._onRankChanged);
-        this._subscriptions.onAddedBookmark = this.bookmarks.getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
-        this._subscriptions.onRemovedBookmark = this.bookmarks.getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
-        this._subscriptions.onSizeRequested = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth).onSizeRequested.asObservable().subscribe(this._onSizeRequested.bind(this));
-        this._subscriptions.onRowWasSelected = OutputRedirectionsService.subscribe(this.sessionId, this._onRowWasSelected.bind(this));
     }
 
     public ngAfterContentChecked() {
         if (this._getPosition().toString() === this._ng_number) {
             return;
         }
-        this._ng_bookmarked = this.bookmarks.isBookmarked(this._getPosition());
+        this._ng_bookmarked = this.api.getBookmarks().isBookmarked(this._getPosition());
         if (this.str === undefined) {
             this._pending();
         } else {
@@ -186,6 +178,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public ngAfterViewInit() {
+        this.api.register(this._guid, this._api());
         this._checkNumberNodeWidth();
     }
 
@@ -201,7 +194,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this._ng_isSelected()) {
             css += ' selected ';
         }
-        if (this.timestamp.getCount() > 0) {
+        if (this.api.getTimestamp().getCount() > 0) {
             css += ' timeranges ';
         }
         return css;
@@ -236,14 +229,14 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public _ng_onNumberClick() {
-        if (this.bookmarks === undefined) {
+        if (this.api === undefined) {
             return;
         }
-        if (this.bookmarks.isBookmarked(this._getPosition())) {
-            this.bookmarks.remove(this._getPosition());
+        if (this.api.getBookmarks().isBookmarked(this._getPosition())) {
+            this.api.getBookmarks().remove(this._getPosition());
             this._ng_bookmarked = false;
         } else {
-            this.bookmarks.add({
+            this.api.getBookmarks().add({
                 str: this.str,
                 position: this._getPosition(),
                 pluginId: this.pluginId,
@@ -255,25 +248,25 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public _ng_isSelected(): boolean {
-        if (this.controller === undefined) {
+        if (this.api.getStreamOutput() === undefined) {
             return false;
         }
         return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition());
     }
 
     public _ng_getRangeCssClass(): string {
-        const type = this.timestamp.getStatePositionInRange(this._getPosition());
-        return type === undefined ? (this.timestamp.getOpenRow() !== undefined ? 'opening' : '') : type;
+        const type = this.api.getTimestamp().getStatePositionInRange(this._getPosition());
+        return type === undefined ? (this.api.getTimestamp().getOpenRow() !== undefined ? 'opening' : '') : type;
     }
 
     public _ng_getRangeStyle(): { [key: string]: string } {
-        const type = this.timestamp.getStatePositionInRange(this._getPosition());
+        const type = this.api.getTimestamp().getStatePositionInRange(this._getPosition());
         if (type === 'open') {
             return {};
         }
-        const row = this.timestamp.getOpenRow();
+        const row = this.api.getTimestamp().getOpenRow();
         const position: number = this._getPosition();
-        const color: string | undefined = this.timestamp.getRangeColorFor(position);
+        const color: string | undefined = this.api.getTimestamp().getRangeColorFor(position);
         if (row === undefined) {
             return {
                 borderColor: color,
@@ -294,7 +287,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public _ng_getRangeColor(): string | undefined {
-        return this.timestamp.getRangeColorFor(this._getPosition());
+        return this.api.getTimestamp().getRangeColorFor(this._getPosition());
     }
 
     public _ng_getTooltipStyle() {
@@ -305,7 +298,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public _ng_isRangeVisible(): boolean {
-        if (this.timestamp.getOpenRow() !== undefined) {
+        if (this.api.getTimestamp().getOpenRow() !== undefined) {
             return true;
         }
         if (this._ng_getRangeColor() !== undefined) {
@@ -314,8 +307,61 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         return false;
     }
 
-    private _onRowWasSelected(sender: string, selection: number[], clicked: number) {
-        this._forceUpdate();
+    private _api(): IRowAPI {
+        const self = this;
+        return {
+            repain(): void {
+                if (self.str === undefined) {
+                    return;
+                }
+                self._render();
+                self._forceUpdate();
+            },
+            refresh(): void {
+                self._forceUpdate();
+            },
+            setBookmark(bookmark: IBookmark): void {
+                const prev: boolean = self._ng_bookmarked;
+                self._ng_bookmarked = self._getPosition() === bookmark.position ? true : self._ng_bookmarked;
+                if (prev !== self._ng_bookmarked) {
+                    self._forceUpdate();
+                }
+            },
+            removeBookmark(index: number): void {
+                const prev: boolean = self._ng_bookmarked;
+                self._ng_bookmarked = self._getPosition() === index ? false : self._ng_bookmarked;
+                if (prev !== self._ng_bookmarked) {
+                    self._forceUpdate();
+                }
+            },
+            setHoverPosition(position: number): void {
+                self._hovered = position;
+                if (self._ng_tooltip === undefined && self.api.getTimestamp().getOpenRow() === undefined) {
+                    return;
+                }
+                self._ng_tooltip = undefined;
+                self._forceUpdate();
+            },
+            resize(scope: ControllerSessionScope): void {
+                const info: IRowNumberWidthData | undefined = scope.get(ControllerSessionScope.Keys.CRowNumberWidth);
+                if (info === undefined) {
+                    return;
+                }
+                if (info.checked) {
+                    return;
+                }
+                scope.set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
+                    checked: true,
+                }, false);
+                self._checkNumberNodeWidth(true);
+            },
+            setRank(rank: number): void {
+                self.rank = rank;
+                self._ng_number_filler = self._getNumberFiller();
+                self._forceUpdate();
+                self._checkNumberNodeWidth();
+            }
+        };
     }
 
     private _getPosition(): number | undefined {
@@ -323,22 +369,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             return this.position;
         } else if (this.parent === EParent.search) {
             return this.positionInStream;
-        }
-    }
-
-    private _onAddedBookmark(bookmark: IBookmark) {
-        const prev: boolean = this._ng_bookmarked;
-        this._ng_bookmarked = this._getPosition() === bookmark.position ? true : this._ng_bookmarked;
-        if (prev !== this._ng_bookmarked) {
-            this._forceUpdate();
-        }
-    }
-
-    private _onRemovedBookmark(index: number) {
-        const prev: boolean = this._ng_bookmarked;
-        this._ng_bookmarked = this._getPosition() === index ? false : this._ng_bookmarked;
-        if (prev !== this._ng_bookmarked) {
-            this._forceUpdate();
         }
     }
 
@@ -389,38 +419,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         return '0'.repeat(rank < 0 ? 0 : rank);
     }
 
-    private _onUpdatedSearch() {
-        if (this.str === undefined) {
-            return;
-        }
-        this._render();
-        this._forceUpdate();
-    }
-
-    private _onRepain() {
-        if (this.str === undefined) {
-            return;
-        }
-        this._render();
-        this._forceUpdate();
-    }
-
-    private _onRowHover(position: number) {
-        this._hovered = position;
-        if (this._ng_tooltip === undefined && this.timestamp.getOpenRow() === undefined) {
-            return;
-        }
-        this._ng_tooltip = undefined;
-        this._forceUpdate();
-    }
-
-    private _onRankChanged(rank: number) {
-        this.rank = rank;
-        this._ng_number_filler = this._getNumberFiller();
-        this._forceUpdate();
-        this._checkNumberNodeWidth();
-    }
-
     private _updateRenderComp() {
         if (this.rendercomp === undefined || this.rendercomp === null) {
             return;
@@ -430,33 +428,19 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             sessionId: this.sessionId,
             pluginId: this.pluginId,
             position: this._getPosition(),
-            scope: this.scope,
-            output: this.controller,
+            scope: this.api.getScope(),
+            output: this.api.getStreamOutput(),
         });
-    }
-
-    private _onSizeRequested() {
-        const info: IRowNumberWidthData | undefined = this.scope.get(ControllerSessionScope.Keys.CRowNumberWidth);
-        if (info === undefined) {
-            return;
-        }
-        if (info.checked) {
-            return;
-        }
-        this.scope.set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
-            checked: true,
-        }, false);
-        this._checkNumberNodeWidth(true);
     }
 
     private _checkNumberNodeWidth(force: boolean = false) {
         if (this.numbernode === undefined) {
             return;
         }
-        if (this.scope === undefined) {
+        if (this.api.getScope() === undefined) {
             return;
         }
-        const info: IRowNumberWidthData | undefined = this.scope.get(ControllerSessionScope.Keys.CRowNumberWidth);
+        const info: IRowNumberWidthData | undefined = this.api.getScope().get(ControllerSessionScope.Keys.CRowNumberWidth);
         if (info === undefined) {
             return;
         }
@@ -467,7 +451,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (size.width === 0 || info.width === size.width) {
             return;
         }
-        this.scope.set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
+        this.api.getScope().set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
             rank: this.rank,
             width: size.width,
         }, false);

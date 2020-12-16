@@ -1,6 +1,6 @@
 import { Observable, Subscription, Subject } from 'rxjs';
-import { ControllerSessionScope } from '../../../controller/controller.session.tab.scope';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { ControllerSessionScope } from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
+import { Session } from '../../../controller/session/session';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -26,7 +26,7 @@ export class ServicePosition {
 
     private _position: IPositionChange | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _sessionController: ControllerSessionTab | undefined;
+    private _sessionController: Session | undefined;
     private _subjects: {
         onChange: Subject<IPositionChange>,
         onForce: Subject<IPositionForce>,
@@ -71,7 +71,7 @@ export class ServicePosition {
         };
     }
 
-    private _init(controller?: ControllerSessionTab) {
+    private _init(controller?: Session) {
         const init: boolean = controller === undefined;
         controller = controller === undefined ? TabsSessionsService.getActive() : controller;
         if (controller === undefined) {
@@ -112,7 +112,7 @@ export class ServicePosition {
         scope.set<IPositionChange>(CSettings.serviceScopeKey, Object.assign({}, this._position));
     }
 
-    private _onSessionChange(controller: ControllerSessionTab) {
+    private _onSessionChange(controller: Session) {
         if (controller === undefined) {
             return;
         }

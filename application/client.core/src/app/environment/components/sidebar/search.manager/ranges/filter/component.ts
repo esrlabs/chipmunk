@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, OnChanges, ChangeDetectionStrategy } from '@angular/core';
-import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/controller.session.tab.search.filters.request';
+import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { Subscription } from 'rxjs';
 import { Entity } from '../../providers/entity';
 

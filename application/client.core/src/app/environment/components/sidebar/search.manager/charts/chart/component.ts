@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewChild, ChangeDetectionStrategy } from '@angular/core';
-import { ChartRequest, IChartUpdateEvent } from '../../../../../controller/controller.session.tab.search.charts.request';
+import { ChartRequest, IChartUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';

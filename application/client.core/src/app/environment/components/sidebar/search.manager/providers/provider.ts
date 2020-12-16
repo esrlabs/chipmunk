@@ -2,7 +2,7 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Entity } from './entity';
 import { TRequest, EListID } from '../service/service';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
@@ -73,7 +73,7 @@ export abstract class Provider<T> {
         context: new Subject(),
         doubleclick: new Subject(),
     };
-    private _session: ControllerSessionTab | undefined;
+    private _session: Session | undefined;
     private _selection: {
         current: string[],
         last: { provider: Provider<any>, entity: Entity<any> } | undefined,
@@ -352,7 +352,7 @@ export abstract class Provider<T> {
         this._subjects.change.next();
     }
 
-    public getSession(): ControllerSessionTab | undefined {
+    public getSession(): Session | undefined {
         return this._session;
     }
 
@@ -393,7 +393,7 @@ export abstract class Provider<T> {
      * Should called in inherit class in constructor
      * @param session
      */
-    public abstract setSessionController(session: ControllerSessionTab | undefined);
+    public abstract setSessionController(session: Session | undefined);
 
     /**
      * Should return undefined to hide panel in case of empty list
@@ -409,7 +409,7 @@ export abstract class Provider<T> {
         edit?: () => void,
     };
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         this._session = session;
         this.setSessionController(session);
         this._subjects.change.next();

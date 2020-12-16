@@ -1,15 +1,15 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
-import { DisabledRequest, IUpdateEvent } from '../../../../controller/controller.session.tab.search.disabled.storage';
+import { DisabledRequest, IUpdateEvent } from '../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerDisabledsComponent } from './list/component';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import { IDisabledEntitySupport } from 'src/app/environment/controller/controller.session.tab.search.disabled.support';
+import { IDisabledEntitySupport } from 'src/app/environment/controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled.support';
 import { Logger } from 'chipmunk.client.toolkit';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.request';
-import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
+import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
+import { ChartRequest } from '../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TRequest, EListID } from '../service/service';
 import { EntityData } from '../providers/entity.data';
@@ -32,7 +32,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         });
     }
 
-    public setSessionController(session: ControllerSessionTab | undefined) {
+    public setSessionController(session: Session | undefined) {
         this.unsubscribe();
         if (session === undefined) {
             return;

@@ -1,12 +1,11 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, HostListener, AfterContentInit } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerColumns, IColumn } from '../controller.columns';
-import { ControllerSessionScope, IRowNumberWidthData } from '../../../../../controller/controller.session.tab.scope';
-import { ControllerSessionTabStreamOutput } from '../../../../../controller/controller.session.tab.stream.output';
-import { ViewOutputRowColumnsHeadersMenuComponent } from './menu/component';
-import { ControllerSessionTabTimestamp } from '../../../../../controller/controller.session.tab.timestamps';
-
+import { ControllerSessionScope, IRowNumberWidthData } from '../../../../../controller/session/dependencies/scope/controller.session.tab.scope';
+import { ControllerSessionTabStreamOutput } from '../../../../../controller/session/dependencies/output/controller.session.tab.stream.output';
 import ContextMenuService from '../../../../../services/standalone/service.contextmenu';
+import { ViewOutputRowColumnsHeadersMenuComponent } from './menu/component';
+import { ControllerRowAPI } from '../../../../../controller/session/dependencies/row/controller.row.api';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 
@@ -19,9 +18,7 @@ export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDestroy, AfterContentInit {
 
     @Input() public controller: ControllerColumns;
-    @Input() public scope: ControllerSessionScope | undefined;
-    @Input() public output: ControllerSessionTabStreamOutput | undefined;
-    @Input() public timestamp: ControllerSessionTabTimestamp | undefined;
+    @Input() public api: ControllerRowAPI;
 
     public _ng_offset: number = 0;
     public _ng_horScrollOffset: number = 0;
@@ -56,14 +53,14 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        this.scope.set(CColumnsHeadersKey, false);
+        this.api.getScope().set(CColumnsHeadersKey, false);
     }
 
     public ngAfterViewInit() {
         if (this.controller === undefined) {
             return;
         }
-        this._subscriptions.onHorScrollOffset = this.output.getObservable().onHorScrollOffset.subscribe(this._onHorScrollOffset.bind(this));
+        this._subscriptions.onHorScrollOffset = this.api.getStreamOutput().getObservable().onHorScrollOffset.subscribe(this._onHorScrollOffset.bind(this));
         this._subscriptions.onResized = this.controller.getObservable().onResized.subscribe(this._onResized.bind(this));
         this._subscriptions.onUpdated = this.controller.getObservable().onUpdated.subscribe(this._onUpdated.bind(this));
         this._columns = this.controller.getColumns();
@@ -110,7 +107,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     }
 
     public _ng_getRangeCssClass(): string {
-        return this.timestamp.getCount() > 0 ? 'range' : 'no_range';
+        return this.api.getTimestamp().getCount() > 0 ? 'range' : 'no_range';
     }
 
     private _createContextMenu(event: MouseEvent) {
@@ -201,10 +198,10 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     }
 
     private _getOffset() {
-        if (this.scope === undefined) {
+        if (this.api === undefined) {
             return;
         }
-        const info: IRowNumberWidthData | undefined = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth);
+        const info: IRowNumberWidthData | undefined = this.api.getScope().get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth);
         if (info === undefined) {
             return;
         }
@@ -220,7 +217,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
 
     private _requestOffset() {
         setTimeout(() => {
-            const info: IRowNumberWidthData | undefined = this.scope.get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth);
+            const info: IRowNumberWidthData | undefined = this.api.getScope().get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth);
             if (info === undefined) {
                 return;
             }

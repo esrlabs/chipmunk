@@ -5,7 +5,7 @@ declare var Electron: any;
 import { Component, OnDestroy, Input,  ChangeDetectorRef, HostListener, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
 import { ControllerFileMergeSession, IMergeFile, EViewMode } from '../../../controller/controller.file.merge.session';
@@ -168,7 +168,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         this._ng_controller.add(files.map((file: IPCMessages.IFile) => file.path));
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             this._ng_controller = undefined;
         } else {

@@ -1,6 +1,6 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewEncapsulation, OnChanges, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/controller.session.tab.timestamps';
+import { ControllerSessionTabTimestamp, IFormat } from '../../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { DialogsMeasurementAddFormatComponent } from '../../../dialogs/measurement.format.add/component';
 import { DialogsMeasurementFormatDefaultsComponent } from '../../../dialogs/measurement.format.defaults/component';
 

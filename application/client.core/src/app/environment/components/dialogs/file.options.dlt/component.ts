@@ -8,8 +8,8 @@ import { Subject, Observable, Subscription } from 'rxjs';
 import { DialogsFileOptionsDltStatsComponent, IStatRow, IForceSortData } from './stats/component';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
 import FocusOutputService from '../../../services/service.focus.output';
+import { Session } from '../../../controller/session/session';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -270,8 +270,8 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     private _initAsNewOpen() {
-        const controller: ControllerSessionTab = TabsSessionsService.getEmpty();
-        if (!(controller instanceof ControllerSessionTab)) {
+        const controller: Session = TabsSessionsService.getEmpty();
+        if (!(controller instanceof Session)) {
             return;
         }
         const session: string = controller.getGuid();

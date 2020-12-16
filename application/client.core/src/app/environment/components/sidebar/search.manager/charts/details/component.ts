@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, EventEmitter, ViewChild, ViewEncapsulation } from '@angular/core';
-import { ChartRequest } from '../../../../../controller/controller.session.tab.search.charts.request';
+import { ChartRequest } from '../../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import ChartControllers, { AChart, IOption, EOptionType, EChartType } from '../../../../views/chart/charts/charts';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { MatSlider, MatSliderChange } from '@angular/material/slider';

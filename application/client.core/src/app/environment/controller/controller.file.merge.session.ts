@@ -1,6 +1,6 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../services/service.electron.ipc';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from './session/session';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 
 import SessionsService from '../services/service.sessions.tabs';
@@ -345,7 +345,7 @@ export class ControllerFileMergeSession {
     private _getFileContent(file: string, length: number = 25000): CancelablePromise<IPCMessages.FileReadResponse> {
         const id: string = Toolkit.guid();
         const task: CancelablePromise<IPCMessages.FileReadResponse> = new CancelablePromise<IPCMessages.FileReadResponse>((resolve, reject) => {
-            const session: ControllerSessionTab | undefined = SessionsService.getActive();
+            const session: Session | undefined = SessionsService.getActive();
             if (session === undefined) {
                 return reject(new Error(`No active session found`));
             }

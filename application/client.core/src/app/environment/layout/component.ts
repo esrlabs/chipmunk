@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { AreaState } from './state';
 import { Subscription} from 'rxjs';
-import { ControllerSessionTab } from '../controller/controller.session.tab';
+import { Session } from '../controller/session/session';
 
 import ViewsEventsService from '../services/standalone/service.views.events';
 import LayoutStateService from '../services/standalone/service.layout.state';
@@ -54,7 +54,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     };
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _session: ControllerSessionTab;
+    private _session: Session;
     private _movement: {
         x: number,
         y: number,
@@ -300,7 +300,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         }
     }
 
-    private _onSessionChange(controller?: ControllerSessionTab) {
+    private _onSessionChange(controller?: Session) {
         this._session = controller;
         this._cdRef.detectChanges();
     }
