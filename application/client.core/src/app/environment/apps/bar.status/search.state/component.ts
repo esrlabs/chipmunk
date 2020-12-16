@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -37,7 +37,7 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
         this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-        const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        const controller: Session | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             return;
         }
@@ -80,7 +80,7 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
         }
     }
 
-    private _onSessionChange(controller: ControllerSessionTab | undefined) {
+    private _onSessionChange(controller: Session | undefined) {
         if (controller === undefined) {
             return;
         }
@@ -93,7 +93,7 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
         if (this._activeSession !== sessionId) {
             return;
         }
-        const controller: ControllerSessionTab | undefined = TabsSessionsService.getActive();
+        const controller: Session | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             this._activeSession = undefined;
         } else {

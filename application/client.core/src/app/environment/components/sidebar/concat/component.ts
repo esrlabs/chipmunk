@@ -2,7 +2,7 @@ import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, After
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
 import { MatSort } from '@angular/material/sort';
@@ -336,7 +336,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         this._ng_files.sort = this._ng_sortDirRef;
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             this._controller = undefined;
         } else {

@@ -1,9 +1,9 @@
 import { Component, AfterContentInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabSearchStore } from '../../../../controller/controller.session.tab.search.store';
+import { ControllerSessionTabSearchStore } from '../../../../controller/session/dependencies/search/dependencies/store/controller.session.tab.search.store';
 import { DialogsRecentFitlersActionComponent } from '../../../dialogs/recentfilter/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -103,7 +103,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         return this._controller.getCurrentFile() === '' ? 'Save' : 'Save As';
     }
 
-    private _onSessionChange(controller?: ControllerSessionTab) {
+    private _onSessionChange(controller?: Session) {
         if (controller === undefined) {
             controller = TabsSessionsService.getActive();
         }

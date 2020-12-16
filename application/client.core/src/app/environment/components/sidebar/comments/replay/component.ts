@@ -2,7 +2,7 @@
 
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterViewInit, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ICommentResponse } from '../../../../controller/controller.session.tab.stream.comments.types';
+import { ICommentResponse } from '../../../../controller/session/dependencies/comments/session.dependency.comments.types';
 import { getDateTimeStr } from '../../../../controller/helpers/dates';
 
 import * as Toolkit from 'chipmunk.client.toolkit';

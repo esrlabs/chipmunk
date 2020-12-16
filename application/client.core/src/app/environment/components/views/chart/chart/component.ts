@@ -4,8 +4,8 @@ import { Chart } from 'chart.js';
 import { ServiceData, IRange, IResults, IChartsResults, EScaleType, IScaleState } from '../service.data';
 import { ServicePosition, IPositionChange } from '../service.position';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { ChartRequest } from '../../../../controller/controller.session.tab.search.charts.request';
+import { Session } from '../../../../controller/session/session';
+import { ChartRequest } from '../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
@@ -495,7 +495,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         this._resize();
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         if (session === undefined) {
             return;
         }
@@ -511,7 +511,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         this._build();
     }
 
-    private _subscribeSessionEvents(session: ControllerSessionTab | undefined) {
+    private _subscribeSessionEvents(session: Session | undefined) {
         this._unsubscribeSessionEvents();
         session = session === undefined ? TabsSessionsService.getActive() : session;
         if (session === undefined) {

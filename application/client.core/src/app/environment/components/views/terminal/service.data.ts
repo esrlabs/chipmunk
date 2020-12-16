@@ -1,6 +1,6 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { IPCMessages } from '../../../services/service.electron.ipc';
 
@@ -174,7 +174,7 @@ export class ServiceData {
         });
     }
 
-    private _switch(controller?: ControllerSessionTab) {
+    private _switch(controller?: Session) {
         controller = controller === undefined ? TabsSessionsService.getActive() : controller;
         if (controller === undefined) {
             return;
@@ -227,7 +227,7 @@ export class ServiceData {
         return;
     }
 
-    private _onSessionChange(controller: ControllerSessionTab) {
+    private _onSessionChange(controller: Session) {
         if (controller === undefined) {
             return;
         }

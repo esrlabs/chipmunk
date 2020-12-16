@@ -1,11 +1,11 @@
 import { Entity } from '../providers/entity';
 import { Provider } from '../providers/provider';
-import { FilterRequest } from '../../../../controller/controller.session.tab.search.filters.storage';
-import { RangeRequest } from '../../../../controller/controller.session.tab.search.ranges.request';
-import { DisabledRequest } from '../../../../controller/controller.session.tab.search.disabled';
-import { IRangesStorageUpdated } from '../../../../controller/controller.session.tab.search.ranges.storage';
+import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
+import { RangeRequest } from '../../../../controller/session/dependencies/search/dependencies/timeranges/controller.session.tab.search.ranges.request';
+import { DisabledRequest } from '../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled';
+import { IRangesStorageUpdated } from '../../../../controller/session/dependencies/search/dependencies/timeranges/controller.session.tab.search.ranges.storage';
 import { IComponentDesc } from 'chipmunk-client-material';
-import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
+import { Session } from '../../../../controller/session/session';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerTimeRangesComponent } from './list/component';
 import { SidebarAppSearchManagerTimerangeDetailsComponent } from './details/component';
@@ -34,7 +34,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
         });
     }
 
-    public setSessionController(session: ControllerSessionTab | undefined) {
+    public setSessionController(session: Session | undefined) {
         this.unsubscribe();
         if (session === undefined) {
             return;

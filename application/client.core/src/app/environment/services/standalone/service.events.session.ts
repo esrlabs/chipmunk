@@ -1,5 +1,5 @@
 import { Subscription, Observable, Subject} from 'rxjs';
-import { ControllerSessionTab } from '../../controller/controller.session.tab';
+import { Session } from '../../controller/session/session';
 import { IComponentDesc } from 'chipmunk.client.toolkit';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -9,11 +9,11 @@ export class EventsSessionService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('EventsSessionService');
     private _subscriptions: { [key: string]: Subscription } = { };
     private _subjects: {
-        onSessionChange: Subject<ControllerSessionTab | undefined>;
+        onSessionChange: Subject<Session | undefined>;
         onSessionClosed: Subject<string>;
         onSidebarTitleInjection: Subject<IComponentDesc | undefined>;
     } = {
-        onSessionChange: new Subject<ControllerSessionTab | undefined>(),
+        onSessionChange: new Subject<Session | undefined>(),
         onSessionClosed: new Subject<string>(),
         onSidebarTitleInjection: new Subject<IComponentDesc | undefined>(),
     };
@@ -25,7 +25,7 @@ export class EventsSessionService {
     }
 
     public getObservable(): {
-        onSessionChange: Observable<ControllerSessionTab | undefined>,
+        onSessionChange: Observable<Session | undefined>,
         onSessionClosed: Observable<string>,
         onSidebarTitleInjection: Observable<IComponentDesc | undefined>,
     } {
@@ -37,7 +37,7 @@ export class EventsSessionService {
     }
 
     public getSubject(): {
-        onSessionChange: Subject<ControllerSessionTab | undefined>;
+        onSessionChange: Subject<Session | undefined>;
         onSessionClosed: Subject<string>;
         onSidebarTitleInjection: Subject<IComponentDesc | undefined>;
     } {

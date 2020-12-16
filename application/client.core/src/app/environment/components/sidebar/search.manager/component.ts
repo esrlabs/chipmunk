@@ -1,6 +1,6 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, HostListener, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTab } from '../../../controller/controller.session.tab';
+import { Session } from '../../../controller/session/session';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { Providers } from './providers/holder';
@@ -30,7 +30,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     public _ng_selected: Provider<any> | undefined;
 
     private _providers: Providers = new Providers();
-    private _session: ControllerSessionTab | undefined;
+    private _session: Session | undefined;
     private _focused: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _subs: { [key: string]: Subscription } = {};
@@ -145,7 +145,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._self.nativeElement.focus();
     }
 
-    private _onSessionChange(session: ControllerSessionTab | undefined) {
+    private _onSessionChange(session: Session | undefined) {
         Object.keys(this._subs).forEach((prop: string) => {
             this._subs[prop].unsubscribe();
         });

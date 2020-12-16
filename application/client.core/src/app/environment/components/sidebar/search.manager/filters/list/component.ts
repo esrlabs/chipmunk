@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
-import { FilterRequest } from '../../../../../controller/controller.session.tab.search.filters.request';
+import { FilterRequest } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
