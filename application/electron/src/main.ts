@@ -49,6 +49,15 @@ import ServiceCLI from './services/service.cli';
 import ServiceTimestampFormatRecent from './services/features/service.timestamp.recent';
 import ServiceImporter from './services/service.importer';
 
+import { IService } from './interfaces/interface.service';
+
+type THook = () => Promise<void>;
+
+interface IHook {
+    name: string;
+    fn: THook;
+}
+
 enum EAppState {
     initing = 'initing',
     working = 'working',
@@ -145,6 +154,22 @@ class Application implements IApplication {
                     });
                     return reject(error);
                 }
+                // All done
+                const hooks: IHook[] = [];
+                InitializeStages.forEach((services: IService[]) => {
+                    services.forEach((service: IService) => {
+                        if (typeof service.afterAppInit === 'function') {
+                            hooks.push({ name: service.getName(), fn: service.afterAppInit});
+                        }
+                    });
+                });
+                Promise.all(hooks.map((info: IHook) => {
+                    return info.fn.bind(this);
+                })).then(() => {
+                    resolve(this);
+                }).catch((err: Error) => {
+                    this._logger.error(`Services failed to be initialized on afterAppInit due to error: ${err.message}`);
+                });
                 resolve(this);
             });
         });

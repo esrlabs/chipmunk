@@ -171,11 +171,6 @@ class ServiceEnv implements IService {
      * @returns Promise<void>
      */
     public init(): Promise<void> {
-        ServiceElectron.IPC.subscribe(IPCMessages.OSInfoRequest, this._ipc_onSearchOSRequest.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.SearchOSRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to "SearchOSRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
         return new Promise((resolve, reject) => {
             const list = [
                 EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
@@ -225,6 +220,14 @@ class ServiceEnv implements IService {
 
     public getName(): string {
         return 'ServiceEnv';
+    }
+
+    public afterAppInit(): Promise<void> {
+        return ServiceElectron.IPC.subscribe(IPCMessages.OSInfoRequest, this._ipc_onSearchOSRequest.bind(this)).then((subscription: Subscription) => {
+            this._subscriptions.SearchOSRequest = subscription;
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to subscribe to "SearchOSRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+        });
     }
 
     public get(): IChipmunkEnvVars {

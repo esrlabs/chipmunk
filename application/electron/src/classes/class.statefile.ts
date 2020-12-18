@@ -106,16 +106,7 @@ export class StateFile<TState> implements IService {
                         }).catch(reject);
                     }
                 }
-                const valid: Error | void = this._validate(state);
-                if (valid instanceof Error && !this._allowResetToDefault) {
-                    return reject(new Error(this._logger.error(`Wrong format of state file "${this._file}": ${valid.message}`)));
-                } else if (valid instanceof Error) {
-                    this._logger.error(`Wrong format of state file "${this._file}": ${valid.message}.\n File will be reset to defualts values.`);
-                    return this._default(true).then(() => {
-                        resolve(this._defaults);
-                    }).catch(reject);
-                }
-                resolve(state);
+                resolve(this._validate(state));
             }).catch((error: Error) => {
                 this._logger.error(`Fail to read state at "${this._file}" due error: ${error.message}`);
             });
@@ -124,7 +115,10 @@ export class StateFile<TState> implements IService {
 
     private _write(): Promise<void> {
         return new Promise((resolve, reject) => {
-            FS.writeTextFile(this._file, JSON.stringify(this._state), true).then(() => {
+            if (this._state === null) {
+                return resolve();
+            }
+            FS.writeTextFile(this._file, JSON.stringify(this._validate(this._state)), true).then(() => {
                 resolve();
             }).catch((error: Error) => {
                 this._logger.error(`Fail to write state to "${this._file}" due error: ${error.message}`);
@@ -133,14 +127,23 @@ export class StateFile<TState> implements IService {
         });
     }
 
-    private _validate(state: TState): void | Error {
-        const errors: Error[] = Objects.isSimular(state, this._defaults);
-        if (errors.length > 0) {
-            return new Error(`Settings format errors: ${errors.map((error: Error) => {
-                return error.message;
-            }).join('; ')}`);
-        }
-        return void 0;
+    private _validate(state: TState): TState {
+        // Checking by pattern
+        Object.keys(this._defaults).forEach((prop: string) => {
+            if (typeof (this._defaults as any)[prop] !== typeof (state as any)[prop]) {
+                // Dismatch
+                if ((state as any)[prop] === undefined) {
+                    // We have new field, which wasn't saved yet in file
+                    (state as any)[prop] = (this._defaults as any)[prop];
+                } else if ((this._defaults as any)[prop] !== undefined) {
+                    // We have dismatch of format -> reset problematic field only
+                    (state as any)[prop] = (this._defaults as any)[prop];
+                } else if ((this._defaults as any)[prop] === undefined) {
+                    this._logger.warn(`Field "${prop}" is undefined as default. This is not okay.`);
+                }
+            }
+        });
+        return state;
     }
 
     /**
