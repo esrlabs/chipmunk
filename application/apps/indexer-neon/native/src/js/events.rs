@@ -1,8 +1,4 @@
 use crossbeam_channel as cc;
-use indexer_base::{
-    progress::{IndexingProgress, IndexingResults},
-    utils,
-};
 use thiserror::Error;
 
 #[derive(strum_macros::ToString, Debug)]
@@ -16,6 +12,10 @@ pub enum CallbackEvent {
 pub enum ComputationError {
     #[error("Native communication error ({0})")]
     Communication(String),
+    #[error("Operation not supported ({0})")]
+    OperationNotSupported(String),
+    #[error("IO error ({0})")]
+    IoOperation(#[from] std::io::Error),
 }
 
 pub type Channel<T> = (cc::Sender<T>, cc::Receiver<T>);

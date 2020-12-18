@@ -1,15 +1,21 @@
 use crate::js::events::{CallbackEvent, Channel, ComputationError, ShutdownReceiver};
-use crate::js::grabber_session::GrabberAction;
+use crate::js::grabber_action::GrabberAction;
+use crate::js::search::SearchAction;
 use crate::mock::MockWork;
 use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, IndexingResults};
 use neon::{handle::Handle, prelude::*};
 use processor::grabber::Grabber;
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub trait OperationAction {
-    fn prepare_async(
+    /// possibly longruning blocking action
+    /// might report about progress using the result_sender channel
+    /// when this function returns, the action has completed
+    fn prepare(
         &self,
         result_sender: cc::Sender<IndexingResults<()>>,
         shutdown_rx: Option<ShutdownReceiver>,
@@ -23,6 +29,7 @@ pub trait OperationAction {
 pub struct Session {
     pub id: String,
     pub live_operations: Vec<Operation>,
+    pub log_file_path: PathBuf,
 }
 
 impl Session {
@@ -132,20 +139,38 @@ impl Operation {
 
 pub fn look_up_work(
     id: &str,
+    session_path: &Path,
     data1: &str,
-    _data2: &str,
 ) -> Option<Arc<Mutex<dyn OperationAction + Sync + Send>>> {
     match id {
         "MOCK" => Some(Arc::new(Mutex::new(MockWork::new()))),
+        "SEARCH" => {
+            let shutdown_channel = cc::unbounded();
+            let chunk_result_channel: (
+                cc::Sender<IndexingResults<()>>,
+                cc::Receiver<IndexingResults<()>>,
+            ) = cc::unbounded();
+            match SearchAction::new(
+                session_path,
+                data1, // == regex
+                shutdown_channel,
+                chunk_result_channel,
+            ) {
+                Ok(a) => Some(Arc::new(Mutex::new(a))),
+                Err(e) => {
+                    log::warn!("Could not create search action: {}", e);
+                    None
+                }
+            }
+        }
         "GRABBER" => {
-            let path = data1;
             let shutdown_channel = cc::unbounded();
             let metadata_channel = cc::bounded(1);
             let chunk_result_channel: (
                 cc::Sender<IndexingResults<()>>,
                 cc::Receiver<IndexingResults<()>>,
             ) = cc::unbounded();
-            match Grabber::lazy(path) {
+            match Grabber::lazy(session_path) {
                 Ok(grabber) => Some(Arc::new(Mutex::new(GrabberAction {
                     grabber,
                     handler: None,
@@ -154,7 +179,7 @@ pub fn look_up_work(
                     event_channel: chunk_result_channel,
                 }))),
                 Err(e) => {
-                    log::error!("Error...{}", e);
+                    log::error!("Error creating grabber: {}", e);
                     None
                 }
             }
@@ -172,10 +197,17 @@ declare_types! {
         init(mut _cx) {
             let id = _cx.argument::<JsString>(0)?.value();
             println!("init: {}", id.as_str());
-            Ok(Session {
-                id,
-                live_operations: vec![],
-            })
+            let log_file_path_str = _cx.argument::<JsString>(1)?.value();
+            let log_file_path = PathBuf::from(&log_file_path_str);
+            if !log_file_path.exists() {
+                _cx.throw_error(format!("No file exists here: {}", log_file_path_str))
+            } else {
+                Ok(Session {
+                    id,
+                    log_file_path,
+                    live_operations: vec![],
+                })
+            }
         }
 
         constructor(_cx) {
@@ -185,12 +217,17 @@ declare_types! {
         method add_operation(mut cx) {
             let id = cx.argument::<JsString>(0)?.value();
             let data1 = cx.argument::<JsString>(1)?.value();
-            let data2 = cx.argument::<JsString>(2)?.value();
-            let f = cx.argument::<JsFunction>(3)?;
+            let f = cx.argument::<JsFunction>(2)?;
             let mut this = cx.this();
             let mut operation = Operation::new(&id);
             let handler = EventHandler::new(&cx, this, f);
-            operation.action = look_up_work(&id, &data1, &data2);
+
+            let session_path = {
+                let guard = cx.lock();
+                let this = this.borrow(&guard);
+                this.log_file_path.clone()
+            };
+            operation.action = look_up_work(&id, &session_path, &data1);
             operation.set_event_handler(handler);
             println!("add operation {}", id);
             let res = {
@@ -231,7 +268,7 @@ declare_types! {
                                     log::debug!("Created rust thread for task execution");
 
                                     // TODO get rid of unwrap
-                                    if let Err(e) = action.lock().unwrap().prepare_async(event_tx, Some(shutdown_receiver)) {
+                                    if let Err(e) = action.lock().unwrap().prepare(event_tx, Some(shutdown_receiver)) {
                                         log::error!("Error on async function: {}", e);
                                     }
                                     event_handler.schedule_with(move |cx, this, callback| {
