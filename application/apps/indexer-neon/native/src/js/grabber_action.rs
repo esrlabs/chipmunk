@@ -14,7 +14,7 @@ pub struct GrabberAction {
 }
 
 impl OperationAction for GrabberAction {
-    fn prepare_async(
+    fn prepare(
         &self,
         result_sender: cc::Sender<IndexingResults<()>>,
         shutdown_rx: Option<ShutdownReceiver>,

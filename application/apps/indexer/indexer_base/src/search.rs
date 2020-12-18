@@ -1,27 +1,37 @@
+use std::path::PathBuf;
 use std::{
     error::Error,
     fs::File,
     io::{BufWriter, Write},
-    path::Path,
 };
 
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher};
 
-pub fn search(input: &Path, regex: String, search_output: &Path) -> Result<(), Box<dyn Error>> {
-    let matcher = RegexMatcher::new(&regex)?;
-    let f = File::create(search_output)?;
-    let mut f = BufWriter::new(f);
-    Searcher::new().search_path(
-        &matcher,
-        &input,
-        UTF8(|_lnum, line| {
-            writeln!(f, "{}", line);
-            Ok(true)
-        }),
-    )?;
+pub struct SearchHolder {
+    pub file_path: PathBuf,
+    pub out_file_path: PathBuf,
+    // pub handler: Option<EventHandler>,
+    // pub shutdown_channel: Channel<()>,
+    // pub event_channel: Channel<IndexingResults<()>>,
+}
 
-    Ok(())
+impl SearchHolder {
+    pub fn search(&self, regex: String) -> Result<(), Box<dyn Error>> {
+        let matcher = RegexMatcher::new(&regex)?;
+        let out_file = File::create(&self.out_file_path)?;
+        let mut writer = BufWriter::new(out_file);
+        Searcher::new().search_path(
+            &matcher,
+            &self.file_path,
+            UTF8(|_lnum, line| {
+                writeln!(writer, "{}", line);
+                Ok(true)
+            }),
+        )?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

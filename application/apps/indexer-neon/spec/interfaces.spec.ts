@@ -188,10 +188,12 @@ describe('Iterfaces testsComputation Events Life Circle', () => {
 
 describe('MockComputation', function() {
 	it('full lifecycle should work', function(done) {
-        let current_progress: number = 0.0;
-        const session_id = "Mock-Session-1";
-        const session = new addon.Session(session_id);
-        session.add_operation('MOCK', '', '', function(cmd: string, data: any, data2: any) {
+		let current_progress: number = 0.0;
+		const session_id = 'Mock-Session-1';
+		const tmp = require('tmp');
+		const tmpobj = tmp.fileSync();
+		const session = new addon.Session(session_id, tmpobj.name);
+		session.add_operation('MOCK', '', function(cmd: string, data: any, data2: any) {
 			if (cmd == addon.DONE) {
 				console.log(`JS: Done`);
 				expect(current_progress).toBeCloseTo(100.0);
@@ -211,10 +213,12 @@ describe('MockComputation', function() {
 
 	it('shutdown should work', function(done) {
 		let shutdown_called = false;
-        const session_id = "Mock-Session-1";
-        const operation_id = "MOCK";
-        const session = new addon.Session(session_id);
-        session.add_operation(operation_id, '', '', function(cmd: string, data: any, data2: any) {
+		const session_id = 'Mock-Session-1';
+		const operation_id = 'MOCK';
+		const tmp = require('tmp');
+		const tmpobj = tmp.fileSync();
+		const session = new addon.Session(session_id, tmpobj.name);
+		session.add_operation(operation_id, '', function(cmd: string, data: any, data2: any) {
 			if (cmd == addon.DONE) {
 				console.log(`JS: Done`);
 				expect(shutdown_called).toBe(true);
@@ -252,17 +256,13 @@ describe('GrabberComputation', function() {
 		console.log(`file-size: ${stats.size}`);
 
 		let current_progress: number = 0.0;
-        const session_id = "Mock-Session-1";
-        const operation_id = "GRABBER";
-        const session = new addon.Session(session_id);
+		const session_id = 'Mock-Session-1';
+		const operation_id = 'GRABBER';
+		const session = new addon.Session(session_id, tmpobj.name);
 
-		session.add_operation(operation_id, tmpobj.name, '', function(
-			event: string,
-			data: any,
-			data2: any
-		) {
+		session.add_operation(operation_id, '', function(event: string, data: any, data2: any) {
 			if (event == addon.DONE) {
-                const result_value = data as string;
+				const result_value = data as string;
 				console.log(`JS: Done, result_value: ${result_value}`);
 				expect(current_progress).toBeCloseTo(100.0);
 				let result = session.sync_function(operation_id, 500, 7);
