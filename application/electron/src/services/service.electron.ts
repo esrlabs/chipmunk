@@ -230,33 +230,39 @@ class ServiceElectron implements IService {
             return;
         }
         // Create client
-        this._createBrowserWindow();
-        if (!ServiceProduction.isProduction() && !ServiceEnv.get().CHIPMUNK_NO_WEBDEVTOOLS) {
-            if (this._controllerBrowserWindow !== undefined) {
-                this._controllerBrowserWindow.debug();
+        this._createBrowserWindow().then(() => {
+            if (!ServiceProduction.isProduction() && !ServiceEnv.get().CHIPMUNK_NO_WEBDEVTOOLS) {
+                if (this._controllerBrowserWindow !== undefined) {
+                    this._controllerBrowserWindow.debug();
+                }
             }
-        }
-        // Menu
-        this._controllerElectronMenu = new ControllerElectronMenu();
-        // Files from cmd
-        // cmd
-        // Finish initialization
-        if (this._onReadyResolve !== null) {
-            this._onReadyResolve();
-            this._onReadyResolve = null;
-        }
+            // Menu
+            this._controllerElectronMenu = new ControllerElectronMenu();
+                // Files from cmd
+                // cmd
+                // Finish initialization
+                if (this._onReadyResolve !== null) {
+                    this._onReadyResolve();
+                    this._onReadyResolve = null;
+                }
+        }).catch((error: Error) => {
+            this._logger.error(`Failed to create browser window due to error: ${error.message}`);
+        });
     }
 
-    private _createBrowserWindow() {
-        if (this._controllerBrowserWindow !== undefined) {
-            return;
-        }
-        this._logger.debug(`Creating new browser window`);
-        this._controllerBrowserWindow = new ControllerBrowserWindow(uuid.v4());
-        this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc) => {
-            this._ipc = ipc;
-        }).catch((error: Error) => {
-            this._logger.error(`Fail to get IPC: ${error.message}`);
+    private _createBrowserWindow(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._controllerBrowserWindow !== undefined) {
+                return resolve();
+            }
+            this._logger.debug(`Creating new browser window`);
+            this._controllerBrowserWindow = new ControllerBrowserWindow(uuid.v4());
+            this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc | undefined) => {
+                this._ipc = ipc;
+                resolve();
+            }).catch((error: Error) => {
+                reject(this._logger.error(`Fail to get IPC: ${error.message}`));
+            });
         });
     }
 
@@ -270,7 +276,9 @@ class ServiceElectron implements IService {
 
     private _onActivate() {
         // Create client if it's needed
-        this._createBrowserWindow();
+        this._createBrowserWindow().catch((error: Error) => {
+            this._logger.error(`Failed to create browser window due to error: ${error.message}`);
+        });
     }
 
 }
