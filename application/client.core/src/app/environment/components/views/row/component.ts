@@ -19,6 +19,7 @@ import SelectionParsersService from '../../../services/standalone/service.select
 import OutputRedirectionsService from '../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
+import RowService from '../../../services/service.row';
 
  enum ERenderType {
     standard = 'standard',
@@ -204,6 +205,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.timestamp.getCount() > 0) {
             css += ' timeranges ';
         }
+        RowService.rangesOpened = this.timestamp.getCount();
         return css;
     }
 

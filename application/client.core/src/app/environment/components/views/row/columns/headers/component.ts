@@ -3,8 +3,10 @@ import { Subscription, Subject } from 'rxjs';
 import { ControllerColumns, IColumn } from '../controller.columns';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../../../controller/controller.session.tab.scope';
 import { ControllerSessionTabStreamOutput } from '../../../../../controller/controller.session.tab.stream.output';
-import ContextMenuService from '../../../../../services/standalone/service.contextmenu';
 import { ViewOutputRowColumnsHeadersMenuComponent } from './menu/component';
+
+import ContextMenuService from '../../../../../services/standalone/service.contextmenu';
+import RowService from '../../../../../services/service.row';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 
@@ -104,6 +106,10 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
 
     public _ng_getHorScrollOffset(): string {
         return `-${this._ng_horScrollOffset}px`;
+    }
+
+    public _ng_getRangeCssClass(): string {
+        return RowService.rangesOpened > 0 ? 'range' : 'no_range';
     }
 
     private _createContextMenu(event: MouseEvent) {
