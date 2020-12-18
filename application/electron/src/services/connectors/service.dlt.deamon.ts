@@ -294,6 +294,8 @@ class ServiceDLTDeamonConnector implements IService {
     private _onDLTDeamonRecentDropRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         ServiceStorage.get().set({
             recentDLTConnectorSettings: [],
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         response(
             new IPCMessages.DLTDeamonRecentDropResponse(),
@@ -356,6 +358,8 @@ class ServiceDLTDeamonConnector implements IService {
         stored.unshift(updated);
         ServiceStorage.get().set({
             recentDLTConnectorSettings: stored,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
     }
 

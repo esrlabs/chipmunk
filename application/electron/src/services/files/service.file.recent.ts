@@ -80,6 +80,8 @@ export class ServiceFileRecent implements IService {
         });
         ServiceStorage.get().set({
             recentFiles: files,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         ServiceElectron.updateMenu();
     }
@@ -101,6 +103,8 @@ export class ServiceFileRecent implements IService {
         });
         ServiceStorage.get().set({
             recentFiltersFiles: files,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         ServiceElectron.updateMenu();
     }
@@ -126,9 +130,12 @@ export class ServiceFileRecent implements IService {
                 }
                 ServiceStorage.get().set({
                     recentFiles: checked,
+                }).then(() => {
+                    ServiceElectron.updateMenu();
+                    resolve(checked);
+                }).catch((err: Error) => {
+                    this._logger.error(err.message);
                 });
-                ServiceElectron.updateMenu();
-                resolve(checked);
             }).catch((error: Error) => {
                 reject(new Error(`Fail to get recent file list due to error: ${error.message}`));
             });
@@ -138,6 +145,8 @@ export class ServiceFileRecent implements IService {
     public clear() {
         ServiceStorage.get().set({
             recentFiles: [],
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         ServiceElectron.updateMenu();
     }
@@ -175,9 +184,12 @@ export class ServiceFileRecent implements IService {
                 }
                 ServiceStorage.get().set({
                     recentFiltersFiles: files,
+                }).then(() => {
+                    ServiceElectron.updateMenu();
+                    resolve(files);
+                }).catch((err: Error) => {
+                    this._logger.error(err.message);
                 });
-                ServiceElectron.updateMenu();
-                resolve(files);
             }).catch((error: Error) => {
                 reject(new Error(`Fail to validate recnt files due to error: ${error.message}`));
             });
@@ -200,6 +212,8 @@ export class ServiceFileRecent implements IService {
     private _ipc_onFiltersFilesRecentResetRequested(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
         ServiceStorage.get().set({
             recentFiltersFiles: [],
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         response(new IPCMessages.FiltersFilesRecentResetResponse({ }));
     }
@@ -214,6 +228,8 @@ export class ServiceFileRecent implements IService {
     private _ipc_onSearchRecentClearRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
         ServiceStorage.get().set({
             recentSearchRequests: [],
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         response(new IPCMessages.SearchRecentClearResponse({ }));
     }
@@ -246,6 +262,8 @@ export class ServiceFileRecent implements IService {
         stored.unshift(updated);
         ServiceStorage.get().set({
             recentSearchRequests: stored,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         response(new IPCMessages.SearchRecentAddResponse({ }));
     }

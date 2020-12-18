@@ -448,6 +448,8 @@ export default class ControllerPluginsManager {
         plugins.unshift(plugin);
         ServiceStorage.get().set({
             pluginDefaultUninstalled: plugins,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
     }
 
@@ -464,6 +466,8 @@ export default class ControllerPluginsManager {
         plugins.splice(index, 1);
         ServiceStorage.get().set({
             pluginDefaultUninstalled: plugins,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
     }
 
