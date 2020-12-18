@@ -103,16 +103,16 @@ class ServiceConfig implements IService {
                 }
             }
             entry.extract(this._storage.get()).then(() => {
-                const wrtErr: Error | undefined = this._write(entry);
-                if (wrtErr instanceof Error) {
-                    return reject(wrtErr);
-                }
-                this._register.set(key, entry);
-                if (Field.isInstance(entry) || RemoteField.isInstance(entry) || PluginField.isInstance(entry)) {
-                    resolve((entry as Field<T>).read(this._storage.get()));
-                } else {
-                    resolve();
-                }
+                this._write(entry).then(() => {
+                    this._register.set(key, entry);
+                    if (Field.isInstance(entry) || RemoteField.isInstance(entry) || PluginField.isInstance(entry)) {
+                        resolve((entry as Field<T>).read(this._storage.get()));
+                    } else {
+                        resolve();
+                    }
+                }).catch((wrtErr: Error) => {
+                    reject(wrtErr);
+                });
             }).catch((extrErr: Error) => {
                 reject(extrErr);
             });
@@ -134,12 +134,18 @@ class ServiceConfig implements IService {
         return this._index++;
     }
 
-    private _write(entry: Entry): Error | undefined {
-        const state: Error | IStorage = entry.write(this._storage.get());
-        if (state instanceof Error) {
-            return state;
-        }
-        return this._storage.set(state);
+    private _write(entry: Entry): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const state: Error | IStorage = entry.write(this._storage.get());
+            if (state instanceof Error) {
+                return reject(state);
+            }
+            this._storage.set(state).then(() => {
+                resolve();
+            }).catch((err: Error) => {
+                reject(err);
+            });
+        });
     }
 
     private _ipc_SettingsAppDataRequest(message: IPCMessages.TMessage, response: (instance: any) => any) {
@@ -220,18 +226,17 @@ class ServiceConfig implements IService {
             });
         }
         entry.set(request.value).then(() => {
-            const wrtErr: Error | undefined = this._write(entry);
-            if (wrtErr !== undefined) {
+            this._write(entry).then(() => {
+                response(new IPCMessages.SettingsOperationSetResponse({})).catch((error: Error) => {
+                    this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
+                });
+            }).catch((wrtErr: Error) => {
                 response(new IPCMessages.SettingsOperationSetResponse({
                     error: `Fail to write field "${key}" due error: ${wrtErr.message}`,
                 })).catch((error: Error) => {
                     this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
                 });
-            } else {
-                response(new IPCMessages.SettingsOperationSetResponse({})).catch((error: Error) => {
-                    this._logger.warn(`Fail to send response on SettingsOperationSetResponse due error: ${error.message}`);
-                });
-            }
+            });
         }).catch((setErr: Error) => {
             this._logger.warn(`Fail to set valid of field "${key}" due error: ${setErr.message}`);
             response(new IPCMessages.SettingsOperationSetResponse({

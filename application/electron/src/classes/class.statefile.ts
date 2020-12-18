@@ -4,6 +4,7 @@ import * as FS from '../tools/fs';
 import Logger from '../tools/env.logger';
 import ServicePaths from '../services/service.paths';
 
+import { PromisesSuccessiveQueue } from '../tools/promise.queue.successive';
 import { IService } from '../interfaces/interface.service';
 
 /**
@@ -25,6 +26,7 @@ export class StateFile<TState> implements IService {
     private _state: TState | null = null;
     private _allowResetToDefault: boolean = true;
     private _available: boolean = true;
+    private readonly _tasks: PromisesSuccessiveQueue;
 
     constructor(alias: string, defaults: TState, file: string, allowResetToDefault: boolean = true) {
         this._alias = alias;
@@ -32,6 +34,7 @@ export class StateFile<TState> implements IService {
         this._defaults = defaults;
         this._file = file;
         this._allowResetToDefault = allowResetToDefault;
+        this._tasks = new PromisesSuccessiveQueue(`Write file queue of ${alias}`);
         this._logger.verbose(`Created state file: ${this._file}`);
     }
 
@@ -63,7 +66,9 @@ export class StateFile<TState> implements IService {
     public destroy(): Promise<void> {
         return new Promise((resolve) => {
             this._available = false;
-            resolve();
+            this._tasks.destroy().catch((err: Error) => {
+                this._logger.warn(`Fail to normally destroy a queue with: ${err.message}`);
+            }).finally(resolve);
         });
     }
 
@@ -79,13 +84,17 @@ export class StateFile<TState> implements IService {
         return Objects.copy(this._state);
     }
 
-    public set(state: any): Error | undefined {
-        if (!this._available) {
-            return new Error(`Fail to write into file, because it's blocked.`);
-        }
-        this._state = Objects.merge(state, this._state);
-        this._write().catch((error: Error) => {
-            this._logger.error(`Fail to write state due error: ${error.message}`);
+    public set(state: any): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (!this._available) {
+                return reject(new Error(`Fail to write into file, because it's blocked.`));
+            }
+            this._state = Objects.merge(state, this._state);
+            this._write().then(() => {
+                resolve();
+            }).catch((error: Error) => {
+                reject(new Error(`Fail to write state due error: ${error.message}`));
+            });
         });
     }
 
@@ -97,10 +106,10 @@ export class StateFile<TState> implements IService {
             FS.readTextFile(this._file).then((content: string) => {
                 const state = Objects.getJSON(content);
                 if (state instanceof Error) {
-                    this._logger.error(`Cannot parse state file "${this._file}" due error: ${state.message}. Content: "${content}"`);
                     if (!this._allowResetToDefault) {
                         return reject(new Error(`Fail to get JSON from content of "${this._file}" due error: ${state.message}`));
                     } else {
+                        this._logger.warn(`Cannot parse state file "${this._file}" due error: ${state.message}. Content: "${content}". File would be dropped to defaults values.`);
                         return this._default(true).then(() => {
                             resolve(this._defaults);
                         }).catch(reject);
@@ -108,7 +117,7 @@ export class StateFile<TState> implements IService {
                 }
                 resolve(this._validate(state));
             }).catch((error: Error) => {
-                this._logger.error(`Fail to read state at "${this._file}" due error: ${error.message}`);
+                reject(this._logger.error(`Fail to read state at "${this._file}" due error: ${error.message}`));
             });
         });
     }
@@ -118,11 +127,14 @@ export class StateFile<TState> implements IService {
             if (this._state === null) {
                 return resolve();
             }
-            FS.writeTextFile(this._file, JSON.stringify(this._validate(this._state)), true).then(() => {
-                resolve();
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to write state to "${this._file}" due error: ${error.message}`);
-                reject(error);
+            const content = JSON.stringify(this._validate(this._state));
+            this._tasks.add(() => {
+                return FS.writeTextFile(this._file, content, true).then(() => {
+                    resolve();
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail to write state to "${this._file}" due error: ${error.message}`);
+                    reject(error);
+                });
             });
         });
     }
@@ -155,11 +167,14 @@ export class StateFile<TState> implements IService {
             if (FS.isExist(this._file) && !force) {
                 return resolve();
             }
-            FS.writeTextFile(this._file, JSON.stringify(this._defaults)).then(() => {
-                resolve();
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to write default state to "${this._file}" due error: ${error.message}`);
-                reject(error);
+            const content = JSON.stringify(this._validate(this._defaults));
+            this._tasks.add(() => {
+                return FS.writeTextFile(this._file, content).then(() => {
+                    resolve();
+                }).catch((error: Error) => {
+                    this._logger.error(`Fail to write default state to "${this._file}" due error: ${error.message}`);
+                    reject(error);
+                });
             });
         });
     }

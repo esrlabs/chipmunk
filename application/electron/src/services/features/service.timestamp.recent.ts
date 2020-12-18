@@ -54,6 +54,8 @@ export class ServiceTimestampFormatRecent implements IService {
         formats.unshift(format);
         ServiceStorage.get().set({
             recentDateTimeFormats: formats,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
     }
 
@@ -67,6 +69,8 @@ export class ServiceTimestampFormatRecent implements IService {
     public clear() {
         ServiceStorage.get().set({
             recentFiles: [],
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
         ServiceElectron.updateMenu();
     }
