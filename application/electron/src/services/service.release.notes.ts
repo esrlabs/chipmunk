@@ -47,6 +47,10 @@ class ServiceReleaseNotes implements IService {
                         }
                         this._store.set({
                             version: ServicePackage.get().version,
+                        }).then(() => {
+                            resolve();
+                        }).catch((err: Error) => {
+                            this._logger.error(err.message);
                         });
                     }).catch((error: Error) => {
                         this._logger.warn(`Fail to send TabCustomRelease due error: ${error.message}`);

@@ -146,6 +146,8 @@ export default class ControllerBrowserWindow extends EventEmitter {
             w: bounds.width,
             x: bounds.x,
             y: bounds.y,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
         });
     }
 
