@@ -1,4 +1,4 @@
-<span class="offset" [ngStyle]="{'width': _ng_getOffset(), 'margin-left': _ng_getHorScrollOffset()}"></span>
+<span [attr.class]="'offset ' + _ng_getRangeCssClass()" [ngStyle]="{'width': _ng_getOffset(), 'margin-left': _ng_getHorScrollOffset()}"></span>
 <span   class="wrapper"
         *ngFor="let column of _ng_columns"
         (mouseenter)="_ng_onMouseOver(column.header)"
