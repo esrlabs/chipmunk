@@ -17,7 +17,11 @@ pub struct SearchHolder {
 }
 
 impl SearchHolder {
-    pub fn search(&self, regex: String) -> Result<(), Box<dyn Error>> {
+    pub fn search(&self, regex: String) -> Result<PathBuf, Box<dyn Error>> {
+        println!(
+            "Search {} in {:?}, put out to {:?}",
+            regex, self.file_path, self.out_file_path
+        );
         let matcher = RegexMatcher::new(&regex)?;
         let out_file = File::create(&self.out_file_path)?;
         let mut writer = BufWriter::new(out_file);
@@ -30,7 +34,7 @@ impl SearchHolder {
             }),
         )?;
 
-        Ok(())
+        Ok(self.out_file_path.clone())
     }
 }
 

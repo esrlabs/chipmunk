@@ -445,7 +445,7 @@ mod tests {
             }
             let p = file.into_temp_path();
             let line_count = Grabber::count_lines(&p)? as u64;
-            let grabber = Grabber::new(&p)?;
+            let grabber = Grabber::new(&p, "sourceA")?;
 
             for line_index in 0..line_count {
                 assert_eq!(
@@ -467,7 +467,7 @@ mod tests {
             let p = file.into_temp_path();
             let line_count = Grabber::count_lines(&p)? as u64;
             println!("----------> file has {} lines", line_count);
-            let grabber = Grabber::new(&p)?;
+            let grabber = Grabber::new(&p, "sourceA")?;
             for line_index in 0..line_count {
                 assert_eq!(
                     identify_range_simple(&grabber, line_index),
@@ -485,7 +485,7 @@ mod tests {
         let mut file = NamedTempFile::new()?;
         write!(file, "a")?;
         let p = file.into_temp_path();
-        let grabber = Grabber::new(&p)?;
+        let grabber = Grabber::new(&p, "sourceA")?;
         let single_line_range = LineRange::new(0, 1);
         let naive = grabber.get_entries(&single_line_range)?;
         let entries: Vec<String> = vec!["a".to_owned()];
@@ -513,7 +513,7 @@ mod tests {
             line_length.push(line.len() as u64);
         }
         let p = file.into_temp_path();
-        if let Ok(grabber) = Grabber::new(&p) {
+        if let Ok(grabber) = Grabber::new(&p, "sourceA") {
             let r = LineRange::new(0, v.len() as u64);
             let naive = grabber.get_entries(&r).expect("entries not grabbed");
             let entries: Vec<String> = vec!["".to_owned(), "".to_owned()];
@@ -530,7 +530,7 @@ mod tests {
         write!(file, "ABC")?;
         writeln!(file)?;
         let p = file.into_temp_path();
-        let grabber = Grabber::new(&p)?;
+        let grabber = Grabber::new(&p, "sourceA")?;
         let one_line_empty_range = LineRange::new(1, 2);
         let naive = grabber.get_entries(&one_line_empty_range)?;
         let entries: Vec<String> = vec!["".to_owned()];
@@ -545,7 +545,7 @@ mod tests {
         let mut file = NamedTempFile::new()?;
         write!(file, "ABC")?;
         let p = file.into_temp_path();
-        let grabber = Grabber::new(&p)?;
+        let grabber = Grabber::new(&p, "sourceA")?;
         let one_line_range = LineRange::new(0, 1);
         let c1 = grabber.get_entries(&one_line_range)?;
         let c2: Vec<String> = vec!["ABC".to_owned()];
@@ -562,7 +562,7 @@ mod tests {
         writeln!(file)?;
         writeln!(file)?;
         let p = file.into_temp_path();
-        let grabber = Grabber::new(&p)?;
+        let grabber = Grabber::new(&p, "sourceA")?;
         let one_line_range = LineRange::new(0, 1);
         let c1 = grabber.get_entries(&one_line_range)?;
         let c2: Vec<String> = vec!["".to_owned()];

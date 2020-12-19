@@ -1,5 +1,5 @@
 use indexer_base::{
-    progress::{IndexingProgress, IndexingResults},
+    progress::{IndexingProgress, IndexingResults, Progress},
     utils,
 };
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,17 @@ pub enum GrabError {
     IoOperation(#[from] std::io::Error),
     #[error("Invalid range: ({0:?})")]
     InvalidRange(LineRange),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrabbedElement {
+    pub source_id: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrabbedContent {
+    pub grabbed_elements: Vec<GrabbedElement>,
 }
 
 const DEFAULT_SLOT_SIZE: usize = 64 * 1024usize;
@@ -83,6 +94,7 @@ impl Slot {
 
 #[derive(Debug)]
 pub struct Grabber {
+    pub source_id: String,
     pub path: PathBuf,
     pub metadata: Option<GrabMetadata>,
     pub input_file_size: u64,
@@ -94,7 +106,7 @@ impl Grabber {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn lazy(path: impl AsRef<Path>) -> Result<Self, GrabError> {
+    pub fn lazy(path: impl AsRef<Path>, source_id: &str) -> Result<Self, GrabError> {
         let input_file_size = std::fs::metadata(&path)
             .map_err(|e| {
                 GrabError::Config(format!("Could not determine size of input file: {}", e))
@@ -105,6 +117,7 @@ impl Grabber {
         }
 
         Ok(Self {
+            source_id: source_id.to_owned(),
             path: path.as_ref().to_owned(),
             metadata: None,
             input_file_size,
@@ -116,21 +129,14 @@ impl Grabber {
     /// function.
     pub fn create_metadata(
         &mut self,
-        result_sender: cc::Sender<IndexingResults<()>>,
+        result_sender: cc::Sender<Progress>,
         shutdown_rx: Option<cc::Receiver<()>>,
     ) -> Result<(), GrabError> {
-        let result = match self.metadata {
-            Some(_) => Ok(()),
-            None => {
-                self.metadata =
-                    Grabber::create_metadata_for_file(&self.path, &result_sender, shutdown_rx)?;
-                Ok(())
-            }
-        };
-        result_sender
-            .send(Ok(IndexingProgress::Finished))
-            .map_err(|_| GrabError::Communication("Could not send result".to_string()))?;
-        result
+        if self.metadata.is_none() {
+            self.metadata =
+                Grabber::create_metadata_for_file(&self.path, &result_sender, shutdown_rx)?;
+        }
+        Ok(())
     }
 
     /// Create a new Grabber by deviding the file content into slots
@@ -139,7 +145,7 @@ impl Grabber {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, GrabError> {
+    pub fn new(path: impl AsRef<Path>, source_id: &str) -> Result<Self, GrabError> {
         let input_file_size = std::fs::metadata(&path)
             .map_err(|e| GrabError::Config("Could not get metadata of file to grab".to_string()))?
             .len();
@@ -151,6 +157,7 @@ impl Grabber {
         let metadata = Grabber::create_metadata_for_file(&path, &unused_channel.0, None)?;
 
         Ok(Self {
+            source_id: source_id.to_owned(),
             path: path.as_ref().to_owned(),
             metadata,
             input_file_size,
@@ -187,7 +194,7 @@ impl Grabber {
 
     pub fn create_metadata_for_file(
         path: impl AsRef<Path>,
-        result_sender: &cc::Sender<IndexingResults<()>>,
+        result_sender: &cc::Sender<Progress>,
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<Option<GrabMetadata>, GrabError> {
         let mut f = fs::File::open(&path)
@@ -203,7 +210,7 @@ impl Grabber {
         while let Ok(len) = f.read(&mut buffer) {
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
                 result_sender
-                    .send(Ok(IndexingProgress::Stopped))
+                    .send(Progress::Stopped)
                     .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
                 return Ok(None);
             }
@@ -222,13 +229,11 @@ impl Grabber {
             byte_index += len as u64;
             processed_lines += line_count;
             result_sender
-                .send(Ok(IndexingProgress::Progress {
-                    ticks: (byte_index, input_file_size),
-                }))
+                .send(Progress::Ticks(byte_index, input_file_size))
                 .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
         }
         result_sender
-            .send(Ok(IndexingProgress::Finished))
+            .send(Progress::Ticks(input_file_size, input_file_size))
             .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
         Ok(Some(GrabMetadata {
             slots,
@@ -292,7 +297,7 @@ impl Grabber {
     /// Get all lines in a file within the supplied line-range
     /// naive implementation that just reads all slots that are involved and drops
     /// everything that is not needed
-    pub fn get_entries(&self, line_range: &LineRange) -> Result<Vec<String>, GrabError> {
+    pub fn get_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
         if line_range.range.end <= line_range.range.start {
             return Err(GrabError::InvalidRange(line_range.clone()));
         }
@@ -318,15 +323,20 @@ impl Grabber {
                 let to_skip = line_range.range.start - start_slot.lines.range.start;
                 let to_take = line_range.range.end - line_range.range.start;
                 let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
-                let lines_res = s
+                let grabbed_elements = s
                     .split(|c| c == '\n' || c == '\r')
                     .skip(to_skip as usize)
                     .take(to_take as usize)
-                    .map(|s| s.to_owned())
-                    .collect::<Vec<String>>();
-                Ok(lines_res)
+                    .map(|s| GrabbedElement {
+                        source_id: self.source_id.clone(),
+                        content: s.to_owned(),
+                    })
+                    .collect::<Vec<GrabbedElement>>();
+                Ok(GrabbedContent { grabbed_elements })
             }
-            _ => Ok(vec![]),
+            _ => Ok(GrabbedContent {
+                grabbed_elements: vec![],
+            }),
         }
     }
 
