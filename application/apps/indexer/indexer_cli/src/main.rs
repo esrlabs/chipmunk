@@ -550,10 +550,10 @@ pub async fn main() -> Result<()> {
                     let metadata_path =
                         matches.value_of("metadata").expect("input must be present");
                     println!("grabber with metadata");
-                    processor::grabber::Grabber::lazy(&input_p)?
+                    processor::grabber::Grabber::lazy(&input_p, "sourceA")?
                         .load_metadata(path::PathBuf::from(metadata_path))?
                 } else {
-                    processor::grabber::Grabber::new(&input_p)?
+                    processor::grabber::Grabber::new(&input_p, "sourceA")?
                 };
 
                 duration_report(start_op, "initializing Grabber".to_string());
@@ -585,15 +585,15 @@ pub async fn main() -> Result<()> {
                     Ok(v) => {
                         duration_report(start_op, format!("grabbing {} lines", length));
                         let mut i = start;
-                        for (cnt, s) in v.iter().enumerate() {
-                            if s.len() > 50 {
-                                println!("[{}]--> {}", i, &s[..50]);
+                        for (cnt, s) in v.grabbed_elements.iter().enumerate() {
+                            if s.content.len() > 50 {
+                                println!("[{}]--> {}", i, &s.content[..50]);
                             } else {
-                                println!("[{}]--> {}", i, &s);
+                                println!("[{}]--> {}", i, &s.content);
                             }
                             i += 1;
                             if cnt > 15 {
-                                println!("...{} more lines", v.len() - 15);
+                                println!("...{} more lines", v.grabbed_elements.len() - 15);
                                 break;
                             }
                         }

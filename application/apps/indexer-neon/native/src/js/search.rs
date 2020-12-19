@@ -1,5 +1,5 @@
 use crate::js::events::*;
-use crate::js::session::OperationAction;
+// use crate::js::session::OperationAction;
 use crossbeam_channel as cc;
 use indexer_base::progress::Notification;
 use indexer_base::{
@@ -33,12 +33,16 @@ impl SearchAction {
             shutdown_channel,
             event_channel,
             input_path: PathBuf::from(input),
-            output_path: PathBuf::from(format!("{:?}.out", input)),
+            output_path: PathBuf::from(format!("{}.out", input.to_string_lossy())),
             regex: regex.to_owned(),
         })
     }
 }
-impl OperationAction for SearchAction {
+impl SearchAction {
+    fn is_search(&self) -> bool {
+        true
+    }
+
     fn prepare(
         &self,
         result_sender: cc::Sender<IndexingResults<()>>,
@@ -49,8 +53,8 @@ impl OperationAction for SearchAction {
             out_file_path: self.output_path.clone(),
         };
         let result = match search_holder.search(self.regex.clone()) {
-            Ok(()) => {
-                println!("RUST: search completed");
+            Ok(out) => {
+                println!("RUST: search completed, result file: {:?}", out);
                 Ok(())
             }
             Err(e) => {
@@ -67,15 +71,5 @@ impl OperationAction for SearchAction {
         };
         let _ = result_sender.send(Ok(IndexingProgress::Finished));
         result
-    }
-
-    fn sync_computation(
-        &mut self,
-        start_line_index: u64,
-        number_of_lines: u64,
-    ) -> Result<Vec<String>, ComputationError> {
-        Err(ComputationError::OperationNotSupported(
-            "No sync operation for search action".to_string(),
-        ))
     }
 }

@@ -1,7 +1,7 @@
 use crossbeam_channel as cc;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum Severity {
     WARNING,
     ERROR,
@@ -13,6 +13,13 @@ impl Severity {
             Severity::ERROR => "ERROR",
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Progress {
+    Ticks(u64, u64),
+    Notification(Notification),
+    Stopped,
 }
 
 pub type IndexingResults<T> = std::result::Result<IndexingProgress<T>, Notification>;
@@ -31,7 +38,7 @@ pub enum IndexingProgress<T> {
     Finished,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Notification {
     pub severity: Severity,
     pub content: String,
