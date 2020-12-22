@@ -117,7 +117,7 @@ export class StateFile<TState> implements IService {
                 }
                 resolve(this._validate(state));
             }).catch((error: Error) => {
-                reject(this._logger.error(`Fail to read state at "${this._file}" due error: ${error.message}`));
+                reject(new Error(`Fail to read state at "${this._file}" due error: ${error.message}`));
             });
         });
     }
