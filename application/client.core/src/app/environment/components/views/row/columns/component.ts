@@ -8,6 +8,7 @@ import { ControllerSessionTab } from '../../../../controller/controller.session.
 import { ControllerSessionTabStreamOutput } from '../../../../controller/controller.session.tab.stream.output';
 import { ViewOutputRowColumnsHeadersComponent, CColumnsHeadersKey } from './headers/component';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
+import { ControllerSessionTabTimestamp } from '../../../../controller/controller.session.tab.timestamps';
 import { EApplyTo } from 'chipmunk.client.toolkit';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
@@ -40,6 +41,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     @Input() public api: IAPI | undefined;
     @Input() public scope: ControllerSessionScope | undefined;
     @Input() public output: ControllerSessionTabStreamOutput | undefined;
+    @Input() public timestamp: ControllerSessionTabTimestamp | undefined;
     @Input() public parent: EParent;
 
     public _ng_columns: Array<{ html: SafeHtml, index: number }> = [];
@@ -241,6 +243,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                 controller: this._getControllerColumns(),
                 scope: this.scope,
                 output: this.output,
+                timestamp: this.timestamp,
             }
         }, Toolkit.EViewsTypes.outputTop);
         this.scope.set(CColumnsHeadersKey, true);
