@@ -4,9 +4,9 @@ import { ControllerColumns, IColumn } from '../controller.columns';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../../../controller/controller.session.tab.scope';
 import { ControllerSessionTabStreamOutput } from '../../../../../controller/controller.session.tab.stream.output';
 import { ViewOutputRowColumnsHeadersMenuComponent } from './menu/component';
+import { ControllerSessionTabTimestamp } from '../../../../../controller/controller.session.tab.timestamps';
 
 import ContextMenuService from '../../../../../services/standalone/service.contextmenu';
-import RowService from '../../../../../services/service.row';
 
 export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 
@@ -21,6 +21,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     @Input() public controller: ControllerColumns;
     @Input() public scope: ControllerSessionScope | undefined;
     @Input() public output: ControllerSessionTabStreamOutput | undefined;
+    @Input() public timestamp: ControllerSessionTabTimestamp | undefined;
 
     public _ng_offset: number = 0;
     public _ng_horScrollOffset: number = 0;
@@ -109,7 +110,7 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
     }
 
     public _ng_getRangeCssClass(): string {
-        return RowService.rangesOpened > 0 ? 'range' : 'no_range';
+        return this.timestamp.getCount() > 0 ? 'range' : 'no_range';
     }
 
     private _createContextMenu(event: MouseEvent) {
