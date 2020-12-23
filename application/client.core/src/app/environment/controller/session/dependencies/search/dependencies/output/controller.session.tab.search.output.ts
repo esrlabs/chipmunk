@@ -99,7 +99,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         return new Promise((resolve, reject) => {
             this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._uuid, this._onRowSelected.bind(this));
             this._subscriptions.onAddedBookmark = this._accessor.session().getBookmarks().getObservable().onAdded.subscribe(this._onUpdateBookmarksState.bind(this));
-            this._subscriptions.onRemovedBookmark = this._accessor.session().getBookmarks().getObservable().onRemoved.subscribe(this._onUpdateBookmarksState.bind(this));    
+            this._subscriptions.onRemovedBookmark = this._accessor.session().getBookmarks().getObservable().onRemoved.subscribe(this._onUpdateBookmarksState.bind(this));
             resolve();
         });
     }
