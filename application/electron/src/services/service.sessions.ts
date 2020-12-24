@@ -122,8 +122,12 @@ class ServiceSessions implements IService  {
                 this._subjects.destroyed.emit(uuid);
             });
             controller.init().then((guid: string) => {
-                this._sessions.set(guid, controller);
-                resolve(controller);
+                ServicePlugins.addStream(controller).catch((err: Error) => {
+                    this._logger.warn(`Fail correctly pass session to plugins due error: ${err.message}`);
+                }).finally(() => {
+                    this._sessions.set(guid, controller);
+                    resolve(controller);
+                });
             }).catch((err: Error) => {
                 this._logger.error(`Fail to create session controller due error: ${err.message}`);
                 reject(err);

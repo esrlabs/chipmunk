@@ -9,10 +9,16 @@ import { Dependency } from './controller.dependency';
 
 const CConnectionTimeout = 5 * 1000;
 
+export interface IConnectionResolution {
+    socket: Net.Socket;
+    path: string;
+}
+
 export class Socket extends Dependency{
 
     private readonly _session: Session;
     private readonly _logger: Logger;
+    private readonly _connections: Map<string, Net.Socket> = new Map();
     private _socket: Net.Socket | undefined;
 
     constructor(session: Session) {
@@ -51,6 +57,24 @@ export class Socket extends Dependency{
 
     public getName(): string {
         return 'Socket';
+    }
+
+    public getConnection(reason: string): Promise<IConnectionResolution | undefined> {
+        return new Promise((resolve, reject) => {
+            const path: string | Error = this._session.getSocketPath();
+            if (path instanceof Error) {
+                return reject(path);
+            }
+            if (path.trim() === '') {
+                // This is debug mode. There is no any socket
+                return resolve(undefined);
+            }
+            const socket: Net.Socket = Net.connect(path, () => {
+                this._logger.debug(`Created new connection UNIX socket for: ${reason}.`);
+                resolve({ socket: socket, path: path });
+            });
+            this._connections.set(Tools.guid(), socket);
+        });
     }
 
     private _connect(path: string): Promise<Net.Socket> {
