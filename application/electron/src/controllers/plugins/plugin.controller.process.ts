@@ -7,9 +7,9 @@ import ControllerPluginProcessMultiple from './plugin.process.multiple';
 import ControllerPluginProcessSingle from './plugin.process.single';
 import ControllerIPCPlugin from './plugin.process.ipc';
 
-import Logger from '../../tools/env.logger';
+import { ControllerSession } from '../../controllers/stream.main/controller';
 
-export type TConnectionFactory = (pluginId: string) => Promise<{ socket: Net.Socket, file: string }>;
+import Logger from '../../tools/env.logger';
 
 export default class ControllerPluginProcess {
     private _packagejson: ControllerPluginPackage;
@@ -111,36 +111,44 @@ export default class ControllerPluginProcess {
         });
     }
 
-    public bindSinglePlugin(session: string, connectionFactory: TConnectionFactory): Promise<void> {
+    public bindSinglePlugin(session: ControllerSession): Promise<void> {
         return new Promise((resolve, reject) => {
+            const uuid = session.get().UUID();
             if (this._single === undefined) {
                 return reject(new Error(this._logger.warn(`Plugin isn't single or wasn't running`)));
             }
             const process = this._single;
             // Binding controller
-            connectionFactory(this._name).then((connection: { socket: Net.Socket, file: string }) => {
+            session.get().socket().getConnection(`Pluign: ${this._name}`).then((connection) => {
+                if (connection === undefined) {
+                    // Debug mode
+                    return reject(new Error(this._logger.debug(`[${this._name}]: no way to be attached to session "${uuid}" in DEBUG mode. Connection is "undefined".`)));
+                }
                 // Send data to plugin
-                process.bindStream(session, connection).then(() => {
+                process.bindStream(uuid, connection).then(() => {
                     // Send notification
-                    this._logger.debug(`[${this._name}]: attached to session "${session}"`);
+                    this._logger.debug(`[${this._name}]: attached to session "${uuid}"`);
                     resolve();
                 }).catch((bindError: Error) => {
                     reject(new Error(this._logger.warn(`Fail to bind plugin ${this._name} due error: ${bindError.message}.`)));
                 });
+            }).catch((err: Error) => {
+                return reject(new Error(this._logger.debug(`[${this._name}]: fail to attach to session "${uuid}" due error: ${err.message}`)));
             });
         });
     }
 
-    public bindMultiplePlugin(session: string, connectionFactory: TConnectionFactory): Promise<void> {
+    public bindMultiplePlugin(session: ControllerSession): Promise<void> {
         return new Promise((resolve, reject) => {
+            const uuid = session.get().UUID();
             if (this._packagejson.getPackageJson().chipmunk.type === EProcessPluginType.single) {
                 return reject(new Error(this._logger.warn(`Not muplitple plugin cannot be started as single`)));
             }
             if (this._entrypoint === undefined) {
                 return reject(new Error(this._logger.warn(`Fail to run plugin process while entrypoint isn't detected.`)));
             }
-            if (this._mulitple.has(session)) {
-                return reject(new Error(this._logger.warn(`Plugin already has process running for session ${session}`)));
+            if (this._mulitple.has(uuid)) {
+                return reject(new Error(this._logger.warn(`Plugin already has process running for session ${uuid}`)));
             }
             const controller: ControllerPluginProcessMultiple = new ControllerPluginProcessMultiple({
                 id: this._id,
@@ -150,18 +158,24 @@ export default class ControllerPluginProcess {
             });
             controller.attach().then(() => {
                 // Binding controller
-                connectionFactory(this._name).then((connection: { socket: Net.Socket, file: string }) => {
+                session.get().socket().getConnection(`Pluign: ${this._name}`).then((connection) => {
+                    if (connection === undefined) {
+                        // Debug mode
+                        return reject(new Error(this._logger.debug(`[${this._name}]: no way to be attached to session "${uuid}" in DEBUG mode. Connection is "undefined".`)));
+                    }
                     // Send data to plugin
-                    controller.bindStream(session, connection).then(() => {
-                        this._mulitple.set(session, controller);
-                        this._logger.debug(`[${this._name}]: attached to session "${session}"`);
+                    controller.bindStream(uuid, connection).then(() => {
+                        this._mulitple.set(uuid, controller);
+                        this._logger.debug(`[${this._name}]: attached to session "${uuid}"`);
                         resolve();
                     }).catch((bindError: Error) => {
                         reject(new Error(this._logger.warn(`Fail to bind plugin due error: ${bindError.message}.`)));
                     });
+                }).catch((err: Error) => {
+                    return reject(new Error(this._logger.debug(`[${this._name}]: fail to attach to session "${uuid}" due error: ${err.message}`)));
                 });
             }).catch((attachError: Error) => {
-                reject(new Error(this._logger.warn(`Fail to attach plugin for session "${session}" due error: ${attachError.message}.`)));
+                reject(new Error(this._logger.warn(`Fail to attach plugin for session "${uuid}" due error: ${attachError.message}.`)));
             });
         });
     }

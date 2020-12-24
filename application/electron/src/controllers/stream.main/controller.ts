@@ -191,8 +191,14 @@ export class ControllerSession {
     public get(): {
         UUID(): string;
         session(): Session;
+        socket(): Socket;
+        stream(): Stream;
+        search(): Search;
+        charts(): Charts;
+        files(): Files;
     } {
-        const session = this._session;
+        const self = this;
+        const session = self._session;
         if (session === undefined) {
             throw new Error(
                 this._logger.error(`Cannot return session's UUID because session isn't inited`),
@@ -204,6 +210,21 @@ export class ControllerSession {
             },
             session(): Session {
                 return session;
+            },
+            socket(): Socket {
+                return self._dependencies.socket as Socket;
+            },
+            stream(): Stream {
+                return self._dependencies.stream as Stream;
+            },
+            search(): Search {
+                return self._dependencies.search as Search;
+            },
+            charts(): Charts {
+                return self._dependencies.charts as Charts;
+            },
+            files(): Files {
+                return self._dependencies.files as Files;
             },
         };
     }
