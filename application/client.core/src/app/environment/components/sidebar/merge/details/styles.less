@@ -38,9 +38,13 @@ app-sidebar-app-files-details {
     }
     & .controlls{
         text-align: right;
-        white-space: nowrap;
-        & * {
+        white-space: normal;
+        & .mat-stroked-button {
+            margin-top: 8px;
             margin-right: 8px;
+        }
+        & * {
+            display: inline-block;
             &:last-child {
                 margin-right: 0;
             }
