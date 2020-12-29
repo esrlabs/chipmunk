@@ -174,7 +174,21 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
         }
     }
 
-    public _ng_onApply() {
+    public _ng_onApply(target?: 'with_errors' | 'all') {
+        function apply(dest: IMergeFile, format): IMergeFile {
+            if (dest.format === undefined) {
+                dest.format = {
+                    format: '',
+                    flags: [],
+                    regex: '',
+                };
+            }
+            dest.format.format = format.format;
+            dest.format.regex = format.regex;
+            dest.format.flags = format.flags;
+            dest.error = undefined;
+            return dest;
+        }
         if (this._ng_format_error === undefined || !this._ng_format_error.isValid()) {
             return;
         }
@@ -182,19 +196,30 @@ export class SidebarAppMergeFilesDetailsComponent implements OnDestroy, AfterCon
         this.controller.test(this.file.path, this._ng_format).then((result: IPCMessages.IMergeFilesTestResponse) => {
             if (result.error !== undefined || result.format === undefined) {
                 this._ng_format = this.file.format.format;
+                this.file.error = result.error !== undefined ? result.error : `Format data wasn't gotten`;
+                this.controller.update(this.file.path, this.file);
                 return this._notifications.add({
-                    message: result.error !== undefined ? result.error : `Format data wasn't gotten`,
+                    message: this.file.error,
                     caption: 'Error',
                     options: {
                         type: ENotificationType.error
                     }
                 });
             }
-            this.file.format.format = result.format.format;
-            this.file.format.regex = result.format.regex;
-            this.file.format.flags = result.format.flags;
+            this.file = apply(this.file, result.format);
             this._setPreview();
             this.controller.update(this.file.path, this.file);
+            if (target !== undefined) {
+                this.controller.getFiles().forEach((file: IMergeFile) => {
+                    if (this.file.path === file.path) {
+                        return;
+                    }
+                    if (file.error === undefined && target === 'with_errors') {
+                        return;
+                    }
+                    this.controller.update(file.path, apply(file, result.format));
+                });
+            }
         }).catch((error: Error) => {
             this._ng_format = this.file.format.format;
             return this._notifications.add({

@@ -55,6 +55,14 @@
 <div class="controlls" *ngIf="_ng_state !== 'tested'">
     <button mat-stroked-button color="primary" (click)="_ng_onApply()" [disabled]="!_ng_format_error.isValid()">
         <mat-spinner *ngIf="_ng_state === 'testing'" [diameter]="32" mode="indeterminate"></mat-spinner>
-        Apply
+        <span *ngIf="_ng_state !== 'testing'">Apply</span>
+    </button>
+    <button mat-stroked-button color="primary" (click)="_ng_onApply('with_errors')" [disabled]="!_ng_format_error.isValid()">
+        <mat-spinner *ngIf="_ng_state === 'testing'" [diameter]="32" mode="indeterminate"></mat-spinner>
+        <span *ngIf="_ng_state !== 'testing'">Apply for Errors</span>
+    </button>
+    <button mat-stroked-button color="primary" (click)="_ng_onApply('all')" [disabled]="!_ng_format_error.isValid()">
+        <mat-spinner *ngIf="_ng_state === 'testing'" [diameter]="32" mode="indeterminate"></mat-spinner>
+        <span *ngIf="_ng_state !== 'testing'">Apply for All</span>
     </button>
 </div>
