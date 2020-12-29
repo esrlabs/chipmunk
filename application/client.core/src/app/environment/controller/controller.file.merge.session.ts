@@ -215,7 +215,7 @@ export class ControllerFileMergeSession {
                     format: file.format !== undefined ? file.format.format : '',
                     year: file.options.year,
                     parser: '',
-                    offset: file.options.offset,
+                    offset: file.options.offset === undefined ? 0 : file.options.offset,
                     zone: '',
                 };
             });

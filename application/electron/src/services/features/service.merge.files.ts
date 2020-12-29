@@ -95,7 +95,7 @@ class ServiceMergeFiles implements IService {
             req.files.map((file: IMergeFileRequest) => {
                 return {
                     file: file.file,
-                    offset: file.offset,
+                    offset: file.offset === undefined ? 0 : file.offset,
                     parser: file.parser,
                     year: file.year,
                     format: file.format,
