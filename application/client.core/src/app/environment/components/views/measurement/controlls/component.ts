@@ -169,6 +169,9 @@ export class ViewMeasurementControllsComponent implements AfterViewInit, OnDestr
 
     private _onFormatsChange() {
         this._ng_formats = this.controller.getFormats();
+        if (this.controller.isDetected()) {
+            this._ng_detectingErr = undefined;
+        }
         this._forceUpdate();
     }
 
