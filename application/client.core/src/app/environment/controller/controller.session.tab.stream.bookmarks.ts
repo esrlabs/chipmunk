@@ -3,6 +3,8 @@ import { Observable, Subject } from 'rxjs';
 import HotkeysService, { IHotkeyEvent } from '../services/service.hotkeys';
 import { Subscription } from 'rxjs';
 import { Importable } from './controller.session.importer.interface';
+import { IRange } from './helpers/selection';
+import { IStreamPacket } from './controller.session.tab.stream.output';
 
 export interface IBookmark {
     str: string | undefined;
@@ -11,7 +13,7 @@ export interface IBookmark {
     rank: number;
 }
 
-export class ControllerSessionTabStreamBookmarks extends Importable<IBookmark[]> {
+export class ControllerSessionTabStreamBookmarks extends Importable<number[]> {
 
     private _logger: Toolkit.Logger;
     private _sessionId: string;
@@ -32,9 +34,12 @@ export class ControllerSessionTabStreamBookmarks extends Importable<IBookmark[]>
         onExport: new Subject<void>(),
     };
 
-    constructor(session: string) {
+    private _getRowsSelection: (ranges: IRange[]) => Promise<IStreamPacket[]>;
+
+    constructor(session: string, getRowsSelection: (ranges: IRange[]) => Promise<IStreamPacket[]>) {
         super();
         this._sessionId = session;
+        this._getRowsSelection = getRowsSelection;
         this._logger = new Toolkit.Logger(`ControllerSessionBookmarks: ${session}`);
         this._subscriptions.selectNextRow = HotkeysService.getObservable().selectNextRow.subscribe(this._selectNextRow.bind(this));
         this._subscriptions.selectPrevRow = HotkeysService.getObservable().selectPrevRow.subscribe(this._selectPrevRow.bind(this));
@@ -107,24 +112,51 @@ export class ControllerSessionTabStreamBookmarks extends Importable<IBookmark[]>
         return 'bookmarks';
     }
 
-    public export(): Promise<IBookmark[] | undefined> {
+    public export(): Promise<number[] | undefined> {
         return new Promise((resolve) => {
             if (this._bookmarks.size === 0) {
                 return resolve(undefined);
             }
-            resolve(Array.from(this._bookmarks.values()));
+            resolve(Array.from(this._bookmarks.values()).map(b => b.position));
         });
     }
 
-    public import(bookmarks: IBookmark[]): Promise<void> {
+    public import(positions: number[]): Promise<void> {
         return new Promise((resolve, reject) => {
             this._bookmarks.clear();
-            bookmarks.forEach((bookmark: IBookmark) => {
-                this._bookmarks.set(bookmark.position, bookmark);
-                this._subjects.onAdded.next(bookmark);
-                this._subjects.onExport.next();
-            });
-            resolve();
+            positions = positions.map((smth: any) => {
+                if (typeof smth === 'number' && isFinite(smth) && !isNaN(smth)) {
+                    return smth;
+                } if (typeof smth === 'object' && smth !== null && typeof smth.position === 'number' && isFinite(smth.position) && !isNaN(smth.position)) {
+                    return smth.position;
+                } else {
+                    return undefined;
+                }
+            }).filter(p => p !== undefined);
+            this._getRowsSelection(positions.map((pos: number, i: number) => {
+                return {
+                    start: pos,
+                    end: pos,
+                    id: `${i}`,
+                };
+            })).then((packets: IStreamPacket[]) => {
+                packets.forEach((pack: IStreamPacket) => {
+                    if (positions.indexOf(pack.position) === -1) {
+                        return;
+                    }
+                    const bookmark: IBookmark = {
+                        str: pack.str,
+                        rank: pack.rank,
+                        pluginId: pack.pluginId,
+                        position: pack.position,
+                    };
+                    this._bookmarks.set(bookmark.position, bookmark);
+                    this._subjects.onAdded.next(bookmark);
+                    this._subjects.onExport.next();
+                });
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to restore bookmark due error: ${err.message}`);
+            }).finally(resolve);
         });
     }
 

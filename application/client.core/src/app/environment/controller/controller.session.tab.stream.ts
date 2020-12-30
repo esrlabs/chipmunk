@@ -38,7 +38,7 @@ export class ControllerSessionTabStream {
         this._guid = params.guid;
         this._scope = params.scope;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStream: ${params.guid}`);
-        this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid);
+        this._bookmarks = new ControllerSessionTabStreamBookmarks(params.guid, this.getRowsSelection.bind(this));
         this._output = new ControllerSessionTabStreamOutput({
             guid: params.guid,
             requestDataHandler: this._requestData.bind(this),
