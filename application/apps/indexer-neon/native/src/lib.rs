@@ -9,19 +9,13 @@ extern crate log4rs;
 extern crate merging;
 extern crate processor;
 extern crate serde;
-// #[macro_use]
-// extern crate neon_serde;
 
-// mod api;
 mod channels;
 mod config;
 mod fibex_utils;
 mod js;
 mod logging;
-mod mock;
-// use crate::api::dlt_pcap_converter::JsDltPcapConverterEventEmitter;
-use crate::js::events::{CallbackEvent, Done};
-use crate::js::rust_session::JsRustSession;
+use crate::js::session::JsRustSession;
 use logging::init_logging;
 
 // use api::{
@@ -62,12 +56,6 @@ register_module!(mut cx, {
     // cx.export_class::<JsExporterEventEmitter>("RustExporterEventEmitter")?;
     // cx.export_class::<JsFormatVerificationEmitter>("RustFormatVerificationEmitter")?;
     // cx.export_class::<JsGrabber>("RustGrabber")?;
-
-    // API v2
-    let notification_value = cx.string(CallbackEvent::Notification.to_string());
-    let done_finished_value = cx.string(CallbackEvent::Done(Done::Finished).to_string());
-    cx.export_value("NOTIFICATION", notification_value)?;
-    cx.export_value("FINISHED", done_finished_value)?;
 
     // API v2.1
     cx.export_class::<JsRustSession>("RustSession")?;

@@ -1,374 +1,321 @@
-// use crate::js::events::{CallbackEvent, Channel, ComputationError, Done, ShutdownReceiver};
-// // use crate::js::grabber_action::GrabberAction;
-// use crate::js::search::SearchAction;
-// use crate::mock::MockWork;
-// use crossbeam_channel as cc;
-// use indexer_base::progress::{IndexingProgress, IndexingResults};
-// use neon::{handle::Handle, prelude::*};
-// use processor::grabber::Grabber;
-// use std::path::Path;
-// use std::path::PathBuf;
-// use std::sync::{Arc, Mutex};
-// use std::thread;
+use crate::js::events::Channel;
+use crate::js::events::{CallbackEvent, ComputationError, Done};
+use crossbeam_channel as cc;
+use indexer_base::progress::Progress;
+use neon::prelude::*;
+use processor::grabber::GrabbedContent;
+use processor::grabber::LineRange;
+use processor::grabber::{GrabMetadata, Grabber};
+use serde::{Deserialize, Serialize};
+use std::path::Path;
+use std::thread;
 
-// pub trait OperationAction {
-//     /// possibly longruning blocking action
-//     /// might report about progress using the result_sender channel
-//     /// when this function returns, the action has completed
-//     fn prepare(
-//         &self,
-//         result_sender: cc::Sender<IndexingResults<()>>,
-//         shutdown_rx: Option<ShutdownReceiver>,
-//     ) -> Result<(), ComputationError>;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SearchFilter {
+    value: String,
+    is_regex: bool,
+    case_sensitive: bool,
+    is_word: bool,
+}
 
-//     fn sync_op(&mut self, _v1: u64, _v2: u64) -> Result<Vec<String>, ComputationError> {
-//         Err(ComputationError::OperationNotSupported(
-//             "grab_section not implemented".to_owned(),
-//         ))
-//     }
+pub struct RustSession {
+    pub id: String,
+    pub assigned_file: Option<String>,
+    pub content_grabber: Option<Grabber>,
+    pub(crate) handler: EventHandler,
+    pub filters: Vec<SearchFilter>,
+    // channel that allows to propagate shutdown requests to ongoing operations
+    shutdown_channel: Channel<()>,
+    // channel to store the metadata of a file once available
+    metadata_channel: Channel<Result<Option<GrabMetadata>, ComputationError>>,
+}
 
-//     /// indicates if the action is a search request
-//     fn is_search(&self) -> bool {
-//         false
-//     }
-//     // fn (bool) -> bool
-//     // fn (u64) -> bool
-//     // fn (bool) -> u64
-// }
+impl RustSession {
+    pub fn start_listening_for_metadata_progress(
+        &self,
+        javascript_listener: neon::event::EventHandler,
+    ) -> cc::Sender<Progress> {
+        let (progress_tx, progress_rx): Channel<Progress> = cc::unbounded();
+        thread::spawn(move || {
+            log::debug!("Started progress listener thread");
 
-// /// A session is kept for every open tab in chipmunk. It is used to manage all data related
-// /// to a tab, e.g. data sources, ongoing grabber and/or search operations
-// pub struct Session {
-//     pub id: String,
-//     pub live_operations: Vec<Operation>,
-//     pub session_file_path: PathBuf,
-// }
+            loop {
+                match progress_rx.recv() {
+                    Ok(progress) => {
+                        if let Err(e) =
+                            send_js_event(&javascript_listener, CallbackEvent::Progress(progress))
+                        {
+                            log::warn!("Could not send event to js: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        log::info!("Progress channel was closed: {}", e);
+                    }
+                }
+            }
+            log::debug!("Exit progress listener thread");
+        });
+        progress_tx
+    }
 
-// impl Session {
-//     pub fn operation(&self, key: &str) -> Option<&Operation> {
-//         self.live_operations.iter().find(|&op| key == op.key)
-//     }
+    fn grab_lines(
+        &mut self,
+        start_line_index: u64,
+        number_of_lines: u64,
+    ) -> Result<GrabbedContent, ComputationError> {
+        match &mut self.content_grabber {
+            Some(grabber) => {
+                if grabber.metadata.is_none() {
+                    match self.metadata_channel.1.try_recv() {
+                        Err(cc::TryRecvError::Empty) => {
+                            log::warn!("RUST: metadata not initialized");
+                            Err(ComputationError::Protocol(
+                                "RUST: metadata not initialized".to_owned(),
+                            ))
+                        }
+                        Err(e) => {
+                            let e = format!("RUST: Error receiving from channel: {}", e);
+                            log::warn!("{}", e);
+                            Err(ComputationError::Process(e))
+                        }
+                        Ok(Err(e)) => {
+                            let e = format!("RUST: Received error from metadata channel: {}", e);
+                            log::warn!("{}", e);
+                            Err(ComputationError::Process(e))
+                        }
+                        Ok(Ok(md)) => {
+                            println!("RUST: Received completed metadata");
+                            grabber.metadata = md;
 
-//     pub fn end_operation(&mut self, key: &str) -> Option<()> {
-//         self.live_operations.iter_mut().find_map(|op| {
-//             if op.key == key {
-//                 op.clear();
-//                 let _ = op.shutdown_channel.0.send(());
-//                 Some(())
-//             } else {
-//                 None
-//             }
-//         })
-//     }
-// }
+                            grabber
+                                .get_entries(&LineRange::new(
+                                    start_line_index,
+                                    start_line_index + number_of_lines,
+                                ))
+                                .map_err(|e| ComputationError::Communication(format!("{}", e)))
+                        }
+                    }
+                } else {
+                    grabber
+                        .get_entries(&LineRange::new(
+                            start_line_index,
+                            start_line_index + number_of_lines,
+                        ))
+                        .map_err(|e| ComputationError::Communication(format!("{}", e)))
+                }
+            }
+            None => Err(ComputationError::Protocol(
+                "No file was assinged".to_string(),
+            )),
+        }
+    }
+}
 
-// pub struct Operation {
-//     pub shutdown_channel: Channel<()>,
-//     pub(crate) handler: Option<EventHandler>,
-//     pub action: Option<Arc<Mutex<dyn OperationAction + Sync + Send>>>,
-//     pub key: String,
-// }
+fn send_js_event<T: Serialize>(
+    javascript_listener: &neon::event::EventHandler,
+    event: T,
+) -> Result<(), ComputationError> {
+    match serde_json::to_string(&event) {
+        Ok(js_string) => {
+            javascript_listener.schedule_with(move |cx, this, callback| {
+                let args: Vec<Handle<JsValue>> = vec![cx.string(js_string).upcast()];
+                if let Err(e) = callback.call(cx, this, args) {
+                    log::error!("Error on calling js callback: {}", e);
+                }
+            });
+            Ok(())
+        }
+        Err(e) => {
+            let error_msg = format!("Could not convert Event: {}", e);
+            log::error!("{}", &error_msg);
+            Err(ComputationError::InvalidData)
+        }
+    }
+}
 
-// impl Operation {
-//     fn new(key: &str) -> Self {
-//         Self {
-//             shutdown_channel: cc::unbounded(),
-//             handler: None,
-//             action: None,
-//             key: key.to_owned(),
-//         }
-//     }
+fn send_js_event_cx<'a, T: Serialize>(
+    cx: &mut neon::context::CallContext<'a, JsRustSession>,
+    event: T,
+) -> Result<(), neon::result::Throw> {
+    let error = {
+        let this = cx.this();
+        let guard = cx.lock();
+        let this = this.borrow(&guard);
+        let handler = this.handler.clone();
+        match send_js_event(&handler, event) {
+            Err(e) => Some(format!("{}", e)),
+            Ok(()) => None,
+        }
+    };
+    match error {
+        Some(e) => cx.throw_error(e),
+        None => Ok(()),
+    }
+}
 
-//     pub fn clear(&mut self) {
-//         self.handler = None;
-//         self.action = None;
-//     }
+declare_types! {
 
-//     pub fn set_event_handler(&mut self, handler: EventHandler) {
-//         self.handler = Some(handler);
-//     }
+    pub class JsRustSession for RustSession {
+        init(mut cx) {
+            let id = cx.argument::<JsString>(0)?.value();
+            let callback = cx.argument::<JsFunction>(1)?;
+            let this = cx.this();
+            let handler = EventHandler::new(&cx, this, callback);
+            Ok(RustSession {
+                id,
+                handler,
+                assigned_file: None,
+                content_grabber: None,
+                filters: vec![],
+                shutdown_channel: cc::unbounded(),
+                metadata_channel: cc::unbounded(),
+            })
+        }
 
-//     pub fn start_listening_for_events(
-//         javascript_listener: neon::event::EventHandler,
-//         progress_receiver: cc::Receiver<IndexingResults<()>>,
-//     ) {
-//         thread::spawn(move || {
-//             log::debug!("Started progress listener thread");
+        method id(mut cx) {
+            let this = cx.this();
+            let id = {
+                let guard = cx.lock();
+                let this = this.borrow(&guard);
+                this.id.clone()
+            };
+            println!("{}", &id);
+            Ok(cx.string(id).upcast())
+        }
 
-//             loop {
-//                 match progress_receiver.recv() {
-//                     Ok(indexing_res) => match indexing_res {
-//                         Ok(progress) => match progress {
-//                             IndexingProgress::Stopped => {
-//                                 log::debug!("Computation was stopped");
-//                                 break;
-//                             }
-//                             IndexingProgress::Finished => {
-//                                 log::debug!("Computation has finished");
-//                                 break;
-//                             }
-//                             IndexingProgress::Progress { ticks } => {
-//                                 javascript_listener.schedule_with(move |cx, this, callback| {
-//                                     let args: Vec<Handle<JsValue>> = vec![
-//                                         cx.string(CallbackEvent::Progress.to_string()).upcast(),
-//                                         cx.number(ticks.0 as f64).upcast(),
-//                                         cx.number(ticks.1 as f64).upcast(),
-//                                     ];
-//                                     if let Err(e) = callback.call(cx, this, args) {
-//                                         log::error!("Calling javascript callback failed: {}", e);
-//                                     }
-//                                 });
-//                             }
-//                             IndexingProgress::GotItem { item } => {
-//                                 // TODO: do we still need that?
-//                                 log::debug!("Got an item: {:?}, NOT forwarding!", item);
-//                             }
-//                         },
-//                         Err(notification) => {
-//                             log::debug!("Forwarding notification: {:?}", notification);
-//                             javascript_listener.schedule_with(move |cx, this, callback| {
-//                                 let mut args: Vec<Handle<JsValue>> = vec![
-//                                     cx.string(CallbackEvent::Notification.to_string()).upcast(),
-//                                     cx.string(notification.severity.as_str()).upcast(),
-//                                     cx.string(notification.content).upcast(),
-//                                 ];
-//                                 if let Some(line) = notification.line {
-//                                     args.push(cx.number(line as f64).upcast());
-//                                 }
-//                                 if let Err(e) = callback.call(cx, this, args) {
-//                                     log::error!("Calling javascript callback failed: {}", e);
-//                                 }
-//                             });
-//                         }
-//                     },
-//                     Err(e) => log::warn!("Error receiving progress: {}", e),
-//                 }
-//             }
-//             log::debug!("Exit progress listener thread");
-//         });
-//     }
-// }
+        method cancel_operations(mut cx) {
+            let mut this = cx.this();
+            {
+                let guard = cx.lock();
+                let this_mut = this.borrow_mut(&guard);
+                let _ = this_mut.shutdown_channel.0.send(());
+            }
+            Ok(cx.undefined().upcast())
+        }
 
-// /// all possible operations are constructed here
-// /// each operation has a key, e.g. "SEARCH" that is passed from node
-// /// along with the required arguments
-// pub fn look_up_work(
-//     key: &str,
-//     session_path: &Path,
-//     data1: &str,
-// ) -> Option<Arc<Mutex<dyn OperationAction + Sync + Send>>> {
-//     match key {
-//         "MOCK" => Some(Arc::new(Mutex::new(MockWork::new()))),
-//         "SEARCH" => {
-//             let shutdown_channel = cc::unbounded();
-//             let chunk_result_channel: (
-//                 cc::Sender<IndexingResults<()>>,
-//                 cc::Receiver<IndexingResults<()>>,
-//             ) = cc::unbounded();
-//             match SearchAction::new(
-//                 session_path,
-//                 data1, // == regex
-//                 shutdown_channel,
-//                 chunk_result_channel,
-//             ) {
-//                 Ok(a) => Some(Arc::new(Mutex::new(a))),
-//                 Err(e) => {
-//                     log::warn!("Could not create search action: {}", e);
-//                     None
-//                 }
-//             }
-//         }
-//         // "GRABBER" => {
-//         //     let shutdown_channel = cc::unbounded();
-//         //     let metadata_channel = cc::bounded(1);
-//         //     let chunk_result_channel: (
-//         //         cc::Sender<IndexingResults<()>>,
-//         //         cc::Receiver<IndexingResults<()>>,
-//         //     ) = cc::unbounded();
-//         //     match Grabber::lazy(session_path) {
-//         //         Ok(grabber) => Some(Arc::new(Mutex::new(GrabberAction {
-//         //             grabber,
-//         //             handler: None,
-//         //             shutdown_channel,
-//         //             metadata_channel,
-//         //             event_channel: chunk_result_channel,
-//         //         }))),
-//         //         Err(e) => {
-//         //             log::error!("Error creating grabber: {}", e);
-//         //             None
-//         //         }
-//         //     }
-//         // }
-//         _ => {
-//             log::warn!("Operation for {} not registered", key);
-//             None
-//         }
-//     }
-// }
+        method assignFile(mut cx) {
+            let file_path = cx.argument::<JsString>(0)?.value();
+            let source_id = cx.argument::<JsString>(1)?.value();
+            let mut this = cx.this();
+            let error = {
+                let guard = cx.lock();
+                let mut this_mut = this.borrow_mut(&guard);
+                this_mut.assigned_file = Some(file_path.clone());
+                match Grabber::lazy(Path::new(&file_path), &source_id) {
+                    Ok(grabber) => {
+                        this_mut.content_grabber = Some(grabber);
+                        let (handler, shutdown_rx, metadata_tx) =
+                            (this_mut.handler.clone(),
+                             this_mut.shutdown_channel.1.clone(),
+                             this_mut.metadata_channel.0.clone());
+                        let progress_tx = this_mut.start_listening_for_metadata_progress(handler);
+                        thread::spawn(move || {
+                            log::debug!("Created rust thread for task execution");
+                            match Grabber::create_metadata_for_file(file_path, &progress_tx, Some(shutdown_rx)) {
+                                Ok(metadata)=> {
+                                    let _ = metadata_tx.send(Ok(metadata));
+                                } //this_mut.content_grabber.unwrap().metadata = metadata,
+                                Err(e) => {
+                                    let e_str = format!("Error creating grabber for file: {}", e);
+                                    log::error!("{}", e_str);
+                                    let _ = metadata_tx.send(Err(ComputationError::Process(e_str)));
+                                }
+                            }
+                            drop(progress_tx);
+                        });
+                        None
+                    },
+                    Err(e) => {
+                        Some(format!("Error creating grabber for file: {}", e))
+                    }
+                }
+            };
+            match error {
+                Some(e) => cx.throw_error(e),
+                None => Ok(cx.undefined().upcast()),
+            }
+        }
 
-// declare_types! {
+        method grab(mut cx) {
+            let start_line_index: u64 = cx.argument::<JsNumber>(0)?.value() as u64;
+            let number_of_lines: u64 = cx.argument::<JsNumber>(1)?.value() as u64;
+            let mut this = cx.this();
+            let error = {
+                let guard = cx.lock();
+                let mut this_mut = this.borrow_mut(&guard);
+                this_mut.grab_lines(start_line_index, number_of_lines)
+            };
+            match error {
+                Err(e) => cx.throw_error(e.to_string()),
+                Ok(grabbed_content) => {
+                    match serde_json::to_string(&grabbed_content) {
+                        Ok(js_string) => {
+                            Ok(cx.string(js_string).upcast())
+                        },
+                        Err(e) => {
+                            log::error!("Could not convert SearchFilter: {}", e);
+                            cx.throw_error(e.to_string())
+                        },
+                    }
+                },
+            }
+        }
 
-//     pub class JsSession for Session {
-//         init(mut _cx) {
-//             let id = _cx.argument::<JsString>(0)?.value();
-//             let session_file_path_str = _cx.argument::<JsString>(1)?.value();
-//             println!("init: {} for path: {}", id.as_str(), session_file_path_str);
-//             let session_file_path = PathBuf::from(&session_file_path_str);
-//             if !session_file_path.exists() {
-//                 _cx.throw_error(format!("No file exists here: {}", session_file_path_str))
-//             } else {
-//                 Ok(Session {
-//                     id,
-//                     session_file_path,
-//                     live_operations: vec![],
-//                 })
-//             }
-//         }
+        method setFilters(mut cx) {
+            let arg_filters = cx.argument::<JsString>(0)?.value();
+            let filter_conf: Result<Vec<SearchFilter>, serde_json::Error> =
+                serde_json::from_str(arg_filters.as_str());
+            match filter_conf {
+                Ok(conf) => {
+                    let mut this = cx.this();
+                    {
+                        let guard = cx.lock();
+                        let mut this_mut = this.borrow_mut(&guard);
+                        this_mut.filters.clear();
+                        for filter in conf {
+                            this_mut.filters.push(filter);
+                        }
+                    };
+                    Ok(cx.undefined().upcast())
+                }
+                Err(e) => cx.throw_error(format!("{}", e))
+            }
+        }
 
-//         constructor(_cx) {
-//             Ok(None)
-//         }
+        method clearFilters(mut cx) {
+            let mut this = cx.this();
+            {
+                let guard = cx.lock();
+                let mut this_mut = this.borrow_mut(&guard);
+                this_mut.filters.clear();
+            };
+            Ok(cx.undefined().upcast())
+        }
 
-//         method add_operation(mut cx) {
-//             let op_key = cx.argument::<JsString>(0)?.value();
-//             let data1 = cx.argument::<JsString>(1)?.value();
-//             let callback = cx.argument::<JsFunction>(2)?;
-//             let mut this = cx.this();
-//             let mut operation = Operation::new(&op_key);
-//             let handler = EventHandler::new(&cx, this, callback);
+        method getFilters(mut cx) {
+            let this = cx.this();
+            let filters = {
+                let guard = cx.lock();
+                let session = this.borrow(&guard);
+                session.filters.clone()
+            };
 
-//             let session_path = {
-//                 let guard = cx.lock();
-//                 let this = this.borrow(&guard);
-//                 this.session_file_path.clone()
-//             };
-//             operation.action = look_up_work(&op_key, &session_path, &data1);
-//             operation.set_event_handler(handler);
-//             println!("add operation {}", op_key);
-//             let res = {
-//                 let guard = cx.lock();
-//                 let mut this_mut = this.borrow_mut(&guard);
-//                 if this_mut.operation(&op_key).is_some() {
-//                     println!("operation could not be added, already in");
-//                     false
-//                 } else {
-//                     this_mut.live_operations.push(operation);
-//                     println!("added operation {}", op_key);
-//                     true
-//                 }
-//             };
-//             if res {
-//                 Ok(cx.undefined().upcast())
-//             } else {
-//                 cx.throw_error(format!("Operation with id [{}] already registered", op_key))
-//             }
-//         }
+            let array: Handle<JsArray> = JsArray::new(&mut cx, filters.len() as u32);
+            for (i, x) in filters.into_iter().enumerate() {
+                match serde_json::to_string(&x) {
+                    Ok(js_string) => {
+                        let s = cx.string(js_string);
+                        array.set(&mut cx, i as u32, s)?;
+                    },
+                    Err(e) => log::error!("Could not convert SearchFilter: {}", e),
+                }
+            }
+            Ok(array.as_value(&mut cx))
+        }
 
-//         method async_function(mut cx) {
-//             let id = cx.argument::<JsString>(0)?.value();
-//             let this = cx.this();
-//             let error = {
-//                 let guard = cx.lock();
-//                 let this = this.borrow(&guard);
-//                 let operation = this.operation(&id);
-//                 match operation {
-//                     Some(op) => {
-//                         let (handler, shutdown_receiver, action) =
-//                             (op.handler.clone(), op.shutdown_channel.1.clone(), op.action.clone());
-//                         match (handler, action, id) {
-//                             (Some(event_handler), Some(action), _id) => {
-//                                 let (event_tx, event_rx) = cc::unbounded();
-//                                 Operation::start_listening_for_events(event_handler.clone(), event_rx);
-//                                 thread::spawn(move || {
-//                                     log::debug!("Created rust thread for task execution");
-
-//                                     // TODO get rid of unwrap
-//                                     if let Err(e) = action.lock().unwrap().prepare(event_tx, Some(shutdown_receiver)) {
-//                                         log::error!("Error on async function: {}", e);
-//                                     }
-//                                     event_handler.schedule_with(move |cx, this, callback| {
-//                                         let args : Vec<Handle<JsValue>> = vec![
-//                                             cx.string(CallbackEvent::Done(Done::Finished).to_string()).upcast(),
-//                                             cx.string("FINISHED").upcast()];
-//                                         if let Err(e) = callback.call(cx, this, args) {
-//                                             log::error!("Error on calling js callback: {}", e);
-//                                         }
-//                                     });
-//                                     log::debug!("RUST: exiting worker thread");
-//                                 });
-//                                 None
-//                             }
-//                             (None, None, _id) => {
-//                                 Some("No event-handler, no action function found in Session".to_string())
-//                             }
-//                             (_, None, id) => {
-//                                 Some(format!("No action function for {:?} found in Session", id))
-//                             }
-//                             (None, _, _id) => {
-//                                 Some("No event-handler found in Session".to_string())
-//                             }
-//                         }
-//                     }
-//                     None => Some(format!("Operation with id [{}] not found", id)),
-//                 }
-//             };
-//             match error {
-//                 None => Ok(cx.undefined().upcast()),
-//                 Some(e) => cx.throw_error(e)
-//             }
-//         }
-
-//         method sync_function(mut cx) {
-//             let id = cx.argument::<JsString>(0)?.value();
-//             let v1: u64 = cx.argument::<JsNumber>(1)?.value() as u64;
-//             let v2: u64 = cx.argument::<JsNumber>(2)?.value() as u64;
-//             let this = cx.this();
-//             // TODO: more generic
-//             let array: Handle<JsArray> = JsArray::new(&mut cx, v2 as u32);
-//             let res = {
-//                 let guard = cx.lock();
-//                 let this = this.borrow(&guard);
-//                 let operation = this.operation(&id);
-
-//                 match operation {
-//                     Some(op) => {
-//                         match &op.action {
-//                             Some(action) => action.lock().unwrap().sync_op(v1, v2),
-//                             None => Err(ComputationError::Communication(format!("Could not lock the action for id {}", id))),
-//                         }
-//                     }
-//                     None => Err(ComputationError::Communication(format!("No operation with id {} found", id))),
-//                 }
-//             };
-
-//             match res {
-//                 Err(e) => {
-//                     log::error!("Error on sync function: {}", e);
-//                     cx.throw_error(format!("Error on sync function: {}", e))
-//                 },
-//                 Ok(lines) => {
-//                     for (i, x) in lines.into_iter().enumerate() {
-//                         let s = cx.string(x);
-//                         array.set(&mut cx, i as u32, s)?;
-//                     }
-//                     Ok(array.as_value(&mut cx))
-//                 },
-//             }
-//         }
-
-//         method shutdown_operation(mut cx) {
-//             let id = cx.argument::<JsString>(0)?.value();
-//             log::info!("Shutdown operation {}", id);
-//             let mut this = cx.this();
-//             let ended = {
-//                 let guard = cx.lock();
-//                 let mut this_mut = this.borrow_mut(&guard);
-//                 this_mut.end_operation(&id)
-//             };
-//             match ended {
-//                 Some(()) => Ok(cx.undefined().upcast()),
-//                 None => cx.throw_error(format!("No operation with id {} live", id)),
-//             }
-//         }
-//     }
-// }
+        method shutdown(mut cx) {
+            send_js_event_cx(&mut cx, CallbackEvent::Done(Done::Finished))?;
+            Ok(cx.undefined().upcast())
+        }
+    }
+}
