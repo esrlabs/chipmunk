@@ -206,10 +206,28 @@ export class ServiceData {
         preview: boolean = false,
     ): IChartsResults {
         if (this._stream === undefined || this._charts === undefined) {
-            return { dataset: [], scale: { max: undefined, min: undefined, yAxisIDs: [], type: this._scale.type, colors: [] } };
+            return {
+                dataset: [],
+                scale: {
+                    max: undefined,
+                    min: undefined,
+                    yAxisIDs: [],
+                    type: this._scale.type,
+                    colors: [],
+                },
+            };
         }
         if (this._stream.count === 0 || Object.keys(this._charts).length === 0) {
-            return { dataset: [], scale: { max: undefined, min: undefined, yAxisIDs: [], type: this._scale.type, colors: [] } };
+            return {
+                dataset: [],
+                scale: {
+                    max: undefined,
+                    min: undefined,
+                    yAxisIDs: [],
+                    type: this._scale.type,
+                    colors: [],
+                },
+            };
         }
         const datasets = [];
         const max: number[] = [];
@@ -257,10 +275,12 @@ export class ServiceData {
             datasets.push(ds.dataset);
             max.push(ds.max);
             min.push(ds.min);
-            colors.push((() => {
-                const _chart: ChartRequest | undefined = this._getChartBySource(filter);
-                return _chart === undefined ? undefined : chart.getColor();
-            })());
+            colors.push(
+                (() => {
+                    const _chart: ChartRequest | undefined = this._getChartBySource(filter);
+                    return _chart === undefined ? undefined : chart.getColor();
+                })(),
+            );
             yAxisID.push(ds.dataset.yAxisID);
         });
         this._scale = {
@@ -270,7 +290,16 @@ export class ServiceData {
             type: this._scale.type,
             colors: colors,
         };
-        return { dataset: datasets, scale: { max: max, min: min, yAxisIDs: yAxisID, type: this._scale.type, colors: colors } };
+        return {
+            dataset: datasets,
+            scale: {
+                max: max,
+                min: min,
+                yAxisIDs: yAxisID,
+                type: this._scale.type,
+                colors: colors,
+            },
+        };
     }
 
     public getStreamSize(): number | undefined {
@@ -366,6 +395,12 @@ export class ServiceData {
             .getFiltersAPI()
             .getObservable()
             .updated.subscribe(this._onRequestsUpdated.bind(this));
+        this._sessionSubscriptions.onRequestsUpdated = controller
+            .getSessionSearch()
+            .getFiltersAPI()
+            .getStorage()
+            .getObservable()
+            .changed.subscribe(this._onRequestsUpdated.bind(this));
         this._sessionSubscriptions.onChartsResultsUpdated = controller
             .getSessionSearch()
             .getChartsAPI()
@@ -377,15 +412,9 @@ export class ServiceData {
             .getObservable()
             .onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
         // Get default data
-        this._stream = controller
-            .getSessionStream()
-            .getOutputStream()
-            .getState();
+        this._stream = controller.getSessionStream().getOutputStream().getState();
         this._matches = controller.getStreamMap().getState();
-        this._charts = controller
-            .getSessionSearch()
-            .getChartsAPI()
-            .getChartsData();
+        this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
         this._subjects.onData.next();
         this._subjects.onCharts.next();
     }
