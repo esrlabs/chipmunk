@@ -1,5 +1,40 @@
 # Changelog
 
+### [2.10.1] - 12/30/2020
+* Fix css styles for showing errors (#1002)
+* Set default value for offset to 0 (close #1002)
+* Fixing merge feature on case of failing format detection (#1002)
+* [#982](refact) Remove additional service
+* [#982](fix) Adjust column header when ranges open
+* [#984](refact) Reject error when read file
+* [#984](refact) Writing into file one after another
+* [#984](fix) Prevent reset settings on file change
+* [#977](refact) Use ServiceStorage to remember
+* [#977](fix) Move logic to backend only
+* [#977](fix) Remember uninstalled default plugins
+* Update npm resolutions list
+* [#881](fix) Fix render problem
+* [#881](fix) Close gap on timerange render
+* [#881](fix) Rendering of time range bug
+* [#741](fix) Dis-/appear scale-cursor on resize
+* Do not lock starting of app on OS env issue (close #979)
+* Fix rakefile
+* [#958](fix) Remove doubleclick from checkbox
+* [#960](refact) Remove timer to focus search
+* [#960](refact) Trap focus for tabbing on dialog
+* [](refact) Update button to material libarary
+* [#960](fix) Focus on dialog button
+* [#972](refact) Change hotkeys to scroll
+* [#961](fix) Show color indicator on default color
+* [#963](refact) Update package json
+* [#963](refact) Move changes
+* [#963](refact) Scrolling Hotkey to gloabl scope
+* [#952](refact) Put focus in seperate component
+* [](feat) Add Shift+j and Shift+j+j as shortcut
+* [#952](fix) Change focus to output when open file
+* [#963](refact) Update version
+* [#963](refact) Move scroll changes
+
 ## [2.10.0] - 11/13/2020
 ### Added
 * Support conversion from pcap to dlt file
