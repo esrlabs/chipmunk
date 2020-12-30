@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, HostListener } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
-import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamState, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
+import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamStateEvent, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
 import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { ViewOutputRowComponent } from '../../row/component';
@@ -284,11 +284,13 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         });
     }
 
-    private _onStateUpdated(state: IStreamState) {
+    private _onStateUpdated(event: IStreamStateEvent) {
         this._ng_outputAPI.onStorageUpdated.next({
-            count: state.count
+            count: event.state.count
         });
-        this._keepScrollDown();
+        if (!event.isBookmarkInjection) {
+            this._keepScrollDown();
+        }
     }
 
     private _onRangeLoaded(packet: ILoadedRange) {

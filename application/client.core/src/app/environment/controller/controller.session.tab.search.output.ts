@@ -45,6 +45,11 @@ export interface IStreamState {
     bufferLoadingRequestId: any;
 }
 
+export interface IStreamStateEvent {
+    isBookmarkInjection: boolean;
+    state: IStreamState;
+}
+
 export interface IRange {
     start: number;
     end: number;
@@ -92,7 +97,7 @@ export class ControllerSessionTabSearchOutput {
     };
 
     private _subjects = {
-        onStateUpdated: new Subject<IStreamState>(),
+        onStateUpdated: new Subject<IStreamStateEvent>(),
         onReset: new Subject<void>(),
         onRangeLoaded: new Subject<ILoadedRange>(),
         onBookmarksChanged: new Subject<void>(),
@@ -124,10 +129,10 @@ export class ControllerSessionTabSearchOutput {
 
      /**
      * List of available observables.
-     * @returns { onStateUpdated: Observable<IStreamState>, onRangeLoaded: Observable<ILoadedRange>, }
+     * @returns { onStateUpdated: Observable<IStreamStateEvent>, onRangeLoaded: Observable<ILoadedRange>, }
      */
     public getObservable(): {
-        onStateUpdated: Observable<IStreamState>,
+        onStateUpdated: Observable<IStreamStateEvent>,
         onRangeLoaded: Observable<ILoadedRange>,
         onBookmarksChanged: Observable<void>,
         onReset: Observable<void>,
@@ -253,7 +258,10 @@ export class ControllerSessionTabSearchOutput {
             // Update bookmarks state
             this._updateBookmarksData();
             // Trigger events
-            this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+            this._subjects.onStateUpdated.next({
+                isBookmarkInjection: false,
+                state: Object.assign({}, this._state),
+            });
         }
     }
 
@@ -324,7 +332,10 @@ export class ControllerSessionTabSearchOutput {
         this._setTotalStreamCount(this._state.originalCount);
         if (this._state.count !== count) {
             // Emit updating of state event
-            this._subjects.onStateUpdated.next(Object.assign({}, this._state));
+            this._subjects.onStateUpdated.next({
+                isBookmarkInjection: true,
+                state: Object.assign({}, this._state),
+            });
         }
         if (bookmark !== undefined) {
             // Emit rerequest event
