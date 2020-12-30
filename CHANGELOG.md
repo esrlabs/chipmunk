@@ -1,10 +1,11 @@
 # Changelog
 
-### [2.10.2] - 12/30/2020
+## [2.10.2] - 12/30/2020
+### Fixed
 * Restore bookmark by positions in file
 * Fix rendering of timerange borders
 * Prevent search output state update on bookmark injection
-* Update colors of filters on chart on changing
+* Update colors of filters on a chart on changing
 
 ## [2.10.1] - 12/30/2020
 ### Added
