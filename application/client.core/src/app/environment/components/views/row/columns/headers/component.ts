@@ -109,10 +109,6 @@ export class ViewOutputRowColumnsHeadersComponent implements AfterViewInit, OnDe
         return `-${this._ng_horScrollOffset}px`;
     }
 
-    public _ng_getRangeCssClass(): string {
-        return this.timestamp.getCount() > 0 ? 'range' : 'no_range';
-    }
-
     private _createContextMenu(event: MouseEvent) {
         ContextMenuService.show({
             component: {

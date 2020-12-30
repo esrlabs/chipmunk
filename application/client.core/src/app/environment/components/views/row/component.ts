@@ -201,9 +201,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this._ng_isSelected()) {
             css += ' selected ';
         }
-        if (this.timestamp.getCount() > 0) {
-            css += ' timeranges ';
-        }
         return css;
     }
 

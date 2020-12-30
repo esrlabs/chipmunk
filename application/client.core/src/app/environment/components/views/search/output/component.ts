@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, HostListener } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, HostListener, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerSessionTab } from '../../../../controller/controller.session.tab';
 import { ControllerSessionTabSearchOutput, ISearchStreamPacket, IStreamStateEvent, ILoadedRange } from '../../../../controller/controller.session.tab.search.output';
@@ -34,6 +34,7 @@ type TParentButtonsGetter = () => IButton[];
     selector: 'app-views-search-output',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 
 export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
