@@ -1,5 +1,11 @@
 # Changelog
 
+### [2.10.2] - 12/30/2020
+* Restore bookmark by positions in file
+* Fix rendering of timerange borders
+* Prevent search output state update on bookmark injection
+* Update colors of filters on chart on changing
+
 ## [2.10.1] - 12/30/2020
 ### Added
 * Add Shift+j and Shift+j+j as a shortcut to scroll to start/end of file
