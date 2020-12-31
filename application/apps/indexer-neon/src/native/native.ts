@@ -23,7 +23,7 @@ export function getNativeModule(): IRustModuleExports {
         return {
             RustEmitterEvents: {},
             RustSession: {},
-        };    
+        };
     }
 }
 
@@ -36,10 +36,11 @@ const addon = getNativeModule();
 
 export type TEventEmitter = (name: ERustEmitterEvents, data: any) => void;
 export type TCanceler = () => void;
-export type RustChannelConstructorImpl<T> = new (emitter: TEventEmitter) => T;
+export type RustChannelConstructorImpl<T> = new (sessionId: string, callback: TEventEmitter) => T;
+// export type RustChannelConstructorImpl<T> = new (emitter: TEventEmitter) => T;
 
 export {
     RustEmitterEvents,
     RustSessionChannelNoType,
-    addon
+    // addon
 };

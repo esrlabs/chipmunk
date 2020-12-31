@@ -1,3 +1,4 @@
+use indexer_base::progress::Ticks;
 use indexer_base::{
     progress::{IndexingProgress, IndexingResults, Progress},
     utils,
@@ -229,11 +230,11 @@ impl Grabber {
             byte_index += len as u64;
             processed_lines += line_count;
             result_sender
-                .send(Progress::Ticks(byte_index, input_file_size))
+                .send(Progress::ticks(byte_index, input_file_size))
                 .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
         }
         result_sender
-            .send(Progress::Ticks(input_file_size, input_file_size))
+            .send(Progress::ticks(input_file_size, input_file_size))
             .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
         Ok(Some(GrabMetadata {
             slots,

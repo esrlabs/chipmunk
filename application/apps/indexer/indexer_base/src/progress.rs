@@ -16,10 +16,29 @@ impl Severity {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Progress {
-    Ticks(u64, u64),
+    Ticks(Ticks),
     Notification(Notification),
     Stopped,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Ticks {
+    pub count: u64,
+    pub total: u64,
+}
+
+impl Ticks {
+    pub fn done(&self) -> bool {
+        self.count == self.total
+    }
+}
+
+impl Progress {
+    pub fn ticks(count: u64, total: u64) -> Self {
+        Self::Ticks(Ticks { count, total })
+    }
 }
 
 pub type IndexingResults<T> = std::result::Result<IndexingProgress<T>, Notification>;
