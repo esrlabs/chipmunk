@@ -9,13 +9,18 @@ export interface IMapEntity {
     rows: number[];
 }
 
-export interface IFilterFlags {
-	reg: boolean,
-	word: boolean,
-	cases: boolean,
+export interface ISearchFilter {
+	value: string,
+	is_regex: boolean,
+	case_sensitive: boolean,
+	is_word: boolean,
 }
 
-export interface IFilter {
-	filter: string,
-	flags: IFilterFlags,
+export interface IGrabbedContent {
+	grabbed_elements: IGrabbedElement[],
+}
+
+export interface IGrabbedElement {
+    source_id: string,
+    content: string,
 }

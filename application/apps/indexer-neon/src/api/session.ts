@@ -1,5 +1,6 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
+var addon = require('../../native');
 
 import uuid from '../util/uuid';
 
@@ -7,7 +8,8 @@ import { RustSessionChannel, RustSessionChannelConstructor } from '../native/ind
 import { SessionComputation, ISessionEvents } from './session.computation';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
-import { IComputationError } from '../interfaces/errors';
+import { EErrorSeverity, IComputationError, IGeneralError } from '../interfaces/errors';
+import { ISearchFilter, IGrabbedContent } from '../interfaces/index';
 
 export {
     ISessionEvents,
@@ -18,6 +20,46 @@ export {
 } from './session.computation';
 
 export { SessionComputation, SessionStream, SessionSearch };
+
+export class RustSession extends RustSessionChannel {
+    private _rust_session: any;
+
+    constructor(session_id: string, callback: (event: string) => void) {
+        super();
+        this._rust_session = new addon.RustSession(session_id, callback);
+    }
+
+    public assignFile(file_path: string, source_id: string): void {
+        this._rust_session.assignFile(file_path, source_id);
+    }
+
+    public grab(startLineIndex: number, numberOfLines: number): IGrabbedContent {
+        return JSON.parse(this._rust_session.grab(startLineIndex, numberOfLines));
+    }
+
+    public id(): string {
+        return this._rust_session.id();
+    }
+
+    public destroy(): void {
+        this._rust_session.shutdown();
+    }
+
+    public setSearch(filters: ISearchFilter[]): IGeneralError | undefined {
+        const filterString = JSON.stringify(filters);
+        this._rust_session.setFilters(filterString);
+        return undefined;
+    }
+
+    public getFilters() : ISearchFilter[] {
+        const filter_string = this._rust_session.getFilters();
+        return JSON.parse(filter_string);
+    }
+
+    public clearSearch() {
+        this._rust_session.clearFilters();
+    }
+}
 
 export class Session {
     private _channel: RustSessionChannel | undefined;
@@ -49,7 +91,8 @@ export class Session {
             };
             const subs: { [key: string]: Events.Subscription } = {};
             const computation = new SessionComputation(this._uuid);
-            const channel = new RustSessionChannelConstructor(computation.getEmitter());
+            const channel = new RustSessionChannelConstructor(this._uuid, computation.getEmitter());
+            // const channel = new RustSessionChannelConstructor(computation.getEmitter());
             subs.ready = computation.getEvents().ready.subscribe(() => {
                 ready();
             });

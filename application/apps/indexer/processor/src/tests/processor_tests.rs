@@ -487,7 +487,12 @@ mod tests {
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
         let single_line_range = LineRange::new(0, 1);
-        let naive = grabber.get_entries(&single_line_range)?;
+        let naive = grabber
+            .get_entries(&single_line_range)?
+            .grabbed_elements
+            .into_iter()
+            .map(|e| e.content)
+            .collect::<Vec<String>>();
         let entries: Vec<String> = vec!["a".to_owned()];
         assert_eq!(naive, entries);
         Ok(())
@@ -515,7 +520,13 @@ mod tests {
         let p = file.into_temp_path();
         if let Ok(grabber) = Grabber::new(&p, "sourceA") {
             let r = LineRange::new(0, v.len() as u64);
-            let naive = grabber.get_entries(&r).expect("entries not grabbed");
+            let naive = grabber
+                .get_entries(&r)
+                .expect("entries not grabbed")
+                .grabbed_elements
+                .into_iter()
+                .map(|e| e.content)
+                .collect::<Vec<String>>();
             let entries: Vec<String> = vec!["".to_owned(), "".to_owned()];
             assert_eq!(naive, entries);
         }
@@ -534,7 +545,14 @@ mod tests {
         let one_line_empty_range = LineRange::new(1, 2);
         let naive = grabber.get_entries(&one_line_empty_range)?;
         let entries: Vec<String> = vec!["".to_owned()];
-        assert_eq!(naive, entries);
+        assert_eq!(
+            naive
+                .grabbed_elements
+                .into_iter()
+                .map(|e| e.content)
+                .collect::<Vec<String>>(),
+            entries
+        );
         Ok(())
     }
 
@@ -547,7 +565,12 @@ mod tests {
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
         let one_line_range = LineRange::new(0, 1);
-        let c1 = grabber.get_entries(&one_line_range)?;
+        let c1 = grabber
+            .get_entries(&one_line_range)?
+            .grabbed_elements
+            .into_iter()
+            .map(|e| e.content)
+            .collect::<Vec<String>>();
         let c2: Vec<String> = vec!["ABC".to_owned()];
         assert_eq!(c1, c2);
         Ok(())
@@ -564,7 +587,12 @@ mod tests {
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
         let one_line_range = LineRange::new(0, 1);
-        let c1 = grabber.get_entries(&one_line_range)?;
+        let c1 = grabber
+            .get_entries(&one_line_range)?
+            .grabbed_elements
+            .into_iter()
+            .map(|e| e.content)
+            .collect::<Vec<String>>();
         let c2: Vec<String> = vec!["".to_owned()];
         assert_eq!(c1, c2);
         Ok(())

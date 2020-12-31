@@ -1,6 +1,6 @@
 export {
-	IFilter,
+	ISearchFilter,
+	IGrabbedContent,
 	IMatchEntity,
 	IMapEntity,
-	IFilterFlags
 } from '../../../../common/interfaces/interface.rust.api.general';

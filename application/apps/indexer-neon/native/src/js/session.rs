@@ -42,14 +42,25 @@ impl RustSession {
             loop {
                 match progress_rx.recv() {
                     Ok(progress) => {
+                        let operation_done = match &progress {
+                            Progress::Ticks(ticks) => ticks.done(),
+                            Progress::Stopped => true,
+                            _ => false,
+                        };
+                        log::info!("Received progress: {:?}", progress);
                         if let Err(e) =
                             send_js_event(&javascript_listener, CallbackEvent::Progress(progress))
                         {
                             log::warn!("Could not send event to js: {}", e);
                         }
+                        if operation_done {
+                            log::debug!("Stop listening for metadata");
+                            break;
+                        }
                     }
                     Err(e) => {
-                        log::info!("Progress channel was closed: {}", e);
+                        log::debug!("Progress channel was closed: {}", e);
+                        break;
                     }
                 }
             }
@@ -213,6 +224,7 @@ declare_types! {
                             log::debug!("Created rust thread for task execution");
                             match Grabber::create_metadata_for_file(file_path, &progress_tx, Some(shutdown_rx)) {
                                 Ok(metadata)=> {
+                                    log::info!("received metadata");
                                     let _ = metadata_tx.send(Ok(metadata));
                                 } //this_mut.content_grabber.unwrap().metadata = metadata,
                                 Err(e) => {
@@ -221,7 +233,6 @@ declare_types! {
                                     let _ = metadata_tx.send(Err(ComputationError::Process(e_str)));
                                 }
                             }
-                            drop(progress_tx);
                         });
                         None
                     },
@@ -300,17 +311,15 @@ declare_types! {
                 session.filters.clone()
             };
 
-            let array: Handle<JsArray> = JsArray::new(&mut cx, filters.len() as u32);
-            for (i, x) in filters.into_iter().enumerate() {
-                match serde_json::to_string(&x) {
-                    Ok(js_string) => {
-                        let s = cx.string(js_string);
-                        array.set(&mut cx, i as u32, s)?;
-                    },
-                    Err(e) => log::error!("Could not convert SearchFilter: {}", e),
-                }
+            match serde_json::to_string(&filters) {
+                Ok(js_string) => {
+                    Ok(cx.string(js_string).upcast())
+                },
+                Err(e) => {
+                    log::error!("Could not convert SearchFilter: {}", e);
+                    cx.throw_error(e.to_string())
+                },
             }
-            Ok(array.as_value(&mut cx))
         }
 
         method shutdown(mut cx) {
