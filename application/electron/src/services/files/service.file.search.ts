@@ -4,6 +4,7 @@ import Logger from '../../tools/env.logger';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import { spawn, ChildProcess } from 'child_process';
+import * as os from 'os';
 
 /**
  * @class ServiceFileSearch
@@ -107,6 +108,10 @@ class ServiceFileSearch implements IService {
                     const results: { [key: string]: number } = {};
                     output.split(/[\n\r]/).forEach((result: string) => {
                         const parts: string[] = result.split(':');
+                        if (os.platform() === 'win32' && parts.length === 3) {
+                            parts[0] += ':' + parts[1];
+                            parts.splice(1, 1);
+                        }
                         if (parts.length !== 2) {
                             return this._logger.warn(`Fail to parser RG result line: ${result}`);
                         }
