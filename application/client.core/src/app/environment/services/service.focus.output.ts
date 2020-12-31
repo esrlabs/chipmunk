@@ -48,7 +48,7 @@ export class FocusOutputService {
 
     public removeScrollbox(scrollBoxCom: ComplexScrollBoxComponent) {
         this._scrollBoxComs = this._scrollBoxComs.filter((scrollbox: ComplexScrollBoxComponent) => {
-            scrollbox._ng_guid !== scrollBoxCom._ng_guid;
+            return scrollbox._ng_guid !== scrollBoxCom._ng_guid;
         });
     }
 
