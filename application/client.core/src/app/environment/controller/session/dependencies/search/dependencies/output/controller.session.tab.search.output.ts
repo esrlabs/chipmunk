@@ -561,7 +561,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                     rank: this._accessor.session().getStreamOutput().getRank(),
                     sessionId: this._uuid,
                     parent: EParent.search,
-                    api: undefined,
+                    api: this._accessor.session().getRowAPI(),
                 });
             });
         } catch (e) {
