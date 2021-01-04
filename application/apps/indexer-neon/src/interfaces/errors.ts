@@ -8,8 +8,3 @@ export interface IGeneralError {
     severity: EErrorSeverity;
     message: string;
 }
-
-export interface IComputationError extends IGeneralError {
-    row?: number;
-    filename?: string;
-}

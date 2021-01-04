@@ -49,14 +49,33 @@ export class Subject<T> {
                 if (valid) {
                     return;
                 }
-                if (typeof typeRef === 'string' && typeof target[name] === typeRef) {
+                if (typeof typeRef === 'object' && typeRef !== null && typeof typeRef.self === 'string') {
+                    const err: Error | undefined = Subject.validate(typeRef, target[name]);
+                    if (err === undefined) {
+                        valid = true;
+                    }
+                } else if (typeof typeRef === 'string' && (typeof target[name] === typeRef || typeRef === 'any')) {
                     valid = true;
                 } else if (typeof typeRef !== 'string' && target[name] instanceof typeRef) {
                     valid = true;
                 }
             });
             if (!valid) {
-                errors.push(`Expecting property "${name}" has a type "${types.join(' | ')}", but it has type "${typeof target[name]}"`); 
+                errors.push(`Expecting property "${name}" has a type "${types.map((t) => {
+                    if (typeof t === 'string') {
+                        return t;
+                    } else if (typeof t === 'object' && t === null) {
+                        return `ERROR: null as type definition`;
+                    } else if (typeof t === 'object' && typeof t.self === 'string') {
+                        return JSON.stringify(t);
+                    } else if (typeof t === 'function') {
+                        return `${t.name}${t.constructor !== undefined ? `/${t.constructor.name}` : ''}`;
+                    } else if (typeof t === 'object' && t.prototype !== undefined && t.prototype !== null) {
+                        return `${t.prototype.name}`;
+                    } else {
+                        return `ERROR: unknown type definition`
+                    }
+                }).join(' | ')}", but it has type "${typeof target[name]}"`); 
             }
         });
         if (errors.length !== 0) {

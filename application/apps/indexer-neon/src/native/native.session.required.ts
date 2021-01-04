@@ -8,6 +8,8 @@
  * - listen error and ? What to do it error was between calling destroy and getting event destroy?
  * - naming: destroy good for NodeJS level, on Rust level probably shutdown would be fine
  */
-export abstract class RustChannelRequiered {
+export abstract class RustSessionRequiered {
+
     public abstract destroy(): void;
+   
 }

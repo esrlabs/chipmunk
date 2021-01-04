@@ -1,22 +1,20 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
-import { RustSessionChannel } from '../native/index';
+import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
-import { SessionComputation } from './session.computation';
-import { IFileToBeMerged } from './session.stream.merge.computation';
-import { IExportOptions } from './session.stream.export.computation';
-import {
-    IDetectDTFormatResult,
-    IDetectOptions,
-} from './session.stream.timeformat.detect.computation';
+import { EventProvider } from './session.provider';
+import { IFileToBeMerged } from './session.stream.merge.executor';
+import { IExportOptions } from './session.stream.export.executor';
+import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
 import {
     IExtractOptions,
     IExtractDTFormatResult,
-} from './session.stream.timeformat.extract.computation';
+} from './session.stream.timeformat.extract.executor';
 import { Executors } from './session.stream.executors';
-import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.computation';
+import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.executor';
 import { IGeneralError } from '../interfaces/errors';
+import { IGrabbedElement } from '../interfaces/index';
 
 export {
     IFileToBeMerged,
@@ -38,65 +36,65 @@ abstract class Connector<T> {
 }
 
 export class SessionStream {
-    private readonly _computation: SessionComputation;
-    private readonly _channel: RustSessionChannel;
+    private readonly _provider: EventProvider;
+    private readonly _session: RustSession;
     private readonly _uuid: string;
     private readonly _logger: Logs.Logger;
 
-    constructor(computation: SessionComputation, channel: RustSessionChannel, uuid: string) {
+    constructor(provider: EventProvider, session: RustSession, uuid: string) {
         this._logger = Logs.getLogger(`SessionStream: ${uuid}`);
-        this._computation = computation;
-        this._channel = channel;
+        this._provider = provider;
+        this._session = session;
         this._uuid = uuid;
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._computation
+            this._provider
                 .destroy()
                 .then(resolve)
                 .catch((err: Error) => {
-                    this._logger.error(`Fail to destroy computation due error: ${err.message}`);
+                    this._logger.error(`Fail to destroy provider due error: ${err.message}`);
                     reject(err);
                 });
         });
     }
 
-    public grab(start: number, len: number): string | IGeneralError {
+    public grab(start: number, len: number): IGrabbedElement[] | IGeneralError {
         // TODO grab content
-        return this._channel.grabStreamChunk(start, len);
+        return this._session.grabStreamChunk(start, len);
     }
 
     public getFileOptionsRequirements(filename: string): EFileOptionsRequirements {
-        return this._channel.getFileOptionsRequirements(filename);
+        return this._session.getFileOptionsRequirements(filename);
     }
 
     public assign(filename: string, options: TFileOptions): CancelablePromise<void> {
         // TODO create grabber
-        return Executors.assign(this._channel, this._logger, this._uuid, {
+        return Executors.assign(this._session, this._provider, this._logger, {
             filename: filename,
             options: options,
         });
     }
 
     public concat(files: string[]): CancelablePromise<void> {
-        return Executors.concat(this._channel, this._logger, this._uuid, { files: files });
+        return Executors.concat(this._session, this._provider, this._logger, { files: files });
     }
 
     public merge(files: IFileToBeMerged[]): CancelablePromise<void> {
-        return Executors.merge(this._channel, this._logger, this._uuid, { files: files });
+        return Executors.merge(this._session, this._provider, this._logger, { files: files });
     }
 
     public export(options: IExportOptions): CancelablePromise<void> {
-        return Executors.export(this._channel, this._logger, this._uuid, options);
+        return Executors.export(this._session, this._provider, this._logger, options);
     }
 
     public detectTimeformat(options: IDetectOptions): CancelablePromise<IDetectDTFormatResult> {
-        return Executors.timeformatDetect(this._channel, this._logger, this._uuid, options);
+        return Executors.timeformatDetect(this._session, this._provider, this._logger, options);
     }
 
     public extractTimeformat(options: IExportOptions): CancelablePromise<IExtractDTFormatResult> {
-        return Executors.timeformatExtract(this._channel, this._logger, this._uuid, options);
+        return Executors.timeformatExtract(this._session, this._provider, this._logger, options);
     }
 
     public connect(): {
@@ -107,7 +105,7 @@ export class SessionStream {
     }
 
     public len(): number {
-        const len = this._channel.getStreamLen();
+        const len = this._session.getStreamLen();
         if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
             this._logger.warn(
                 `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,
