@@ -5,7 +5,7 @@ export interface IDebugSettings {
 export class ServiceProduction {
 
     public isProd(): boolean {
-        return true;
+        return false;
     }
 
     public getDebugSettings(): IDebugSettings {
