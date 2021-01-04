@@ -1,63 +1,43 @@
-import { TExecutor, Logger, CancelablePromise } from './executor';
-import { RustSessionChannel } from '../native/index';
-import { TCanceler } from '../native/native';
-import { Subscription } from '../util/events.subscription';
-import { StreamTimeFormatExtractComputation, IExtractDTFormatResult, IExtractOptions } from './session.stream.timeformat.extract.computation';
-import { IComputationError } from '../interfaces/errors';
+import { TExecutor, Logger, CancelablePromise, withResultsExecutor } from './executor';
+import { RustSession } from '../native/index';
+import { EventProvider } from './session.provider';
 import { IGeneralError } from '../interfaces/errors';
 
+export interface IExtractOptions {
+
+}
+
+export interface IExtractDTFormatResult {
+    format: string;
+    reg: string;
+}
+
 export const executor: TExecutor<IExtractDTFormatResult, IExtractOptions> = (
-    channel: RustSessionChannel,
+    session: RustSession,
+    provider: EventProvider,
     logger: Logger,
-    uuid: string,
     options: IExtractOptions,
 ): CancelablePromise<IExtractDTFormatResult> => {
-    return new CancelablePromise<IExtractDTFormatResult>((resolve, reject, cancel, refCancelCB, self) => {
-        const computation: StreamTimeFormatExtractComputation = new StreamTimeFormatExtractComputation(uuid);
-        let error: Error | undefined;
-        // Setup subscriptions
-        const subscriptions: {
-            destroy: Subscription;
-            error: Subscription;
-            unsunscribe(): void;
-        } = {
-            destroy: computation.getEvents().destroyed.subscribe(() => {
-                if (error) {
-                    logger.warn('Timeformat detect operation is failed');
-                    reject(error);
-                } else {
-                    logger.debug('Timeformat detect operation is successful');
-                    resolve({
-                        format: '',
-                        reg: '',
-                    });
-                }
-            }),
-            error: computation.getEvents().error.subscribe((err: IComputationError) => {
-                logger.warn(`Error on operation append: ${err.message}`);
-                error = new Error(err.message);
-            }),
-            unsunscribe(): void {
-                subscriptions.destroy.destroy();
-                subscriptions.error.destroy();
-            },
-        };
-        logger.debug('Timeformat detect operation is started');
-        // Add cancel callback
-        refCancelCB(() => {
-            // Cancelation is started, but not canceled
-            logger.debug(`Get command "break" operation. Starting breaking.`);
-            (canceler as TCanceler)();
-        });
-        // Handle finale of promise
-        self.finally(() => {
-            logger.debug('Timeformat detect operation promise is closed as well');
-            subscriptions.unsunscribe();
-        });
-        // Call operation
-        const canceler: TCanceler | IGeneralError = channel.extract(computation.getEmitter(), options);
-        if (typeof canceler !== 'function') {
-            return reject(new Error(`Fail to call extract method due error: ${canceler.message}`));
-        }
-    });
+    return withResultsExecutor<IExtractDTFormatResult, IExtractOptions>(
+        session,
+        provider,
+        logger,
+        options,
+        function(session: RustSession, options: IExtractOptions): string | Error {
+            const uuid: string | IGeneralError = session.extract(options);
+            if (typeof uuid !== 'string') {
+                return new Error(uuid.message);
+            } else {
+                return uuid;
+            };
+        },
+        function(result: any, resolve: (res: IExtractDTFormatResult) => void, reject: (err: Error) => void) {
+            // TODO: implement result checks/convert
+            resolve({
+                format: '',
+                reg: '',
+            })
+        },
+        "extract",
+    );
 };

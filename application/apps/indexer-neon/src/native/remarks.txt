@@ -1,13 +1,21 @@
-
-
 e.g. show text file content
 
-1. create session => RustSessionChannel
+1. create session => RustSession
+
+
+// TODO:
+- rename computation to something like Emitter or EventsStore or EventSource or EventProvider etc...
+- rename channel to just session.
+
+// Possible events
+{ Progress: { uuid: string, ticks: { ... }}}, where uuid - reference to async operation
+{ Done: { uuid: string, status: finished | canceled }}
+
 
 //
 //-js-------------------------> Rust:
 
-let text_session = new RustSessionChannel(emitter callback);
+let text_session = new RustSession(emitter callback);
 
  ----------------------------> rust-session-channel
 

@@ -1,37 +1,32 @@
 import * as Logs from '../util/logging';
 
-import {
-    RustSessionChannel,
-} from '../native/index';
+import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
-import { Subscription } from '../util/events.subscription';
-import { SessionComputation } from './session.computation';
-import { ISearchFilter, IMatchEntity } from '../interfaces/index';
-import { StreamSearchComputation } from './session.stream.search.computation';
-import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
-import { TCanceler } from '../native/native';
+import { EventProvider } from './session.provider';
+import { IFilter, IMatchEntity } from '../interfaces/index';
+import { IGeneralError } from '../interfaces/errors';
 import { Executors } from './session.stream.executors';
 
 export class SessionSearch {
-    private readonly _computation: SessionComputation;
-    private readonly _channel: RustSessionChannel;
+    private readonly _provider: EventProvider;
+    private readonly _session: RustSession;
     private readonly _uuid: string;
     private readonly _logger: Logs.Logger;
 
-    constructor(computation: SessionComputation, channel: RustSessionChannel, uuid: string) {
+    constructor(provider: EventProvider, session: RustSession, uuid: string) {
         this._logger = Logs.getLogger(`SessionSearch: ${uuid}`);
-        this._computation = computation;
-        this._channel = channel;
+        this._provider = provider;
+        this._session = session;
         this._uuid = uuid;
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._computation
+            this._provider
                 .destroy()
                 .then(resolve)
                 .catch((err: Error) => {
-                    this._logger.error(`Fail to destroy computation due error: ${err.message}`);
+                    this._logger.error(`Fail to destroy provider due error: ${err.message}`);
                     reject(err);
                 });
         });
@@ -42,8 +37,8 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabSearchChunk(start: number, len: number): string | IGeneralError {
-        return this._channel.grabSearchChunk(start, len);
+    public grabSearchChunk(start: number, len: number): string[] | IGeneralError {
+        return this._session.grabSearchChunk(start, len);
     }
 
     /**
@@ -51,8 +46,8 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabMatchesChunk(start: number, len: number): string | IGeneralError  {
-        return this._channel.grabMatchesChunk(start, len);
+    public grabMatchesChunk(start: number, len: number): string[] | IGeneralError {
+        return this._session.grabMatchesChunk(start, len);
     }
 
     /**
@@ -61,8 +56,8 @@ export class SessionSearch {
      * @cancelable no
      * @param filters { IFilter[] }
      */
-    public setFilters(filters: ISearchFilter[]): Error | undefined {
-        const error: IGeneralError  | undefined = this._channel.setSearch(filters);
+    public setFilters(filters: IFilter[]): Error | undefined {
+        const error: IGeneralError | undefined = this._session.setFilters(filters);
         if (error !== undefined) {
             this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
             return new Error(error.message);
@@ -78,8 +73,8 @@ export class SessionSearch {
      * @cancelable no
      * @param filters { IFilter[] }
      */
-    public setMatches(filters: ISearchFilter[]): Error | undefined {
-        const error: IGeneralError | undefined = this._channel.setMatches(filters);
+    public setMatches(filters: IFilter[]): Error | undefined {
+        const error: IGeneralError | undefined = this._session.setMatches(filters);
         if (error !== undefined) {
             this._logger.warn(`Fail to set filters for matches due error: ${error.message}`);
             return new Error(error.message);
@@ -88,12 +83,12 @@ export class SessionSearch {
         }
     }
 
-    public search(filters: ISearchFilter[]): CancelablePromise<IMatchEntity[]> {
-        return Executors.search(this._channel, this._logger, this._uuid, filters);
+    public search(filters: IFilter[]): CancelablePromise<IMatchEntity[]> {
+        return Executors.search(this._session, this._provider, this._logger, filters);
     }
 
     public len(): number {
-        const len = this._channel.getStreamLen();
+        const len = this._session.getStreamLen();
         if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
             this._logger.warn(
                 `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,

@@ -1,1 +1,1 @@
-export { RustSessionChannel, RustSessionChannelConstructor } from './native.session';
+export { RustSession, RustSessionConstructor } from './native.session';
