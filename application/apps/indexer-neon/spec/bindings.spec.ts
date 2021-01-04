@@ -23,7 +23,7 @@ var addon = require('../native');
 var path = require('path');
 import { RustSession } from '../src/api/session';
 import { RustSessionChannelConstructor } from '../src/native';
-import { ISearchFilter, IGrabbedContent } from '../src/interfaces/index';
+import { IFilter, IGrabbedContent } from '../src/interfaces/index';
 // import { RustSessionChannelConstructor, RustSessionChannel } from '../src/native/native.session';
 
 // Get rid of default Jasmine timeout
@@ -44,17 +44,21 @@ describe('Session', function() {
 		});
 		console.log('created session');
 		expect(session.id()).toEqual(session_id);
-		let filterA = {
-			value: 'Bluetooth',
-			is_regex: true,
-			case_sensitive: false,
-			is_word: false
+		let filterA: IFilter = {
+			filter: 'Bluetooth',
+			flags: {
+				reg: true,
+				cases: false,
+				word: false	
+			}
 		};
-		let filterB = {
-			value: 'Warning',
-			is_regex: true,
-			case_sensitive: false,
-			is_word: false
+		let filterB: IFilter = {
+			filter: 'Warning',
+			flags: {
+				reg: true,
+				cases: false,
+				word: false	
+			}
 		};
 		session.setSearch([ filterA ]);
 		console.log('filters:' + JSON.stringify(session.getFilters()));

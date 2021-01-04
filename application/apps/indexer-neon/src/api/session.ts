@@ -9,7 +9,7 @@ import { SessionComputation, ISessionEvents } from './session.computation';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
 import { EErrorSeverity, IComputationError, IGeneralError } from '../interfaces/errors';
-import { ISearchFilter, IGrabbedContent } from '../interfaces/index';
+import { IFilter, IGrabbedContent } from '../interfaces/index';
 
 export {
     ISessionEvents,
@@ -45,13 +45,13 @@ export class RustSession extends RustSessionChannel {
         this._rust_session.shutdown();
     }
 
-    public setSearch(filters: ISearchFilter[]): IGeneralError | undefined {
+    public setSearch(filters: IFilter[]): IGeneralError | undefined {
         const filterString = JSON.stringify(filters);
         this._rust_session.setFilters(filterString);
         return undefined;
     }
 
-    public getFilters() : ISearchFilter[] {
+    public getFilters() : IFilter[] {
         const filter_string = this._rust_session.getFilters();
         return JSON.parse(filter_string);
     }

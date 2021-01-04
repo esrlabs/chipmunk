@@ -4,7 +4,7 @@ import ServiceProduction from '../services/service.production';
 
 import { RustChannelRequiered } from './native.channel.required';
 import { ERustEmitterEvents, RustSessionChannelNoType, TEventEmitter, TCanceler } from './native';
-import { ISearchFilter, IMatchEntity } from '../interfaces/index';
+import { IFilter, IMatchEntity } from '../interfaces/index';
 import { RustChannelConstructorImpl } from './native';
 import { IGeneralError } from '../interfaces/errors';
 import { CancelablePromise } from '../util/promise';
@@ -66,7 +66,7 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      *
      * @error { IGeneralError }
      */
-    public abstract setSearch(filters: ISearchFilter[]): IGeneralError | undefined;
+    public abstract setSearch(filters: IFilter[]): IGeneralError | undefined;
 
     /**
      * Bind filters with current session. Rust core should break (stop) search of matches (if
@@ -77,7 +77,7 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      *
      * @error { IGeneralError }
      */
-    public setMatches(filters: ISearchFilter[]): IGeneralError | undefined {
+    public setMatches(filters: IFilter[]): IGeneralError | undefined {
         throw 'NYI'; // TODO
     }
 
@@ -171,7 +171,7 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
         throw 'NYI'; // TODO
     }
 
-    public search(emitter: TEventEmitter, filters: ISearchFilter[]): TCanceler | IGeneralError {
+    public search(emitter: TEventEmitter, filters: IFilter[]): TCanceler | IGeneralError {
         throw 'NYI'; // TODO
     }
 }

@@ -1,5 +1,5 @@
 export {
-	ISearchFilter,
+	IFilter,
 	IGrabbedContent,
 	IMatchEntity,
 	IMapEntity,
