@@ -50,7 +50,7 @@ class Github
     end
 
     puts "Reading releases file from \"#{release_file_asset.browser_download_url}\""
-    release_file_asset_contents = open(release_file_asset.browser_download_url, &:read)
+    release_file_asset_contents = URI.open(release_file_asset.browser_download_url, &:read)
     releases = JSON.parse(release_file_asset_contents)
     releases
   end
@@ -84,7 +84,7 @@ class DefaultsPlugins
     @defaults.each do |p|
       puts "Downloading \"#{p['name']}\" from \"#{p['url']}\""
       File.open("#{dest}/#{p['file']}", "wb") do |saved_file|
-        open(p['url'], "rb") do |read_file|
+        URI.open(p['url'], "rb") do |read_file|
           saved_file.write(read_file.read)
         end
       end
@@ -94,7 +94,7 @@ class DefaultsPlugins
   def delivery_registry(dest)
     @registers.each do |file_name, r|
       puts "Downloading \"#{r['name']}\" from \"#{r['browser_download_url']}\""
-      File.write "#{dest}/#{file_name}", open(r['browser_download_url']).read
+      File.write "#{dest}/#{file_name}", URI.open(r['browser_download_url']).read
     end
   end
   
