@@ -1,18 +1,10 @@
-import { IPCMessages } from '../../../../services/service.electron.ipc';
-import { Observable, Subject, Subscription } from 'rxjs';
-import { ControllerSessionTabStreamOutput } from '../output/controller.session.tab.stream.output';
-import { ControllerSessionTabStreamBookmarks, IBookmark } from '../bookmarks/controller.session.tab.stream.bookmarks';
+import { Subscription } from 'rxjs';
+import { IBookmark } from '../bookmarks/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope, IRowNumberWidthData } from '../scope/controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from '../timestamps/session.dependency.timestamps';
-import { extractPluginId, extractRowPosition, clearRowStr } from '../../../helpers/row.helpers';
-import { ISelectionAccessor, EParent } from '../../../../services/standalone/service.output.redirections';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
-import SourcesService from '../../../../services/service.sources';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
-import SelectionParsersService from '../../../../services/standalone/service.selection.parsers';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
-import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
 import { Dependency, SessionGetter } from '../session.dependency';
 
