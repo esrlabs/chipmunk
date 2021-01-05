@@ -26,7 +26,7 @@ export interface IRow {
     rank: number;
     sessionId: string;
     parent: string;
-    api: ControllerRowAPI | undefined;
+    api: ControllerRowAPI;
 }
 
 export interface IRowAPI {
