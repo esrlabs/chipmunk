@@ -360,7 +360,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                     pluginId: inserted.pluginId,
                     sessionId: this._uuid,
                     parent: EParent.search,
-                    api: undefined,
+                    api: this._accessor.session().getRowAPI(),
                 });
                 this._state.bookmarksCount += 1;
             });
@@ -584,18 +584,14 @@ export class ControllerSessionTabSearchOutput implements Dependency {
     private _getPendingPackets(first: number, last: number): IRow[] {
         const rows: IRow[] = Array.from({ length: last - first}).map((_, i) => {
             return {
-                pluginId: this._lastRequestedRows[i] === undefined ? -1 : this._lastRequestedRows[i].pluginId,
                 position: first + i,
                 positionInStream: first + i,
                 str: this._lastRequestedRows[i] === undefined ? undefined : this._lastRequestedRows[i].str,
+                pluginId: this._lastRequestedRows[i] === undefined ? -1 : this._lastRequestedRows[i].pluginId,
                 rank: this._accessor.session().getStreamOutput().getRank(),
                 sessionId: this._uuid,
-                bookmarks: this._accessor.session().getBookmarks(),
                 parent: EParent.search,
-                scope: this._accessor.session().getScope(),
-                controller: this._accessor.session().getStreamOutput(),
-                timestamp: this._accessor.session().getTimestamp(),
-                api: undefined,
+                api: this._accessor.session().getRowAPI(),
             };
         });
         return rows;
