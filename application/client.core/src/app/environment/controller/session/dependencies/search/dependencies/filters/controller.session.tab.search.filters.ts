@@ -240,7 +240,6 @@ export class ControllerSessionTabSearchFilters
 
     public import(filters: IFilterDescOptional[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._storage.clear();
             this._storage.add(filters);
             resolve();
         });
