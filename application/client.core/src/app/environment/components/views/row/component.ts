@@ -129,11 +129,11 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public ngOnDestroy() {
+        this._destroyed = true;
         this.api.unregister(this._guid);
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-        this._destroyed = true;
     }
 
     public ngAfterContentInit() {

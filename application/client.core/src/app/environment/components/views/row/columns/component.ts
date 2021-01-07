@@ -47,6 +47,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     private _subscriptions: { [key: string]: Subscription } = {};
     private _columns: IColumn[] = [];
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewOutputRowColumnsComponent');
+    private _destroyed: boolean = false;
 
     constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
         super();
@@ -57,6 +58,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     @HostBinding('style.color') color = '';
 
     public ngOnDestroy() {
+        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -86,6 +88,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             (this as any)[key] = inputs[key];
         });
         this._render();
+        this._forceUpdate();
     }
 
     public _ng_getStyles(key: number): { [key: string]: string } {
@@ -217,13 +220,13 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
 
     private _onResized(columns: IColumn[]) {
         this._columns = columns;
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _onUpdated(columns: IColumn[]) {
         this._columns = columns;
         this._render();
-        this._cdRef.detectChanges();
+        this._forceUpdate();
     }
 
     private _headers() {
@@ -243,6 +246,13 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
             }
         }, Toolkit.EViewsTypes.outputTop);
         this.api.getScope().set(CColumnsHeadersKey, true);
+    }
+
+    private _forceUpdate() {
+        if (this._destroyed) {
+            return;
+        }
+        this._cdRef.detectChanges();
     }
 
 }
