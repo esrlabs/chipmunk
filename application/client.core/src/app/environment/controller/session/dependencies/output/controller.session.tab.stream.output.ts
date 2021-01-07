@@ -286,7 +286,7 @@ export class ControllerSessionTabStreamOutput implements Dependency {
      */
     public updateStreamState(message: IPCMessages.StreamUpdated): void {
         // Update count of rows
-        this._setTotalStreamCount(message.rowsCount);
+        this._setTotalStreamCount(message.rows);
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
 
