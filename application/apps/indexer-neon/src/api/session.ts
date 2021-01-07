@@ -1,6 +1,6 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
-var addon = require('../../native');
+import { getNativeModule } from '../native/native';
 
 import uuid from '../util/uuid';
 
@@ -26,7 +26,7 @@ export class RustSession extends RustSessionChannel {
 
     constructor(session_id: string, callback: (event: string) => void) {
         super();
-        this._rust_session = new addon.RustSession(session_id, callback);
+        this._rust_session = new (getNativeModule()).RustSession(session_id, callback);
     }
 
     public assignFile(file_path: string, source_id: string): void {

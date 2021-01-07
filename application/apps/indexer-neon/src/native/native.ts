@@ -17,7 +17,7 @@ export interface IRustModuleExports {
 
 export function getNativeModule(): IRustModuleExports {
     if (ServiceProduction.isProd()) {
-        const native = require("../../native/index.node");
+        const native = require("../../../../../native/index.node");
         return native;
     } else {
         return {
