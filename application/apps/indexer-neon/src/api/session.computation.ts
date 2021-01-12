@@ -164,7 +164,7 @@ export class SessionComputation extends Computation<ISessionEvents> {
         // Trigger ready event
         setTimeout(() => {
             this.logger.debug(`triggering ready event`);
-            this.getEmitter()({ type: ERustEmitterEvents.ready, data: undefined });
+            this.getEmitter()({ [ERustEmitterEvents.ready]: undefined });
         }, ServiceProduction.getDebugSettings().initChannelDelay);
     }
 }

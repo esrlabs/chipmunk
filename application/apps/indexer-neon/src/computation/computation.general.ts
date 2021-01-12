@@ -1,6 +1,5 @@
 export interface IEventData {
-    type: string;
-    data: string | undefined;
+    [key: string]: string | undefined;
 }
 
 export type TEventData = string | Required<IEventData>;

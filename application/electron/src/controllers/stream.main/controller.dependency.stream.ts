@@ -167,7 +167,7 @@ export class Stream extends Dependency {
                         }));
                     }
                     const rows = stream.grab(msg.start, msg.end - msg.start);
-                    if (typeof rows !== 'string') {
+                    if (!(rows instanceof Array)) {
                         return response(new IPC.StreamChunk({
                             error: self._logger.warn(`Fail to get requested rows due error: ${rows.message}`),
                             start: msg.start,
@@ -179,7 +179,7 @@ export class Stream extends Dependency {
                         start: msg.start,
                         end: msg.end,
                         guid: msg.guid,
-                        data: rows,
+                        data: rows.map(r => r.content).join('\n'),
                         rows: stream.len(),
                     }));
                 },

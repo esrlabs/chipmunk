@@ -57,16 +57,19 @@ export abstract class Computation<TEvents> {
             );
             return;
         }
-        if (typeof event.type !== 'string' || event.type.trim() === '') {
+        if (Object.keys(event).length !== 1) {
             this.logger.error(
                 `Has been gotten incorrect event data: ${data}. No "type" field found.\nExpecting type (JSON string): { type: string, data?: string }`,
             );
             return;
         }
-        if (event.type == this.getEventsSignatures().destroyed) {
+        const type: string = Object.keys(event)[0];
+        const body: any = event[type];
+        if (type === this.getEventsSignatures().destroyed) {
             return this._destroy();
         }
-        this._emit(event.type, event.data);
+        
+        this._emit(type, body);
     }
 
     private _destroy() {

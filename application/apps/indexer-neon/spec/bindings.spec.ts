@@ -59,9 +59,9 @@ describe('Nude channel', function() {
 				word: false	
 			}
 		};
-		channel.setFilters([ filterA ]);
+		//channel.setFilters([ filterA ]);
 		console.log('filters:' + JSON.stringify(channel.getFilters()));
-		channel.setFilters([ filterB ]);
+		//channel.setFilters([ filterB ]);
 		console.log('filters:' + JSON.stringify(channel.getFilters()));
 		channel.destroy();
 	});
