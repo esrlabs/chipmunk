@@ -1,12 +1,12 @@
 import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustSessionChannel } from '../native/index';
-import { TCanceler } from '../native/native';
+import { TCanceler } from '../native/native.session';
 import { Subscription } from '../util/events.subscription';
 import {
     StreamAssignComputation,
     IExecuteAssignOptions,
 } from './session.stream.assign.computation';
-import { IComputationError } from '../interfaces/errors';
+import { IComputationError } from '../computation/computation.errors';
 import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<void, IExecuteAssignOptions> = (

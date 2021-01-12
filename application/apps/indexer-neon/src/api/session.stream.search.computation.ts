@@ -1,4 +1,4 @@
-import { Computation } from './сomputation';
+import { Computation } from '../computation/сomputation';
 import { IMatchEntity } from '../interfaces/index';
 import {
     IEventsInterfaces,
@@ -7,8 +7,8 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-} from '../interfaces/computation.minimal.withprogress';
-import { IComputationError } from '../interfaces/errors';
+} from '../computation/computation.minimal.withprogress';
+import { IComputationError } from '../computation/computation.errors';
 
 import * as Events from '../util/events';
 

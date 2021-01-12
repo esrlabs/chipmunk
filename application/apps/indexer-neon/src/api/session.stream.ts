@@ -17,6 +17,7 @@ import {
 import { Executors } from './session.stream.executors';
 import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.computation';
 import { IGeneralError } from '../interfaces/errors';
+import { IGrabbedElement } from '../interfaces/index';
 
 export {
     IFileToBeMerged,
@@ -62,7 +63,7 @@ export class SessionStream {
         });
     }
 
-    public grab(start: number, len: number): string | IGeneralError {
+    public grab(start: number, len: number): IGrabbedElement[] | IGeneralError {
         // TODO grab content
         return this._channel.grabStreamChunk(start, len);
     }

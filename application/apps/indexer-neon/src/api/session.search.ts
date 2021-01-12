@@ -9,7 +9,6 @@ import { SessionComputation } from './session.computation';
 import { IFilter, IMatchEntity } from '../interfaces/index';
 import { StreamSearchComputation } from './session.stream.search.computation';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
-import { TCanceler } from '../native/native';
 import { Executors } from './session.stream.executors';
 
 export class SessionSearch {
@@ -42,7 +41,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabSearchChunk(start: number, len: number): string | IGeneralError {
+    public grabSearchChunk(start: number, len: number): string[] | IGeneralError {
         return this._channel.grabSearchChunk(start, len);
     }
 
@@ -51,7 +50,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabMatchesChunk(start: number, len: number): string | IGeneralError  {
+    public grabMatchesChunk(start: number, len: number): string[] | IGeneralError  {
         return this._channel.grabMatchesChunk(start, len);
     }
 
@@ -62,7 +61,7 @@ export class SessionSearch {
      * @param filters { IFilter[] }
      */
     public setFilters(filters: IFilter[]): Error | undefined {
-        const error: IGeneralError  | undefined = this._channel.setSearch(filters);
+        const error: IGeneralError  | undefined = this._channel.setFilters(filters);
         if (error !== undefined) {
             this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
             return new Error(error.message);

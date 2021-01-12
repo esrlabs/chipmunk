@@ -1,5 +1,5 @@
 import * as Events from '../util/events';
-import { IComputationError } from './errors';
+import { IComputationError } from './computation.errors';
 
 export interface IOperationProgress {
     /**

@@ -1,6 +1,5 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
-import { getNativeModule } from '../native/native';
 
 import uuid from '../util/uuid';
 
@@ -8,7 +7,9 @@ import { RustSessionChannel, RustSessionChannelConstructor } from '../native/ind
 import { SessionComputation, ISessionEvents } from './session.computation';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
-import { EErrorSeverity, IComputationError, IGeneralError } from '../interfaces/errors';
+import { EErrorSeverity, IGeneralError } from '../interfaces/errors';
+import { IComputationError } from '../computation/computation.errors';
+
 import { IFilter, IGrabbedContent } from '../interfaces/index';
 
 export {
@@ -21,6 +22,7 @@ export {
 
 export { SessionComputation, SessionStream, SessionSearch };
 
+/*
 export class RustSession extends RustSessionChannel {
     private _rust_session: any;
 
@@ -60,6 +62,7 @@ export class RustSession extends RustSessionChannel {
         this._rust_session.clearFilters();
     }
 }
+*/
 
 export class Session {
     private _channel: RustSessionChannel | undefined;
@@ -92,7 +95,6 @@ export class Session {
             const subs: { [key: string]: Events.Subscription } = {};
             const computation = new SessionComputation(this._uuid);
             const channel = new RustSessionChannelConstructor(this._uuid, computation.getEmitter());
-            // const channel = new RustSessionChannelConstructor(computation.getEmitter());
             subs.ready = computation.getEvents().ready.subscribe(() => {
                 ready();
             });

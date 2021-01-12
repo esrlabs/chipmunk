@@ -19,30 +19,24 @@
 //     "./dist": "./dist/index.js",
 //     ...
 // }
-
-// import { Session } from '../src/api/session';
-import { SessionComputation, ISessionEvents } from '../src/api/session.computation';
+var addon = require('../native');
+var path = require('path');
+import { Session } from '../src/api/session';
 import { RustSessionChannelConstructor } from '../src/native';
-import { IComputationError } from '../src/computation/computation.errors';
 import { IFilter, IGrabbedContent } from '../src/interfaces/index';
 // import { RustSessionChannelConstructor, RustSessionChannel } from '../src/native/native.session';
 
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 
-describe('Nude channel', function() {
-	it('basic channel support', function(done) {
+describe('Session', function() {
+	it('basic session support', function(done) {
 		const session_id = 'Rust-Session-1';
-		const computation = new SessionComputation(session_id);
-		const channel = new RustSessionChannelConstructor(session_id, computation.getEmitter());
-		computation.getEvents().destroyed.subscribe(() => {
-			done();
-		});
-		computation.getEvents().error.subscribe((err: IComputationError) => {
-			console.log(`Error on rust channel: ${JSON.stringify(err)}`);
-		});
+		// const session: RustSessionChannel = new RustSessionChannelConstructor(session_id, function(event: string) {
+		
+		const session = new Session();
 		console.log('created session');
-		expect(channel.id()).toEqual(session_id);
+		expect(session.id()).toEqual(session_id);
 		let filterA: IFilter = {
 			filter: 'Bluetooth',
 			flags: {
@@ -59,11 +53,13 @@ describe('Nude channel', function() {
 				word: false	
 			}
 		};
-		channel.setFilters([ filterA ]);
-		console.log('filters:' + JSON.stringify(channel.getFilters()));
-		channel.setFilters([ filterB ]);
-		console.log('filters:' + JSON.stringify(channel.getFilters()));
-		channel.destroy();
+		session.setSearch([ filterA ]);
+		console.log('filters:' + JSON.stringify(session.getFilters()));
+		session.setSearch([ filterB ]);
+		console.log('filters:' + JSON.stringify(session.getFilters()));
+		session.clearSearch();
+		console.log('filters:' + JSON.stringify(session.getFilters()));
+		session.destroy();
 	});
 });
 
@@ -135,7 +131,7 @@ function parseTicks(eventString: string): Ticks | undefined {
 	}
 	return undefined;
 }
-/*
+
 describe('MockComputation', function() {
 	it('full lifecycle should work', (done) => {
 		let tmpobj = createSampleFile(5000);
@@ -185,7 +181,7 @@ describe('MockComputation', function() {
 	});
 
 });
-*/
+
 /*
 describe('Search', function() {
 	it('basic file search should work', function(done) {

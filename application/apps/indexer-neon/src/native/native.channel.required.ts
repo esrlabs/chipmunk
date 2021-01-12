@@ -9,5 +9,7 @@
  * - naming: destroy good for NodeJS level, on Rust level probably shutdown would be fine
  */
 export abstract class RustChannelRequiered {
+
     public abstract destroy(): void;
+   
 }

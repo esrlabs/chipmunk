@@ -1,4 +1,8 @@
-
+Open questions:
+- no need to drop filters, can be used setFilters([]);
+- cancelers should be implemented (cb or events)
+- async functions requires own emitters to send "done" signal
+- basic format of event { type: string, data: json-string }
 
 e.g. show text file content
 

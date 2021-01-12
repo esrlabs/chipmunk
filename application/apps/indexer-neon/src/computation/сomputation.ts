@@ -1,21 +1,15 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
-import { ERustEmitterEvents, TEventEmitter } from '../native/native';
-import {
-    IEventsInterfaces,
-    IEventsSignatures,
-    IEvents,
-} from '../interfaces/computation.minimal';
+import { TEventData, TEventEmitter, IEventData } from './computation.general';
+import { IEventsInterfaces, IEventsSignatures, IEvents } from './computation.minimal';
 import { EErrorSeverity } from '../interfaces/errors';
 
 export abstract class Computation<TEvents> {
     private _destroyed: boolean = false;
-    private _uuid: string;
     public readonly logger: Logs.Logger;
 
     constructor(uuid: string) {
-        this._uuid = uuid;
         this._emitter = this._emitter.bind(this);
         this.logger = Logs.getLogger(`${this.getName()}: ${uuid}`);
     }
@@ -38,15 +32,41 @@ export abstract class Computation<TEvents> {
 
     public abstract getEventsInterfaces(): Required<IEventsInterfaces>;
 
-    private _emitter(event: ERustEmitterEvents, data: any) {
-        if (event == this.getEventsSignatures().destroyed) {
+    /**
+     * We are expecting to get from rust event data as JSON string. Required format is:
+     * { type: string, data?: string }
+     * @param data {string}
+     */
+    private _emitter(data: TEventData) {
+        this.logger.debug(`Has been gotten rust event: ${JSON.stringify(data)}`);
+        let event: Required<IEventData>;
+        if (typeof data === 'string') {
+            try {
+                event = JSON.parse(data);
+            } catch (e) {
+                this.logger.error(
+                    `Fail to parse event data due error: ${e}.\nExpecting type (JSON string): { type: string, data?: string }`,
+                );
+                return;
+            }
+        } else if (typeof data === 'object' && data !== null) {
+            event = data;
+        } else {
+            this.logger.error(
+                `Unsupported format of event data: ${typeof data} / ${data}.\nExpecting type (JSON string): { type: string, data?: string }`,
+            );
+            return;
+        }
+        if (typeof event.type !== 'string' || event.type.trim() === '') {
+            this.logger.error(
+                `Has been gotten incorrect event data: ${data}. No "type" field found.\nExpecting type (JSON string): { type: string, data?: string }`,
+            );
+            return;
+        }
+        if (event.type == this.getEventsSignatures().destroyed) {
             return this._destroy();
         }
-        this._emit(event, data);
-    }
-
-    public getEmitter(): TEventEmitter {
-        return this._emitter;
+        this._emit(event.type, event.data);
     }
 
     private _destroy() {
@@ -84,5 +104,9 @@ export abstract class Computation<TEvents> {
                 (this.getEvents() as any)[event].emit(data);
             }
         }
+    }
+
+    public getEmitter(): TEventEmitter {
+        return this._emitter;
     }
 }

@@ -2,7 +2,7 @@ import * as Events from '../util/events';
 
 import ServiceProduction from '../services/service.production';
 
-import { Computation } from './сomputation';
+import { Computation } from '../computation/сomputation';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';
 import { ERustEmitterEvents } from '../native/native';
 import {
@@ -11,8 +11,8 @@ import {
     EventsSignatures,
     IEventsSignatures,
     IEvents,
-} from '../interfaces/computation.minimal';
-import { IComputationError } from '../interfaces/errors';
+} from '../computation/computation.minimal';
+import { IComputationError } from '../computation/computation.errors';
 
 export interface IEventStreamUpdated {
     rows: number;
@@ -164,7 +164,7 @@ export class SessionComputation extends Computation<ISessionEvents> {
         // Trigger ready event
         setTimeout(() => {
             this.logger.debug(`triggering ready event`);
-            this.getEmitter()(ERustEmitterEvents.ready, undefined);
+            this.getEmitter()({ type: ERustEmitterEvents.ready, data: undefined });
         }, ServiceProduction.getDebugSettings().initChannelDelay);
     }
 }

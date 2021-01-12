@@ -1,9 +1,10 @@
 import * as Units from './util/units';
 import * as Events from './util/events';
+import * as Interfaces from './interfaces/index';
 
 export { CancelablePromise } from './util/promise';
 export { PromiseExecutor } from './util/promise.executor';
-export { IOperationProgress } from './interfaces/computation.minimal.withprogress';
+export { IOperationProgress } from './computation/computation.minimal.withprogress';
 export { TFileOptions, IFileOptionsDLT, EFileOptionsRequirements } from './api/session.stream.assign.computation';
 export {
     Session,
@@ -25,4 +26,4 @@ export {
     IExtractDTFormatResult,
 } from './api/session.stream';
 
-export { Units, Events };
+export { Units, Events, Interfaces };
