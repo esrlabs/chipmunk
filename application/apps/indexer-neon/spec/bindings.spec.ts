@@ -135,12 +135,22 @@ function parseTicks(eventString: string): Ticks | undefined {
 	}
 	return undefined;
 }
-/*
+
 describe('MockComputation', function() {
 	it('full lifecycle should work', (done) => {
 		let tmpobj = createSampleFile(5000);
 		let tmpFilePath = tmpobj.name;
 		const session_id = 'Rust-Session-1';
+		const computation = new SessionComputation(session_id);
+		const channel = new RustSessionChannelConstructor(session_id, computation.getEmitter());
+		computation.getEvents().destroyed.subscribe(() => {
+			done();
+		});
+		computation.getEvents().error.subscribe((err: IComputationError) => {
+			console.log(`Error on rust channel: ${JSON.stringify(err)}`);
+		});
+		console.log('created session');
+		/*
 		const session = new RustSession(session_id, async function(eventString: string) {
 			switch (+parseEventType(eventString)) {
 				case EventType.Progress:
@@ -179,13 +189,13 @@ describe('MockComputation', function() {
 					break;
 			}
 		});
-
-		session.assignFile(tmpFilePath, 'sourceA');
+		*/
+		channel.assign(() => {}, tmpFilePath, 'sourceA');
 		console.log('JS: exiting synchronous code execution');
 	});
 
 });
-*/
+
 /*
 describe('Search', function() {
 	it('basic file search should work', function(done) {

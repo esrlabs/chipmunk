@@ -19,11 +19,15 @@ export interface IEvents {
 export interface IEventsSignatures {
     error: 'error';
     destroyed: 'destroyed';
+    /** ====================== Temporary events (I guess not a best naming) ==========================*/
+    Done: 'Done';
 }
 
 export const EventsSignatures: IEventsSignatures = {
     error: 'error',
     destroyed: 'destroyed',
+    /** ====================== Temporary events (I guess not a best naming) ==========================*/
+    Done: 'Done',
 }
 
 export interface IEventsInterfaces {

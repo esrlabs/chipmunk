@@ -44,12 +44,16 @@ export interface IEventsSignatures {
     progress: 'progress';
     error: 'error';
     destroyed: 'destroyed';
+    /** ====================== Temporary events (I guess not a best naming) ==========================*/
+    Done: 'Done',
 }
 
 export const EventsSignatures: IEventsSignatures = {
     progress: 'progress',
     error: 'error',
     destroyed: 'destroyed',
+    /** ====================== Temporary events (I guess not a best naming) ==========================*/
+    Done: 'Done',
 }
 
 export interface IEventsInterfaces {

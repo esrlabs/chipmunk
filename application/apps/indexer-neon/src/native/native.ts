@@ -1,6 +1,11 @@
 import * as path from 'path';
 import ServiceProduction from '../services/service.production';
 
+/**
+ * TODO:
+ * These events are major events in the scope of rust - node lifecircle,
+ * it should be very well documented right here.
+ */
 export enum ERustEmitterEvents {
     stream = 'stream',
     search = 'search',
@@ -9,6 +14,8 @@ export enum ERustEmitterEvents {
     error = 'error',
     destroyed = 'destroyed',
     ready = 'ready',
+    /** ====================== Temporary events (I guess not a best naming) ==========================*/
+    Done = 'Done'
 }
 
 export interface IRustModuleExports {

@@ -34,18 +34,25 @@ export abstract class Computation<TEvents> {
 
     /**
      * We are expecting to get from rust event data as JSON string. Required format is:
-     * { type: string, data?: string }
+     * { [type: string]: string | undefined }
      * @param data {string}
      */
     private _emitter(data: TEventData) {
-        this.logger.debug(`Has been gotten rust event: ${JSON.stringify(data)}`);
+        function dataAsStr(data: TEventData): string {
+            if (typeof data === 'string') {
+                return `(defined as string): ${data}`;
+            } else {
+                return `(defined as object): keys: ${Object.keys(data).join(', ')} / values: ${Object.keys(data).map(k => JSON.stringify(data[k])).join(', ')}`;
+            }
+        }
+        this.logger.debug(`Has been gotten rust event:\n\t${dataAsStr(data)}`);
         let event: Required<IEventData>;
         if (typeof data === 'string') {
             try {
                 event = JSON.parse(data);
             } catch (e) {
                 this.logger.error(
-                    `Fail to parse event data due error: ${e}.\nExpecting type (JSON string): { type: string, data?: string }`,
+                    `Fail to parse event data due error: ${e}.\nExpecting type (JSON string): { [type: string]: string | undefined }`,
                 );
                 return;
             }
@@ -53,19 +60,19 @@ export abstract class Computation<TEvents> {
             event = data;
         } else {
             this.logger.error(
-                `Unsupported format of event data: ${typeof data} / ${data}.\nExpecting type (JSON string): { type: string, data?: string }`,
+                `Unsupported format of event data: ${typeof data} / ${data}.\nExpecting type (JSON string): { [type: string]: string | undefined }`,
             );
             return;
         }
         if (Object.keys(event).length !== 1) {
             this.logger.error(
-                `Has been gotten incorrect event data: ${data}. No "type" field found.\nExpecting type (JSON string): { type: string, data?: string }`,
+                `Has been gotten incorrect event data: ${data}. No "type" field found.\nExpecting type (JSON string): { [type: string]: string | undefined }`,
             );
             return;
         }
         const type: string = Object.keys(event)[0];
         const body: any = event[type];
-        if (type === this.getEventsSignatures().destroyed) {
+        if (type === this.getEventsSignatures().Done) {
             return this._destroy();
         }
         
