@@ -9,7 +9,7 @@
             "type": "node",
             "request": "launch",
             "name": "Jasmine Current File",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/electron/dist/electron",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
             "program": "${workspaceFolder}/node_modules/jasmine-ts/lib/index",
             "args": ["--config=${workspaceFolder}/spec/support/jasmine.json", "${file}"],
             "console": "integratedTerminal",

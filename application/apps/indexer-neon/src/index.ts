@@ -4,17 +4,16 @@ import * as Interfaces from './interfaces/index';
 
 export { CancelablePromise } from './util/promise';
 export { PromiseExecutor } from './util/promise.executor';
-export { IOperationProgress } from './provider/provider.minimal.withprogress';
-export { TFileOptions, IFileOptionsDLT, EFileOptionsRequirements } from './api/session.stream.assign.provider';
+export { TFileOptions, IFileOptionsDLT, EFileOptionsRequirements } from './api/session.stream.assign.executor';
 export {
     Session,
     SessionSearch,
     SessionStream,
     ISessionEvents,
-    IEventMapUpdated,
-    IEventMatchesUpdated,
-    IEventSearchUpdated,
-    IEventStreamUpdated,
+    // IEventMapUpdated,
+    // IEventMatchesUpdated,
+    // IEventSearchUpdated,
+    // IEventStreamUpdated,
 } from './api/session';
 
 export {

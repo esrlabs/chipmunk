@@ -2,31 +2,23 @@ import * as Logs from '../util/logging';
 
 import ServiceProduction from '../services/service.production';
 
-import { RustChannelRequiered } from './native.channel.required';
+import { RustSessionRequiered } from './native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
-import { RustSessionChannelNoType, ERustEmitterEvents } from './native';
-import { IFilter, IMatchEntity, IGrabbedContent, IGrabbedElement } from '../interfaces/index';
+import { RustSessionNoType } from './native';
+import { IFilter, IGrabbedContent, IGrabbedElement } from '../interfaces/index';
 import { getNativeModule } from './native';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
-import { CancelablePromise } from '../util/promise';
-import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.provider';
-import { IFileToBeMerged } from '../api/session.stream.merge.provider';
-import {
-    IDetectOptions,
-    IDetectDTFormatResult,
-} from '../api/session.stream.timeformat.detect.provider';
-import {
-    IExtractOptions,
-    IExtractDTFormatResult,
-} from '../api/session.stream.timeformat.extract.provider';
-import { IExportOptions } from '../api/session.stream.export.provider';
+import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.executor';
+import { IFileToBeMerged } from '../api/session.stream.merge.executor';
+import { IDetectOptions } from '../api/session.stream.timeformat.detect.executor';
+import { IExtractOptions } from '../api/session.stream.timeformat.extract.executor';
+import { IExportOptions } from '../api/session.stream.export.executor';
 
-export type RustChannelConstructorImpl<T> = new (uuid: string, callback: TEventEmitter) => T;
+export type RustSessionConstructorImpl<T> = new (uuid: string, callback: TEventEmitter) => T;
 export type TCanceler = () => void;
 
 // Create abstract class to declare available methods
-export abstract class RustSessionChannel extends RustChannelRequiered {
-
+export abstract class RustSession extends RustSessionRequiered {
     constructor(uuid: string, callback: TEventEmitter) {
         super();
     }
@@ -121,52 +113,53 @@ export abstract class RustSessionChannel extends RustChannelRequiered {
      */
     public abstract getSocketPath(): string;
 
-     /**
+    /**
      * Assigns session with the file. After the file was assigned, @method concat, @method merge cannot be used
      * and should return @error IGeneralError.
      * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
      * @param filename { string } file, which should be assigned to session
      * @param options { TFileOptions } options to open file
-     * @returns { TCanceler | IGeneralError } - callback, which can be called on NodeJS level to cancel
+     * @returns { string | IGeneralError } - callback, which can be called on NodeJS level to cancel
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract assign(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler | IGeneralError;
+    public abstract assign(filename: string, options: TFileOptions): string | IGeneralError;
 
     /**
      * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
      * and should return @error IGeneralError.
      * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
      * @param files { string[] } file to be concat
-     * @returns { TCanceler | IGeneralError } - callback, which can be called on NodeJS level to cancel
+     * @returns { string | IGeneralError } - callback, which can be called on NodeJS level to cancel
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract concat(emitter: TEventEmitter, files: string[]): TCanceler | IGeneralError;
+    public abstract concat(files: string[]): string | IGeneralError;
 
     /**
      * Merge files and assigns it with session. After this operation, @method assign, @method concat cannot be used
      * and should return @error IGeneralError.
      * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
      * @param files { IFileToBeMerged[] } file to be merge
-     * @returns { TCanceler | IGeneralError } - callback, which can be called on NodeJS level to cancel
+     * @returns { string | IGeneralError } - callback, which can be called on NodeJS level to cancel
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler | IGeneralError;
+    public abstract merge(files: IFileToBeMerged[]): string | IGeneralError;
 
-    public abstract export(emitter: TEventEmitter, options: IExportOptions): TCanceler | IGeneralError;
+    public abstract export(options: IExportOptions): string | IGeneralError;
 
-    public abstract detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler | IGeneralError;
+    public abstract detect(options: IDetectOptions): string | IGeneralError;
 
-    public abstract extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler | IGeneralError;
+    public abstract extract(options: IExtractOptions): string | IGeneralError;
 
-    public abstract search(emitter: TEventEmitter, filters: IFilter[]): TCanceler | IGeneralError;
+    public abstract search(filters: IFilter[]): string | IGeneralError;
 
+    public abstract abort(uuid: string): undefined | IGeneralError;
 }
 
-export class RustSessionChannelDebug extends RustSessionChannel {
-    private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionChannelDebug`);
+export class RustSessionDebug extends RustSession {
+    private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionDebug`);
     private readonly _emitter: TEventEmitter;
     private readonly _uuid: string;
     private readonly _native: any;
@@ -174,7 +167,7 @@ export class RustSessionChannelDebug extends RustSessionChannel {
 
     constructor(uuid: string, emitter: TEventEmitter) {
         super(uuid, emitter);
-        this._native = new (getNativeModule()).RustSession(uuid, emitter);
+        this._native = new (getNativeModule().RustSession)(uuid, emitter);
         this._logger.debug(`Rust native session is created`);
         this._uuid = uuid;
         this._emitter = emitter;
@@ -196,12 +189,14 @@ export class RustSessionChannelDebug extends RustSessionChannel {
         } catch (e) {
             return {
                 severity: EErrorSeverity.error,
-                message: this._logger.error(`Fail to call grab(${start}, ${len}) due error: ${e.message}`),
-            }
+                message: this._logger.error(
+                    `Fail to call grab(${start}, ${len}) due error: ${e.message}`,
+                ),
+            };
         }
     }
 
-    public grabSearchChunk(start: number, len: number): string[]{
+    public grabSearchChunk(start: number, len: number): string[] {
         return [];
     }
 
@@ -244,46 +239,47 @@ export class RustSessionChannelDebug extends RustSessionChannel {
         return '';
     }
 
-    public assign(emitter: TEventEmitter, filename: string, options: TFileOptions): TCanceler {
-        this._native.assignFile(filename, filename);
-        this._assigned = true;
-        return () => {};
+    public assign(filename: string, options: TFileOptions): string | IGeneralError {
+        return this._native.assignFile(filename, filename);
     }
 
-    public concat(emitter: TEventEmitter, files: string[]): TCanceler {
-        return () => {};
+    public concat(files: string[]): string | IGeneralError {
+        return 'not_implemented_yet';
     }
 
-    public merge(emitter: TEventEmitter, files: IFileToBeMerged[]): TCanceler {
-        return () => {};
+    public merge(files: IFileToBeMerged[]): string | IGeneralError {
+        return 'not_implemented_yet';
     }
 
-    public export(emitter: TEventEmitter, options: IExportOptions): TCanceler {
-        return () => {};
+    public export(options: IExportOptions): string | IGeneralError {
+        return 'not_implemented_yet';
     }
 
-    public detect(emitter: TEventEmitter, options: IDetectOptions): TCanceler {
-        return () => {};
+    public detect(options: IDetectOptions): string | IGeneralError {
+        return 'not_implemented_yet';
     }
 
-    public extract(emitter: TEventEmitter, options: IExtractOptions): TCanceler {
-        return () => {};
+    public extract(options: IExtractOptions): string | IGeneralError {
+        return 'not_implemented_yet';
     }
 
-    public search(emitter: TEventEmitter, filters: IFilter[]): TCanceler {
-        return () => {};
+    public search(filters: IFilter[]): string | IGeneralError {
+        return 'not_implemented_yet';
+    }
+
+    public abort(uuid: string): undefined | IGeneralError {
+        return undefined;
     }
 }
 
+let RustSessionDebugConstructor: RustSessionConstructorImpl<RustSessionDebug> = RustSessionDebug;
 
-let RustSessionChannelDebugConstructor: RustChannelConstructorImpl<RustSessionChannelDebug> = RustSessionChannelDebug;
-
-let RustSessionChannelConstructor: RustChannelConstructorImpl<RustSessionChannel>;
+let RustSessionConstructor: RustSessionConstructorImpl<RustSession>;
 
 if (ServiceProduction.isProd()) {
-    RustSessionChannelConstructor = RustSessionChannelNoType;
+    RustSessionConstructor = RustSessionNoType;
 } else {
-    RustSessionChannelConstructor = RustSessionChannelDebugConstructor;
+    RustSessionConstructor = RustSessionDebugConstructor;
 }
 
-export { RustSessionChannelConstructor };
+export { RustSessionConstructor };

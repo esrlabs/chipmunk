@@ -10,7 +10,7 @@
     "build-neon": "node_modules/.bin/electron-build-env neon build --release",
     "build:watch": "tsc -p ./tsconfig.json -w",
     "clean": "neon clean",
-    "test": "./node_modules/electron/dist/electron ./node_modules/jasmine-ts/lib/index.js"
+    "test": "./node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js"
   },
   "author": "",
   "contributors": [],

@@ -1,6 +1,6 @@
 e.g. show text file content
 
-1. create session => RustSessionChannel
+1. create session => RustSession
 
 
 // TODO:
@@ -15,7 +15,7 @@ e.g. show text file content
 //
 //-js-------------------------> Rust:
 
-let text_session = new RustSessionChannel(emitter callback);
+let text_session = new RustSession(emitter callback);
 
  ----------------------------> rust-session-channel
 

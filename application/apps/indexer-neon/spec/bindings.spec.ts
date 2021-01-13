@@ -19,51 +19,50 @@
 //     "./dist": "./dist/index.js",
 //     ...
 // }
-
-// import { Session } from '../src/api/session';
-import { EventProvider, ISessionEvents } from '../src/api/session.computation';
+var addon = require('../native');
+var path = require('path');
+import { RustSession } from '../src/api/session';
 import { RustSessionChannelConstructor } from '../src/native';
-import { IProviderError } from '../src/computation/computation.errors';
-import { IFilter, IGrabbedContent } from '../src/interfaces/index';
+import { ISearchFilter, IGrabbedContent } from '../src/interfaces/index';
 // import { RustSessionChannelConstructor, RustSessionChannel } from '../src/native/native.session';
 
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 
-describe('Nude channel', function() {
-	it('basic channel support', function(done) {
+describe('Session', function() {
+	it('basic session support', function(done) {
 		const session_id = 'Rust-Session-1';
-		const computation = new EventProvider(session_id);
-		const channel = new RustSessionChannelConstructor(session_id, computation.getEmitter());
-		computation.getEvents().destroyed.subscribe(() => {
+		// const session: RustSessionChannel = new RustSessionChannelConstructor(session_id, function(event: string) {
+		const session = new RustSession(session_id, function(eventString: string) {
+			console.log('JS: received event: ' + eventString);
+			const event = JSON.parse(eventString);
+			console.log('JS: received event, keys: ' + Object.keys(event));
+			if (event.hasOwnProperty('Progress')) {
+				console.log('was progress');
+			}
 			done();
 		});
-		computation.getEvents().error.subscribe((err: IProviderError) => {
-			console.log(`Error on rust channel: ${JSON.stringify(err)}`);
-		});
 		console.log('created session');
-		expect(channel.id()).toEqual(session_id);
-		let filterA: IFilter = {
-			filter: 'Bluetooth',
-			flags: {
-				reg: true,
-				cases: false,
-				word: false	
-			}
+		expect(session.id()).toEqual(session_id);
+		let filterA = {
+			value: 'Bluetooth',
+			is_regex: true,
+			case_sensitive: false,
+			is_word: false
 		};
-		let filterB: IFilter = {
-			filter: 'Warning',
-			flags: {
-				reg: true,
-				cases: false,
-				word: false	
-			}
+		let filterB = {
+			value: 'Warning',
+			is_regex: true,
+			case_sensitive: false,
+			is_word: false
 		};
-		//channel.setFilters([ filterA ]);
-		console.log('filters:' + JSON.stringify(channel.getFilters()));
-		//channel.setFilters([ filterB ]);
-		console.log('filters:' + JSON.stringify(channel.getFilters()));
-		channel.destroy();
+		session.setSearch([ filterA ]);
+		console.log('filters:' + JSON.stringify(session.getFilters()));
+		session.setSearch([ filterB ]);
+		console.log('filters:' + JSON.stringify(session.getFilters()));
+		session.clearSearch();
+		console.log('filters:' + JSON.stringify(session.getFilters()));
+		session.destroy();
 	});
 });
 
@@ -141,16 +140,6 @@ describe('MockComputation', function() {
 		let tmpobj = createSampleFile(5000);
 		let tmpFilePath = tmpobj.name;
 		const session_id = 'Rust-Session-1';
-		const computation = new EventProvider(session_id);
-		const channel = new RustSessionChannelConstructor(session_id, computation.getEmitter());
-		computation.getEvents().destroyed.subscribe(() => {
-			done();
-		});
-		computation.getEvents().error.subscribe((err: IProviderError) => {
-			console.log(`Error on rust channel: ${JSON.stringify(err)}`);
-		});
-		console.log('created session');
-		/*
 		const session = new RustSession(session_id, async function(eventString: string) {
 			switch (+parseEventType(eventString)) {
 				case EventType.Progress:
@@ -189,8 +178,8 @@ describe('MockComputation', function() {
 					break;
 			}
 		});
-		*/
-		channel.assign(() => {}, tmpFilePath, 'sourceA');
+
+		session.assignFile(tmpFilePath, 'sourceA');
 		console.log('JS: exiting synchronous code execution');
 	});
 

@@ -2,10 +2,8 @@ import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
 import { TEventData, TEventEmitter, IEventData } from './provider.general';
-import { IEventsInterfaces, IEventsSignatures, IEvents } from './provider.minimal';
-import { EErrorSeverity } from '../interfaces/errors';
 
-export abstract class Computation<TEvents> {
+export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
     public readonly logger: Logs.Logger;
 
@@ -26,11 +24,11 @@ export abstract class Computation<TEvents> {
 
     public abstract getName(): string;
 
-    public abstract getEvents(): TEvents & IEvents;
+    public abstract getEvents(): TEvents;
 
-    public abstract getEventsSignatures(): Required<IEventsSignatures>;
+    public abstract getEventsSignatures(): IEventsSignatures;
 
-    public abstract getEventsInterfaces(): Required<IEventsInterfaces>;
+    public abstract getEventsInterfaces(): IEventsInterfaces;
 
     /**
      * We are expecting to get from rust event data as JSON string. Required format is:
@@ -42,7 +40,11 @@ export abstract class Computation<TEvents> {
             if (typeof data === 'string') {
                 return `(defined as string): ${data}`;
             } else {
-                return `(defined as object): keys: ${Object.keys(data).join(', ')} / values: ${Object.keys(data).map(k => JSON.stringify(data[k])).join(', ')}`;
+                return `(defined as object): keys: ${Object.keys(data).join(
+                    ', ',
+                )} / values: ${Object.keys(data)
+                    .map((k) => JSON.stringify(data[k]))
+                    .join(', ')}`;
             }
         }
         this.logger.debug(`Has been gotten rust event:\n\t${dataAsStr(data)}`);
@@ -72,17 +74,11 @@ export abstract class Computation<TEvents> {
         }
         const type: string = Object.keys(event)[0];
         const body: any = event[type];
-        if (type === this.getEventsSignatures().Done) {
-            return this._destroy();
-        }
-        
         this._emit(type, body);
     }
 
     private _destroy() {
         this._destroyed = true;
-        // Emit destroy event
-        this.getEvents().destroyed.emit();
         // Unsubscribe all event listeners
         Object.keys(this.getEvents()).forEach((key: string) => {
             (this.getEvents() as any)[key].destroy();
@@ -92,24 +88,14 @@ export abstract class Computation<TEvents> {
 
     private _emit(event: string, data: any) {
         if ((this.getEventsSignatures() as any)[event] === undefined) {
-            const errMsg = `Has been gotten unsupported event: "${event}".`;
-            this.getEvents().error.emit({
-                severity: EErrorSeverity.logs,
-                message: errMsg,
-            });
-            this.logger.error(errMsg);
+            this.logger.error(`Has been gotten unsupported event: "${event}".`);
         } else {
             const err: Error | undefined = Events.Subject.validate(
                 (this.getEventsInterfaces() as any)[event],
                 data,
             );
             if (err instanceof Error) {
-                const errMsg = `Fail to parse event "${event}" due error: ${err.message}`;
-                this.getEvents().error.emit({
-                    severity: EErrorSeverity.logs,
-                    message: errMsg,
-                });
-                this.logger.error(errMsg);
+                this.logger.error(`Fail to parse event "${event}" due error: ${err.message}`);
             } else {
                 (this.getEvents() as any)[event].emit(data);
             }

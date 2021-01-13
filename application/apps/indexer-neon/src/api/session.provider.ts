@@ -1,12 +1,7 @@
 import * as Events from '../util/events';
 
-import ServiceProduction from '../services/service.production';
-
 import { Computation } from '../provider/provider';
-import { IMapEntity, IMatchEntity } from '../interfaces/index';
-import { ERustEmitterEvents } from '../native/native';
-
-import { IProviderError } from '../provider/provider.errors';
+import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 
 export interface IProgressState {
     total: number;
@@ -18,23 +13,38 @@ export interface IProgressEvent {
     Progress: IProgressState;
 }
 
-export interface ISessionEvents {
+export interface IError {
+    severity: EErrorSeverity;
+    kind: EErrorKind;
+    message?: string;
+}
 
+export interface IErrorEvent {
+    uuid: string;
+    error: IError;
+}
+
+export interface IOperationDoneEvent {
+    uuid: string;
+    result: any;
+}
+
+export interface ISessionEvents {
     StreamUpdated: Events.Subject<number>;
     SearchUpdated: Events.Subject<number>;
     Progress: Events.Subject<IProgressEvent>;
-    SessionError: Events.Subject<Error>;
-    OperationError: Events.Subject<Error>;
+    SessionError: Events.Subject<IError>;
+    OperationError: Events.Subject<IErrorEvent>;
     SessionDestroyed: Events.Subject<void>;
-    OperationDone: Events.Subject<string>;
+    OperationDone: Events.Subject<IOperationDoneEvent>;
 }
 
-interface ISessionEventsSignatures  {
+interface ISessionEventsSignatures {
     StreamUpdated: 'StreamUpdated';
     SearchUpdated: 'SearchUpdated';
     Progress: 'Progress';
-    SessionError: 'SessionError',
-    OperationError: 'OperationError',
+    SessionError: 'SessionError';
+    OperationError: 'OperationError';
     SessionDestroyed: 'SessionDestroyed';
     OperationDone: 'OperationDone';
 }
@@ -49,36 +59,52 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     OperationDone: 'OperationDone',
 };
 
-interface ISessionEventsInterfaces  {
+interface ISessionEventsInterfaces {
     StreamUpdated: { self: 'number' };
     SearchUpdated: { self: 'number' };
-    Progress: { self: 'object', uuid: 'string', progress: { self: 'object', total: 'number', done: 'number' } };
-    SessionError: { self: 'object', severity: 'string', message: 'string' };
-    OperationError: { self: 'object', severity: 'string', message: 'string' };
+    Progress: {
+        self: 'object';
+        uuid: 'string';
+        progress: { self: 'object'; total: 'number'; done: 'number' };
+    };
+    SessionError: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
+    OperationError: {
+        self: 'object';
+        uuid: 'string';
+        error: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
+    };
     SessionDestroyed: { self: null };
-    OperationDone: { self: 'string' }
+    OperationDone: { self: 'object', uuid: 'string', result: 'any' };
 }
 
 const SessionEventsInterfaces: ISessionEventsInterfaces = {
     StreamUpdated: { self: 'number' },
     SearchUpdated: { self: 'number' },
-    Progress: { self: 'object', uuid: 'string', progress: { self: 'object', total: 'number', done: 'number' } },
-    SessionError: { self: 'object', severity: 'string', message: 'string' },
-    OperationError: { self: 'object', severity: 'string', message: 'string' },
+    Progress: {
+        self: 'object',
+        uuid: 'string',
+        progress: { self: 'object', total: 'number', done: 'number' },
+    },
+    SessionError: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
+    OperationError: {
+        self: 'object',
+        uuid: 'string',
+        error: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
+    },
     SessionDestroyed: { self: null },
-    OperationDone: { self: 'string' }
+    OperationDone: { self: 'object', uuid: 'string', result: 'any' },
 };
 
-export class EventProvider extends Computation<ISessionEvents> {
+export class EventProvider extends Computation<ISessionEvents, ISessionEventsSignatures, ISessionEventsInterfaces> {
 
     private readonly _events: ISessionEvents = {
         StreamUpdated: new Events.Subject<number>(),
         SearchUpdated: new Events.Subject<number>(),
         Progress: new Events.Subject<IProgressEvent>(),
-        SessionError: new Events.Subject<Error>(),
-        OperationError: new Events.Subject<Error>(),
+        SessionError: new Events.Subject<IError>(),
+        OperationError: new Events.Subject<IErrorEvent>(),
         SessionDestroyed: new Events.Subject<void>(),
-        OperationDone: new Events.Subject<string>(),
+        OperationDone: new Events.Subject<IOperationDoneEvent>(),
     };
 
     constructor(uuid: string) {
