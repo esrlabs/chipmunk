@@ -1,4 +1,4 @@
-import { Computation } from '../computation/сomputation';
+import { Computation } from '../provider/provider';
 import {
     IEventsInterfaces,
     EventsInterfaces,
@@ -6,21 +6,31 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-} from '../computation/computation.minimal.withprogress';
-import { IComputationError } from '../computation/computation.errors';
+} from '../provider/provider.minimal.withprogress';
+import { IProviderError } from '../provider/provider.errors';
 
 import * as Events from '../util/events';
 
-export interface IFileToBeMerged {
-    filename: string;
-    datetimeFormat?: string;
-    datetimeFormatRegExp?: string;
+export interface IFileOptionsDLT {
+
 }
 
-export class StreamMergeComputation extends Computation<IEvents> {
+export enum EFileOptionsRequirements {
+    DLTOptions = 'DLTOptions',
+    NoOptionsRequired = 'NoOptionsRequires',
+}
+
+export type TFileOptions = IFileOptionsDLT | undefined;
+
+export interface IExecuteAssignOptions {
+    filename: string;
+    options: TFileOptions;
+}
+
+export class StreamAssignComputation extends Computation<IEvents> {
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
-        error: new Events.Subject<IComputationError>(),
+        error: new Events.Subject<IProviderError>(),
         destroyed: new Events.Subject<void>(),
     };
 
@@ -29,7 +39,7 @@ export class StreamMergeComputation extends Computation<IEvents> {
     }
 
     public getName(): string {
-        return 'StreamMergeComputation';
+        return 'StreamAssignComputation';
     }
 
     public getEvents(): IEvents {

@@ -21,9 +21,9 @@
 // }
 
 // import { Session } from '../src/api/session';
-import { SessionComputation, ISessionEvents } from '../src/api/session.computation';
+import { EventProvider, ISessionEvents } from '../src/api/session.computation';
 import { RustSessionChannelConstructor } from '../src/native';
-import { IComputationError } from '../src/computation/computation.errors';
+import { IProviderError } from '../src/computation/computation.errors';
 import { IFilter, IGrabbedContent } from '../src/interfaces/index';
 // import { RustSessionChannelConstructor, RustSessionChannel } from '../src/native/native.session';
 
@@ -33,12 +33,12 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 describe('Nude channel', function() {
 	it('basic channel support', function(done) {
 		const session_id = 'Rust-Session-1';
-		const computation = new SessionComputation(session_id);
+		const computation = new EventProvider(session_id);
 		const channel = new RustSessionChannelConstructor(session_id, computation.getEmitter());
 		computation.getEvents().destroyed.subscribe(() => {
 			done();
 		});
-		computation.getEvents().error.subscribe((err: IComputationError) => {
+		computation.getEvents().error.subscribe((err: IProviderError) => {
 			console.log(`Error on rust channel: ${JSON.stringify(err)}`);
 		});
 		console.log('created session');
@@ -141,12 +141,12 @@ describe('MockComputation', function() {
 		let tmpobj = createSampleFile(5000);
 		let tmpFilePath = tmpobj.name;
 		const session_id = 'Rust-Session-1';
-		const computation = new SessionComputation(session_id);
+		const computation = new EventProvider(session_id);
 		const channel = new RustSessionChannelConstructor(session_id, computation.getEmitter());
 		computation.getEvents().destroyed.subscribe(() => {
 			done();
 		});
-		computation.getEvents().error.subscribe((err: IComputationError) => {
+		computation.getEvents().error.subscribe((err: IProviderError) => {
 			console.log(`Error on rust channel: ${JSON.stringify(err)}`);
 		});
 		console.log('created session');

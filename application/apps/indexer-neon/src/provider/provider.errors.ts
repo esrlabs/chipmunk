@@ -1,6 +1,6 @@
 import { IGeneralError } from '../interfaces/errors';
 
-export interface IComputationError extends IGeneralError {
+export interface IProviderError extends IGeneralError {
     row?: number;
     filename?: string;
 }

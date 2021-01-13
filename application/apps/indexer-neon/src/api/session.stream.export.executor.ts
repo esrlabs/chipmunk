@@ -2,8 +2,8 @@ import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustSessionChannel } from '../native/index';
 import { TCanceler } from '../native/native.session';
 import { Subscription } from '../util/events.subscription';
-import { StreamExportComputation, IExportOptions } from './session.stream.export.computation';
-import { IComputationError } from '../computation/computation.errors';
+import { StreamExportComputation, IExportOptions } from './session.stream.export.provider';
+import { IProviderError } from '../provider/provider.errors';
 import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<void, IExportOptions> = (
@@ -30,7 +30,7 @@ export const executor: TExecutor<void, IExportOptions> = (
                     resolve();
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+            error: computation.getEvents().error.subscribe((err: IProviderError) => {
                 logger.warn(`Error on operation append: ${err.message}`);
                 error = new Error(err.message);
             }),

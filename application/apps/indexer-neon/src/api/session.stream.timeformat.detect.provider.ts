@@ -1,4 +1,4 @@
-import { Computation } from '../computation/сomputation';
+import { Computation } from '../provider/provider';
 import {
     IEventsInterfaces,
     EventsInterfaces,
@@ -6,8 +6,8 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-} from '../computation/computation.minimal.withprogress';
-import { IComputationError } from '../computation/computation.errors';
+} from '../provider/provider.minimal.withprogress';
+import { IProviderError } from '../provider/provider.errors';
 
 import * as Events from '../util/events';
 
@@ -46,7 +46,7 @@ export class StreamTimeFormatDetectComputation extends Computation<IEvents> {
     private readonly _events: IDetectEvents = {
         progress: new Events.Subject<IOperationProgress>(),
         results: new Events.Subject<IDetectDTFormatResult[]>(),
-        error: new Events.Subject<IComputationError>(),
+        error: new Events.Subject<IProviderError>(),
         destroyed: new Events.Subject<void>(),
     };
 

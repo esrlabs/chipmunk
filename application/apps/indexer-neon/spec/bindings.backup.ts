@@ -33,25 +33,31 @@ describe('Session', function() {
 	it('basic session support', function(done) {
 		const session_id = 'Rust-Session-1';
 		// const session: RustSessionChannel = new RustSessionChannelConstructor(session_id, function(event: string) {
-		
-		const session = new Session();
+		const session = new RustSession(session_id, function(eventString: string) {
+			console.log('JS: received event: ' + eventString);
+			const event = JSON.parse(eventString);
+			console.log('JS: received event, keys: ' + Object.keys(event));
+			if (event.hasOwnProperty('Progress')) {
+				console.log('was progress');
+			}
+			if (event.hasOwnProperty('Done')) { // <---- here Done related to "session.destroy()"
+				console.log('We are destroyed');
+			}
+			done();
+		});
 		console.log('created session');
 		expect(session.id()).toEqual(session_id);
-		let filterA: IFilter = {
-			filter: 'Bluetooth',
-			flags: {
-				reg: true,
-				cases: false,
-				word: false	
-			}
+		let filterA = {
+			value: 'Bluetooth',
+			is_regex: true,
+			case_sensitive: false,
+			is_word: false
 		};
-		let filterB: IFilter = {
-			filter: 'Warning',
-			flags: {
-				reg: true,
-				cases: false,
-				word: false	
-			}
+		let filterB = {
+			value: 'Warning',
+			is_regex: true,
+			case_sensitive: false,
+			is_word: false
 		};
 		session.setSearch([ filterA ]);
 		console.log('filters:' + JSON.stringify(session.getFilters()));
@@ -146,28 +152,33 @@ describe('MockComputation', function() {
 						if (ticks.count == ticks.total) {
 							console.log('ready for grabbing');
 
-							let result: IGrabbedContent = session.grab(500, 7);
-							console.log('result of grab was: ' + JSON.stringify(result));
-							const lines: string[] = result.grabbed_elements.map((element) => {
-								return element.content;
-							});
-							expect(lines).toEqual([
-								'some line data: 500',
-								'some line data: 501',
-								'some line data: 502',
-								'some line data: 503',
-								'some line data: 504',
-								'some line data: 505',
-								'some line data: 506'
-							]);
-
-							console.log('calling destroy');
-							session.destroy();
-							setTimeout(done);
 						}
 					}
 					break;
-				case EventType.Done:
+				case EventType.Done(opUuid: string):
+					if (opUuid === uuid) {
+						// This is not destroy or something..
+						// it means file ready to be grabber.
+
+						let result: IGrabbedContent = session.grab(500, 7);
+						console.log('result of grab was: ' + JSON.stringify(result));
+						const lines: string[] = result.grabbed_elements.map((element) => {
+							return element.content;
+						});
+						expect(lines).toEqual([
+							'some line data: 500',
+							'some line data: 501',
+							'some line data: 502',
+							'some line data: 503',
+							'some line data: 504',
+							'some line data: 505',
+							'some line data: 506'
+						]);
+
+						console.log('calling destroy');
+						session.destroy();
+						setTimeout(done);
+					}
 					console.log('We are done');
 					tmpobj.removeCallback();
 					break;
@@ -176,7 +187,7 @@ describe('MockComputation', function() {
 			}
 		});
 
-		session.assignFile(tmpFilePath, 'sourceA');
+		const uuid: string = session.assignFile(tmpFilePath, 'sourceA');
 		console.log('JS: exiting synchronous code execution');
 	});
 

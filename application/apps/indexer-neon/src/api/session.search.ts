@@ -5,19 +5,19 @@ import {
 } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { Subscription } from '../util/events.subscription';
-import { SessionComputation } from './session.computation';
+import { EventProvider } from './session.provider';
 import { IFilter, IMatchEntity } from '../interfaces/index';
-import { StreamSearchComputation } from './session.stream.search.computation';
+import { StreamSearchComputation } from './session.stream.search.provider';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
 import { Executors } from './session.stream.executors';
 
 export class SessionSearch {
-    private readonly _computation: SessionComputation;
+    private readonly _computation: EventProvider;
     private readonly _channel: RustSessionChannel;
     private readonly _uuid: string;
     private readonly _logger: Logs.Logger;
 
-    constructor(computation: SessionComputation, channel: RustSessionChannel, uuid: string) {
+    constructor(computation: EventProvider, channel: RustSessionChannel, uuid: string) {
         this._logger = Logs.getLogger(`SessionSearch: ${uuid}`);
         this._computation = computation;
         this._channel = channel;

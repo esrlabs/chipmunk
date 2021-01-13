@@ -1,8 +1,8 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
-import { TEventData, TEventEmitter, IEventData } from './computation.general';
-import { IEventsInterfaces, IEventsSignatures, IEvents } from './computation.minimal';
+import { TEventData, TEventEmitter, IEventData } from './provider.general';
+import { IEventsInterfaces, IEventsSignatures, IEvents } from './provider.minimal';
 import { EErrorSeverity } from '../interfaces/errors';
 
 export abstract class Computation<TEvents> {

@@ -2,8 +2,8 @@ import { TExecutor, Logger, CancelablePromise } from './executor';
 import { RustSessionChannel } from '../native/index';
 import { TCanceler } from '../native/native.session';
 import { Subscription } from '../util/events.subscription';
-import { StreamTimeFormatExtractComputation, IExtractDTFormatResult, IExtractOptions } from './session.stream.timeformat.extract.computation';
-import { IComputationError } from '../computation/computation.errors';
+import { StreamTimeFormatExtractComputation, IExtractDTFormatResult, IExtractOptions } from './session.stream.timeformat.extract.provider';
+import { IProviderError } from '../provider/provider.errors';
 import { IGeneralError } from '../interfaces/errors';
 
 export const executor: TExecutor<IExtractDTFormatResult, IExtractOptions> = (
@@ -33,7 +33,7 @@ export const executor: TExecutor<IExtractDTFormatResult, IExtractOptions> = (
                     });
                 }
             }),
-            error: computation.getEvents().error.subscribe((err: IComputationError) => {
+            error: computation.getEvents().error.subscribe((err: IProviderError) => {
                 logger.warn(`Error on operation append: ${err.message}`);
                 error = new Error(err.message);
             }),

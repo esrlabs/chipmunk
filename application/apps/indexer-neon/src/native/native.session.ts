@@ -3,23 +3,23 @@ import * as Logs from '../util/logging';
 import ServiceProduction from '../services/service.production';
 
 import { RustChannelRequiered } from './native.channel.required';
-import { TEventEmitter } from '../computation/computation.general';
+import { TEventEmitter } from '../provider/provider.general';
 import { RustSessionChannelNoType, ERustEmitterEvents } from './native';
 import { IFilter, IMatchEntity, IGrabbedContent, IGrabbedElement } from '../interfaces/index';
 import { getNativeModule } from './native';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
 import { CancelablePromise } from '../util/promise';
-import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.computation';
-import { IFileToBeMerged } from '../api/session.stream.merge.computation';
+import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.provider';
+import { IFileToBeMerged } from '../api/session.stream.merge.provider';
 import {
     IDetectOptions,
     IDetectDTFormatResult,
-} from '../api/session.stream.timeformat.detect.computation';
+} from '../api/session.stream.timeformat.detect.provider';
 import {
     IExtractOptions,
     IExtractDTFormatResult,
-} from '../api/session.stream.timeformat.extract.computation';
-import { IExportOptions } from '../api/session.stream.export.computation';
+} from '../api/session.stream.timeformat.extract.provider';
+import { IExportOptions } from '../api/session.stream.export.provider';
 
 export type RustChannelConstructorImpl<T> = new (uuid: string, callback: TEventEmitter) => T;
 export type TCanceler = () => void;

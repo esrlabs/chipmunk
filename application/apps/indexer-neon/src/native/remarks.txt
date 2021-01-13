@@ -1,32 +1,16 @@
-Open questions:
-- no need to drop filters, can be used setFilters([]);
-- on destroy call event "Done" comes. Should be "destroyed"
-- cancelers should be implemented (cb or events)
-- async functions requires own emitters to send "done" signal
-- basic format of event { [name: string]: json-string }
-- event "done" should be about operation and it could be called multiple times. Event should have operation ID as body
-- event "ready" is about session init process and can be called only once
-- events conflict... Event "Progress: { ... }" already present for grab, but also we are expecting to have progress for search
-  way #1: use diffrent names like "ProgressGrub" and "ProgressSearch", we will get a long list of events at the end (grab, search,
-  matches, ranges etc. actually any async operation can have progress). way #2: using on nested classes. way #3: using nested
-  events-callbacks... I would say way#3 looks like most suitable, but choose depend on rust/neon limitations
-
-* Suggestion for lifecircle:
-- event "destroyed: {}" - called on session has been destroyed. No any commands can be called in the scope of the session
-- event "done: { uuid: string }" called on any async task is Finished
-
-* Aborting
-Could be added general method "abort(uuid: string): bool". Returns "false" in case of task wasn't found; "true" if task is found.
-But here is a messy case. If we have only one event-callback (emitter), would be fine to get event "done". But if we would have nested emitters, "done" 
-probably should comes from nested emitter, but not from general.
-
-* Other
-Not sure, we would need executors for each async operation on TS level (depend on emitters)
-
-
 e.g. show text file content
 
 1. create session => RustSessionChannel
+
+
+// TODO:
+- rename computation to something like Emitter or EventsStore or EventSource or EventProvider etc...
+- rename channel to just session.
+
+// Possible events
+{ Progress: { uuid: string, ticks: { ... }}}, where uuid - reference to async operation
+{ Done: { uuid: string, status: finished | canceled }}
+
 
 //
 //-js-------------------------> Rust:

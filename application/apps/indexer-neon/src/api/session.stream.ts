@@ -3,19 +3,19 @@ import * as Logs from '../util/logging';
 
 import { RustSessionChannel } from '../native/index';
 import { CancelablePromise } from '../util/promise';
-import { SessionComputation } from './session.computation';
-import { IFileToBeMerged } from './session.stream.merge.computation';
-import { IExportOptions } from './session.stream.export.computation';
+import { EventProvider } from './session.provider';
+import { IFileToBeMerged } from './session.stream.merge.provider';
+import { IExportOptions } from './session.stream.export.provider';
 import {
     IDetectDTFormatResult,
     IDetectOptions,
-} from './session.stream.timeformat.detect.computation';
+} from './session.stream.timeformat.detect.provider';
 import {
     IExtractOptions,
     IExtractDTFormatResult,
-} from './session.stream.timeformat.extract.computation';
+} from './session.stream.timeformat.extract.provider';
 import { Executors } from './session.stream.executors';
-import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.computation';
+import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.provider';
 import { IGeneralError } from '../interfaces/errors';
 import { IGrabbedElement } from '../interfaces/index';
 
@@ -39,12 +39,12 @@ abstract class Connector<T> {
 }
 
 export class SessionStream {
-    private readonly _computation: SessionComputation;
+    private readonly _computation: EventProvider;
     private readonly _channel: RustSessionChannel;
     private readonly _uuid: string;
     private readonly _logger: Logs.Logger;
 
-    constructor(computation: SessionComputation, channel: RustSessionChannel, uuid: string) {
+    constructor(computation: EventProvider, channel: RustSessionChannel, uuid: string) {
         this._logger = Logs.getLogger(`SessionStream: ${uuid}`);
         this._computation = computation;
         this._channel = channel;

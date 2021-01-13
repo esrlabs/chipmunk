@@ -1,4 +1,4 @@
-import { Computation } from '../computation/сomputation';
+import { Computation } from '../provider/provider';
 import {
     IEventsInterfaces,
     EventsInterfaces,
@@ -6,22 +6,21 @@ import {
     IEventsSignatures,
     IEvents,
     IOperationProgress,
-} from '../computation/computation.minimal.withprogress';
-import { IComputationError } from '../computation/computation.errors';
+} from '../provider/provider.minimal.withprogress';
+import { IProviderError } from '../provider/provider.errors';
 
 import * as Events from '../util/events';
 
-export interface IExportOptions {
-    from: number;
-    to: number;
-    destFilename: string;
-    keepFormat: boolean;
+export interface IFileToBeMerged {
+    filename: string;
+    datetimeFormat?: string;
+    datetimeFormatRegExp?: string;
 }
 
-export class StreamExportComputation extends Computation<IEvents> {
+export class StreamMergeComputation extends Computation<IEvents> {
     private readonly _events: IEvents = {
         progress: new Events.Subject<IOperationProgress>(),
-        error: new Events.Subject<IComputationError>(),
+        error: new Events.Subject<IProviderError>(),
         destroyed: new Events.Subject<void>(),
     };
 
@@ -30,7 +29,7 @@ export class StreamExportComputation extends Computation<IEvents> {
     }
 
     public getName(): string {
-        return 'StreamExportComputation';
+        return 'StreamMergeComputation';
     }
 
     public getEvents(): IEvents {

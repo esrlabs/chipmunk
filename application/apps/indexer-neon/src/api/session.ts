@@ -4,11 +4,11 @@ import * as Logs from '../util/logging';
 import uuid from '../util/uuid';
 
 import { RustSessionChannel, RustSessionChannelConstructor } from '../native/index';
-import { SessionComputation, ISessionEvents } from './session.computation';
+import { EventProvider, ISessionEvents } from './session.provider';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
 import { EErrorSeverity, IGeneralError } from '../interfaces/errors';
-import { IComputationError } from '../computation/computation.errors';
+import { IProviderError } from '../provider/provider.errors';
 
 import { IFilter, IGrabbedContent } from '../interfaces/index';
 
@@ -18,55 +18,13 @@ export {
     IEventMatchesUpdated,
     IEventSearchUpdated,
     IEventStreamUpdated,
-} from './session.computation';
+} from './session.provider';
 
-export { SessionComputation, SessionStream, SessionSearch };
-
-/*
-export class RustSession extends RustSessionChannel {
-    private _rust_session: any;
-
-    constructor(session_id: string, callback: (event: string) => void) {
-        super();
-        this._rust_session = new (getNativeModule()).RustSession(session_id, callback);
-    }
-
-    public assignFile(file_path: string, source_id: string): void {
-        this._rust_session.assignFile(file_path, source_id);
-    }
-
-    public grab(startLineIndex: number, numberOfLines: number): IGrabbedContent {
-        return JSON.parse(this._rust_session.grab(startLineIndex, numberOfLines));
-    }
-
-    public id(): string {
-        return this._rust_session.id();
-    }
-
-    public destroy(): void {
-        this._rust_session.shutdown();
-    }
-
-    public setSearch(filters: IFilter[]): IGeneralError | undefined {
-        const filterString = JSON.stringify(filters);
-        this._rust_session.setFilters(filterString);
-        return undefined;
-    }
-
-    public getFilters() : IFilter[] {
-        const filter_string = this._rust_session.getFilters();
-        return JSON.parse(filter_string);
-    }
-
-    public clearSearch() {
-        this._rust_session.clearFilters();
-    }
-}
-*/
+export { EventProvider, SessionStream, SessionSearch };
 
 export class Session {
     private _channel: RustSessionChannel | undefined;
-    private _computation: SessionComputation | undefined;
+    private _provider: EventProvider | undefined;
     private _stream: SessionStream | undefined;
     private _search: SessionSearch | undefined;
     private readonly _uuid: string = uuid();
@@ -78,7 +36,7 @@ export class Session {
 
     public init(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            const ready = (err?: IComputationError) => {
+            const ready = (err?: IProviderError) => {
                 Object.keys(subs).forEach((key: string) => {
                     subs[key].destroy();
                 });
@@ -86,19 +44,19 @@ export class Session {
                     reject(new Error(err.message));
                 } else {
                     this._channel = channel;
-                    this._computation = computation;
-                    this._stream = new SessionStream(computation, channel, this._uuid);
-                    this._search = new SessionSearch(computation, channel, this._uuid);
+                    this._provider = provider;
+                    this._stream = new SessionStream(provider, channel, this._uuid);
+                    this._search = new SessionSearch(provider, channel, this._uuid);
                     resolve();
                 }
             };
             const subs: { [key: string]: Events.Subscription } = {};
-            const computation = new SessionComputation(this._uuid);
-            const channel = new RustSessionChannelConstructor(this._uuid, computation.getEmitter());
-            subs.ready = computation.getEvents().ready.subscribe(() => {
+            const provider = new EventProvider(this._uuid);
+            const channel = new RustSessionChannelConstructor(this._uuid, provider.getEmitter());
+            subs.ready = provider.getEvents().ready.subscribe(() => {
                 ready();
             });
-            subs.error = computation.getEvents().error.subscribe((err: IComputationError) => {
+            subs.error = provider.getEvents().error.subscribe((err: IProviderError) => {
                 ready(err);
             });
         });
@@ -106,10 +64,10 @@ export class Session {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._computation === undefined || this._channel === undefined) {
-                return reject(new Error(`SessionComputation wasn't created`));
+            if (this._provider === undefined || this._channel === undefined) {
+                return reject(new Error(`EventProvider wasn't created`));
             }
-            const computation = this._computation;
+            const provider = this._provider;
             const channel = this._channel;
             Promise.all([
                 // Destroy stream controller
@@ -130,8 +88,8 @@ export class Session {
                 })
                 .finally(() => {
                     channel.destroy();
-                    computation.getEvents().destroyed.subscribe(() => {
-                        computation.destroy().then(resolve).catch(reject);
+                    provider.getEvents().Destroyed.subscribe(() => {
+                        provider.destroy().then(resolve).catch(reject);
                     });
                 });
         });
@@ -142,10 +100,10 @@ export class Session {
     }
 
     public getEvents(): ISessionEvents | Error {
-        if (this._computation === undefined) {
-            return new Error(`SessionComputation wasn't created`);
+        if (this._provider === undefined) {
+            return new Error(`EventProvider wasn't created`);
         }
-        return this._computation.getEvents();
+        return this._provider.getEvents();
     }
 
     public getStream(): SessionStream | Error {
