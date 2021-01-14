@@ -206,8 +206,15 @@ export class RustSessionDebug extends RustSession {
 
     public setFilters(filters: IFilter[]): IGeneralError | undefined {
         const filterString = JSON.stringify(filters);
-        this._native.setFilters(filterString);
-        return undefined;
+        try {
+            this._native.setFilters(filterString);
+            return undefined;
+        } catch (e) {
+            return {
+                message: e.message,
+                severity: EErrorSeverity.error,
+            }
+        }
     }
 
     public getFilters(): IFilter[] {

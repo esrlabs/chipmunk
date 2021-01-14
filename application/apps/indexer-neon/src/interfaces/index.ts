@@ -1,5 +1,6 @@
 export {
 	IFilter,
+	IFilterFlags,
 	IGrabbedContent,
 	IGrabbedElement,
 	IMatchEntity,
