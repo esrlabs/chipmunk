@@ -10,10 +10,10 @@ export {
     SessionSearch,
     SessionStream,
     ISessionEvents,
-    // IEventMapUpdated,
-    // IEventMatchesUpdated,
-    // IEventSearchUpdated,
-    // IEventStreamUpdated,
+    IProgressEvent,
+    IProgressState,
+    IEventMapUpdated,
+    IEventMatchesUpdated,
 } from './api/session';
 
 export {

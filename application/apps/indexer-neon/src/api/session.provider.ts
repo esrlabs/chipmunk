@@ -2,6 +2,7 @@ import * as Events from '../util/events';
 
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
+import { IMapEntity, IMatchEntity } from '../interfaces/index';
 
 export interface IProgressState {
     total: number;
@@ -29,9 +30,19 @@ export interface IOperationDoneEvent {
     result: any;
 }
 
+export interface IEventMapUpdated {
+    map: IMapEntity[];
+}
+
+export interface IEventMatchesUpdated {
+    matches: IMatchEntity[];
+}
+
 export interface ISessionEvents {
     StreamUpdated: Events.Subject<number>;
     SearchUpdated: Events.Subject<number>;
+    MapUpdated: Events.Subject<IEventMapUpdated>;
+    MatchesUpdated: Events.Subject<IEventMatchesUpdated>;
     Progress: Events.Subject<IProgressEvent>;
     SessionError: Events.Subject<IError>;
     OperationError: Events.Subject<IErrorEvent>;
@@ -42,6 +53,8 @@ export interface ISessionEvents {
 interface ISessionEventsSignatures {
     StreamUpdated: 'StreamUpdated';
     SearchUpdated: 'SearchUpdated';
+    MapUpdated: 'MapUpdated';
+    MatchesUpdated: 'MatchesUpdated';
     Progress: 'Progress';
     SessionError: 'SessionError';
     OperationError: 'OperationError';
@@ -52,6 +65,8 @@ interface ISessionEventsSignatures {
 const SessionEventsSignatures: ISessionEventsSignatures = {
     StreamUpdated: 'StreamUpdated',
     SearchUpdated: 'SearchUpdated',
+    MapUpdated: 'MapUpdated',
+    MatchesUpdated: 'MatchesUpdated',
     Progress: 'Progress',
     SessionError: 'SessionError',
     OperationError: 'OperationError',
@@ -62,6 +77,8 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
 interface ISessionEventsInterfaces {
     StreamUpdated: { self: 'number' };
     SearchUpdated: { self: 'number' };
+    MapUpdated: { self: 'object'; map: typeof Array };
+    MatchesUpdated: { self: 'object'; matches: typeof Array };
     Progress: {
         self: 'object';
         uuid: 'string';
@@ -80,6 +97,8 @@ interface ISessionEventsInterfaces {
 const SessionEventsInterfaces: ISessionEventsInterfaces = {
     StreamUpdated: { self: 'number' },
     SearchUpdated: { self: 'number' },
+    MapUpdated: { self: 'object', map: Array },
+    MatchesUpdated: { self: 'object', matches: Array },
     Progress: {
         self: 'object',
         uuid: 'string',
@@ -100,6 +119,8 @@ export class EventProvider extends Computation<ISessionEvents, ISessionEventsSig
     private readonly _events: ISessionEvents = {
         StreamUpdated: new Events.Subject<number>(),
         SearchUpdated: new Events.Subject<number>(),
+        MapUpdated: new Events.Subject<IEventMapUpdated>(),         // dummy
+        MatchesUpdated: new Events.Subject<IEventMatchesUpdated>(), // dummy
         Progress: new Events.Subject<IProgressEvent>(),
         SessionError: new Events.Subject<IError>(),
         OperationError: new Events.Subject<IErrorEvent>(),

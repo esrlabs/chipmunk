@@ -8,7 +8,7 @@ import { EventProvider, ISessionEvents, IError } from './session.provider';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
 
-export { ISessionEvents } from './session.provider';
+export { ISessionEvents, IProgressEvent, IProgressState, IEventMapUpdated, IEventMatchesUpdated } from './session.provider';
 
 export { EventProvider, SessionStream, SessionSearch };
 
