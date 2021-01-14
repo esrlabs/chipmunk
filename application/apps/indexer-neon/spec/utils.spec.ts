@@ -58,6 +58,11 @@ describe('Utils tests', () => {
         expect(Subject.validate(desc, { propA: 'this is string', propB: '1' })).toBeInstanceOf(Error);
         expect(Subject.validate(desc, { propA: 'this is string', propB: { a: '1', b: '2' } })).toBeInstanceOf(Error);
 
+        desc = { self: 'object', any: 'any' };
+        expect(Subject.validate(desc, { any: 1 })).toBe(undefined);
+        expect(Subject.validate(desc, { any: '1' })).toBe(undefined);
+        expect(Subject.validate(desc, { any: new Error('') })).toBe(undefined);
+
         done();
     });
 

@@ -451,6 +451,7 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         // Conver rows to packets
         try {
             rows.forEach((str: string, i: number) => {
+                /*
                 const position: number = extractRowPosition(str); // Get position
                 const pluginId: number = extractPluginId(str);    // Get plugin id
                 if (frame !== undefined) {
@@ -462,11 +463,12 @@ export class ControllerSessionTabStreamOutput implements Dependency {
                         return;
                     }
                 }
+                */
                 packets.push({
                     str: clearRowStr(str),
-                    position: position,
-                    positionInStream: position,
-                    pluginId: pluginId,
+                    position: start + i,
+                    positionInStream: start + i,
+                    pluginId: 1,
                     rank: this._state.countRank,
                     sessionId: this._guid,
                     parent: EParent.output,

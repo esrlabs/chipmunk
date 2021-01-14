@@ -54,7 +54,7 @@ export class Subject<T> {
                     if (err === undefined) {
                         valid = true;
                     }
-                } else if (typeof typeRef === 'string' && typeof target[name] === typeRef) {
+                } else if (typeof typeRef === 'string' && (typeof target[name] === typeRef || typeRef === 'any')) {
                     valid = true;
                 } else if (typeof typeRef !== 'string' && target[name] instanceof typeRef) {
                     valid = true;

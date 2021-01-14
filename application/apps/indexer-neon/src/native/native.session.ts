@@ -1,6 +1,7 @@
 import * as Logs from '../util/logging';
 
 import ServiceProduction from '../services/service.production';
+import uuid from '../util/uuid';
 
 import { RustSessionRequiered } from './native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
@@ -247,7 +248,16 @@ export class RustSessionDebug extends RustSession {
     }
 
     public assign(filename: string, options: TFileOptions): string | IGeneralError {
-        return this._native.assignFile(filename, filename);
+        // Temporary solution (assignFile (and any other async operation
+        // should return uuid or error))
+        const oUuid = uuid();
+        this._native.assignFile(filename, filename);
+        setTimeout(() => {
+            this._assigned = true;
+            this._emitter({ OperationDone: { uuid: oUuid, result: undefined }});
+            this._emitter({ StreamUpdated: 10000 });
+        }, 2000);
+        return oUuid;
     }
 
     public concat(files: string[]): string | IGeneralError {
