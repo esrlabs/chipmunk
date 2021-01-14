@@ -49,7 +49,12 @@ export class Subject<T> {
                 if (valid) {
                     return;
                 }
-                if (typeof typeRef === 'string' && typeof target[name] === typeRef) {
+                if (typeof typeRef === 'object' && typeRef !== null && typeof typeRef.self === 'string') {
+                    const err: Error | undefined = Subject.validate(typeRef, target[name]);
+                    if (err === undefined) {
+                        valid = true;
+                    }
+                } else if (typeof typeRef === 'string' && typeof target[name] === typeRef) {
                     valid = true;
                 } else if (typeof typeRef !== 'string' && target[name] instanceof typeRef) {
                     valid = true;
