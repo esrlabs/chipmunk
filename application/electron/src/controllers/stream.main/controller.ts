@@ -12,6 +12,7 @@ import { Search } from './controller.dependency.search';
 import { Stream } from './controller.dependency.stream';
 import { Charts } from './controller.dependency.charts';
 import { Files } from './controller.dependency.files';
+import { Ranges } from './controller.dependency.ranges';
 import { Channel } from './controller.channel';
 import {
     Session,
@@ -21,7 +22,7 @@ import {
     IExportOptions,
     IDetectDTFormatResult,
     IDetectOptions,
-    IExtractOptions,
+    IExtractDTFormatOptions,
     IExtractDTFormatResult,
     TFileOptions,
 } from 'indexer-neon';
@@ -46,12 +47,14 @@ export class ControllerSession {
         socket: Socket | undefined;
         stream: Stream | undefined;
         search: Search | undefined;
+        ranges: Ranges | undefined;
         charts: Charts | undefined;
         files: Files | undefined;
     } = {
         socket: undefined,
         stream: undefined,
         search: undefined,
+        ranges: undefined,
         charts: undefined,
         files: undefined,
     };
@@ -72,6 +75,7 @@ export class ControllerSession {
                     this._dependencies.socket,
                     this._dependencies.stream,
                     this._dependencies.search,
+                    this._dependencies.ranges,
                     this._dependencies.charts,
                     this._dependencies.files,
                 ].filter((d) => d !== undefined) as Dependency[]).map((dep: Dependency) => {
@@ -162,6 +166,9 @@ export class ControllerSession {
                 getDependency<Search>(this, session, Search).then((dep: Search) => {
                     this._dependencies.search = dep;
                 }),
+                getDependency<Ranges>(this, session, Ranges).then((dep: Ranges) => {
+                    this._dependencies.ranges = dep;
+                }),
                 getDependency<Charts>(this, session, Charts).then((dep: Charts) => {
                     this._dependencies.charts = dep;
                 }),
@@ -230,7 +237,7 @@ export class ControllerSession {
         merge(files: IFileToBeMerged[]): CancelablePromise<void>;
         export(options: IExportOptions): CancelablePromise<void>;
         detectTimeformat(options: IDetectOptions): CancelablePromise<IDetectDTFormatResult>;
-        extractTimeformat(options: IExportOptions): CancelablePromise<IExtractDTFormatResult>;
+        extractTimeformat(options: IExtractDTFormatOptions): IExtractDTFormatResult | Error;
     } {
         const self = this;
         function getStream(): SessionStream {
@@ -256,7 +263,7 @@ export class ControllerSession {
             detectTimeformat(options: IDetectOptions): CancelablePromise<IDetectDTFormatResult> {
                 return getStream().detectTimeformat(options);
             },
-            extractTimeformat(options: IExportOptions): CancelablePromise<IExtractDTFormatResult> {
+            extractTimeformat(options: IExtractDTFormatOptions): IExtractDTFormatResult | Error  {
                 return getStream().extractTimeformat(options);
             },
         };

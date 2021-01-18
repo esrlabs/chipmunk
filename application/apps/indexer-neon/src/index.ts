@@ -21,8 +21,19 @@ export {
     IExportOptions,
     IDetectDTFormatResult,
     IDetectOptions,
-    IExtractOptions,
-    IExtractDTFormatResult,
 } from './api/session.stream';
+
+export {
+    IGrabbedElement,
+    IExtractDTFormatOptions,
+    IExtractDTFormatResult,
+    IResultSearchElement,
+    IGrabbedSearchElement,
+    IMapEntity,
+    IMatchEntity,
+    IFilter,
+    IFilterFlags,
+    IGrabbedContent
+} from './interfaces/index';
 
 export { Units, Events, Interfaces };
