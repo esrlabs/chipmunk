@@ -6,13 +6,19 @@ import uuid from '../util/uuid';
 import { RustSessionRequiered } from './native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
 import { RustSessionNoType } from './native';
-import { IFilter, IGrabbedContent, IGrabbedElement } from '../interfaces/index';
+import {
+    IFilter,
+    IGrabbedContent,
+    IGrabbedElement,
+    IGrabbedSearchElement,
+    IExtractDTFormatResult,
+    IExtractDTFormatOptions,
+} from '../interfaces/index';
 import { getNativeModule } from './native';
 import { IGeneralError, EErrorSeverity } from '../interfaces/errors';
 import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.executor';
 import { IFileToBeMerged } from '../api/session.stream.merge.executor';
 import { IDetectOptions } from '../api/session.stream.timeformat.detect.executor';
-import { IExtractOptions } from '../api/session.stream.timeformat.extract.executor';
 import { IExportOptions } from '../api/session.stream.export.executor';
 
 export type RustSessionConstructorImpl<T> = new (uuid: string, callback: TEventEmitter) => T;
@@ -40,7 +46,10 @@ export abstract class RustSession extends RustSessionRequiered {
      * @returns { string }
      * @error In case of incorrect range should return { IGeneralError }
      */
-    public abstract grabSearchChunk(start: number, len: number): string[] | IGeneralError;
+    public abstract grabSearchChunk(
+        start: number,
+        len: number,
+    ): IGrabbedSearchElement[] | IGeneralError;
 
     /**
      * TODO: @return needs interface. It should not be a string
@@ -152,7 +161,12 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract detect(options: IDetectOptions): string | IGeneralError;
 
-    public abstract extract(options: IExtractOptions): string | IGeneralError;
+    /**
+     * This operation is sync.
+     */
+    public abstract extract(
+        options: IExtractDTFormatOptions,
+    ): IExtractDTFormatResult | IGeneralError;
 
     public abstract search(filters: IFilter[]): string | IGeneralError;
 
@@ -197,7 +211,7 @@ export class RustSessionDebug extends RustSession {
         }
     }
 
-    public grabSearchChunk(start: number, len: number): string[] {
+    public grabSearchChunk(start: number, len: number): IGrabbedSearchElement[] | IGeneralError {
         return [];
     }
 
@@ -214,7 +228,7 @@ export class RustSessionDebug extends RustSession {
             return {
                 message: e.message,
                 severity: EErrorSeverity.error,
-            }
+            };
         }
     }
 
@@ -254,7 +268,7 @@ export class RustSessionDebug extends RustSession {
         this._native.assignFile(filename, filename);
         setTimeout(() => {
             this._assigned = true;
-            this._emitter({ OperationDone: { uuid: oUuid, result: undefined }});
+            this._emitter({ OperationDone: { uuid: oUuid, result: undefined } });
             this._emitter({ StreamUpdated: 10000 });
         }, 2000);
         return oUuid;
@@ -276,8 +290,10 @@ export class RustSessionDebug extends RustSession {
         return 'not_implemented_yet';
     }
 
-    public extract(options: IExtractOptions): string | IGeneralError {
-        return 'not_implemented_yet';
+    public extract(
+        options: IExtractDTFormatOptions,
+    ): IExtractDTFormatResult | IGeneralError {
+        return { severity: EErrorSeverity.error, message: 'not_implemented_yet' };
     }
 
     public search(filters: IFilter[]): string | IGeneralError {
