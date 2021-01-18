@@ -7,21 +7,21 @@ import { EventProvider } from './session.provider';
 import { IFileToBeMerged } from './session.stream.merge.executor';
 import { IExportOptions } from './session.stream.export.executor';
 import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
-import {
-    IExtractOptions,
-    IExtractDTFormatResult,
-} from './session.stream.timeformat.extract.executor';
 import { Executors } from './session.stream.executors';
 import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.executor';
-import { IGeneralError } from '../interfaces/errors';
-import { IGrabbedElement } from '../interfaces/index';
+import { IGeneralError, getErrorFrom } from '../interfaces/errors';
+import {
+    IGrabbedElement,
+    IExtractDTFormatOptions,
+    IExtractDTFormatResult,
+} from '../interfaces/index';
 
 export {
     IFileToBeMerged,
     IExportOptions,
     IDetectDTFormatResult,
     IDetectOptions,
-    IExtractOptions,
+    IExtractDTFormatOptions,
     IExtractDTFormatResult,
 };
 
@@ -93,8 +93,31 @@ export class SessionStream {
         return Executors.timeformatDetect(this._session, this._provider, this._logger, options);
     }
 
-    public extractTimeformat(options: IExportOptions): CancelablePromise<IExtractDTFormatResult> {
-        return Executors.timeformatExtract(this._session, this._provider, this._logger, options);
+    public extractTimeformat(options: IExtractDTFormatOptions): IExtractDTFormatResult | Error {
+        let results: IExtractDTFormatResult | Error = getErrorFrom(this._session.extract(options));
+        if (typeof results !== 'object' || results === null) {
+            results = new Error(
+                `Expecting {IExtractDTFormatOptions} as result of "extractTimeformat", but has been gotten: ${typeof results}`,
+            );
+        } else if (
+            typeof results === 'object' &&
+            (typeof (results as IExtractDTFormatResult).format !== 'string' ||
+             typeof (results as IExtractDTFormatResult).reg !== 'string' ||
+             typeof (results as IExtractDTFormatResult).timestamp !== 'number'
+            )
+        ) {
+            results = new Error(
+                `Expecting {IExtractDTFormatOptions} as result of "extractTimeformat", but has been gotten: ${JSON.stringify(results)}`,
+            );
+        }
+        if (results instanceof Error) {
+            this._logger.warn(
+                `Fail to apply "extractTimeformat", options: ${JSON.stringify(
+                    options,
+                )} due error: ${results.message}`,
+            );
+        }
+        return results;
     }
 
     public connect(): {
