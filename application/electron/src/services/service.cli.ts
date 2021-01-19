@@ -32,6 +32,7 @@ class ServiceCLI implements IService {
     private _args: string[] = [];
     private _pendings: TAction[] = [];
     private _symbolic: string | undefined;
+    private _installed: boolean = false; // Flag of installation in the scope of current session
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
@@ -75,30 +76,32 @@ class ServiceCLI implements IService {
                 if (state) {
                     return resolve();
                 }
-                this._getSymLinkPath().then((symbolic: string) => {
-                    const sudo = require('sudo-prompt');
-                    const options = {
-                        name: 'Chipmunk Command Line Tool',
-                    };
-                    switch (process.platform) {
-                        case 'win32':
-                            sudo.exec(`mklink ${symbolic} ${ServicePaths.getCLI()}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
-                                if (error) {
-                                    return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
-                                }
-                                resolve();
-                            });
-                            break;
-                        default:
+                const sudo = require('sudo-prompt');
+                const options = {
+                    name: 'Chipmunk Command Line Tool',
+                };
+                switch (process.platform) {
+                    case 'win32':
+                        this._logger.debug(`Would call: ${`setx PATH "%PATH%;${ServicePaths.getCLIPath()}"`}`);
+                        sudo.exec(`setx PATH "%PATH%;${ServicePaths.getCLIPath()}"`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                            if (error) {
+                                return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
+                            }
+                            this._installed = true;
+                            resolve();
+                        });
+                        return;
+                    default:
+                        return this._getSymLinkPath().then((symbolic: string) => {
                             sudo.exec(`ln -s ${ServicePaths.getCLI()} ${symbolic}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
                                 if (error) {
                                     return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
                                 }
+                                this._installed = true;
                                 resolve();
                             });
-                            break;
-                    }
-                }).catch(reject);
+                        }).catch(reject);
+                }
             }).catch(reject);
         });
     }
@@ -112,44 +115,78 @@ class ServiceCLI implements IService {
                 if (!state) {
                     return resolve();
                 }
-                this._getSymLinkPath().then((symbolic: string) => {
-                    const sudo = require('sudo-prompt');
-                    const options = {
-                        name: 'Chipmunk Command Line Tool',
-                    };
-                    switch (process.platform) {
-                        case 'win32':
-                            sudo.exec(`del ${symbolic}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
-                                if (error) {
-                                    return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
+                if (process.platform === 'win32') {
+                    // Unfortunately on windows "setx" doesn't have option to delete variable.
+                    // but overwriting doesn't give expecting result.
+                    // One possible option to use reg delete HKCU\Environment /F /V PATH
+                    // and after setup it again with setx, but it's dangerous
+                    // Well temporary we wouldn't have uninstall for windows.
+                    return resolve();
+                }
+                const sudo = require('sudo-prompt');
+                const options = {
+                    name: 'Chipmunk Command Line Tool',
+                };
+                switch (process.platform) {
+                    /*
+                    case 'win32':
+                        this._getPathVar().then((path: string) => {
+                            const clean: string = path.split(';').map((p) => {
+                                if (p.trim() === '') {
+                                    return false;
                                 }
+                                if (p.trim() === ServicePaths.getCLIPath()) {
+                                    return false;
+                                }
+                                return true;
+                            }).join(';');
+                            this._logger.debug(`Would call: ${`setx PATH "${clean}" /M`}`);
+                            sudo.exec(`setx PATH "${clean}" /M`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
+                                if (error) {
+                                    return reject(new Error(this._logger.warn(`Fail install command tool line due error: ${error.message}`)));
+                                }
+                                this._installed = false;
                                 resolve();
                             });
-                            break;
-                        default:
+                        }).catch(reject);
+                        break;
+                        */
+                    default:
+                        this._getSymLinkPath().then((symbolic: string) => {
                             sudo.exec(`rm ${symbolic}`, options, (error: NodeJS.ErrnoException | null | undefined, stdout: any, stderr: any) => {
                                 if (error) {
                                     return reject(new Error(this._logger.warn(`Fail uninstall command tool line due error: ${error.message}`)));
                                 }
+                                this._installed = false;
                                 resolve();
                             });
-                            break;
-                    }
-                    }).catch(reject);
+                        }).catch(reject);
+                        break;
+                }
             }).catch(reject);
         });
     }
 
     public isInstalled(): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            this._getSymLinkPath().then((symbolic: string) => {
-                exist(symbolic).then((res: boolean) => {
-                    resolve(res);
-                }).catch((err: Error) => {
-                    this._logger.warn(`Fail to check file "${symbolic}" due error: ${err.message}`);
-                    reject(err);
-                });
-            }).catch(reject);
+            if (this._installed) {
+                return resolve(true);
+            }
+            switch (process.platform) {
+                case 'win32':
+                    return this._getPathVar().then((pathenv: string) => {
+                        resolve(pathenv.indexOf(ServicePaths.getCLIPath()) !== -1);
+                    }).catch(reject);
+                default:
+                    return this._getSymLinkPath().then((symbolic: string) => {
+                        exist(symbolic).then((res: boolean) => {
+                            resolve(res);
+                        }).catch((err: Error) => {
+                            this._logger.warn(`Fail to check file "${symbolic}" due error: ${err.message}`);
+                            reject(err);
+                        });
+                    }).catch(reject);
+            }
         });
     }
 
@@ -160,14 +197,16 @@ class ServiceCLI implements IService {
         ServiceElectron.getMenu()?.remove(this._menuItemGuid);
         this.isInstalled().then((state: boolean) => {
             if (state) {
-                ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
-                    { type: 'separator' },
-                    { label: 'Uninstall "cm" Command Line Tool', click: () => {
-                        this.uninstall().catch((err: Error) => this._logger.warn(err)).finally(() => {
-                            this._initMenu();
-                        });
-                    }},
-                ]);
+                if (process.platform !== 'win32') {
+                    ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
+                        { type: 'separator' },
+                        { label: 'Uninstall "cm" Command Line Tool', click: () => {
+                            this.uninstall().catch((err: Error) => this._logger.warn(err)).finally(() => {
+                                this._initMenu();
+                            });
+                        }},
+                    ]);
+                }
             } else {
                 ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
                     { type: 'separator' },
@@ -188,28 +227,35 @@ class ServiceCLI implements IService {
             if (this._symbolic !== undefined) {
                 return resolve(this._symbolic);
             }
-            switch (process.platform) {
-                case 'win32':
-                    return exec(`echo %windir%`, (err, stdout: string, stderr: string) => {
-                        if (err) {
-                            return reject(`Fail to call echo %windir% on windows due error: ${err.message}.`);
-                        }
-                        if (stderr.trim() !== '') {
-                            return reject(`Fail to call echo %windir% on windows due error: ${stderr}.`);
-                        }
-                        this._symbolic = `${stdout.replace(/[\n\r]/gi, '')}\\system32\\cm.exe`;
-                        resolve( this._symbolic);
-                    });
-                default:
-                    const dest: string = `/usr/local/bin`;
-                    return exist(dest).then((res: boolean) => {
-                        if (!res) {
-                            return reject(new Error(`Fail to find destination folder "/usr/local/bin". Try to create this folder.`));
-                        }
-                        this._symbolic = `${dest}/cm`;
-                        resolve( this._symbolic);
-                    }).catch(reject);
+            if (process.platform === 'win32') {
+                return reject(`Used for linux/mac only. With windows would PATH modifications`);
             }
+            const dest: string = `/usr/local/bin`;
+            exist(dest).then((res: boolean) => {
+                if (!res) {
+                    return reject(new Error(`Fail to find destination folder "/usr/local/bin". Try to create this folder.`));
+                }
+                this._symbolic = `${dest}/cm`;
+                resolve( this._symbolic);
+            }).catch(reject);
+        });
+    }
+
+    private _getPathVar(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (process.platform !== 'win32') {
+                return reject(`Used for windows only. With linux/mac are using symbolics`);
+            }
+            return exec(`echo %PATH%`, (err, stdout: string, stderr: string) => {
+                if (err) {
+                    return reject(`Fail to call echo %PATH% on windows due error: ${err.message}.`);
+                }
+                if (stderr.trim() !== '') {
+                    return reject(`Fail to call echo %PATH% on windows due error: ${stderr}.`);
+                }
+                this._logger.debug(`echo %PATH%: ${stdout.replace(/[\n\r]/gi, '')}`);
+                resolve(`${stdout.replace(/[\n\r]/gi, '')}`);
+            });
         });
     }
 
