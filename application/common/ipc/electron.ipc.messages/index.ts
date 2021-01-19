@@ -551,6 +551,18 @@ export { ICLIActionOpenFileRequest, CLIActionOpenFileRequest };
 import { ICLIActionOpenFileResponse, CLIActionOpenFileResponse } from './cli.action.open.file.response';
 export { ICLIActionOpenFileResponse, CLIActionOpenFileResponse };
 
+import { ICLIActionMergeFilesRequest, CLIActionMergeFilesRequest } from './cli.action.merge.files.request';
+export { ICLIActionMergeFilesRequest, CLIActionMergeFilesRequest };
+
+import { ICLIActionMergeFilesResponse, CLIActionMergeFilesResponse } from './cli.action.merge.files.response';
+export { ICLIActionMergeFilesResponse, CLIActionMergeFilesResponse };
+
+import { ICLIActionConcatFilesRequest, CLIActionConcatFilesRequest } from './cli.action.concat.files.request';
+export { ICLIActionConcatFilesRequest, CLIActionConcatFilesRequest };
+
+import { ICLIActionConcatFilesResponse, CLIActionConcatFilesResponse } from './cli.action.concat.files.response';
+export { ICLIActionConcatFilesResponse, CLIActionConcatFilesResponse };
+
 import { ISessionImporterLoadRequest, SessionImporterLoadRequest } from './session.importer.load.request';
 export { ISessionImporterLoadRequest, SessionImporterLoadRequest };
 
@@ -745,6 +757,10 @@ export type TMessage =  AppRestartRequest |
                         TimerangeSearchProgress |
                         CLIActionOpenFileRequest |
                         CLIActionOpenFileResponse |
+                        CLIActionMergeFilesRequest |
+                        CLIActionMergeFilesResponse |
+                        CLIActionConcatFilesRequest |
+                        CLIActionConcatFilesResponse |
                         SessionImporterLoadRequest |
                         SessionImporterLoadResponse |
                         SessionImporterSaveRequest |
@@ -962,6 +978,10 @@ export const Map = {
 
     [CLIActionOpenFileRequest.signature             ]: CLIActionOpenFileRequest,
     [CLIActionOpenFileResponse.signature            ]: CLIActionOpenFileResponse,
+    [CLIActionMergeFilesRequest.signature           ]: CLIActionMergeFilesRequest,
+    [CLIActionMergeFilesResponse.signature          ]: CLIActionMergeFilesResponse,
+    [CLIActionConcatFilesRequest.signature          ]: CLIActionConcatFilesRequest,
+    [CLIActionConcatFilesResponse.signature         ]: CLIActionConcatFilesResponse,
 
     [SessionImporterLoadRequest.signature           ]: SessionImporterLoadRequest,
     [SessionImporterLoadResponse.signature          ]: SessionImporterLoadResponse,

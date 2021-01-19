@@ -215,6 +215,10 @@ class ServicePaths implements IService {
     public getCLI(): string {
         return this._cli;
     }
+
+    public getCLIPath(): string {
+        return Path.dirname(this._cli);
+    }
     /**
      * Returns path to ripgrep module
      * @returns string
