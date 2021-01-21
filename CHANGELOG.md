@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.11.1] - 01/21/2021
+* Fix session's destroy workflow
+
 ## [2.11.0] - 01/21/2021
 ### Added
 * Support merge and concat functions from CLI
