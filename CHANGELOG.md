@@ -1,6 +1,7 @@
 # Changelog
 
-### [2.11.1] - 01/21/2021
+## [2.11.1] - 01/21/2021
+### Fixed
 * Fix session's destroy workflow
 
 ## [2.11.0] - 01/21/2021
