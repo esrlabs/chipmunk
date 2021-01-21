@@ -50,6 +50,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._comments.clear();
+            resolve();
         });
     }
 
