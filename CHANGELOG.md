@@ -1,5 +1,24 @@
 # Changelog
 
+### [2.11.0] - 01/21/2021
+* CLI: merge and concat support (close #1020) #216
+  CLI: Correct handle last argument (mege, concat)
+  CLI: using PATH on windows instead symbolic
+  Turn off debug mode for FE
+  Lintjs fix
+* [#995](fix) Remeber filter after restoring session
+* [#1000](fix) Scroll in keyboard shortcuts
+* [#996](fix) Fix search on files to be concatenated
+* [#1009](fix) Fix scroll shortcut
+* Fix columns row render
+* Fix resolutions list (prevent usage of js-yaml@4.0.0)
+* Fix URI.open issue
+* Remove unused imports
+* Resolve errors/warnings via lint js
+* Fix reference to row api (search controller)
+* Revert StreamUpdated message interface
+* Session controller (including childs) refactoring
+
 ## [2.10.2] - 12/30/2020
 ### Fixed
 * Restore bookmark by positions in file
