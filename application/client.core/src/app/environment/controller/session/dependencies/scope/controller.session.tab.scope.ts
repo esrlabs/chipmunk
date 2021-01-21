@@ -35,6 +35,7 @@ export class ControllerSessionScope implements Dependency {
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._scope.clear();
+            resolve();
         });
     }
 
