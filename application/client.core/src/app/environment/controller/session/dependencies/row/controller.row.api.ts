@@ -15,7 +15,6 @@ export interface IRow {
     position: number;
     positionInStream: number;
     pluginId: number;
-    rank: number;
     sessionId: string;
     parent: string;
     api: ControllerRowAPI;
@@ -72,6 +71,10 @@ export class ControllerRowAPI implements Dependency {
 
     public unregister(guid: string) {
         this._rows.delete(guid);
+    }
+
+    public getRank(): number {
+        return this._session().getStreamOutput().getRank();
     }
 
     private _subscribe() {

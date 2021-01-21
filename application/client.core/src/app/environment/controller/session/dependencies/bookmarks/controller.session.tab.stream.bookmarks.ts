@@ -10,7 +10,6 @@ export interface IBookmark {
     str: string | undefined;
     position: number;
     pluginId: number;
-    rank: number;
 }
 
 export class ControllerSessionTabStreamBookmarks extends Importable<number[]> implements Dependency {
@@ -156,7 +155,6 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
                     }
                     const bookmark: IBookmark = {
                         str: row.str,
-                        rank: row.rank,
                         pluginId: row.pluginId,
                         position: row.position,
                     };

@@ -467,7 +467,6 @@ export class ControllerSessionTabStreamOutput implements Dependency {
                     position: position,
                     positionInStream: position,
                     pluginId: pluginId,
-                    rank: this._state.countRank,
                     sessionId: this._guid,
                     parent: EParent.output,
                     api: this._session().getRowAPI(),
@@ -565,9 +564,6 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         const changed: boolean = this._state.countRank !== count.toString().length;
         this._state.countRank = count.toString().length;
         if (changed) {
-            this._rows.forEach((row: IRow) => {
-                row.rank = this._state.countRank;
-            });
             this._subjects.onRankChanged.next(this._state.countRank);
         }
     }
