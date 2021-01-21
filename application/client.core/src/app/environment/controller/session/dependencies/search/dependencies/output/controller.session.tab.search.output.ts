@@ -354,7 +354,6 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                 const inserted: IBookmark = bookmarks.get(index);
                 target.push({
                     str: inserted.str,
-                    rank: inserted.rank,
                     positionInStream: inserted.position,
                     position: -1,
                     pluginId: inserted.pluginId,
@@ -558,7 +557,6 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                     position: from + i,
                     positionInStream: position,
                     pluginId: pluginId,
-                    rank: this._accessor.session().getStreamOutput().getRank(),
                     sessionId: this._uuid,
                     parent: EParent.search,
                     api: this._accessor.session().getRowAPI(),

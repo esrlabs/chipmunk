@@ -55,7 +55,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     @Input() public position: number | undefined;
     @Input() public positionInStream: number | undefined;
     @Input() public pluginId: number | undefined;
-    @Input() public rank: number = 1;
     @Input() public parent: EParent;
     @Input() public api: ControllerRowAPI;
 
@@ -237,7 +236,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 str: this.str,
                 position: this._getPosition(),
                 pluginId: this.pluginId,
-                rank: this.rank,
             });
             this._ng_bookmarked = true;
         }
@@ -353,7 +351,6 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 self._checkNumberNodeWidth(true);
             },
             setRank(rank: number): void {
-                self.rank = rank;
                 self._ng_number_filler = self._getNumberFiller();
                 self._forceUpdate();
                 self._checkNumberNodeWidth();
@@ -412,7 +409,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this._ng_number === undefined) {
             return '';
         }
-        const rank = this.rank - this._ng_number.length;
+        const rank = this.api.getRank() - this._ng_number.length;
         return '0'.repeat(rank < 0 ? 0 : rank);
     }
 
@@ -441,7 +438,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (info === undefined) {
             return;
         }
-        if (info.rank === this.rank && info.width !== 0 && !force) {
+        if (info.rank === this.api.getRank() && info.width !== 0 && !force) {
             return;
         }
         const size: ClientRect = (this.numbernode.nativeElement as HTMLElement).getBoundingClientRect();
@@ -449,7 +446,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             return;
         }
         this.api.getScope().set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
-            rank: this.rank,
+            rank: this.api.getRank(),
             width: size.width,
         }, false);
         info.onChanged.next();
