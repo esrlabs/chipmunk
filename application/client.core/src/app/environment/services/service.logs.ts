@@ -78,7 +78,7 @@ export class LogsService implements IService {
     }
 
     private _write(msg: string, level: ELogLevels) {
-        ElectronIpcService.request(new IPCMessages.ChipmunkClientLog({
+        ElectronIpcService.send(new IPCMessages.ChipmunkClientLog({
             msg: msg,
             level: level,
         })).catch((error: Error) => {
