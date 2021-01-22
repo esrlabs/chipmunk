@@ -1,9 +1,9 @@
 # Changelog
 
-### [2.11.2] - 01/22/2021
-* Add timeout into IPC queue on client side
-* Send client logs as event (not as request)
-* Move rank into row API
+## [2.11.2] - 01/22/2021
+### Fixed
+* Monotor IPC queue on client side
+* Optimization for row API
 
 ## [2.11.1] - 01/21/2021
 ### Fixed
