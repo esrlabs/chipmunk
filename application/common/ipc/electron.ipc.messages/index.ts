@@ -460,11 +460,8 @@ export { ChipmunkDevModeRequest }
 import { IChipmunkDevModeResponse, ChipmunkDevModeResponse } from './chipmunk.devmode.response';
 export { IChipmunkDevModeResponse, ChipmunkDevModeResponse }
 
-import { IChipmunkLogRequest, ChipmunkLogRequest } from './chipmunk.log.request';
-export { IChipmunkLogRequest, ChipmunkLogRequest }
-
-import { IChipmunkLogResponse, ChipmunkLogResponse } from './chipmunk.log.response';
-export { IChipmunkLogResponse, ChipmunkLogResponse }
+import { IChipmunkClientLog, ChipmunkClientLog } from './chipmunk.client.log';
+export { IChipmunkClientLog, ChipmunkClientLog }
 
 import { SettingsAppDataRequest } from './settings.app.data.request';
 export { SettingsAppDataRequest }
@@ -727,8 +724,7 @@ export type TMessage =  AppRestartRequest |
                         ChipmunkLogLevelResponse |
                         ChipmunkDevModeRequest |
                         ChipmunkDevModeResponse |
-                        ChipmunkLogRequest |
-                        ChipmunkLogResponse |
+                        ChipmunkClientLog |
                         SettingsAppDataRequest |
                         SettingsAppDataResponse |
                         SettingsOperationDefaultRequest |
@@ -944,8 +940,7 @@ export const Map = {
     [ChipmunkLogLevelResponse.signature         ]: ChipmunkLogLevelResponse,
     [ChipmunkDevModeRequest.signature           ]: ChipmunkDevModeRequest,
     [ChipmunkDevModeResponse.signature          ]: ChipmunkDevModeResponse,
-    [ChipmunkLogRequest.signature               ]: ChipmunkLogRequest,
-    [ChipmunkLogResponse.signature              ]: ChipmunkLogResponse,
+    [ChipmunkClientLog.signature                ]: ChipmunkClientLog,
 
     [SettingsAppDataRequest.signature               ]: SettingsAppDataRequest,
     [SettingsAppDataResponse.signature              ]: SettingsAppDataResponse,
