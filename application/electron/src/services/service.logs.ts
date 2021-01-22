@@ -33,10 +33,10 @@ class ServiceLogs implements IService {
                 }).catch((error: Error) => {
                     this._logger.warn(`Fail to subscribe to render event "ChipmunkLogLevelRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
                 }),
-                ServiceElectron.IPC.subscribe(IPCMessages.ChipmunkLogRequest, this._ipc_onChipmunkLogRequest.bind(this)).then((subscription: Subscription) => {
-                    this._subscriptions.ChipmunkLogRequest = subscription;
+                ServiceElectron.IPC.subscribe(IPCMessages.ChipmunkClientLog, this._ipc_onChipmunkClientLog.bind(this)).then((subscription: Subscription) => {
+                    this._subscriptions.ChipmunkClientLog = subscription;
                 }).catch((error: Error) => {
-                    this._logger.warn(`Fail to subscribe to render event "ChipmunkLogRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+                    this._logger.warn(`Fail to subscribe to render event "ChipmunkClientLog" due error: ${error.message}. This is not blocked error, loading will be continued.`);
                 }),
             ]).then(() => {
                 resolve();
@@ -69,14 +69,11 @@ class ServiceLogs implements IService {
         });
     }
 
-    private _ipc_onChipmunkLogRequest(req: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const request: IPCMessages.ChipmunkLogRequest = req as IPCMessages.ChipmunkLogRequest;
+    private _ipc_onChipmunkClientLog(req: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const request: IPCMessages.ChipmunkClientLog = req as IPCMessages.ChipmunkClientLog;
         if (!ServiceEnv.get().CHIPMUNK_NO_RENDER_LOGS && typeof request.msg === 'string' && request.msg.trim() !== '') {
             this._logger.publish('RENDER: ' + request.msg, request.level);
         }
-        response(new IPCMessages.ChipmunkLogResponse({ })).catch((err: Error) => {
-            this._logger.warn(`Fail to send ChipmunkLogResponse due error: ${err.message}`);
-        });
     }
 
 }

@@ -78,10 +78,10 @@ export class LogsService implements IService {
     }
 
     private _write(msg: string, level: ELogLevels) {
-        ElectronIpcService.request(new IPCMessages.ChipmunkLogRequest({
+        ElectronIpcService.request(new IPCMessages.ChipmunkClientLog({
             msg: msg,
             level: level,
-        }), IPCMessages.ChipmunkLogsResponse).catch((error: Error) => {
+        })).catch((error: Error) => {
             /* tslint:disable */
             console.log(`Fail send logs via IPC due error: ${error.message}`);
             /* tslint:enable */

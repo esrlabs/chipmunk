@@ -1,17 +1,17 @@
 import { ELogLevels } from './chipmunk.loglevel.response';
 
-export interface IChipmunkLogRequest {
+export interface IChipmunkClientLog {
     msg: string;
     level: ELogLevels;
 }
 
-export class ChipmunkLogRequest {
-    public static signature: string = 'ChipmunkLogRequest';
-    public signature: string = ChipmunkLogRequest.signature;
+export class ChipmunkClientLog {
+    public static signature: string = 'ChipmunkClientLog';
+    public signature: string = ChipmunkClientLog.signature;
     public msg: string;
     public level: ELogLevels;
 
-    constructor(params: IChipmunkLogRequest) {
+    constructor(params: IChipmunkClientLog) {
         if (typeof params.msg !== 'string' || params.msg.trim() === '') {
             throw new Error(`Property msg should be string type`);
         }
