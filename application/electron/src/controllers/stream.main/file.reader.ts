@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import getGuid from '../../tools/tools.guid';
 import Logger from '../../tools/env.logger';
 
 export default class ControllerStreamFileReader {
@@ -6,7 +7,8 @@ export default class ControllerStreamFileReader {
     private _logger: Logger;
     private _guid: string;
     private _file: string;
-    private _stream: fs.ReadStream | undefined;
+    private _streams: Map<string, fs.ReadStream> = new Map();
+    private _locked: boolean = false;
 
     constructor(guid: string, file: string) {
         this._guid = guid;
@@ -15,17 +17,14 @@ export default class ControllerStreamFileReader {
     }
 
     public destroy() {
-        this.close();
+        this._locked = true;
+        this.drop();
     }
 
-    public close() {
-        if (this._stream === undefined) {
-            return;
-        }
-        this._stream.removeAllListeners();
-        this._stream.close();
-        this._stream.destroy();
-        this._stream = undefined;
+    public drop() {
+        this._streams.forEach((stream, guid) => {
+            this._destroy(guid, stream);
+        });
     }
 
     /**
@@ -36,6 +35,9 @@ export default class ControllerStreamFileReader {
      */
     public read(from: number, to: number): Promise<string> {
         return new Promise((resolve, reject) => {
+            if (this._locked) {
+                return reject(new Error(`Reader of stream is locked`));
+            }
             fs.stat(this._file, (err: NodeJS.ErrnoException | null, stat: fs.Stats) => {
                 if (err) {
                     return reject(err);
@@ -54,16 +56,17 @@ export default class ControllerStreamFileReader {
                     options.end = to;
                 }
                 let output: string = '';
-                this._stream = fs.createReadStream(this._file, options);
-                this._stream.on('data', (chunk: string) => {
+                const guid: string = getGuid();
+                const stream = fs.createReadStream(this._file, options);
+                stream.on('data', (chunk: string) => {
                     output += chunk;
-                    if (this._stream !== undefined && this._stream.bytesRead >= (options.end - options.start)) {
-                        this.close();
+                    if (stream !== undefined && stream.bytesRead >= (options.end - options.start)) {
+                        this._destroy(guid, stream);
                         resolve(output);
                     }
                 });
-                this._stream.on('end', () => {
-                    this.close();
+                stream.on('end', () => {
+                    this._destroy(guid, stream);
                     fs.stat(this._file, (statErr: NodeJS.ErrnoException | null, updatedStat: fs.Stats) => {
                         if (statErr) {
                             this._logger.warn(`Reader finished read data unexpectable. Requested: ${options.start} - ${options.end}. Fail get stat file information due error: ${statErr.message}`);
@@ -73,8 +76,16 @@ export default class ControllerStreamFileReader {
                         resolve(output);
                     });
                 });
+                this._streams.set(guid, stream);
             });
         });
+    }
+
+    public _destroy(guid: string, stream: fs.ReadStream) {
+        stream.removeAllListeners();
+        stream.close();
+        stream.destroy();
+        this._streams.delete(guid);
     }
 
 }

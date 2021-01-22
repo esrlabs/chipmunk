@@ -8,16 +8,27 @@ export { IPCMessages, Subscription, THandler };
 
 export type TResponseFunc = (message: IPCMessages.TMessage) => Promise<IPCMessages.TMessage | undefined>;
 
+interface IPendingTask {
+    resolver: (message: IPCMessages.TMessage) => any;
+    rejector: (error: Error) => void;
+    signature: string;
+    timer: any;
+}
+
 class ElectronIpcService implements IService {
+
+    static PENDING_TIMEOUT: number = 5 * 1000;
+    static QUEUE_CHECK_DELAY: number = 2 * 1000;
 
     private _logger: Logger = new Logger('ElectronIpcService');
     private _subscriptions: Map<string, Subscription> = new Map();
-    private _pending: Map<string, (message: IPCMessages.TMessage) => any> = new Map();
+    private _pending: Map<string, IPendingTask> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
     private _listeners: Map<string, boolean> = new Map();
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._report();
             resolve();
         });
     }
@@ -170,15 +181,16 @@ class ElectronIpcService implements IService {
 
     private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {
         const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
-        const resolver = this._pending.get(messagePackage.sequence);
+        const pending: IPendingTask = this._pending.get(messagePackage.sequence);
         this._pending.delete(messagePackage.sequence);
         const refMessageClass = this._getRefToMessageClass(messagePackage.message);
         if (refMessageClass === undefined) {
             return this._logger.warn(`Cannot find ref to class of message. Event: ${eventName}; data: ${data}.`);
         }
         const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
-        if (resolver !== undefined) {
-            return resolver(instance);
+        if (pending !== undefined) {
+            clearTimeout(pending.timer);
+            return pending.resolver(instance);
         }
         if (instance instanceof IPCMessages.PluginInternalMessage || instance instanceof IPCMessages.PluginError) {
             if (typeof instance.token !== 'string' || instance.token.trim() === '') {
@@ -196,12 +208,6 @@ class ElectronIpcService implements IService {
         handlers.forEach((handler: THandler) => {
             handler(instance, this.response.bind(this, messagePackage.sequence));
         });
-        /*
-        try {
-        } catch (e) {
-            this._logger.warn(`Incorrect format of IPC message: ${typeof data}. Error: ${e.message}`);
-        }
-        */
     }
 
     private _send(params: {
@@ -219,14 +225,29 @@ class ElectronIpcService implements IService {
             });
             const signature: string = params.message.signature;
             if (params.expectResponse) {
-                this._pending.set(messagePackage.sequence, resolve);
+                this._pending.set(params.sequence, {
+                    resolver: resolve,
+                    rejector: reject,
+                    signature: signature,
+                    timer: setTimeout(this._timeout.bind(this, messagePackage.sequence, signature), ElectronIpcService.PENDING_TIMEOUT)
+                });
             }
             // Format:               | channel  |  event  | instance |
             Electron.ipcRenderer.send(signature, signature, messagePackage);
             if (!params.expectResponse) {
-                return resolve();
+                return resolve(undefined);
             }
         });
+    }
+
+    private _timeout(sequence: string, signature: string) {
+        const pending: IPendingTask = this._pending.get(sequence);
+        if (pending === undefined) {
+            return this._logger.warn(`Pending task ${sequence} for ${signature} is timeouted, but not task has been found.`);
+        }
+        this._logger.warn(`Pending task ${sequence} for ${signature} is timeouted, task would be rejected.`);
+        pending.rejector(new Error(`Timeout. Task rejected.`));
+        this._pending.delete(sequence);
     }
 
     private _isValidMessageClassRef(messageRef: Function): boolean {
@@ -272,6 +293,13 @@ class ElectronIpcService implements IService {
         } else {
             this._handlers.set(signature, handlers);
         }
+    }
+
+    private _report() {
+        if (this._pending.size !== 0) {
+            this._logger.warn(`Pending tasks queue has ${this._pending.size} pending tasks:\n\t${Array.from(this._pending.values()).map(t => t.signature).join('\n\t')}`);
+        }
+        setTimeout(this._report.bind(this), ElectronIpcService.QUEUE_CHECK_DELAY);
     }
 
 }

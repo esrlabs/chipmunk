@@ -16,6 +16,7 @@ export class ControllerSessionImporter implements Dependency {
     private _subscriptions: { [key: string]: IPCSubscription | Subscription } = {};
     private _lastOperationHash: string = '';
     private _session: SessionGetter;
+    private _locked: boolean = true;
 
     constructor(uuid: string, getter: SessionGetter) {
         this._uuid = uuid;
@@ -49,14 +50,15 @@ export class ControllerSessionImporter implements Dependency {
 
     public export(): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (this._locked) {
+                return resolve(undefined);
+            }
             const toBeExported: IPCMessages.ISessionImporterData[] = [];
             Promise.all(this._controllers.map((controller: Importable<any>) => {
                 return new Promise((res) => {
                     controller.export().then((data: any | undefined) => {
                         if (data !== undefined) {
                             const stringified: string = JSON.stringify(data);
-                            // const utf8Encode = new TextEncoder();
-                            // utf8Encode.encode(stringified);
                             toBeExported.push({
                                 hash: getHash(stringified),
                                 data: stringified,
@@ -69,7 +71,7 @@ export class ControllerSessionImporter implements Dependency {
                 });
             })).then(() => {
                 if (!this._isActualOperation(toBeExported)) {
-                    return resolve();
+                    return resolve(undefined);
                 }
                 ServiceElectronIpc.request(new IPCMessages.SessionImporterSaveRequest({
                     session: this._uuid,
@@ -78,7 +80,7 @@ export class ControllerSessionImporter implements Dependency {
                     if (response.error !== undefined) {
                         reject(new Error(this._logger.warn(`Fail to export data due error: ${response.error}`)));
                     } else {
-                        resolve();
+                        resolve(undefined);
                     }
                 }).catch((err: Error) => {
                     reject(new Error(this._logger.warn(`Fail to export data due error: ${err.message}`)));
@@ -106,7 +108,7 @@ export class ControllerSessionImporter implements Dependency {
                     return reject(new Error(this._logger.warn(`Fail to import data due error: ${response.error}`)));
                 }
                 if (response.data === undefined) {
-                    return resolve();
+                    return resolve(undefined);
                 }
                 Promise.all(response.data.map((pack: IPCMessages.ISessionImporterData) => {
                     return new Promise((res) => {
@@ -129,7 +131,7 @@ export class ControllerSessionImporter implements Dependency {
                         }).finally(() => res(undefined));
                     });
                 })).then(() => {
-                    resolve();
+                    resolve(undefined);
                 }).catch((err: Error) => {
                     reject(new Error(this._logger.warn(`Fail to finish import due error: ${err.message}`)));
                 });
@@ -156,7 +158,9 @@ export class ControllerSessionImporter implements Dependency {
         if (this._uuid !== event.session) {
             return;
         }
-        this.import().catch((error: Error) => {
+        this.import().then(() => {
+            this._locked = false;
+        }).catch((error: Error) => {
             this._logger.warn(`Import for "${event.file}" is failed due error: ${error.message}`);
         });
     }

@@ -199,7 +199,7 @@ export default class ControllerStreamSearch {
             // Drop postman
             this._state.postman.drop();
             // Close reader
-            this._reader.close();
+            this._reader.drop();
             // Check and drop file
             fs.open(this._state.getSearchFile(), 'r', (err: NodeJS.ErrnoException | null, fd: number) => {
                 if (err) {
