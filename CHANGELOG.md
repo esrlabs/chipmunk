@@ -1,6 +1,7 @@
 # Changelog
 
-### [2.11.3] - 01/25/2021
+## [2.11.3] - 01/25/2021
+### Fixed
 * Reporting about IPC messages which processing too long
 
 ## [2.11.2] - 01/22/2021
