@@ -1,6 +1,7 @@
 # Changelog
 
-### [2.11.4] - 01/25/2021
+## [2.11.4] - 01/25/2021
+### Fixed
 * Fix arguments sorting (CLI: merge, concat)
 * Restore missed scrollarea API
 * Fix tab activation handler
