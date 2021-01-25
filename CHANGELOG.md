@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.11.3] - 01/25/2021
+* Reporting about IPC messages which processing too long
+
 ## [2.11.2] - 01/22/2021
 ### Fixed
 * Monotor IPC queue on client side
