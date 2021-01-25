@@ -1,5 +1,10 @@
 # Changelog
 
+### [2.11.4] - 01/25/2021
+* Fix arguments sorting (CLI: merge, concat)
+* Restore missed scrollarea API
+* Fix tab activation handler
+
 ## [2.11.3] - 01/25/2021
 ### Fixed
 * Reporting about IPC messages which processing too long
