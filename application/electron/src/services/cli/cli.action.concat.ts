@@ -52,23 +52,15 @@ export class ConcatFiles extends CLIAction {
             });
         }
         return new Promise((resolve, reject) => {
-            const groups: string[][] = [];
-            let group: string[] = [];
+            let groups: string[][] = [];
             this._filter(args, true).forEach((arg: string, i: number, arr) => {
-                if (ConcatFiles.KEYS.indexOf(arg) !== -1 || i === arr.length - 1) {
-                    if (group.length > 0) {
-                        groups.push(group);
-                    }
-                }
                 if (ConcatFiles.KEYS.indexOf(arg) !== -1) {
-                    group = [];
+                    groups.push([]);
                 } else {
-                    group.push(path.resolve(pwd, arg));
-                    if (i === arr.length - 1) {
-                        groups.push(group);
-                    }
+                    groups[groups.length -1].push(path.resolve(pwd, arg));
                 }
             });
+            groups = groups.filter(g => g.length > 0);
             const confirmed: string[][] = [];
             Promise.all(groups.map((g: string[]) => {
                 return verify(g).then((files: string[]) => {
@@ -82,6 +74,7 @@ export class ConcatFiles extends CLIAction {
                 if (confirmed.length === 0) {
                     return resolve(undefined);
                 }
+                this._logger.debug(`Confirmed groups: ${JSON.stringify(confirmed)}`);
                 resolve(this.action.bind(this, confirmed));
             }).catch(reject);
         });
