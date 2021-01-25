@@ -59,9 +59,8 @@ export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges 
     }
 
     private async onActiveTabChange(tab: ITab) {
-        const guid = this._ng_tab === undefined ? undefined : this._ng_tab.guid;
         const _tab = await tab;
-        if (_tab.active && guid !== _tab.guid) {
+        if (_tab.active) {
             this._ng_tab = _tab;
             this._ng_noTabContent = undefined;
         }
