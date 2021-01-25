@@ -12,13 +12,14 @@ interface IPendingTask {
     resolver: (message: IPCMessages.TMessage) => any;
     rejector: (error: Error) => void;
     signature: string;
-    timer: any;
+    created: number;
 }
 
 class ElectronIpcService implements IService {
 
-    static PENDING_TIMEOUT: number = 5 * 1000;
-    static QUEUE_CHECK_DELAY: number = 2 * 1000;
+    static PENDING_ERR_DURATION: number = 600 * 1000; // 10 mins before report error about pending tasks.
+    static PENDING_WARN_DURATION: number = 120 * 1000; // 2 mins before report warn about pending tasks.
+    static QUEUE_CHECK_DELAY: number = 5 * 1000;
 
     private _logger: Logger = new Logger('ElectronIpcService');
     private _subscriptions: Map<string, Subscription> = new Map();
@@ -189,7 +190,6 @@ class ElectronIpcService implements IService {
         }
         const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
         if (pending !== undefined) {
-            clearTimeout(pending.timer);
             return pending.resolver(instance);
         }
         if (instance instanceof IPCMessages.PluginInternalMessage || instance instanceof IPCMessages.PluginError) {
@@ -229,7 +229,7 @@ class ElectronIpcService implements IService {
                     resolver: resolve,
                     rejector: reject,
                     signature: signature,
-                    timer: setTimeout(this._timeout.bind(this, messagePackage.sequence, signature), ElectronIpcService.PENDING_TIMEOUT)
+                    created: (new Date()).getTime(),
                 });
             }
             // Format:               | channel  |  event  | instance |
@@ -238,16 +238,6 @@ class ElectronIpcService implements IService {
                 return resolve(undefined);
             }
         });
-    }
-
-    private _timeout(sequence: string, signature: string) {
-        const pending: IPendingTask = this._pending.get(sequence);
-        if (pending === undefined) {
-            return this._logger.warn(`Pending task ${sequence} for ${signature} is timeouted, but not task has been found.`);
-        }
-        this._logger.warn(`Pending task ${sequence} for ${signature} is timeouted, task would be rejected.`);
-        pending.rejector(new Error(`Timeout. Task rejected.`));
-        this._pending.delete(sequence);
     }
 
     private _isValidMessageClassRef(messageRef: Function): boolean {
@@ -296,8 +286,17 @@ class ElectronIpcService implements IService {
     }
 
     private _report() {
-        if (this._pending.size !== 0) {
-            this._logger.warn(`Pending tasks queue has ${this._pending.size} pending tasks:\n\t${Array.from(this._pending.values()).map(t => t.signature).join('\n\t')}`);
+        const current = (new Date()).getTime();
+        this._pending.forEach((task: IPendingTask) => {
+            const duration = current - task.created;
+            if (duration > ElectronIpcService.PENDING_ERR_DURATION) {
+                this._logger.error(`Pending task "${task.signature}" too long stay in queue: ${(duration / 1000).toFixed(2)}s.`);
+            } else if (duration > ElectronIpcService.PENDING_WARN_DURATION) {
+                this._logger.warn(`Pending task "${task.signature}" is in a queue for ${(duration / 1000).toFixed(2)}s.`);
+            }
+        });
+        if (this._pending.size > 0) {
+            this._logger.debug(`Pending task queue has ${this._pending.size} tasks.`);
         }
         setTimeout(this._report.bind(this), ElectronIpcService.QUEUE_CHECK_DELAY);
     }
