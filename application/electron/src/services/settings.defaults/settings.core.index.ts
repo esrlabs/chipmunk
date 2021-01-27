@@ -1,5 +1,4 @@
 import { Field } from '../../../../common/settings/field.store';
-import { ElementRefs } from '../../../../common/settings/field.render';
 import ServicePath from '../service.paths';
 
 export class CoreIndex extends Field<string> {
