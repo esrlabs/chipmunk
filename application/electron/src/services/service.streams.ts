@@ -6,6 +6,7 @@ import * as Stream from 'stream';
 import * as Tools from '../tools/index';
 
 import ServicePaths from './service.paths';
+import ServiceUserPaths from './service.paths.user';
 import ServicePlugins from './service.plugins';
 import ServiceElectron from './service.electron';
 import Logger from '../tools/env.logger';
@@ -302,10 +303,9 @@ class ServiceStreams implements IService  {
      */
     private _createStream(guid: string): Promise<IStreamInfo> {
         return new Promise((resolve, reject) => {
-            // const socketFile: string = Path.resolve(ServicePaths.getSockets(), `test.sock`);
             const socketFile: string = this._getSocketFileName(`${Date.now()}-${guid}`);
-            const streamFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.stream`);
-            const searchFile: string = Path.resolve(ServicePaths.getStreams(), `${Date.now()}-${guid}.search`);
+            const streamFile: string = Path.resolve(ServiceUserPaths.getStreams(), `${Date.now()}-${guid}.stream`);
+            const searchFile: string = Path.resolve(ServiceUserPaths.getStreams(), `${Date.now()}-${guid}.search`);
             try {
                 // Create new server
                 const server: Net.Server = Net.createServer(this._acceptConnectionToSocket.bind(this, guid));
@@ -445,12 +445,12 @@ class ServiceStreams implements IService  {
     private _cleanUp(): Promise<void> {
         return new Promise((resolve, reject) => {
             Promise.all([
-                FS.readFolder(ServicePaths.getSockets(), FS.EReadingFolderTarget.files),
-                FS.readFolder(ServicePaths.getStreams(), FS.EReadingFolderTarget.files),
+                FS.readFolder(ServiceUserPaths.getSockets(), FS.EReadingFolderTarget.files),
+                FS.readFolder(ServiceUserPaths.getStreams(), FS.EReadingFolderTarget.files),
             ]).then((result: [ string[], string[] ]) => {
                 const files: string[] = [];
-                files.push(...result[0].map((file: string) => Path.resolve(ServicePaths.getSockets(), file) ));
-                files.push(...result[1].map((file: string) => Path.resolve(ServicePaths.getStreams(), file) ));
+                files.push(...result[0].map((file: string) => Path.resolve(ServiceUserPaths.getSockets(), file) ));
+                files.push(...result[1].map((file: string) => Path.resolve(ServiceUserPaths.getStreams(), file) ));
                 const queue: Array<Promise<void>> = files.map((file: string) => {
                     return new Promise((resolveUnlink) => {
                         fs.unlink(file, (errorUnlink: NodeJS.ErrnoException | null) => {
@@ -466,7 +466,7 @@ class ServiceStreams implements IService  {
                     resolve();
                 }).catch(reject);
             }).catch((readingError: Error) => {
-                this._logger.error(`Fail to read folder ${ServicePaths.getPlugins()} or ${ServicePaths.getStreams()} due error: ${readingError.message}`);
+                this._logger.error(`Fail to read folder ${ServicePaths.getPlugins()} or ${ServiceUserPaths.getStreams()} due error: ${readingError.message}`);
                 reject(readingError);
             });
         });
@@ -584,7 +584,7 @@ class ServiceStreams implements IService  {
         if (process.platform === 'win32') {
             return `\\\\.\\pipe\\${base}`;
         } else {
-            return Path.resolve(ServicePaths.getSockets(), `${base}.sock`);
+            return Path.resolve(ServiceUserPaths.getSockets(), `${base}.sock`);
         }
     }
 
