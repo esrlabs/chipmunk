@@ -20,11 +20,5 @@
   },
   "angularCompilerOptions": {
     "enableIvy": true
-  },
-  "include": [
-    "src/**/*",
-    "../electron/src/controllers/electron.ipc.messages/**/*",
-    "../platform/cross/**/*",
-    "../platform/web/**/*"
-  ]
+  }
 }

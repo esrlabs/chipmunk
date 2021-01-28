@@ -41,9 +41,7 @@ export class ReleaseNotesService implements IService {
     }
 
     public destroy() {
-        return new Promise((resolve) => {
-            resolve();
-        });
+        return Promise.resolve();
     }
 
     public getObservable(): {

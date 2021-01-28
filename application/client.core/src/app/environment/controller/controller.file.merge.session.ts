@@ -153,10 +153,10 @@ export class ControllerFileMergeSession {
                             });
                             this._subjects.FileUpdated.next(this._files.get(discoveredFile.path));
                             this._subjects.FilesUpdated.next(Array.from(this._files.values()));
-                            next();
+                            next(undefined);
                         }).catch((infoErr: Error) => {
                             this._logger.warn(`Fail get file information for "${discoveredFile.path}" due error: ${infoErr.message}`);
-                            next();
+                            next(undefined);
                         });
                     });
                 })).then(() => {
