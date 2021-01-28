@@ -46,7 +46,7 @@ class ElectronIpcService implements IService {
                 stream: stream
             });
             this._send({ message: pluginMessage }).then(() => {
-                resolve();
+                resolve(undefined);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -81,7 +81,7 @@ class ElectronIpcService implements IService {
                 return reject(new Error(`Incorrect type of message`));
             }
             this._send({ message: message }).then(() => {
-                resolve();
+                resolve(undefined);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });
@@ -95,7 +95,7 @@ class ElectronIpcService implements IService {
                 return reject(new Error(`Incorrect type of message`));
             }
             this._send({ message: message, sequence: sequence }).then(() => {
-                resolve();
+                resolve(undefined);
             }).catch((sendingError: Error) => {
                 reject(sendingError);
             });

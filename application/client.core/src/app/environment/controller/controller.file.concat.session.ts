@@ -100,10 +100,10 @@ export class ControllerFileConcatSession {
                     this._addFileByPath(file).then(() => {
                         this._subjects.FileUpdated.next(this._files.get(file));
                         this._subjects.FilesUpdated.next(Array.from(this._files.values()));
-                        next();
+                        next(undefined);
                     }).catch((fileErr: Error) => {
                         this._logger.warn(`Fail to get file info for "${file}" due error: ${fileErr.message}`);
-                        next();
+                        next(undefined);
                     });
                 });
             })).then(() => {
