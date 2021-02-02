@@ -333,7 +333,7 @@ pub fn index_dlt_content(
                 trace!("next was Ok(ParsedMessage::Invalid)");
             }
             Ok(ParsedMessage::FilteredOut) => {
-                trace!("next was Ok(ParsedMessage::Skipped)");
+                trace!("next was Ok(ParsedMessage::FilteredOut)");
                 skipped += 1;
             }
             Err(e) => match e {

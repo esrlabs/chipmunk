@@ -47,6 +47,7 @@ pub(crate) fn parse_ecu_id(input: &[u8]) -> IResult<&[u8], &str> {
 /// skip ahead in input array till we reach a storage header
 /// return Some(dropped, rest_slice) that starts with the next storage header (if any)
 /// or None if no more storage header could be found.
+/// dropped is the number of bytes that were skipped
 /// note: we won't skip anything if the input already begins
 /// with a storage header
 pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(u64, &[u8])> {
@@ -68,7 +69,7 @@ pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(u64, &[u8]
         return None;
     }
     if to_drop > 0 {
-        trace!("dropped {} to get to next message", to_drop);
+        trace!("dropped {} bytes to get to next message", to_drop);
     }
     Some((to_drop as u64, &input[to_drop..]))
 }
@@ -83,9 +84,16 @@ pub(crate) fn dlt_storage_header<'a, T>(
         Some((consumed, rest)) => {
             if consumed > 0 {
                 if let Some(tx) = update_channel {
+                    let line_output = match index {
+                        Some(n) => format!("before line[{}] ", n),
+                        None => "".to_owned(),
+                    };
                     let _ = tx.send(Err(Notification {
                         severity: Severity::WARNING,
-                        content: format!("dropped {} to get to next message", consumed),
+                        content: format!(
+                            "Dropped {} bytes {}to get to next message",
+                            consumed, line_output
+                        ),
                         line: index,
                     }));
                 }
@@ -857,39 +865,13 @@ pub fn dlt_message<'a>(
     //     "extended header: {:?}",
     //     serde_json::to_string(&extended_header)
     // );
-    if let Some(filter_config) = filter_config_opt {
-        if let Some(h) = &extended_header {
-            if let Some(min_filter_level) = filter_config.min_log_level {
-                if h.skip_with_level(min_filter_level) {
-                    // trace!("no need to parse further, skip payload (skipped level)");
-                    let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, ParsedMessage::FilteredOut));
-                }
-            }
-            if let Some(only_these_components) = &filter_config.app_ids {
-                if !only_these_components.contains(&h.application_id) {
-                    // trace!("no need to parse further, skip payload (skipped app id)");
-                    let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, ParsedMessage::FilteredOut));
-                }
-            }
-            if let Some(only_these_context_ids) = &filter_config.context_ids {
-                if !only_these_context_ids.contains(&h.context_id) {
-                    // trace!("no need to parse further, skip payload (skipped context id)");
-                    let (after_message, _) = take(payload_length)(after_headers)?;
-                    return Ok((after_message, ParsedMessage::FilteredOut));
-                }
-            }
-            if let Some(only_these_ecu_ids) = &filter_config.ecu_ids {
-                if let Some(ecu_id) = &header.ecu_id {
-                    if !only_these_ecu_ids.contains(ecu_id) {
-                        // trace!("no need to parse further, skip payload (skipped ecu id)");
-                        let (after_message, _) = take(payload_length)(after_headers)?;
-                        return Ok((after_message, ParsedMessage::FilteredOut));
-                    }
-                }
-            }
-        }
+    if filtered_out(
+        extended_header.as_ref(),
+        filter_config_opt,
+        header.ecu_id.as_ref(),
+    ) {
+        let (after_message, _) = take(payload_length)(after_headers)?;
+        return Ok((after_message, ParsedMessage::FilteredOut));
     }
     let (i, payload) = if header.endianness == Endianness::Big {
         dlt_payload::<BigEndian>(
@@ -919,6 +901,67 @@ pub fn dlt_message<'a>(
             fibex_metadata,
         }),
     ))
+}
+
+fn filtered_out(
+    extended_header: Option<&ExtendedHeader>,
+    filter_config_opt: Option<&filtering::ProcessedDltFilterConfig>,
+    ecu_id: Option<&String>,
+) -> bool {
+    if let Some(filter_config) = filter_config_opt {
+        if let Some(h) = &extended_header {
+            if let Some(min_filter_level) = filter_config.min_log_level {
+                if h.skip_with_level(min_filter_level) {
+                    // trace!("no need to parse further, skip payload (skipped level)");
+                    return true;
+                }
+            }
+            if let Some(only_these_components) = &filter_config.app_ids {
+                if !only_these_components.contains(&h.application_id) {
+                    // trace!("no need to parse further, skip payload (skipped app id)");
+                    return true;
+                }
+            }
+            if let Some(only_these_context_ids) = &filter_config.context_ids {
+                if !only_these_context_ids.contains(&h.context_id) {
+                    // trace!("no need to parse further, skip payload (skipped context id)");
+                    return true;
+                }
+            }
+            if let Some(only_these_ecu_ids) = &filter_config.ecu_ids {
+                if let Some(ecu_id) = ecu_id {
+                    if !only_these_ecu_ids.contains(ecu_id) {
+                        // trace!("no need to parse further, skip payload (skipped ecu id)");
+                        return true;
+                    }
+                }
+            }
+        } else {
+            println!("no extended head");
+            // filter out some messages when we do not have an extended header
+            if let Some(app_id_set) = &filter_config.app_ids {
+                if filter_config.app_id_count > app_id_set.len() {
+                    // some app id was filtered, ignore this entry
+                    println!(
+                        "some app id was filtered, ignore this entry: app_id_count = {}, set.len() = {}, app-ids: {:?}",
+                        filter_config.app_id_count , app_id_set.len(), app_id_set
+                    );
+                    return true;
+                }
+            }
+            if let Some(context_id_set) = &filter_config.context_ids {
+                if filter_config.context_id_count > context_id_set.len() {
+                    // some context id was filtered, ignore this entry
+                    println!(
+                        "some context id was filtered, ignore this entry: context_id_count = {}, set.len() = {}, c-ids: {:?}",
+                        filter_config.context_id_count , context_id_set.len(), context_id_set
+                    );
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 fn validated_payload_length<T>(

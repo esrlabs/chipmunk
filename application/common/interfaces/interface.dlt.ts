@@ -28,6 +28,8 @@ export interface DltFilterConf {
 	app_ids?: Array<string>;
 	ecu_ids?: Array<string>;
 	context_ids?: Array<string>;
+	app_id_count: number;
+	context_id_count: number;
 }
 
 export enum DltLogLevel {

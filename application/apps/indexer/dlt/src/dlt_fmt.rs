@@ -231,6 +231,7 @@ impl Message {
         data: &[u8],
         f: &mut fmt::Formatter,
     ) -> fmt::Result {
+        warn!("format_nonverbose_data");
         let mut is_written = false;
         if let Some(fibex_metadata) = &self.fibex_metadata {
             let id_text = format!("ID_{}", id);
@@ -282,7 +283,6 @@ impl Message {
                     write!(f, "-")?;
                 }
                 write!(f, "{}", DLT_COLUMN_SENTINAL)?;
-                let mut offset = 0;
                 for pdu in &frame_metadata.pdus {
                     if let Some(description) = &pdu.description {
                         let arg = Argument {
@@ -299,174 +299,9 @@ impl Message {
                         };
                         write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, arg)?;
                     } else {
-                        for signal_type in &pdu.signal_types {
-                            let mut fixed_point = None;
-                            let value = match signal_type.kind {
-                                TypeInfoKind::StringType | TypeInfoKind::Raw => {
-                                    if data.len() < offset + 2 {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    let length = if self.header.endianness == Endianness::Big {
-                                        BigEndian::read_u16(&data[offset..offset + 2]) as usize
-                                    } else {
-                                        LittleEndian::read_u16(&data[offset..offset + 2]) as usize
-                                    };
-                                    offset += 2;
-                                    if data.len() < offset + length {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    let v = if signal_type.kind == TypeInfoKind::StringType {
-                                        Value::StringVal(
-                                            String::from_utf8(
-                                                data[offset..offset + length].to_vec(),
-                                            )
-                                            .map_err(|_| fmt::Error)?,
-                                        )
-                                    } else {
-                                        Value::Raw(Vec::from(&data[offset..offset + length]))
-                                    };
-                                    offset += length;
-                                    v
-                                }
-                                TypeInfoKind::Bool => {
-                                    offset += 1;
-                                    if data.len() < offset {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    Value::Bool(data[offset - 1])
-                                }
-                                TypeInfoKind::Float(width) => {
-                                    let length = width as usize / 8;
-                                    if data.len() < offset + length {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    let v = if self.header.endianness == Endianness::Big {
-                                        dlt_fint::<BigEndian>(width)(&data[offset..offset + length])
-                                    } else {
-                                        dlt_fint::<LittleEndian>(width)(
-                                            &data[offset..offset + length],
-                                        )
-                                    }
-                                    .map_err(|_| fmt::Error)?
-                                    .1;
-                                    offset += length;
-                                    v
-                                }
-                                TypeInfoKind::Signed(length) => {
-                                    let byte_length = length as usize / 8;
-                                    if data.len() < offset + byte_length {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    let value_offset = &data[offset..];
-                                    let (_, v) = if self.header.endianness == Endianness::Big {
-                                        dlt_sint::<BigEndian>(length)(value_offset)
-                                    } else {
-                                        dlt_sint::<LittleEndian>(length)(value_offset)
-                                    }
-                                    .map_err(|_| fmt::Error)?;
-                                    offset += byte_length;
-                                    v
-                                }
-                                TypeInfoKind::SignedFixedPoint(length) => {
-                                    let byte_length = length as usize / 8;
-                                    if data.len() < offset + byte_length {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    let (value_offset, fp) =
-                                        if self.header.endianness == Endianness::Big {
-                                            dlt_fixed_point::<BigEndian>(
-                                                &data[offset..offset + byte_length],
-                                                length,
-                                            )
-                                        } else {
-                                            dlt_fixed_point::<LittleEndian>(
-                                                &data[offset..offset + byte_length],
-                                                length,
-                                            )
-                                        }
-                                        .map_err(|_| fmt::Error)?;
-                                    fixed_point = Some(fp);
-                                    let (_, v) =
-                                        if self.header.endianness == Endianness::Big {
-                                            dlt_sint::<BigEndian>(float_width_to_type_length(
-                                                length,
-                                            ))(
-                                                value_offset
-                                            )
-                                        } else {
-                                            dlt_sint::<LittleEndian>(float_width_to_type_length(
-                                                length,
-                                            ))(
-                                                value_offset
-                                            )
-                                        }
-                                        .map_err(|_| fmt::Error)?;
-                                    offset += byte_length;
-                                    v
-                                }
-                                TypeInfoKind::Unsigned(length) => {
-                                    let byte_length = length as usize / 8;
-                                    if data.len() < offset + byte_length {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    let value_offset = &data[offset..];
-                                    let (_, v) = if self.header.endianness == Endianness::Big {
-                                        dlt_uint::<BigEndian>(length)(value_offset)
-                                    } else {
-                                        dlt_uint::<LittleEndian>(length)(value_offset)
-                                    }
-                                    .map_err(|_| fmt::Error)?;
-                                    offset += byte_length;
-                                    v
-                                }
-                                TypeInfoKind::UnsignedFixedPoint(length) => {
-                                    let byte_length = length as usize / 8;
-                                    if data.len() < offset + byte_length {
-                                        return fmt::Result::Err(fmt::Error);
-                                    }
-                                    let value_offset = {
-                                        let (r, fp) =
-                                            if self.header.endianness == Endianness::Big {
-                                                dlt_fixed_point::<BigEndian>(
-                                                    &data[offset..offset + byte_length],
-                                                    length,
-                                                )
-                                            } else {
-                                                dlt_fixed_point::<LittleEndian>(
-                                                    &data[offset..offset + byte_length],
-                                                    length,
-                                                )
-                                            }
-                                            .map_err(|_| fmt::Error)?;
-                                        fixed_point = Some(fp);
-                                        r
-                                    };
-                                    let (_, v) =
-                                        if self.header.endianness == Endianness::Big {
-                                            dlt_uint::<BigEndian>(float_width_to_type_length(
-                                                length,
-                                            ))(
-                                                value_offset
-                                            )
-                                        } else {
-                                            dlt_uint::<LittleEndian>(float_width_to_type_length(
-                                                length,
-                                            ))(
-                                                value_offset
-                                            )
-                                        }
-                                        .map_err(|_| fmt::Error)?;
-                                    offset += byte_length;
-                                    v
-                                }
-                            };
-                            let arg = Argument {
-                                type_info: signal_type.clone(),
-                                name: None,
-                                unit: None,
-                                fixed_point,
-                                value,
-                            };
+                        let arguments = self.construct_arguments(&pdu.signal_types, data)?;
+                        warn!("Constructed {} arguments", arguments.len());
+                        for arg in arguments {
                             write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, arg)?;
                         }
                     };
@@ -491,7 +326,176 @@ impl Message {
         }
         Ok(())
     }
+
+    fn construct_arguments(
+        &self,
+        pdu_signal_types: &[TypeInfo],
+        data: &[u8],
+    ) -> Result<Vec<Argument>, fmt::Error> {
+        let mut offset = 0;
+        let mut arguments = vec![];
+        for signal_type in pdu_signal_types {
+            let argument = {
+                let (value, fixed_point) = {
+                    let mut fixed_point = None;
+                    match signal_type.kind {
+                        TypeInfoKind::StringType | TypeInfoKind::Raw => {
+                            if data.len() < offset + 2 {
+                                return Err(fmt::Error);
+                            }
+                            let length = if self.header.endianness == Endianness::Big {
+                                BigEndian::read_u16(&data[offset..offset + 2]) as usize
+                            } else {
+                                LittleEndian::read_u16(&data[offset..offset + 2]) as usize
+                            };
+                            offset += 2;
+                            if data.len() < offset + length {
+                                return Err(fmt::Error);
+                            }
+                            let v = if signal_type.kind == TypeInfoKind::StringType {
+                                Value::StringVal(
+                                    String::from_utf8(data[offset..offset + length].to_vec())
+                                        .map_err(|_| fmt::Error)?,
+                                )
+                            } else {
+                                Value::Raw(Vec::from(&data[offset..offset + length]))
+                            };
+                            offset += length;
+                            Ok((v, fixed_point))
+                        }
+                        TypeInfoKind::Bool => {
+                            offset += 1;
+                            if data.len() < offset {
+                                return Err(fmt::Error);
+                            }
+                            Ok((Value::Bool(data[offset - 1]), fixed_point))
+                        }
+                        TypeInfoKind::Float(width) => {
+                            let length = width as usize / 8;
+                            if data.len() < offset + length {
+                                return Err(fmt::Error);
+                            }
+                            let v = if self.header.endianness == Endianness::Big {
+                                dlt_fint::<BigEndian>(width)(&data[offset..offset + length])
+                            } else {
+                                dlt_fint::<LittleEndian>(width)(&data[offset..offset + length])
+                            }
+                            .map_err(|_| fmt::Error)?
+                            .1;
+                            offset += length;
+                            Ok((v, fixed_point))
+                        }
+                        TypeInfoKind::Signed(length) => {
+                            let byte_length = length as usize / 8;
+                            if data.len() < offset + byte_length {
+                                return Err(fmt::Error);
+                            }
+                            let value_offset = &data[offset..];
+                            let (_, v) = if self.header.endianness == Endianness::Big {
+                                dlt_sint::<BigEndian>(length)(value_offset)
+                            } else {
+                                dlt_sint::<LittleEndian>(length)(value_offset)
+                            }
+                            .map_err(|_| fmt::Error)?;
+                            offset += byte_length;
+                            Ok((v, fixed_point))
+                        }
+                        TypeInfoKind::SignedFixedPoint(length) => {
+                            let byte_length = length as usize / 8;
+                            if data.len() < offset + byte_length {
+                                return Err(fmt::Error);
+                            }
+                            let (value_offset, fp) = if self.header.endianness == Endianness::Big {
+                                dlt_fixed_point::<BigEndian>(
+                                    &data[offset..offset + byte_length],
+                                    length,
+                                )
+                            } else {
+                                dlt_fixed_point::<LittleEndian>(
+                                    &data[offset..offset + byte_length],
+                                    length,
+                                )
+                            }
+                            .map_err(|_| fmt::Error)?;
+                            fixed_point = Some(fp);
+                            let (_, v) = if self.header.endianness == Endianness::Big {
+                                dlt_sint::<BigEndian>(float_width_to_type_length(length))(
+                                    value_offset,
+                                )
+                            } else {
+                                dlt_sint::<LittleEndian>(float_width_to_type_length(length))(
+                                    value_offset,
+                                )
+                            }
+                            .map_err(|_| fmt::Error)?;
+                            offset += byte_length;
+                            Ok((v, fixed_point))
+                        }
+                        TypeInfoKind::Unsigned(length) => {
+                            let byte_length = length as usize / 8;
+                            if data.len() < offset + byte_length {
+                                return Err(fmt::Error);
+                            }
+                            let value_offset = &data[offset..];
+                            let (_, v) = if self.header.endianness == Endianness::Big {
+                                dlt_uint::<BigEndian>(length)(value_offset)
+                            } else {
+                                dlt_uint::<LittleEndian>(length)(value_offset)
+                            }
+                            .map_err(|_| fmt::Error)?;
+                            offset += byte_length;
+                            Ok((v, fixed_point))
+                        }
+                        TypeInfoKind::UnsignedFixedPoint(length) => {
+                            let byte_length = length as usize / 8;
+                            if data.len() < offset + byte_length {
+                                return Err(fmt::Error);
+                            }
+                            let value_offset = {
+                                let (r, fp) = if self.header.endianness == Endianness::Big {
+                                    dlt_fixed_point::<BigEndian>(
+                                        &data[offset..offset + byte_length],
+                                        length,
+                                    )
+                                } else {
+                                    dlt_fixed_point::<LittleEndian>(
+                                        &data[offset..offset + byte_length],
+                                        length,
+                                    )
+                                }
+                                .map_err(|_| fmt::Error)?;
+                                fixed_point = Some(fp);
+                                r
+                            };
+                            let (_, v) = if self.header.endianness == Endianness::Big {
+                                dlt_uint::<BigEndian>(float_width_to_type_length(length))(
+                                    value_offset,
+                                )
+                            } else {
+                                dlt_uint::<LittleEndian>(float_width_to_type_length(length))(
+                                    value_offset,
+                                )
+                            }
+                            .map_err(|_| fmt::Error)?;
+                            offset += byte_length;
+                            Ok((v, fixed_point))
+                        }
+                    }
+                }?;
+                Argument {
+                    type_info: signal_type.clone(),
+                    name: None,
+                    unit: None,
+                    fixed_point,
+                    value,
+                }
+            };
+            arguments.push(argument);
+        }
+        Ok(arguments)
+    }
 }
+
 impl fmt::Display for TypeInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let kind = match self.kind {
