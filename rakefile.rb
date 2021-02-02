@@ -13,7 +13,6 @@ require './rake-package-json'
 NPM_RUN = 'npm run --quiet'
 
 RIPGREP_VERSION = '11.0.2'
-NEON_CLI_NPM_VERSION = '0.3.1'
 TYPESCRIPT_NPM_VERSION = '3.5.1'
 ELECTRON_DIR = 'application/electron'
 ELECTRON_COMPILED_DIR = "#{ELECTRON_DIR}/dist/compiled"
@@ -60,8 +59,9 @@ CLOBBER.include([
                   '**/dist',
                   #'**/package-lock.json',
                   "#{APPS_DIR}/indexer/target",
-                  "#{APPS_DIR}/indexer-neon/dist",
-                  "#{APPS_DIR}/indexer-neon/native/target"
+                  "#{APPS_DIR}/rustcore/ts-bindings/dist",
+                  "#{APPS_DIR}/rustcore/ts-bindings/native",
+                  "#{APPS_DIR}/rustcore/rs-bindings/target"
                 ])
 
 task folders: [ELECTRON_COMPILED_DIR,
@@ -199,9 +199,9 @@ task :check_environment do
                 'Typescript is required. Please install it globally using '\
                 "\"npm install typescript@#{TYPESCRIPT_NPM_VERSION} --global\". "\
                 "Note, to avoid potential conflicts, it's better to use a suggested version.")
-  check_program('neon version',
-                'Neon CLI is required. Please install it globally using '\
-                "\"npm install neon-cli@#{NEON_CLI_NPM_VERSION} --global\""\
+  check_program('nj-cli --version',
+                'NG CLI is required. Please install it globally using '\
+                "\"cargo install nj-cli\""\
                 ". Note, to avoid potential conflicts, it's better to use a suggested version.")
   check_program('gem list -i dotenv', 'Dotenv is required. Please install it globally using "gem install dotenv".')
 end
@@ -283,9 +283,6 @@ namespace :client do
     end
   end
 
-  # this task will create the ressources in application/electron/dist/client
-  task create_resources: :compile_neon_ts
-
   # setup file dependencies for those ressources
   dest_client_path = "#{ELECTRON_COMPILED_DIR}/client"
   build_target_file = "#{dest_client_path}/main.js"
@@ -329,7 +326,7 @@ end
 desc 'do compile electron stuff'
 task compile_electron: [:prepare_electron_build,
                         :native,
-                        'dev:neon',
+                        'dev:rustcore',
                         :electron_build_ts]
 
 prepare_electron_application = 'application/electron/node_modules'
@@ -360,7 +357,7 @@ task :resolutions do
     'application/client.libs/chipmunk.client.toolkit',
     'application/node.libs/chipmunk.plugin.ipc',
     'application/node.libs/chipmunk.shell.env',
-    "#{APPS_DIR}/indexer-neon",
+    "#{APPS_DIR}/rustcore/ts-bindings",
   ].each do|path|
     if File.exist? "#{path}/package-lock.json"
       puts path
@@ -388,15 +385,13 @@ task install_electron_stuff: [:folders,
 
 namespace :dev do
 
-  desc 'Developer task: update and deliver indexer-neon'
-  task neon: %i[build_embedded_indexer deliver_neon_indexer_into_local_runtime]
+  desc 'Developer task: update and deliver rustcore'
+  task rustcore: %i[build_rustcore deliver_rustcore_into_local_runtime]
 
   task update_client: ['client:create_resources']
 
   desc 'Developer task: build chipmunk.client.components and delivery it into client.'
   task :client_components do
-    #CLIENT_CORE_DIR = 'application/client.core'
-    #CLIENT_COMPONENTS_DIR = 'application/client.libs/chipmunk.client.components'
     cd Pathname.new(CLIENT_COMPONENTS_DIR), verbose: false do
       begin
         sh 'npm run build'
@@ -515,7 +510,7 @@ end
 
 def run_rust_linters
   errors = []
-  %w[launch_and_update indexer indexer-neon/native].each do |rust_app|
+  %w[launch_and_update indexer rustcore/rs-bindings].each do |rust_app|
     cd Pathname.new(APPS_DIR).join(rust_app) do
       begin
         sh 'cargo clippy'
@@ -524,7 +519,7 @@ def run_rust_linters
       end
     end
   end
-  %w[indexer-neon/native].each do |rust_app|
+  %w[rustcore/rs-bindings].each do |rust_app|
     cd Pathname.new(APPS_DIR).join(rust_app) do
       begin
         sh 'cargo clippy --release'
@@ -587,56 +582,26 @@ def fresh_folder(dest_folder)
   mkdir_p(dest_folder, verbose: true)
 end
 
-local_neon_installation = "#{APPS_DIR}/indexer-neon/node_modules/.bin"
-# make sure we update if json config files change => compare date of node_modules
-file local_neon_installation => FileList['application/electron/*.json'] do |_t|
-  puts "NPM isn't installed in project application/electron. Installing..."
-  cd "#{APPS_DIR}/indexer-neon" do
-    npm_install
-    touch 'node_modules'
+desc 'build rustcore ts-bindnings'
+task :build_rustcore do
+  cd "#{APPS_DIR}/rustcore" do
+    sh 'rake setup:ts'
+    sh 'rake build:all'
   end
 end
 
-task :compile_neon_ts do
-  cd "#{APPS_DIR}/indexer-neon" do
-    sh "#{NPM_RUN} build-ts-neon"
-  end
-end
-desc 'build embedded indexer'
-task build_embedded_indexer: [local_neon_installation, :compile_neon_ts] do
-  cd "#{APPS_DIR}/indexer-neon" do
-    if OS.windows?
-      sh 'node_modules/.bin/electron-build-env neon build --release'
-    else
-      sh 'node_modules/.bin/electron-build-env node_modules/.bin/neon build --release'
-    end
-  end
-end
-
-def copy_neon_indexer(dest)
-  src_folder = "#{APPS_DIR}/indexer-neon"
-  dest_folder = "#{dest}/indexer-neon"
+def copy_rustcore(dest)
+  src_folder = "#{APPS_DIR}/rustcore/ts-bindings"
+  dest_folder = "#{dest}/rustcore"
   fresh_folder(dest_folder)
   Dir["#{src_folder}/*"]
-    .reject { |n| n.end_with?('node_modules') || n.end_with?('native') }
+    .reject { |n| n.end_with?('node_modules') }
     .each do |s|
     cp_r(s, dest_folder, verbose: true)
   end
-  dest_native = "#{dest_folder}/native"
-  dest_native_release = "#{dest_native}/target/release"
-  fresh_folder(dest_native_release)
-  ['artifacts.json', 'index.node'].each do |f|
-    cp_r("#{src_folder}/native/#{f}", dest_native, verbose: true)
-  end
-  neon_resources = Dir.glob("#{src_folder}/native/target/release/*")
-                      .reject { |f| f.end_with?('build') || f.end_with?('deps') }
-  puts "copying neon-resources to #{dest_native_release}"
-  neon_resources.each do |r|
-    cp_r(r, dest_native_release, verbose: true)
-  end
 end
 
-def packaged_neon_dest
+def packaged_rustcore_dest
   if OS.mac?
     "#{ELECTRON_RELEASE_DIR}/mac/chipmunk.app/Contents/Resources/app/node_modules"
   elsif OS.linux?
@@ -654,9 +619,9 @@ task :deliver_defaults_plugins do
   @plugins.delivery_registry(INCLUDED_PLUGINS_FOLDER)
 end
 
-# put the neon library in place
-task :deliver_neon_indexer_into_local_runtime => ELECTRON_DIR do
-  copy_neon_indexer("#{ELECTRON_DIR}/node_modules")
+# put the rustcore library in place
+task :deliver_rustcore_into_local_runtime => ELECTRON_DIR do
+  copy_rustcore("#{ELECTRON_DIR}/node_modules")
 end
 
 desc 'build native parts'
