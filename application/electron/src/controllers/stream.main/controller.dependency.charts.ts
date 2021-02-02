@@ -11,7 +11,7 @@ import {
     Events,
     IEventMatchesUpdated,
     IEventMapUpdated,
-} from 'indexer-neon';
+} from 'rustcore';
 import { Dependency } from './controller.dependency';
 import { Channel } from './controller.channel';
 import { CommonInterfaces } from '../../interfaces/interface.common';
