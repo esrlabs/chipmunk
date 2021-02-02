@@ -360,7 +360,9 @@ export function testCancelledAsyncDltIndexing(
 	};
 	let helper = new IndexingHelper('dlt async indexing');
 	const filterConfig: DltFilterConf = {
-		min_log_level: DltLogLevel.Debug
+		min_log_level: DltLogLevel.Debug,
+		app_id_count: 0,
+		context_id_count: 0,
 	};
 
 	const dltParams: IIndexDltParams = {
@@ -461,7 +463,9 @@ export function testDltIndexingAsync(fileToIndex: string, outPath: string, timeo
 				'SysT',
 				'SINA',
 				'DA1'
-			]
+			],
+			app_id_count: 52,
+			context_id_count: 0,
 		};
 		const fibex_paths = fibexPath === undefined ? [] : [ fibexPath ];
 		const dltParams: IIndexDltParams = {
@@ -525,7 +529,9 @@ export function testIndexingPcap(fileToIndex: string, outPath: string) {
 			log.debug('testIndexingPcap: received notification:' + JSON.stringify(notification));
 		};
 		const filterConfig: DltFilterConf = {
-			min_log_level: DltLogLevel.Debug
+			min_log_level: DltLogLevel.Debug,
+			app_id_count: 0,
+			context_id_count: 0,
 		};
 		const dltParams: IIndexDltParams = {
 			dltFile: fileToIndex,
@@ -648,7 +654,9 @@ export function testSocketDlt(outPath: string) {
 			log.debug('testSocketDlt: received notification:' + JSON.stringify(notification));
 		};
 		const filterConfig: DltFilterConf = {
-			min_log_level: DltLogLevel.Debug
+			min_log_level: DltLogLevel.Debug,
+			app_id_count: 0,
+			context_id_count: 0,
 		};
 
 		const multicastInfo: IMulticastInfo = {

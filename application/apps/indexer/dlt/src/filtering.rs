@@ -26,6 +26,8 @@ pub struct DltFilterConfig {
     pub app_ids: Option<Vec<String>>,
     pub ecu_ids: Option<Vec<String>>,
     pub context_ids: Option<Vec<String>>,
+    pub app_id_count: usize,
+    pub context_id_count: usize,
 }
 #[derive(Clone)]
 pub struct ProcessedDltFilterConfig {
@@ -33,6 +35,14 @@ pub struct ProcessedDltFilterConfig {
     pub app_ids: Option<HashSet<String>>,
     pub ecu_ids: Option<HashSet<String>>,
     pub context_ids: Option<HashSet<String>>,
+    pub app_id_count: usize,
+    pub context_id_count: usize,
+}
+
+impl ProcessedDltFilterConfig {
+    pub fn is_anything_deselected() -> bool {
+        false
+    }
 }
 
 pub fn process_filter_config(cfg: DltFilterConfig) -> ProcessedDltFilterConfig {
@@ -41,6 +51,8 @@ pub fn process_filter_config(cfg: DltFilterConfig) -> ProcessedDltFilterConfig {
         app_ids: cfg.app_ids.map(HashSet::from_iter),
         ecu_ids: cfg.ecu_ids.map(HashSet::from_iter),
         context_ids: cfg.context_ids.map(HashSet::from_iter),
+        app_id_count: cfg.context_id_count,
+        context_id_count: cfg.context_id_count,
     }
 }
 

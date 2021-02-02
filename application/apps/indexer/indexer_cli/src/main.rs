@@ -735,7 +735,7 @@ pub async fn main() -> Result<()> {
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
 
-            let progress_bar = initialize_progress_bar(100 as u64);
+            let progress_bar = initialize_progress_bar(100_u64);
             thread::spawn(move || {
                 if let Err(why) = merge_files_use_config_file(
                     &merge_conf_path,

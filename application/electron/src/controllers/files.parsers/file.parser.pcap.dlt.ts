@@ -108,6 +108,8 @@ export default class FileParser extends AFileParser {
                 app_ids: appIds,
                 context_ids: contextIds,
                 ecu_ids: ecuIds,
+                app_id_count: 2, // FIXME @dmitry
+                context_id_count: 3, // FIXME @dmitry
             };
             const dltParams: DLT.IIndexDltParams = {
                 dltFile: srcFile,

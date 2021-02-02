@@ -484,11 +484,7 @@ impl TypeInfo {
         }
     }
     pub fn is_fixed_point(self: &TypeInfo) -> bool {
-        match self.kind {
-            TypeInfoKind::SignedFixedPoint(_) => true,
-            TypeInfoKind::UnsignedFixedPoint(_) => true,
-            _ => false,
-        }
+        matches!(self.kind, TypeInfoKind::SignedFixedPoint(_) | TypeInfoKind::UnsignedFixedPoint(_))
     }
     pub fn as_bytes<T: ByteOrder>(self: &TypeInfo) -> Vec<u8> {
         // ptrace!("TypeInfo::as_bytes: {:?}", self);
@@ -1306,10 +1302,7 @@ fn dbg_bytes_with_info(_name: &str, _bytes: &[u8], _info: Option<&str>) {
             _name,
             _bytes.len(),
             _bytes,
-            match _info {
-                Some(i) => i,
-                None => "",
-            }
+            _info.unwrap_or("")
         );
     }
 }
