@@ -11,6 +11,7 @@ import ServicePath from '../../services/service.paths';
 import ServiceSettings from '../../services/service.settings';
 import ServiceWindowState from '../../services/service.window.state';
 import ControllerElectronIpc from './controller.electron.ipc';
+import ControllerElectronEnv from './controller.electron.env';
 
 export default class ControllerBrowserWindow extends EventEmitter {
 
@@ -18,6 +19,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
     private _guid: string;
     private _logger: Logger = new Logger('ControllerBrowserWindow');
     private _ipc: ControllerElectronIpc | undefined;
+    private _env: ControllerElectronEnv | undefined;
 
     constructor(guid: string) {
         super();
@@ -99,7 +101,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 y: state.y,
                 webPreferences: {
                     nodeIntegration: true,
-                    enableRemoteModule: true,
+                    enableRemoteModule: false,
                 },
             };
             this._window = new BrowserWindow(options);
@@ -121,7 +123,10 @@ export default class ControllerBrowserWindow extends EventEmitter {
             }
             this._ipc = new ControllerElectronIpc(this._guid, this._window.webContents);
             this._bind();
-            resolve();
+            this._env = new ControllerElectronEnv(this._guid, this._window, this._ipc);
+            this._env.init().then(resolve).catch((err: Error) => {
+                reject(new Error(this._logger.error(`Fail to init ControllerElectronEnv due error: ${err.message}`)));
+            });
         });
     }
 

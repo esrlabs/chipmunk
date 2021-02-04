@@ -19,7 +19,7 @@ export default class MergeFormat {
         return new Promise((resolve, reject) => {
             const measure = this._logger.measure('Validate format');
             let error: string | undefined;
-            let format: string | undefined;
+            let format: string = '';
             this._task = indexer.checkFormat(this._format, flags).then(() => {
                 measure();
                 if (error) {

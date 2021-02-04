@@ -311,7 +311,7 @@ class ServiceFileOpener implements IService {
                             return fs.readdir(file, (err, files) => {
                                 if (err) {
                                     self._logger.warn(`Fail to list files of directory ${file} due to error: ${err.message}`);
-                                    return resolved();
+                                    return resolved([]);
                                 } else {
                                     Promise.all(files.map((subFile: string) => {
                                         return listAllFiles(file + '/' + subFile);

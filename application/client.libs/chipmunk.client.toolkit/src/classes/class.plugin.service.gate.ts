@@ -15,7 +15,6 @@ export enum ECoreModules {
     'chipmunk.client.toolkit' = 'chipmunk.client.toolkit',
     'xterm' = 'xterm',
     'xterm/lib/addons/fit/fit' = 'xterm/lib/addons/fit/fit',
-    'electron' = 'electron',
 }
 
 export interface ICoreModules {
@@ -28,7 +27,6 @@ export interface ICoreModules {
     'chipmunk.client.toolkit': any;
     'xterm': any;
     'xterm/lib/addons/fit/fit': any;
-    'electron': any;
 }
 
 export type TPluginExportEntity = ARowCommonParser | ARowTypedParser | ARowBoundParser | ATypedRowRender<any> | ASelectionParser | APluginService;

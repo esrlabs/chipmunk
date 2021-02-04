@@ -141,7 +141,7 @@ class ServiceUserPaths implements IService {
                             this._logger.warn(`Fail to set ${key} with value "${(this._settings as any)[key]}" due error: ${err.message}`);
                         }).finally(res);
                     } else {
-                        res();
+                        res(undefined);
                     }
                 });
             })).catch((err: Error) => {
@@ -164,7 +164,7 @@ class ServiceUserPaths implements IService {
                                     this._logger.warn(`Fail to set ${key} with value "${(this._settings as any)[key]}" due error: ${err.message}`);
                                 }).finally(res);
                             } else {
-                                res();
+                                res(undefined);
                             }
                         });
                     });

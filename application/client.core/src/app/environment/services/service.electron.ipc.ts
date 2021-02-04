@@ -1,8 +1,10 @@
-declare var Electron: any;
+declare var window: any;
+
 import { guid, Subscription, THandler, Logger } from 'chipmunk.client.toolkit';
 import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
 import { IService } from '../interfaces/interface.service';
 import { IPCMessages } from '../interfaces/interface.ipc';
+import { CommonInterfaces } from '../interfaces/interface.common';
 
 export { IPCMessages, Subscription, THandler };
 
@@ -26,7 +28,20 @@ class ElectronIpcService implements IService {
     private _pending: Map<string, IPendingTask> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
     private _listeners: Map<string, boolean> = new Map();
+    private _ipcRenderer: CommonInterfaces.Electron.IpcRenderer;
 
+    constructor() {
+        if ((window as any) === undefined || typeof (window as any).require !== 'function') {
+            this._logger.error(`"window" object isn't available or "require" function isn't found`);
+            return;
+        }
+        const mod = (window as any).require('electron');
+        if (mod === undefined) {
+            this._logger.error(`Fail to get access to "electron" module.`);
+            return;
+        }
+        this._ipcRenderer = mod.ipcRenderer;
+    }
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._report();
@@ -121,9 +136,6 @@ class ElectronIpcService implements IService {
         if (!this._isValidMessageClassRef(message)) {
             throw new Error(this._logger.error('Incorrect reference to message class.', message));
         }
-        if (typeof Electron === 'undefined') {
-            throw new Error(this._logger.error(`Fail to subscribe to event ${(message as any).signature} because Electron isn't ready.`));
-        }
         const signature: string = (message as any).signature;
         return this._setSubscription(signature, handler);
     }
@@ -139,10 +151,6 @@ class ElectronIpcService implements IService {
             subscription.destroy();
         });
         this._subscriptions.clear();
-    }
-
-    public isAvailable(): boolean {
-        return typeof Electron !== 'undefined';
     }
 
     private _setSubscription(signature: string, handler: THandler): Subscription {
@@ -176,7 +184,7 @@ class ElectronIpcService implements IService {
             return false;
         }
         this._listeners.set(messageAlias, true);
-        Electron.ipcRenderer.on(messageAlias, this._onIPCMessage.bind(this));
+        this._ipcRenderer.on(messageAlias, this._onIPCMessage.bind(this));
         return true;
     }
 
@@ -216,9 +224,6 @@ class ElectronIpcService implements IService {
         sequence?: string
     }): Promise<IPCMessages.TMessage | undefined> {
         return new Promise((resolve, reject) => {
-            if (typeof Electron === 'undefined') {
-                return new Error(`Electron is not available.`);
-            }
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: params.message,
                 sequence: params.sequence
@@ -233,7 +238,7 @@ class ElectronIpcService implements IService {
                 });
             }
             // Format:               | channel  |  event  | instance |
-            Electron.ipcRenderer.send(signature, signature, messagePackage);
+            this._ipcRenderer.send(signature, signature, messagePackage);
             if (!params.expectResponse) {
                 return resolve(undefined);
             }
@@ -277,7 +282,7 @@ class ElectronIpcService implements IService {
         }
         handlers.delete(subscriptionId);
         if (handlers.size === 0) {
-            typeof Electron !== 'undefined' && Electron.ipcRenderer.removeAllListeners(signature);
+            this._ipcRenderer.removeAllListeners(signature);
             this._handlers.delete(signature);
             this._listeners.delete(signature);
         } else {

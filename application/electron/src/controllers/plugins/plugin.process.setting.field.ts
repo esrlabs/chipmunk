@@ -47,7 +47,7 @@ export class PluginField<T> extends RemoteFieldWrapper<T> {
                 path: this.getPath(),
             })).then((res: any) => {
                 const response: IPCMessages.SettingsDefaultResponse<T> = res as IPCMessages.SettingsDefaultResponse<T>;
-                resolve(response.value);
+                resolve(response.value as T);
             }).catch((err: Error) => {
                 reject(err);
             });
