@@ -1,7 +1,5 @@
 // tslint:disable: member-ordering
 
-declare var Electron: any;
-
 import { Component, OnDestroy, Input,  ChangeDetectorRef, HostListener, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
@@ -14,6 +12,7 @@ import { IPCMessages } from '../../../services/service.electron.ipc';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
+import ElectronEnvService from '../../../services/service.electron.env';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -105,7 +104,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         if (this._ng_controller === undefined) {
             return;
         }
-        Electron.remote.dialog.showOpenDialog({
+        ElectronEnvService.get().showOpenDialog({
             properties: ['openFile', 'showHiddenFiles', 'multiSelections']
         }).then((result: { filePaths: string[] }) => {
             if (!(result.filePaths instanceof Array)) {

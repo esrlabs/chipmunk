@@ -572,6 +572,24 @@ export { ISessionImporterData, ISessionImporterSaveRequest, SessionImporterSaveR
 import { ISessionImporterSaveResponse, SessionImporterSaveResponse } from './session.importer.save.response';
 export { ISessionImporterSaveResponse, SessionImporterSaveResponse };
 
+import { IElectronEnvShellOpenExternalRequest, ElectronEnvShellOpenExternalRequest } from './electron.env.shell.openexternal.request';
+export { IElectronEnvShellOpenExternalRequest, ElectronEnvShellOpenExternalRequest };
+
+import { IElectronEnvShellOpenExternalResponse, ElectronEnvShellOpenExternalResponse } from './electron.env.shell.openexternal.response';
+export { IElectronEnvShellOpenExternalResponse, ElectronEnvShellOpenExternalResponse };
+
+import { IElectronEnvShowOpenDialogRequest, ElectronEnvShowOpenDialogRequest } from './electron.env.showopendialog.request';
+export { IElectronEnvShowOpenDialogRequest, ElectronEnvShowOpenDialogRequest};
+
+import { IElectronEnvShowOpenDialogResponse, ElectronEnvShowOpenDialogResponse } from './electron.env.showopendialog.response';
+export { IElectronEnvShowOpenDialogResponse, ElectronEnvShowOpenDialogResponse };
+
+import { ElectronEnvPlatformRequest } from './electron.env.platform.request';
+export { ElectronEnvPlatformRequest};
+
+import { IElectronEnvPlatformResponse, ElectronEnvPlatformResponse } from './electron.env.platform.response';
+export { IElectronEnvPlatformResponse, ElectronEnvPlatformResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -760,7 +778,13 @@ export type TMessage =  AppRestartRequest |
                         SessionImporterLoadRequest |
                         SessionImporterLoadResponse |
                         SessionImporterSaveRequest |
-                        SessionImporterSaveResponse;
+                        SessionImporterSaveResponse |
+                        ElectronEnvShellOpenExternalRequest |
+                        ElectronEnvShellOpenExternalResponse |
+                        ElectronEnvShowOpenDialogRequest |
+                        ElectronEnvShowOpenDialogResponse |
+                        ElectronEnvPlatformRequest |
+                        ElectronEnvPlatformResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -982,4 +1006,11 @@ export const Map = {
     [SessionImporterLoadResponse.signature          ]: SessionImporterLoadResponse,
     [SessionImporterSaveRequest.signature           ]: SessionImporterSaveRequest,
     [SessionImporterSaveResponse.signature          ]: SessionImporterSaveResponse,
+
+    [ElectronEnvShellOpenExternalRequest.signature  ]: ElectronEnvShellOpenExternalRequest,
+    [ElectronEnvShellOpenExternalResponse.signature ]: ElectronEnvShellOpenExternalResponse,
+    [ElectronEnvShowOpenDialogRequest.signature     ]: ElectronEnvShowOpenDialogRequest,
+    [ElectronEnvShowOpenDialogResponse.signature    ]: ElectronEnvShowOpenDialogResponse,
+    [ElectronEnvPlatformRequest.signature           ]: ElectronEnvPlatformRequest,
+    [ElectronEnvPlatformResponse.signature          ]: ElectronEnvPlatformResponse,
 };

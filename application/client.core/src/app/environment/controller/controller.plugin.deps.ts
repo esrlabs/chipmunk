@@ -1,5 +1,3 @@
-declare var Electron: any;
-
 import * as AngularCore from '@angular/core';
 import * as AngularCommon from '@angular/common';
 import * as AngularForms from '@angular/forms';
@@ -96,7 +94,6 @@ export function getAvailablePluginModules(): { [key: string]: any } {
         'xterm': XTerm,
         'xterm-addon-fit': XTermAddonFit,
         'chart.js': ChartJS,
-        'electron': Electron,
         'hammerjs': hammerjs,
     };
 }

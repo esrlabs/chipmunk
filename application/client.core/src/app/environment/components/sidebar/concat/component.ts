@@ -11,13 +11,13 @@ import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { ControllerFileConcatSession, IConcatFile } from '../../../controller/controller.file.concat.session';
 import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
+import ElectronEnvService from '../../../services/service.electron.env';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-
-declare var Electron: any;
 
 export class SearchErrorStateMatcher implements ErrorStateMatcher {
 
@@ -139,7 +139,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
     }
 
     public _ng_onAddFile() {
-        Electron.remote.dialog.showOpenDialog({
+        ElectronEnvService.get().showOpenDialog({
             properties: ['openFile', 'showHiddenFiles', 'multiSelections']
         }).then((result: { filePaths: string[] }) => {
             if (!(result.filePaths instanceof Array)) {

@@ -20,13 +20,16 @@ import SettingsDefaultsService from './settings/settings.defaults';
 import TabSelectionParserService from './tabs/service.tab.selection.parser';
 import ReleaseNotesService from './service.release.notes';
 import RenderStateService from './service.render.state';
+import ElectronEnvService from './service.electron.env';
 
 import * as Defaults from '../states/state.default';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 const InitializeStages = [
-    // Stage #1
+    // Stage #0
     [   ServiceElectronIpc ],
+    // Stage #1
+    [   ElectronEnvService, ],
     // Stage #2
     [   LogsService ],
     // Stage #3

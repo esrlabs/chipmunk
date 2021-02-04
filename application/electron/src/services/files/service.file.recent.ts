@@ -117,11 +117,11 @@ export class ServiceFileRecent implements IService {
                 return new Promise((resolveFile) => {
                     fs.stat(file.file, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                         if (err) {
-                            return resolveFile();
+                            return resolveFile(undefined);
                         }
                         file.size = stats.size;
                         checked.push(file);
-                        resolveFile();
+                        resolveFile(undefined);
                     });
                 });
             })).then(() => {
@@ -172,10 +172,10 @@ export class ServiceFileRecent implements IService {
                 return new Promise((resolveFile) => {
                     fs.access(file.file, fs.constants.F_OK, (err) => {
                         if (err) {
-                            return resolveFile();
+                            return resolveFile(undefined);
                         }
                         files.push(file);
-                        resolveFile();
+                        resolveFile(undefined);
                     });
                 });
             })).then(() => {

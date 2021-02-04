@@ -22,7 +22,7 @@ export default class TimestampExtract {
             // tslint:disable-next-line: no-empty
             const measure = !silence ? this._logger.measure('Validate format') : () => {};
             let error: string | undefined;
-            let timestamp: number | undefined;
+            let timestamp: number = 0;
             this._task = indexer.exctractTimestamp(this._input, this._format, this._serializeReplacements(replacements)).then(() => {
                 measure();
                 if (error) {

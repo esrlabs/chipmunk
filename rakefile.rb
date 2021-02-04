@@ -58,6 +58,7 @@ task clobber: :rust_clean
 CLOBBER.include([
                   '**/node_modules',
                   '**/dist',
+                  #'**/package-lock.json',
                   "#{APPS_DIR}/indexer/target",
                   "#{APPS_DIR}/indexer-neon/dist",
                   "#{APPS_DIR}/indexer-neon/native/target"
@@ -159,10 +160,6 @@ end
 
 def npm_install(what = '')
   sh "npm install #{what} --prefere-offline"
-end
-
-def npm_force_resolutions
-  sh 'npx npm-force-resolutions'
 end
 
 def npm_reinstall(package_and_version)
@@ -283,7 +280,6 @@ namespace :client do
     cd CLIENT_CORE_DIR do
       puts 're-installing: core'
       npm_install
-      npm_force_resolutions
     end
   end
 
@@ -315,7 +311,6 @@ namespace :client do
     puts "NPM isn't installed in project #{CLIENT_CORE_DIR}. Installing..."
     cd CLIENT_CORE_DIR do
       npm_install
-      npm_force_resolutions
       touch 'node_modules'
     end
   end
@@ -324,7 +319,6 @@ namespace :client do
   file core_toolkit_installation => FileList["#{CLIENT_CORE_DIR}/*.json"] do |_t|
     cd CLIENT_CORE_DIR do
       npm_install
-      npm_force_resolutions
     end
   end
   task build_core: [CLIENT_CORE_DIR, core_toolkit_installation]
@@ -343,7 +337,6 @@ file prepare_electron_application => FileList['application/electron/*.json'] do 
   puts "NPM isn't installed in project application/electron. Installing..."
   cd ELECTRON_DIR do
     npm_install
-    npm_force_resolutions
     touch 'node_modules'
   end
 end
@@ -371,7 +364,7 @@ task :resolutions do
     if File.exist? "#{path}/package-lock.json"
       puts path
       cd path do
-        npm_force_resolutions
+        sh 'npx npm-force-resolutions'
       end
     else
       puts "#{path} skipped, because no package-lock.json has been found"
@@ -599,7 +592,6 @@ file local_neon_installation => FileList['application/electron/*.json'] do |_t|
   puts "NPM isn't installed in project application/electron. Installing..."
   cd "#{APPS_DIR}/indexer-neon" do
     npm_install
-    npm_force_resolutions
     touch 'node_modules'
   end
 end

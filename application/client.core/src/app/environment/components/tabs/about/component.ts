@@ -1,5 +1,3 @@
-declare var Electron: any;
-
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { IPCMessages } from '../../../services/service.electron.ipc';
@@ -8,6 +6,7 @@ import { IDependencyVersion, CDependencies, getDependenciesVersions } from '../.
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 
 import ServiceElectronIpc from '../../../services/service.electron.ipc';
+import ElectronEnvService from '../../../services/service.electron.env';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -55,11 +54,11 @@ export class TabAboutComponent implements OnDestroy, AfterContentInit {
     }
 
     public _ng_onGitHubOpen() {
-        Electron.shell.openExternal(CUrls.repo);
+        ElectronEnvService.get().openExternal(CUrls.repo);
     }
 
     public _ng_onGitHubIssuesOpen() {
-        Electron.shell.openExternal(CUrls.issues);
+        ElectronEnvService.get().openExternal(CUrls.issues);
     }
 
     public _ng_onCopyToClipboard() {

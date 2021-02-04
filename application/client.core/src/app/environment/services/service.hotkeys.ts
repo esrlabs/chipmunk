@@ -1,5 +1,3 @@
-declare var Electron: any;
-
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { Subscription } from 'rxjs';
@@ -10,6 +8,7 @@ import { IPCMessages } from './service.electron.ipc';
 
 import ElectronIpcService from './service.electron.ipc';
 import PopupsService from './standalone/service.popups';
+import ElectronEnvService from './service.electron.env';
 
 export enum EHotkeyCategory {
     Files = 'Files',
@@ -100,15 +99,20 @@ export class HotkeysService implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            this._cleanupShortcuts();
-            this._subscriptions.onHotkeyCall = ElectronIpcService.subscribe(IPCMessages.HotkeyCall, this._onHotkeyCall.bind(this));
-            this._subscriptions.onShowHotkeysMapDialog = this.getObservable().showHotkeysMapDialog.subscribe(this._onShowHotkeysMapDialog.bind(this));
-            this._keydownCombination = this._keydownCombination.bind(this);
-            this._checkFocusedElement = this._checkFocusedElement.bind(this);
-            window.addEventListener('mouseup', this._checkFocusedElement, true);
-            window.addEventListener('keyup', this._checkFocusedElement, true);
-            window.addEventListener('keydown', this._keydownCombination, true);
-            resolve();
+            ElectronEnvService.get().platform().then((platform: string) => {
+                this._cleanupShortcuts(platform);
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail get platform information due error: ${err.message}`);
+            }).finally(() => {
+                this._subscriptions.onHotkeyCall = ElectronIpcService.subscribe(IPCMessages.HotkeyCall, this._onHotkeyCall.bind(this));
+                this._subscriptions.onShowHotkeysMapDialog = this.getObservable().showHotkeysMapDialog.subscribe(this._onShowHotkeysMapDialog.bind(this));
+                this._keydownCombination = this._keydownCombination.bind(this);
+                this._checkFocusedElement = this._checkFocusedElement.bind(this);
+                window.addEventListener('mouseup', this._checkFocusedElement, true);
+                window.addEventListener('keyup', this._checkFocusedElement, true);
+                window.addEventListener('keydown', this._keydownCombination, true);
+                resolve();
+            });
         });
     }
 
@@ -198,8 +202,7 @@ export class HotkeysService implements IService {
         });
     }
 
-    private _cleanupShortcuts() {
-        const platform: string = Electron.remote.process.platform;
+    private _cleanupShortcuts(platform: string) {
         Object.keys(CKeysMap).forEach((key: string) => {
             CKeysMap[key].shortkeys = CKeysMap[key].shortkeys.filter((shortkey: string) => {
                 if (platform === 'darwin') {
