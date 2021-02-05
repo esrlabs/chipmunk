@@ -1,10 +1,15 @@
-import ServiceElectron, { IPCMessages } from "../service.electron";
-import Logger from "../../tools/env.logger";
 import * as Tools from "../../tools/index";
+
+import ServiceElectron from "../service.electron";
+import Logger from "../../tools/env.logger";
+import indexer from "indexer-neon";
+import ServiceStreams from "../../services/service.streams";
+
+import { IPCMessages } from "../service.electron";
 import { Subscription } from "../../tools/index";
 import { IService } from "../../interfaces/interface.service";
-import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
-import ServiceStreams from "../../services/service.streams";
+import { CommonInterfaces } from '../../interfaces/interface.common';
+import { Progress, DLT, CancelablePromise } from "indexer-neon";
 
 /**
  * @class ServiceDLTFiles
@@ -16,7 +21,7 @@ class ServiceDLTFiles implements IService {
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
     private _tasks: Map<string, CancelablePromise<void, void, DLT.TDltStatsEvents, DLT.TDltStatsEventObject>> = new Map();
-
+    private _stats: Map<string, CommonInterfaces.DLT.StatisticInfo> = new Map();
     /**
      * Initialization function
      * @returns Promise<void>
@@ -52,6 +57,10 @@ class ServiceDLTFiles implements IService {
         return "ServiceDLTFiles";
     }
 
+    public getStats(session: string): CommonInterfaces.DLT.StatisticInfo | undefined {
+        return this._stats.get(session);
+    }
+
     private _onDLTStatsRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.DLTStatsRequest = request as IPCMessages.DLTStatsRequest;
         const taskId: string = req.id;
@@ -67,6 +76,9 @@ class ServiceDLTFiles implements IService {
         let stats: DLT.StatisticInfo | undefined;
         const task: CancelablePromise<void, void, DLT.TDltStatsEvents, DLT.TDltStatsEventObject> = indexer.dltStatsAsync(req.file).then(() => {
             this._logger.debug("dltStatsAsync task finished");
+            if (stats !== undefined) {
+                this._stats.set(req.file, stats);
+            }
             response(
                 new IPCMessages.DLTStatsResponse({
                     stats: stats,

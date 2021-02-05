@@ -937,25 +937,16 @@ fn filtered_out(
                 }
             }
         } else {
-            println!("no extended head");
             // filter out some messages when we do not have an extended header
             if let Some(app_id_set) = &filter_config.app_ids {
-                if filter_config.app_id_count > app_id_set.len() {
+                if filter_config.app_id_count > app_id_set.len() as i64 {
                     // some app id was filtered, ignore this entry
-                    println!(
-                        "some app id was filtered, ignore this entry: app_id_count = {}, set.len() = {}, app-ids: {:?}",
-                        filter_config.app_id_count , app_id_set.len(), app_id_set
-                    );
                     return true;
                 }
             }
             if let Some(context_id_set) = &filter_config.context_ids {
-                if filter_config.context_id_count > context_id_set.len() {
+                if filter_config.context_id_count > context_id_set.len() as i64 {
                     // some context id was filtered, ignore this entry
-                    println!(
-                        "some context id was filtered, ignore this entry: context_id_count = {}, set.len() = {}, c-ids: {:?}",
-                        filter_config.context_id_count , context_id_set.len(), context_id_set
-                    );
                     return true;
                 }
             }

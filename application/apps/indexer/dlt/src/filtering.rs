@@ -26,17 +26,17 @@ pub struct DltFilterConfig {
     pub app_ids: Option<Vec<String>>,
     pub ecu_ids: Option<Vec<String>>,
     pub context_ids: Option<Vec<String>>,
-    pub app_id_count: usize,
-    pub context_id_count: usize,
+    pub app_id_count: i64,
+    pub context_id_count: i64,
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ProcessedDltFilterConfig {
     pub min_log_level: Option<dlt::LogLevel>,
     pub app_ids: Option<HashSet<String>>,
     pub ecu_ids: Option<HashSet<String>>,
     pub context_ids: Option<HashSet<String>>,
-    pub app_id_count: usize,
-    pub context_id_count: usize,
+    pub app_id_count: i64,
+    pub context_id_count: i64,
 }
 
 impl ProcessedDltFilterConfig {
@@ -51,7 +51,7 @@ pub fn process_filter_config(cfg: DltFilterConfig) -> ProcessedDltFilterConfig {
         app_ids: cfg.app_ids.map(HashSet::from_iter),
         ecu_ids: cfg.ecu_ids.map(HashSet::from_iter),
         context_ids: cfg.context_ids.map(HashSet::from_iter),
-        app_id_count: cfg.context_id_count,
+        app_id_count: cfg.app_id_count,
         context_id_count: cfg.context_id_count,
     }
 }
