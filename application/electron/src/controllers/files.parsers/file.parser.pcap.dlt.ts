@@ -7,6 +7,7 @@ import ServiceNotifications, { ENotificationType } from "../../services/service.
 import ServiceStreams from "../../services/service.streams";
 import Logger from "../../tools/env.logger";
 import ServiceElectron from "../../services/service.electron";
+import ServiceDLTFiles from '../../services/parsers/service.dlt.files';
 
 import { AFileParser, IMapItem } from "./interface";
 import { DLT, Progress, CancelablePromise } from "indexer-neon";
@@ -78,6 +79,9 @@ export default class FileParser extends AFileParser {
             this._guid = ServiceStreams.getActiveStreamId();
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
+            const stats: CommonInterfaces.DLT.StatisticInfo | undefined = ServiceDLTFiles.getStats(srcFile);
+            const appIdCount: number = stats === undefined ? -1 : stats.app_ids.length;
+            const contextIdCount: number = stats === undefined ? -1 : stats.context_ids.length;
             let appIds: string[] | undefined;
             let contextIds: string[] | undefined;
             let ecuIds: string[] | undefined;
@@ -108,8 +112,8 @@ export default class FileParser extends AFileParser {
                 app_ids: appIds,
                 context_ids: contextIds,
                 ecu_ids: ecuIds,
-                app_id_count: 2, // FIXME @dmitry
-                context_id_count: 3, // FIXME @dmitry
+                app_id_count: appIdCount,
+                context_id_count: contextIdCount,
             };
             const dltParams: DLT.IIndexDltParams = {
                 dltFile: srcFile,

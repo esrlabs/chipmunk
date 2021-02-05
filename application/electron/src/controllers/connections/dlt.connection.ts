@@ -37,9 +37,8 @@ export class DLTConnectionController extends EventEmitter {
         this._guid = guid;
         this._session = session;
         this._connection = connection;
-        // FIXME @dmitry
         this._dlt = {
-            filters: !dlt ? { min_log_level: DLT.DltLogLevel.Debug, app_id_count: 2, context_id_count: 3 } : dlt.filters,
+            filters: !dlt ? { min_log_level: DLT.DltLogLevel.Debug, app_id_count: -1, context_id_count: -1 } : dlt.filters,
             // fibex: !dlt ? {fibex_file_paths: []} : dlt.fibex,
             stdout: !dlt ? false : (typeof dlt.stdout === 'boolean' ? dlt.stdout : false),
             statusUpdates: !dlt ? false : (typeof dlt.statusUpdates === 'boolean' ? dlt.statusUpdates : false),
