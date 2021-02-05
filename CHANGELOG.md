@@ -1,17 +1,14 @@
 # Changelog
 
-### [2.12.0] - 02/05/2021
-* Send number of total filter categories over from node
-  so that we know how many there are in total
-* Filter out messages without extended header
-  if any context-id or app-id is filtered
-* Electron 10.1.5 -> 11.2.2; get rid of remote module usage
-  Switch electron to 10.2.0
-  Node version up 12.14.0 -> 14.15.4
-  Electron 10.2.0 -> 11.2.2
-  Resolver TS issues
-* Angular 9.x.x -> 11.1.1
+## [2.12.0] - 02/05/2021
+### Added
 * Add stream/socket path into settings (close #986)
+### Fixed
+* Filter out messages without extended header if any context-id or app-id is filtered
+### Changes
+* Electron 10.1.5 -> 10.2.0
+* Get rid of electron remote module usage
+* Angular 9.x.x -> 11.1.1
 
 ## [2.11.4] - 01/25/2021
 ### Fixed
