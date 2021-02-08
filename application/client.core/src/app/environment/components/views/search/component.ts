@@ -19,7 +19,6 @@ import { EChartType } from '../chart/charts/charts';
 import { sortPairs, IPair } from '../../../thirdparty/code/engine';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
-import ServiceOS from '../../../services/standalone/service.os';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
 import SidebarSessionsService from '../../../services/service.sessions.sidebar';
@@ -97,7 +96,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _filtersStorage: FiltersStorage | undefined;
     private _chartsStorage: ChartsStorage | undefined;
     private _destroyed: boolean = false;
-    private _os: string = '';
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService,
@@ -123,9 +121,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             startWith(''),
             map(value => this._filter(value))
         );
-        ServiceOS.getOS().then((os: string) => {
-            this._os = os;
-        });
         this._loadSettings();
     }
 
@@ -154,9 +149,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             }
             return false;
         }
-        if (this._os === 'darwin' && event.metaKey && event.key === 'Enter') {
+        if (HotkeysService.platform === 'darwin' && event.metaKey && event.key === 'Enter') {
             this._onStoreFilter();
-        } else if ((this._os === 'linux' || 'win32') && event.ctrlKey && event.key === 'Enter') {
+        } else if ((HotkeysService.platform === 'linux' || 'win32') && event.ctrlKey && event.key === 'Enter') {
             this._onStoreFilter();
         } else if (event.shiftKey && event.key === 'Enter') {
             this._ng_onStoreChart();

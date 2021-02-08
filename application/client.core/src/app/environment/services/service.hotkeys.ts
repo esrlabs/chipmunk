@@ -66,6 +66,7 @@ export class HotkeysService implements IService {
     private _combinationTimer: number = -1;
     private _combinationCounter: number = 0;
     private _localKeys: string[] = [];
+    private _platform = '';
 
     private _subjects = {
         newTab: new Subject<IHotkeyEvent>(),
@@ -100,6 +101,7 @@ export class HotkeysService implements IService {
     public init(): Promise<void> {
         return new Promise((resolve) => {
             ElectronEnvService.get().platform().then((platform: string) => {
+                this._platform = platform;
                 this._cleanupShortcuts(platform);
             }).catch((err: Error) => {
                 this._logger.warn(`Fail get platform information due error: ${err.message}`);
@@ -200,6 +202,10 @@ export class HotkeysService implements IService {
         ElectronIpcService.send(new IPCMessages.HotkeyInputOut()).then(() => {
             this._input = false;
         });
+    }
+
+    public get platform(): string {
+        return this._platform;
     }
 
     private _cleanupShortcuts(platform: string) {

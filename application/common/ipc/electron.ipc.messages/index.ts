@@ -22,12 +22,6 @@ export { IRenderMountPlugin, RenderMountPlugin, IRenderMountPluginInfo };
 import { IRenderState, RenderState, ERenderState } from './render.state';
 export { IRenderState, RenderState, ERenderState };
 
-import { OSInfoRequest } from './os.info.request';
-export { OSInfoRequest };
-
-import { IOSInfoResponse, OSInfoResponse } from './os.info.response';
-export { IOSInfoResponse, OSInfoResponse };
-
 import { PluginsInstalledRequest } from './plugins.installed.request';
 export { PluginsInstalledRequest };
 
@@ -599,8 +593,6 @@ export type TMessage =  AppRestartRequest |
                         HostTaskHistory |
                         RenderMountPlugin |
                         RenderState |
-                        OSInfoRequest |
-                        OSInfoResponse |
                         PluginInternalMessage |
                         PluginError |
                         PluginsInstalledRequest |
@@ -801,9 +793,6 @@ export const Map = {
     
     [RenderMountPlugin.signature                ]: RenderMountPlugin,
     [RenderState.signature                      ]: RenderState,
-    
-    [OSInfoRequest.signature                    ]: OSInfoRequest,
-    [OSInfoResponse.signature                   ]: OSInfoResponse,
 
     [PluginInternalMessage.signature            ]: PluginInternalMessage,
     [PluginError.signature                      ]: PluginError,
