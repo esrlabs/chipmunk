@@ -8,7 +8,7 @@ import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EntityData } from './entity.data';
 
-import HotkeysService from '../../../../services/service.hotkeys'; 
+import HotkeysService from '../../../../services/service.hotkeys';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
