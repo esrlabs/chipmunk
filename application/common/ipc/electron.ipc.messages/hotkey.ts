@@ -19,7 +19,8 @@ export enum EHotkeyActionRef {
     nextTab = 'nextTab',
     prevTab = 'prevTab',
     storeFilter = 'storeFilter',
-    storeChart = 'storeChart'
+    storeChart = 'storeChart',
+    renameSearch = 'renameSearch',
 }
 
 export interface IHotkeyCall {

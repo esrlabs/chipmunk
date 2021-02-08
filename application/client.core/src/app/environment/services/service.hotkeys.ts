@@ -38,6 +38,7 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                         description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
     [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                         description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
+    [IPCMessages.EHotkeyActionRef.renameSearch]:            { shortkeys: ['F2'],                                          description: 'Rename selected filter/chart',    category: EHotkeyCategory.Search},
     [IPCMessages.EHotkeyActionRef.storeChart]:              { shortkeys: ['Shift + Enter'],                               description: 'Store chart',                     category: EHotkeyCategory.Search},
     [IPCMessages.EHotkeyActionRef.storeFilter]:             { shortkeys: ['⌘ + Enter', 'Ctrl + Enter'],                 description: 'Store filter',                     category: EHotkeyCategory.Search},
     [IPCMessages.EHotkeyActionRef.settings]:                { shortkeys: ['⌘ + ,', 'Ctrl + ,'],                         description: 'Show settings',                   category: EHotkeyCategory.Other },
@@ -49,6 +50,7 @@ const CLocalHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           'j',
     [IPCMessages.EHotkeyActionRef.selectPrevRow]:           'k',
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    '?',
+    [IPCMessages.EHotkeyActionRef.renameSearch]:            'F2',
 };
 
 export interface IHotkeyEvent {
@@ -88,6 +90,7 @@ export class HotkeysService implements IService {
         nextTab: new Subject<IHotkeyEvent>(),
         prevTab: new Subject<IHotkeyEvent>(),
         ctrlC: new Subject<IHotkeyEvent>(),
+        renameSearch: new Subject<IHotkeyEvent>(),
     };
 
     constructor() {
@@ -153,6 +156,7 @@ export class HotkeysService implements IService {
         nextTab: Observable<IHotkeyEvent>,
         prevTab: Observable<IHotkeyEvent>,
         ctrlC: Observable<IHotkeyEvent>,
+        renameSearch: Observable<IHotkeyEvent>,
     } {
         return {
             newTab: this._subjects.newTab.asObservable(),
@@ -175,6 +179,7 @@ export class HotkeysService implements IService {
             nextTab: this._subjects.nextTab.asObservable(),
             prevTab: this._subjects.prevTab.asObservable(),
             ctrlC: this._subjects.ctrlC.asObservable(),
+            renameSearch: this._subjects.renameSearch.asObservable(),
         };
     }
 

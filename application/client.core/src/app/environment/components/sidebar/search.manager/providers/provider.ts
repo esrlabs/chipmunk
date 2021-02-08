@@ -8,6 +8,7 @@ import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EntityData } from './entity.data';
 
+import HotkeysService from '../../../../services/service.hotkeys'; 
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
@@ -89,6 +90,7 @@ export abstract class Provider<T> {
     constructor() {
         this._session = TabsSessionsService.getActive();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.renameSearch = HotkeysService.getObservable().renameSearch.subscribe(this._onRenameSearch.bind(this));
     }
 
     public destroy() {
@@ -415,4 +417,9 @@ export abstract class Provider<T> {
         this._subjects.change.next();
     }
 
+    private _onRenameSearch() {
+        if (this._selection.current.length === 1) {
+            this.edit().in();
+        }
+    }
 }
