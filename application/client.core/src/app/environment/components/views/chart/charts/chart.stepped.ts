@@ -25,7 +25,7 @@ export default class Chart extends AChart {
             if (!(point.value instanceof Array) || point.value.length === 0) {
                 return;
             }
-            const value: number = parseInt(point.value[0], 10);
+            const value: number = parseFloat(point.value[0]);
             if (isNaN(value) || !isFinite(value)) {
                 return;
             }
