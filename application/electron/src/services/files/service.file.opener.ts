@@ -16,6 +16,11 @@ import * as Tools from '../../tools/index';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export interface IFilesList {
+    files: IPCMessages.IFile[];
+    error?: string;
+}
+
 interface IOpenFileResult {
     sourceId: number;
     options: any;
@@ -190,6 +195,24 @@ class ServiceFileOpener implements IService {
 
     public selectAndOpenFile(): Promise<string | undefined> {
         return this._openFile();
+    }
+
+    public getListFiles(files: string[]): Promise<IFilesList> {
+        return new Promise((resolve) => {
+            Promise.all(
+                files.map((file: string) => {
+                    return this._listFiles(file);
+            })).then((fileLists: IPCMessages.IFile[][]) => {
+                resolve({
+                    files: this._concatFileList(fileLists)
+                });
+            }).catch((error: Error) => {
+                resolve({
+                    files: [],
+                    error: error.message,
+                });
+            });
+        });
     }
 
     private _ipc_FileListRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {

@@ -304,6 +304,9 @@ export { IMergeFilesFormatRequest, MergeFilesFormatRequest };
 import { IMergeFilesFormatResponse, MergeFilesFormatResponse } from './merge.files.format.response';
 export { IMergeFilesFormatResponse, MergeFilesFormatResponse };
 
+import { IFile as IMultiplefiles, Multiplefiles } from './multiplefiles';
+export { IMultiplefiles, Multiplefiles };
+
 import { FiltersLoadRequest, IFiltersLoadRequest } from './file.filters.load.request';
 export { FiltersLoadRequest, IFiltersLoadRequest };
 
@@ -681,6 +684,7 @@ export type TMessage =  AppRestartRequest |
                         MergeFilesDiscoverResponse |
                         MergeFilesFormatRequest |
                         MergeFilesFormatResponse |
+                        Multiplefiles |
                         FiltersLoadRequest |
                         FiltersLoadResponse |
                         FiltersSaveRequest |
@@ -889,6 +893,8 @@ export const Map = {
     [MergeFilesDiscoverResponse.signature       ]: MergeFilesDiscoverResponse,
     [MergeFilesFormatRequest.signature          ]: MergeFilesFormatRequest,
     [MergeFilesFormatResponse.signature         ]: MergeFilesFormatResponse,
+
+    [Multiplefiles.signature                    ]: Multiplefiles,
 
     [FiltersLoadRequest.signature               ]: FiltersLoadRequest,
     [FiltersLoadResponse.signature              ]: FiltersLoadResponse,
