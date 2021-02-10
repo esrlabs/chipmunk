@@ -7,7 +7,7 @@ on:
 
 jobs:
   set-labels:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Set issue defaults
         uses: meatlink/issue-defaults@v1
