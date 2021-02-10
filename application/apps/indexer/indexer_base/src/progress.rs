@@ -1,7 +1,7 @@
 use crossbeam_channel as cc;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Severity {
     WARNING,
     ERROR,
@@ -12,6 +12,32 @@ impl Severity {
             Severity::WARNING => "WARNING",
             Severity::ERROR => "ERROR",
         }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum Progress {
+    Ticks(Ticks),
+    Notification(Notification),
+    Stopped,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Ticks {
+    pub count: u64,
+    pub total: u64,
+}
+
+impl Ticks {
+    pub fn done(&self) -> bool {
+        self.count == self.total
+    }
+}
+
+impl Progress {
+    pub fn ticks(count: u64, total: u64) -> Self {
+        Self::Ticks(Ticks { count, total })
     }
 }
 
@@ -30,6 +56,8 @@ pub enum IndexingProgress<T> {
     Stopped,
     Finished,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Notification {
     pub severity: Severity,
     pub content: String,

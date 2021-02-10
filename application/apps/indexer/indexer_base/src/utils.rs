@@ -28,11 +28,7 @@ const PEEK_END_SIZE: usize = 12;
 
 #[inline]
 pub fn is_newline(c: char) -> bool {
-    match c {
-        '\x0a' => true,
-        '\x0d' => true,
-        _ => false,
-    }
+    matches!(c, '\x0a' | '\x0d')
 }
 
 #[inline]
@@ -190,7 +186,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     match reader.seek(SeekFrom::End(seek_offset as i64)) {
         Ok(_) => (),
         Err(e) => {
-            return Err(anyhow!("could not read last entry in file {:?}", e));
+            return Err(anyhow!("Could not read last entry in file {:?}", e));
         }
     };
     let size_of_slice = seek_offset.abs() as usize;

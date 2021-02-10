@@ -9,13 +9,12 @@ thiserror = "1.0"
 anyhow = "1.0"
 buf_redux = "0.8.4"
 byteorder = "1.3"
-bytes = "0.5.6"
+bytes = "1.0.1"
 chrono = "0.4"
 crossbeam-channel = "0.5.0"
 derive_more = "0.15.0"
 dirs = "3.0.1"
 etherparse = "0.9"
-futures = "0.3.6"
 humantime = "2.0.1"
 indexer_base = { path = "../indexer_base" }
 lazy_static = "1.4.0"
@@ -28,7 +27,9 @@ quick-xml = "0.19.0"
 rustc-hash = "1.1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "0.3.3", features = ["full"] }
+tokio = { version = "1.2.0", features = ["full"] }
+tokio-util = {version = "0.6.3", features = ["codec", "net"] }
+tokio-stream = "0.1.3"
 
 [dev-dependencies]
 rand = "0.7"

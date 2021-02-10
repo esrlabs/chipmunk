@@ -383,7 +383,7 @@ impl Message {
                             .map_err(|_| fmt::Error)?
                             .1;
                             offset += length;
-                            Ok((v, fixed_point))
+                            Ok((v, fixed_point)) as Result<(Value, Option<FixedPoint>), fmt::Error>
                         }
                         TypeInfoKind::Signed(length) => {
                             let byte_length = length as usize / 8;

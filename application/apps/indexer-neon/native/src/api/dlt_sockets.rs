@@ -38,25 +38,27 @@ impl SocketDltEventEmitter {
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
-            let socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
-                session_id,
-                socket_conf,
-                thread_conf.tag.as_str(),
-                &thread_conf.out_path,
-                filter_conf,
-                &chunk_result_sender,
-                shutdown_rx,
-                fibex_metadata,
-            );
             rt.block_on(async {
+                let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
+                let socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
+                    session_id,
+                    socket_conf,
+                    thread_conf.tag.as_str(),
+                    &thread_conf.out_path,
+                    filter_conf,
+                    &chunk_result_sender,
+                    // &tx,
+                    shutdown_rx,
+                    fibex_metadata,
+                );
                 match socket_future.await {
                     Ok(_) => {}
                     Err(e) => warn!("error for socket dlt stream: {}", e),
                 }
+                debug!("Back after DLT indexing finished!");
             });
-            debug!("back after DLT indexing finished!");
         }));
+        debug!("Thread for dlt socket is running");
     }
 }
 

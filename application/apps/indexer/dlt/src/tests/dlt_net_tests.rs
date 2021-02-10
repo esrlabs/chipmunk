@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
 
+    use crate::dlt_net::DltMessageDecoder;
     use crate::{dlt::Message, dlt_net::*, dlt_parse::DltParseError};
-    use crossbeam_channel as cc;
-    use futures::stream::StreamExt;
-    use indexer_base::chunks::ChunkResults;
     use tokio::net::UdpSocket;
+    use tokio_stream::StreamExt;
+    use tokio_util::udp::UdpFramed;
 
     fn message_without_storage_header() -> Vec<u8> {
         #[rustfmt::skip]
@@ -37,9 +37,15 @@ mod tests {
             .await
             .expect("could not create sockete");
         let local_addr = socket.local_addr().expect("could not get addr of socket");
-        let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
-        let mut udp_msg_producer: UdpMessageProducer =
-            UdpMessageProducer::new(socket, tx, None, None);
+
+        let mut message_stream = UdpFramed::new(
+            socket,
+            DltMessageDecoder {
+                filter_config: None,
+                fibex_metadata: None,
+                update_channel: None,
+            },
+        );
         let socket2 = UdpSocket::bind("127.0.0.1:0")
             .await
             .expect("could not create socket2");
@@ -51,9 +57,9 @@ mod tests {
             .send(&content)
             .await
             .expect("could not send on socket2");
-        if let Some(msg) = udp_msg_producer.next().await {
-            println!("received {:?}", msg);
-            return msg;
+        if let Some(Ok((DltEvent::Messages(msgs), _))) = message_stream.next().await {
+            println!("send_and_receive: received {:?}", msgs);
+            return Ok(Some(msgs));
         }
         Err(DltParseError::Unrecoverable {
             cause: "did not get a message from udp_msg_producer".to_string(),

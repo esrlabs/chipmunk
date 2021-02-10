@@ -117,13 +117,7 @@ pub(crate) fn dlt_storage_header<'a, T>(
             ))
         }
         None => {
-            if let Some(tx) = update_channel {
-                let _ = tx.send(Err(Notification {
-                    severity: Severity::ERROR,
-                    content: "did not find another storage header".to_string(),
-                    line: index,
-                }));
-            }
+            warn!("Did not find another storage header in file");
             Err(nom::Err::Failure((&[], nom::error::ErrorKind::Verify)))
         }
     }
@@ -734,7 +728,7 @@ pub enum ParsedMessage {
     /// Regular message, could be parsed
     Item(Message),
     /// message was filtered out due to filter conditions (Log-Level etc.)
-    FilteredOut,
+    FilteredOut(usize),
     /// Parsed message was invalid, no parse possible
     Invalid,
 }
@@ -871,7 +865,10 @@ pub fn dlt_message<'a>(
         header.ecu_id.as_ref(),
     ) {
         let (after_message, _) = take(payload_length)(after_headers)?;
-        return Ok((after_message, ParsedMessage::FilteredOut));
+        return Ok((
+            after_message,
+            ParsedMessage::FilteredOut(payload_length as usize),
+        ));
     }
     let (i, payload) = if header.endianness == Endianness::Big {
         dlt_payload::<BigEndian>(

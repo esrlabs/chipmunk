@@ -54,7 +54,7 @@ pub async fn parse_dlt_file(
         fibex_metadata,
     )?;
     // type Item = Result<Option<Message>, DltParseError>;
-    while let Some(msg_result) = futures::stream::StreamExt::next(&mut message_stream).await {
+    while let Some(msg_result) = tokio_stream::StreamExt::next(&mut message_stream).await {
         trace!("got message from stream: {:?}", msg_result);
         match msg_result {
             Ok((consumed, Some(msg))) => {
@@ -250,22 +250,22 @@ impl FileMessageProducer {
         consume_and_parse_result
     }
 }
-impl futures::Stream for FileMessageProducer {
+impl tokio_stream::Stream for FileMessageProducer {
     type Item = Result<(usize, Option<Message>), DltParseError>;
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context,
-    ) -> futures::task::Poll<Option<Self::Item>> {
+    ) -> core::task::Poll<Option<Self::Item>> {
         let (consumed, next) = self.produce_next_message();
         match next {
             Ok(ParsedMessage::Item(msg)) => {
-                futures::task::Poll::Ready(Some(Ok((consumed, Some(msg)))))
+                core::task::Poll::Ready(Some(Ok((consumed, Some(msg)))))
             }
-            Ok(ParsedMessage::Invalid) => futures::task::Poll::Ready(Some(Ok((consumed, None)))),
-            Ok(ParsedMessage::FilteredOut) => {
-                futures::task::Poll::Ready(Some(Ok((consumed, None))))
+            Ok(ParsedMessage::Invalid) => core::task::Poll::Ready(Some(Ok((consumed, None)))),
+            Ok(ParsedMessage::FilteredOut(_)) => {
+                core::task::Poll::Ready(Some(Ok((consumed, None))))
             }
-            Err(e) => futures::task::Poll::Ready(Some(Err(e))),
+            Err(e) => core::task::Poll::Ready(Some(Err(e))),
         }
     }
 }
@@ -332,7 +332,7 @@ pub fn index_dlt_content(
             Ok(ParsedMessage::Invalid) => {
                 trace!("next was Ok(ParsedMessage::Invalid)");
             }
-            Ok(ParsedMessage::FilteredOut) => {
+            Ok(ParsedMessage::FilteredOut(_)) => {
                 trace!("next was Ok(ParsedMessage::FilteredOut)");
                 skipped += 1;
             }
