@@ -352,8 +352,8 @@ export { DLTDeamonRecentDropResponse };
 import { DLTDeamonRecentRequest } from './dlt.deamon.recent.request';
 export { DLTDeamonRecentRequest };
 
-import { IDLTDeamonRecentResponse, DLTDeamonRecentResponse, IDLTDeamonConnectionOptions } from './dlt.deamon.recent.response';
-export { IDLTDeamonRecentResponse, DLTDeamonRecentResponse, IDLTDeamonConnectionOptions };
+import { IDLTDeamonRecentResponse, DLTDeamonRecentResponse, IDLTDeamonConnectionOptions, IDLTDeamonConnectionMulticastOptions } from './dlt.deamon.recent.response';
+export { IDLTDeamonRecentResponse, DLTDeamonRecentResponse, IDLTDeamonConnectionOptions, IDLTDeamonConnectionMulticastOptions };
 
 import { IDLTDeamonConnectEvent, DLTDeamonConnectEvent } from './dlt.deamon.connect.event';
 export { IDLTDeamonConnectEvent, DLTDeamonConnectEvent };

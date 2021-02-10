@@ -1,31 +1,32 @@
 import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { ErrorStateMatcher } from '@angular/material/core';
-import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { Subscription, Subject } from 'rxjs';
 import { Session } from '../../../controller/session/session';
 import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { DLTDeamonSettingsErrorStateMatcher, EDLTSettingsFieldAlias, EDLTSettingsErrorCodes } from './state.error';
+import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IConnectEvent } from '../../../services/service.connections';
+import { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import { IDLTDeamonMulticast } from './multicast/component';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import ElectronIpcService from '../../../services/service.electron.ipc';
 import SessionsService from '../../../services/service.sessions.tabs';
-import ConnectionsService, { IConnectEvent } from '../../../services/service.connections';
-import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import ConnectionsService from '../../../services/service.connections';
+import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 
 interface IState {
     bindingAddress: string;
     bindingPort: string;
-    multicastAddress: string;
-    multicastInterface: string;
     connectionId: string;
     ecu: string;
     bindingPanel: boolean;
     multicastPanel: boolean;
-    multicast: boolean;
+    multicast: IPCMessages.IDLTDeamonConnectionMulticastOptions[];
     fibex: boolean;
     state: 'progress' | 'connected' | 'disconnected';
 }
@@ -37,113 +38,25 @@ interface IDLTDeamonSettings {
     bindingAddress: string;
     bindingPort: string;
     // multicast
-    multicast: boolean;
-    multicastAddress: string;
-    multicastInterface: string;
+    multicast: IDLTDeamonMulticast[];
     // fibex
     fibex: boolean;
     fibexFiles: IPCMessages.IFilePickerFileInfo[];
-}
-
-interface IDLTDeamonSettingsErrorStateMatcher {
-    ecu: DLTDeamonSettingsErrorStateMatcher;
-    bindingAddress: DLTDeamonSettingsErrorStateMatcher;
-    bindingPort: DLTDeamonSettingsErrorStateMatcher;
-    multicastAddress: DLTDeamonSettingsErrorStateMatcher;
-    multicastInterface: DLTDeamonSettingsErrorStateMatcher;
-}
-
-enum EDLTSettingsFieldAlias {
-    bindingAddress = 'bindingAddress',
-    bindingPort = 'bindingPort',
-    multicastAddress = 'multicastAddress',
-    multicastInterface = 'multicastInterface',
-    ecu = 'ecu',
-}
-
-enum EDLTSettingsErrorCodes {
-    NO_ERRORS = 'NO_ERRORS',
-    REQUIRED = 'REQUIRED',
-    INVALID = 'INVALID',
 }
 
 const CDefaulsDLTSettingsField = {
     ecu: '',
     bindingAddress: '0.0.0.0',
     bindingPort: '',
-    multicast: false,
+    multicast: [],
     multicastAddress: '',
     multicastInterface: '0.0.0.0',
     fibex: false,
     fibexFiles: [],
 };
 
-export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
-
-    readonly _alias: EDLTSettingsFieldAlias;
-    private _code: EDLTSettingsErrorCodes = EDLTSettingsErrorCodes.NO_ERRORS;
-
-    constructor(alias: EDLTSettingsFieldAlias) {
-        this._alias = alias;
-    }
-
-    public isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
-        if (this.isDLTSettingsFieldRequired(control.value)) {
-            this._code = EDLTSettingsErrorCodes.REQUIRED;
-        } else  if (!this.isDLTSettingsFieldValid(control.value)) {
-            this._code = EDLTSettingsErrorCodes.INVALID;
-        } else {
-            this._code = EDLTSettingsErrorCodes.NO_ERRORS;
-        }
-        return this._code !== EDLTSettingsErrorCodes.NO_ERRORS;
-    }
-
-    public isDLTSettingsFieldValid(value: string): boolean {
-        if (typeof value !== 'string') {
-            return false;
-        }
-        switch (this._alias) {
-            case EDLTSettingsFieldAlias.ecu:
-                if (value.length > 4) {
-                    return false;
-                }
-                return value.replace(/[\d\w_]/gi, '').length === 0;
-            case EDLTSettingsFieldAlias.bindingAddress:
-            case EDLTSettingsFieldAlias.multicastAddress:
-            case EDLTSettingsFieldAlias.multicastInterface:
-                return value.search(/^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi) !== -1;
-            case EDLTSettingsFieldAlias.bindingPort:
-                if (value.trim().search(/^\d{1,}$/gi) === -1) {
-                    return false;
-                }
-                const bindingPort = parseInt(value.trim(), 10);
-                return isNaN(bindingPort) ? false : (!isFinite(bindingPort) ? false : true);
-        }
-    }
-
-    public isDLTSettingsFieldRequired(value: string): boolean {
-        if (typeof value !== 'string') {
-            return true;
-        }
-        switch (this._alias) {
-            case EDLTSettingsFieldAlias.ecu:
-            case EDLTSettingsFieldAlias.bindingAddress:
-            case EDLTSettingsFieldAlias.bindingPort:
-            case EDLTSettingsFieldAlias.multicastAddress:
-            case EDLTSettingsFieldAlias.multicastInterface:
-                return value.trim() === '';
-        }
-    }
-
-    public getErrorCode(): EDLTSettingsErrorCodes {
-        return this._code;
-    }
-
-    public isValid(): boolean {
-        return this._code === EDLTSettingsErrorCodes.NO_ERRORS;
-    }
-
-}
+// TODO: take care about prev format of settins (single multicast) to prevent error on restoring state
+// ECU ID -> Label
 
 @Component({
     selector: 'app-sidebar-app-dlt-connector',
@@ -168,8 +81,6 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         bindingAddress: CDefaulsDLTSettingsField.bindingAddress,
         bindingPort: CDefaulsDLTSettingsField.bindingPort,
         multicast: CDefaulsDLTSettingsField.multicast,
-        multicastAddress: CDefaulsDLTSettingsField.multicastAddress,
-        multicastInterface: CDefaulsDLTSettingsField.multicastInterface,
         fibex: CDefaulsDLTSettingsField.fibex,
         fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
     };
@@ -182,14 +93,14 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         multicast: false,
         fibex: false,
     };
-    public _ng_errorStates: IDLTDeamonSettingsErrorStateMatcher = {
+    public _ng_errorStates = {
         ecu: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.ecu),
         bindingAddress: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.bindingAddress),
         bindingPort: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.bindingPort),
-        multicastAddress: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastAddress),
-        multicastInterface: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastInterface),
     };
+
     public _ng_allowSaveAs: boolean = false;
+    public _ng_multicastCleanSubject: Subject<void> = new Subject<void>();
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppDLTConnectorComponent');
@@ -200,6 +111,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 private _notifications: NotificationsService) {
         this._ng_session = SessionsService.getActive();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.multicastCleanSubject = this._ng_multicastCleanSubject.subscribe(this._checkEmptyMulticasts.bind(this));
     }
 
     public ngOnDestroy() {
@@ -233,10 +145,12 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     public _ng_isSettingsValid(): boolean {
         let valid: boolean = true;
         Object.keys(this._ng_errorStates).forEach((key: EDLTSettingsFieldAlias) => {
-            if ([EDLTSettingsFieldAlias.multicastAddress, EDLTSettingsFieldAlias.multicastInterface].includes(key) && this._ng_settings.multicast === false) {
-                return;
-            }
             if (!(this._ng_errorStates[key] as DLTDeamonSettingsErrorStateMatcher).isValid()) {
+                valid = false;
+            }
+        });
+        this._ng_settings.multicast.forEach((multicast) => {
+            if (!multicast.state.address.isValid() || !multicast.state.interface.isValid()) {
                 valid = false;
             }
         });
@@ -248,6 +162,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             return this._forceUpdate();
         }
         const prevState = this._ng_state;
+        const mcast: string[] = [];
         this._ng_state = 'progress';
         this._ng_settings.connectionId = Toolkit.guid();
         ElectronIpcService.request(new IPCMessages.DLTDeamonConnectRequest({
@@ -256,8 +171,18 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             ecu: this._ng_settings.ecu,
             bindingAddress: this._ng_settings.bindingAddress,
             bindingPort: this._ng_settings.bindingPort,
-            multicastAddress: this._ng_settings.multicastAddress,
-            multicastInterface: this._ng_settings.multicastInterface,
+            multicast: this._ng_settings.multicast.map((i) => {
+                return {
+                    address: i.address,
+                    interface: i.interface,
+                };
+            }).filter((i) => {
+                // Get rid of duplicates
+                const key: string = `${i.address}${i.interface}`;
+                const exist: boolean = mcast.indexOf(key) === -1;
+                mcast.push(key);
+                return exist;
+            }),
             fibex: this._ng_settings.fibexFiles,
         }), IPCMessages.DLTDeamonConnectResponse).then((response: IPCMessages.DLTDeamonConnectResponse) => {
             this._ng_state = 'connected';
@@ -308,6 +233,24 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                     type: ENotificationType.error
                 }
             });
+        });
+        this._forceUpdate();
+    }
+
+    public _ng_onAddMulticastClick() {
+        if (this._ng_settings.multicast.find(i => i.address.trim() === '' || i.interface.trim() === '') !== undefined) {
+            return;
+        }
+        if (this._ng_settings.multicast.find(i => !i.state.address.isValid() || !i.state.interface.isValid()) !== undefined) {
+            return;
+        }
+        this._ng_settings.multicast.push({
+            address: CDefaulsDLTSettingsField.multicastAddress,
+            interface: CDefaulsDLTSettingsField.multicastInterface,
+            state: {
+                address: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastAddress),
+                interface: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastInterface),
+            }
         });
         this._forceUpdate();
     }
@@ -382,6 +325,34 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 },
             },
         ];
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
+    }
+
+    public _ng_onMulticastContexMenu(event: MouseEvent, index?: number) {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Remove All',
+                handler: () => {
+                    this._ng_settings.multicast = [];
+                    this._forceUpdate();
+                },
+            },
+        ];
+        if (typeof index === 'number') {
+            items.push({
+                caption: 'Remove',
+                handler: () => {
+                    this._ng_settings.multicast.splice(index, 1);
+                    this._forceUpdate();
+                },
+            });
+        }
         ContextMenuService.show({
             items: items,
             x: event.pageX,
@@ -467,6 +438,13 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         event.preventDefault();
     }
 
+    private _checkEmptyMulticasts() {
+        this._ng_settings.multicast = this._ng_settings.multicast.filter((mcast) => {
+            return mcast.address.trim() !== '' && mcast.interface.trim() !== '';
+        });
+        this._forceUpdate();
+    }
+
     private _onBeforeTabRemove() {
         this._ng_session.getSessionsStates().drop(this._getStateGuid());
     }
@@ -483,12 +461,34 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             this._ng_panels.fibex = state.fibex;
             this._ng_settings.connectionId = state.connectionId;
             this._ng_settings.ecu = state.ecu;
-            this._ng_settings.multicast = state.multicast;
+            if (state.multicast instanceof Array) {
+                this._ng_settings.multicast = state.multicast.map((i) => {
+                    return {
+                        address: i.address,
+                        interface: i.interface,
+                        state: {
+                            address: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastAddress),
+                            interface: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastInterface),
+                        }
+                    };
+                });
+            } else if (typeof state.multicast === 'object' && state.multicast !== null) {
+                this._ng_settings.multicast = [
+                    {
+                        address: (state.multicast as any).multicastAddress,
+                        interface: (state.multicast as any).multicastInterface,
+                        state: {
+                            address: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastAddress),
+                            interface: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastInterface),
+                        }
+                    }
+                ];
+            } else {
+                this._ng_settings.multicast = [];
+            }
             this._ng_settings.fibex = state.fibex;
             this._ng_settings.bindingPort = state.bindingPort;
             this._ng_settings.bindingAddress = state.bindingAddress;
-            this._ng_settings.multicastAddress = state.multicastAddress;
-            this._ng_settings.multicastInterface = state.multicastInterface;
         }
     }
 
@@ -504,12 +504,15 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 multicastPanel: this._ng_panels.multicast,
                 connectionId: this._ng_settings.connectionId,
                 ecu: this._ng_settings.ecu,
-                multicast: this._ng_settings.multicast,
+                multicast: this._ng_settings.multicast.map((i) => {
+                    return {
+                        address: i.address,
+                        interface: i.interface,
+                    };
+                }),
                 fibex: this._ng_settings.fibex,
                 bindingPort: this._ng_settings.bindingPort,
                 bindingAddress: this._ng_settings.bindingAddress,
-                multicastAddress: this._ng_settings.multicastAddress,
-                multicastInterface: this._ng_settings.multicastInterface,
             }
         );
     }
@@ -591,17 +594,16 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         }
         this._ng_settings.bindingAddress = options.bindingAddress;
         this._ng_settings.bindingPort = options.bindingPort;
-        if (options.multicastAddress === '') {
-            this._ng_settings.multicastAddress = CDefaulsDLTSettingsField.multicastAddress;
-            this._ng_settings.multicastInterface = CDefaulsDLTSettingsField.multicastInterface;
-            this._ng_settings.multicast = CDefaulsDLTSettingsField.multicast;
-            this._ng_panels.multicast = CDefaulsDLTSettingsField.multicast;
-        } else {
-            this._ng_settings.multicastAddress = options.multicastAddress;
-            this._ng_settings.multicastInterface = options.multicastInterface;
-            this._ng_settings.multicast = true;
-            this._ng_panels.multicast = true;
-        }
+        this._ng_settings.multicast = options.multicast.map((i) => {
+            return {
+                address: i.address,
+                interface: i.interface,
+                state: {
+                    address: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastAddress),
+                    interface: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastInterface),
+                }
+            }
+        });
         if (options.fibex instanceof Array && options.fibex.length > 0) {
             this._ng_panels.fibex = true;
             this._ng_settings.fibex = true;

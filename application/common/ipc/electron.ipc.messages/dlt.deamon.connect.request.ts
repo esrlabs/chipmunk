@@ -1,13 +1,12 @@
 import { IFilePickerFileInfo} from './file.filepicker.response';
-
+import { IDLTDeamonConnectionMulticastOptions } from './dlt.deamon.recent.response'
 export interface IDLTDeamonConnectRequest {
     id: string;
     session: string;
     ecu: string;
     bindingAddress: string;
     bindingPort: string;
-    multicastAddress: string;
-    multicastInterface: string;
+    multicast: IDLTDeamonConnectionMulticastOptions[];
     fibex: IFilePickerFileInfo[];
 }
 
@@ -20,8 +19,7 @@ export class DLTDeamonConnectRequest {
     public ecu: string = '';
     public bindingAddress: string = '';
     public bindingPort: string = '';
-    public multicastAddress: string = '';
-    public multicastInterface: string = '';
+    public multicast: IDLTDeamonConnectionMulticastOptions[];
     public fibex: IFilePickerFileInfo[] = [];
 
     constructor(params: IDLTDeamonConnectRequest) {
@@ -43,11 +41,8 @@ export class DLTDeamonConnectRequest {
         if (typeof params.bindingPort !== 'string' || params.bindingPort.trim() === '') {
             throw new Error(`bindingPort should be defined.`);
         }
-        if (typeof params.multicastAddress !== 'string') {
-            throw new Error(`multicastAddress should be defined.`);
-        }
-        if (typeof params.multicastInterface !== 'string') {
-            throw new Error(`multicastInterface should be defined.`);
+        if (!(params.multicast instanceof Array)) {
+            throw new Error(`multicast should be an Array.`);
         }
         if (!(params.fibex instanceof Array)) {
             throw new Error(`fibex should be defined.`);
@@ -58,8 +53,7 @@ export class DLTDeamonConnectRequest {
         this.ecu = params.ecu;
         this.bindingAddress = params.bindingAddress;
         this.bindingPort = params.bindingPort;
-        this.multicastAddress = params.multicastAddress;
-        this.multicastInterface = params.multicastInterface;
+        this.multicast = params.multicast;
         this.fibex = params.fibex;
     }
 }

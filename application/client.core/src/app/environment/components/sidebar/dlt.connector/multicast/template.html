@@ -1,0 +1,19 @@
+<mat-form-field>
+    <input matInput placeholder="Multicast Group Address" [(ngModel)]="multicast.address" (ngModelChange)="_ng_onChanges()" [disabled]="state === 'disconnected' ? null : true" [errorStateMatcher]="multicast.state.address">
+    <mat-error *ngIf="multicast.state.address.getErrorCode() === 'INVALID'">
+        Please enter a valid IPv4 address
+    </mat-error>
+    <mat-error *ngIf="multicast.state.address.getErrorCode() === 'REQUIRED'">
+        <strong>required</strong>
+    </mat-error>
+</mat-form-field>
+<mat-form-field>
+    <input matInput placeholder="Network Interface" [(ngModel)]="multicast.interface" (ngModelChange)="_ng_onChanges()" [disabled]="state === 'disconnected' ? null : true" [errorStateMatcher]="multicast.state.interface">
+    <mat-error *ngIf="multicast.state.interface.getErrorCode() === 'INVALID'">
+        Please define valid interface
+    </mat-error>
+    <mat-error *ngIf="multicast.state.interface.getErrorCode() === 'REQUIRED'">
+        <strong>required</strong>
+    </mat-error>
+</mat-form-field>
+

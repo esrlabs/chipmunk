@@ -664,7 +664,10 @@ export function testSocketDlt(outPath: string) {
 			interface: undefined
 		};
 		const sockConf: ISocketConfig = {
-			multicast_addr: multicastInfo,
+			multicast_addr: [{
+				multiaddr: '234.2.2.2',
+				interface: undefined,
+			}],
 			bind_addr: '0.0.0.0',
 			port: '8888'
 		};
