@@ -28,6 +28,7 @@ use std::{
     iter::{Iterator, Peekable},
     path::{Path, PathBuf},
 };
+use tokio_stream::Stream;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FileMergeOptions {
@@ -84,16 +85,16 @@ impl FileLogEntryProducer {
     }
 }
 
-impl futures::Stream for FileLogEntryProducer {
+impl Stream for FileLogEntryProducer {
     type Item = Result<Option<TimedLine>>;
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context,
-    ) -> futures::task::Poll<Option<Self::Item>> {
+    ) -> core::task::Poll<Option<Self::Item>> {
         let next = self.timed_line_iterator.next();
         match next {
-            Some(msg) => futures::task::Poll::Ready(Some(Ok(Some(msg)))),
-            None => futures::task::Poll::Ready(Some(Err(anyhow!("no more message")))),
+            Some(msg) => core::task::Poll::Ready(Some(Ok(Some(msg)))),
+            None => core::task::Poll::Ready(Some(Err(anyhow!("no more message")))),
         }
     }
 }

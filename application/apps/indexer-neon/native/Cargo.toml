@@ -32,4 +32,4 @@ neon-serde = "0.3.0"
 processor = { path = "../../indexer/processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "0.3.3", features = ["full"] }
+tokio = { version = "1.2.0", features = ["full"] }
