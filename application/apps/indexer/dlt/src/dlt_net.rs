@@ -88,7 +88,7 @@ pub async fn index_from_socket(
         })?;
     if let Some(multicast_info) = socket_config.multicast_addr {
         let multi_addr = multicast_info.multiaddr.parse()?;
-        let inter = match multicast_info.interface {
+        let inter = match multicast_info.interface.as_ref() {
             Some(s) => s.parse()?,
             None => Ipv4Addr::new(0, 0, 0, 0),
         };

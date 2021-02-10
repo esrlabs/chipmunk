@@ -44,7 +44,7 @@ export interface IDltSocketParams {
 }
 
 export interface ISocketConfig {
-	multicast_addr?: IMulticastInfo;
+	multicast_addr: IMulticastInfo[];
 	bind_addr: string;
 	port: string;
 }

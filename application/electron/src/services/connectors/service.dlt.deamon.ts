@@ -144,8 +144,7 @@ class ServiceDLTDeamonConnector implements IService {
             ecu: req.ecu,
             bindingAddress: req.bindingAddress,
             bindingPort: req.bindingPort,
-            multicastInterface: req.multicastInterface,
-            multicastAddress: req.multicastAddress,
+            multicast: req.multicast,
             fibex: req.fibex,
         };
         const connection: DLTConnectionController = new DLTConnectionController(
@@ -206,6 +205,16 @@ class ServiceDLTDeamonConnector implements IService {
             });
             // Listen disconnect event
             connection.once(DLTConnectionController.Events.disconnect, () => {
+                if (!state.connected) {
+                    // This error happened before connection
+                    response(
+                        new IPCMessages.DLTDeamonConnectResponse({
+                            id: req.id,
+                            session: req.session,
+                            error: `Fail to connect`,
+                        }),
+                    );
+                }
                 this._logger.info(`disconnected`);
                 connection.removeAllListeners();
                 this._connections.delete(req.session);

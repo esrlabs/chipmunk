@@ -63,17 +63,15 @@ export class DLTConnectionController extends EventEmitter {
                 return reject(new Error(`bindingPort isn't defined in options, value: ${this._connection.bindingPort}`));
             }
             // Setup socket settings
-            let multicast: DLT.IMulticastInfo | undefined;
-            if (typeof this._connection.multicastAddress === 'string' && this._connection.multicastAddress !== '') {
-                multicast = {
-                    multiaddr: this._connection.multicastAddress,
-                    interface: typeof this._connection.multicastInterface === 'string' ? (this._connection.multicastInterface.trim() !== '' ? this._connection.multicastInterface : undefined) : undefined,
-                };
-            }
             const socket: DLT.ISocketConfig = {
                 bind_addr: this._connection.bindingAddress,
                 port: this._connection.bindingPort,
-                multicast_addr: multicast,
+                multicast_addr: this._connection.multicast.map((mcast) => {
+                    return {
+                        multiaddr: mcast.address,
+                        interface: mcast.interface === 'string' ? (mcast.interface.trim() !== '' ? mcast.interface : undefined) : undefined
+                    };
+                }),
             };
             // Creating source alias
             const sourceName: string = `${this._connection.ecu}::${this._connection.bindingAddress}:${this._connection.bindingPort}`;

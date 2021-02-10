@@ -1216,12 +1216,11 @@ pub async fn main() -> Result<()> {
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let shutdown_channel = sync::mpsc::channel(1);
             let tag_string = tag.to_string();
-            let multicast_conf = MulticastInfo {
-                multiaddr: ip_address.to_string(),
-                interface: None,
-            };
             let socket_conf = SocketConfig {
-                multicast_addr: Some(multicast_conf),
+                multicast_addr: vec![MulticastInfo {
+                    multiaddr: ip_address.to_string(),
+                    interface: None,
+                }],
                 bind_addr: "0.0.0.0".to_string(),
                 port: "8888".to_string(),
             };

@@ -45,7 +45,7 @@ pub struct FibexConfig {
 /// be specified
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SocketConfig {
-    pub multicast_addr: Option<MulticastInfo>,
+    pub multicast_addr: Vec<MulticastInfo>,
     pub bind_addr: String,
     pub port: String,
 }

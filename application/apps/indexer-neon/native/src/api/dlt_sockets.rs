@@ -35,7 +35,8 @@ impl SocketDltEventEmitter {
         use tokio::runtime::Runtime;
         // Create the runtime
         let rt = Runtime::new().expect("Could not create runtime");
-
+        // Ask:: why self.task_thread has to be stored?
+        // Ask:: why async task wrapped into thread?
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
             rt.block_on(async {
