@@ -320,7 +320,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                                 if (point.row === undefined || isNaN(point.row) || !isFinite(point.row)) {
                                     return undefined;
                                 }
-                                return `(${point.row}; ${tooltipItem.value})`;
+                                return `(${point.row - 1}; ${tooltipItem.value})`;
                             }
                         }
                     },
@@ -572,7 +572,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 if (label instanceof Array && label.length > 0 && label[0].lines instanceof Array && label[0].lines.length > 0) {
                     label = typeof label[0].lines[0] === 'string' ? label[0].lines[0] : undefined;
                     if (label !== undefined) {
-                        position = parseInt(label.replace(/[\(\)]/gi, '').replace(/,\s\d*/gi, ''), 10) - 1;
+                        position = parseInt(label.replace(/[\(\)]/gi, '').replace(/,\s\d*/gi, ''), 10);
                     }
                 }
             }
