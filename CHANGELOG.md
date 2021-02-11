@@ -1,5 +1,19 @@
 # Changelog
 
+### [2.13.0] - 02/11/2021
+* Multiple multicast support for dlt connector (rabasing)
+* JSLint: resolve issues
+* Support multiple multicast points for DLT connector
+* Build linux version based on ubuntu-18.04
+* Rework dlt socket stream with tokio codecs
+  * switch to tokio 1.*
+  * adjust neon client
+* [#1049](fix) Chart tooltip correct number fix
+* [#1047](fix) Chart data in float instead int
+* [#999](fix) Code cleanup for lint_js
+* [#999](feat) F2 shortcut to rename filter/chart
+* [#1028](fix) Detect platform and remove os.info
+
 ## [2.12.0] - 02/05/2021
 ### Added
 * Add stream/socket path into settings (close #986)
