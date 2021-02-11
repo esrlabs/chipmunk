@@ -86,7 +86,7 @@ pub async fn index_from_socket(
                 ),
             }
         })?;
-    if let Some(multicast_info) = socket_config.multicast_addr {
+    for multicast_info in &socket_config.multicast_addr {
         let multi_addr = multicast_info.multiaddr.parse()?;
         let inter = match multicast_info.interface.as_ref() {
             Some(s) => s.parse()?,
