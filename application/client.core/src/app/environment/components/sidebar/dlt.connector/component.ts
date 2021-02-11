@@ -602,7 +602,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                     address: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastAddress),
                     interface: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.multicastInterface),
                 }
-            }
+            };
         });
         if (options.fibex instanceof Array && options.fibex.length > 0) {
             this._ng_panels.fibex = true;
