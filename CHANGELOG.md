@@ -1,5 +1,8 @@
 # Changelog
 
+### [2.13.1] - 02/12/2021
+* Fix load/save state of DLT connector (close #1061)
+
 ## [2.13.0] - 02/11/2021
 ### Added
 * Support multiple multicast points for DLT connector
