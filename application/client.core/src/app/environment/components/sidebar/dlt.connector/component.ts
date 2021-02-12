@@ -80,7 +80,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         ecu: CDefaulsDLTSettingsField.ecu,
         bindingAddress: CDefaulsDLTSettingsField.bindingAddress,
         bindingPort: CDefaulsDLTSettingsField.bindingPort,
-        multicast: CDefaulsDLTSettingsField.multicast,
+        multicast: CDefaulsDLTSettingsField.multicast.slice(),
         fibex: CDefaulsDLTSettingsField.fibex,
         fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
     };
@@ -489,6 +489,16 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             this._ng_settings.fibex = state.fibex;
             this._ng_settings.bindingPort = state.bindingPort;
             this._ng_settings.bindingAddress = state.bindingAddress;
+        } else {
+            this._ng_settings = {
+                connectionId: '',
+                ecu: CDefaulsDLTSettingsField.ecu,
+                bindingAddress: CDefaulsDLTSettingsField.bindingAddress,
+                bindingPort: CDefaulsDLTSettingsField.bindingPort,
+                multicast: CDefaulsDLTSettingsField.multicast.slice(),
+                fibex: CDefaulsDLTSettingsField.fibex,
+                fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
+            };
         }
     }
 
