@@ -40,6 +40,11 @@ pub struct IndexingConfig {
 pub struct FibexConfig {
     pub fibex_file_paths: Vec<String>,
 }
+#[derive(Serialize, Deserialize, Debug)]
+pub enum DLTConnectionTarget {
+    Tcp,
+    Udp,
+}
 /// network socket config
 /// if udp packets are sent via multicast, then the `multicast_addr` has to
 /// be specified
@@ -48,6 +53,7 @@ pub struct SocketConfig {
     pub multicast_addr: Vec<MulticastInfo>,
     pub bind_addr: String,
     pub port: String,
+    pub target: DLTConnectionTarget,
 }
 /// Multicast config information.
 /// `multiaddr` address must be a valid multicast address
