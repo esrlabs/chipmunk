@@ -1,9 +1,8 @@
+
 <mat-expansion-panel
     (contextmenu)="_ng_onContexMenu($event)"
-    (click)="_ng_onPanelClick()"
-    [expanded]="_ng_panels.binding"
-    (opened)="_ng_onPanelToggle('binding', true)"
-    (closed)="_ng_onPanelToggle('binding', false)">
+    [expanded]="true"
+    [hideToggle]="true">
     <mat-expansion-panel-header>
         <mat-panel-title>
             Basic options
@@ -52,14 +51,23 @@
         </mat-error>
     </mat-form-field>
     <span class="slitter"></span>
+    <p class="alignright">
+        <span>Connection:</span>
+        <mat-button-toggle-group name="connectionType" aria-label="Connection Type" (change)="_ng_onTypeConnectionChange($event)" [value]="_ng_settings.target">
+            <mat-button-toggle value="Udp">UDP</mat-button-toggle>
+            <mat-button-toggle value="Tcp">TCP</mat-button-toggle>
+        </mat-button-toggle-group>
+    </p>
+    <span class="slitter"></span>
     <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange()" [disabled]="_ng_state === 'disconnected' ? null : true">Add fibex data</mat-checkbox>
 </mat-expansion-panel>
 
 <span class="slitter"></span>
 
 <mat-expansion-panel
+    *ngIf="_ng_settings.target === 'Udp'"
     (contextmenu)="_ng_onMulticastContexMenu($event)"
-    (click)="_ng_onPanelClick()"
+    [hideToggle]="true"
     [expanded]="true">
     <mat-expansion-panel-header>
         <mat-panel-title>
@@ -83,10 +91,8 @@
 
 <mat-expansion-panel
     *ngIf="_ng_settings.fibex"
-    (click)="_ng_onPanelClick()"
-    [expanded]="_ng_panels.fibex"
-    (opened)="_ng_onPanelToggle('fibex', true)"
-    (closed)="_ng_onPanelToggle('fibex', false)">
+    [hideToggle]="true"
+    [expanded]="true">
     <mat-expansion-panel-header>
         <mat-panel-title>
             Fibex

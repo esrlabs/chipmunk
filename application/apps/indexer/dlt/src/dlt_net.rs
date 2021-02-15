@@ -99,7 +99,6 @@ pub async fn index_from_socket_udp(
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
-    debug!("index_from_socket_udp: with socket conf: {:?}", socket_config);
     let mut processor = SessionProcessor::new(
         session_id.clone(),
         out_path,
@@ -197,7 +196,6 @@ pub async fn index_from_socket_tcp(
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
-    debug!("index_from_socket_tcp: with socket conf: {:?}", socket_config);
     let mut processor = SessionProcessor::new(
         session_id.clone(),
         out_path,
