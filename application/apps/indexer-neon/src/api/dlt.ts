@@ -44,9 +44,10 @@ export interface IDltSocketParams {
 }
 
 export interface ISocketConfig {
-	multicast_addr: IMulticastInfo[];
-	bind_addr: string;
-	port: string;
+    multicast_addr: IMulticastInfo[];
+    bind_addr: string;
+    port: string;
+    target: 'Tcp' | 'Udp',
 }
 /// Multicast config information.
 /// `multiaddr` address must be a valid multicast address

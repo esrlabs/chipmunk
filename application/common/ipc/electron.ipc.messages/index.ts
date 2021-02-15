@@ -367,8 +367,8 @@ export { IDLTDeamonDisconnectRequest, DLTDeamonDisconnectRequest };
 import { IDLTDeamonDisconnectResponse, DLTDeamonDisconnectResponse } from './dlt.deamon.disconnect.response';
 export { IDLTDeamonDisconnectResponse, DLTDeamonDisconnectResponse };
 
-import { IDLTDeamonConnectRequest, DLTDeamonConnectRequest } from './dlt.deamon.connect.request';
-export { IDLTDeamonConnectRequest, DLTDeamonConnectRequest };
+import { IDLTDeamonConnectRequest, DLTDeamonConnectRequest, EDLTDeamonConnectionType } from './dlt.deamon.connect.request';
+export { IDLTDeamonConnectRequest, DLTDeamonConnectRequest, EDLTDeamonConnectionType };
 
 import { IDLTDeamonConnectResponse, DLTDeamonConnectResponse } from './dlt.deamon.connect.response';
 export { IDLTDeamonConnectResponse, DLTDeamonConnectResponse };
