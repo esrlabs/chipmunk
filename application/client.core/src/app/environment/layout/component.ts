@@ -54,6 +54,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     };
 
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _toolbarHeights: { [guid: string]: number } = {};
     private _session: Session;
     private _movement: {
         x: number,
@@ -74,6 +75,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
         this._subscriptions.onSidebarToggle = HotkeysService.getObservable().sidebarToggle.subscribe(this._onSidebarToggle.bind(this));
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
         LayoutStateService.setSideBarStateGetter(() => {
             return this.funcBarState.minimized;
         });
@@ -167,6 +169,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         this._movement.x = -1;
         this._movement.y = -1;
         this._movement.type = EResizeType.nothing;
+        this._ng_sizes.sec.last = this._ng_sizes.sec.current;
+        this._saveHeight();
         this._cdRef.detectChanges();
         ViewsEventsService.fire().onResize();
     }
@@ -300,9 +304,32 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         }
     }
 
+    private _saveHeight() {
+        if (this._session !== undefined) {
+            this._toolbarHeights[this._session.getGuid()] = this._ng_sizes.sec.current;
+        }
+    }
+
+    private _loadHeight() {
+        if (this._session !== undefined) {
+            const height = this._toolbarHeights[this._session.getGuid()];
+            if (height === undefined) {
+                this._ng_sizes.sec.current = ThemeParams.tabs_list_height * 13;
+            } else {
+                this._ng_sizes.sec.current = height;
+            }
+        }
+        this._ng_sizes.sec.last = this._ng_sizes.sec.current;
+    }
+
     private _onSessionChange(controller?: Session) {
         this._session = controller;
+        this._loadHeight();
         this._cdRef.detectChanges();
+    }
+
+    private _onSessionClosed(guid: string) {
+        delete this._toolbarHeights[guid];
     }
 
 }
