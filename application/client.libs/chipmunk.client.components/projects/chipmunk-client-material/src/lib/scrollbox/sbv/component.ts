@@ -95,7 +95,7 @@ export class ComplexScrollBoxSBVComponent implements OnDestroy, AfterContentInit
             return;
         }
         const change: number = event.y - this._mouseY;
-        if (change === 0) {
+        if (change === 0 || event.y === -1) {
             return;
         }
         this._mouseY = event.y;
