@@ -9,6 +9,8 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use crate::dlt_fmt::FormattableMessage;
+use crate::fibex::gather_fibex_data;
 use crate::{
     dlt::Message,
     dlt_parse::{
@@ -30,7 +32,6 @@ use std::{
     fs,
     io::{BufRead, BufWriter, Write},
     path::PathBuf,
-    rc::Rc,
 };
 
 use crate::fibex::FibexMetadata;
@@ -38,9 +39,10 @@ use crate::fibex::FibexMetadata;
 pub async fn parse_dlt_file(
     in_file: PathBuf,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
+    fibex: Option<FibexConfig>,
 ) -> Result<Vec<Message>, DltParseError> {
     trace!("parse_dlt_file");
+    let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
     let source_file_size = fs::metadata(&in_file)?.len();
     let (update_channel, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) =
         cc::unbounded();
@@ -79,17 +81,18 @@ pub fn create_index_and_mapping_dlt(
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-    fibex_metadata: Option<FibexMetadata>,
+    fibex: Option<FibexConfig>,
 ) -> Result<(), anyhow::Error> {
     trace!("create_index_and_mapping_dlt");
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
+    let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
     let mut message_producer = FileMessageProducer::new(
         &config.in_file,
         filter_config,
         update_channel.clone(),
         true,
-        fibex_metadata.map(Rc::new),
+        fibex_metadata,
     )?;
     index_dlt_content(
         config,
@@ -111,7 +114,7 @@ pub struct FileMessageProducer {
     stats: MessageStats,
     update_channel: cc::Sender<ChunkResults>,
     with_storage_header: bool,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
+    fibex_metadata: Option<FibexMetadata>,
 }
 
 impl FileMessageProducer {
@@ -120,7 +123,7 @@ impl FileMessageProducer {
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
         update_channel: cc::Sender<ChunkResults>,
         with_storage_header: bool,
-        fibex_metadata: Option<Rc<FibexMetadata>>,
+        fibex_metadata: Option<FibexMetadata>,
     ) -> Result<FileMessageProducer, DltParseError> {
         let f = match fs::File::open(&in_path) {
             Ok(file) => file,
@@ -150,6 +153,10 @@ impl FileMessageProducer {
             fibex_metadata,
         })
     }
+
+    fn fibex(&self) -> Option<&FibexMetadata> {
+        self.fibex_metadata.as_ref()
+    }
 }
 
 impl Iterator for FileMessageProducer {
@@ -178,7 +185,6 @@ impl FileMessageProducer {
                         self.filter_config.as_ref(),
                         self.stats.parsed + self.stats.no_parse,
                         Some(&self.update_channel),
-                        self.fibex_metadata.clone(),
                         self.with_storage_header,
                     );
 
@@ -314,8 +320,17 @@ pub fn index_dlt_content(
         match next {
             Ok(ParsedMessage::Item(msg)) => {
                 trace!("[line:{}] next was Ok(ParsedMessage::Item(msg))", line_nr);
-                let written_bytes_len =
-                    utils::create_tagged_line_d(&config.tag, &mut buf_writer, &msg, line_nr, true)?;
+                let formattable_msg = FormattableMessage {
+                    message: msg,
+                    fibex_metadata: message_producer.fibex(),
+                };
+                let written_bytes_len = utils::create_tagged_line_d(
+                    &config.tag,
+                    &mut buf_writer,
+                    &formattable_msg,
+                    line_nr,
+                    true,
+                )?;
                 // tmp_writer.write_all(&msg.as_bytes())?;
                 line_nr += 1;
                 if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {

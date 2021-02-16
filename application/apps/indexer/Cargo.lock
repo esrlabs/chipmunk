@@ -594,9 +594,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.1"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54532e3223c5af90a6a757c90b5c5521564b07e5e7a958681bcd2afad421cdcd"
+checksum = "17392a012ea30ef05a610aa97dfb49496e71c9f676b27879922ea5bdf60d9d3f"
 dependencies = [
  "atty",
  "humantime 2.0.1",
@@ -745,11 +745,11 @@ dependencies = [
  "crossbeam-channel",
  "dirs",
  "dlt",
+ "env_logger",
  "indexer_base",
  "indicatif",
  "lazy_static",
  "log",
- "log4rs",
  "merging",
  "processor",
  "serde",

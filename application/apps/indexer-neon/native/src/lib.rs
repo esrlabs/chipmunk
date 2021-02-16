@@ -15,7 +15,6 @@ extern crate serde;
 mod api;
 mod channels;
 mod config;
-mod fibex_utils;
 mod logging;
 use crate::api::dlt_pcap_converter::JsDltPcapConverterEventEmitter;
 use logging::init_logging;

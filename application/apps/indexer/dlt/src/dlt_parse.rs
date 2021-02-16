@@ -28,11 +28,9 @@ use rustc_hash::FxHashMap;
 use std::{
     fs,
     io::{BufRead, Read},
-    rc::Rc,
 };
 use thiserror::Error;
 
-use crate::fibex::FibexMetadata;
 use std::str;
 
 const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
@@ -216,32 +214,16 @@ pub(crate) fn dlt_extended_header<'a, T>(
                         }));
                     }
                     MessageType::Log(LogLevel::Invalid(n)) => {
-                        let _ = tx.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: format!("unknown log level {}", n),
-                            line: index,
-                        }));
+                        warn!("unknown log level {}", n);
                     }
                     MessageType::Control(ControlType::Unknown(n)) => {
-                        let _ = tx.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: format!("unknown control type {}", n),
-                            line: index,
-                        }));
+                        warn!("unknown control type {}", n);
                     }
                     MessageType::ApplicationTrace(ApplicationTraceType::Invalid(n)) => {
-                        let _ = tx.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: format!("invalid application-trace type {}", n),
-                            line: index,
-                        }));
+                        warn!("invalid application-trace type {}", n);
                     }
                     MessageType::NetworkTrace(NetworkTraceType::Invalid) => {
-                        let _ = tx.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: "invalid application-trace type 0".to_string(),
-                            line: index,
-                        }));
+                        warn!("invalid application-trace type 0");
                     }
                     _ => (),
                 };
@@ -775,7 +757,6 @@ pub fn dlt_message<'a>(
     filter_config_opt: Option<&filtering::ProcessedDltFilterConfig>,
     index: usize,
     update_channel: Option<&cc::Sender<ChunkResults>>,
-    fibex_metadata: Option<Rc<FibexMetadata>>,
     with_storage_header: bool,
 ) -> Result<(&'a [u8], ParsedMessage), DltParseError> {
     // trace!("starting to parse dlt_message==================");
@@ -895,7 +876,6 @@ pub fn dlt_message<'a>(
             header,
             extended_header,
             payload,
-            fibex_metadata,
         }),
     ))
 }

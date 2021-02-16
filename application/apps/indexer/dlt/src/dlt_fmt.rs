@@ -19,47 +19,6 @@ lazy_static! {
         unsafe { str::from_utf8_unchecked(DLT_NEWLINE_SENTINAL_SLICE) };
 }
 
-/// will format dlt Message with those fields:
-/// StorageHeader *************
-///     - EColumn.DATETIME,
-///     - EColumn.ECUID,
-/// Version: EColumn.VERS,
-/// SessionId: EColumn.SID,
-/// message-count: EColumn.MCNT,
-/// timestamp: EColumn.TMS,
-/// EColumn.EID,
-/// EColumn.APID,
-/// EColumn.CTID,
-/// EColumn.MSTP,
-/// EColumn.PAYLOAD,
-impl fmt::Display for Message {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(h) = &self.storage_header {
-            write!(f, "{}", h)?;
-        }
-        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
-        write!(f, "{}", self.header)?;
-        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
-
-        match &self.payload.payload_content {
-            PayloadContent::Verbose(arguments) => {
-                self.write_app_id_context_id_and_message_type(f)?;
-                arguments
-                    .iter()
-                    .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, arg))
-            }
-            PayloadContent::NonVerbose(id, data) => self.format_nonverbose_data(*id, data, f),
-            PayloadContent::ControlMsg(ctrl_id, _data) => {
-                self.write_app_id_context_id_and_message_type(f)?;
-                match SERVICE_ID_MAPPING.get(&ctrl_id.value()) {
-                    Some((name, _desc)) => write!(f, "[{}]", name),
-                    None => write!(f, "[Unknown CtrlCommand]"),
-                }
-            }
-        }
-    }
-}
-
 impl fmt::Display for MessageType {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match self {
@@ -223,17 +182,72 @@ impl fmt::Display for LogLevel {
         }
     }
 }
+pub(crate) struct FormattableMessage<'a> {
+    pub(crate) message: Message,
+    pub(crate) fibex_metadata: Option<&'a FibexMetadata>,
+}
+
+impl<'a> fmt::Display for FormattableMessage<'a> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        self.message.fmt_as_text(f, self.fibex_metadata)
+    }
+}
 
 impl Message {
+    /// will format dlt Message with those fields:
+    /// StorageHeader *************
+    ///     - EColumn.DATETIME,
+    ///     - EColumn.ECUID,
+    /// Version: EColumn.VERS,
+    /// SessionId: EColumn.SID,
+    /// message-count: EColumn.MCNT,
+    /// timestamp: EColumn.TMS,
+    /// EColumn.EID,
+    /// EColumn.APID,
+    /// EColumn.CTID,
+    /// EColumn.MSTP,
+    /// EColumn.PAYLOAD,
+    pub fn fmt_as_text(
+        &self,
+        f: &mut fmt::Formatter,
+        fibex_metadata: Option<&FibexMetadata>,
+    ) -> fmt::Result {
+        if let Some(h) = &self.storage_header {
+            write!(f, "{}", h)?;
+        }
+        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
+        write!(f, "{}", self.header)?;
+        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
+
+        match &self.payload.payload_content {
+            PayloadContent::Verbose(arguments) => {
+                self.write_app_id_context_id_and_message_type(f)?;
+                arguments
+                    .iter()
+                    .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, arg))
+            }
+            PayloadContent::NonVerbose(id, data) => {
+                self.format_nonverbose_data(*id, data, f, fibex_metadata)
+            }
+            PayloadContent::ControlMsg(ctrl_id, _data) => {
+                self.write_app_id_context_id_and_message_type(f)?;
+                match SERVICE_ID_MAPPING.get(&ctrl_id.value()) {
+                    Some((name, _desc)) => write!(f, "[{}]", name),
+                    None => write!(f, "[Unknown CtrlCommand]"),
+                }
+            }
+        }
+    }
     pub(crate) fn format_nonverbose_data(
         &self,
         id: u32,
         data: &[u8],
         f: &mut fmt::Formatter,
+        fibex_metadata: Option<&FibexMetadata>,
     ) -> fmt::Result {
-        warn!("format_nonverbose_data");
+        trace!("format_nonverbose_data");
         let mut is_written = false;
-        if let Some(fibex_metadata) = &self.fibex_metadata {
+        if let Some(fibex_metadata) = fibex_metadata {
             let id_text = format!("ID_{}", id);
             let frame_metadata = if let Some(extended_header) = &self.extended_header {
                 fibex_metadata.frame_map_with_key.get(&(
@@ -250,7 +264,7 @@ impl Message {
                     context_id,
                     message_info,
                     ..
-                } = &**frame_metadata;
+                } = &frame_metadata;
                 write!(
                     f,
                     "{}{}{}{}",

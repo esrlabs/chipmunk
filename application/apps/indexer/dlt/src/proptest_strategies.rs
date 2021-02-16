@@ -95,7 +95,6 @@ prop_compose! {
             header,
             extended_header: Some(extended_header),
             payload,
-            fibex_metadata: None,
         }
     }
 }

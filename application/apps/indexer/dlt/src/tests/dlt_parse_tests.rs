@@ -76,7 +76,7 @@ mod tests {
             0x74, 0x68, 0x20, 0x00, 0x44, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00,
         ];
-        match dlt_message(&raw1[..], None, 0, None, None, true) {
+        match dlt_message(&raw1[..], None, 0, None, true) {
             Ok((_rest, ParsedMessage::Item(msg))) => {
                 let msg_bytes = msg.as_bytes();
                 assert_eq!(raw1, msg_bytes);
@@ -114,7 +114,7 @@ mod tests {
             /* type info 0b0001 0000 => type bool */ 0x10, 0x00, 0x00, 0x00,
              0x6F,
         ];
-        match dlt_message(&raw1[..], None, 0, None, None, true) {
+        match dlt_message(&raw1[..], None, 0, None, true) {
             Ok((_rest, ParsedMessage::Item(msg))) => {
                 let msg_bytes = msg.as_bytes();
                 assert_eq!(raw1, msg_bytes);
@@ -223,7 +223,7 @@ mod tests {
             0x65, 0x72, 0x3A, 0x3A, 0x70, 0x6F, 0x6C, 0x6C, 0x5D, 0x20, 0x72,
         ];
         raw1.extend_from_slice(&raw2);
-        let res1 = dlt_message(&raw1[..], None, 0, None, None, true);
+        let res1 = dlt_message(&raw1[..], None, 0, None, true);
         trace!("res1 was: {:?}", res1);
         // let res2: IResult<&[u8], Option<Message>> = dlt_message(&raw2[..], None, 0, 0);
         // trace!("res was: {:?}", res2);
@@ -335,7 +335,7 @@ mod tests {
             // dump_to_file(&msg_bytes)?;
             let expected: Result<(&[u8], ParsedMessage), DltParseError>  =
                 Ok((b"----", ParsedMessage::Item(msg)));
-            assert_eq!(expected, dlt_message(&msg_bytes, None, 0, None, None, false));
+            assert_eq!(expected, dlt_message(&msg_bytes, None, 0, None, false));
         }
     }
 
@@ -377,14 +377,14 @@ mod tests {
                 context_id: "hK".to_string(),
             }),
         };
-        let msg = Message::new(msg_conf, None, None);
+        let msg = Message::new(msg_conf, None);
         println!("--> test_parse_msg: msg: {:?}", msg);
         let mut msg_bytes = msg.as_bytes();
         dump_to_file(&msg_bytes).expect("could not dump bytes");
         println!("--> test_parse_msg: msg_bytes: {:02X?}", msg_bytes);
 
         msg_bytes.extend(b"----");
-        let res = dlt_message(&msg_bytes, None, 0, None, None, false);
+        let res = dlt_message(&msg_bytes, None, 0, None, false);
         let expected: Result<(&[u8], ParsedMessage), DltParseError> =
             Ok((b"----", ParsedMessage::Item(msg)));
         assert_eq!(expected, res);

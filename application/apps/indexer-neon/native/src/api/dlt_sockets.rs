@@ -1,6 +1,6 @@
-use crate::{channels::EventEmitterTask, fibex_utils::gather_fibex_data};
+use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
-use dlt::{fibex::FibexMetadata, filtering};
+use dlt::filtering;
 use indexer_base::{
     chunks::ChunkResults,
     config::{FibexConfig, SocketConfig},
@@ -40,7 +40,6 @@ impl SocketDltEventEmitter {
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
             rt.block_on(async {
-                let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
                 let socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
                     session_id,
                     socket_conf,
@@ -50,7 +49,7 @@ impl SocketDltEventEmitter {
                     &chunk_result_sender,
                     // &tx,
                     shutdown_rx,
-                    fibex_metadata,
+                    Some(fibex),
                 );
                 match socket_future.await {
                     Ok(_) => {}

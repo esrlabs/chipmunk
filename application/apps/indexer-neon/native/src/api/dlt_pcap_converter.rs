@@ -25,18 +25,29 @@ impl PcapDltConverterEventEmitter {
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            match dlt::dlt_pcap::pcap_to_dlt(
-                &pcap_file_path,
-                &out_file_path,
-                dlt_filter_config,
-                chunk_result_sender,
-                shutdown_rx,
-                None,
-            ) {
-                Ok(_) => info!("Conversion was ok"),
-                Err(e) => warn!("Conversion error: {}", e),
-            }
-            debug!("Back after DLT pcap indexing finished!");
+            use tokio::runtime::Runtime;
+            // Create the runtime
+            let rt = Runtime::new().expect("Could not create runtime");
+            println!(">>>>>>>>>>>>>>>>>>>> 0");
+
+            rt.block_on(async {
+                println!(">>>>>>>>>>>>>>>>>>>> 1");
+                match dlt::dlt_pcap::pcap_to_dlt(
+                    &pcap_file_path,
+                    &out_file_path,
+                    dlt_filter_config,
+                    chunk_result_sender,
+                    shutdown_rx,
+                    None,
+                )
+                .await
+                {
+                    Ok(_) => info!("Conversion was ok"),
+                    Err(e) => warn!("Conversion error: {}", e),
+                }
+                println!(">>>>>>>>>>>>>>>>>>>> 2");
+                debug!("Back after DLT pcap indexing finished!");
+            });
         }));
     }
 }

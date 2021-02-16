@@ -77,11 +77,11 @@ impl FileLogEntryProducer {
         year: Option<i32>,
         time_offset: Option<i64>,
         current_line_nr: usize,
-    ) -> Result<FileLogEntryProducer> {
+    ) -> FileLogEntryProducer {
         let iter = TimedLineIter::new(read_from, tag, regex, year, time_offset, current_line_nr);
-        Ok(FileLogEntryProducer {
+        FileLogEntryProducer {
             timed_line_iterator: iter,
-        })
+        }
     }
 }
 
