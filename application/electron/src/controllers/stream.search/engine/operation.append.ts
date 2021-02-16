@@ -54,7 +54,10 @@ export class OperationAppend extends EventEmitter {
             return new Error(`(append) Fail to start search, because previous process isn't finished.`);
         }
         this._task = new CancelablePromise<IMapItem[], void>((resolve, reject, cancel, self) => {
-            // this._logger.measure(`Appending (#${id}): bytes: ${range.from} - ${range.to}; offset: ${mapOffset.bytes} bytes; ${mapOffset.rows} rows.`);
+            // Listen cancel for case if it will be canceled while fs.stat
+            self.cancel(() => {
+                this._clear();
+            });
             // Start measuring
             const measurer = this._logger.measure(`appending search #${guid}`);
             // Unblock transform
@@ -119,6 +122,11 @@ export class OperationAppend extends EventEmitter {
                 transform.removeAllListeners();
                 // Measure spent time
                 measurer();
+                // Drop task
+                this._task = undefined;
+                // Drop cleaner
+                this._cleaner = undefined;
+                this._logger.debug(`RG process is finished/killed (task ID: ${guid})`);
             };
         }).finally(this._clear.bind(this));
         return this._task;
@@ -145,10 +153,6 @@ export class OperationAppend extends EventEmitter {
         if (this._cleaner !== undefined) {
             this._cleaner();
         }
-        // Drop task
-        this._task = undefined;
-        // Drop cleaner
-        this._cleaner = undefined;
     }
 
     private _isCaseInsensitive(regulars: RegExp | RegExp[]): boolean {
