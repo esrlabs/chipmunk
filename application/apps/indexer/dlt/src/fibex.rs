@@ -1,5 +1,6 @@
 use crate::dlt::{FloatWidth, StringCoding, TypeInfo, TypeInfoKind, TypeLength};
 use derive_more::{Deref, Display};
+use indexer_base::config::FibexConfig;
 use quick_xml::{
     events::{attributes::Attributes, BytesStart, Event as XmlEvent},
     Reader as XmlReader,
@@ -10,20 +11,19 @@ use std::{
     io::{BufRead, BufReader},
     mem,
     path::{Path, PathBuf},
-    rc::Rc,
 };
 
 type Result<T = ()> = std::result::Result<T, anyhow::Error>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FibexMetadata {
-    pub(crate) frame_map_with_key: HashMap<(ContextId, ApplicationId, FrameId), Rc<FrameMetadata>>, // TODO: avoid cloning on .get
-    pub(crate) frame_map: HashMap<FrameId, Rc<FrameMetadata>>,
+    pub(crate) frame_map_with_key: HashMap<(ContextId, ApplicationId, FrameId), FrameMetadata>, // TODO: avoid cloning on .get
+    pub(crate) frame_map: HashMap<FrameId, FrameMetadata>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct FrameMetadata {
     pub short_name: String,
-    pub pdus: Vec<Rc<PduMetadata>>,
+    pub pdus: Vec<PduMetadata>, // TODO keep vector of ids and lookup PduMetadata by id if too expensive
     pub application_id: Option<ApplicationId>,
     pub context_id: Option<ContextId>,
     pub message_type: Option<String>,
@@ -216,6 +216,25 @@ fn type_info_for_signal_ref(
     }
 }
 
+pub(crate) fn gather_fibex_data(fibex: FibexConfig) -> Option<FibexMetadata> {
+    if fibex.fibex_file_paths.is_empty() {
+        None
+    } else {
+        let paths: Vec<PathBuf> = fibex
+            .fibex_file_paths
+            .into_iter()
+            .map(PathBuf::from)
+            .collect();
+        match read_fibexes(paths) {
+            Ok(res) => Some(res),
+            Err(e) => {
+                warn!("error reading fibex {}", e);
+                None
+            }
+        }
+    }
+}
+
 pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
     let mut frames = vec![];
     let mut frame_map_with_key = HashMap::new();
@@ -253,7 +272,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
         match pdu_by_id.entry(id.clone()) {
             Entry::Occupied(_) => warn!("duplicate PDU ID {} found in fibexes", id),
             Entry::Vacant(v) => {
-                v.insert(Rc::new(PduMetadata {
+                v.insert(PduMetadata {
                     description,
                     signal_types: signal_refs
                         .into_iter()
@@ -262,7 +281,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
                         })
                         .flatten()
                         .collect(),
-                }));
+                });
             }
         }
     }
@@ -278,7 +297,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
         },
     ) in frames
     {
-        let frame = Rc::new(FrameMetadata {
+        let frame = FrameMetadata {
             short_name,
             pdus: pdu_refs
                 .into_iter()
@@ -293,7 +312,7 @@ pub fn read_fibexes(files: Vec<PathBuf>) -> Result<FibexMetadata> {
             context_id,
             message_type,
             message_info,
-        });
+        };
         if let (Some(context_id), Some(application_id)) =
             (frame.context_id.clone(), frame.application_id.clone())
         {

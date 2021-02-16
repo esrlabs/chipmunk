@@ -22,10 +22,8 @@ extern crate lazy_static;
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::{
-    dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::pcap_to_dlt,
-    fibex::FibexMetadata,
-};
+use dlt::{dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::pcap_to_dlt};
+use env_logger::Env;
 use indexer_base::{
     chunks::{serialize_chunks, Chunk, ChunkResults, VoidResults},
     config::*,
@@ -35,7 +33,6 @@ use indexer_base::{
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
-use std::rc::Rc;
 use tokio::sync;
 
 lazy_static! {
@@ -62,23 +59,14 @@ use std::{fs, io::Read, path, time::Instant};
 
 use std::thread;
 
-fn init_logging() -> Result<()> {
-    let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-    let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
-    if !log_config_path.exists() {
-        let log_config_content = std::include_str!("../log4rs.yaml")
-            .replace("$HOME_DIR", &home_dir.to_string_lossy()[..]);
-        std::fs::write(&log_config_path, log_config_content)?;
-    }
-    log4rs::init_file(log_config_path, Default::default())
-        .expect("init logging with file did not work");
+fn init_logging() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
     info!("logging initialized");
-    Ok(())
 }
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
-    init_logging().expect("logging has to be in place");
+    init_logging();
     let start = Instant::now();
     let matches = App::new("chip")
         .version(crate_version!())
@@ -983,7 +971,7 @@ pub async fn main() -> Result<()> {
                     //     min_log_level: verbosity_log_level,
                     //     components: None,
                     // },
-                    load_test_fibex(),
+                    Some(load_test_fibex()),
                 ) {
                     report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
@@ -1075,16 +1063,16 @@ pub async fn main() -> Result<()> {
             let shutdown_channel = sync::mpsc::channel(1);
             if in_one_go {
                 let (tx, rx): (cc::Sender<VoidResults>, cc::Receiver<VoidResults>) = unbounded();
-                thread::spawn(move || {
+                tokio::spawn(async move {
                     let res = pcap_to_dlt(
                         &file_path,
                         &out_path,
                         filter_conf,
                         tx,
                         shutdown_channel.1,
-                        load_test_fibex_rc(),
-                    );
-
+                        Some(load_test_fibex()),
+                    )
+                    .await;
                     if let Err(reason) = res {
                         report_error(format!("couldn't convert: {}", reason));
                         std::process::exit(2)
@@ -1124,7 +1112,7 @@ pub async fn main() -> Result<()> {
                 }
             } else {
                 let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-                thread::spawn(move || {
+                tokio::spawn(async move {
                     let res = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
                         IndexingConfig {
                             tag: tag_string,
@@ -1137,8 +1125,9 @@ pub async fn main() -> Result<()> {
                         filter_conf,
                         &tx,
                         shutdown_channel.1,
-                        load_test_fibex_rc(),
-                    );
+                        Some(load_test_fibex()),
+                    )
+                    .await;
 
                     if let Err(reason) = res {
                         report_error(format!("couldn't process: {}", reason));
@@ -1228,12 +1217,8 @@ pub async fn main() -> Result<()> {
             use chrono::Local;
             let now = Local::now();
             let session_id = format!("dlt_session_id_{}.dlt", now.format("%Y%b%d_%H-%M-%S"));
-            use tokio::runtime::Runtime;
-            // Create the runtime
-            let rt = Runtime::new().expect("Could not create runtime");
-            // TODO rework without thread::spawn
-            thread::spawn(move || {
-                let dlt_socket_future = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
+            tokio::spawn(async move {
+                let res = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
                     session_id,
                     socket_conf,
                     tag_string.as_str(),
@@ -1241,11 +1226,11 @@ pub async fn main() -> Result<()> {
                     filter_conf,
                     &tx,
                     shutdown_channel.1,
-                    load_test_fibex(),
-                );
+                    Some(load_test_fibex()),
+                )
+                .await;
 
-                let why = rt.block_on(dlt_socket_future);
-                if let Err(reason) = why {
+                if let Err(reason) = res {
                     report_error(format!("couldn't process: {}", reason));
                     std::process::exit(2)
                 }
@@ -1568,17 +1553,13 @@ fn duration_report_throughput(
         report, duration_in_s, amount_per_second, unit
     );
 }
-fn load_test_fibex_rc() -> Option<Rc<FibexMetadata>> {
-    load_test_fibex().map(std::rc::Rc::new)
+
+fn load_test_fibex() -> FibexConfig {
+    FibexConfig {
+        fibex_file_paths: vec![format!("{}", EXAMPLE_FIBEX.to_string_lossy())],
+    }
 }
-fn load_test_fibex() -> Option<FibexMetadata> {
-    Some(
-        dlt::fibex::read_fibexes(vec![EXAMPLE_FIBEX.clone()]).unwrap_or_else(|_e| {
-            report_error(format!("could not open {:?}", EXAMPLE_FIBEX.clone()));
-            std::process::exit(3);
-        }),
-    )
-}
+
 fn initialize_progress_bar(len: u64) -> ProgressBar {
     let progress_bar = ProgressBar::new(len);
     progress_bar.set_style(ProgressStyle::default_bar()

@@ -1,8 +1,6 @@
-use crate::{
-    channels::EventEmitterTask, config::IndexingThreadConfig, fibex_utils::gather_fibex_data,
-};
+use crate::{channels::EventEmitterTask, config::IndexingThreadConfig};
 use crossbeam_channel as cc;
-use dlt::{fibex::FibexMetadata, filtering};
+use dlt::filtering;
 use indexer_base::{
     chunks::ChunkResults,
     config::{FibexConfig, IndexingConfig},
@@ -30,7 +28,6 @@ impl IndexingDltEventEmitter {
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
             index_dlt_file_with_progress(
                 IndexingConfig {
                     tag: thread_conf.tag,
@@ -43,7 +40,7 @@ impl IndexingDltEventEmitter {
                 filter_conf,
                 chunk_result_sender.clone(),
                 Some(shutdown_rx),
-                fibex_metadata,
+                Some(fibex),
             );
             debug!("back after DLT indexing finished!");
         }));
@@ -55,7 +52,7 @@ fn index_dlt_file_with_progress(
     filter_conf: Option<filtering::DltFilterConfig>,
     tx: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-    fibex_metadata: Option<FibexMetadata>,
+    fibex: Option<FibexConfig>,
 ) {
     trace!("index_dlt_file_with_progress");
     let source_file_size = match config.in_file.metadata() {
@@ -76,7 +73,7 @@ fn index_dlt_file_with_progress(
         filter_conf,
         &tx,
         shutdown_receiver,
-        fibex_metadata,
+        fibex,
     ) {
         Err(why) => {
             error!("create_index_and_mapping_dlt: couldn't process: {}", why);

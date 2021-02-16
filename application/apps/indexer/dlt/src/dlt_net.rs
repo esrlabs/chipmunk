@@ -1,4 +1,6 @@
 extern crate dirs;
+use crate::dlt_fmt::FormattableMessage;
+use crate::fibex::gather_fibex_data;
 use crate::{
     dlt::*,
     dlt_file::create_dlt_session_file,
@@ -8,6 +10,7 @@ use crate::{
 };
 use bytes::BytesMut;
 use crossbeam_channel as cc;
+use indexer_base::config::FibexConfig;
 use indexer_base::{
     chunks::{Chunk, ChunkFactory, ChunkResults},
     config::SocketConfig,
@@ -17,7 +20,6 @@ use indexer_base::{
 use std::{
     io::{BufWriter, Write},
     net::{Ipv4Addr, SocketAddr},
-    rc::Rc,
 };
 use thiserror::Error;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
@@ -50,18 +52,34 @@ impl From<std::net::AddrParseError> for ConnectionError {
 }
 
 #[allow(clippy::too_many_arguments)]
+pub async fn index_from_tcp_socket(
+    _session_id: String,
+    _socket_config: SocketConfig,
+    _filter_config: Option<filtering::ProcessedDltFilterConfig>,
+    _update_channel: cc::Sender<ChunkResults>,
+    _fibex_metadata: Option<FibexMetadata>,
+    _tag: &str,
+    _out_path: &std::path::PathBuf,
+    _initial_line_nr: usize,
+    _shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
+) -> Result<(), ConnectionError> {
+    unimplemented!()
+}
+
+#[allow(clippy::too_many_arguments)]
 pub async fn index_from_socket(
     session_id: String,
     socket_config: SocketConfig,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
-    fibex_metadata: Option<FibexMetadata>,
+    fibex: Option<FibexConfig>,
     tag: &str,
     out_path: &std::path::PathBuf,
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
+    let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
     let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, out_path)?;
     let tmp_dlt_file = create_dlt_session_file(&session_id)?;
 
@@ -114,7 +132,7 @@ pub async fn index_from_socket(
         socket,
         DltMessageDecoder {
             filter_config,
-            fibex_metadata: fibex_metadata.map(Rc::new),
+            fibex_metadata,
             update_channel: Some(update_channel.clone()),
         },
     );
@@ -138,10 +156,14 @@ pub async fn index_from_socket(
                             DltEvent::Messages(msgs) => {
                                 for m in msgs {
                                     tmp_writer.write_all(&m.as_bytes())?;
+                                    let formattable_msg = FormattableMessage {
+                                        message: m,
+                                        fibex_metadata: message_stream.codec().fibex(),
+                                    };
                                     let written_bytes_len = utils::create_tagged_line_d(
                                         tag,
                                         &mut buf_writer,
-                                        &m,
+                                        &formattable_msg,
                                         line_nr,
                                         true,
                                     )?;
@@ -202,7 +224,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
-    fibex_metadata: Option<FibexMetadata>,
+    fibex: Option<FibexConfig>,
 ) -> Result<(), ConnectionError> {
     debug!("create_index_and_mapping_dlt_from_socket");
     let res = match utils::next_line_nr(out_path) {
@@ -214,7 +236,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
                 socket_config,
                 filter_config,
                 update_channel.clone(),
-                fibex_metadata,
+                fibex,
                 tag,
                 out_path,
                 initial_line_nr,
@@ -252,8 +274,14 @@ pub async fn create_index_and_mapping_dlt_from_socket(
 
 pub(crate) struct DltMessageDecoder {
     pub(crate) filter_config: Option<filtering::ProcessedDltFilterConfig>,
-    pub(crate) fibex_metadata: Option<Rc<FibexMetadata>>,
+    pub(crate) fibex_metadata: Option<FibexMetadata>,
     pub(crate) update_channel: Option<cc::Sender<ChunkResults>>,
+}
+
+impl DltMessageDecoder {
+    fn fibex(&self) -> Option<&FibexMetadata> {
+        self.fibex_metadata.as_ref()
+    }
 }
 
 #[derive(Debug)]
@@ -277,7 +305,6 @@ impl Decoder for DltMessageDecoder {
                 self.filter_config.as_ref(),
                 0,
                 self.update_channel.as_ref(),
-                self.fibex_metadata.clone(),
                 false,
             ) {
                 Ok((_, ParsedMessage::Invalid)) => {

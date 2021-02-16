@@ -16,14 +16,10 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use bytes::{BufMut, BytesMut};
 use indexer_base::error_reporter::*;
 use serde::Serialize;
-use std::{fmt, io, io::Error, rc::Rc};
+use std::{fmt, io, io::Error, str};
 
 use proptest::prelude::*;
 use proptest_derive::Arbitrary;
-
-use std::str;
-
-use crate::fibex::FibexMetadata;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord, Serialize, Arbitrary)]
 pub enum Endianness {
@@ -484,7 +480,10 @@ impl TypeInfo {
         }
     }
     pub fn is_fixed_point(self: &TypeInfo) -> bool {
-        matches!(self.kind, TypeInfoKind::SignedFixedPoint(_) | TypeInfoKind::UnsignedFixedPoint(_))
+        matches!(
+            self.kind,
+            TypeInfoKind::SignedFixedPoint(_) | TypeInfoKind::UnsignedFixedPoint(_)
+        )
     }
     pub fn as_bytes<T: ByteOrder>(self: &TypeInfo) -> Vec<u8> {
         // ptrace!("TypeInfo::as_bytes: {:?}", self);
@@ -1268,8 +1267,8 @@ pub struct Message {
     pub header: StandardHeader,
     pub extended_header: Option<ExtendedHeader>,
     pub payload: Payload2,
-    #[serde(skip_serializing)]
-    pub fibex_metadata: Option<Rc<FibexMetadata>>,
+    // #[serde(skip_serializing)]
+    // pub fibex_metadata: Option<Rc<FibexMetadata>>,
 }
 pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
@@ -1311,11 +1310,7 @@ fn dbg_bytes(_name: &str, _bytes: &[u8]) {
     dbg_bytes_with_info(_name, _bytes, None);
 }
 impl Message {
-    pub fn new(
-        conf: MessageConfig,
-        fibex: Option<Rc<FibexMetadata>>,
-        storage_header: Option<StorageHeader>,
-    ) -> Self {
+    pub fn new(conf: MessageConfig, storage_header: Option<StorageHeader>) -> Self {
         let payload_length = if conf.endianness == Endianness::Big {
             conf.payload.as_bytes::<BigEndian>().len()
         } else {
@@ -1343,7 +1338,6 @@ impl Message {
                 None => None,
             },
             payload: conf.payload,
-            fibex_metadata: fibex,
             storage_header,
         }
     }

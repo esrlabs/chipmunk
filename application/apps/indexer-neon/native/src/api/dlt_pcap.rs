@@ -1,8 +1,6 @@
-use crate::{
-    channels::EventEmitterTask, config::IndexingThreadConfig, fibex_utils::gather_fibex_data,
-};
+use crate::{channels::EventEmitterTask, config::IndexingThreadConfig};
 use crossbeam_channel as cc;
-use dlt::{fibex::FibexMetadata, filtering};
+use dlt::filtering;
 use indexer_base::{
     chunks::ChunkResults,
     config::{FibexConfig, IndexingConfig},
@@ -31,24 +29,31 @@ impl PcapDltEventEmitter {
 
         // Spawn a thread to continue running after this method has returned.
         self.task_thread = Some(thread::spawn(move || {
-            let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex);
-            match dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
-                IndexingConfig {
-                    tag: thread_conf.tag,
-                    chunk_size,
-                    in_file: thread_conf.in_file,
-                    out_path: thread_conf.out_path,
-                    append: thread_conf.append,
-                    watch: false,
-                },
-                filter_conf,
-                &chunk_result_sender,
-                shutdown_rx,
-                fibex_metadata.map(std::rc::Rc::new),
-            ) {
-                Ok(_) => {}
-                Err(e) => warn!("error for pcap dlt stream: {}", e),
-            }
+            use tokio::runtime::Runtime;
+            // Create the runtime
+            let rt = Runtime::new().expect("Could not create runtime");
+
+            rt.block_on(async {
+                match dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
+                    IndexingConfig {
+                        tag: thread_conf.tag,
+                        chunk_size,
+                        in_file: thread_conf.in_file,
+                        out_path: thread_conf.out_path,
+                        append: thread_conf.append,
+                        watch: false,
+                    },
+                    filter_conf,
+                    &chunk_result_sender,
+                    shutdown_rx,
+                    Some(fibex),
+                )
+                .await
+                {
+                    Ok(_) => {}
+                    Err(e) => warn!("error for pcap dlt stream: {}", e),
+                }
+            });
             debug!("back after DLT pcap indexing finished!");
         }));
     }
