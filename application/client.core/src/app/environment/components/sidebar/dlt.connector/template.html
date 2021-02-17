@@ -52,7 +52,12 @@
     <span class="slitter"></span>
     <p class="alignright">
         <span>Connection:</span>
-        <mat-button-toggle-group name="connectionType" aria-label="Connection Type" (change)="_ng_onTypeConnectionChange($event)" [value]="_ng_settings.target">
+        <mat-button-toggle-group
+            name="connectionType"
+            aria-label="Connection Type"
+            (change)="_ng_onTypeConnectionChange($event)"
+            [disabled]="!(_ng_state === 'disconnected')"
+            [(ngModel)]="_ng_settings.target">
             <mat-button-toggle value="Udp">UDP</mat-button-toggle>
             <mat-button-toggle value="Tcp">TCP</mat-button-toggle>
         </mat-button-toggle-group>

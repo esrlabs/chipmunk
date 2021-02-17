@@ -714,6 +714,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 },
             };
         });
+        this._ng_settings.target = options.target === undefined ? CDefaulsDLTSettingsField.target : options.target;
         if (options.fibex instanceof Array && options.fibex.length > 0) {
             this._ng_settings.fibex = true;
             this._ng_settings.fibexFiles = options.fibex;
