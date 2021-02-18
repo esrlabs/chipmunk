@@ -91,12 +91,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _sessionSubscriptions: { [key: string]: Subscription } = { };
     private _prevRequest: string = '';
     private _recent: IPair[] = [ ];
-    private _fakeInputKeyEvent: boolean = false;
     private _selectedTextOnInputClick: boolean = false;
     private _filtersStorage: FiltersStorage | undefined;
     private _chartsStorage: ChartsStorage | undefined;
     private _destroyed: boolean = false;
-    private _shortcut: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService,
@@ -141,9 +139,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
-        if (event.ctrlKey || event.metaKey || event.shiftKey) {
-            this._shortcut = true;
-        }
         // Need additional event handler for keydown
         // If Tab is clicked focus on input is lost and event cannot be handled
         // That's why it's necessary to check for keydown even instead
@@ -164,20 +159,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onKeyUpRequestInput(event?: KeyboardEvent) {
-        if (this._fakeInputKeyEvent) {
-            // We need fake flag to allow selecting item from popup by keyboard.
-            // The issue is: we have 2 events there: pressed ENTER
-            // _ng_onKeyUpRequestInput and also _ng_onRecentSelected
-            this._fakeInputKeyEvent = false;
-            return;
-        }
-        if (event === undefined) {
-            this._fakeInputKeyEvent = true;
-            setTimeout(() => {
-                // Drop fake event flag with timeout
-                this._fakeInputKeyEvent = false;
-            }, 500);
-        }
         if (event !== undefined && event.key !== 'Enter' && event.key !== 'Escape') {
             return;
         }
@@ -336,11 +317,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_onRecentSelected(event: MatAutocompleteSelectedEvent) {
         this._ng_inputCtrl.setValue(event.option.viewValue);
-        if (this._shortcut) {
-            this._shortcut = false;
-            return;
+        if (!this._selectedTextOnInputClick) {
+            this._ng_onKeyUpRequestInput();
         }
-        this._ng_onKeyUpRequestInput();
     }
 
     public _ng_flagsToggle(event: MouseEvent, key: string) {
