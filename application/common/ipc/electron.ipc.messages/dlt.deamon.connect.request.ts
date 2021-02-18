@@ -1,5 +1,11 @@
 import { IFilePickerFileInfo} from './file.filepicker.response';
 import { IDLTDeamonConnectionMulticastOptions } from './dlt.deamon.recent.response'
+
+export enum EDLTDeamonConnectionType {
+    Tcp = 'Tcp',
+    Udp = 'Udp',
+}
+
 export interface IDLTDeamonConnectRequest {
     id: string;
     session: string;
@@ -8,6 +14,7 @@ export interface IDLTDeamonConnectRequest {
     bindingPort: string;
     multicast: IDLTDeamonConnectionMulticastOptions[];
     fibex: IFilePickerFileInfo[];
+    target: EDLTDeamonConnectionType;
 }
 
 export class DLTDeamonConnectRequest {
@@ -21,6 +28,7 @@ export class DLTDeamonConnectRequest {
     public bindingPort: string = '';
     public multicast: IDLTDeamonConnectionMulticastOptions[];
     public fibex: IFilePickerFileInfo[] = [];
+    public target: EDLTDeamonConnectionType = EDLTDeamonConnectionType.Udp;
 
     constructor(params: IDLTDeamonConnectRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -48,6 +56,9 @@ export class DLTDeamonConnectRequest {
             throw new Error(`fibex should be defined.`);
 
         }
+        if (typeof params.target !== 'string' || params.target.trim() === '') {
+            throw new Error(`target should be defined.`);
+        }
         this.id = params.id;
         this.session = params.session;
         this.ecu = params.ecu;
@@ -55,5 +66,6 @@ export class DLTDeamonConnectRequest {
         this.bindingPort = params.bindingPort;
         this.multicast = params.multicast;
         this.fibex = params.fibex;
+        this.target = params.target;
     }
 }

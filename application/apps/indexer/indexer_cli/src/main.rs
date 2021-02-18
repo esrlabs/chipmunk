@@ -1212,6 +1212,7 @@ pub async fn main() -> Result<()> {
                 }],
                 bind_addr: "0.0.0.0".to_string(),
                 port: "8888".to_string(),
+                target: DLTConnectionProtocol::Udp,
             };
 
             use chrono::Local;

@@ -1,15 +1,18 @@
 import { spawn, ChildProcess } from 'child_process';
+import { ReadStream } from 'fs';
+import { CancelablePromise } from '../../../tools/promise.cancelable';
+import { EventEmitter } from 'events';
+import { Readable, Writable } from 'stream';
+
 import * as path from 'path';
 import * as fs from 'fs';
-import { ReadStream } from 'fs';
+import * as FS from '../../../tools/fs';
+
 import Logger from '../../../tools/env.logger';
 import guid from '../../../tools/tools.guid';
-import { CancelablePromise } from '../../../tools/promise.cancelable';
 import ServicePaths from '../../../services/service.paths';
 import NullWritableStream from '../../../classes/stream.writable.null';
 import Transform from './transform.inspecting';
-import { EventEmitter } from 'events';
-import { Readable, Writable } from 'stream';
 
 type THandler = () => void;
 
@@ -44,8 +47,9 @@ export class OperationInspecting extends EventEmitter {
             let canceled: boolean = false;
             self.cancel(() => {
                 canceled = true;
+                this._clear(taskId);
             });
-            fs.exists(this._streamFile, (exists: boolean) => {
+            FS.exist(this._streamFile).then((exists: boolean) => {
                 if (canceled) {
                     return;
                 }
@@ -114,8 +118,14 @@ export class OperationInspecting extends EventEmitter {
                     this._cleaners.delete(taskId);
                     // Measure spent time
                     measurer();
+                    this._cleaners.delete(taskId);
+                    this._tasks.delete(taskId);
+                    this._logger.debug(`RG process is finished/killed (task ID: ${taskId})`);
                 });
-        });
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to check target file "${this._streamFile}" due error: ${err.message}`);
+                return resolve([]);
+            });
         }).finally(this._clear.bind(this, taskId));
         this._tasks.set(taskId, task);
         return task;
@@ -146,8 +156,6 @@ export class OperationInspecting extends EventEmitter {
 
     private _clear(id: string) {
         const cleaner: THandler | undefined = this._cleaners.get(id);
-        this._cleaners.delete(id);
-        this._tasks.delete(id);
         if (cleaner !== undefined) {
             cleaner();
         }

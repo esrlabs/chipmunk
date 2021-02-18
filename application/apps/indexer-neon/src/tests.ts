@@ -669,7 +669,8 @@ export function testSocketDlt(outPath: string) {
 				interface: undefined,
 			}],
 			bind_addr: '0.0.0.0',
-			port: '8888'
+			port: '8888',
+			target: 'Udp',
 		};
 		const session_id = `dlt_${new Date().toISOString()}`;
 		const promise = dltOverSocket(

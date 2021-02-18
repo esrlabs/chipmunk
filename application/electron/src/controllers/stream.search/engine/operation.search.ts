@@ -54,6 +54,7 @@ export class OperationSearch extends EventEmitter {
             let canceled: boolean = false;
             self.cancel(() => {
                 canceled = true;
+                this._clear();
             });
             fs.stat(this._streamFile, (err: NodeJS.ErrnoException | null, stats: fs.Stats) => {
                 if (canceled) {
@@ -120,6 +121,11 @@ export class OperationSearch extends EventEmitter {
                     transform.removeAllListeners();
                     // Measure spent time
                     measurer();
+                    // Drop task
+                    this._task = undefined;
+                    // Drop cleaner
+                    this._cleaner = undefined;
+                    this._logger.debug(`RG process is finished/killed (task ID: ${guid})`);
                 };
             });
         }).finally(this._clear);
@@ -151,10 +157,6 @@ export class OperationSearch extends EventEmitter {
         if (this._cleaner !== undefined) {
             this._cleaner();
         }
-        // Drop task
-        this._task = undefined;
-        // Drop cleaner
-        this._cleaner = undefined;
     }
 
     private _constractRegExpStr(regulars: RegExp | RegExp[]): string {

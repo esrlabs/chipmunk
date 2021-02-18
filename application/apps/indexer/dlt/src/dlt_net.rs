@@ -12,8 +12,8 @@ use bytes::BytesMut;
 use crossbeam_channel as cc;
 use indexer_base::config::FibexConfig;
 use indexer_base::{
-    chunks::{Chunk, ChunkFactory, ChunkResults},
-    config::SocketConfig,
+    chunks::{ Chunk, ChunkFactory, ChunkResults },
+    config::{ SocketConfig, DLTConnectionProtocol },
     progress::*,
     utils,
 };
@@ -23,7 +23,7 @@ use std::{
 };
 use thiserror::Error;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
-use tokio_util::{codec::Decoder, udp::UdpFramed};
+use tokio_util::{codec::Decoder, udp::UdpFramed, codec::Framed};
 
 #[derive(Debug, Error)]
 pub enum ConnectionError {
@@ -31,6 +31,8 @@ pub enum ConnectionError {
     WrongConfiguration { cause: String },
     #[error("could not establish a connection: {}", reason)]
     UnableToConnect { reason: String },
+    #[error("could establish session file: {}", error)]
+    UnableGetSessionFile { error: String },
     #[error("error trying to connect: {}", info)]
     Other { info: String },
     #[error(transparent)]
@@ -52,21 +54,6 @@ impl From<std::net::AddrParseError> for ConnectionError {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn index_from_tcp_socket(
-    _session_id: String,
-    _socket_config: SocketConfig,
-    _filter_config: Option<filtering::ProcessedDltFilterConfig>,
-    _update_channel: cc::Sender<ChunkResults>,
-    _fibex_metadata: Option<FibexMetadata>,
-    _tag: &str,
-    _out_path: &std::path::PathBuf,
-    _initial_line_nr: usize,
-    _shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
-) -> Result<(), ConnectionError> {
-    unimplemented!()
-}
-
-#[allow(clippy::too_many_arguments)]
 pub async fn index_from_socket(
     session_id: String,
     socket_config: SocketConfig,
@@ -80,13 +67,47 @@ pub async fn index_from_socket(
 ) -> Result<(), ConnectionError> {
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
-    let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, out_path)?;
-    let tmp_dlt_file = create_dlt_session_file(&session_id)?;
+    match socket_config.target {
+        DLTConnectionProtocol::Tcp => index_from_socket_tcp(session_id,
+            socket_config,
+            filter_config,
+            update_channel,
+            fibex_metadata,
+            tag,
+            out_path,
+            initial_line_nr,
+            shutdown_receiver).await,
+        DLTConnectionProtocol::Udp => index_from_socket_udp(session_id,
+            socket_config,
+            filter_config,
+            update_channel,
+            fibex_metadata,
+            tag,
+            out_path,
+            initial_line_nr,
+            shutdown_receiver).await,
+    }
+}
 
-    let mut tmp_writer = BufWriter::new(tmp_dlt_file);
-    let mut chunk_factory = ChunkFactory::new(0, current_out_file_size);
-    let mut line_nr = initial_line_nr;
-    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+#[allow(clippy::too_many_arguments)]
+pub async fn index_from_socket_udp(
+    session_id: String,
+    socket_config: SocketConfig,
+    filter_config: Option<filtering::ProcessedDltFilterConfig>,
+    update_channel: cc::Sender<ChunkResults>,
+    fibex_metadata: Option<FibexMetadata>,
+    tag: &str,
+    out_path: &std::path::PathBuf,
+    initial_line_nr: usize,
+    shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
+) -> Result<(), ConnectionError> {
+    let mut processor = SessionProcessor::new(
+        session_id.clone(),
+        out_path,
+        initial_line_nr,
+        tag,
+        update_channel.clone(),
+    )?;
     let s = format!("{}:{}", socket_config.bind_addr, socket_config.port);
     let bind_addr_and_port: SocketAddr = s.parse()?;
     debug!(
@@ -127,7 +148,6 @@ pub async fn index_from_socket(
             b: (0, 0),
         },
     }));
-
     let mut message_stream = UdpFramed::new(
         socket,
         DltMessageDecoder {
@@ -145,62 +165,94 @@ pub async fn index_from_socket(
     loop {
         tokio::select! {
             _ = shutdown_stream.next() => {
-                    debug!("Received shutdown in index_from_socket");
+                    debug!("Received shutdown in index_from_socket_udp");
                     let _ = update_channel.send(Ok(IndexingProgress::Stopped));
                     break;
             }
             Some(msg) = message_stream.next() => {
                 match msg {
-                    Ok((dlt_event, _)) => {
-                        match dlt_event {
-                            DltEvent::Messages(msgs) => {
-                                for m in msgs {
-                                    tmp_writer.write_all(&m.as_bytes())?;
-                                    let formattable_msg = FormattableMessage {
-                                        message: m,
-                                        fibex_metadata: message_stream.codec().fibex(),
-                                    };
-                                    let written_bytes_len = utils::create_tagged_line_d(
-                                        tag,
-                                        &mut buf_writer,
-                                        &formattable_msg,
-                                        line_nr,
-                                        true,
-                                    )?;
-                                    line_nr += 1;
-                                    if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len)
-                                    {
-                                        buf_writer.flush()?;
-                                        let _ = update_channel
-                                            .send(Ok(IndexingProgress::GotItem { item: chunk }));
-                                    }
-                                }
-                            },
-                            DltEvent::Progress(p) => {
-                                match p {
-                                    Progress::Notification(n) => {
-                                        let _ = update_channel.send(Err(n));
-                                    }
-                                    Progress::Ticks(Ticks { count, total}) => {
-                                        let _ = update_channel.send(Ok(IndexingProgress::Progress {
-                                            ticks: (count, total)
-                                        }));
-                                    }
-                                    Progress::Stopped => {
-                                        let _ = update_channel.send(Ok(IndexingProgress::Stopped));
-                                    }
-                                }
-                            }
-                        }
+                    Ok((dlt_event, _)) => processor.event(dlt_event, message_stream.codec().fibex())?,
+                    Err(DltParseError::ParsingHickup { reason }) => processor.error(reason),
+                    Err(e) => {
+                        warn!("Unexpected error in message stream: {}", e);
+                        break;
                     }
-                    Err(DltParseError::ParsingHickup { reason }) => {
-                        debug!("parsing hickup: {}", reason);
-                        let _ = update_channel.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: format!("parsing faild for one message: {}", reason),
-                            line: None,
-                        }));
-                    }
+                }
+            }
+            else => break,
+        }
+    }
+    processor.close()?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn index_from_socket_tcp(
+    session_id: String,
+    socket_config: SocketConfig,
+    filter_config: Option<filtering::ProcessedDltFilterConfig>,
+    update_channel: cc::Sender<ChunkResults>,
+    fibex_metadata: Option<FibexMetadata>,
+    tag: &str,
+    out_path: &std::path::PathBuf,
+    initial_line_nr: usize,
+    shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
+) -> Result<(), ConnectionError> {
+    let mut processor = SessionProcessor::new(
+        session_id.clone(),
+        out_path,
+        initial_line_nr,
+        tag,
+        update_channel.clone(),
+    )?;
+    let s = format!("{}:{}", socket_config.bind_addr, socket_config.port);
+    let bind_addr_and_port: SocketAddr = s.parse()?;
+    debug!(
+        "Connecting TCP socket: tokio::net::TcpStream::connect({})",
+        bind_addr_and_port
+    );
+    let socket = tokio::net::TcpStream::connect(bind_addr_and_port)
+        .await
+        .map_err(|e| {
+            warn!("Error trying to connect to {}: {}", bind_addr_and_port, e);
+            ConnectionError::Other {
+                info: format!(
+                    "You cannot not connect to TCP socket {}",
+                    socket_config.bind_addr
+                ),
+            }
+        })?;
+    // send (0,0),(0,0) to indicate connection established
+    let _ = update_channel.send(Ok(IndexingProgress::GotItem {
+        item: Chunk {
+            r: (0, 0),
+            b: (0, 0),
+        },
+    }));
+    let mut message_stream = Framed::new(
+        socket,
+        DltMessageDecoder {
+            filter_config,
+            fibex_metadata,
+            update_channel: Some(update_channel.clone()),
+        },
+    );
+    let mut shutdown_stream = ReceiverStream::new(shutdown_receiver);
+
+    // listen for both a shutdown request and incomming messages
+    // to do this we need to select over streams of the same type
+    // the type we use to unify is this Event enum
+    loop {
+        tokio::select! {
+            _ = shutdown_stream.next() => {
+                    debug!("Received shutdown in index_from_socket_tcp");
+                    let _ = update_channel.send(Ok(IndexingProgress::Stopped));
+                    break;
+            }
+            Some(msg) = message_stream.next() => {
+                match msg {
+                    Ok(dlt_event) => processor.event(dlt_event, message_stream.codec().fibex())?,
+                    Err(DltParseError::ParsingHickup { reason }) => processor.error(reason),
                     Err(e) => {
                         warn!("Unexpected error in message stream: {}", e);
                         break;
@@ -211,7 +263,7 @@ pub async fn index_from_socket(
         }
     }
 
-    tmp_writer.flush()?;
+    processor.close()?;
     Ok(())
 }
 
@@ -272,6 +324,97 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     res
 }
 
+pub (crate) struct SessionProcessor {
+    tmp_writer: BufWriter<std::fs::File>,
+    chunk_factory: ChunkFactory,
+    buf_writer: BufWriter<std::fs::File>,
+    line_nr: usize,
+    tag: String,
+    update_channel: cc::Sender<ChunkResults>
+}
+
+impl SessionProcessor {
+    fn new(
+        session_id: String,
+        out_path: &std::path::PathBuf,
+        initial_line_nr: usize,
+        tag: &str,
+        update_channel: cc::Sender<ChunkResults>) -> Result<Self, ConnectionError> {
+        let (out_file, current_out_file_size) = match utils::get_out_file_and_size(true, out_path) {
+            Ok((out_file, current_out_file_size)) => (out_file, current_out_file_size),
+            Err(e) => {
+                return Err(ConnectionError::UnableGetSessionFile { error: e.to_string()})
+            }
+        };
+        let tmp_dlt_file = create_dlt_session_file(&session_id)?;
+        Ok(SessionProcessor {
+            tmp_writer: BufWriter::new(tmp_dlt_file),
+            chunk_factory: ChunkFactory::new(0, current_out_file_size),
+            buf_writer: BufWriter::with_capacity(10 * 1024 * 1024, out_file),
+            line_nr: initial_line_nr,
+            tag: tag.to_owned(),
+            update_channel,
+        })
+    }
+
+    pub fn event(&mut self, event: DltEvent, fibex_metadata: Option<&FibexMetadata>) -> Result<(), ConnectionError> {
+        match event {
+            DltEvent::Messages(msgs) => {
+                for m in msgs {
+                    self.tmp_writer.write_all(&m.as_bytes())?;
+                    let formattable_msg = FormattableMessage {
+                        message: m,
+                        fibex_metadata,
+                    };
+                    let written_bytes_len = utils::create_tagged_line_d(
+                        &self.tag,
+                        &mut self.buf_writer,
+                        &formattable_msg,
+                        self.line_nr,
+                        true,
+                    )?;
+                    self.line_nr += 1;
+                    if let Some(chunk) = self.chunk_factory.add_bytes(self.line_nr, written_bytes_len)
+                    {
+                        self.buf_writer.flush()?;
+                        let _ = self.update_channel
+                            .send(Ok(IndexingProgress::GotItem { item: chunk }));
+                    }
+                }
+            },
+            DltEvent::Progress(p) => {
+                match p {
+                    Progress::Notification(n) => {
+                        let _ = self.update_channel.send(Err(n));
+                    }
+                    Progress::Ticks(Ticks { count, total}) => {
+                        let _ = self.update_channel.send(Ok(IndexingProgress::Progress {
+                            ticks: (count, total)
+                        }));
+                    }
+                    Progress::Stopped => {
+                        let _ = self.update_channel.send(Ok(IndexingProgress::Stopped));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn error(&self, reason: String)  {
+        debug!("parsing hickup: {}", reason);
+        let _ = self.update_channel.send(Err(Notification {
+            severity: Severity::WARNING,
+            content: format!("parsing faild for one message: {}", reason),
+            line: None,
+        }));
+    }
+
+    pub fn close(&mut self) -> Result<(), std::io::Error> {
+        self.tmp_writer.flush()
+    }
+
+}
 pub(crate) struct DltMessageDecoder {
     pub(crate) filter_config: Option<filtering::ProcessedDltFilterConfig>,
     pub(crate) fibex_metadata: Option<FibexMetadata>,

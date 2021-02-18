@@ -2,9 +2,10 @@ import Logger from "../../tools/env.logger";
 import ServiceStreams from "../../services/service.streams";
 import ServiceStreamSource from '../../services/service.stream.sources';
 import ServiceNotifications from "../../services/service.notifications";
+import indexer from "indexer-neon";
 
-import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
-import { IDLTDeamonConnectionOptions as IConnectionOptions } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
+import { Progress, DLT, CancelablePromise } from "indexer-neon";
+import { IDLTDeamonConnectionOptions as IConnectionOptions, EDLTDeamonConnectionType } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
 import { CMetaData } from '../files.parsers/file.parser.dlt';
 
@@ -72,6 +73,7 @@ export class DLTConnectionController extends EventEmitter {
                         interface: mcast.interface === 'string' ? (mcast.interface.trim() !== '' ? mcast.interface : undefined) : undefined
                     };
                 }),
+                target: this._connection.target === EDLTDeamonConnectionType.Udp ? 'Udp' : 'Tcp',
             };
             // Creating source alias
             const sourceName: string = `${this._connection.ecu}::${this._connection.bindingAddress}:${this._connection.bindingPort}`;

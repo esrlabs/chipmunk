@@ -13,6 +13,7 @@ import {
     ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -32,6 +33,7 @@ const components = [ ...entryComponents ];
         MatExpansionModule,
         MatInputModule,
         MatButtonModule,
+        MatButtonToggleModule,
         MatDividerModule,
         FormsModule,
         ReactiveFormsModule,

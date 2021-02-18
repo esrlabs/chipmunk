@@ -42,10 +42,7 @@ export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
         }
         switch (this._alias) {
             case EDLTSettingsFieldAlias.ecu:
-                if (value.length > 4) {
-                    return false;
-                }
-                return value.replace(/[\d\w_]/gi, '').length === 0;
+                return value.length <= 255;
             case EDLTSettingsFieldAlias.bindingAddress:
             case EDLTSettingsFieldAlias.multicastAddress:
             case EDLTSettingsFieldAlias.multicastInterface:
