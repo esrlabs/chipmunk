@@ -5,8 +5,7 @@
             aria-label="Filter"
             matInput
             [formControl]="_ng_inputCtrl"
-            appMatAutocompleteScrollModificationAccessor
-            [optionHeight]="24"
+            matAutocomplete
             [matAutocomplete]="auto">
     <mat-autocomplete #auto="matAutocomplete" class="recent-files regular"
         (optionSelected)="_ng_onFileSelected($event.option.value)"
