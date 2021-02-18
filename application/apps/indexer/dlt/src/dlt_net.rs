@@ -12,8 +12,8 @@ use bytes::BytesMut;
 use crossbeam_channel as cc;
 use indexer_base::config::FibexConfig;
 use indexer_base::{
-    chunks::{Chunk, ChunkFactory, ChunkResults},
-    config::{ SocketConfig, DLTConnectionTarget},
+    chunks::{ Chunk, ChunkFactory, ChunkResults },
+    config::{ SocketConfig, DLTConnectionProtocol },
     progress::*,
     utils,
 };
@@ -31,6 +31,8 @@ pub enum ConnectionError {
     WrongConfiguration { cause: String },
     #[error("could not establish a connection: {}", reason)]
     UnableToConnect { reason: String },
+    #[error("could establish session file: {}", error)]
+    UnableGetSessionFile { error: String },
     #[error("error trying to connect: {}", info)]
     Other { info: String },
     #[error(transparent)]
@@ -66,7 +68,7 @@ pub async fn index_from_socket(
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
     match socket_config.target {
-        DLTConnectionTarget::Tcp => index_from_socket_tcp(session_id,
+        DLTConnectionProtocol::Tcp => index_from_socket_tcp(session_id,
             socket_config,
             filter_config,
             update_channel,
@@ -75,7 +77,7 @@ pub async fn index_from_socket(
             out_path,
             initial_line_nr,
             shutdown_receiver).await,
-        DLTConnectionTarget::Udp => index_from_socket_udp(session_id,
+        DLTConnectionProtocol::Udp => index_from_socket_udp(session_id,
             socket_config,
             filter_config,
             update_channel,
@@ -337,8 +339,13 @@ impl SessionProcessor {
         out_path: &std::path::PathBuf,
         initial_line_nr: usize,
         tag: &str,
-        update_channel: cc::Sender<ChunkResults>) -> Result<Self, anyhow::Error> {
-        let (out_file, current_out_file_size) = utils::get_out_file_and_size(true, out_path)?;
+        update_channel: cc::Sender<ChunkResults>) -> Result<Self, ConnectionError> {
+        let (out_file, current_out_file_size) = match utils::get_out_file_and_size(true, out_path) {
+            Ok((out_file, current_out_file_size)) => (out_file, current_out_file_size),
+            Err(e) => {
+                return Err(ConnectionError::UnableGetSessionFile { error: e.to_string()})
+            }
+        };
         let tmp_dlt_file = create_dlt_session_file(&session_id)?;
         Ok(SessionProcessor {
             tmp_writer: BufWriter::new(tmp_dlt_file),
@@ -350,7 +357,7 @@ impl SessionProcessor {
         })
     }
 
-    pub fn event(&mut self, event: DltEvent, fibex_metadata: Option<&FibexMetadata>) -> Result<(), anyhow::Error> {
+    pub fn event(&mut self, event: DltEvent, fibex_metadata: Option<&FibexMetadata>) -> Result<(), ConnectionError> {
         match event {
             DltEvent::Messages(msgs) => {
                 for m in msgs {
