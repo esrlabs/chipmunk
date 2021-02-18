@@ -15,8 +15,7 @@
                 matInput
                 [formControl]="_ng_inputCtrl"
                 [readonly]="_ng_isWorking()"
-                appMatAutocompleteScrollModificationAccessor
-                [optionHeight]="24"
+                matAutocomplete
                 [matAutocomplete]="auto">
         <mat-autocomplete #auto="matAutocomplete" class="regular"
             (optionSelected)="_ng_onRecentSelected($event)"
