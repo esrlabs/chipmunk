@@ -125,12 +125,14 @@ export default class FileParser extends AFileParser {
             this._task = indexer.indexDltAsync(dltParams).then(() => {
                 resolve(collectedChunks);
                 // Register exports callback
-                ServiceOutputExport.setAction(this._guid as string, CExportAllActionId, {
+                ServiceOutputExport.setAction(this._guid as string, {
+                    id: CExportAllActionId,
                     caption: 'Export all',
                     handler: this._exportAll.bind(this, srcFile),
                     isEnabled: () => true,
                 });
-                ServiceOutputExport.setAction(this._guid as string, CExportSelectionActionId, {
+                ServiceOutputExport.setAction(this._guid as string, {
+                    id: CExportSelectionActionId,
                     caption: 'Export selection',
                     handler: this._exportSelection.bind(this, srcFile),
                     isEnabled: () => true,

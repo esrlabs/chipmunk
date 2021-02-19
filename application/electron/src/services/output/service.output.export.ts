@@ -9,6 +9,7 @@ import { IService } from '../../interfaces/interface.service';
 type TActionHandler = (request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest) => Promise<void>;
 
 export interface IExportAction {
+    id: string;
     caption: string;
     handler: TActionHandler;
     isEnabled: (request: IPCMessages.OutputExportFeaturesRequest) => boolean;
@@ -35,7 +36,7 @@ class ServiceOutputExport implements IService {
                 ServiceElectron.IPC.subscribe(IPCMessages.OutputExportFeaturesRequest, this._onOutputExportFeaturesRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscription.OutputExportFeaturesRequest = subscription;
                 }),
-                ServiceElectron.IPC.subscribe(IPCMessages.OutputExportFeatureCallRequest, this._onOutputExportFeatureCallRequest.bind(this)).then((subscription: Subscription) => {
+                ServiceElectron.IPC.subscribe(IPCMessages.OutputExportFeatureCallRequest, this._onOutputExportFeatureCallRequest.bind(this) as any).then((subscription: Subscription) => {
                     this._subscription.OutputExportFeatureCallRequest = subscription;
                 }),
             ]).then(() => {
@@ -62,21 +63,45 @@ class ServiceOutputExport implements IService {
         return 'ServiceOutputExport';
     }
 
-    public setAction(session: string, id: string, action: IExportAction, overwrite: boolean = true): Error | undefined {
+    public setAction(session: string, action: IExportAction, overwrite: boolean = true): Error | undefined {
         let store: Map<string, IExportAction> | undefined = this._store.get(session);
         if (store === undefined) {
             store = new Map();
         }
-        if (store.has(id)) {
+        if (store.has(action.id)) {
             if (overwrite) {
-                store.delete(id);
+                store.delete(action.id);
             } else {
-                return new Error(this._logger.debug(`Action with id "${id}" is already registred for session "${session}"`));
+                return new Error(this._logger.debug(`Action with id "${action.id}" is already registred for session "${session}"`));
             }
         }
-        store.set(id, action);
+        store.set(action.id, action);
         this._store.set(session, store);
+        ServiceElectron.updateMenu();
         return undefined;
+    }
+
+    public getActions(session: string): IExportAction[] {
+        const actions = this._store.get(session);
+        if (actions === undefined) {
+            return [];
+        }
+        return Array.from(actions.values());
+    }
+
+    public callAction(request: IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
+        const store: Map<string, IExportAction> | undefined = this._store.get(request.session);
+        if (store === undefined) {
+            return Promise.reject(new Error(`No any export actions for stream "${request.session}" has been registred.`));
+        }
+        const action: IExportAction | undefined = Array.from(store.values()).find(a => a.id === request.actionId);
+        if (action === undefined) {
+            return Promise.reject(new Error(`Fail to find action "${request.actionId}" for stream "${request.session}".`));
+        }
+        const measure = this._logger.measure(`Running export action "${request.actionId}" for stream "${request.session}"`);
+        return action.handler(request).then(() => {
+            measure();
+        });
     }
 
     private _onSessionCreated(event: INewSessionEvent) {
@@ -109,42 +134,17 @@ class ServiceOutputExport implements IService {
         }));
     }
 
-    private _onOutputExportFeatureCallRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const req: IPCMessages.OutputExportFeatureCallRequest = request as IPCMessages.OutputExportFeatureCallRequest;
-        const store: Map<string, IExportAction> | undefined = this._store.get(req.session);
-        let action: IExportAction | undefined;
-        if (store === undefined) {
+    private _onOutputExportFeatureCallRequest(request: IPCMessages.OutputExportFeatureCallRequest, response: (instance: IPCMessages.TMessage) => any) {
+        this.callAction(request).then(() => {
             return response(new IPCMessages.OutputExportFeatureCallResponse({
-                session: req.session,
-                actionId: req.actionId,
-                error: `No any export actions for stream "${req.session}" has been registred.`,
+                session: request.session,
+                actionId: request.actionId,
             }));
-        }
-        store.forEach((_action: IExportAction, actionId: string) => {
-            if (actionId === req.actionId) {
-                action = _action;
-            }
-        });
-        if (action === undefined) {
-            return response(new IPCMessages.OutputExportFeatureCallResponse({
-                session: req.session,
-                actionId: req.actionId,
-                error: `Fail to find action "${req.actionId}" for stream "${req.session}".`,
-            }));
-        }
-        const measure = this._logger.measure(`Running export action "${req.actionId}" for stream "${req.session}"`);
-        action.handler(req).then(() => {
-            measure();
-            return response(new IPCMessages.OutputExportFeatureCallResponse({
-                session: req.session,
-                actionId: req.actionId,
-            }));
-        }).catch((error: Error) => {
-            measure();
+        }).catch((err: Error) => {
             response(new IPCMessages.OutputExportFeatureCallResponse({
-                session: req.session,
-                actionId: req.actionId,
-                error: error.message,
+                session: request.session,
+                actionId: request.actionId,
+                error: err.message,
             }));
         });
     }

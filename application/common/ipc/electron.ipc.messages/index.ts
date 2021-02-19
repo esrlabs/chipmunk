@@ -421,6 +421,12 @@ export { IOutputExportFeatureCallRequest, OutputExportFeatureCallRequest };
 import { IOutputExportFeatureCallResponse, OutputExportFeatureCallResponse } from './output.export.feature.call.response';
 export { IOutputExportFeatureCallResponse, OutputExportFeatureCallResponse };
 
+import { IOutputExportFeatureSelectionRequest, OutputExportFeatureSelectionRequest } from './output.export.feature.selection.request';
+export { IOutputExportFeatureSelectionRequest, OutputExportFeatureSelectionRequest };
+
+import { IOutputExportFeatureSelectionResponse, OutputExportFeatureSelectionResponse } from './output.export.feature.selection.response';
+export { IOutputExportFeatureSelectionResponse, OutputExportFeatureSelectionResponse };
+
 import { IApplicationVersions, ITabCustomAbout, TabCustomAbout } from './tab.custom.about';
 export { IApplicationVersions, ITabCustomAbout, TabCustomAbout };
 
@@ -724,6 +730,8 @@ export type TMessage =  AppRestartRequest |
                         OutputExportFeaturesResponse |
                         OutputExportFeatureCallRequest |
                         OutputExportFeatureCallResponse |
+                        OutputExportFeatureSelectionRequest |
+                        OutputExportFeatureSelectionResponse |
                         TabCustomAbout |
                         TabCustomPlugins |
                         TabCustomSettings |
@@ -936,10 +944,12 @@ export const Map = {
     [ChartRequestResults.signature              ]: ChartRequestResults,
     [ChartResultsUpdated.signature              ]: ChartResultsUpdated,
 
-    [OutputExportFeaturesRequest.signature      ]: OutputExportFeaturesRequest,
-    [OutputExportFeaturesResponse.signature     ]: OutputExportFeaturesResponse,
-    [OutputExportFeatureCallRequest.signature   ]: OutputExportFeatureCallRequest,
-    [OutputExportFeatureCallResponse.signature  ]: OutputExportFeatureCallResponse,
+    [OutputExportFeaturesRequest.signature          ]: OutputExportFeaturesRequest,
+    [OutputExportFeaturesResponse.signature         ]: OutputExportFeaturesResponse,
+    [OutputExportFeatureCallRequest.signature       ]: OutputExportFeatureCallRequest,
+    [OutputExportFeatureCallResponse.signature      ]: OutputExportFeatureCallResponse,
+    [OutputExportFeatureSelectionRequest.signature  ]: OutputExportFeatureSelectionRequest,
+    [OutputExportFeatureSelectionResponse.signature ]: OutputExportFeatureSelectionResponse,
 
     [TabCustomAbout.signature                   ]: TabCustomAbout,
     [TabCustomPlugins.signature                 ]: TabCustomPlugins,
