@@ -43,6 +43,7 @@ interface IState {
     fibex: boolean;
     state: 'progress' | 'connected' | 'disconnected';
     target: IPCMessages.EDLTDeamonConnectionType;
+    IPVer: IPCMessages.EDLTDeamonIPVersion;
 }
 
 interface IDLTDeamonSettings {
@@ -51,6 +52,7 @@ interface IDLTDeamonSettings {
     ecu: string;
     bindingAddress: string;
     bindingPort: string;
+    IPVer: IPCMessages.EDLTDeamonIPVersion;
     // multicast
     multicast: IDLTDeamonMulticast[];
     // fibex
@@ -62,8 +64,10 @@ interface IDLTDeamonSettings {
 
 const CDefaulsDLTSettingsField = {
     ecu: '',
-    bindingAddress: '0.0.0.0',
+    bindingAddressV4: '0.0.0.0',
+    bindingAddressV6: '::1',
     bindingPort: '',
+    IPVer: IPCMessages.EDLTDeamonIPVersion.IPv4,
     multicast: [],
     multicastAddress: '',
     multicastInterface: '0.0.0.0',
@@ -93,8 +97,9 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     public _ng_settings: IDLTDeamonSettings = {
         connectionId: '',
         ecu: CDefaulsDLTSettingsField.ecu,
-        bindingAddress: CDefaulsDLTSettingsField.bindingAddress,
+        bindingAddress: CDefaulsDLTSettingsField.bindingAddressV4,
         bindingPort: CDefaulsDLTSettingsField.bindingPort,
+        IPVer: CDefaulsDLTSettingsField.IPVer,
         multicast: CDefaulsDLTSettingsField.multicast.slice(),
         fibex: CDefaulsDLTSettingsField.fibex,
         fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
@@ -102,8 +107,11 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     };
     public _ng_errorStates = {
         ecu: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.ecu),
-        bindingAddress: new DLTDeamonSettingsErrorStateMatcher(
-            EDLTSettingsFieldAlias.bindingAddress,
+        bindingAddressV4: new DLTDeamonSettingsErrorStateMatcher(
+            EDLTSettingsFieldAlias.bindingAddressV4,
+        ),
+        bindingAddressV6: new DLTDeamonSettingsErrorStateMatcher(
+            EDLTSettingsFieldAlias.bindingAddressV6,
         ),
         bindingPort: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.bindingPort),
     };
@@ -156,6 +164,17 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 ? IPCMessages.EDLTDeamonConnectionType.Udp
                 : IPCMessages.EDLTDeamonConnectionType.Tcp;
         this._forceUpdate();
+    }
+
+    public _ng_onIPVersionChange(event: MatButtonToggleChange) {
+        this._ng_settings.IPVer =
+            event.value === IPCMessages.EDLTDeamonIPVersion.IPv4
+                ? IPCMessages.EDLTDeamonIPVersion.IPv4
+                : IPCMessages.EDLTDeamonIPVersion.IPv6;
+        this._forceUpdate();
+        this._ng_settings.bindingAddress = event.value === IPCMessages.EDLTDeamonIPVersion.IPv4
+        ? CDefaulsDLTSettingsField.bindingAddressV4
+        : CDefaulsDLTSettingsField.bindingAddressV6;
     }
 
     public _ng_isSettingsValid(): boolean {
@@ -575,12 +594,15 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             this._ng_settings.bindingAddress = state.bindingAddress;
             this._ng_settings.target =
                 state.target === undefined ? CDefaulsDLTSettingsField.target : state.target;
+            this._ng_settings.IPVer =
+                state.IPVer === undefined ? CDefaulsDLTSettingsField.IPVer : state.IPVer;
         } else {
             this._ng_settings = {
                 connectionId: '',
                 ecu: CDefaulsDLTSettingsField.ecu,
-                bindingAddress: CDefaulsDLTSettingsField.bindingAddress,
+                bindingAddress: CDefaulsDLTSettingsField.bindingAddressV4,
                 bindingPort: CDefaulsDLTSettingsField.bindingPort,
+                IPVer: CDefaulsDLTSettingsField.IPVer,
                 multicast: CDefaulsDLTSettingsField.multicast.slice(),
                 fibex: CDefaulsDLTSettingsField.fibex,
                 fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
@@ -606,6 +628,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             fibex: this._ng_settings.fibex,
             bindingPort: this._ng_settings.bindingPort,
             bindingAddress: this._ng_settings.bindingAddress,
+            IPVer: this._ng_settings.IPVer,
             target: this._ng_settings.target,
         });
     }
@@ -714,7 +737,8 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 },
             };
         });
-        this._ng_settings.target = options.target === undefined ? CDefaulsDLTSettingsField.target : options.target;
+        this._ng_settings.target =
+            options.target === undefined ? CDefaulsDLTSettingsField.target : options.target;
         if (options.fibex instanceof Array && options.fibex.length > 0) {
             this._ng_settings.fibex = true;
             this._ng_settings.fibexFiles = options.fibex;
