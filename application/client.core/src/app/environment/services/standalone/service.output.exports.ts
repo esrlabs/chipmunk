@@ -74,7 +74,7 @@ export class OutputExportsService {
             selection: converted,
         })).catch((err: Error) => {
             this._logger.warn(`Fail to send selection for action "${request.actionId}" due error: ${err.message}`);
-        })
+        });
     }
 
 }
