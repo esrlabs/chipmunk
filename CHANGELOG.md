@@ -1,27 +1,19 @@
 # Changelog
 
-### [2.14.0] - 02/19/2021
-* Resolve lint js warnings
-* Show export options in top-menu (close #1073)
-* DLT connector: refactoring in scope of TCP connection
-* Correct store/restore recent DLT connector settings
-* Terminate rg-process on session close (close #740)
-* TCP connection for DLT connector (UI)
-* Rust lint resolve issues
-* TCP support on DLT connector
-* refactor usage of fibex data
-  * use tokio tasks instead of threads
-  * working with new fibex structure
-* [#1060](refact) Save search without extra flags
-* [#1060](fix) Resolve saving issue filters/charts
-* [#1068](fix) Move navigation along with focus
-* [#1053](fix) Adjust CSS when dragging filter/chart
-* [#1053](fix) Make color and checkbox height same
-* [#1058](refact) Update package-lock
-* [#1057](refact) Update version in package.json
-* [#1057](fix) Vertical scroll in main view fixed
-* [#1059](fix) Update details after rename
-* [#1058](fix) Remember size change on toolbar
+## [2.14.0] - 02/19/2021
+### Fixed
+* Terminate rg-process on session close 
+* Save search without extra flags
+* Resolve saving issue filters/charts
+* Move navigation along with focus
+* Adjust CSS when dragging filter/chart
+* Make color and checkbox height same
+* Vertical scroll in main view fixed
+* Update details after rename
+* Remember size change on toolbar
+### Added
+* Show export options in top-menu
+* TCP connection for DLT connector
 
 ## [2.13.1] - 02/12/2021
 ### Fixed
