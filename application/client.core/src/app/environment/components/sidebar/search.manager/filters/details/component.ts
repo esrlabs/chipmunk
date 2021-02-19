@@ -32,7 +32,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
     public _ng_background: string;
     public _ng_colorOptions: IColorOption[] = [
         { title: 'Background', value: 'background' },
-        { title: 'Foregraund', value: 'color' },
+        { title: 'Foreground', value: 'color' },
     ];
     public _ng_colorType: TColorType = 'background';
     public _ng_currentColor: string;
