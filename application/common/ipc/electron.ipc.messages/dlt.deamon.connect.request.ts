@@ -1,6 +1,11 @@
 import { IFilePickerFileInfo} from './file.filepicker.response';
 import { IDLTDeamonConnectionMulticastOptions } from './dlt.deamon.recent.response'
 
+export enum EDLTDeamonIPVersion{
+    IPv4 = 'IPv4',
+    IPv6 = 'IPv6',
+}
+
 export enum EDLTDeamonConnectionType {
     Tcp = 'Tcp',
     Udp = 'Udp',
