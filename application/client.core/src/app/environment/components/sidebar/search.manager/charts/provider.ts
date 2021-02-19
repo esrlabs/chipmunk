@@ -39,7 +39,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
             return;
         }
         this._subs.updated = session.getSessionSearch().getChartsAPI().getStorage().getObservable().updated.subscribe((event?: IChartsStorageUpdated) => {
-            super.update();
+            super.change();
             if (event === undefined) {
                 return;
             }
@@ -85,7 +85,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
             return;
         }
         super.getSession().getSessionSearch().getChartsAPI().getStorage().reorder(params);
-        super.update();
+        super.change();
     }
 
     public getContentIfEmpty(): string | undefined {
@@ -218,7 +218,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
         actions.remove = entities.length !== 0 ? () => {
             if (entities.length === self.get().length) {
                 self.getSession().getSessionSearch().getChartsAPI().getStorage().clear();
-                self.update();
+                self.change();
             } else {
                 entities.forEach((entity: Entity<ChartRequest>) => {
                     self.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity.getEntity());

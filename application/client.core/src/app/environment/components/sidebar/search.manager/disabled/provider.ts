@@ -38,7 +38,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             return;
         }
         this._subs.updated = session.getSessionSearch().getDisabledAPI().getStorage().getObservable().updated.subscribe((event?: IUpdateEvent) => {
-            super.update();
+            super.change();
             if (event === undefined) {
                 return;
             }
@@ -84,7 +84,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             return;
         }
         super.getSession().getSessionSearch().getDisabledAPI().getStorage().reorder(params);
-        super.update();
+        super.change();
     }
 
     public getContentIfEmpty(): string | undefined {

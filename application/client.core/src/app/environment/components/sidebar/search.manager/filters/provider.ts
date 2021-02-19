@@ -39,7 +39,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
             return;
         }
         this._subs.updated = session.getSessionSearch().getFiltersAPI().getStorage().getObservable().updated.subscribe((event?: IFiltersStorageUpdated) => {
-            super.update();
+            super.change();
             if (event === undefined) {
                 return;
             }
@@ -49,6 +49,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     sender: undefined,
                     ignore: true
                 });
+                super.update();
             }
             if (event.removed instanceof FilterRequest || event.requests.length === 0) {
                 this.select().drop();
@@ -85,7 +86,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
             return;
         }
         super.getSession().getSessionSearch().getFiltersAPI().getStorage().reorder(params);
-        super.update();
+        super.change();
     }
 
     public getContentIfEmpty(): IComponentDesc {
@@ -220,7 +221,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         actions.remove = entities.length !== 0 ? () => {
             if (entities.length === self.get().length) {
                 self.getSession().getSessionSearch().getFiltersAPI().getStorage().clear();
-                self.update();
+                self.change();
             } else {
                 entities.forEach((entity: Entity<FilterRequest>) => {
                     self.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(entity.getEntity());

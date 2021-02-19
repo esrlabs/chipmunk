@@ -55,7 +55,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
 
     public ngAfterContentInit() {
         this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._init.bind(this));
-        this._subscriptions.edit = this.provider.getObservable().edit.subscribe(this._onEdit.bind(this));
+        this._subscriptions.update = this.provider.getObservable().update.subscribe(this._onUpdate.bind(this));
         this._init();
     }
 
@@ -130,14 +130,9 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
         }
     }
 
-    private _onEdit(guid: string | undefined) {
-        if (this._entity === undefined) {
-            return;
-        }
-        if (guid === undefined) {
-            this._ng_request = this._entity.getEntity().asDesc().request;
-            this._forceUpdate();
-        }
+    private _onUpdate() {
+        this._ng_request = this._entity.getEntity().asDesc().request;
+        this._forceUpdate();
     }
 
     private _forceUpdate() {
