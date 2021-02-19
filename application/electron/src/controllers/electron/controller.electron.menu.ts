@@ -1,14 +1,18 @@
 import { app, Menu, MenuItemConstructorOptions } from 'electron';
 import { FileParsers } from '../files.parsers/index';
 import { IStorageScheme } from '../../services/service.storage';
+import { IExportAction } from '../../services/output/service.output.export';
 
 import ServiceStorage from '../../services/service.storage';
+import ServiceStreams from '../../services/service.streams';
 import ServiceFileOpener from '../../services/files/service.file.opener';
 import ServiceFileRecent from '../../services/files/service.file.recent';
+import ServiceOutputExport from '../../services/output/service.output.export';
 import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
 import HandlerItemAbout from './menu.functions/handler.item.about';
 import HandlerItemPlugins from './menu.functions/handler.item.plugins';
 import HandlerItemSettings from './menu.functions/handler.item.settings';
+import HandlerItemExportActionCall from './menu.functions/handler.item.exportaction';
 
 import Logger from '../../tools/env.logger';
 
@@ -119,6 +123,16 @@ export default class ControllerElectronMenu {
                 ],
             });
 
+        }
+        const exportActions: IExportAction[] = ServiceOutputExport.getActions(ServiceStreams.getActiveStreamId());
+        if (exportActions.length > 0) {
+            template[0].submenu.push({ type: 'separator' });
+            exportActions.forEach((action: IExportAction) => {
+                template[0].submenu.push({
+                    label: action.caption,
+                    click: HandlerItemExportActionCall.bind(null, action.id),
+                });
+            });
         }
         template[0].submenu.push({ type: 'separator' });
         template[0].submenu.push({

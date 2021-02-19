@@ -13,6 +13,8 @@ import ServiceElectron, { IPCMessages } from "../service.electron";
 import ServiceOutputExport from "../output/service.output.export";
 import indexer, { Progress, DLT, CancelablePromise } from "indexer-neon";
 
+import * as Tools from "../../tools/index";
+
 /**
  * @class ServiceDLTDeamonConnector
  * @description Providers access to DLT deamon (UPD)
@@ -174,12 +176,14 @@ class ServiceDLTDeamonConnector implements IService {
                 if (this._connectionsHistory.indexOf(req.session) === -1) {
                     this._connectionsHistory.push(req.session);
                     // Register exports callback
-                    ServiceOutputExport.setAction(req.session, CExportAllActionId, {
+                    ServiceOutputExport.setAction(req.session, {
+                        id: CExportAllActionId,
                         caption: 'Export all',
                         handler: this._exportAll.bind(this, req.session),
                         isEnabled: this._isExportPossible.bind(this, req.session),
                     });
-                    ServiceOutputExport.setAction(req.session, CExportSelectionActionId, {
+                    ServiceOutputExport.setAction(req.session, {
+                        id: CExportSelectionActionId,
                         caption: 'Export selection',
                         handler: this._exportSelection.bind(this, req.session),
                         isEnabled: this._isExportPossible.bind(this, req.session),

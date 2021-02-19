@@ -488,6 +488,7 @@ class ServiceStreams implements IService  {
                 this._subjects.onSessionCreated.emit({
                     stream: stream,
                 });
+                ServiceElectron.updateMenu();
                 // Response
                 response(new IPCElectronMessages.StreamAddResponse({
                     guid: message.guid,
@@ -519,6 +520,7 @@ class ServiceStreams implements IService  {
         this._destroyStream(message.guid).then(() => {
             ServicePlugins.removedStream(message.guid).then(() => {
                 this._subjects.onSessionClosed.emit(message.guid);
+                ServiceElectron.updateMenu();
                 response(new IPCElectronMessages.StreamRemoveResponse({ guid: message.guid }));
             }).catch((plugingsError: Error) => {
                 this._logger.error(`Fail to correctly destroy session "${message.guid}" due error: ${plugingsError.message}.`);
@@ -539,6 +541,7 @@ class ServiceStreams implements IService  {
         }
         this._activeStreamGuid = message.guid;
         this._subjects.onSessionChanged.emit(message.guid);
+        ServiceElectron.updateMenu();
         this._logger.debug(`Active session is set to: ${this._activeStreamGuid}`);
     }
 

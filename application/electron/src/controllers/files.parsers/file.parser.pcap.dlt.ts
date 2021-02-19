@@ -129,7 +129,8 @@ export default class FileParser extends AFileParser {
             this._logger.debug("calling indexPcapDlt with params: " + JSON.stringify(dltParams));
             this._task = indexer.indexPcapDlt(dltParams).then(() => {
                 // Register exports callback
-                ServiceOutputExport.setAction(this._guid as string, CExportAllActionId, {
+                ServiceOutputExport.setAction(this._guid as string, {
+                    id: CExportAllActionId,
                     caption: 'Save file as DLT',
                     handler: this._saveAsDLT.bind(this, srcFile),
                     isEnabled: () => true,

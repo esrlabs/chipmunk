@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as Tools from "../../tools/index";
 
 import Logger from '../../tools/env.logger';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
@@ -22,12 +23,14 @@ export class DefaultOutputExport {
         this._guid = guid;
         this._logger = new Logger(`DefaultOutputExport: ${this._guid}`);
         // Register exports callback
-        ServiceOutputExport.setAction(this._guid, CExportAllActionId, {
+        ServiceOutputExport.setAction(this._guid, {
+            id: CExportAllActionId,
             caption: 'Export all',
             handler: this._exportAll.bind(this, this._guid),
             isEnabled: () => true,
         });
-        ServiceOutputExport.setAction(this._guid, CExportSelectionActionId, {
+        ServiceOutputExport.setAction(this._guid, {
+            id: CExportSelectionActionId,
             caption: 'Export selection',
             handler: this._exportSelection.bind(this, this._guid),
             isEnabled: () => true,
