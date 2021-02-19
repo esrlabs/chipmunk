@@ -40,7 +40,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
             return;
         }
         this._subs.updated = session.getSessionSearch().getRangesAPI().getStorage().getObservable().updated.subscribe((event?: IRangesStorageUpdated) => {
-            super.update();
+            super.change();
             if (event === undefined) {
                 return;
             }
@@ -82,7 +82,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
             return;
         }
         super.getSession().getSessionSearch().getRangesAPI().getStorage().reorder(params);
-        super.update();
+        super.change();
     }
 
     public getContentIfEmpty(): string | undefined {
@@ -166,7 +166,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
             remove: entities.length !== 0 ? () => {
                 if (entities.length === self.get().length) {
                     self.getSession().getSessionSearch().getRangesAPI().getStorage().clear();
-                    self.update();
+                    self.change();
                 } else {
                     entities.forEach((entity: Entity<RangeRequest>) => {
                         self.getSession().getSessionSearch().getRangesAPI().getStorage().remove(entity.getEntity());

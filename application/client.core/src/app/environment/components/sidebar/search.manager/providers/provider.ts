@@ -67,12 +67,14 @@ export abstract class Provider<T> {
         edit: Subject<string | undefined>,
         context: Subject<IContextMenuEvent>,
         doubleclick: Subject<IDoubleclickEvent>,
+        update: Subject<void>,
     } = {
         change: new Subject(),
         selection: new Subject(),
         edit: new Subject(),
         context: new Subject(),
         doubleclick: new Subject(),
+        update: new Subject(),
     };
     private _session: Session | undefined;
     private _selection: {
@@ -330,6 +332,7 @@ export abstract class Provider<T> {
                     entity.getEditState().out();
                 });
                 this._subjects.edit.next(undefined);
+                this._subjects.update.next();
             },
         };
     }
@@ -340,6 +343,7 @@ export abstract class Provider<T> {
         edit: Observable<string | undefined>,
         context: Observable<IContextMenuEvent>,
         doubleclick: Observable<IDoubleclickEvent>,
+        update: Observable<void>,
     } {
         return {
             change: this._subjects.change.asObservable(),
@@ -347,11 +351,16 @@ export abstract class Provider<T> {
             edit: this._subjects.edit.asObservable(),
             context: this._subjects.context.asObservable(),
             doubleclick: this._subjects.doubleclick.asObservable(),
+            update: this._subjects.update.asObservable(),
         };
     }
 
-    public update() {
+    public change() {
         this._subjects.change.next();
+    }
+
+    public update() {
+        this._subjects.update.next();
     }
 
     public getSession(): Session | undefined {
