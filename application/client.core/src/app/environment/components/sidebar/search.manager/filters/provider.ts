@@ -49,7 +49,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     sender: undefined,
                     ignore: true
                 });
-                super.update();
+                super.change();
             }
             if (event.removed instanceof FilterRequest || event.requests.length === 0) {
                 this.select().drop();
