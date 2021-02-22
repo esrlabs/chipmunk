@@ -5,7 +5,7 @@ import ServiceNotifications from "../../services/service.notifications";
 import indexer from "indexer-neon";
 
 import { Progress, DLT, CancelablePromise } from "indexer-neon";
-import { IDLTDeamonConnectionOptions as IConnectionOptions, EDLTDeamonConnectionType } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
+import { IDLTDeamonConnectionOptions as IConnectionOptions, EDLTDeamonConnectionType, EDLTDeamonIPVersion } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
 import { CMetaData } from '../files.parsers/file.parser.dlt';
 
@@ -74,6 +74,7 @@ export class DLTConnectionController extends EventEmitter {
                     };
                 }),
                 target: this._connection.target === EDLTDeamonConnectionType.Udp ? 'Udp' : 'Tcp',
+                ip_ver: this._connection.ip_ver === EDLTDeamonIPVersion.IPv4 ? 'IPv4' : 'IPv6',
             };
             // Creating source alias
             const sourceName: string = `${this._connection.ecu}::${this._connection.bindingAddress}:${this._connection.bindingPort}`;
