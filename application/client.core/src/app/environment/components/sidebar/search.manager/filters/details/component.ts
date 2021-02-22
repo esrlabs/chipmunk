@@ -55,7 +55,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
 
     public ngAfterContentInit() {
         this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._init.bind(this));
-        this._subscriptions.update = this.provider.getObservable().update.subscribe(this._onUpdate.bind(this));
+        this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onChange.bind(this));
         this._init();
     }
 
@@ -128,9 +128,13 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
             this._ng_colorType = 'background';
             this._setColors();
         }
+        this._onChange();
     }
 
-    private _onUpdate() {
+    private _onChange() {
+        if (this._entity === undefined) {
+            return;
+        }
         this._ng_request = this._entity.getEntity().asDesc().request;
         this._forceUpdate();
     }
