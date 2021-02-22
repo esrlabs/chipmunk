@@ -302,6 +302,7 @@ class ElectronIpcService implements IService {
         });
         if (this._pending.size > 0) {
             this._logger.debug(`Pending task queue has ${this._pending.size} tasks.`);
+            this._logger.debug(`\n\t -${Array.from(this._pending.values()).map(t => `${t.signature}:: ${t.created}`).join(`\n\t -`)}`);
         }
         setTimeout(this._report.bind(this), ElectronIpcService.QUEUE_CHECK_DELAY);
     }
