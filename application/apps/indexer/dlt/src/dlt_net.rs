@@ -13,7 +13,7 @@ use crossbeam_channel as cc;
 use indexer_base::config::FibexConfig;
 use indexer_base::{
     chunks::{ Chunk, ChunkFactory, ChunkResults },
-    config::{ SocketConfig, DLTConnectionProtocol },
+    config::{ SocketConfig, DLTConnectionProtocol, DLTIPVer },
     progress::*,
     utils,
 };
@@ -66,9 +66,18 @@ pub async fn index_from_socket(
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
+    let bind_addr_and_port: SocketAddr = match socket_config.ip_ver {
+        DLTIPVer::IPv4 => format!("{}:{}", socket_config.bind_addr, socket_config.port),
+        DLTIPVer::IPv6 => format!("[{}]:{}", socket_config.bind_addr, socket_config.port),
+    }.parse()?;
+    debug!(
+        "Binding socket within: {}",
+        bind_addr_and_port
+    );
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
     match socket_config.target {
         DLTConnectionProtocol::Tcp => index_from_socket_tcp(session_id,
+            bind_addr_and_port,
             socket_config,
             filter_config,
             update_channel,
@@ -78,6 +87,7 @@ pub async fn index_from_socket(
             initial_line_nr,
             shutdown_receiver).await,
         DLTConnectionProtocol::Udp => index_from_socket_udp(session_id,
+            bind_addr_and_port,
             socket_config,
             filter_config,
             update_channel,
@@ -92,6 +102,7 @@ pub async fn index_from_socket(
 #[allow(clippy::too_many_arguments)]
 pub async fn index_from_socket_udp(
     session_id: String,
+    addr: SocketAddr,
     socket_config: SocketConfig,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
@@ -108,16 +119,10 @@ pub async fn index_from_socket_udp(
         tag,
         update_channel.clone(),
     )?;
-    let s = format!("{}:{}", socket_config.bind_addr, socket_config.port);
-    let bind_addr_and_port: SocketAddr = s.parse()?;
-    debug!(
-        "Binding UDP socket: tokio::net::UdpSocket::bind({})",
-        bind_addr_and_port
-    );
-    let socket = tokio::net::UdpSocket::bind(bind_addr_and_port)
+    let socket = tokio::net::UdpSocket::bind(addr)
         .await
         .map_err(|e| {
-            warn!("Error trying to bind to {}: {}", bind_addr_and_port, e);
+            warn!("Error trying to bind to {}: {}", addr, e);
             ConnectionError::Other {
                 info: format!(
                     "You cannot not bind a UDP socket to {}",
@@ -189,6 +194,7 @@ pub async fn index_from_socket_udp(
 #[allow(clippy::too_many_arguments)]
 pub async fn index_from_socket_tcp(
     session_id: String,
+    addr: SocketAddr,
     socket_config: SocketConfig,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     update_channel: cc::Sender<ChunkResults>,
@@ -205,16 +211,10 @@ pub async fn index_from_socket_tcp(
         tag,
         update_channel.clone(),
     )?;
-    let s = format!("{}:{}", socket_config.bind_addr, socket_config.port);
-    let bind_addr_and_port: SocketAddr = s.parse()?;
-    debug!(
-        "Connecting TCP socket: tokio::net::TcpStream::connect({})",
-        bind_addr_and_port
-    );
-    let socket = tokio::net::TcpStream::connect(bind_addr_and_port)
+    let socket = tokio::net::TcpStream::connect(addr)
         .await
         .map_err(|e| {
-            warn!("Error trying to connect to {}: {}", bind_addr_and_port, e);
+            warn!("Error trying to connect to {}: {}", addr, e);
             ConnectionError::Other {
                 info: format!(
                     "You cannot not connect to TCP socket {}",

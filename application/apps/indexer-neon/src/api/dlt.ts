@@ -48,7 +48,9 @@ export interface ISocketConfig {
     bind_addr: string;
     port: string;
     target: 'Tcp' | 'Udp',
+	ip_ver: 'IPv4' | 'IPv6',
 }
+
 /// Multicast config information.
 /// `multiaddr` address must be a valid multicast address
 /// `interface` is the address of the local interface with which the

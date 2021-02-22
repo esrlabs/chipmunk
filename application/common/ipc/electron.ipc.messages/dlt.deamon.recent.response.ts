@@ -1,7 +1,7 @@
 import { IFilePickerFileInfo } from './file.filepicker.response';
-import { EDLTDeamonConnectionType } from './dlt.deamon.connect.request';
+import { EDLTDeamonConnectionType, EDLTDeamonIPVersion } from './dlt.deamon.connect.request';
 
-export { EDLTDeamonConnectionType };
+export { EDLTDeamonConnectionType, EDLTDeamonIPVersion };
 
 export interface IDLTDeamonConnectionMulticastOptions {
     address: string;
@@ -15,6 +15,7 @@ export interface IDLTDeamonConnectionOptions {
     multicast: IDLTDeamonConnectionMulticastOptions[];
     fibex: IFilePickerFileInfo[];
     target: EDLTDeamonConnectionType;
+    ip_ver: EDLTDeamonIPVersion;
 }
 
 export interface IDLTDeamonRecentResponse {
