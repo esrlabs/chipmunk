@@ -3,6 +3,7 @@ import { SidebarAppMergeFilesComponent } from '../components/sidebar/merge/compo
 import { SidebarAppConcatFilesComponent } from '../components/sidebar/concat/component';
 import { SidebarAppDLTConnectorComponent } from '../components/sidebar/dlt.connector/component';
 import { SidebarAppCommentsComponent } from '../components/sidebar/comments/component';
+import { SidebarAppCommandComponent } from '../components/sidebar/command/component';
 import { ITab } from 'chipmunk-client-material';
 
 export { ITab };
@@ -13,6 +14,7 @@ export const CGuids = {
     concat: 'concat',
     dltdeamon: 'dltdeamon',
     comments: 'comments',
+    command: 'command',
 };
 
 export interface IDefaultSidebarApp {
@@ -84,6 +86,20 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             name: 'Comments',
             content: {
                 factory: SidebarAppCommentsComponent,
+                resolved: false,
+                inputs: {},
+            },
+            closable: true,
+            active: true,
+        }
+    },
+    {
+        addedAsDefault: false,
+        tab: {
+            guid: CGuids.command,
+            name: 'Command',
+            content: {
+                factory: SidebarAppCommandComponent,
                 resolved: false,
                 inputs: {},
             },

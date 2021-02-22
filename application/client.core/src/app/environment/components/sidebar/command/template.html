@@ -1,0 +1,22 @@
+<mat-expansion-panel
+    [disabled]="true"
+    [hideToggle]="true"
+    [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Commands</mat-panel-title>
+    </mat-expansion-panel-header>
+    <mat-form-field class="outline-native" appearance="outline">
+        <input  type="text" 
+                [(ngModel)]="_ng_command"
+                (keyup)="_ng_onKeyup($event)"
+                placeholder="_ng_placeholder"
+                matInput>
+    <mat-autocomplete #auto="matAutocomplete" class="regular"
+        (optionSelected)="_ng_onRecentSelected($event)"
+        (opened)="_ng_onAutocompletePanelOpen()"
+        [classList]="'recent-commands'"
+        [disableRipple]="true">
+    </mat-form-field>
+</mat-expansion-panel>
+
+<!-- classList = 'recent-commands' -->
