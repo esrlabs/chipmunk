@@ -21,8 +21,6 @@ import { SidebarAppNotificationsComponent       } from '../views/notifications/c
 import { SidebarAppCommentsModule               } from '../sidebar/comments/module';
 import { SidebarAppCommentsComponent            } from '../sidebar/comments/component';
 
-import { SidebarAppCommandModule                } from '../sidebar/command/module';
-
 @NgModule({
     entryComponents : [ ],
     imports         : [
@@ -37,7 +35,6 @@ import { SidebarAppCommandModule                } from '../sidebar/command/modul
         SidebarAppConcatFilesModule,
         SidebarAppDLTConnectorModule,
         SidebarAppCommentsModule,
-        SidebarAppCommandModule,
     ]
 })
 
