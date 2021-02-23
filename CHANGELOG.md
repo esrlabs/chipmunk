@@ -1,14 +1,13 @@
 # Changelog
 
-### [2.14.1] - 02/23/2021
+## [2.14.1] - 02/23/2021
+### Added
+* DLT connector: support for IPv6
+### Fixed
+* Update filter name in details
+### Changes
+* Change events and update selection
 * Rework ip config structure for dlt-net module
-* Add more logs to tracking pending tasks
-* Resolve rust lint issue
-* [#703](feat) Support IPv6: indexer changes
-* [#703](feat) DLT connector: support for IPv6 (UI)
-* [#1076](refact) Change events and update selection
-* [#1076](fix) Update filter name in details
-* [](refact) Fix typo
 
 ## [2.14.0] - 02/19/2021
 ### Fixed
