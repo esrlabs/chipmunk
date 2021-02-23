@@ -727,7 +727,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             return;
         }
         this._ng_settings.bindingAddress =
-            options.ip_ver === undefined
+            options.ip_version === undefined
                 ? CDefaulsDLTSettingsField.bindingAddressV4
                 : options.bindingAddress;
         this._ng_settings.bindingPort = options.bindingPort;
@@ -748,7 +748,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         this._ng_settings.target =
             options.target === undefined ? CDefaulsDLTSettingsField.target : options.target;
         this._ng_settings.IPVer =
-            options.ip_ver === undefined ? CDefaulsDLTSettingsField.IPVer : options.ip_ver;
+            options.ip_version === undefined ? CDefaulsDLTSettingsField.IPVer : options.ip_version;
         if (options.fibex instanceof Array && options.fibex.length > 0) {
             this._ng_settings.fibex = true;
             this._ng_settings.fibexFiles = options.fibex;

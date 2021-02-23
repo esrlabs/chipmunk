@@ -15,7 +15,7 @@ export interface IDLTDeamonConnectionOptions {
     multicast: IDLTDeamonConnectionMulticastOptions[];
     fibex: IFilePickerFileInfo[];
     target: EDLTDeamonConnectionType;
-    ip_ver: EDLTDeamonIPVersion;
+    ip_version: EDLTDeamonIPVersion;
 }
 
 export interface IDLTDeamonRecentResponse {

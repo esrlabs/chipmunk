@@ -224,7 +224,7 @@ pub async fn index_from_socket_tcp(
         warn!("Error trying to connect to {}: {}", addr, e);
         ConnectionError::Other {
             info: format!(
-                "You cannot not connect to TCP socket {}",
+                "You cannot connect to TCP socket {}",
                 socket_config.bind_addr
             ),
         }

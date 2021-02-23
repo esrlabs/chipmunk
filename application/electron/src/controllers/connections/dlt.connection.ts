@@ -74,7 +74,7 @@ export class DLTConnectionController extends EventEmitter {
                     };
                 }),
                 target: this._connection.target === EDLTDeamonConnectionType.Udp ? 'Udp' : 'Tcp',
-                ip_ver: this._connection.ip_ver === EDLTDeamonIPVersion.IPv4 ? 'IPv4' : 'IPv6',
+                ip_version: this._connection.ip_version === EDLTDeamonIPVersion.IPv4 ? 'IPv4' : 'IPv6',
             };
             // Creating source alias
             const sourceName: string = `${this._connection.ecu}::${this._connection.bindingAddress}:${this._connection.bindingPort}`;
