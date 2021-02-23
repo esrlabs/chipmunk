@@ -47,8 +47,11 @@ export interface ISocketConfig {
     multicast_addr: IMulticastInfo[];
     bind_addr: string;
     port: string;
+	udp_connection_info?: {
+		multicast_addr: IMulticastInfo[];
+	},
     target: 'Tcp' | 'Udp',
-	ip_ver: 'IPv4' | 'IPv6',
+	ip_version: 'IPv4' | 'IPv6',
 }
 
 /// Multicast config information.
@@ -353,6 +356,9 @@ export function dltOverSocket(
 	>((resolve, reject, cancel, refCancelCB, self) => {
 		log(`dltOverSocket: params: ${JSON.stringify(params)}`);
 		try {
+			socketConfig.udp_connection_info = socketConfig.target === 'Udp' ? {
+				multicast_addr: socketConfig.multicast_addr,
+			} : undefined;
 			log(`dltOverSocket: using sock-conf: ${JSON.stringify(socketConfig)}`);
 			// Add cancel callback
 			refCancelCB(() => {
