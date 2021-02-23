@@ -3,7 +3,7 @@ import { IStorageScheme } from '../../services/service.storage';
 import { IExportAction } from '../../services/output/service.output.export';
 
 import ServiceStorage from '../../services/service.storage';
-import ServiceStreams from '../../services/service.streams';
+// import ServiceStreams from '../../services/service.streams';
 // import ServiceFileOpener from '../../services/files/service.file.opener';
 import ServiceFileRecent from '../../services/files/service.file.recent';
 import ServiceOutputExport from '../../services/output/service.output.export';
@@ -123,6 +123,7 @@ export default class ControllerElectronMenu {
             });
 
         }
+        /*
         const exportActions: IExportAction[] = ServiceOutputExport.getActions(ServiceStreams.getActiveStreamId());
         if (exportActions.length > 0) {
             template[0].submenu.push({ type: 'separator' });
@@ -132,7 +133,7 @@ export default class ControllerElectronMenu {
                     click: HandlerItemExportActionCall.bind(null, action.id),
                 });
             });
-        }
+        }*/
         template[0].submenu.push({ type: 'separator' });
         template[0].submenu.push({
             label: 'Plugins',
