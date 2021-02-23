@@ -1,0 +1,10 @@
+@startuml
+JS -> Rust: start(uuid)
+Rust -> WorkerThread: work(uuid)
+activate WorkerThread
+
+JS <-- Rust: sync_ok
+WorkerThread --> JS: Done(uuid)
+destroy WorkerThread
+
+@enduml

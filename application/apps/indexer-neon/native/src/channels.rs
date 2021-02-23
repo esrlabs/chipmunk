@@ -65,7 +65,7 @@ impl<T: 'static + Send + Debug + Serialize> Task for EventEmitterTask<T> {
         // Timeout occured, return early with `undefined
         let event: IndexingResults<T> = match event {
             Some(event) => event,
-            None => return Ok(JsUndefined::new().upcast()),
+            None => return Ok(JsUndefined::new(&mut cx).upcast()),
         };
         // Create an empty object `{}`
         Ok(match event {
