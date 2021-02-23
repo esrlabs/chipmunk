@@ -1206,14 +1206,15 @@ pub async fn main() -> Result<()> {
             let shutdown_channel = sync::mpsc::channel(1);
             let tag_string = tag.to_string();
             let socket_conf = SocketConfig {
-                multicast_addr: vec![MulticastInfo {
-                    multiaddr: ip_address.to_string(),
-                    interface: None,
-                }],
+                udp_connection_info: Some(UdpConnectionInfo {
+                    multicast_addr: vec![MulticastInfo {
+                        multiaddr: ip_address.to_string(),
+                        interface: None,
+                    }],
+                }),
                 bind_addr: "0.0.0.0".to_string(),
                 port: "8888".to_string(),
-                target: DLTConnectionProtocol::Udp,
-                ip_ver: DLTIPVer::IPv4,
+                ip_version: IpVersion::IPv4,
             };
 
             use chrono::Local;

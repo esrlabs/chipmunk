@@ -9,7 +9,9 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 use std::path;
 
 /// A IndexSection describes a section of a file by indicies
@@ -41,26 +43,37 @@ pub struct FibexConfig {
     pub fibex_file_paths: Vec<String>,
 }
 #[derive(Serialize, Deserialize, Debug)]
-pub enum DLTConnectionProtocol {
-    Tcp,
-    Udp,
-}
-#[derive(Serialize, Deserialize, Debug)]
-pub enum DLTIPVer {
+pub enum IpVersion {
     IPv4,
     IPv6,
 }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UdpConnectionInfo {
+    pub multicast_addr: Vec<MulticastInfo>,
+}
+
 /// network socket config
 /// if udp packets are sent via multicast, then the `multicast_addr` has to
 /// be specified
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SocketConfig {
-    pub multicast_addr: Vec<MulticastInfo>,
+    pub udp_connection_info: Option<UdpConnectionInfo>,
     pub bind_addr: String,
     pub port: String,
-    pub target: DLTConnectionProtocol,
-    pub ip_ver: DLTIPVer,
+    pub ip_version: IpVersion,
 }
+
+impl SocketConfig {
+    pub fn socket_addr(&self) -> Result<SocketAddr> {
+        match self.ip_version {
+            IpVersion::IPv4 => format!("{}:{}", self.bind_addr, self.port),
+            IpVersion::IPv6 => format!("[{}]:{}", self.bind_addr, self.port),
+        }
+        .parse()
+        .map_err(|e| anyhow!("Could not parse socket address: {}", e))
+    }
+}
+
 /// Multicast config information.
 /// `multiaddr` address must be a valid multicast address
 /// `interface` is the address of the local interface with which the

@@ -12,8 +12,8 @@ use bytes::BytesMut;
 use crossbeam_channel as cc;
 use indexer_base::config::FibexConfig;
 use indexer_base::{
-    chunks::{ Chunk, ChunkFactory, ChunkResults },
-    config::{ SocketConfig, DLTConnectionProtocol, DLTIPVer },
+    chunks::{Chunk, ChunkFactory, ChunkResults},
+    config::{IpVersion, SocketConfig},
     progress::*,
     utils,
 };
@@ -23,7 +23,7 @@ use std::{
 };
 use thiserror::Error;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
-use tokio_util::{codec::Decoder, udp::UdpFramed, codec::Framed};
+use tokio_util::{codec::Decoder, codec::Framed, udp::UdpFramed};
 
 #[derive(Debug, Error)]
 pub enum ConnectionError {
@@ -66,36 +66,44 @@ pub async fn index_from_socket(
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
-    let bind_addr_and_port: SocketAddr = match socket_config.ip_ver {
-        DLTIPVer::IPv4 => format!("{}:{}", socket_config.bind_addr, socket_config.port),
-        DLTIPVer::IPv6 => format!("[{}]:{}", socket_config.bind_addr, socket_config.port),
-    }.parse()?;
-    debug!(
-        "Binding socket within: {}",
-        bind_addr_and_port
-    );
+    let bind_addr_and_port: SocketAddr = match socket_config.ip_version {
+        IpVersion::IPv4 => format!("{}:{}", socket_config.bind_addr, socket_config.port),
+        IpVersion::IPv6 => format!("[{}]:{}", socket_config.bind_addr, socket_config.port),
+    }
+    .parse()?;
+    debug!("Binding socket within: {}", bind_addr_and_port);
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
-    match socket_config.target {
-        DLTConnectionProtocol::Tcp => index_from_socket_tcp(session_id,
-            bind_addr_and_port,
-            socket_config,
-            filter_config,
-            update_channel,
-            fibex_metadata,
-            tag,
-            out_path,
-            initial_line_nr,
-            shutdown_receiver).await,
-        DLTConnectionProtocol::Udp => index_from_socket_udp(session_id,
-            bind_addr_and_port,
-            socket_config,
-            filter_config,
-            update_channel,
-            fibex_metadata,
-            tag,
-            out_path,
-            initial_line_nr,
-            shutdown_receiver).await,
+    match socket_config.udp_connection_info {
+        None => {
+            index_from_socket_tcp(
+                session_id,
+                bind_addr_and_port,
+                socket_config,
+                filter_config,
+                update_channel,
+                fibex_metadata,
+                tag,
+                out_path,
+                initial_line_nr,
+                shutdown_receiver,
+            )
+            .await
+        }
+        Some(_) => {
+            index_from_socket_udp(
+                session_id,
+                bind_addr_and_port,
+                socket_config,
+                filter_config,
+                update_channel,
+                fibex_metadata,
+                tag,
+                out_path,
+                initial_line_nr,
+                shutdown_receiver,
+            )
+            .await
+        }
     }
 }
 
@@ -119,18 +127,19 @@ pub async fn index_from_socket_udp(
         tag,
         update_channel.clone(),
     )?;
-    let socket = tokio::net::UdpSocket::bind(addr)
-        .await
-        .map_err(|e| {
-            warn!("Error trying to bind to {}: {}", addr, e);
-            ConnectionError::Other {
-                info: format!(
-                    "You cannot not bind a UDP socket to {}",
-                    socket_config.bind_addr
-                ),
-            }
-        })?;
-    for multicast_info in &socket_config.multicast_addr {
+    let socket = tokio::net::UdpSocket::bind(addr).await.map_err(|e| {
+        warn!("Error trying to bind to {}: {}", addr, e);
+        ConnectionError::Other {
+            info: format!(
+                "You cannot not bind a UDP socket to {}",
+                socket_config.bind_addr
+            ),
+        }
+    })?;
+    for multicast_info in &socket_config
+        .udp_connection_info
+        .map_or_else(Vec::new, |i| i.multicast_addr)
+    {
         let multi_addr = multicast_info.multiaddr.parse()?;
         let inter = match multicast_info.interface.as_ref() {
             Some(s) => s.parse()?,
@@ -211,17 +220,15 @@ pub async fn index_from_socket_tcp(
         tag,
         update_channel.clone(),
     )?;
-    let socket = tokio::net::TcpStream::connect(addr)
-        .await
-        .map_err(|e| {
-            warn!("Error trying to connect to {}: {}", addr, e);
-            ConnectionError::Other {
-                info: format!(
-                    "You cannot not connect to TCP socket {}",
-                    socket_config.bind_addr
-                ),
-            }
-        })?;
+    let socket = tokio::net::TcpStream::connect(addr).await.map_err(|e| {
+        warn!("Error trying to connect to {}: {}", addr, e);
+        ConnectionError::Other {
+            info: format!(
+                "You cannot not connect to TCP socket {}",
+                socket_config.bind_addr
+            ),
+        }
+    })?;
     // send (0,0),(0,0) to indicate connection established
     let _ = update_channel.send(Ok(IndexingProgress::GotItem {
         item: Chunk {
@@ -324,13 +331,13 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     res
 }
 
-pub (crate) struct SessionProcessor {
+pub(crate) struct SessionProcessor {
     tmp_writer: BufWriter<std::fs::File>,
     chunk_factory: ChunkFactory,
     buf_writer: BufWriter<std::fs::File>,
     line_nr: usize,
     tag: String,
-    update_channel: cc::Sender<ChunkResults>
+    update_channel: cc::Sender<ChunkResults>,
 }
 
 impl SessionProcessor {
@@ -339,11 +346,14 @@ impl SessionProcessor {
         out_path: &std::path::PathBuf,
         initial_line_nr: usize,
         tag: &str,
-        update_channel: cc::Sender<ChunkResults>) -> Result<Self, ConnectionError> {
+        update_channel: cc::Sender<ChunkResults>,
+    ) -> Result<Self, ConnectionError> {
         let (out_file, current_out_file_size) = match utils::get_out_file_and_size(true, out_path) {
             Ok((out_file, current_out_file_size)) => (out_file, current_out_file_size),
             Err(e) => {
-                return Err(ConnectionError::UnableGetSessionFile { error: e.to_string()})
+                return Err(ConnectionError::UnableGetSessionFile {
+                    error: e.to_string(),
+                })
             }
         };
         let tmp_dlt_file = create_dlt_session_file(&session_id)?;
@@ -357,7 +367,11 @@ impl SessionProcessor {
         })
     }
 
-    pub fn event(&mut self, event: DltEvent, fibex_metadata: Option<&FibexMetadata>) -> Result<(), ConnectionError> {
+    pub fn event(
+        &mut self,
+        event: DltEvent,
+        fibex_metadata: Option<&FibexMetadata>,
+    ) -> Result<(), ConnectionError> {
         match event {
             DltEvent::Messages(msgs) => {
                 for m in msgs {
@@ -374,34 +388,35 @@ impl SessionProcessor {
                         true,
                     )?;
                     self.line_nr += 1;
-                    if let Some(chunk) = self.chunk_factory.add_bytes(self.line_nr, written_bytes_len)
+                    if let Some(chunk) = self
+                        .chunk_factory
+                        .add_bytes(self.line_nr, written_bytes_len)
                     {
                         self.buf_writer.flush()?;
-                        let _ = self.update_channel
+                        let _ = self
+                            .update_channel
                             .send(Ok(IndexingProgress::GotItem { item: chunk }));
                     }
                 }
-            },
-            DltEvent::Progress(p) => {
-                match p {
-                    Progress::Notification(n) => {
-                        let _ = self.update_channel.send(Err(n));
-                    }
-                    Progress::Ticks(Ticks { count, total}) => {
-                        let _ = self.update_channel.send(Ok(IndexingProgress::Progress {
-                            ticks: (count, total)
-                        }));
-                    }
-                    Progress::Stopped => {
-                        let _ = self.update_channel.send(Ok(IndexingProgress::Stopped));
-                    }
-                }
             }
+            DltEvent::Progress(p) => match p {
+                Progress::Notification(n) => {
+                    let _ = self.update_channel.send(Err(n));
+                }
+                Progress::Ticks(Ticks { count, total }) => {
+                    let _ = self.update_channel.send(Ok(IndexingProgress::Progress {
+                        ticks: (count, total),
+                    }));
+                }
+                Progress::Stopped => {
+                    let _ = self.update_channel.send(Ok(IndexingProgress::Stopped));
+                }
+            },
         }
         Ok(())
     }
 
-    pub fn error(&self, reason: String)  {
+    pub fn error(&self, reason: String) {
         debug!("parsing hickup: {}", reason);
         let _ = self.update_channel.send(Err(Notification {
             severity: Severity::WARNING,
@@ -413,7 +428,6 @@ impl SessionProcessor {
     pub fn close(&mut self) -> Result<(), std::io::Error> {
         self.tmp_writer.flush()
     }
-
 }
 pub(crate) struct DltMessageDecoder {
     pub(crate) filter_config: Option<filtering::ProcessedDltFilterConfig>,
