@@ -49,112 +49,112 @@ fn type_info_for_signal_ref(
     signals: &HashMap<String, String>,
     codings: &HashMap<String, String>,
 ) -> Option<TypeInfo> {
-    fn sint8() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn sint8() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength8),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn uint8() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn uint8() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength8),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn sint16() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn sint16() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength16),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn uint16() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn uint16() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength16),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn sint32() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn sint32() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength32),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn uint32() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn uint32() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn sint64() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn sint64() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Signed(TypeLength::BitLength64),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn uint64() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn uint64() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Unsigned(TypeLength::BitLength64),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn float32() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn float32() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Float(FloatWidth::Width32),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn float64() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn float64() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::Float(FloatWidth::Width64),
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn ascii_str() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn ascii_str() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::ASCII,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
-    fn utf8_str() -> Option<TypeInfo> {
-        Some(TypeInfo {
+    fn utf8_str() -> TypeInfo {
+        TypeInfo {
             kind: TypeInfoKind::StringType,
             coding: StringCoding::UTF8,
             has_variable_info: false,
             has_trace_info: false,
-        })
+        }
     }
 
     match signal_ref.as_ref() {
@@ -164,22 +164,22 @@ fn type_info_for_signal_ref(
             has_variable_info: false,
             has_trace_info: false,
         }),
-        "S_SINT8" => sint8(),
-        "S_UINT8" => uint8(),
-        "S_SINT16" => sint16(),
-        "S_UINT16" => uint16(),
-        "S_SINT32" => sint32(),
-        "S_UINT32" => uint32(),
-        "S_SINT64" => sint64(),
-        "S_UINT64" => uint64(),
+        "S_SINT8" => Some(sint8()),
+        "S_UINT8" => Some(uint8()),
+        "S_SINT16" => Some(sint16()),
+        "S_UINT16" => Some(uint16()),
+        "S_SINT32" => Some(sint32()),
+        "S_UINT32" => Some(uint32()),
+        "S_SINT64" => Some(sint64()),
+        "S_UINT64" => Some(uint64()),
         "S_FLOA16" => {
             warn!("16-bit float not supported");
             None
         }
-        "S_FLOA32" => float32(),
-        "S_FLOA64" => float64(),
-        "S_STRG_ASCII" => ascii_str(),
-        "S_STRG_UTF8" => utf8_str(),
+        "S_FLOA32" => Some(float32()),
+        "S_FLOA64" => Some(float64()),
+        "S_STRG_ASCII" => Some(ascii_str()),
+        "S_STRG_UTF8" => Some(utf8_str()),
         "S_RAWD" | "S_RAW" => Some(TypeInfo {
             kind: TypeInfoKind::Raw,
             coding: StringCoding::ASCII,
@@ -188,18 +188,18 @@ fn type_info_for_signal_ref(
         }),
         s => match signals.get(s).and_then(|s| codings.get(s)) {
             Some(base_type) => match base_type.as_ref() {
-                "A_UINT8" => uint8(),
-                "A_INT8" | "A_SINT8" => sint8(),
-                "A_UINT16" => uint16(),
-                "A_INT16" | "A_SINT16" => sint16(),
-                "A_UINT32" => uint32(),
-                "A_INT32" | "A_SINT32" => sint32(),
-                "A_UINT64" => uint64(),
-                "A_INT64" | "A_SINT64" => sint64(),
-                "A_FLOAT32" => float32(),
-                "A_FLOAT64" => float64(),
-                "A_ASCIISTRING" => ascii_str(),
-                "A_UNICODE2STRING" => utf8_str(),
+                "A_UINT8" => Some(uint8()),
+                "A_INT8" | "A_SINT8" => Some(sint8()),
+                "A_UINT16" => Some(uint16()),
+                "A_INT16" | "A_SINT16" => Some(sint16()),
+                "A_UINT32" => Some(uint32()),
+                "A_INT32" | "A_SINT32" => Some(sint32()),
+                "A_UINT64" => Some(uint64()),
+                "A_INT64" | "A_SINT64" => Some(sint64()),
+                "A_FLOAT32" => Some(float32()),
+                "A_FLOAT64" => Some(float64()),
+                "A_ASCIISTRING" => Some(ascii_str()),
+                "A_UNICODE2STRING" => Some(utf8_str()),
                 s => {
                     warn!(
                         "type_info_for_signal_ref: Signal found but base_type not known:{}",

@@ -15,6 +15,21 @@ impl Severity {
     }
 }
 
+#[derive(Debug)]
+pub enum ComputationResult<T> {
+    Item(T),
+    Stopped,
+}
+
+impl<T> ComputationResult<T> {
+    pub fn into_option(self) -> Option<T> {
+        match self {
+            Self::Item(i) => Some(i),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Progress {
