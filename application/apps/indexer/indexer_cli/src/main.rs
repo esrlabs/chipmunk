@@ -33,6 +33,7 @@ use indexer_base::{
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
+use processor::grabber::Grabber;
 use tokio::sync;
 
 lazy_static! {
@@ -101,6 +102,12 @@ pub async fn main() -> Result<()> {
                         .long("meta")
                         .value_name("META")
                         .help("slot metadata"),
+                )
+                .arg(
+                    Arg::with_name("async")
+                        .short("a")
+                        .long("async")
+                        .help("use async version"),
                 )
                 .arg(
                     Arg::with_name("start")
@@ -530,21 +537,45 @@ pub async fn main() -> Result<()> {
                     start,
                     start + length
                 );
-
+                // let rt = Runtime::new()?;
+                // rt.block_on(async {
                 let start_op = Instant::now();
 
-                let input_p = path::PathBuf::from(input_path);
-                let grabber = if matches.is_present("metadata") {
+                let input_p = path::PathBuf::from(&input_path);
+                let grabber: Grabber = if matches.is_present("metadata") {
                     let metadata_path =
                         matches.value_of("metadata").expect("input must be present");
                     println!("grabber with metadata");
-                    processor::grabber::Grabber::lazy(&input_p, "sourceA")?
-                        .load_metadata(path::PathBuf::from(metadata_path))?
+                    processor::grabber::Grabber::lazy(&input_p, "sourceA")
+                        .expect("Grabber could not be initialized lazily")
+                        .load_metadata(path::PathBuf::from(metadata_path))
+                        .expect("")
                 } else {
-                    processor::grabber::Grabber::new(&input_p, "sourceA")?
+                    let use_async = matches.is_present("async");
+                    if use_async {
+                        println!("Grabber async API");
+                        let mut empty_grabber =
+                            processor::grabber::Grabber::lazy(&input_p, "sourceA")
+                                .expect("Grabber could not be initialized lazily");
+                        let metadata = Grabber::create_metadata_async(&input_path)
+                            .await
+                            .expect("Could not create metadata async");
+                        empty_grabber.metadata = metadata.into_option();
+                        empty_grabber
+                    } else {
+                        println!("Grabber sync API");
+                        processor::grabber::Grabber::new(&input_p, "sourceA")
+                            .expect("Grabber could not be initialized lazily")
+                    }
                 };
 
-                duration_report(start_op, "initializing Grabber".to_string());
+                duration_report(
+                    start_op,
+                    format!(
+                        "initializing Grabber for {:?} lines",
+                        grabber.log_entry_count()
+                    ),
+                );
 
                 let export: bool = matches.is_present("export");
                 if export {
@@ -566,18 +597,19 @@ pub async fn main() -> Result<()> {
                 }
 
                 let start_op = Instant::now();
-                let r = LineRange::new(start, start + length);
+                let start_index = start - 1;
+                let r = LineRange::from(start_index..=(start_index + length - 1));
                 let res = grabber.get_entries(&r);
 
                 match res {
                     Ok(v) => {
                         duration_report(start_op, format!("grabbing {} lines", length));
-                        let mut i = start;
+                        let mut i = start_index;
                         for (cnt, s) in v.grabbed_elements.iter().enumerate() {
                             if s.content.len() > 50 {
-                                println!("[{}]--> {}", i, &s.content[..50]);
+                                println!("[{}]--> {}", i + 1, &s.content[..50]);
                             } else {
-                                println!("[{}]--> {}", i, &s.content);
+                                println!("[{}]--> {}", i + 1, &s.content);
                             }
                             i += 1;
                             if cnt > 15 {
@@ -585,13 +617,14 @@ pub async fn main() -> Result<()> {
                                 break;
                             }
                         }
-                        Ok(())
                     }
                     Err(e) => {
                         report_error(format!("Error during line grabbing: {}", e));
                         std::process::exit(2);
                     }
                 }
+                //});
+                Ok(())
             }
             _ => {
                 report_error("could not find out size of source file");

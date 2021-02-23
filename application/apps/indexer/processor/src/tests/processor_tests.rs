@@ -3,8 +3,13 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     extern crate rand;
     // extern crate tempdir;
+    use crate::grabber::identify_byte_range;
+    use crate::grabber::identify_end_slot_simple;
+    use crate::grabber::identify_start_slot;
+    use crate::grabber::identify_start_slot_simple;
+    use crate::grabber::FilePart;
     use crate::{
-        grabber::{Grabber, LineRange, Slot},
+        grabber::{ByteRange, Grabber, LineRange, Slot},
         processor::*,
     };
     use anyhow::Result;
@@ -16,6 +21,7 @@ mod tests {
         progress::{IndexingProgress, Notification},
     };
     use pretty_assertions::assert_eq;
+    use std::ops::RangeInclusive;
     use std::{fs, path::PathBuf};
     use tempfile::tempdir;
 
@@ -415,18 +421,85 @@ mod tests {
         }
     }
 
-    fn identify_range_simple(grabber: &Grabber, line_index: u64) -> Option<Slot> {
-        let metadata = grabber.metadata.as_ref()?;
-        for slot in &metadata.slots {
+    fn identify_range_simple(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
+        for (i, slot) in slots.iter().enumerate() {
             if slot.lines.range.contains(&line_index) {
                 println!(
-                    "found start of line index {} in {:?}",
-                    line_index, slot.bytes
+                    "found start of line index {} in {:?} (slot[{}])",
+                    line_index, slot, i
                 );
-                return Some(slot.clone());
+                return Some((slot.clone(), i));
             }
         }
         None
+    }
+
+    #[test]
+    fn test_identify_range_a() -> Result<()> {
+        fn create(br: RangeInclusive<u64>, lr: RangeInclusive<u64>) -> Slot {
+            Slot {
+                bytes: ByteRange::from(br),
+                lines: LineRange::from(lr),
+            }
+        }
+        let slots = vec![
+            create(0..=3, 0..=1),
+            create(4..=7, 1..=2),
+            create(8..=11, 2..=3),
+            create(12..=15, 4..=5),
+        ];
+        // idx +----+----+----+
+        //  00 |   0|  1 |  2 |  slots[0] (0..=3, 0..=1)
+        //  01 |   3|| 4 |  5 |  slots[1] (4..=7, 1..=2)
+        //  02 |   6|  7 || 8 |  slots[2] (8..=11, 2..=3)
+        //  03 |   9| 10 | 11||
+        //  04 |  12| 13 | 14 |  slots[3] (12..=15, 4..=5)
+        //  05 |  15||16 | 17 |
+        let slot = |i: usize| -> Option<(Slot, usize)> { Some((slots[i].clone(), i)) };
+        let identify_start = |i| -> Option<(Slot, usize)> { identify_start_slot_simple(&slots, i) };
+        let identify_end = |i| -> Option<(Slot, usize)> { identify_end_slot_simple(&slots, i) };
+
+        // line 0
+        assert_eq!(identify_start(0), slot(0));
+        assert_eq!(identify_end(0), slot(0));
+        // line 1
+        assert_eq!(identify_start(1), slot(0));
+        assert_eq!(identify_end(1), slot(1));
+        // line 2
+        assert_eq!(identify_start(2), slot(1));
+        assert_eq!(identify_end(2), slot(2));
+        // line 3
+        assert_eq!(identify_start(3), slot(2));
+        assert_eq!(identify_end(3), slot(2));
+        // line 4
+        assert_eq!(identify_start(4), slot(3));
+        assert_eq!(identify_end(4), slot(3));
+        // line 5
+        assert_eq!(identify_start(5), slot(3));
+        assert_eq!(identify_end(5), slot(3));
+
+        assert_eq!(
+            identify_byte_range(&slots, &LineRange::single_line(0)),
+            Some(FilePart {
+                offset_in_file: 0,
+                length: 4,
+                total_lines: 2,
+                lines_to_skip: 0,
+                lines_to_drop: 1,
+            })
+        );
+        assert_eq!(
+            identify_byte_range(&slots, &LineRange::from(1..=2)),
+            Some(FilePart {
+                offset_in_file: 0,
+                length: 12,
+                total_lines: 4,
+                lines_to_skip: 1,
+                lines_to_drop: 1,
+            })
+        );
+
+        Ok(())
     }
 
     #[test]
@@ -447,11 +520,13 @@ mod tests {
             let line_count = Grabber::count_lines(&p)? as u64;
             let grabber = Grabber::new(&p, "sourceA")?;
 
-            for line_index in 0..line_count {
-                assert_eq!(
-                    identify_range_simple(&grabber, line_index),
-                    grabber.identify_slot(line_index)
-                );
+            if let Some(metadata) = &grabber.metadata {
+                for line_index in 0..line_count {
+                    assert_eq!(
+                        identify_range_simple(&metadata.slots, line_index),
+                        identify_start_slot(&metadata.slots, line_index)
+                    );
+                }
             }
         }
         // long lines
@@ -468,10 +543,11 @@ mod tests {
             let line_count = Grabber::count_lines(&p)? as u64;
             println!("----------> file has {} lines", line_count);
             let grabber = Grabber::new(&p, "sourceA")?;
+            let slots = grabber.metadata.unwrap().slots;
             for line_index in 0..line_count {
                 assert_eq!(
-                    identify_range_simple(&grabber, line_index),
-                    grabber.identify_slot(line_index)
+                    identify_range_simple(&slots, line_index),
+                    identify_start_slot(&slots, line_index)
                 );
             }
         }
@@ -486,7 +562,7 @@ mod tests {
         write!(file, "a")?;
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
-        let single_line_range = LineRange::new(0, 1);
+        let single_line_range = LineRange::single_line(0);
         let naive = grabber
             .get_entries(&single_line_range)?
             .grabbed_elements
@@ -519,7 +595,7 @@ mod tests {
         }
         let p = file.into_temp_path();
         if let Ok(grabber) = Grabber::new(&p, "sourceA") {
-            let r = LineRange::new(0, v.len() as u64);
+            let r = LineRange::from(0..=((v.len() - 1) as u64));
             let naive = grabber
                 .get_entries(&r)
                 .expect("entries not grabbed")
@@ -542,7 +618,7 @@ mod tests {
         writeln!(file)?;
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
-        let one_line_empty_range = LineRange::new(1, 2);
+        let one_line_empty_range = LineRange::single_line(1);
         let naive = grabber.get_entries(&one_line_empty_range)?;
         let entries: Vec<String> = vec!["".to_owned()];
         assert_eq!(
@@ -564,7 +640,36 @@ mod tests {
         write!(file, "ABC")?;
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
-        let one_line_range = LineRange::new(0, 1);
+        let one_line_range = LineRange::single_line(0);
+        let c1 = grabber
+            .get_entries(&one_line_range)?
+            .grabbed_elements
+            .into_iter()
+            .map(|e| e.content)
+            .collect::<Vec<String>>();
+        let c2: Vec<String> = vec!["ABC".to_owned()];
+        assert_eq!(c1, c2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_lines_problem() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+        let mut file = NamedTempFile::new()?;
+        writeln!(file, " 1 testblah")?;
+        writeln!(file, " 2 testblah")?;
+        writeln!(file, " 3 testblah")?;
+        writeln!(file, " 4 testblah")?;
+        writeln!(file, " 5 testblah")?;
+        writeln!(file, " 6 testblah")?;
+        writeln!(file, " 7 testblah")?;
+        writeln!(file, " 8 testblah")?;
+        writeln!(file, " 9 testblah")?;
+        write!(file, "10 testblah")?;
+        let p = file.into_temp_path();
+        let grabber = Grabber::new(&p, "sourceA")?;
+        let one_line_range = LineRange::single_line(0);
         let c1 = grabber
             .get_entries(&one_line_range)?
             .grabbed_elements
@@ -586,7 +691,7 @@ mod tests {
         writeln!(file)?;
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
-        let one_line_range = LineRange::new(0, 1);
+        let one_line_range = LineRange::single_line(0);
         let c1 = grabber
             .get_entries(&one_line_range)?
             .grabbed_elements
