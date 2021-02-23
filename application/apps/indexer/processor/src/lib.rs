@@ -21,6 +21,7 @@ extern crate crossbeam_channel as cc;
 pub mod grabber;
 pub mod parse;
 pub mod processor;
+pub mod search;
 
 #[cfg(test)]
 mod tests;
