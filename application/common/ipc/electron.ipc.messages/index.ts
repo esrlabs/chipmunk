@@ -638,6 +638,9 @@ export { ShellRecentCommandsRequest };
 import { IShellRecentCommandsResponse, ShellRecentCommandsResponse } from './shell.recent.commands.response';
 export { IShellRecentCommandsResponse, ShellRecentCommandsResponse };
 
+import { IShellProcessListEvent, ShellProcessListEvent } from './shell.process.list.event';
+export { IShellProcessListEvent, ShellProcessListEvent };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -848,7 +851,8 @@ export type TMessage =  AppRestartRequest |
                         ShellSetPwdRequest |
                         ShellSetPwdResponse |
                         ShellRecentCommandsRequest |
-                        ShellRecentCommandsResponse;
+                        ShellRecentCommandsResponse |
+                        ShellProcessListEvent;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
@@ -1092,5 +1096,6 @@ export const Map = {
     [ShellSetPwdResponse.signature                  ]: ShellSetPwdResponse,
     [ShellRecentCommandsRequest.signature           ]: ShellRecentCommandsRequest,
     [ShellRecentCommandsResponse.signature          ]: ShellRecentCommandsResponse,
+    [ShellProcessListEvent.signature                ]: ShellProcessListEvent,
 
 };
