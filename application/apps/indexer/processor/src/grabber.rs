@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Context, Result};
+use indexer_base::progress::Ticks;
 use indexer_base::{
-    progress::{IndexingProgress, IndexingResults},
+    progress::{IndexingProgress, IndexingResults, Progress},
     utils,
 };
 use serde::{Deserialize, Serialize};
@@ -10,6 +10,30 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum GrabError {
+    #[error("Configuration error ({0})")]
+    Config(String),
+    #[error("Channel-Communication error ({0})")]
+    Communication(String),
+    #[error("IO error while grabbing: ({0})")]
+    IoOperation(#[from] std::io::Error),
+    #[error("Invalid range: ({0:?})")]
+    InvalidRange(LineRange),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrabbedElement {
+    pub source_id: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrabbedContent {
+    pub grabbed_elements: Vec<GrabbedElement>,
+}
 
 const DEFAULT_SLOT_SIZE: usize = 64 * 1024usize;
 
@@ -71,6 +95,7 @@ impl Slot {
 
 #[derive(Debug)]
 pub struct Grabber {
+    pub source_id: String,
     pub path: PathBuf,
     pub metadata: Option<GrabMetadata>,
     pub input_file_size: u64,
@@ -82,13 +107,18 @@ impl Grabber {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn lazy(path: impl AsRef<Path>) -> Result<Self> {
-        let input_file_size = std::fs::metadata(&path)?.len();
+    pub fn lazy(path: impl AsRef<Path>, source_id: &str) -> Result<Self, GrabError> {
+        let input_file_size = std::fs::metadata(&path)
+            .map_err(|e| {
+                GrabError::Config(format!("Could not determine size of input file: {}", e))
+            })?
+            .len();
         if input_file_size == 0 {
-            return Err(anyhow!("Cannot grab empty file"));
+            return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
 
         Ok(Self {
+            source_id: source_id.to_owned(),
             path: path.as_ref().to_owned(),
             metadata: None,
             input_file_size,
@@ -100,19 +130,14 @@ impl Grabber {
     /// function.
     pub fn create_metadata(
         &mut self,
-        result_sender: cc::Sender<IndexingResults<()>>,
+        result_sender: cc::Sender<Progress>,
         shutdown_rx: Option<cc::Receiver<()>>,
-    ) -> Result<()> {
-        let result = match self.metadata {
-            Some(_) => Ok(()),
-            None => {
-                self.metadata =
-                    Grabber::create_metadata_for_file(&self.path, &result_sender, shutdown_rx)?;
-                Ok(())
-            }
-        };
-        result_sender.send(Ok(IndexingProgress::Finished))?;
-        result
+    ) -> Result<(), GrabError> {
+        if self.metadata.is_none() {
+            self.metadata =
+                Grabber::create_metadata_for_file(&self.path, &result_sender, shutdown_rx)?;
+        }
+        Ok(())
     }
 
     /// Create a new Grabber by deviding the file content into slots
@@ -121,16 +146,19 @@ impl Grabber {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn new(path: impl AsRef<Path>) -> Result<Self> {
-        let input_file_size = std::fs::metadata(&path)?.len();
+    pub fn new(path: impl AsRef<Path>, source_id: &str) -> Result<Self, GrabError> {
+        let input_file_size = std::fs::metadata(&path)
+            .map_err(|e| GrabError::Config("Could not get metadata of file to grab".to_string()))?
+            .len();
         if input_file_size == 0 {
-            return Err(anyhow!("Cannot grab empty file"));
+            return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
 
         let unused_channel = cc::unbounded();
         let metadata = Grabber::create_metadata_for_file(&path, &unused_channel.0, None)?;
 
         Ok(Self {
+            source_id: source_id.to_owned(),
             path: path.as_ref().to_owned(),
             metadata,
             input_file_size,
@@ -140,17 +168,23 @@ impl Grabber {
 
     /// if the metadata for a path already exists, it can be read
     /// from a file
-    pub fn load_metadata(mut self, slots_path: impl AsRef<Path>) -> Result<Self> {
-        let mut slots_file = fs::File::open(&slots_path)?;
+    pub fn load_metadata(mut self, slots_path: impl AsRef<Path>) -> Result<Self, GrabError> {
+        let mut slots_file = fs::File::open(&slots_path)
+            .map_err(|e| GrabError::Config(format!("Could not open slot file: {}", e)))?;
         let mut buffer = vec![];
         let _bytes_read = slots_file.read_to_end(&mut buffer);
-        self.metadata = Some(bincode::deserialize(&buffer)?);
+        self.metadata = Some(
+            bincode::deserialize(&buffer)
+                .map_err(|_| GrabError::Config("Could not deserialize metadata".to_string()))?,
+        );
         Ok(self)
     }
 
-    fn last_line_empty(path: impl AsRef<Path>) -> Result<bool> {
-        let mut f = fs::File::open(&path)?;
-        f.seek(SeekFrom::End(-1))?;
+    fn last_line_empty(path: impl AsRef<Path>) -> Result<bool, GrabError> {
+        let mut f = fs::File::open(&path)
+            .map_err(|e| GrabError::Config(format!("Could not open file to grab: {}", e)))?;
+        f.seek(SeekFrom::End(-1))
+            .map_err(|e| GrabError::Config(format!("Could seek to end of file: {}", e)))?;
         let mut buffer = vec![0; 1];
         let len = f.read(&mut buffer)?;
         if len == 0 {
@@ -161,12 +195,13 @@ impl Grabber {
 
     pub fn create_metadata_for_file(
         path: impl AsRef<Path>,
-        result_sender: &cc::Sender<IndexingResults<()>>,
+        result_sender: &cc::Sender<Progress>,
         shutdown_receiver: Option<cc::Receiver<()>>,
-    ) -> Result<Option<GrabMetadata>> {
-        let mut f = fs::File::open(&path)?;
+    ) -> Result<Option<GrabMetadata>, GrabError> {
+        let mut f = fs::File::open(&path)
+            .map_err(|e| GrabError::Config(format!("Could not open file to grab: {}", e)))?;
         let input_file_size = std::fs::metadata(&path)
-            .with_context(|| "Could not determine size of file".to_string())?
+            .map_err(|e| GrabError::Config("Could not determine size of file".to_string()))?
             .len();
         let mut slots = Vec::<Slot>::new();
 
@@ -175,7 +210,9 @@ impl Grabber {
         let mut processed_lines = 0u64;
         while let Ok(len) = f.read(&mut buffer) {
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
-                result_sender.send(Ok(IndexingProgress::Stopped))?;
+                result_sender
+                    .send(Progress::Stopped)
+                    .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
                 return Ok(None);
             }
             if len == 0 {
@@ -192,18 +229,25 @@ impl Grabber {
             slots.push(slot);
             byte_index += len as u64;
             processed_lines += line_count;
-            result_sender.send(Ok(IndexingProgress::Progress {
-                ticks: (byte_index, input_file_size),
-            }))?;
+            result_sender
+                .send(Progress::ticks(byte_index, input_file_size))
+                .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
         }
+        result_sender
+            .send(Progress::ticks(input_file_size, input_file_size))
+            .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
         Ok(Some(GrabMetadata {
             slots,
             line_count: processed_lines as usize,
         }))
     }
 
-    pub fn export_slots(&self, out_path: impl AsRef<Path> + std::fmt::Debug) -> Result<()> {
-        let encoded: Vec<u8> = bincode::serialize(&self.metadata)?;
+    pub fn export_slots(
+        &self,
+        out_path: impl AsRef<Path> + std::fmt::Debug,
+    ) -> Result<(), GrabError> {
+        let encoded: Vec<u8> = bincode::serialize(&self.metadata)
+            .map_err(|_| GrabError::Config("Could not serialize metadata".to_string()))?;
         let mut output = fs::File::create(&out_path)?;
         output.write_all(&encoded)?;
         Ok(())
@@ -254,9 +298,9 @@ impl Grabber {
     /// Get all lines in a file within the supplied line-range
     /// naive implementation that just reads all slots that are involved and drops
     /// everything that is not needed
-    pub fn get_entries(&self, line_range: &LineRange) -> Result<Vec<String>> {
+    pub fn get_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
         if line_range.range.end <= line_range.range.start {
-            return Err(anyhow!("Invalid range: {:?}", line_range));
+            return Err(GrabError::InvalidRange(line_range.clone()));
         }
         use std::io::prelude::*;
         let maybe_start_slot = self.identify_slot(line_range.range.start);
@@ -274,26 +318,31 @@ impl Grabber {
                     vec![0; (end_slot.bytes.range.end - start_slot.bytes.range.start) as usize];
                 let mut read_from = fs::File::open(&self.path)?;
                 read_from.seek(SeekFrom::Start(start_slot.bytes.range.start))?;
-                read_from.read_exact(&mut read_buf).with_context(|| {
-                    format!("Failed to read bytes from {}", &self.path.display())
-                })?;
+                read_from.read_exact(&mut read_buf)?; //.with_context(|| {
+                                                      //     format!("Failed to read bytes from {}", &self.path.display())
+                                                      // })?;
                 let to_skip = line_range.range.start - start_slot.lines.range.start;
                 let to_take = line_range.range.end - line_range.range.start;
                 let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
-                let lines_res = s
+                let grabbed_elements = s
                     .split(|c| c == '\n' || c == '\r')
                     .skip(to_skip as usize)
                     .take(to_take as usize)
-                    .map(|s| s.to_owned())
-                    .collect::<Vec<String>>();
-                Ok(lines_res)
+                    .map(|s| GrabbedElement {
+                        source_id: self.source_id.clone(),
+                        content: s.to_owned(),
+                    })
+                    .collect::<Vec<GrabbedElement>>();
+                Ok(GrabbedContent { grabbed_elements })
             }
-            _ => Ok(vec![]),
+            _ => Ok(GrabbedContent {
+                grabbed_elements: vec![],
+            }),
         }
     }
 
     #[allow(dead_code)]
-    pub(crate) fn count_lines(path: impl Into<PathBuf>) -> Result<usize> {
+    pub(crate) fn count_lines(path: impl Into<PathBuf>) -> Result<usize, GrabError> {
         let chunk_size = 100 * 1024usize;
         let mut f = fs::File::open(path.into())?;
         let mut count = 0usize;
