@@ -590,6 +590,54 @@ export { ElectronEnvPlatformRequest};
 import { IElectronEnvPlatformResponse, ElectronEnvPlatformResponse } from './electron.env.platform.response';
 export { IElectronEnvPlatformResponse, ElectronEnvPlatformResponse };
 
+import { IShellEnvRequest, ShellEnvRequest } from './shell.env.request';
+export { IShellEnvRequest, ShellEnvRequest };
+
+import { IShellEnvResponse, ShellEnvResponse } from './shell.env.response';
+export { IShellEnvResponse, ShellEnvResponse };
+
+import { IShellProcessDetailsRequest, ShellProcessDetailsRequest } from './shell.process.details.request';
+export { IShellProcessDetailsRequest, ShellProcessDetailsRequest };
+
+import { IShellProcessDetailsResponse, ShellProcessDetailsResponse } from './shell.process.details.response';
+export { IShellProcessDetailsResponse, ShellProcessDetailsResponse };
+
+import { IShellProcessKillRequest, ShellProcessKillRequest } from './shell.process.kill.request';
+export { IShellProcessKillRequest, ShellProcessKillRequest };
+
+import { IShellProcessKillResponse, ShellProcessKillResponse} from './shell.process.kill.response';
+export { IShellProcessKillResponse, ShellProcessKillResponse };
+
+import { IShellProcessListRequest, ShellProcessListRequest } from './shell.process.list.request';
+export { IShellProcessListRequest, ShellProcessListRequest};
+
+import { IShellProcessListResponse, ShellProcessListResponse, IShellProcess, IShellProcessMeta, IShellProcessStat } from './shell.process.list.response';
+export { IShellProcessListResponse, ShellProcessListResponse, IShellProcess, IShellProcessMeta, IShellProcessStat };
+
+import { IShellProcessRunRequest, ShellProcessRunRequest } from './shell.process.run.request';
+export { IShellProcessRunRequest, ShellProcessRunRequest };
+
+import { IShellProcessRunResponse, ShellProcessRunResponse } from './shell.process.run.response';
+export { IShellProcessRunResponse, ShellProcessRunResponse };
+
+import { IShellProcessStartedEvent, ShellProcessStartedEvent } from './shell.process.started.event';
+export { IShellProcessStartedEvent, ShellProcessStartedEvent };
+
+import { IShellProcessStoppedEvent, ShellProcessStoppedEvent } from './shell.process.stopped.event';
+export { IShellProcessStoppedEvent, ShellProcessStoppedEvent };
+
+import { IShellSetPwdRequest, ShellSetPwdRequest } from './shell.set.env.request';
+export { IShellSetPwdRequest, ShellSetPwdRequest };
+
+import { IShellSetPwdResponse, ShellSetPwdResponse } from './shell.set.env.response';
+export { IShellSetPwdResponse, ShellSetPwdResponse };
+
+import { ShellRecentCommandsRequest } from './shell.recent.commands.request';
+export { ShellRecentCommandsRequest };
+
+import { IShellRecentCommandsResponse, ShellRecentCommandsResponse } from './shell.recent.commands.response';
+export { IShellRecentCommandsResponse, ShellRecentCommandsResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -784,8 +832,23 @@ export type TMessage =  AppRestartRequest |
                         ElectronEnvShowOpenDialogRequest |
                         ElectronEnvShowOpenDialogResponse |
                         ElectronEnvPlatformRequest |
-                        ElectronEnvPlatformResponse;
-
+                        ElectronEnvPlatformResponse |
+                        ShellEnvRequest |
+                        ShellEnvResponse |
+                        ShellProcessDetailsRequest |
+                        ShellProcessDetailsResponse |
+                        ShellProcessKillRequest |
+                        ShellProcessKillResponse |
+                        ShellProcessListRequest |
+                        ShellProcessListResponse |
+                        ShellProcessRunRequest |
+                        ShellProcessRunResponse |
+                        ShellProcessStartedEvent |
+                        ShellProcessStoppedEvent |
+                        ShellSetPwdRequest |
+                        ShellSetPwdResponse |
+                        ShellRecentCommandsRequest |
+                        ShellRecentCommandsResponse;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
@@ -1012,4 +1075,22 @@ export const Map = {
     [ElectronEnvShowOpenDialogResponse.signature    ]: ElectronEnvShowOpenDialogResponse,
     [ElectronEnvPlatformRequest.signature           ]: ElectronEnvPlatformRequest,
     [ElectronEnvPlatformResponse.signature          ]: ElectronEnvPlatformResponse,
+
+    [ShellEnvRequest.signature                      ]: ShellEnvRequest,
+    [ShellEnvResponse.signature                     ]: ShellEnvResponse,
+    [ShellProcessDetailsRequest.signature           ]: ShellProcessDetailsRequest,
+    [ShellProcessDetailsResponse.signature          ]: ShellProcessDetailsResponse,
+    [ShellProcessKillRequest.signature              ]: ShellProcessKillRequest,
+    [ShellProcessKillResponse.signature             ]: ShellProcessKillResponse,
+    [ShellProcessListRequest.signature              ]: ShellProcessListRequest,
+    [ShellProcessListResponse.signature             ]: ShellProcessListResponse,
+    [ShellProcessRunRequest.signature               ]: ShellProcessRunRequest,
+    [ShellProcessRunResponse.signature              ]: ShellProcessRunResponse,
+    [ShellProcessStartedEvent.signature             ]: ShellProcessStartedEvent,
+    [ShellProcessStoppedEvent.signature             ]: ShellProcessStoppedEvent,
+    [ShellSetPwdRequest.signature                   ]: ShellSetPwdRequest,
+    [ShellSetPwdResponse.signature                  ]: ShellSetPwdResponse,
+    [ShellRecentCommandsRequest.signature           ]: ShellRecentCommandsRequest,
+    [ShellRecentCommandsResponse.signature          ]: ShellRecentCommandsResponse,
+
 };
