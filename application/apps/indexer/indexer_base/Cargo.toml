@@ -5,14 +5,17 @@ authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2018"
 
 [dependencies]
-regex = "1"
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-buf_redux = "0.8.1"
 anyhow = "1.0"
-log = "0.4"
-rustc-hash = "1.1.0"
+buf_redux = "0.8.1"
 crossbeam-channel = "0.5.0"
+grep-matcher = "0.1.4"
+grep-regex = "0.1.8"
+grep-searcher = "0.1.7"
+log = "0.4"
+regex = "1"
+rustc-hash = "1.1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [dev-dependencies]
 tempdir = "0.3"
