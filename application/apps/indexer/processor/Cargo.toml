@@ -13,7 +13,12 @@ bytecount = "0.6.0"
 chrono = "0.4"
 crossbeam-channel = "0.5.0"
 encoding_rs_io = "0.1.7"
+futures = { version = "0.3.4", features = ["std", "async-await"], default-features = false }
+grep-matcher = "0.1.4"
+grep-regex = "0.1.8"
+grep-searcher = "0.1.7"
 indexer_base = { path = "../indexer_base" }
+itertools = "0.10.0"
 lazy_static = "1.4.0"
 log = "0.4"
 nom = "5.1.2"
@@ -21,6 +26,7 @@ regex = "1"
 rustc-hash = "1.1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+tokio = { version = "1.1.0", features = ["full"] }
 
 [dev-dependencies]
 criterion = "0.3.3"
