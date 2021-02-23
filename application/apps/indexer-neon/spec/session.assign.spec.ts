@@ -51,7 +51,7 @@ describe('Session', function() {
 			console.log(`Fail to set filters due error: ${err.message}`);
 		}
         expect(JSON.stringify(session.getFilters())).toEqual(JSON.stringify([ filterA ]));
-		
+
 		err = session.setFilters([ filterB ]);
 		expect(err).toBe(undefined);
 		if (err !== undefined) {
@@ -72,7 +72,7 @@ describe('Session', function() {
 			console.log(`Fail to set filters due error: ${err.message}`);
 		}
 		expect(JSON.stringify(session.getFilters())).toEqual(JSON.stringify([ ]));
-	
+
 		// Check state of provider
 		expect(provider.debug().stat.unsupported().length).toEqual(0);
 		expect(provider.debug().stat.error().length).toEqual(0);
@@ -80,7 +80,7 @@ describe('Session', function() {
 		done();
 	});
 
-	it('Set/Get filters', function(done) {
+	it('Assign and grab content', function(done) {
 		function createSampleFile(lines: number) {
 			const tmpobj = tmp.fileSync();
 			console.log(`Create example grabber file`);
@@ -97,7 +97,7 @@ describe('Session', function() {
 		// Set provider into debug mode
 		provider.debug().setStoring(true);
 		provider.debug().setTracking(true);
-		
+
 		const session = new RustSessionDebug(suuid, provider.getEmitter());
 		expect(session.id()).toEqual(suuid);
 

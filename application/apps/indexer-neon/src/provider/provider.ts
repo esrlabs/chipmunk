@@ -137,7 +137,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                     .join(', ')}`;
             }
         }
-        this.logger.debug(`Has been gotten rust event:\n\t${dataAsStr(data)}`);
+        this.logger.debug(`Event from rust:\n\t${dataAsStr(data)}`);
         let event: Required<IEventData>;
         if (typeof data === 'string') {
             try {

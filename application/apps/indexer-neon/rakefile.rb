@@ -7,9 +7,10 @@ LOCAL_EXAMPLE_DIR = "#{Dir.home}/tmp/logviewer_usecases"
 TEST_DIR = './tests'
 OUT_DIR = './out'
 NEON = './node_modules/.bin/neon'
+NEON_BUILD_ENV = 'node_modules/.bin/electron-build-env'
 TSC = './node_modules/.bin/tsc'
 TESTS_JS_REQUIRE = 'require("./dist/apps/indexer-neon/src/tests.js")'
-TEST_RUNNER = './node_modules/.bin/jasmine-ts'
+TEST_RUNNER = './node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js'
 HUGE_LOGFILE = "#{LOCAL_EXAMPLE_DIR}/indexing/access_huge.log"
 MONSTER_LOGFILE = "#{LOCAL_EXAMPLE_DIR}/indexing/test_huge.log"
 
@@ -22,7 +23,7 @@ CLEAN.include(["#{OUT_DIR}/*.*",
 desc 'test'
 task :test do
   sh "#{TSC} -p ./tsconfig.json"
-  sh "#{NEON} build --release"
+  sh "#{NEON_BUILD_ENV} neon build --release"
   sh TEST_RUNNER
 end
 

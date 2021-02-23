@@ -12,7 +12,7 @@ name = "chipmunk_integration"
 crate-type = ["cdylib"]
 
 [build-dependencies]
-neon-build = "0.5.3"
+neon-build = "0.7.0"
 
 [target.'cfg(windows)'.build-dependencies]
 cc = "1.0"
@@ -24,13 +24,14 @@ dirs = "3.0.1"
 dlt = { path = "../../indexer/dlt" }
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
-log4rs = "0.13.0"
+log4rs = "1.0.0"
 merging = { path = "../../indexer/merging" }
-neon = { version = "0.5.3", features = ["event-handler-api"] }
+neon = { version = "0.7.0", default-features = false, features = ["napi-4", "event-queue-api"] }
 processor = { path = "../../indexer/processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 strum_macros = "0.20.1"
-tempfile = "3.1.0"
+tempfile = "3.2.0"
 thiserror = "1.0.22"
 tokio = { version = "1.2.0", features = ["full"] }
+uuid = { version = "0.8.2", features = ["serde", "v4"] }
