@@ -31,7 +31,7 @@ export default class ControllerStreamShell {
 
     constructor(guid: string) {
         this._guid = guid;
-        this._logger = new Logger(`ControllerStreamSearch: ${guid}`);
+        this._logger = new Logger(`ControllerStreamShell: ${guid}`);
         let error: Error | undefined;
         // This controller should not block loading of app. Even initialization is failed, it
         // should not throw an exception.
