@@ -1,11 +1,6 @@
 import { IFilePickerFileInfo} from './file.filepicker.response';
 import { IDLTDeamonConnectionMulticastOptions } from './dlt.deamon.recent.response'
 
-export enum EDLTDeamonIPVersion{
-    IPv4 = 'IPv4',
-    IPv6 = 'IPv6',
-}
-
 export enum EDLTDeamonConnectionType {
     Tcp = 'Tcp',
     Udp = 'Udp',
@@ -20,7 +15,6 @@ export interface IDLTDeamonConnectRequest {
     multicast: IDLTDeamonConnectionMulticastOptions[];
     fibex: IFilePickerFileInfo[];
     target: EDLTDeamonConnectionType;
-    IPVer: EDLTDeamonIPVersion;
 }
 
 export class DLTDeamonConnectRequest {
@@ -35,7 +29,6 @@ export class DLTDeamonConnectRequest {
     public multicast: IDLTDeamonConnectionMulticastOptions[];
     public fibex: IFilePickerFileInfo[] = [];
     public target: EDLTDeamonConnectionType = EDLTDeamonConnectionType.Udp;
-    public IPVer: EDLTDeamonIPVersion = EDLTDeamonIPVersion.IPv4;
 
     constructor(params: IDLTDeamonConnectRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -66,9 +59,6 @@ export class DLTDeamonConnectRequest {
         if (typeof params.target !== 'string' || params.target.trim() === '') {
             throw new Error(`target should be defined.`);
         }
-        if (typeof params.IPVer !== 'string' || params.IPVer.trim() === '') {
-            throw new Error(`IPVer should be defined.`);
-        }
         this.id = params.id;
         this.session = params.session;
         this.ecu = params.ecu;
@@ -77,6 +67,5 @@ export class DLTDeamonConnectRequest {
         this.multicast = params.multicast;
         this.fibex = params.fibex;
         this.target = params.target;
-        this.IPVer = params.IPVer;
     }
 }

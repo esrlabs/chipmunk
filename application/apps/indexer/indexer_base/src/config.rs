@@ -11,7 +11,7 @@
 // from E.S.R.Labs.
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
+use std::net::{ SocketAddr, IpAddr };
 use std::path;
 
 /// A IndexSection describes a section of a file by indicies
@@ -42,11 +42,7 @@ pub struct IndexingConfig {
 pub struct FibexConfig {
     pub fibex_file_paths: Vec<String>,
 }
-#[derive(Serialize, Deserialize, Debug)]
-pub enum IpVersion {
-    IPv4,
-    IPv6,
-}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UdpConnectionInfo {
     pub multicast_addr: Vec<MulticastInfo>,
@@ -60,17 +56,29 @@ pub struct SocketConfig {
     pub udp_connection_info: Option<UdpConnectionInfo>,
     pub bind_addr: String,
     pub port: String,
-    pub ip_version: IpVersion,
 }
 
 impl SocketConfig {
     pub fn socket_addr(&self) -> Result<SocketAddr> {
-        match self.ip_version {
-            IpVersion::IPv4 => format!("{}:{}", self.bind_addr, self.port),
-            IpVersion::IPv6 => format!("[{}]:{}", self.bind_addr, self.port),
+        // Touch IPv4
+        let addr: Option<SocketAddr> = match format!("{}:{}", self.bind_addr, self.port).parse() {
+            Ok(addr) => Some(addr),
+            Err(_) => None,
+        };
+        if let Some(addr) = addr {
+            Ok(addr)
+        } else {
+            // Touch IPv6
+            format!("[{}]:{}", self.bind_addr, self.port)
+                .parse()
+                .map_err(|_| {
+                    anyhow!(
+                        "Could not parse socket address from {}, port {}",
+                        self.bind_addr,
+                        self.port
+                    )
+                })
         }
-        .parse()
-        .map_err(|e| anyhow!("Could not parse socket address: {}", e))
     }
 }
 
@@ -84,4 +92,12 @@ impl SocketConfig {
 pub struct MulticastInfo {
     pub multiaddr: String,
     pub interface: Option<String>,
+}
+
+impl MulticastInfo {
+    pub fn multicast_addr(&self) -> Result<IpAddr> {
+        format!("{}", self.multiaddr)
+            .parse()
+            .map_err(|e| anyhow!("Could not parse mulitcast address: {}", e))
+    }
 }

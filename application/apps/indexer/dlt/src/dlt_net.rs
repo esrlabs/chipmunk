@@ -13,13 +13,13 @@ use crossbeam_channel as cc;
 use indexer_base::config::FibexConfig;
 use indexer_base::{
     chunks::{Chunk, ChunkFactory, ChunkResults},
-    config::{IpVersion, SocketConfig},
+    config::{SocketConfig},
     progress::*,
     utils,
 };
 use std::{
     io::{BufWriter, Write},
-    net::{Ipv4Addr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 use thiserror::Error;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
@@ -52,6 +52,13 @@ impl From<std::net::AddrParseError> for ConnectionError {
         }
     }
 }
+impl From<std::num::ParseIntError> for ConnectionError {
+    fn from(err: std::num::ParseIntError) -> ConnectionError {
+        ConnectionError::WrongConfiguration {
+            cause: format!("{}", err),
+        }
+    }
+}
 
 #[allow(clippy::too_many_arguments)]
 pub async fn index_from_socket(
@@ -66,11 +73,12 @@ pub async fn index_from_socket(
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
-    let bind_addr_and_port: SocketAddr = match socket_config.ip_version {
-        IpVersion::IPv4 => format!("{}:{}", socket_config.bind_addr, socket_config.port),
-        IpVersion::IPv6 => format!("[{}]:{}", socket_config.bind_addr, socket_config.port),
-    }
-    .parse()?;
+    let bind_addr_and_port: SocketAddr = match socket_config.socket_addr() {
+        Ok(addr) => addr,
+        Err(e) => {
+            return Err(ConnectionError::WrongConfiguration { cause: format!("{}", e) });
+        }
+    };
     debug!("Binding socket within: {}", bind_addr_and_port);
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
     match socket_config.udp_connection_info {
@@ -140,20 +148,35 @@ pub async fn index_from_socket_udp(
         .udp_connection_info
         .map_or_else(Vec::new, |i| i.multicast_addr)
     {
-        let multi_addr = multicast_info.multiaddr.parse()?;
-        let inter = match multicast_info.interface.as_ref() {
-            Some(s) => s.parse()?,
-            None => Ipv4Addr::new(0, 0, 0, 0),
+        let multi_addr = multicast_info.multicast_addr()?;
+        match multi_addr {
+            IpAddr::V4(addr) => {
+                let inter: Ipv4Addr = match multicast_info.interface.as_ref() {
+                    Some(s) => s.parse()?,
+                    None => Ipv4Addr::new(0, 0, 0, 0),
+                };
+                if let Err(e) = socket.join_multicast_v4(addr, inter) {
+                    let msg = format!("error joining multicast group: {}", e);
+                    warn!("{}", msg);
+                    return Err(ConnectionError::UnableToConnect { reason: msg });
+                }
+                debug!(
+                    "Joining UDP multicast group: socket.join_multicast_v4({}, {})",
+                    addr, inter
+                );
+            },
+            IpAddr::V6(addr) => {
+                let inter: u32 = match multicast_info.interface.as_ref() {
+                    Some(s) => s.parse::<u32>()?,
+                    None => 0,
+                };
+                if let Err(e) = socket.join_multicast_v6(&addr, inter) {
+                    let msg = format!("error joining multicast group: {}", e);
+                    warn!("{}", msg);
+                    return Err(ConnectionError::UnableToConnect { reason: msg });
+                }
+            }
         };
-        debug!(
-            "Joining UDP multicast group: socket.join_multicast_v4({}, {})",
-            multi_addr, inter
-        );
-        if let Err(e) = socket.join_multicast_v4(multi_addr, inter) {
-            let msg = format!("error joining multicast group: {}", e);
-            warn!("{}", msg);
-            return Err(ConnectionError::UnableToConnect { reason: msg });
-        }
     }
     // send (0,0),(0,0) to indicate connection established
     let _ = update_channel.send(Ok(IndexingProgress::GotItem {

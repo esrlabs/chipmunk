@@ -1,9 +1,22 @@
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
+import { isValidIPv4, isValidIPv6 } from '../../../../../../../common/functionlity/functions.ipaddr';
+
+const U32 = [0, 4294967295];
+
+function isValidU32(value: string): boolean {
+    const u32: number = parseInt(value, 10);
+    if (isNaN(u32) || !isFinite(u32)) {
+        return false;
+    }
+    if (u32 < U32[0] || u32 > U32[1]) {
+        return false;
+    }
+    return true;
+}
 
 export enum EDLTSettingsFieldAlias {
-    bindingAddressV4 = 'bindingAddressV4',
-    bindingAddressV6 = 'bindingAddressV6',
+    bindingAddress = 'bindingAddress',
     bindingPort = 'bindingPort',
     multicastAddress = 'multicastAddress',
     multicastInterface = 'multicastInterface',
@@ -44,12 +57,11 @@ export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
         switch (this._alias) {
             case EDLTSettingsFieldAlias.ecu:
                 return value.length <= 255;
-            case EDLTSettingsFieldAlias.bindingAddressV4:
+            case EDLTSettingsFieldAlias.bindingAddress:
             case EDLTSettingsFieldAlias.multicastAddress:
+                return isValidIPv4(value) || isValidIPv6(value);
             case EDLTSettingsFieldAlias.multicastInterface:
-                return value.replace(/^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi, '').trim() === '';
-            case EDLTSettingsFieldAlias.bindingAddressV6:
-                return value.replace(/(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/gi, '').trim() === '';
+                return isValidIPv4(value) || isValidU32(value);
             case EDLTSettingsFieldAlias.bindingPort:
                 if (value.trim().search(/^\d{1,}$/gi) === -1) {
                     return false;
@@ -65,8 +77,7 @@ export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
         }
         switch (this._alias) {
             case EDLTSettingsFieldAlias.ecu:
-            case EDLTSettingsFieldAlias.bindingAddressV4:
-            case EDLTSettingsFieldAlias.bindingAddressV6:
+            case EDLTSettingsFieldAlias.bindingAddress:
             case EDLTSettingsFieldAlias.bindingPort:
             case EDLTSettingsFieldAlias.multicastAddress:
             case EDLTSettingsFieldAlias.multicastInterface:
