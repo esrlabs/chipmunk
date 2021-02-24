@@ -1214,7 +1214,6 @@ pub async fn main() -> Result<()> {
                 }),
                 bind_addr: "0.0.0.0".to_string(),
                 port: "8888".to_string(),
-                ip_version: IpVersion::IPv4,
             };
 
             use chrono::Local;
