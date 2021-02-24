@@ -96,7 +96,7 @@ pub struct MulticastInfo {
 
 impl MulticastInfo {
     pub fn multicast_addr(&self) -> Result<IpAddr> {
-        format!("{}", self.multiaddr)
+        self.multiaddr.to_string()
             .parse()
             .map_err(|e| anyhow!("Could not parse mulitcast address: {}", e))
     }
