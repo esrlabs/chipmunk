@@ -1,5 +1,10 @@
 # Changelog
 
+### [2.14.2] - 02/24/2021
+* Resolve rust list issues
+* DLT Connector: parse IPv4/IPv6 on fly
+* DLT Connector: fit TS interfaces to Rust
+
 ## [2.14.1] - 02/23/2021
 ### Added
 * DLT connector: support for IPv6
