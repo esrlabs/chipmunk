@@ -626,11 +626,11 @@ export { IShellProcessStartedEvent, ShellProcessStartedEvent };
 import { IShellProcessStoppedEvent, ShellProcessStoppedEvent } from './shell.process.stopped.event';
 export { IShellProcessStoppedEvent, ShellProcessStoppedEvent };
 
-import { IShellSetPwdRequest, ShellSetPwdRequest } from './shell.set.env.request';
-export { IShellSetPwdRequest, ShellSetPwdRequest };
+import { IShellSetEnvRequest, ShellSetEnvRequest } from './shell.set.env.request';
+export { IShellSetEnvRequest, ShellSetEnvRequest };
 
-import { IShellSetPwdResponse, ShellSetPwdResponse } from './shell.set.env.response';
-export { IShellSetPwdResponse, ShellSetPwdResponse };
+import { IShellSetEnvResponse, ShellSetEnvResponse } from './shell.set.env.response';
+export { IShellSetEnvResponse, ShellSetEnvResponse };
 
 import { ShellRecentCommandsRequest } from './shell.recent.commands.request';
 export { ShellRecentCommandsRequest };
@@ -848,8 +848,8 @@ export type TMessage =  AppRestartRequest |
                         ShellProcessRunResponse |
                         ShellProcessStartedEvent |
                         ShellProcessStoppedEvent |
-                        ShellSetPwdRequest |
-                        ShellSetPwdResponse |
+                        ShellSetEnvRequest |
+                        ShellSetEnvResponse |
                         ShellRecentCommandsRequest |
                         ShellRecentCommandsResponse |
                         ShellProcessListEvent;
@@ -1092,8 +1092,8 @@ export const Map = {
     [ShellProcessRunResponse.signature              ]: ShellProcessRunResponse,
     [ShellProcessStartedEvent.signature             ]: ShellProcessStartedEvent,
     [ShellProcessStoppedEvent.signature             ]: ShellProcessStoppedEvent,
-    [ShellSetPwdRequest.signature                   ]: ShellSetPwdRequest,
-    [ShellSetPwdResponse.signature                  ]: ShellSetPwdResponse,
+    [ShellSetEnvRequest.signature                   ]: ShellSetEnvRequest,
+    [ShellSetEnvResponse.signature                  ]: ShellSetEnvResponse,
     [ShellRecentCommandsRequest.signature           ]: ShellRecentCommandsRequest,
     [ShellRecentCommandsResponse.signature          ]: ShellRecentCommandsResponse,
     [ShellProcessListEvent.signature                ]: ShellProcessListEvent,
