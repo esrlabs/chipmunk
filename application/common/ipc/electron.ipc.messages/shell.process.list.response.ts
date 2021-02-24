@@ -12,6 +12,7 @@ export interface IShellProcessMeta {
 export interface IShellProcess {
     guid: string;
     command: string;
+    env: { [key: string]: string };
     pwd: string;
     stat: IShellProcessStat;
     meta: IShellProcessMeta;

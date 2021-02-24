@@ -15,6 +15,7 @@ import ControllerStreamCharts from '../controllers/stream.charts/controller';
 import ControllerStreamRanges from '../controllers/stream.ranges/controller';
 import ControllerStreamProcessor from '../controllers/stream.main/controller';
 import ControllerStreamPty from '../controllers/stream.pty/controller';
+import ControllerStreamShell from '../controllers/stream.shell/controller';
 
 import { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import { EventsHub } from '../controllers/stream.common/events';
@@ -36,6 +37,7 @@ export interface IStreamInfo {
     charts: ControllerStreamCharts;
     ranges: ControllerStreamRanges;
     pty: ControllerStreamPty;
+    shell: ControllerStreamShell;
     received: number;
 }
 
@@ -317,6 +319,7 @@ class ServiceStreams implements IService  {
                 const chartsController: ControllerStreamCharts      = new ControllerStreamCharts(guid, streamFile, searchFile, streamController, events);
                 const rangesController: ControllerStreamRanges      = new ControllerStreamRanges(guid, streamFile, streamController);
                 const ptyController: ControllerStreamPty            = new ControllerStreamPty(guid, streamController);
+                const shellController: ControllerStreamShell        = new ControllerStreamShell(guid);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
                     guid: guid,
@@ -341,6 +344,7 @@ class ServiceStreams implements IService  {
                     charts: chartsController,
                     ranges: rangesController,
                     pty: ptyController,
+                    shell: shellController,
                     received: 0,
                 };
                 // Bind server with file
