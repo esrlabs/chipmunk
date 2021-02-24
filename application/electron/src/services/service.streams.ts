@@ -399,6 +399,7 @@ class ServiceStreams implements IService  {
                     stream.search.destroy(),
                     stream.ranges.destroy(),
                     stream.pty.destroy(),
+                    stream.shell.destroy(),
                 ]);
             };
             const unlinkFile = (file: string): Promise<void> => {

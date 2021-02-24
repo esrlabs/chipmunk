@@ -49,6 +49,10 @@ export default class ControllerStreamShell {
             if (error !== undefined) {
                 this._logger.error(`Fail to correctly load envvars due error: ${error.message}`);
             }
+            this._logger.verbose(`Next envvars are detected:\n\t${Object.keys(this._env.env).map(k => k + ' = ' + this._env.env[k]).filter(v => v.trim() !== '=').join('\n\t')}`);
+            this._logger.verbose(`Next shells are detected:\n\t${this._env.shells.join('\n\t')}`);
+            this._logger.verbose(`Current shell is:\n\t${this._env.shell}`);
+            this._logger.verbose(`Current pwd is:\n\t${this._env.pwd}`);
             ServiceElectron.IPC.subscribe(IPC.ShellEnvRequest, (this._ipc_ShellEnvRequest.bind(this) as any)).then((subscription: Subscription) => {
                 this._subscriptions.ShellEnvRequest = subscription;
             }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellEnvRequest due error: ${err.message}`));
@@ -67,6 +71,11 @@ export default class ControllerStreamShell {
     }
 
     public destroy(): Promise<void> {
+        this._running.forEach((proc: Process) => {
+            proc.removeAllListeners();
+            proc.destroy();
+        });
+        this._running.clear();
         return Promise.resolve();
     }
 
