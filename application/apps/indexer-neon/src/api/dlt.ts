@@ -51,7 +51,6 @@ export interface ISocketConfig {
 		multicast_addr: IMulticastInfo[];
 	},
     target: 'Tcp' | 'Udp',
-	ip_version: 'IPv4' | 'IPv6',
 }
 
 /// Multicast config information.
