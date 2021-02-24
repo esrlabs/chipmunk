@@ -1,16 +1,16 @@
-export interface IShellSetPwdResponse {
+export interface IShellSetEnvResponse {
     error?: string;
 }
 
-export class ShellSetPwdResponse {
+export class ShellSetEnvResponse {
 
-    public static signature: string = 'ShellSetPwdResponse';
-    public signature: string = ShellSetPwdResponse.signature;
+    public static signature: string = 'ShellSetEnvResponse';
+    public signature: string = ShellSetEnvResponse.signature;
     public error?: string;
 
-    constructor(params: IShellSetPwdResponse) {
+    constructor(params: IShellSetEnvResponse) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for ShellSetPwdResponse message`);
+            throw new Error(`Incorrect parameters for ShellSetEnvResponse message`);
         }
         if (params.error !== undefined && (typeof params.error !== 'string' || params.error.trim() === '')) {
             throw new Error(`Expecting error to be a string`);

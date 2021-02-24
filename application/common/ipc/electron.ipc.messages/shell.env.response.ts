@@ -1,6 +1,5 @@
 export interface IShellEnvResponse {
-    env: Array<{ key: string, value: string }>;
-    paths: string[];
+    env: { [key: string]: string };
     shells: string[];
     shell: string;
     pwd: string;
@@ -11,8 +10,7 @@ export class ShellEnvResponse {
 
     public static signature: string = 'ShellEnvResponse';
     public signature: string = ShellEnvResponse.signature;
-    public env: Array<{ key: string, value: string }>;
-    public paths: string[];
+    public env: { [key: string]: string };
     public shells: string[];
     public shell: string;
     public pwd: string;
@@ -23,10 +21,7 @@ export class ShellEnvResponse {
             throw new Error(`Incorrect parameters for ShellEnvResponse message`);
         }
         if (!(params.env instanceof Array)) {
-            throw new Error(`Expecting env to be an Array<{ key: string, value: string }>`);
-        }
-        if (!(params.paths instanceof Array)) {
-            throw new Error(`Expecting paths to be an Array<string>`);
+            throw new Error(`Expecting env to be an { [key: string]: string }`);
         }
         if (!(params.shells instanceof Array)) {
             throw new Error(`Expecting shells to be an Array<string>`);
@@ -43,7 +38,6 @@ export class ShellEnvResponse {
         this.pwd = params.pwd;
         this.shell = params.shell;
         this.shells = params.shells;
-        this.paths = params.paths;
         this.env = params.env;
         this.error = params.error;
     }
