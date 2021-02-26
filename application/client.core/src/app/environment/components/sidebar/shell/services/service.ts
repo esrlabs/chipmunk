@@ -36,7 +36,7 @@ export class ShellService {
     }
 
     public get processes(): IShellProcess[] {
-        const procs = this._processes[this._session.getGuid()]
+        const procs = this._processes[this._session.getGuid()];
         return procs === undefined ? [] : procs;
     }
 
@@ -44,7 +44,7 @@ export class ShellService {
         this._processes[response.session] = response.processes;
         this._processes[response.session].forEach((process: IShellProcess) => {
             if (process.meta.color.trim() === '' || process.meta.color === undefined) {
-                process.meta.color = SourcesService.getSourceColor(process.meta.sourceId);   
+                process.meta.color = SourcesService.getSourceColor(process.meta.sourceId);
             }
         });
     }
