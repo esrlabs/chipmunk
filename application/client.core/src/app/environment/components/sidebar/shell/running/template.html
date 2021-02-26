@@ -1,0 +1,10 @@
+<mat-expansion-panel [expanded]="true" *ngIf="_ng_running.length > 0">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Running</mat-panel-title>
+    </mat-expansion-panel-header>
+        <div [matTooltip]="_ng_tooltip(running)" class="running" *ngFor="let running of _ng_running">
+            <div class="colorIndicator" [ngStyle]="{'background-color': running.meta.color}"></div>
+            <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
+            <span class="command" (contextmenu)="_ng_onContexMenu($event, running)">{{running.command}}</span>
+        </div>
+</mat-expansion-panel>

@@ -20,7 +20,7 @@ export class ShellProcessListEvent {
             throw new Error(`Expecting session to be a string`);
         }
         if (!(params.processes instanceof Array)) {
-            throw new Error(`Expecting shells to be an Array<string>`);
+            throw new Error(`Expecting processes to be an Array<IShellProcess>`);
         }
         this.session = params.session;
         this.processes = params.processes;

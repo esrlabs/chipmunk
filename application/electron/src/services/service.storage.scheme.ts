@@ -27,6 +27,7 @@ export interface IStorage {
     recentFiles: IRecentFile[];
     recentFiltersFiles: IRecentFilterFile[];
     recentSearchRequests: IRecentSearchRequest[];
+    recentCommands: string[];
     recentDLTConnectorSettings: IConnectionOptions[];
     recentDateTimeFormats: string[];
     pluginDefaultUninstalled: string[];
@@ -36,6 +37,7 @@ export const defaults: IStorage = {
     recentFiles: [],
     recentFiltersFiles: [],
     recentSearchRequests: [],
+    recentCommands: [],
     recentDLTConnectorSettings: [],
     recentDateTimeFormats: [],
     pluginDefaultUninstalled: [],
