@@ -64,7 +64,7 @@ export default class ControllerStreamShell {
             }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellSetEnvRequest due error: ${err.message}`));
             ServiceElectron.IPC.subscribe(IPC.ShellProcessRunRequest, (this._ipc_ShellProcessRunRequest.bind(this) as any)).then((subscription: Subscription) => {
                 this._subscriptions.ShellProcessRunRequest = subscription;
-            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellProcessRunRequest due error: ${err.message}`));    
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellProcessRunRequest due error: ${err.message}`));
         }).catch((err: Error) => {
             this._logger.error(`Unexpecting error on load envvars: ${err.message}`);
         });
