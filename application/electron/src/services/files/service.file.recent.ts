@@ -46,6 +46,21 @@ export class ServiceFileRecent implements IService {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "SearchRecentAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
+            ServiceElectron.IPC.subscribe(IPCMessages.ShellRecentCommandsRequest, this._ipc_onShellRecentCommandsRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.ShellRecentCommandsRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "ShellRecentCommandsRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.ShellRecentCommandsClearRequest, this._ipc_onShellRecentCommandsClearRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions._ipc_onShellRecentCommandsClearRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "ShellRecentCommandsClearRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
+            ServiceElectron.IPC.subscribe(IPCMessages.ShellRecentCommandAddRequest, this._ipc_onShellRecentCommandAddRequest.bind(this)).then((subscription: Subscription) => {
+                this._subscriptions.ShellRecentCommandAddRequest = subscription;
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to subscribe to render event "ShellRecentCommandAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+            });
             resolve();
         });
     }
@@ -266,6 +281,42 @@ export class ServiceFileRecent implements IService {
             this._logger.error(err.message);
         });
         response(new IPCMessages.SearchRecentAddResponse({ }));
+    }
+
+    private _ipc_onShellRecentCommandsRequest(_message: IPCMessages.TMessage, response: (isntance: IPCMessages.TMessage) => any) {
+        const stored: IStorageScheme.IStorage = ServiceStorage.get().get();
+        response(new IPCMessages.ShellRecentCommandsResponse({
+            commands: stored.recentCommands,
+        }));
+    }
+
+    private _ipc_onShellRecentCommandsClearRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
+        ServiceStorage.get().set({
+            recentCommands: [],
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
+        });
+        response(new IPCMessages.SearchRecentClearResponse({ }));
+    }
+
+    private _ipc_onShellRecentCommandAddRequest(_message: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+        const message: IPCMessages.ShellRecentCommandAddRequest = _message as IPCMessages.ShellRecentCommandAddRequest;
+        if (typeof message.command !== 'string' || message.command.trim() === '') {
+            response(new IPCMessages.ShellRecentCommandAddResponse({
+                error: `Command isn't correct. It should be not empty string.`,
+            }));
+            return;
+        }
+        let stored: string[] = ServiceStorage.get().get().recentCommands;
+        if (stored.indexOf(message.command) === -1) {
+            stored.unshift(message.command);
+            ServiceStorage.get().set({
+                recentCommands: stored,
+            }).catch((err: Error) => {
+                this._logger.error(err.message);
+            });
+        }
+        response(new IPCMessages.ShellRecentCommandAddResponse({ }));
     }
 }
 

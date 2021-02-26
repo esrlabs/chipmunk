@@ -21,7 +21,7 @@ export class ShellSetEnvRequest {
         if (typeof params.session !== 'string' || params.session.trim() === '') {
             throw new Error(`Expecting session to be a string`);
         }
-        if (params.env !== undefined && !(params.env instanceof Array)) {
+        if (params.env !== undefined && (typeof params.env !== 'object' || params.env === null)) {
             throw new Error(`Expecting env to be an { [key: string]: string }`);
         }
         if (params.shell !== undefined && (typeof params.shell !== 'string' || params.shell.trim() === '')) {

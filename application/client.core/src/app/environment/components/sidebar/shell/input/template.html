@@ -1,0 +1,33 @@
+<mat-expansion-panel
+    [disabled]="true"
+    [hideToggle]="true"
+    [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Input</mat-panel-title>
+    </mat-expansion-panel-header>
+    <mat-form-field class="recent-requests outline regular" appearance="outline">
+        <input  #requestinput
+                type="text" 
+                placeholder="Type a command"
+                aria-label="Filter"
+                (focus)="_ng_onFocusRequestInput()"
+                (blur)="_ng_onBlurRequestInput()"
+                (keyup)="_ng_onKeyUpRequestInput($event)"
+                (keydown)="_ng_onKeyDownRequestInput($event)"
+                (click)="_ng_onClickRequestInput()"
+                matInput
+                [formControl]="_ng_inputCtrl"
+                matAutocomplete
+                [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete" class="regular"
+            (optionSelected)="_ng_onRecentSelected($event)"
+            (opened)="_ng_onAutocompletePanelOpen()"
+            [classList]="'recent-requests'"
+            [disableRipple]="true">
+            <mat-option *ngFor="let recent of _ng_recent | async" [value]="recent" [attr.title]="recent" class="recent-requests small t-console t-small">
+                <span class="filename" [innerHTML]="_ng_getSafeHTML(recent.tdescription)"></span>
+            </mat-option>
+        </mat-autocomplete>
+    </mat-form-field>
+    <button mat-stroked-button color="primary" (click)="_ng_clearRecent()">Clear History</button>
+</mat-expansion-panel>
