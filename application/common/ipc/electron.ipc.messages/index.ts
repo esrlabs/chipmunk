@@ -641,6 +641,18 @@ export { IShellRecentCommandsResponse, ShellRecentCommandsResponse };
 import { IShellProcessListEvent, ShellProcessListEvent } from './shell.process.list.event';
 export { IShellProcessListEvent, ShellProcessListEvent };
 
+import { ShellRecentCommandsClearRequest } from './shell.recent.commands.clear.request';
+export { ShellRecentCommandsClearRequest };
+
+import { IShellRecentCommandsClearResponse, ShellRecentCommandsClearResponse } from './shell.recent.commands.clear.response';
+export { IShellRecentCommandsClearResponse, ShellRecentCommandsClearResponse };
+
+import { ShellRecentCommandAddRequest } from './shell.recent.command.add.request';
+export { ShellRecentCommandAddRequest };
+
+import { IShellRecentCommandAddResponse, ShellRecentCommandAddResponse } from './shell.recent.command.add.response';
+export { IShellRecentCommandAddResponse, ShellRecentCommandAddResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -852,7 +864,11 @@ export type TMessage =  AppRestartRequest |
                         ShellSetEnvResponse |
                         ShellRecentCommandsRequest |
                         ShellRecentCommandsResponse |
-                        ShellProcessListEvent;
+                        ShellProcessListEvent |
+                        ShellRecentCommandsClearRequest |
+                        ShellRecentCommandsClearResponse |
+                        ShellRecentCommandAddRequest |
+                        ShellRecentCommandAddResponse;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
@@ -1097,5 +1113,8 @@ export const Map = {
     [ShellRecentCommandsRequest.signature           ]: ShellRecentCommandsRequest,
     [ShellRecentCommandsResponse.signature          ]: ShellRecentCommandsResponse,
     [ShellProcessListEvent.signature                ]: ShellProcessListEvent,
-
+    [ShellRecentCommandsClearRequest.signature      ]: ShellRecentCommandsClearRequest,
+    [ShellRecentCommandsClearResponse.signature     ]: ShellRecentCommandsClearResponse,
+    [ShellRecentCommandAddRequest.signature         ]: ShellRecentCommandAddRequest,
+    [ShellRecentCommandAddResponse.signature        ]: ShellRecentCommandAddResponse,
 };

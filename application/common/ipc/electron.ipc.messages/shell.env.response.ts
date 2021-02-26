@@ -20,7 +20,7 @@ export class ShellEnvResponse {
         if (typeof params !== 'object' || params === null) {
             throw new Error(`Incorrect parameters for ShellEnvResponse message`);
         }
-        if (!(params.env instanceof Array)) {
+        if (typeof params.env !== 'object' || params.env === null) {
             throw new Error(`Expecting env to be an { [key: string]: string }`);
         }
         if (!(params.shells instanceof Array)) {
