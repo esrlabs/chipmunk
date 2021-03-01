@@ -1,6 +1,7 @@
 import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
 import { getEnvVars, getDefShell, getShells, TEnvVars } from 'chipmunk.shell.env';
 
+import ServiceStorage from '../../services/service.storage';
 import Process from './controller.process';
 import ServiceElectron from '../../services/service.electron';
 
@@ -86,6 +87,15 @@ export default class ControllerStreamShell {
                 processes: Array.from(this._running.values()).map(p => p.getInfo()),
             }));
         };
+        const stored: string[] = ServiceStorage.get().get().recentCommands;
+        if (stored.indexOf(request.command) === -1) {
+            stored.unshift(request.command);
+            ServiceStorage.get().set({
+                recentCommands: stored,
+            }).catch((err: Error) => {
+                this._logger.error(`Failed to save command as recent due error: ${err.message}`);
+            });
+        }
         if (request.session !== this._guid) {
             return;
         }

@@ -1,5 +1,4 @@
 import { AfterContentInit, Component, ViewChild, ElementRef } from '@angular/core';
-import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { sortPairs, IPair, ISortedFile } from '../../../../thirdparty/code/engine';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
@@ -8,7 +7,6 @@ import { FormControl } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
-import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
 import ShellService from '../services/service';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -72,7 +70,6 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
         this._ng_inputCtrl.setValue('');
         this._ng_autoComRef.closePanel();
         this._runCommand(command);
-        this._addCommand(command);
     }
 
     public _ng_onFocusRequestInput() {
@@ -142,21 +139,14 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     }
 
     private _runCommand(command: string) {
-        ShellService.runCommand(command).catch((error: string) => {
+        ShellService.runCommand(command).then(() => {
+            this._addRecentCommand(command);
+            this._ng_inputCtrl.updateValueAndValidity();
+        }).catch((error: string) => {
             // Spinner to see when it's done?
             // Remove on then
             // TODO
             // User feedback in HTML
-        });
-    }
-
-    private _addCommand(command: string) {
-        ElectronIpcService.request(new IPCMessages.ShellRecentCommandAddRequest({ command: command }), IPCMessages.ShellRecentCommandAddResponse).then((response: IPCMessages.ShellRecentCommandAddResponse) => {
-            if (response.error !== undefined) {
-                this._logger.error(`Failed to add command to recent commands due Error: ${response.error}`);
-            }
-        }).catch((error: Error) => {
-            this._logger.error(`Failed to add command to recent commands due Error: ${error.message}`);
         });
     }
 
@@ -183,6 +173,25 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
         }
         const scored = sortPairs(this._recent, value, value !== '', 'span');
         return scored;
+    }
+
+    private _addRecentCommand(command: string) {
+        let exists: boolean = false;
+        this._recent.forEach((recent: IPair) => {
+            if (recent.description === command) {
+                exists = true;
+                return;
+            }
+        });
+        if (!exists) {
+            this._recent.unshift(        {
+                id: '',
+                caption: ' ',
+                description: command,
+                tcaption: ' ',
+                tdescription: command
+            });
+        }
     }
 
 }

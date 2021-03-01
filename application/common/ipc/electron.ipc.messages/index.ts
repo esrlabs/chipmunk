@@ -647,12 +647,6 @@ export { ShellRecentCommandsClearRequest };
 import { IShellRecentCommandsClearResponse, ShellRecentCommandsClearResponse } from './shell.recent.commands.clear.response';
 export { IShellRecentCommandsClearResponse, ShellRecentCommandsClearResponse };
 
-import { ShellRecentCommandAddRequest } from './shell.recent.command.add.request';
-export { ShellRecentCommandAddRequest };
-
-import { IShellRecentCommandAddResponse, ShellRecentCommandAddResponse } from './shell.recent.command.add.response';
-export { IShellRecentCommandAddResponse, ShellRecentCommandAddResponse };
-
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -866,9 +860,7 @@ export type TMessage =  AppRestartRequest |
                         ShellRecentCommandsResponse |
                         ShellProcessListEvent |
                         ShellRecentCommandsClearRequest |
-                        ShellRecentCommandsClearResponse |
-                        ShellRecentCommandAddRequest |
-                        ShellRecentCommandAddResponse;
+                        ShellRecentCommandsClearResponse;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
@@ -1115,6 +1107,4 @@ export const Map = {
     [ShellProcessListEvent.signature                ]: ShellProcessListEvent,
     [ShellRecentCommandsClearRequest.signature      ]: ShellRecentCommandsClearRequest,
     [ShellRecentCommandsClearResponse.signature     ]: ShellRecentCommandsClearResponse,
-    [ShellRecentCommandAddRequest.signature         ]: ShellRecentCommandAddRequest,
-    [ShellRecentCommandAddResponse.signature        ]: ShellRecentCommandAddResponse,
 };
