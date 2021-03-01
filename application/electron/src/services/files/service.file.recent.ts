@@ -285,13 +285,13 @@ export class ServiceFileRecent implements IService {
         }));
     }
 
-    private _ipc_onShellRecentCommandsClearRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
+    private _ipc_onShellRecentCommandsClearRequest(_message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {
         ServiceStorage.get().set({
             recentCommands: [],
         }).catch((err: Error) => {
             this._logger.error(err.message);
         });
-        response(new IPCMessages.SearchRecentClearResponse({ }));
+        response(new IPCMessages.ShellRecentCommandsClearResponse({ }));
     }
 
 }
