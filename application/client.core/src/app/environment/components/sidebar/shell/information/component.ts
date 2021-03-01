@@ -1,6 +1,12 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 import ShellService, { IInformation } from '../services/service';
+
+enum EStatus {
+    ready = 'ready',
+    error = 'error',
+    loading = 'loading',
+}
 
 @Component({
     selector: 'app-sidebar-app-shell-information',
@@ -8,8 +14,10 @@ import ShellService, { IInformation } from '../services/service';
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppShellInformationComponent implements OnInit, OnDestroy {
+export class SidebarAppShellInformationComponent implements OnInit {
 
+    public _ng_status: EStatus = EStatus.loading;
+    public _ng_error: string = '';
     public _ng_information: IInformation = {
         env: {},
         pwd: '',
@@ -17,29 +25,16 @@ export class SidebarAppShellInformationComponent implements OnInit, OnDestroy {
         shells: []
     };
 
-    private _destroyed = false;
-
-    constructor(private _cdRef: ChangeDetectorRef) {}
+    constructor() {}
 
     public ngOnInit() {
         ShellService.getEnv().then((information: IInformation) => {
+            this._ng_status = EStatus.ready;
             this._ng_information = information;
-            this._forceUpdate();
         }).catch((error: string) => {
-            // TODO
-            // User feedback in HTML
+            this._ng_status = EStatus.error;
+            this._ng_error = error;
         });
-    }
-
-    public ngOnDestroy() {
-        this._destroyed = true;
-    }
-
-    private _forceUpdate() {
-        if (this._destroyed) {
-            return;
-        }
-        this._cdRef.detectChanges();
     }
 
 }
