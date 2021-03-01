@@ -43,7 +43,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     }
 
     public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
-        if (event.key === 'Tab') {
+        if (event.key === 'Tab' || event.key === 'ArrowRight') {
             if (this._ng_autoComRef.activeOption) {
                 this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
             }
