@@ -307,7 +307,7 @@ export class ServiceFileRecent implements IService {
             }));
             return;
         }
-        let stored: string[] = ServiceStorage.get().get().recentCommands;
+        const stored: string[] = ServiceStorage.get().get().recentCommands;
         if (stored.indexOf(message.command) === -1) {
             stored.unshift(message.command);
             ServiceStorage.get().set({
