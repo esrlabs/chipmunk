@@ -6,7 +6,6 @@ import { IPair } from '../../../../thirdparty/code/engine';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
-import SourcesService from '../../../../services/service.sources';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -21,27 +20,37 @@ export class ShellService {
 
     private _session: Session | undefined;
     private _subscriptions: { [key: string]:  Toolkit.Subscription | Subscription } = {};
-    private _processes: { [session: string]:  IShellProcess[] } = {};
 
     constructor() {
         this._session = TabsSessionsService.getActive();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClose = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClose.bind(this));
-        this._subscriptions.shellProcessListEvent = ElectronIpcService.subscribe(IPCMessages.ShellProcessListEvent, this._onListUpdate.bind(this));
+    }
+
+    public destroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public terminate(process: IShellProcess): Promise<void> {
-        const session: string = this._session.getGuid();
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.ShellProcessKillRequest({ session: session, guid: process.guid }), IPCMessages.ShellProcessKillResponse).then((response: IPCMessages.ShellProcessKillResponse) => {
-            if (response.error !== undefined) {
-                reject(`Fail to terminate process "${process.command}" due error: ${response.error}`);
-            } else {
-                this._removeProcess(session, process.guid);
+            ElectronIpcService.request(new IPCMessages.ShellProcessKillRequest({ session: this._session.getGuid(), guid: process.guid }), IPCMessages.ShellProcessKillResponse).then((response: IPCMessages.ShellProcessKillResponse) => {
+                if (response.error !== undefined) {
+                    return reject(`Fail to terminate process "${process.command}" due error: ${response.error}`);
+                }
                 resolve();
-            }
             }).catch((error: Error) => {
                 reject(`Fail to terminate process "${process.command}" due error: ${error.message}`);
+            });
+        });
+    }
+
+    public getRunning(sessionID: string): Promise<IPCMessages.ShellProcessListResponse> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellProcessListRequest({ session: sessionID }), IPCMessages.ShellProcessListResponse).then((response: IPCMessages.ShellProcessListResponse) => {
+                resolve(response);
+            }).catch((error: Error) => {
+                reject(`Fail to get running processes due error: ${error.message}`);
             });
         });
     }
@@ -109,40 +118,8 @@ export class ShellService {
         });
     }
 
-    public get session(): Session | undefined {
-        return this._session;
-    }
-
-    public get processes(): IShellProcess[] {
-        const procs = this._processes[this._session.getGuid()];
-        return procs === undefined ? [] : procs;
-    }
-
-    private _removeProcess(session: string, guid: string) {
-        if (this._processes[session] !== undefined) {
-            this._processes[session] = this._processes[session].filter((process: IShellProcess) => {
-                return process.guid !== guid;
-            });
-        }
-    }
-
-    private _onListUpdate(response: IPCMessages.ShellProcessListEvent) {
-        this._processes[response.session] = response.processes;
-        this._processes[response.session].forEach((process: IShellProcess) => {
-            if (process.meta.color.trim() === '' || process.meta.color === undefined) {
-                process.meta.color = SourcesService.getSourceColor(process.meta.sourceId);
-            }
-        });
-    }
-
-    private _onSessionClose(session: string) {
-        delete this._processes[session];
-    }
-
     private _onSessionChange(session: Session | undefined) {
         this._session = session;
     }
 
 }
-
-export default (new ShellService());

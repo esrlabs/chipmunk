@@ -1,10 +1,13 @@
 import { IShellProcess} from '../../../../../../../../common/ipc/electron.ipc.messages';
-import { Component, OnDestroy, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
+import { ShellService } from '../services/service';
+import { Session } from '../../../../controller/session/session';
 
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import ShellService from '../services/service';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import SourcesService from '../../../../services/service.sources';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -17,15 +20,18 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
 
+    @Input() public service: ShellService;
+
     public _ng_running: IShellProcess[] = [];
 
-    private _destroyed: boolean = false;
+    private _sessionID: string;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellRunningComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.ShellProcessListEvent = ElectronIpcService.subscribe(IPCMessages.ShellProcessListEvent, this._onListUpdate.bind(this));
+    constructor() {
+        this._sessionID = TabsSessionsService.getActive().getGuid();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.ShellProcessListEvent = ElectronIpcService.subscribe(IPCMessages.ShellProcessListEvent, this._onListUpdate.bind(this));
     }
 
     public ngOnInit() {
@@ -33,7 +39,6 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
     }
 
     public ngOnDestroy() {
-        this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
@@ -48,7 +53,7 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
             {
                 caption: 'Terminate',
                 handler: () => {
-                    ShellService.terminate(process).catch((error: string) => {
+                    this.service.terminate(process).catch((error: string) => {
                         this._logger.error(error);
                     });
                 }
@@ -62,25 +67,33 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
     }
 
     private _restoreSession() {
-        this._ng_running = [...ShellService.processes];
+        this.service.getRunning(this._sessionID).then((response: IPCMessages.ShellProcessListResponse) => {
+            if (response.session === this._sessionID) {
+                this._ng_running = this._colored(response.processes);
+            }
+        }).catch((error: string) => {
+            this._logger.error(error);
+        });
     }
 
     private _onListUpdate(response: IPCMessages.ShellProcessListEvent) {
-        if (ShellService.session.getGuid() === response.session) {
-            this._ng_running = [...response.processes];
-            this._forceUpdate();
+        if (this._sessionID === response.session) {
+            this._ng_running = this._colored(response.processes);
         }
     }
 
-    private _onSessionChange() {
-        this._restoreSession();
+    private _colored(processes: IShellProcess[]): IShellProcess[] {
+        processes.forEach((process: IShellProcess) => {
+            process.meta.color = SourcesService.getSourceColor(process.meta.sourceId);
+        });
+        return processes;
     }
 
-    private _forceUpdate() {
-        if (this._destroyed) {
-            return;
+    private _onSessionChange(session: Session | undefined) {
+        if (session !== undefined) {
+            this._sessionID = session.getGuid();
+            this._restoreSession();
         }
-        this._cdRef.detectChanges();
     }
 
 }
