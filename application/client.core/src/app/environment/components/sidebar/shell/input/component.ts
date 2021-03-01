@@ -119,12 +119,9 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
         this._ng_autoComRef.closePanel();
         this._ng_inputCtrl.updateValueAndValidity();
         ShellService.clearRecent().then(() => {
-            // Spinner to see when it's done?
-            // Remove on then
             this._loadRecentCommands();
         }).catch((error: string) => {
-            // TODO
-            // User feedback in HTML
+            this._logger.error(error);
         });
     }
 
@@ -133,8 +130,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
             this._recent = recentCommands;
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: string) => {
-            // TODO
-            // User feedback in HTML
+            this._logger.error(error);
         });
     }
 
@@ -143,10 +139,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
             this._addRecentCommand(command);
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: string) => {
-            // Spinner to see when it's done?
-            // Remove on then
-            // TODO
-            // User feedback in HTML
+            this._logger.error(error);
         });
     }
 

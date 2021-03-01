@@ -21,6 +21,7 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
 
     private _destroyed: boolean = false;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
+    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellRunningComponent');
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._subscriptions.ShellProcessListEvent = ElectronIpcService.subscribe(IPCMessages.ShellProcessListEvent, this._onListUpdate.bind(this));
@@ -48,8 +49,7 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
                 caption: 'Terminate',
                 handler: () => {
                     ShellService.terminate(process).catch((error: string) => {
-                        // TODO
-                        // Show error
+                        this._logger.error(error);
                     });
                 }
             },
