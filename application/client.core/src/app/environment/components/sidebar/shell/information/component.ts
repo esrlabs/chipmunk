@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 
 import ShellService, { IInformation } from '../services/service';
 
+import * as Toolkit from 'chipmunk.client.toolkit';
+
 enum EStatus {
     ready = 'ready',
     error = 'error',
@@ -25,6 +27,8 @@ export class SidebarAppShellInformationComponent implements OnInit {
         shells: []
     };
 
+    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellInformationComponent');
+
     constructor() {}
 
     public ngOnInit() {
@@ -34,6 +38,7 @@ export class SidebarAppShellInformationComponent implements OnInit {
         }).catch((error: string) => {
             this._ng_status = EStatus.error;
             this._ng_error = error;
+            this._logger.error(error);
         });
     }
 
