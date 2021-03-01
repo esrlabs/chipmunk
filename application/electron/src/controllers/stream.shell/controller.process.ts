@@ -115,6 +115,14 @@ export default class Process extends EventEmitter {
             return new Error(this._logger.error(`Attempt to destroy child process, which isn't created or was destroyed.`));
         }
         this._process.removeAllListeners();
+        if (this._process.stdout !== null) {
+            this._process.stdout.removeAllListeners();
+            this._process.stdout.destroy();
+        }
+        if (this._process.stderr !== null) {
+            this._process.stderr.removeAllListeners();
+            this._process.stderr.destroy();
+        }
         this._process.kill();
         this._process = undefined;
         this.emit(this.Events.destroy);
@@ -122,6 +130,9 @@ export default class Process extends EventEmitter {
     }
 
     private _onData(chunk: any) {
+        if (this._process === undefined) {
+            return;
+        }
         if (typeof chunk === 'string') {
             // Here should be for sure, not string length, but byteLength.
             // To get byteLength we have to create a Buffer and here is a
