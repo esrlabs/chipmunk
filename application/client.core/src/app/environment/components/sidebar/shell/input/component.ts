@@ -1,4 +1,4 @@
-import { AfterContentInit, Component, ViewChild, ElementRef } from '@angular/core';
+import { AfterContentInit, Component, ViewChild, ElementRef, Input } from '@angular/core';
 import { sortPairs, IPair, ISortedFile } from '../../../../thirdparty/code/engine';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
@@ -6,8 +6,7 @@ import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-
-import ShellService from '../services/service';
+import { ShellService } from '../services/service';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -22,6 +21,8 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     @ViewChild(MatInput) _inputComRef: MatInput;
     @ViewChild(MatAutocompleteTrigger) _ng_autoComRef: MatAutocompleteTrigger;
     @ViewChild('requestinput') _ng_requestInputComRef: ElementRef;
+
+    @Input() public service: ShellService;
 
     public _ng_inputCtrl = new FormControl();
     public _ng_commands: Observable<ISortedFile[]>;
@@ -118,7 +119,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     public _ng_clearRecent() {
         this._ng_autoComRef.closePanel();
         this._ng_inputCtrl.updateValueAndValidity();
-        ShellService.clearRecent().then(() => {
+        this.service.clearRecent().then(() => {
             this._loadRecentCommands();
         }).catch((error: string) => {
             this._logger.error(error);
@@ -126,7 +127,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     }
 
     private _loadRecentCommands() {
-        ShellService.loadRecentCommands().then((recentCommands: IPair[]) => {
+        this.service.loadRecentCommands().then((recentCommands: IPair[]) => {
             this._recent = recentCommands;
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: string) => {
@@ -135,7 +136,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     }
 
     private _runCommand(command: string) {
-        ShellService.runCommand(command).then(() => {
+        this.service.runCommand(command).then(() => {
             this._addRecentCommand(command);
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: string) => {
