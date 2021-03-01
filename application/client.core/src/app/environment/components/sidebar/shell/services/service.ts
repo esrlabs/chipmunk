@@ -22,7 +22,6 @@ export class ShellService {
     private _session: Session | undefined;
     private _subscriptions: { [key: string]:  Toolkit.Subscription | Subscription } = {};
     private _processes: { [session: string]:  IShellProcess[] } = {};
-    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellService');
 
     constructor() {
         this._session = TabsSessionsService.getActive();
@@ -36,13 +35,13 @@ export class ShellService {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellProcessKillRequest({ session: session, guid: process.guid }), IPCMessages.ShellProcessKillResponse).then((response: IPCMessages.ShellProcessKillResponse) => {
             if (response.error !== undefined) {
-                reject(this._logger.error(`Fail to terminate process "${process.command}" due error: ${response.error}`));
+                reject(`Fail to terminate process "${process.command}" due error: ${response.error}`);
             } else {
                 this._removeProcess(session, process.guid);
                 resolve();
             }
             }).catch((error: Error) => {
-                reject(this._logger.error(`Fail to terminate process "${process.command}" due error: ${error.message}`));
+                reject(`Fail to terminate process "${process.command}" due error: ${error.message}`);
             });
         });
     }
@@ -51,7 +50,7 @@ export class ShellService {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellEnvRequest({ session: this._session.getGuid() }), IPCMessages.ShellEnvResponse).then((response: IPCMessages.ShellEnvResponse) => {
                 if (response.error !== undefined) {
-                    reject(this._logger.error(`Failed to reqeust environment information due to Error: ${response.error}`));
+                    reject(`Failed to reqeust environment information due to Error: ${response.error}`);
                 } else {
                     resolve({
                         env: Object.assign({}, response.env),
@@ -61,7 +60,7 @@ export class ShellService {
                     });
                 }
             }).catch((error: Error) => {
-                reject(this._logger.error(`Failed to reqeust environment information due to Error: ${error}`));
+                reject(`Failed to reqeust environment information due to Error: ${error}`);
             });
         });
     }
@@ -70,11 +69,11 @@ export class ShellService {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellRecentCommandsClearRequest(), IPCMessages.ShellRecentCommandsClearResponse).then((response: IPCMessages.ShellRecentCommandsClearResponse) => {
                 if (response.error) {
-                    return reject(this._logger.error(`Fail to reset recent commands due error: ${response.error}`));
+                    return reject(`Fail to reset recent commands due error: ${response.error}`);
                 }
                 resolve();
             }).catch((error: Error) => {
-                reject(this._logger.error(`Fail send request to reset recent commands due error: ${error.message}`));
+                reject(`Fail send request to reset recent commands due error: ${error.message}`);
             });
         });
     }
@@ -83,11 +82,11 @@ export class ShellService {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellProcessRunRequest({ session: this._session.getGuid(), command: command }), IPCMessages.ShellProcessRunResponse).then((response: IPCMessages.ShellProcessRunResponse) => {
                 if (response.error !== undefined) {
-                    return reject(this._logger.error(`Failed to run command due Error: ${response.error}`));
+                    return reject(`Failed to run command due Error: ${response.error}`);
                 }
                 resolve();
             }).catch((error: Error) => {
-                reject(this._logger.error(`Failed to run command due Error: ${error.message}`));
+                reject(`Failed to run command due Error: ${error.message}`);
             });
         });
     }
@@ -105,7 +104,7 @@ export class ShellService {
                     };
                 }));
             }).catch((error: Error) => {
-                reject(this._logger.error(`Fail to get list of recent commands due error: ${error.message}`));
+                reject(`Fail to get list of recent commands due error: ${error.message}`);
             });
         });
     }
