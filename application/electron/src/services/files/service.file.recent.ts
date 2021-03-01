@@ -56,11 +56,6 @@ export class ServiceFileRecent implements IService {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "ShellRecentCommandsClearRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
-            ServiceElectron.IPC.subscribe(IPCMessages.ShellRecentCommandAddRequest, this._ipc_onShellRecentCommandAddRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscriptions.ShellRecentCommandAddRequest = subscription;
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to subscribe to render event "ShellRecentCommandAddRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-            });
             resolve();
         });
     }
@@ -299,25 +294,6 @@ export class ServiceFileRecent implements IService {
         response(new IPCMessages.SearchRecentClearResponse({ }));
     }
 
-    private _ipc_onShellRecentCommandAddRequest(_message: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
-        const message: IPCMessages.ShellRecentCommandAddRequest = _message as IPCMessages.ShellRecentCommandAddRequest;
-        if (typeof message.command !== 'string' || message.command.trim() === '') {
-            response(new IPCMessages.ShellRecentCommandAddResponse({
-                error: `Command isn't correct. It should be not empty string.`,
-            }));
-            return;
-        }
-        const stored: string[] = ServiceStorage.get().get().recentCommands;
-        if (stored.indexOf(message.command) === -1) {
-            stored.unshift(message.command);
-            ServiceStorage.get().set({
-                recentCommands: stored,
-            }).catch((err: Error) => {
-                this._logger.error(err.message);
-            });
-        }
-        response(new IPCMessages.ShellRecentCommandAddResponse({ }));
-    }
 }
 
 export default (new ServiceFileRecent());
