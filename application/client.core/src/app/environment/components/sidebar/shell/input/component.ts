@@ -33,8 +33,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellInputComponent');
     private _selectedTextOnInputClick: boolean = false;
 
-    constructor(private _notificationsService: NotificationsService,
-                private _sanitizer: DomSanitizer) { }
+    constructor(private _sanitizer: DomSanitizer) { }
 
     public ngAfterContentInit() {
         this._loadRecentCommands();
@@ -122,31 +121,32 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     public _ng_clearRecent() {
         this._ng_autoComRef.closePanel();
         this._ng_inputCtrl.updateValueAndValidity();
-        ElectronIpcService.request(new IPCMessages.ShellRecentCommandsClearRequest(), IPCMessages.ShellRecentCommandsClearResponse).then((response: IPCMessages.ShellRecentCommandsClearResponse) => {
+        ShellService.clearRecent().then(() => {
+            // Spinner to see when it's done?
+            // Remove on then
             this._loadRecentCommands();
-            if (response.error) {
-                return this._logger.error(`Fail to reset recent commands due error: ${response.error}`);
-            }
-        }).catch((error: Error) => {
-            return this._logger.error(`Fail send request to reset recent commands due error: ${error.message}`);
+        }).catch((error: string) => {
+            // TODO
+            // User feedback in HTML
+        });
+    }
+
+    private _loadRecentCommands() {
+        ShellService.loadRecentCommands().then((recentCommands: IPair[]) => {
+            this._recent = recentCommands;
+            this._ng_inputCtrl.updateValueAndValidity();
+        }).catch((error: string) => {
+            // TODO
+            // User feedback in HTML
         });
     }
 
     private _runCommand(command: string) {
-        ElectronIpcService.request(new IPCMessages.ShellProcessRunRequest({ session: ShellService.session.getGuid(), command: command }), IPCMessages.ShellProcessRunResponse).then((response: IPCMessages.ShellProcessRunResponse) => {
-            if (response.error !== undefined) {
-                this._logger.error(`Failed to run command due Error: ${response.error}`);
-                this._notificationsService.add({
-                    caption: 'Fail to run command',
-                    message: `Fail to run command ${command} due error: ${response.error}`
-                });
-            }
-        }).catch((error: Error) => {
-            this._logger.error(`Failed to run command due Error: ${error.message}`);
-            this._notificationsService.add({
-                caption: 'Fail to run command',
-                message: `Fail to run command ${command} due error: ${error.message}`
-            });
+        ShellService.runCommand(command).catch((error: string) => {
+            // Spinner to see when it's done?
+            // Remove on then
+            // TODO
+            // User feedback in HTML
         });
     }
 
@@ -157,27 +157,6 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
             }
         }).catch((error: Error) => {
             this._logger.error(`Failed to add command to recent commands due Error: ${error.message}`);
-        });
-    }
-
-    private _loadRecentCommands() {
-        ElectronIpcService.request(new IPCMessages.ShellRecentCommandsRequest(), IPCMessages.ShellRecentCommandsResponse).then((response: IPCMessages.ShellRecentCommandsResponse) => {
-            this._recent = response.commands.map((recent: string) => {
-                return {
-                    id: '',
-                    caption: ' ',
-                    description: recent,
-                    tcaption: ' ',
-                    tdescription: recent
-                };
-            });
-            this._ng_inputCtrl.updateValueAndValidity();
-        }).catch((error: Error) => {
-            this._logger.error(`Fail to get list of recent commands due error: ${error.message}`);
-            this._notificationsService.add({
-                caption: 'Fail load recent commands',
-                message: `Fail to load recent commands due error: ${error.message}`
-            });
         });
     }
 

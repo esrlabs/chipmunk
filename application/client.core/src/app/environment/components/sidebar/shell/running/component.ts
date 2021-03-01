@@ -1,4 +1,3 @@
-import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { IShellProcess} from '../../../../../../../../common/ipc/electron.ipc.messages';
 import { Component, OnDestroy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
@@ -22,10 +21,8 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
 
     private _destroyed: boolean = false;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
-    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellRunningComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notificationsService: NotificationsService) {
+    constructor(private _cdRef: ChangeDetectorRef) {
         this._subscriptions.ShellProcessListEvent = ElectronIpcService.subscribe(IPCMessages.ShellProcessListEvent, this._onListUpdate.bind(this));
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
     }
@@ -50,23 +47,9 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
             {
                 caption: 'Terminate',
                 handler: () => {
-                    const session: string = ShellService.session.getGuid();
-                    ElectronIpcService.request(new IPCMessages.ShellProcessKillRequest({ session: session, guid: process.guid }), IPCMessages.ShellProcessKillResponse).then((response: IPCMessages.ShellProcessKillResponse) => {
-                        if (response.error !== undefined) {
-                            this._logger.error(`Fail to terminate process "${process.command}" due error: ${response.error}`);
-                            this._notificationsService.add({
-                                caption: 'Fail terminate process',
-                                message: `Fail to terminate process "${process.command}" due error: ${response.error}`
-                            });
-                        } else {
-                            ShellService.removeProcess(session, process.guid);
-                        }
-                    }).catch((error: Error) => {
-                        this._logger.error(`Fail to terminate process "${process.command}" due error: ${error.message}`);
-                        this._notificationsService.add({
-                            caption: 'Fail terminate process',
-                            message: `Fail to terminate process "${process.command}" due error: ${error.message}`
-                        });
+                    ShellService.terminate(process).catch((error: string) => {
+                        // TODO
+                        // Show error
                     });
                 }
             },
