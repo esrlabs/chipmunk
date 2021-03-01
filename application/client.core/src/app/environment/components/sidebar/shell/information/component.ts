@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 
-import ShellService, { IInformation } from '../services/service';
+import { ShellService, IInformation } from '../services/service';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -18,6 +18,8 @@ enum EStatus {
 
 export class SidebarAppShellInformationComponent implements OnInit {
 
+    @Input() public service: ShellService;
+
     public _ng_status: EStatus = EStatus.loading;
     public _ng_error: string = '';
     public _ng_information: IInformation = {
@@ -32,7 +34,7 @@ export class SidebarAppShellInformationComponent implements OnInit {
     constructor() {}
 
     public ngOnInit() {
-        ShellService.getEnv().then((information: IInformation) => {
+        this.service.getEnv().then((information: IInformation) => {
             this._ng_status = EStatus.ready;
             this._ng_information = information;
         }).catch((error: string) => {
