@@ -74,6 +74,20 @@ export class ShellService {
         });
     }
 
+    public getDetails(guid: string): Promise<IPCMessages.IShellProcess> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellProcessDetailsRequest({ session: this._session.getGuid(), guid: guid }), IPCMessages.ShellProcessDetailsResponse).then((response: IPCMessages.ShellProcessDetailsResponse) => {
+                if (response.error !== undefined) {
+                    reject(`Failed to reqeust process details due to Error: ${response.error}`);
+                } else {
+                    resolve(response.info);
+                }
+            }).catch((error: Error) => {
+                reject(`Failed to send a process details reqeust due to Error: ${error}`);
+            });
+        });
+    }
+
     public clearRecent(): Promise<void> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellRecentCommandsClearRequest(), IPCMessages.ShellRecentCommandsClearResponse).then((response: IPCMessages.ShellRecentCommandsClearResponse) => {
