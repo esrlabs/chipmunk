@@ -41,8 +41,6 @@ import * as AngularCDK from '@angular/cdk';
 import * as RXJS from 'rxjs';
 import * as LogviewerClientMaterial from 'chipmunk-client-material';
 import * as Toolkit from 'chipmunk.client.toolkit';
-import * as XTerm from 'xterm';
-import * as XTermAddonFit from 'xterm-addon-fit';
 import * as ChartJS from 'chart.js';
 import * as hammerjs from 'hammerjs';
 
@@ -91,8 +89,6 @@ export function getAvailablePluginModules(): { [key: string]: any } {
         'rxjs': RXJS,
         'chipmunk-client-material': LogviewerClientMaterial,
         'chipmunk.client.toolkit': Toolkit,
-        'xterm': XTerm,
-        'xterm-addon-fit': XTermAddonFit,
         'chart.js': ChartJS,
         'hammerjs': hammerjs,
     };

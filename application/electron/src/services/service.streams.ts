@@ -14,7 +14,6 @@ import ControllerStreamSearch from '../controllers/stream.search/controller';
 import ControllerStreamCharts from '../controllers/stream.charts/controller';
 import ControllerStreamRanges from '../controllers/stream.ranges/controller';
 import ControllerStreamProcessor from '../controllers/stream.main/controller';
-import ControllerStreamPty from '../controllers/stream.pty/controller';
 import ControllerStreamShell from '../controllers/stream.shell/controller';
 
 import { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
@@ -36,7 +35,6 @@ export interface IStreamInfo {
     search: ControllerStreamSearch;
     charts: ControllerStreamCharts;
     ranges: ControllerStreamRanges;
-    pty: ControllerStreamPty;
     shell: ControllerStreamShell;
     received: number;
 }
@@ -318,7 +316,6 @@ class ServiceStreams implements IService  {
                 const searchController: ControllerStreamSearch      = new ControllerStreamSearch(guid, streamFile, searchFile, streamController, events);
                 const chartsController: ControllerStreamCharts      = new ControllerStreamCharts(guid, streamFile, searchFile, streamController, events);
                 const rangesController: ControllerStreamRanges      = new ControllerStreamRanges(guid, streamFile, streamController);
-                const ptyController: ControllerStreamPty            = new ControllerStreamPty(guid, streamController);
                 const shellController: ControllerStreamShell        = new ControllerStreamShell(guid);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
@@ -343,7 +340,6 @@ class ServiceStreams implements IService  {
                     search: searchController,
                     charts: chartsController,
                     ranges: rangesController,
-                    pty: ptyController,
                     shell: shellController,
                     received: 0,
                 };
@@ -398,7 +394,6 @@ class ServiceStreams implements IService  {
                     stream.processor.destroy(),
                     stream.search.destroy(),
                     stream.ranges.destroy(),
-                    stream.pty.destroy(),
                     stream.shell.destroy(),
                 ]);
             };
