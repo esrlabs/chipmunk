@@ -55,6 +55,16 @@ export class ShellService {
         });
     }
 
+    public getTerminated(sessionID: string): Promise<IPCMessages.ShellProcessTerminatedListResponse> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellProcessTerminatedListRequest({ session: sessionID }), IPCMessages.ShellProcessTerminatedListResponse).then((response: IPCMessages.ShellProcessTerminatedListResponse) => {
+                resolve(response);
+            }).catch((error: Error) => {
+                reject(`Fail to get terminated processes due error: ${error.message}`);
+            });
+        });
+    }
+
     public getEnv(): Promise<IInformation> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellEnvRequest({ session: this._session.getGuid() }), IPCMessages.ShellEnvResponse).then((response: IPCMessages.ShellEnvResponse) => {
