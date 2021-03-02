@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as Stream from 'stream';
 
 import { EventEmitter } from 'events';
 
@@ -17,6 +16,8 @@ interface IPendingTask {
 }
 
 export class FileWriter extends EventEmitter {
+
+    public static MAX_BUFFER_SIZE = 1024 * 1024;
 
     public static Events = {
         ChunkWritten: 'ChunkWritten',
@@ -54,6 +55,23 @@ export class FileWriter extends EventEmitter {
 
     public write(chunk: string, pluginId: number): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (this._isLocked() && this._tasks.length > 0) {
+                const task: IPendingTask = this._tasks[0];
+                if (task.plugingId === pluginId) {
+                    // We can try to merge tasks
+                    if (task.chunk.length + chunk.length < FileWriter.MAX_BUFFER_SIZE) {
+                        task.chunk += chunk;
+                        // We are creating empty task
+                        this._tasks.push({
+                            chunk: '',
+                            plugingId: pluginId,
+                            resolver: resolve,
+                            rejector: reject,
+                        });
+                        return this._next();
+                    }
+                }
+            }
             this._tasks.push({
                 chunk: chunk,
                 plugingId: pluginId,
@@ -120,16 +138,21 @@ export class FileWriter extends EventEmitter {
         if (this._tasks.length === 0) {
             return;
         }
+        if (this._stream === undefined) {
+            return;
+        }
         if (this._isLocked()) {
             this._logger.env(`Task is postponed. Tasks in queue: ${this._tasks.length}`);
             return;
         }
-        if (this._stream === undefined) {
+        const task: IPendingTask = this._tasks[0];
+        this._tasks.splice(0, 1);
+        if (task.chunk === '') {
+            task.resolver();
+            this._unlock()._next();
             return;
         }
-        const task: IPendingTask = this._tasks[0];
         this._lock()._write(task.chunk, task.plugingId).then(() => {
-            this._tasks.splice(0, 1);
             task.resolver();
             this._unlock()._next();
         }).catch((err: Error) => {
