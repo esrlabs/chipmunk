@@ -4,14 +4,12 @@ import { ViewSearchComponent } from '../components/views/search/component';
 import { SidebarAppNotificationsComponent } from '../components/views/notifications/component';
 import { SidebarAppNotificationsCounterComponent } from '../components/views/notifications/counter/component';
 import { ViewChartComponent } from '../components/views/chart/component';
-import { ViewTerminalComponent } from '../components/views/terminal/component';
 import { ViewMeasurementComponent } from '../components/views/measurement/component';
 
 export const CDefaultTabsGuids: Toolkit.IDefaultTabsGuids = {
     search: Toolkit.guid(),
     charts: Toolkit.guid(),
     notification: Toolkit.guid(),
-    terminal: Toolkit.guid(),
     timemeasurement: Toolkit.guid(),
 };
 
@@ -30,13 +28,6 @@ export const DefaultViews: IDefaultView[] = [
         name: 'Time Measurement',
         guid: CDefaultTabsGuids.timemeasurement,
         factory: ViewMeasurementComponent,
-        inputs: { },
-        closable: true,
-    },
-    {
-        name: 'Terminal',
-        guid: CDefaultTabsGuids.terminal,
-        factory: ViewTerminalComponent,
         inputs: { },
         closable: true,
     },
