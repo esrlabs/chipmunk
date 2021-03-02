@@ -1,22 +1,26 @@
 @import '../../../../theme/variables.less';
 
-& div.running {
-    display: flex;
-    width: 100%;
-    height: 20px;
-    margin-bottom: 5px;
-    align-items: center;
-    color: @scheme-color-0;
-    background-color: @scheme-color-4;
-}
-& div.colorIndicator {
-    width: 6px;
-    height: 100%;
-    margin-right: 7px;
-}
-& span.command {
-    margin-left: 7px;
-    overflow: hidden;
-    width: 85%;
-    height: 100%;
+:host {
+    position: relative;
+    display: block;
+    & div.running {
+        display: flex;
+        width: 100%;
+        height: 20px;
+        margin-bottom: 5px;
+        align-items: center;
+        color: @scheme-color-0;
+        background-color: @scheme-color-4;
+    }
+    & div.colorIndicator {
+        width: 6px;
+        height: 100%;
+        margin-right: 7px;
+    }
+    & span.command {
+        margin-left: 7px;
+        overflow: hidden;
+        width: 85%;
+        height: 100%;
+    }
 }
