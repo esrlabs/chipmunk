@@ -37,7 +37,6 @@ export interface IDefaultTabsGuids {
     search: string;
     charts: string;
     notification: string;
-    terminal: string;
     timemeasurement: string;
 }
 
