@@ -37,6 +37,7 @@ export default class Process extends EventEmitter {
     private _stat: IPC.IShellProcessStat = {
         created: 0,
         recieved: 0,
+        terminated: 0,
         pid: 0,
     };
     private _meta: IPC.IShellProcessMeta = {

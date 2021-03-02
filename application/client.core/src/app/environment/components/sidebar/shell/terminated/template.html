@@ -1,0 +1,27 @@
+<mat-expansion-panel [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Terminated</mat-panel-title>
+        <mat-panel-description>{{_ng_count()}}</mat-panel-description>
+    </mat-expansion-panel-header>
+    <div *ngIf="_ng_terminated.length === 0">
+        <p>No processes are terminated</p>
+    </div>
+    <div *ngIf="_ng_terminated.length > 0">
+        <div appTooltip [appTooltipContent]="template" [appTooltipRefreshRate]="500" class="terminated" *ngFor="let terminated of _ng_terminated">
+            <div class="colorIndicator" [ngStyle]="{'background-color': terminated.meta.color}"></div>
+            <span class="command">{{terminated.command}}</span>
+            <ng-template #template>
+                <table>
+                    <tr>
+                        <td class="color-scheme-1 t-small">Running</td>
+                        <td class="color-scheme-0 t-small">{{_ng_info(terminated).terminated}}</td>
+                    </tr>
+                    <tr>
+                        <td class="color-scheme-1 t-small">Recieved</td>
+                        <td class="color-scheme-0 t-small">{{_ng_info(terminated).received}}</td>
+                    </tr>
+                </table>
+            </ng-template>
+        </div>
+    </div>
+</mat-expansion-panel>
