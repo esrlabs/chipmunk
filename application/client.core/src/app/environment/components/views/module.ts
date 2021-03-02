@@ -4,7 +4,6 @@ import { ViewLoaderComponent                    } from './loader/component';
 import { ViewOutputModule                       } from './output/module';
 import { ViewSearchModule                       } from './search/module';
 import { ViewChartModule                        } from './chart/module';
-import { ViewTerminalModule                     } from './terminal/module';
 import { ViewMeasurementModule                  } from './measurement/module';
 
 const components = [ ViewLoaderComponent ];
@@ -17,7 +16,6 @@ const components = [ ViewLoaderComponent ];
         ViewOutputModule,
         ViewSearchModule,
         ViewChartModule,
-        ViewTerminalModule,
         ViewMeasurementModule,
         ...components
     ]

@@ -13,8 +13,6 @@ export enum ECoreModules {
     'rxjs' = 'rxjs',
     'chipmunk-client-material' = 'chipmunk-client-material',
     'chipmunk.client.toolkit' = 'chipmunk.client.toolkit',
-    'xterm' = 'xterm',
-    'xterm/lib/addons/fit/fit' = 'xterm/lib/addons/fit/fit',
 }
 
 export interface ICoreModules {
@@ -25,8 +23,6 @@ export interface ICoreModules {
     'rxjs': any;
     'chipmunk-client-material': any;
     'chipmunk.client.toolkit': any;
-    'xterm': any;
-    'xterm/lib/addons/fit/fit': any;
 }
 
 export type TPluginExportEntity = ARowCommonParser | ARowTypedParser | ARowBoundParser | ATypedRowRender<any> | ASelectionParser | APluginService;
