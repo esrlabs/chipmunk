@@ -1,22 +1,28 @@
-<mat-expansion-panel [expanded]="true" *ngIf="_ng_running.length > 0">
+<mat-expansion-panel [expanded]="true">
     <mat-expansion-panel-header>
         <mat-panel-title>Running</mat-panel-title>
+        <mat-panel-description>{{_ng_count()}}</mat-panel-description>
     </mat-expansion-panel-header>
-    <div appTooltip [appTooltipContent]="template" [appTooltipRefreshRate]="500" class="running" *ngFor="let running of _ng_running">
-        <div class="colorIndicator" [ngStyle]="{'background-color': running.meta.color}"></div>
-        <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
-        <span class="command" (contextmenu)="_ng_onContexMenu($event, running)">{{running.command}}</span>
-        <ng-template #template>
-            <table>
-                <tr>
-                    <td class="color-scheme-1 t-small">Running</td>
-                    <td class="color-scheme-0 t-small">{{_ng_info(running).running}}</td>
-                </tr>
-                <tr>
-                    <td class="color-scheme-1 t-small">Recieved</td>
-                    <td class="color-scheme-0 t-small">{{_ng_info(running).received}}</td>
-                </tr>
-            </table>
-        </ng-template>
+    <div *ngIf="_ng_running.length === 0">
+        <p>No processes are running</p>
+    </div>
+    <div *ngIf="_ng_running.length > 0">
+        <div appTooltip [appTooltipContent]="template" [appTooltipRefreshRate]="500" class="running" *ngFor="let running of _ng_running">
+            <div class="colorIndicator" [ngStyle]="{'background-color': running.meta.color}"></div>
+            <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
+            <span class="command" (contextmenu)="_ng_onContexMenu($event, running)">{{running.command}}</span>
+            <ng-template #template>
+                <table>
+                    <tr>
+                        <td class="color-scheme-1 t-small">Running</td>
+                        <td class="color-scheme-0 t-small">{{_ng_info(running).running}}</td>
+                    </tr>
+                    <tr>
+                        <td class="color-scheme-1 t-small">Recieved</td>
+                        <td class="color-scheme-0 t-small">{{_ng_info(running).received}}</td>
+                    </tr>
+                </table>
+            </ng-template>
+        </div>
     </div>
 </mat-expansion-panel>

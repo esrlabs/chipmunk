@@ -8,6 +8,7 @@ import { SidebarAppShellComponent               } from './component';
 import { SidebarAppShellInputComponent          } from './input/component';
 import { SidebarAppShellRunningComponent        } from './running/component';
 import { SidebarAppShellInformationComponent    } from './information/component';
+import { SidebarAppShellTerminatedComponent     } from './terminated/component';
 
 import { MatIconModule                          } from '@angular/material/icon';
 import { MatInputModule                         } from '@angular/material/input';
@@ -24,6 +25,7 @@ const entryComponents = [
     SidebarAppShellRunningComponent,
     SidebarAppShellInputComponent,
     SidebarAppShellInformationComponent,
+    SidebarAppShellTerminatedComponent,
 ];
 
 const modules = [

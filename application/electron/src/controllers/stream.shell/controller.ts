@@ -17,6 +17,7 @@ export default class ControllerStreamShell {
     private _logger: Logger;
     private _guid: string;
     private _running: Map<string, Process> = new Map();
+    private _terminated: Map<string, Process> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
     private _env: {
         env: { [key: string]: string };
@@ -66,6 +67,9 @@ export default class ControllerStreamShell {
             ServiceElectron.IPC.subscribe(IPC.ShellProcessRunRequest, (this._ipc_ShellProcessRunRequest.bind(this) as any)).then((subscription: Subscription) => {
                 this._subscriptions.ShellProcessRunRequest = subscription;
             }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellProcessRunRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellProcessTerminatedListRequest, (this._ipc_ShellProcessTerminatedListRequest.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellProcessTerminatedListRequest = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellProcessTerminatedListRequest due error: ${err.message}`));
         }).catch((err: Error) => {
             this._logger.error(`Unexpecting error on load envvars: ${err.message}`);
         });
@@ -77,6 +81,7 @@ export default class ControllerStreamShell {
             proc.destroy();
         });
         this._running.clear();
+        this._terminated.clear();
         return Promise.resolve();
     }
 
@@ -85,6 +90,12 @@ export default class ControllerStreamShell {
             ServiceElectron.IPC.send(new IPC.ShellProcessListEvent({
                 session: this._guid,
                 processes: Array.from(this._running.values()).map(p => p.getInfo()),
+            }));
+        };
+        const sendListOfTerminated = () => {
+            ServiceElectron.IPC.send(new IPC.ShellProcessStoppedEvent({
+                session: this._guid,
+                processes: Array.from(this._terminated.values()).map(p => p.getInfo()),
             }));
         };
         const stored: string[] = ServiceStorage.get().get().recentCommands;
@@ -111,7 +122,10 @@ export default class ControllerStreamShell {
         });
         proc.on(Process.Events.destroy, () => {
             proc.removeAllListeners();
+            proc.getInfo().stat.terminated = (Date.now() - proc.getInfo().stat.created);
+            this._terminated.set(guid, proc);
             this._running.delete(guid);
+            sendListOfTerminated();
             sendListOfRunning();
         });
         this._running.set(guid, proc);
@@ -173,6 +187,16 @@ export default class ControllerStreamShell {
             shell: this._env.shell,
             shells: this._env.shells,
             pwd: this._env.pwd,
+        }));
+    }
+
+    private _ipc_ShellProcessTerminatedListRequest(request: IPC.ShellProcessTerminatedListRequest, response: (response: IPC.ShellProcessTerminatedListResponse) => Promise<void>) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        response(new IPC.ShellProcessTerminatedListResponse({
+            session: this._guid,
+            processes: Array.from(this._terminated.values()).map(proc => proc.getInfo()),
         }));
     }
 

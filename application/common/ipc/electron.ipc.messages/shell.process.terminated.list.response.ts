@@ -19,21 +19,21 @@ export interface IShellProcess {
     meta: IShellProcessMeta;
 }
 
-export interface IShellProcessListResponse {
+export interface IShellProcessTerminatedListResponse {
     session: string;
     processes: IShellProcess[];
 }
 
-export class ShellProcessListResponse {
+export class ShellProcessTerminatedListResponse {
 
-    public static signature: string = 'ShellProcessListResponse';
-    public signature: string = ShellProcessListResponse.signature;
+    public static signature: string = 'ShellProcessTerminatedListResponse';
+    public signature: string = ShellProcessTerminatedListResponse.signature;
     public session: string;
     public processes: IShellProcess[];
 
-    constructor(params: IShellProcessListResponse) {
+    constructor(params: IShellProcessTerminatedListResponse) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for ShellProcessListResponse message`);
+            throw new Error(`Incorrect parameters for ShellProcessTerminatedListResponse message`);
         }
         if (typeof params.session !== 'string' || params.session.trim() === '') {
             throw new Error(`Expecting session to be a string`);
