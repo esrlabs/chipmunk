@@ -61,9 +61,9 @@ mod tests {
             println!("send_and_receive: received {:?}", msgs);
             return Ok(Some(msgs));
         }
-        Err(DltParseError::Unrecoverable {
-            cause: "did not get a message from udp_msg_producer".to_string(),
-        })
+        Err(DltParseError::Unrecoverable(
+            "did not get a message from udp_msg_producer".to_string(),
+        ))
     }
 
     #[tokio::test]

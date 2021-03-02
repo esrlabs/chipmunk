@@ -8,6 +8,7 @@ mod tests {
     use crate::grabber::identify_start_slot;
     use crate::grabber::identify_start_slot_simple;
     use crate::grabber::FilePart;
+    use crate::grabber::GrabError;
     use crate::{
         grabber::{ByteRange, Grabber, LineRange, Slot},
         processor::*,
@@ -435,7 +436,7 @@ mod tests {
     }
 
     #[test]
-    fn test_identify_range_a() -> Result<()> {
+    fn test_identify_range_a() {
         fn create(br: RangeInclusive<u64>, lr: RangeInclusive<u64>) -> Slot {
             Slot {
                 bytes: ByteRange::from(br),
@@ -498,8 +499,6 @@ mod tests {
                 lines_to_drop: 1,
             })
         );
-
-        Ok(())
     }
 
     #[test]
@@ -529,6 +528,13 @@ mod tests {
                 }
             }
         }
+        Ok(())
+    }
+
+    #[test]
+    fn test_identify_range_long_lines() -> Result<()> {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
         // long lines
         {
             let mut file = NamedTempFile::new()?;
@@ -574,28 +580,25 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_grab_all_entries_in_file_with_empty_lines() -> Result<()> {
+    fn check_sample_entries(str_entries: Vec<&str>) -> Result<()> {
         use std::io::Write;
         use tempfile::NamedTempFile;
+        let entries: Vec<String> = str_entries.iter().map(|s| s.to_string()).collect();
         let mut file = NamedTempFile::new()?;
         let mut line_length: Vec<u64> = vec![];
-        let v = vec!["", ""];
-        for (i, line) in v.iter().enumerate() {
-            if i == v.len() - 1 {
+        for (i, line) in entries.iter().enumerate() {
+            if i == entries.len() - 1 {
                 // last
                 write!(file, "{}", line)?;
-                println!("[{}]: (last line) {}", i, line);
             } else {
                 writeln!(file, "{}", line)?;
-                println!("[{}]: {}", i, line);
             }
 
             line_length.push(line.len() as u64);
         }
         let p = file.into_temp_path();
         if let Ok(grabber) = Grabber::new(&p, "sourceA") {
-            let r = LineRange::from(0..=((v.len() - 1) as u64));
+            let r = LineRange::from(0..=((entries.len() - 1) as u64));
             let naive = grabber
                 .get_entries(&r)
                 .expect("entries not grabbed")
@@ -603,10 +606,19 @@ mod tests {
                 .into_iter()
                 .map(|e| e.content)
                 .collect::<Vec<String>>();
-            let entries: Vec<String> = vec!["".to_owned(), "".to_owned()];
             assert_eq!(naive, entries);
         }
         Ok(())
+    }
+    #[test]
+    fn test_grab_all_entries_in_file_with_empty_lines() -> Result<()> {
+        check_sample_entries(vec!["", ""])?;
+        check_sample_entries(vec!["", "", ""])
+    }
+
+    #[test]
+    fn test_grab_all_entries_in_file_with_some_empty_lines() -> Result<()> {
+        check_sample_entries(vec!["", "a"])
     }
 
     #[test]
@@ -669,15 +681,24 @@ mod tests {
         write!(file, "10 testblah")?;
         let p = file.into_temp_path();
         let grabber = Grabber::new(&p, "sourceA")?;
-        let one_line_range = LineRange::single_line(0);
-        let c1 = grabber
-            .get_entries(&one_line_range)?
-            .grabbed_elements
-            .into_iter()
-            .map(|e| e.content)
-            .collect::<Vec<String>>();
-        let c2: Vec<String> = vec!["ABC".to_owned()];
-        assert_eq!(c1, c2);
+
+        fn grabbed_lines(grabber: &Grabber, r: &LineRange) -> Vec<String> {
+            grabber
+                .get_entries(r)
+                .expect("Could not get entries")
+                .grabbed_elements
+                .into_iter()
+                .map(|e| e.content)
+                .collect()
+        }
+
+        for i in 0..9 {
+            assert_eq!(
+                grabbed_lines(&grabber, &LineRange::single_line(i)),
+                vec![format!("{0:>2} testblah", i + 1)]
+            );
+        }
+        // assert!(false);
         Ok(())
     }
 

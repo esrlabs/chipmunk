@@ -111,6 +111,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
+
+[[package]]
 name = "bincode"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -766,6 +772,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "grep-printer"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f34d40c840fe8e413a94598345d8a4bb25fdbb4f3860a6c00a88bb296d89d00"
+dependencies = [
+ "base64 0.12.3",
+ "bstr",
+ "grep-matcher",
+ "grep-searcher",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "termcolor",
+]
+
+[[package]]
 name = "grep-regex"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1317,10 +1339,12 @@ dependencies = [
  "criterion",
  "crossbeam-channel",
  "dirs",
+ "dlt",
  "encoding_rs_io",
  "env_logger",
  "futures",
  "grep-matcher",
+ "grep-printer",
  "grep-regex",
  "grep-searcher",
  "indexer_base",
@@ -1337,6 +1361,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "termcolor",
  "test-generator",
  "thiserror",
  "tokio",
@@ -1593,7 +1618,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ca4eaef519b494d1f2848fc602d18816fed808a981aedf4f1f00ceb7c9d32cf"
 dependencies = [
- "base64",
+ "base64 0.10.1",
  "blake2b_simd",
  "crossbeam-utils 0.6.5",
 ]

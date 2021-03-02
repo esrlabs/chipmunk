@@ -2,6 +2,7 @@ use crate::js::events::SyncChannel;
 use crate::js::events::{AsyncBroadcastChannel, AsyncChannel};
 use crate::js::events::{CallbackEvent, ComputationError, OperationDone};
 use crossbeam_channel as cc;
+use indexer_base::progress::ComputationResult::Item;
 // use crate::logging::init_logging;
 use indexer_base::progress::Severity;
 use node_bindgen::{
@@ -182,21 +183,12 @@ impl RustSession {
                             } => {
                                 println!("RUST: received Assign operation event");
 
-                                match Grabber::create_metadata_async(
-                                    file_path,
-                                    Some(shutdown_tx.subscribe()),
-                                )
-                                .await
-                                {
-                                    Ok(metadata) => {
+                                match Grabber::create_metadata_async(file_path).await {
+                                    Ok(Item(metadata)) => {
                                         println!("RUST: received metadata");
-                                        let line_count: Option<u64> = metadata.as_ref().map(|mt| {
-                                            mt.line_count as u64
-                                        });
-                                        let _ = metadata_tx.send(Ok(metadata));
-                                        if let Some(lc) = line_count {
-                                            callback(CallbackEvent::StreamUpdated(lc));
-                                        }
+                                        let line_count: u64 = metadata.line_count as u64;
+                                        let _ = metadata_tx.send(Ok(Some(metadata)));
+                                        callback(CallbackEvent::StreamUpdated(line_count));
                                     }
                                     Err(e) => {
                                         println!("RUST error computing metadata");
@@ -205,7 +197,10 @@ impl RustSession {
                                         )));
                                     }
                                 }
-                                callback(CallbackEvent::OperationDone(OperationDone { uuid: operation_id, result: None}));
+                                callback(CallbackEvent::OperationDone(OperationDone {
+                                    uuid: operation_id,
+                                    result: None,
+                                }));
                             }
                             Operation::End => {
                                 println!("RUST: received End operation event");

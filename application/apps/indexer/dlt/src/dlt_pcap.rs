@@ -136,12 +136,10 @@ impl Stream for PcapMessageProducer {
                     match SlicedPacket::from_ethernet(&payload) {
                         Err(value) => core::task::Poll::Ready(Some((
                             consumed,
-                            Err(DltParseError::ParsingHickup {
-                                reason: format!(
-                                    "error trying to extract data from ethernet frame: {}",
-                                    value
-                                ),
-                            }),
+                            Err(DltParseError::ParsingHickup(format!(
+                                "error trying to extract data from ethernet frame: {}",
+                                value
+                            ))),
                         ))),
                         Ok(value) => {
                             let mut input_slice = value.payload;
@@ -210,9 +208,10 @@ impl Stream for PcapMessageProducer {
                 warn!("Pcap: error {:?}", e);
                 core::task::Poll::Ready(Some((
                     consumed,
-                    Err(DltParseError::Unrecoverable {
-                        cause: format!("error reading pcap: {:?}", e),
-                    }),
+                    Err(DltParseError::Unrecoverable(format!(
+                        "error reading pcap: {:?}",
+                        e
+                    ))),
                 )))
             }
         };
@@ -302,11 +301,11 @@ pub async fn pcap_to_dlt(
                                 let _ = update_channel.send(Ok(IndexingProgress::Finished));
                                 break;
                             }
-                            Err(DltParseError::ParsingHickup { reason }) => {
+                            Err(DltParseError::ParsingHickup ( reason )) => {
                                 warn!("pcap_as_dlt: Parsing hickup error in stream: {}", reason);
                                 parsing_hickups += 1;
                             }
-                            Err(DltParseError::Unrecoverable { cause }) => {
+                            Err(DltParseError::Unrecoverable ( cause )) => {
                                 warn!("Unrecoverable error in stream: {}", cause);
                                 unrecoverable_parse_errors += 1;
                             }
@@ -454,11 +453,11 @@ pub async fn index_from_pcap(
                                 }
                                 break;
                             }
-                            Err(DltParseError::ParsingHickup { reason }) => {
+                            Err(DltParseError::ParsingHickup ( reason )) => {
                                 warn!("parsing hickup error in stream: {}", reason);
                                 parsing_hickups += 1;
                             }
-                            Err(DltParseError::Unrecoverable { cause }) => {
+                            Err(DltParseError::Unrecoverable ( cause )) => {
                                 warn!("Unrecoverable error in stream: {}", cause);
                                 unrecoverable_parse_errors += 1;
                             }

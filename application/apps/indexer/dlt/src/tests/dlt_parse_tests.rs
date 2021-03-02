@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::proptest_strategies::messages_strat;
     use crate::{
         dlt::*,
         dlt_parse::{forward_to_next_storage_header, DLT_PATTERN, *},
@@ -275,6 +276,29 @@ mod tests {
             assert_eq!(expected, res);
         }
         #[test]
+        fn test_count_messages(messages in stored_messages_strat(10)) {
+            let mut content = vec![];
+            let generated_msg_cnt = messages.len();
+            for msg in messages {
+                let msg_bytes = msg.as_bytes();
+                content.extend(msg_bytes);
+            }
+            let mut was_message = true;
+            let mut msg_cnt = 0usize;
+            let mut remaining: &[u8] = &content;
+            while was_message {
+                if let Ok((rest, consumed))  = dlt_consume_msg(remaining) {
+                    was_message = consumed.is_some();
+                    remaining = rest;
+                    msg_cnt += 1;
+                } else {
+                    break;
+                }
+            }
+            assert_eq!(msg_cnt, generated_msg_cnt);
+        }
+
+        #[test]
         fn test_dlt_standard_header(header_to_expect in header_strategy(4, Endianness::Big)) {
             init_logging();
             let mut header_bytes = header_to_expect.as_bytes();
@@ -349,20 +373,18 @@ mod tests {
     #[test]
     fn test_parse_msg() {
         init_logging();
-        let payload = Payload2 {
-            payload_content: PayloadContent::Verbose(vec![Argument {
-                type_info: TypeInfo {
-                    kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
-                    coding: StringCoding::UTF8,
-                    has_variable_info: true,
-                    has_trace_info: false,
-                },
-                name: Some("UcbfX".to_string()),
-                unit: Some("seconds".to_string()),
-                fixed_point: None,
-                value: Value::U32(2_063_359_909),
-            }]),
-        };
+        let payload = PayloadContent::Verbose(vec![Argument {
+            type_info: TypeInfo {
+                kind: TypeInfoKind::Unsigned(TypeLength::BitLength32),
+                coding: StringCoding::UTF8,
+                has_variable_info: true,
+                has_trace_info: false,
+            },
+            name: Some("UcbfX".to_string()),
+            unit: Some("seconds".to_string()),
+            fixed_point: None,
+            value: Value::U32(2_063_359_909),
+        }]);
         let msg_conf = MessageConfig {
             version: 0,
             endianness: Endianness::Big,
