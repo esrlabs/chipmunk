@@ -110,6 +110,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     ngOnDestroy() {
+        clearTimeout(this._rebuild.timer);
         this._destroyed = true;
         this._unsubscribeSessionEvents();
         Object.keys(this._subscriptions).forEach((key: string) => {
