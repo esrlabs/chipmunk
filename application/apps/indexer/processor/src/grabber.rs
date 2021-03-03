@@ -50,7 +50,7 @@ pub struct GrabbedContent {
 }
 
 const DEFAULT_SLOT_SIZE: usize = 64 * 1024usize;
-
+//const DEFAULT_SLOT_SIZE: usize = 20usize;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ByteIdentifier;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -405,83 +405,51 @@ impl Grabber {
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         let f = fs::File::open(&path)?;
-        let input_file_size = f.metadata()?.len();
         let mut reader = std::io::BufReader::new(f);
         let mut slots = Vec::<Slot>::new();
-
-        // let slot_size = 20usize;
-        let slot_size = DEFAULT_SLOT_SIZE;
-        // let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
-        let mut buffer = vec![0; slot_size];
-
+        let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
+        let mut rest: Vec<u8> = vec![];
         let mut byte_index = 0u64;
         let mut line_index = 0u64;
         while let Ok(read_bytes) = reader.read(&mut buffer) {
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
                 return Ok(ComputationResult::Stopped);
             }
+            // Resize chunk of data
+            if read_bytes < DEFAULT_SLOT_SIZE {
+                buffer.resize(read_bytes, 0);
+            }
+            // Create actual buffer including rest part of previous iteration
+            rest.append(&mut buffer);
+            // Restore buffer to continue reading
+            buffer = Vec::new();                        // Note:
+            buffer.resize(DEFAULT_SLOT_SIZE, 0);        // vec![0; DEFAULT_SLOT_SIZE]; works slower on linux
+            // Get list of all inlets in chunk
+            let (nl, offset) = get_inlets_plaint_text(&rest);
+            if nl == 0 && read_bytes > 0 {
+                continue;
+            }
+            let (slot, offset) = if read_bytes > 0 {
+                // Take rest part of chunk (all after last inlet)
+                rest = rest[offset + 1..].to_vec();
+                (Slot {
+                    bytes: ByteRange::from(byte_index..=(byte_index + offset as u64)),
+                    lines: LineRange::from(line_index..=(line_index + nl) - 1),
+                }, offset)
+            } else {
+                (Slot {
+                    bytes: ByteRange::from(byte_index..=(byte_index + rest.len() as u64) - 1),
+                    lines: LineRange::from(line_index..=(line_index + nl)),
+                }, 0)
+            };
+            // Save slot and update other parameters
+            slots.push(slot);
+            byte_index += offset as u64 + 1;
+            line_index += nl;
             if read_bytes == 0 {
                 // we are done
                 break;
             }
-            // println!("we read {} bytes into the buffer", read_bytes);
-            if read_bytes < DEFAULT_SLOT_SIZE {
-                buffer.resize(read_bytes, 0);
-            }
-            let nl_count = bytecount::count(&buffer, b'\n') as u64;
-            if nl_count == 0 && input_file_size > slot_size as u64 {
-                return Err(GrabError::Config(format!(
-                    "Unable to load full item content into slot of size {}",
-                    slot_size
-                )));
-            }
-            let starts_with_nl = is_newline(buffer[0]);
-            let ends_with_nl = is_newline(buffer[read_bytes - 1]);
-            let lines_in_slot = nl_count + 1;
-            // - if starts_with_nl { 1 } else { 0 }
-            // - if ends_with_nl { 1 } else { 0 };
-            let mut line_range_start = line_index;
-            if starts_with_nl && read_bytes != 1 {
-                line_range_start += 1;
-            }
-            let line_range_end = subtract_what_is_possible(line_index + lines_in_slot, 1);
-            let byte_range_start = byte_index
-                + if starts_with_nl && read_bytes != 1 {
-                    1
-                } else {
-                    0
-                };
-            let byte_range_end = subtract_what_is_possible(
-                byte_index + read_bytes as u64,
-                if ends_with_nl { 2 } else { 1 },
-            );
-            let slot = Slot {
-                bytes: ByteRange::from(byte_range_start..=byte_range_end),
-                lines: LineRange::from(line_range_start..=line_range_end),
-            };
-
-            if slots.len() < 20 {
-                println!(
-                    "buffer[0] = '{}', buffer[read_bytes-1] = '{}'",
-                    buffer[0],
-                    buffer[read_bytes - 1],
-                );
-                println!(
-                    "[processed slot[{}]({} \\n)] {:?} {}{}",
-                    slots.len(),
-                    nl_count,
-                    slot,
-                    if starts_with_nl {
-                        "(started with \\n)"
-                    } else {
-                        ""
-                    },
-                    if ends_with_nl { "(ended with \\n)" } else { "" }
-                );
-            }
-            slots.push(slot);
-            byte_index += read_bytes as u64;
-            line_index += nl_count;
         }
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
@@ -512,20 +480,20 @@ impl Grabber {
                     return Err(GrabError::InvalidRange(line_range.clone()));
                 }
                 use std::io::prelude::*;
-
+                // println!("Used metadata: {:?}", metadata);
                 let file_part = identify_byte_range(&metadata.slots, line_range)
                     .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
                 println!("file-part: {:?}", file_part);
 
                 let mut read_buf = vec![0; file_part.length];
                 let mut read_from = fs::File::open(&self.path)?;
-
                 read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
+
                 read_from.read_exact(&mut read_buf)?;
                 let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
                 println!("skipping {} entries", file_part.lines_to_skip);
 
-                let all_lines = s.split(|c| c == '\n' || c == '\r');
+                let all_lines = s.split(|c| c == '\n');
                 let lines_minus_end =
                     all_lines.take(file_part.total_lines - file_part.lines_to_drop);
                 let pure_lines = lines_minus_end.skip(file_part.lines_to_skip);
@@ -718,6 +686,7 @@ pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Sl
         Ordering::Less
     }) {
         return Some((slots[found].clone(), found));
+        // NOTE: Binary search for slots
     } // let mut to_investigate = (0, metadata.slots.len() - 1);
       // loop {
       //     let slot_mid_index = (to_investigate.0 + to_investigate.1) / 2;
@@ -755,7 +724,7 @@ pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Sl
 }
 
 fn is_newline(item: u8) -> bool {
-    item == b'\n' || item == b'\r'
+    item == b'\n'
 }
 
 fn subtract_what_is_possible(n: u64, m: u64) -> u64 {
@@ -763,5 +732,13 @@ fn subtract_what_is_possible(n: u64, m: u64) -> u64 {
         n - m
     } else {
         0
+    }
+}
+
+fn get_inlets_plaint_text(buffer: &[u8]) -> (u64, usize) {
+    if let Some(offset) = buffer.iter().rposition(|&byte| &byte == &b'\n') {
+        (bytecount::count(&buffer, b'\n') as u64, offset)
+    } else {
+        (0, 0)
     }
 }
