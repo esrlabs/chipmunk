@@ -3,7 +3,6 @@ use crossbeam_channel::unbounded;
 use dlt::dlt::Message;
 use dlt::dlt_file::FileMessageProducer;
 use dlt::dlt_fmt::FormattableMessage;
-use dlt::dlt_parse::DltParseError;
 use dlt::dlt_parse::{dlt_consume_msg, ParsedMessage};
 use indexer_base::chunks::ChunkResults;
 use indexer_base::{progress::ComputationResult, utils};
@@ -209,13 +208,10 @@ impl Grabber {
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
-        let extension = path
-            .extension()
-            .ok_or_else(|| GrabError::Config("Cannot get path extension".to_owned()))?;
-        let computation_res = if extension == "dlt" {
-            Grabber::create_metadata_for_dlt_file(&path, None)?
-        } else {
-            Grabber::create_metadata_for_file(&path, None)?
+
+        let computation_res = match path.extension() {
+            Some(ext) if ext == "dlt" => Grabber::create_metadata_for_dlt_file(&path, None)?,
+            _ => Grabber::create_metadata_for_file(&path, None)?,
         };
 
         let metadata = match computation_res {
@@ -271,61 +267,6 @@ impl Grabber {
         let p = PathBuf::from(path.as_ref());
         let res = tokio::task::spawn_blocking(move || {
             Grabber::create_metadata_for_file(p, None).unwrap()
-            // use tokio::fs::File;
-            // use tokio::io::AsyncReadExt;
-            // let f = File::open(&path).await?;
-            // let mut reader = tokio::io::BufReader::new(f);
-            // // let input_file_size = tokio::fs::metadata(&path).await?.len();
-            // let mut slots = Vec::<Slot>::new();
-
-            // let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
-            // let mut byte_index = 0u64;
-            // let mut processed_lines = 0u64;
-            // while let Ok(len) = reader.read(&mut buffer).await {
-            //     // TODO check for shutdown
-            //     // if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
-            //     //     result_sender
-            //     //         .send(Progress::Stopped)
-            //     //         .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
-            //     //     return Ok(None);
-            //     // }
-            //     if len == 0 {
-            //         break;
-            //     }
-            //     if len < DEFAULT_SLOT_SIZE {
-            //         buffer.resize(len, 0);
-            //     }
-            //     let line_count = bytecount::count(&buffer, b'\n') as u64
-            //         + if buffer.last() == Some(&b'\n') { 0 } else { 1 };
-            //     let slot = Slot {
-            //         bytes: ByteRange::new(byte_index, byte_index + len as u64),
-            //         lines: LineRange::new(processed_lines, processed_lines + line_count),
-            //     };
-            //     slots.push(slot);
-            //     byte_index += len as u64;
-            //     processed_lines += line_count;
-            //     if buffer.last() == Some(&b'\n') {
-            //         println!(">> last char for line {} was a \\n", processed_lines);
-            //     } else if buffer.last() == Some(&b'\r') {
-            //         println!(
-            //             "last char for line {} was a {:?}",
-            //             processed_lines,
-            //             buffer.last()
-            //         );
-            //     }
-            //     // TODO generate update events
-            //     // result_sender
-            //     //     .send(Progress::ticks(byte_index, input_file_size))
-            //     //     .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
-            // }
-            // // TODO generate done event
-            // // result_sender
-            // //     .send(Progress::ticks(input_file_size, input_file_size))
-            // //     .map_err(|_| GrabError::Communication("Could not send progress".to_string()))?;
-            // Ok(Some(GrabMetadata {
-            //     slots,
-            //     line_count: processed_lines as usize,
-            // }))
         })
         .await;
         let g: ComputationResult<GrabMetadata> =
@@ -405,52 +346,62 @@ impl Grabber {
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         let f = fs::File::open(&path)?;
-        let mut reader = std::io::BufReader::new(f);
+        // let mut reader = std::io::BufReader::new(f);
         let mut slots = Vec::<Slot>::new();
-        let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
-        let mut rest: Vec<u8> = vec![];
+        // let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
+        // let mut rest: Vec<u8> = vec![];
         let mut byte_index = 0u64;
         let mut line_index = 0u64;
-        while let Ok(read_bytes) = reader.read(&mut buffer) {
+
+        let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
+            .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
+
+        loop {
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
                 return Ok(ComputationResult::Stopped);
             }
-            // Resize chunk of data
-            if read_bytes < DEFAULT_SLOT_SIZE {
-                buffer.resize(read_bytes, 0);
-            }
-            // Create actual buffer including rest part of previous iteration
-            rest.append(&mut buffer);
-            // Restore buffer to continue reading
-            buffer = Vec::new();                        // Note:
-            buffer.resize(DEFAULT_SLOT_SIZE, 0);        // vec![0; DEFAULT_SLOT_SIZE]; works slower on linux
-            // Get list of all inlets in chunk
-            let (nl, offset) = get_inlets_plaint_text(&rest);
-            if nl == 0 && read_bytes > 0 {
-                continue;
-            }
-            let (slot, offset) = if read_bytes > 0 {
-                // Take rest part of chunk (all after last inlet)
-                rest = rest[offset + 1..].to_vec();
-                (Slot {
-                    bytes: ByteRange::from(byte_index..=(byte_index + offset as u64)),
-                    lines: LineRange::from(line_index..=(line_index + nl) - 1),
-                }, offset)
-            } else {
-                (Slot {
-                    bytes: ByteRange::from(byte_index..=(byte_index + rest.len() as u64) - 1),
-                    lines: LineRange::from(line_index..=(line_index + nl)),
-                }, 0)
-            };
-            // Save slot and update other parameters
-            slots.push(slot);
-            byte_index += offset as u64 + 1;
-            line_index += nl;
-            if read_bytes == 0 {
-                // we are done
-                break;
+            match reader.fill_buf() {
+                Ok(content) => {
+                    let read_bytes = content.len();
+                    if read_bytes == 0 {
+                        // everything was processed
+                        break;
+                    }
+
+                    // Get list of all inlets in chunk
+                    let (nl, offset_last_newline) = count_lines_up_to_last_newline(&content);
+                    let (slot, consumed, processed_lines) = if nl == 0 {
+                        let consumed = read_bytes as u64;
+                        // we hit a very long line that exceeds our read buffer, best
+                        // to package everything we read into an entry and start a new one
+                        let slot = Slot {
+                            bytes: ByteRange::from(byte_index..=(byte_index + consumed) - 1),
+                            lines: LineRange::from(line_index..=line_index),
+                        };
+                        (slot, consumed, 1)
+                    } else {
+                        let consumed = offset_last_newline as u64 + 1;
+                        let slot = Slot {
+                            bytes: ByteRange::from(byte_index..=(byte_index + consumed - 1)),
+                            lines: LineRange::from(line_index..=(line_index + nl) - 1),
+                        };
+                        (slot, consumed, nl)
+                    };
+                    reader.consume(consumed as usize);
+                    slots.push(slot);
+                    byte_index += consumed;
+                    line_index += processed_lines;
+                }
+                Err(e) => {
+                    trace!("no more content");
+                    return Err(GrabError::Config(format!(
+                        "error for filling buffer with more content: {:?}",
+                        e
+                    )));
+                }
             }
         }
+
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
             line_count: (line_index + 1) as usize,
@@ -472,7 +423,6 @@ impl Grabber {
     /// naive implementation that just reads all slots that are involved and drops
     /// everything that is not needed
     pub fn get_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
-        println!("get_entries for range: {:?}", line_range);
         match &self.metadata {
             None => Err(GrabError::NotInitialize),
             Some(metadata) => {
@@ -480,10 +430,13 @@ impl Grabber {
                     return Err(GrabError::InvalidRange(line_range.clone()));
                 }
                 use std::io::prelude::*;
-                // println!("Used metadata: {:?}", metadata);
                 let file_part = identify_byte_range(&metadata.slots, line_range)
                     .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
-                println!("file-part: {:?}", file_part);
+                println!(
+                    "relevant file-part (starts at index {}): lines {}",
+                    file_part.offset_in_file,
+                    file_part.total_lines - file_part.lines_to_skip - file_part.lines_to_drop
+                );
 
                 let mut read_buf = vec![0; file_part.length];
                 let mut read_from = fs::File::open(&self.path)?;
@@ -491,7 +444,6 @@ impl Grabber {
 
                 read_from.read_exact(&mut read_buf)?;
                 let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
-                println!("skipping {} entries", file_part.lines_to_skip);
 
                 let all_lines = s.split(|c| c == '\n');
                 let lines_minus_end =
@@ -544,12 +496,6 @@ impl Grabber {
                     }
                 }
 
-                // let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
-                // println!("skipping {} entries", file_part.lines_to_skip);
-
-                // let all_lines = s.split(|c| c == '\n' || c == '\r');
-                // let lines_minus_end =
-                //     all_lines.take(file_part.total_lines - file_part.lines_to_drop);
                 let items_to_grab = line_range.size();
                 let pure_lines = messages
                     .iter()
@@ -665,61 +611,41 @@ pub(crate) fn identify_start_slot_simple(slots: &[Slot], line_index: u64) -> Opt
 /// identify in which slot it is
 pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
     println!("identify index {}", line_index);
-    use std::cmp::Ordering;
     if slots.is_empty() {
         return None;
     }
-    if let Ok(found) = slots.binary_search_by(|slot| {
-        println!("slot {:?}", slot);
-        if slot.lines.start() > line_index {
-            println!("slot.lines.range.start > {}", line_index);
-            return Ordering::Greater;
+    // NOTE: Binary search for slots
+    let mut to_investigate = (0, slots.len() - 1);
+    loop {
+        let slot_mid_index = (to_investigate.0 + to_investigate.1) / 2;
+        let slot = &slots[slot_mid_index];
+        // println!("examine slot {:?}", slot.lines);
+        if (line_index == 0 && slot.lines.start() == 0) || slot.lines.range.contains(&line_index) {
+            // println!("found it! 1");
+            return Some((slot.clone(), slot_mid_index));
         }
-        if slot.lines.start() <= line_index && line_index <= slot.lines.end() {
-            println!(
-                "FOUND: slot.lines.range.start <= {} <= slot.lines.last_included",
-                line_index,
-            );
-            return Ordering::Equal;
+        if to_investigate.1 - to_investigate.0 <= 1 {
+            // only 2 possibilities left
+            // we already checked slot_mid_index which equals to_investigate.0
+            // so check the last possibility
+            // let (r, (lower, upper)) = self.slots[to_investigate.1];
+            let slot = &slots[to_investigate.1];
+            if slot.lines.range.contains(&line_index) {
+                // println!("found it! 2");
+                return Some((slot.clone(), to_investigate.1));
+            }
+            break; // not found -> exit
         }
-        println!("Less");
-        Ordering::Less
-    }) {
-        return Some((slots[found].clone(), found));
-        // NOTE: Binary search for slots
-    } // let mut to_investigate = (0, metadata.slots.len() - 1);
-      // loop {
-      //     let slot_mid_index = (to_investigate.0 + to_investigate.1) / 2;
-      //     let slot = &metadata.slots[slot_mid_index];
-      //     // println!("examine slot {:?}", slot.lines);
-      //     if (line_index == 0 && slot.lines.range.start == 0)
-      //         || slot.lines.range.contains(&line_index)
-      //     {
-      //         // println!("found it! 1");
-      //         return Some((slot.clone(), slot_mid_index));
-      //     }
-      //     if to_investigate.1 - to_investigate.0 <= 1 {
-      //         // only 2 possibilities left
-      //         // we already checked slot_mid_index which equals to_investigate.0
-      //         // so check the last possibility
-      //         // let (r, (lower, upper)) = self.slots[to_investigate.1];
-      //         let slot = &metadata.slots[to_investigate.1];
-      //         if slot.lines.range.contains(&line_index) {
-      //             // println!("found it! 2");
-      //             return Some((slot.clone(), to_investigate.1));
-      //         }
-      //         break; // not found -> exit
-      //     }
-      //     let old_to_investigate = to_investigate;
-      //     if line_index < slot.lines.range.start {
-      //         to_investigate = (to_investigate.0, slot_mid_index);
-      //     } else {
-      //         to_investigate = (slot_mid_index, to_investigate.1);
-      //     }
-      //     if to_investigate == old_to_investigate {
-      //         break;
-      //     }
-      // }
+        let old_to_investigate = to_investigate;
+        if line_index < slot.lines.start() {
+            to_investigate = (to_investigate.0, slot_mid_index);
+        } else {
+            to_investigate = (slot_mid_index, to_investigate.1);
+        }
+        if to_investigate == old_to_investigate {
+            break;
+        }
+    }
     None
 }
 
@@ -727,16 +653,8 @@ fn is_newline(item: u8) -> bool {
     item == b'\n'
 }
 
-fn subtract_what_is_possible(n: u64, m: u64) -> u64 {
-    if n >= m {
-        n - m
-    } else {
-        0
-    }
-}
-
-fn get_inlets_plaint_text(buffer: &[u8]) -> (u64, usize) {
-    if let Some(offset) = buffer.iter().rposition(|&byte| &byte == &b'\n') {
+fn count_lines_up_to_last_newline(buffer: &[u8]) -> (u64, usize) {
+    if let Some(offset) = buffer.iter().rposition(|&v| v == b'\n') {
         (bytecount::count(&buffer, b'\n') as u64, offset)
     } else {
         (0, 0)
