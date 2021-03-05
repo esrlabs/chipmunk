@@ -1,9 +1,8 @@
 # Changelog
 
-### [2.15.1] - 03/05/2021
-* [#1089](fix) Restore charts properly
-* [#1055](fix) Unsubscribe from unused subjects
-* [#1099](fix) Clear timeout on destroying component
+## [2.15.1] - 03/05/2021
+### Fixed
+Restore charts (between sessions) properly
 
 ## [2.15.0] - 03/05/2021
 ### Added
