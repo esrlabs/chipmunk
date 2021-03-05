@@ -1,4 +1,32 @@
 # Changelog
+
+### [2.15.0] - 03/05/2021
+* [#1055](refact) Remove unused variable
+* [#1055](feat) Add terminated panel
+* Get rid of node-pty, xterm libs and related stuff
+* Optimization of a session's writing queue
+* Add tooltip on running process
+* [#1055](refact) Adjust command input
+* [#1055](feat) Support right arrow-key to autofill
+* [#1055](refact) Change service to create once
+* [#1055](refact) Refact errors for BE communication
+* [#1055](refact) Different states on information
+* [#1055](fix) Clear history of recent commands
+* [#1055](refact) Add command as recent when running
+* [#1055](refact) Move BE communication to service
+* Resolve lintjs issues
+* Fix killing of forked process
+* [#1005](refact) Lint fixes
+* [#1055](feat) Front-End of embedded terminal
+* Revert "[]()test"
+  This reverts commit 937d0ecfdaf031db824b3a7f06d913365bf88a24.
+* []()test
+* Correct name of controller (ControllerStreamShell)
+* Correct destroy of shell process
+* Controller for shell commands support
+* Added ShellProcessListEvent event
+* IPC messages for shell sidebar app
+* [#1090](feat) Show spinner while chart generating
 All notable changes to this project will be documented in this file.
 
 The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
