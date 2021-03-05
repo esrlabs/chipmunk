@@ -6,7 +6,6 @@ import { ServicePosition } from '../service.position';
 import { Session } from '../../../../controller/session/session';
 
 import EventsSessionService from '../../../../services/standalone/service.events.session';
-import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -46,8 +45,6 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         this._subscriptions.onChartsScaleType = this.serviceData.getObservable().onChartsScaleType.subscribe(this._onChartsScaleType.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
-        // Listen session events
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Update size of canvas and containers
         this._resize(true);
         // Try to build chart
@@ -141,7 +138,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             this._filters = undefined;
         }
         if (this._filters === undefined) {
-            this._filters = new Chart('view-chart-zoomer-filters-canvas', {
+            this._filters = new Chart(`view-chart-zoomer-filters-canvas-${this.serviceData.getSessionGuid()}`, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -200,7 +197,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             this._charts = undefined;
         }
         if (this._charts === undefined) {
-            this._charts = new Chart('view-chart-zoomer-charts-canvas', {
+            this._charts = new Chart(`view-chart-zoomer-charts-canvas-${this.serviceData.getSessionGuid()}`, {
                 type: 'scatter',
                 data: {
                     datasets: datasets.dataset,
@@ -314,21 +311,6 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
 
     private _onViewResize() {
         this._resize(false);
-    }
-
-    private _onSessionChange(session: Session | undefined) {
-        if (session === undefined) {
-            return;
-        }
-        if (this._filters !== undefined) {
-            this._filters.destroy();
-            this._filters = undefined;
-        }
-        if (this._charts !== undefined) {
-            this._charts.destroy();
-            this._charts = undefined;
-        }
-        this._build();
     }
 
     private _forceUpdate() {
