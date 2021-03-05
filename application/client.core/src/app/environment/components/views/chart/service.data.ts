@@ -8,7 +8,6 @@ import { AChart } from './charts/charts';
 import { IPCMessages } from '../../../services/service.electron.ipc';
 import { scheme_color_accent } from '../../../theme/colors';
 
-import EventsSessionService from '../../../services/standalone/service.events.session';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import ChartsControllers from './charts/charts';
 
@@ -68,9 +67,6 @@ export class ServiceData {
 
     constructor() {
         this._init();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
     }
 
     public destroy() {
@@ -418,13 +414,6 @@ export class ServiceData {
         this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
         this._subjects.onData.next();
         this._subjects.onCharts.next();
-    }
-
-    private _onSessionChange(controller: Session) {
-        if (controller === undefined) {
-            return;
-        }
-        this._init(controller);
     }
 
     private _onSearchMapStateUpdate(state: IMapState) {

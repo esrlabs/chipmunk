@@ -3,7 +3,6 @@ import { ControllerSessionScope } from '../../../controller/session/dependencies
 import { Session } from '../../../controller/session/session';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
-import EventsSessionService from '../../../services/standalone/service.events.session';
 
 export interface IPositionChange {
     left: number;
@@ -38,7 +37,6 @@ export class ServicePosition {
     };
 
     constructor() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._init();
     }
 
@@ -113,13 +111,6 @@ export class ServicePosition {
         }
         const scope: ControllerSessionScope = this._sessionController.getScope();
         scope.set<IPositionChange>(CSettings.serviceScopeKey, Object.assign({}, this._position));
-    }
-
-    private _onSessionChange(controller: Session) {
-        if (controller === undefined) {
-            return;
-        }
-        this._init(controller);
     }
 
 }

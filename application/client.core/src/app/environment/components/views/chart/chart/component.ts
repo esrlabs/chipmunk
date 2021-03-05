@@ -12,7 +12,6 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
-import EventsSessionService from '../../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -99,8 +98,6 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         this._subscriptions.onPosition = this.position.getObservable().onChange.subscribe(this._onPosition.bind(this));
         // Listen session changes event
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onViewResize.bind(this));
-        // Listen session events
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         // Update size of canvas and containers
         this._resize();
         // Subscribe session events
@@ -223,7 +220,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_filters = undefined;
         }
         if (this._ng_filters === undefined) {
-            this._ng_filters = new Chart('view-chart-canvas-filters', {
+            this._ng_filters = new Chart(`view-chart-canvas-filters-${this.service.getSessionGuid()}`, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -296,7 +293,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             this._ng_charts = undefined;
         }
         if (this._ng_charts === undefined) {
-            this._ng_charts = new Chart('view-chart-canvas-charts', {
+            this._ng_charts = new Chart(`view-chart-canvas-charts-${this.service.getSessionGuid()}`, {
                 type: 'scatter',
                 data: {
                     datasets: datasets.dataset,
@@ -494,22 +491,6 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
 
     private _onViewResize() {
         this._resize();
-    }
-
-    private _onSessionChange(session: Session | undefined) {
-        if (session === undefined) {
-            return;
-        }
-        if (this._ng_filters !== undefined) {
-            this._ng_filters.destroy();
-            this._ng_filters = undefined;
-        }
-        if (this._ng_charts !== undefined) {
-            this._ng_charts.destroy();
-            this._ng_charts = undefined;
-        }
-        this._subscribeSessionEvents(session);
-        this._build();
     }
 
     private _subscribeSessionEvents(session: Session | undefined) {
