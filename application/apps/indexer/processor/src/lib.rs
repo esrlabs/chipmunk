@@ -18,10 +18,12 @@ extern crate log;
 
 extern crate crossbeam_channel as cc;
 
+pub mod dlt_source;
 pub mod grabber;
 pub mod parse;
 pub mod processor;
 pub mod search;
+pub mod text_source;
 
 #[cfg(test)]
 mod tests;

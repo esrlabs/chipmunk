@@ -893,16 +893,16 @@ fn validated_payload_length(
     let message_length = header.overall_length();
     let headers_length = calculate_all_headers_length(header.header_type_byte());
     if message_length < headers_length {
-        return Err(DltParseError::ParsingHickup {
-            reason: "Parsed message-length is less then the length of all headers".to_string(),
-        });
+        return Err(DltParseError::ParsingHickup(
+            "Parsed message-length is less then the length of all headers".to_string(),
+        ));
     }
 
     let payload_length = message_length - headers_length;
     if payload_length as usize > remaining_bytes {
-        return Err(DltParseError::ParsingHickup {
-            reason: "Payload length seems to be longer then the remaining bytes, message-length is malformed".to_string(),
-        });
+        return Err(DltParseError::ParsingHickup (
+            "Payload length seems to be longer then the remaining bytes, message-length is malformed".to_string(),
+        ));
     }
     Ok(message_length - headers_length)
 }
