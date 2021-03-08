@@ -95,8 +95,15 @@ export class OperationSearch extends EventEmitter {
                 });
                 // Handeling finishing
                 process.once('close', () => {
-                    this._offset = transform.getOffsets();
-                    resolve(transform.getMap());
+                    if (!writer.writableFinished) {
+                        writer.once('finish', () => {
+                            this._offset = transform.getOffsets();
+                            resolve(transform.getMap());
+                        });
+                    } else {
+                        this._offset = transform.getOffsets();
+                        resolve(transform.getMap());
+                    }
                 });
                 // Start reading / writing output of ripgrep
                 process.stdout.pipe(transform).pipe(writer);

@@ -94,8 +94,15 @@ export class OperationAppend extends EventEmitter {
             });
             // Handeling fiinishing
             process.once('close', () => {
-                this.setReadFrom(readTo + 1);
-                resolve(transform.getMap());
+                if (!writer.writableFinished) {
+                    writer.once('finish', () => {
+                        this.setReadFrom(readTo + 1);
+                        resolve(transform.getMap());
+                    });
+                } else {
+                    this.setReadFrom(readTo + 1);
+                    resolve(transform.getMap());
+                }
             });
             // Create cleaner
             this._cleaner = () => {
