@@ -1,5 +1,9 @@
 # Changelog
 
+### [2.15.2] - 03/08/2021
+* Prevent notifications on postponed write task
+* [fix](close #1112) Wait for writer finish writting search results
+
 ## [2.15.1] - 03/05/2021
 ### Fixed
 Restore charts (between sessions) properly
