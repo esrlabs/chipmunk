@@ -219,7 +219,11 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         // Update width
         this._width = Math.round(width);
         // Calculate updated width of cursor
-        this._ng_width = width * rate;
+        if (rate <= 1) {
+            this._ng_width = width * rate;
+        } else {
+            this._ng_width = width;
+        }
         this._ng_left = (this._ng_left - this.getLeftOffset()) / change + this.getLeftOffset();
         this._emitChanges();
         this._forceUpdate();
