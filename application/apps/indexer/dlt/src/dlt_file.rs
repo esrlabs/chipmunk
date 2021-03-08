@@ -503,7 +503,6 @@ pub fn export_as_dlt_file(
     sections: SectionConfig,
     update_channel: cc::Sender<ChunkResults>,
 ) -> Result<(), DltParseError> {
-    use std::io::{Read, Seek};
     trace!(
         "export_as_dlt_file {:?} to file: {:?}, exporting {:?}",
         dlt_file_path,

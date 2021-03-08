@@ -210,7 +210,7 @@ impl Grabber {
         }
 
         let computation_res = match path.extension() {
-            Some(ext) if ext == "dlt" => Grabber::create_metadata_for_dlt_file(&path, None)?,
+            Some(ext) if ext == "dlt" => Grabber::create_metadata_for_dlt_file(&path)?,
             _ => Grabber::create_metadata_for_file(&path, None)?,
         };
 
@@ -276,7 +276,6 @@ impl Grabber {
 
     pub fn create_metadata_for_dlt_file(
         input: &Path,
-        shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         if !fs::metadata(&input)?.is_file() {
             return Err(GrabError::Config(format!(
@@ -370,6 +369,10 @@ impl Grabber {
 
                     // Get list of all inlets in chunk
                     let (nl, offset_last_newline) = count_lines_up_to_last_newline(&content);
+                    // println!(
+                    //     "nl-count to last nl: {}, offset_last_newline: {}",
+                    //     nl, offset_last_newline
+                    // );
                     let (slot, consumed, processed_lines) = if nl == 0 {
                         let consumed = read_bytes as u64;
                         // we hit a very long line that exceeds our read buffer, best
@@ -432,11 +435,11 @@ impl Grabber {
                 use std::io::prelude::*;
                 let file_part = identify_byte_range(&metadata.slots, line_range)
                     .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
-                println!(
-                    "relevant file-part (starts at index {}): lines {}",
-                    file_part.offset_in_file,
-                    file_part.total_lines - file_part.lines_to_skip - file_part.lines_to_drop
-                );
+                // println!(
+                //     "relevant file-part (starts at index {}): lines {}",
+                //     file_part.offset_in_file,
+                //     file_part.total_lines - file_part.lines_to_skip - file_part.lines_to_drop
+                // );
 
                 let mut read_buf = vec![0; file_part.length];
                 let mut read_from = fs::File::open(&self.path)?;
@@ -461,7 +464,7 @@ impl Grabber {
     }
 
     pub fn get_dlt_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
-        println!("get_dlt_entries for range: {:?}", line_range);
+        // println!("get_dlt_entries for range: {:?}", line_range);
         match &self.metadata {
             None => Err(GrabError::NotInitialize),
             Some(metadata) => {
@@ -472,7 +475,7 @@ impl Grabber {
 
                 let file_part = identify_byte_range(&metadata.slots, line_range)
                     .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
-                println!("file-part: {:?}", file_part);
+                // println!("file-part: {:?}", file_part);
 
                 let mut read_buf = vec![0; file_part.length];
                 let mut read_from = fs::File::open(&self.path)?;
@@ -480,7 +483,7 @@ impl Grabber {
                 read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
                 read_from.read_exact(&mut read_buf)?;
 
-                let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+                let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
                 let message_stream =
                     FileMessageProducer::new(Cursor::new(read_buf), None, tx, true, None);
 
@@ -556,6 +559,7 @@ pub struct FilePart {
 /// It will also return how many lines are in this byte-range and how many need to be skipped
 /// at the beginning and dropped the end to get only the desired content
 pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<FilePart> {
+    // println!("identify byte range for: {:?} (range {:?})", slots, lines);
     if lines.is_empty() {
         return None;
     }
@@ -563,6 +567,10 @@ pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<F
     let last_line_index = lines.end();
     let maybe_start_slot = identify_start_slot_simple(&slots, start_line_index);
     let maybe_end_slot = identify_end_slot_simple(&slots, last_line_index);
+    // println!(
+    //     "(maybe_start_slot, maybe_end_slot): ({:?}, {:?})",
+    //     &maybe_start_slot, &maybe_end_slot
+    // );
     match (maybe_start_slot, maybe_end_slot) {
         (Some((start_slot, _)), Some((end_slot, _))) => {
             let lines_to_skip = start_line_index - start_slot.lines.start();
@@ -610,7 +618,7 @@ pub(crate) fn identify_start_slot_simple(slots: &[Slot], line_index: u64) -> Opt
 /// When we now want to find out the byte offset of a line, we first can quickly
 /// identify in which slot it is
 pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
-    println!("identify index {}", line_index);
+    // println!("identify index {}", line_index);
     if slots.is_empty() {
         return None;
     }
