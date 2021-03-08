@@ -7,6 +7,7 @@ export interface IMenuItem {
     caption?: string;
     handler?: () => void;
     disabled?: boolean;
+    shortcut?: string;
 }
 
 export interface IMenu {
