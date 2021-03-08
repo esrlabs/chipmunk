@@ -11,13 +11,11 @@ export { ITransformResult };
 interface IPendingTask {
     chunk: string;
     plugingId: number;
-    resolver: () => void;
+    resolver: (notify: boolean) => void;
     rejector: (error: Error) => void;
 }
 
 export class FileWriter extends EventEmitter {
-
-    public static MAX_BUFFER_SIZE = 1024 * 1024;
 
     public static Events = {
         ChunkWritten: 'ChunkWritten',
@@ -43,6 +41,8 @@ export class FileWriter extends EventEmitter {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
+            this._tasks.forEach(task => task.resolver(false));
+            this._tasks = [];
             // Destroy stream
             if (this._stream !== undefined) {
                 this._stream.close();
@@ -53,23 +53,16 @@ export class FileWriter extends EventEmitter {
         });
     }
 
-    public write(chunk: string, pluginId: number): Promise<void> {
+    public write(chunk: string, pluginId: number): Promise<boolean> {
         return new Promise((resolve, reject) => {
             if (this._isLocked() && this._tasks.length > 0) {
-                const task: IPendingTask = this._tasks[0];
+                const task: IPendingTask = this._tasks[this._tasks.length - 1];
                 if (task.plugingId === pluginId) {
-                    // We can try to merge tasks
-                    if (task.chunk.length + chunk.length < FileWriter.MAX_BUFFER_SIZE) {
-                        task.chunk += chunk;
-                        // We are creating empty task
-                        this._tasks.push({
-                            chunk: '',
-                            plugingId: pluginId,
-                            resolver: resolve,
-                            rejector: reject,
-                        });
-                        return this._next();
-                    }
+                    // We can merge tasks
+                    task.chunk += chunk;
+                    // Resolve with "false" to ingore notifications
+                    resolve(false);
+                    return this._next();
                 }
             }
             this._tasks.push({
@@ -142,18 +135,13 @@ export class FileWriter extends EventEmitter {
             return;
         }
         if (this._isLocked()) {
-            this._logger.env(`Task is postponed. Tasks in queue: ${this._tasks.length}`);
+            // this._logger.env(`Task is postponed. Tasks in queue: ${this._tasks.length}. Bytes in queue: ${this._tasks.map(t => t.chunk.length).reduce((a, b) => a + b)}`);
             return;
         }
         const task: IPendingTask = this._tasks[0];
         this._tasks.splice(0, 1);
-        if (task.chunk === '') {
-            task.resolver();
-            this._unlock()._next();
-            return;
-        }
         this._lock()._write(task.chunk, task.plugingId).then(() => {
-            task.resolver();
+            task.resolver(true);
             this._unlock()._next();
         }).catch((err: Error) => {
             task.rejector(err);

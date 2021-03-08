@@ -109,9 +109,11 @@ export default class ControllerStreamProcessor {
             if (sourceInfo instanceof Error) {
                 return reject(new Error(`Fail to write data due error: ${sourceInfo.message}`));
             }
-            this._writer.write(output, sourceInfo.id).then(() => {
+            this._writer.write(output, sourceInfo.id).then((notify: boolean) => {
                 // Send notification to render
-                this._state.postman.notification();
+                if (notify) {
+                    this._state.postman.notification();
+                }
                 resolve();
             }).catch(reject);
         });
