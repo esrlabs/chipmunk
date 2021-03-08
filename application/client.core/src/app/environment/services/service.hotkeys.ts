@@ -25,8 +25,8 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.closeTab]:                { shortkeys: ['⌘ + W', 'Ctrl + W'],                         description: 'Close active tab',                category: EHotkeyCategory.Tabs },
     [IPCMessages.EHotkeyActionRef.nextTab]:                 { shortkeys: ['⌘ + Tab', 'Ctrl + Tab'],                     description: 'Next tab',                        category: EHotkeyCategory.Tabs },
     [IPCMessages.EHotkeyActionRef.prevTab]:                 { shortkeys: ['Shift + ⌘ + Tab', 'Shift + Ctrl + Tab'],     description: 'Previous tab',                    category: EHotkeyCategory.Tabs },
-    [IPCMessages.EHotkeyActionRef.recentFiles]:             { shortkeys: ['⌘ + J', 'Ctrl + P'],                         description: 'Open recent files',               category: EHotkeyCategory.Files },
-    [IPCMessages.EHotkeyActionRef.recentFilters]:           { shortkeys: ['Shift + ⌘ + J', 'Shift + Ctrl + P'],         description: 'Open recent filtres',             category: EHotkeyCategory.Files },
+    [IPCMessages.EHotkeyActionRef.recentFiles]:             { shortkeys: ['⌘ + P', 'Ctrl + P'],                         description: 'Open recent files',               category: EHotkeyCategory.Files },
+    [IPCMessages.EHotkeyActionRef.recentFilters]:           { shortkeys: ['Shift + ⌘ + P', 'Shift + Ctrl + P'],         description: 'Open recent filters',             category: EHotkeyCategory.Files },
     [IPCMessages.EHotkeyActionRef.openLocalFile]:           { shortkeys: ['⌘ + O', 'Ctrl + O'],                         description: 'Open local file',                 category: EHotkeyCategory.Files },
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'],         description: 'Show filters tab',                category: EHotkeyCategory.Areas },
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                          description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
@@ -38,9 +38,6 @@ export const CKeysMap = {
     [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
     [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                         description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
     [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                         description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.renameSearch]:            { shortkeys: ['F2'],                                          description: 'Rename selected filter/chart',    category: EHotkeyCategory.Search},
-    [IPCMessages.EHotkeyActionRef.storeChart]:              { shortkeys: ['Shift + Enter'],                               description: 'Store chart',                     category: EHotkeyCategory.Search},
-    [IPCMessages.EHotkeyActionRef.storeFilter]:             { shortkeys: ['⌘ + Enter', 'Ctrl + Enter'],                 description: 'Store filter',                     category: EHotkeyCategory.Search},
     [IPCMessages.EHotkeyActionRef.settings]:                { shortkeys: ['⌘ + ,', 'Ctrl + ,'],                         description: 'Show settings',                   category: EHotkeyCategory.Other },
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                          description: 'Show this dialog',                category: EHotkeyCategory.Other },
 };
@@ -50,7 +47,6 @@ const CLocalHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           'j',
     [IPCMessages.EHotkeyActionRef.selectPrevRow]:           'k',
     [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    '?',
-    [IPCMessages.EHotkeyActionRef.renameSearch]:            'F2',
 };
 
 export interface IHotkeyEvent {
@@ -91,7 +87,6 @@ export class HotkeysService implements IService {
         nextTab: new Subject<IHotkeyEvent>(),
         prevTab: new Subject<IHotkeyEvent>(),
         ctrlC: new Subject<IHotkeyEvent>(),
-        renameSearch: new Subject<IHotkeyEvent>(),
     };
 
     constructor() {
@@ -158,7 +153,6 @@ export class HotkeysService implements IService {
         nextTab: Observable<IHotkeyEvent>,
         prevTab: Observable<IHotkeyEvent>,
         ctrlC: Observable<IHotkeyEvent>,
-        renameSearch: Observable<IHotkeyEvent>,
     } {
         return {
             newTab: this._subjects.newTab.asObservable(),
@@ -181,7 +175,6 @@ export class HotkeysService implements IService {
             nextTab: this._subjects.nextTab.asObservable(),
             prevTab: this._subjects.prevTab.asObservable(),
             ctrlC: this._subjects.ctrlC.asObservable(),
-            renameSearch: this._subjects.renameSearch.asObservable(),
         };
     }
 

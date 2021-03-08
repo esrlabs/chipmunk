@@ -148,13 +148,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             }
             return false;
         }
-        if (HotkeysService.platform === 'darwin' && event.metaKey && event.key === 'Enter') {
-            this._onStoreFilter();
-        } else if ((HotkeysService.platform === 'linux' || 'win32') && event.ctrlKey && event.key === 'Enter') {
-            this._onStoreFilter();
-        } else if (event.shiftKey && event.key === 'Enter') {
-            this._ng_onStoreChart();
-        }
         return true;
     }
 
