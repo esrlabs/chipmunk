@@ -321,6 +321,7 @@ export class Providers {
                 handler: () => {
                     providers[0].actions(event.entity, entities).edit();
                 },
+                shortcut: 'Enter'
             });
         }
 

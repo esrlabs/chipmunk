@@ -17,6 +17,8 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
     public _ng_component: IComponentDesc | undefined;
     public _ng_items: IMenuItem[] | undefined;
     public _ng_guid: string = Toolkit.guid();
+    public _ng_minWidth: number = 50;
+
     private _subscriptions: { [key: string]: Subscription } = {};
     private _top: number = 0;
     private _left: number = 0;
@@ -61,6 +63,7 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
         this._ng_items = menu.items;
         this._top = menu.y;
         this._left = menu.x;
+        this._setMinWidth();
         this._cdRef.detectChanges();
         // Recheck position
         setTimeout(() => {
@@ -78,6 +81,23 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
                 this._cdRef.detectChanges();
             }
         }, 0);
+    }
+
+    private _setMinWidth() {
+        let captionLen: number = 0;
+        let shortcutLen: number = 0;
+        this._ng_items.forEach((item: IMenuItem) => {
+            if (item.caption !== undefined && item.caption.length > captionLen) {
+                captionLen = item.caption.length;
+            }
+            if (item.shortcut !== undefined && item.shortcut.length > shortcutLen) {
+                shortcutLen = item.shortcut.length;
+            }
+        });
+        const calculated: number = (captionLen + shortcutLen) * 8;
+        if (this._ng_minWidth < calculated) {
+            this._ng_minWidth = calculated;
+        }
     }
 
     private _subscribeToWinEvents() {
