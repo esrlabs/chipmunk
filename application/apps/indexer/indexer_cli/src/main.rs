@@ -34,7 +34,12 @@ use indexer_base::{
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
-use processor::grabber::Grabber;
+use processor::dlt_source::DltSource;
+use processor::grabber::GrabError;
+use processor::grabber::GrabbedContent;
+use processor::text_source::TextFileSource;
+use std::path::Path;
+
 use tokio::sync;
 
 lazy_static! {
@@ -103,12 +108,6 @@ pub async fn main() -> Result<()> {
                         .long("meta")
                         .value_name("META")
                         .help("slot metadata"),
-                )
-                .arg(
-                    Arg::with_name("async")
-                        .short("a")
-                        .long("async")
-                        .help("use async version"),
                 )
                 .arg(
                     Arg::with_name("start")
@@ -536,6 +535,7 @@ pub async fn main() -> Result<()> {
         let input_path_string_res = value_t!(matches.value_of("input"), String);
         let start_res = value_t!(matches.value_of("start"), u64);
         let length_res = value_t!(matches.value_of("length"), u64);
+        let export: bool = matches.is_present("export");
         match (input_path_string_res, start_res, length_res) {
             (Ok(input_path), Ok(start), Ok(length)) => {
                 println!(
@@ -546,77 +546,79 @@ pub async fn main() -> Result<()> {
                 );
                 // let rt = Runtime::new()?;
                 // rt.block_on(async {
-                let start_op = Instant::now();
-
                 let input_p = path::PathBuf::from(&input_path);
-                let grabber: Grabber = if matches.is_present("metadata") {
-                    let metadata_path =
-                        matches.value_of("metadata").expect("input must be present");
-                    println!("grabber with metadata");
-                    processor::grabber::Grabber::lazy(&input_p, "sourceA")
-                        .expect("Grabber could not be initialized lazily")
-                        .load_metadata(path::PathBuf::from(metadata_path))
-                        .expect("")
-                } else {
-                    let use_async = matches.is_present("async");
-                    if use_async {
-                        println!("Grabber async API");
-                        let mut empty_grabber =
-                            processor::grabber::Grabber::lazy(&input_p, "sourceA")
-                                .expect("Grabber could not be initialized lazily");
-                        let metadata = Grabber::create_metadata_async(&input_path)
-                            .await
-                            .expect("Could not create metadata async");
-                        empty_grabber.metadata = metadata.into_option();
-                        empty_grabber
-                    } else {
-                        println!("Grabber sync API");
-                        processor::grabber::Grabber::new(&input_p, "sourceA")
-                            .expect("Grabber could not be initialized lazily")
-                    }
-                };
 
-                duration_report(
-                    start_op,
-                    format!(
-                        "initializing Grabber for {:?} lines",
-                        grabber.log_entry_count()
-                    ),
-                );
-
-                let export: bool = matches.is_present("export");
-                if export {
-                    let start_op = Instant::now();
-                    if let Some(export_folder_path) = input_p.parent() {
-                        let mut export_path = std::path::PathBuf::from(export_folder_path);
-                        export_path.push(format!(
-                            "{}.metadata",
-                            input_p
-                                .file_name()
-                                .unwrap_or_else(|| std::ffi::OsStr::new("export"))
-                                .to_string_lossy()
-                        ));
-                        grabber
-                            .export_slots(&export_path)
-                            .expect("could not export metadata");
-                    }
-                    duration_report(start_op, "exporting metadata".to_string());
-                }
-
-                let start_op = Instant::now();
-                let start_index = if start > 0 { start - 1 } else { start };
-                let r = LineRange::from(start_index..=(start_index + length - 1));
-                let extension = input_p
+                let is_dlt = input_p
                     .extension()
-                    .expect("Could not get extension of file");
-                let res = if extension == "dlt" {
-                    grabber.get_dlt_entries(&r)
+                    .expect("Could not get extension of file")
+                    == "dlt";
+                let start_index = if start > 0 { start - 1 } else { start };
+                let res: Result<(GrabbedContent, Instant), GrabError> = if is_dlt {
+                    type GrabberType = processor::grabber::Grabber<DltSource>;
+                    let start_op = Instant::now();
+                    let source = DltSource::new(&input_p, "sourceA");
+                    let grabber = if matches.is_present("metadata") {
+                        let metadata_path =
+                            matches.value_of("metadata").expect("input must be present");
+                        println!("grabber with metadata");
+                        processor::grabber::Grabber::<DltSource>::lazy(source)
+                            .expect("Grabber could not be initialized lazily")
+                            .load_metadata(path::PathBuf::from(metadata_path))
+                            .expect("")
+                    } else {
+                        println!("Grabber sync DLT API");
+                        GrabberType::new(source).expect("Grabber could not be initialized lazily")
+                    };
+                    duration_report(
+                        start_op,
+                        format!(
+                            "initializing Grabber for {:?} lines",
+                            grabber.log_entry_count()
+                        ),
+                    );
+
+                    if export {
+                        cache_metadata_to_file(&input_p, &grabber);
+                    }
+
+                    let r = LineRange::from(start_index..=(start_index + length - 1));
+                    let start_op = Instant::now();
+                    Ok((grabber.get_entries(&r)?, start_op))
                 } else {
-                    grabber.get_entries(&r)
+                    type GrabberType = processor::grabber::Grabber<TextFileSource>;
+                    let source = TextFileSource::new(&input_p, "sourceA");
+                    let start_op = Instant::now();
+                    let grabber = if matches.is_present("metadata") {
+                        let metadata_path =
+                            matches.value_of("metadata").expect("input must be present");
+                        println!("grabber with metadata");
+                        GrabberType::lazy(source)
+                            .expect("Grabber could not be initialized lazily")
+                            .load_metadata(path::PathBuf::from(metadata_path))
+                            .expect("")
+                    } else {
+                        println!("Grabber sync text API");
+                        GrabberType::new(source).expect("Grabber could not be initialized lazily")
+                    };
+                    duration_report(
+                        start_op,
+                        format!(
+                            "initializing Grabber for {:?} lines",
+                            grabber.log_entry_count()
+                        ),
+                    );
+
+                    if export {
+                        cache_metadata_to_file(&input_p, &grabber);
+                    }
+
+                    let r = LineRange::from(start_index..=(start_index + length - 1));
+                    let start_op = Instant::now();
+                    Ok((grabber.get_entries(&r)?, start_op))
                 };
 
                 match res {
-                    Ok(v) => {
+                    Ok((v, start_op)) => {
                         duration_report(start_op, format!("grabbing {} lines", length));
                         let mut i = start_index;
                         let cap_after = 150;
@@ -646,6 +648,27 @@ pub async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
+    }
+
+    fn cache_metadata_to_file<T: processor::grabber::MetadataSource>(
+        input_p: &Path,
+        grabber: &processor::grabber::Grabber<T>,
+    ) {
+        let start_op = Instant::now();
+        if let Some(export_folder_path) = input_p.parent() {
+            let mut export_path = std::path::PathBuf::from(export_folder_path);
+            export_path.push(format!(
+                "{}.metadata",
+                input_p
+                    .file_name()
+                    .unwrap_or_else(|| std::ffi::OsStr::new("export"))
+                    .to_string_lossy()
+            ));
+            grabber
+                .export_slots(&export_path)
+                .expect("could not export metadata");
+        }
+        duration_report(start_op, "exporting metadata".to_string());
     }
 
     async fn handle_index_subcommand(

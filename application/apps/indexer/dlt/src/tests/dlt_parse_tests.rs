@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use crate::proptest_strategies::messages_strat;
     use crate::{
         dlt::*,
         dlt_parse::{forward_to_next_storage_header, DLT_PATTERN, *},
