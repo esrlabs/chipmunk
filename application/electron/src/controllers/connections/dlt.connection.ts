@@ -2,7 +2,7 @@ import Logger from "../../tools/env.logger";
 import ServiceStreams from "../../services/service.sessions";
 import ServiceStreamSource from '../../services/service.stream.sources';
 import ServiceNotifications from "../../services/service.notifications";
-import { Progress, DLT, CancelablePromise } from "indexer-neon";
+// import { Progress, DLT, CancelablePromise } from "indexer-neon";
 import { IDLTDeamonConnectionOptions as IConnectionOptions, EDLTDeamonConnectionType } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
 
