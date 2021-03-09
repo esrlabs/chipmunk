@@ -154,7 +154,7 @@ export default class ControllerStreamSearch {
             }
             task.then((map: IMapItem[]) => {
                 this._inspect();
-                this._state.postman.notification(true);
+                this._state.postman.notification().SearchUpdated();
                 resolve(this._state.map.getRowsCount());
             }).catch((searchErr: Error) => {
                 this._logger.error(`Fail to execute search due error: ${searchErr.message}`);
@@ -175,14 +175,7 @@ export default class ControllerStreamSearch {
         }
         inspecting.then((data: IMapData) => {
             // Notify render
-            ServiceElectron.IPC.send(new IPCElectronMessages.SearchResultMap({
-                streamId: this._state.getGuid(),
-                append: this._searching.isInspectingAppend(),
-                map: data.map,
-                stats: data.stats,
-            })).catch((error: Error) => {
-                this._logger.warn(`Fail send notification to render due error: ${error.message}`);
-            });
+            this._state.postman.notification().SearchResultMap(data, this._searching.isInspectingAppend());
         }).catch((execErr: Error) => {
             this._logger.warn(`Fail to make inspecting search results due error: ${execErr.message}`);
         }).finally(() => {
