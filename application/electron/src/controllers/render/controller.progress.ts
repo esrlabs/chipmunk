@@ -2,7 +2,7 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../../servi
 import Logger from '../../tools/env.logger';
 
 const CSettings = {
-    notificationDelayOnStream: 250, // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
+    notificationDelayOnStream: 500, // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
 };
 
 interface IProgress {
@@ -50,7 +50,7 @@ export default class ProgressState {
         if (this._tracks.size === 0) {
             this._logger.verbose(`No states.`);
         }
-        this._send();
+        this._notify();
     }
 
     public next(id: string, progress: number) {
@@ -69,27 +69,20 @@ export default class ProgressState {
         this._notify();
     }
 
-    private _send() {
-        clearTimeout(this._timer);
-        this._last = Date.now();
-        ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
-            streamId: this._streamId,
-            tracks: Array.from(this._tracks.values()),
-        })).catch((error: Error) => {
-            this._logger.warn(`Fail to send StreamProgressState due error: ${error.message}`);
-        });
-    }
-
     private _notify() {
         clearTimeout(this._timer);
         const past: number = Date.now() - this._last;
         if (past < CSettings.notificationDelayOnStream) {
             this._timer = setTimeout(() => {
-                this._send();
+                ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
+                    streamId: this._streamId,
+                    tracks: Array.from(this._tracks.values()),
+                })).catch((error: Error) => {
+                    this._logger.warn(`Fail to send StreamProgressState due error: ${error.message}`);
+                });
             }, CSettings.notificationDelayOnStream - past);
             return;
         }
-        this._send();
     }
 
 }
