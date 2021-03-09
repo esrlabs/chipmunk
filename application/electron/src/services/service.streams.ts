@@ -272,15 +272,7 @@ class ServiceStreams implements IService  {
         return new Promise((resolve) => {
             // Destroy all connections / servers to UNIX sockets
             Promise.all(Array.from(this._streams.values()).map((stream: IStreamInfo) => {
-                return stream.processor.destroy().then(() => {
-                    stream.server.unref();
-                    stream.connections.forEach((connection: Net.Socket) => {
-                        connection.unref();
-                        connection.destroy();
-                        connection.removeAllListeners();
-                    });
-                    stream.connections = [];
-                }).catch((error: Error) => {
+                return this._destroyStream(stream.guid).catch((error: Error) => {
                     this._logger.error(`Fail destroy stream "${stream.guid}" due error: ${error.message}`);
                     return Promise.resolve();
                 });
