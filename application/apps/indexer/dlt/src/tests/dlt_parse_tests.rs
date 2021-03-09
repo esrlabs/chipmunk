@@ -266,12 +266,12 @@ mod tests {
             let mut header_bytes = header_to_expect.as_bytes();
             trace!("header bytes: {:02X?}", header_bytes);
             header_bytes.extend(b"----");
-            let res: IResult<&[u8], Option<StorageHeader>> = dlt_storage_header::<Chunk>(&header_bytes, None, None);
-            if let Ok((_, Some(v))) = res.clone() {
+            let res: IResult<&[u8], Option<(StorageHeader, u64)>> = dlt_storage_header(&header_bytes);
+            if let Ok((_, Some((v, 0)))) = res.clone() {
                 trace!("parsed header: {}", v)
             }
-            let expected: IResult<&[u8], Option<StorageHeader>> =
-                Ok((b"----", Some(header_to_expect)));
+            let expected: IResult<&[u8], Option<(StorageHeader, u64)>> =
+                Ok((b"----", Some((header_to_expect, 0))));
             assert_eq!(expected, res);
         }
         #[test]

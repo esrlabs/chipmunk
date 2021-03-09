@@ -67,35 +67,19 @@ pub(crate) fn forward_to_next_storage_header(input: &[u8]) -> Option<(u64, &[u8]
         return None;
     }
     if to_drop > 0 {
-        trace!("dropped {} bytes to get to next message", to_drop);
+        trace!("Need to drop {} bytes to get to next message", to_drop);
     }
+    trace!("forwarded {}", to_drop);
     Some((to_drop as u64, &input[to_drop..]))
 }
 
-pub(crate) fn dlt_storage_header<'a, T>(
-    input: &'a [u8],
-    index: Option<usize>,
-    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
-) -> IResult<&'a [u8], Option<StorageHeader>> {
+/// parse the next DLT storage header
+/// this function will move along the content until it finds a storage header
+/// the amount of bytes we had to move forwared is the second part of the return value
+pub(crate) fn dlt_storage_header(input: &[u8]) -> IResult<&[u8], Option<(StorageHeader, u64)>> {
     // trace!("dlt_storage_header (left: {} bytes)", input.len());
     match forward_to_next_storage_header(input) {
         Some((consumed, rest)) => {
-            if consumed > 0 {
-                if let Some(tx) = update_channel {
-                    let line_output = match index {
-                        Some(n) => format!("before line[{}] ", n),
-                        None => "".to_owned(),
-                    };
-                    let _ = tx.send(Err(Notification {
-                        severity: Severity::WARNING,
-                        content: format!(
-                            "Dropped {} bytes {}to get to next message",
-                            consumed, line_output
-                        ),
-                        line: index,
-                    }));
-                }
-            }
             let (i, (_, _, seconds, microseconds)) = tuple((
                 tag("DLT"),
                 tag(&[0x01]),
@@ -105,13 +89,16 @@ pub(crate) fn dlt_storage_header<'a, T>(
             let (after_string, ecu_id) = dlt_zero_terminated_string(i, 4)?;
             Ok((
                 after_string,
-                Some(StorageHeader {
-                    timestamp: DltTimeStamp {
-                        seconds,
-                        microseconds,
+                Some((
+                    StorageHeader {
+                        timestamp: DltTimeStamp {
+                            seconds,
+                            microseconds,
+                        },
+                        ecu_id: ecu_id.to_string(),
                     },
-                    ecu_id: ecu_id.to_string(),
-                }),
+                    consumed,
+                )),
             ))
         }
         None => {
@@ -760,19 +747,20 @@ pub fn dlt_message<'a>(
     with_storage_header: bool,
 ) -> Result<(&'a [u8], ParsedMessage), DltParseError> {
     // trace!("starting to parse dlt_message==================");
-    let (after_storage_header, storage_header) = if with_storage_header {
-        dlt_storage_header(input, Some(index), update_channel)?
-    } else {
-        (input, None)
-    };
-    if storage_header.is_some() {
+    let (after_storage_header, storage_header_shifted): (&[u8], Option<(StorageHeader, u64)>) =
+        if with_storage_header {
+            dlt_storage_header(input)?
+        } else {
+            (input, None)
+        };
+    if let Some((storage_header, shifted)) = &storage_header_shifted {
         dbg_parsed(
             "storage header",
-            &input,
+            &input[(*shifted as usize)..],
             &after_storage_header,
             &storage_header,
-        );
-    }
+        )
+    };
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
     dbg_parsed(
         "normal header",
@@ -781,51 +769,17 @@ pub fn dlt_message<'a>(
         &header,
     );
 
-    // trace!("parsing 2...let's validate the payload length");
-    let payload_length = match validated_payload_length(&header, Some(index), update_channel) {
-        Some(length) => length,
-        None => {
-            warn!("no validated payload length");
-            return Ok((after_storage_and_normal_header, ParsedMessage::Invalid));
-        }
-    };
-    // trace!(
-    //     "payload-length: {} <-> input-length: {}",
-    //     payload_length,
-    //     input.len()
-    // );
-    if payload_length as usize > input.len() {
-        warn!(
-            "Payload length seems wrong ({}) but only {} bytes available",
-            payload_length,
-            input.len()
-        );
-        return Err(DltParseError::ParsingHickup {
-            reason: "Not a valid DLT message".to_string(),
-        });
-    }
+    let payload_length_res = validated_payload_length(&header, input.len());
 
-    // trace!("dlt_msg 4, payload_length: {}", payload_length);
     let mut verbose: bool = false;
     let mut is_controll_msg = false;
     let mut arg_count = 0;
     let (after_headers, extended_header) = if header.has_extended_header {
-        // trace!("try to parse extended header");
         let (rest, ext_header) =
             dlt_extended_header(after_storage_and_normal_header, Some(index), update_channel)?;
         verbose = ext_header.verbose;
         arg_count = ext_header.argument_count;
-        // trace!(
-        //     "did parse extended header (type: {})",
-        //     ext_header.message_type
-        // );
         is_controll_msg = matches!(ext_header.message_type, MessageType::Control(_));
-        // trace!(
-        //     "did parse extended header, verbose: {}, arg_count: {}, is_controll: {}",
-        //     verbose,
-        //     arg_count,
-        //     is_controll_msg
-        // );
         dbg_parsed(
             "extended header",
             &after_storage_and_normal_header,
@@ -840,6 +794,13 @@ pub fn dlt_message<'a>(
     //     "extended header: {:?}",
     //     serde_json::to_string(&extended_header)
     // );
+    let payload_length = match payload_length_res {
+        Ok(length) => length,
+        Err(e) => {
+            warn!("No validated payload length: {}", e);
+            return Ok((after_storage_and_normal_header, ParsedMessage::Invalid));
+        }
+    };
     if filtered_out(
         extended_header.as_ref(),
         filter_config_opt,
@@ -872,7 +833,7 @@ pub fn dlt_message<'a>(
     Ok((
         i,
         ParsedMessage::Item(Message {
-            storage_header,
+            storage_header: storage_header_shifted.map(|shs| shs.0),
             header,
             extended_header,
             payload,
@@ -932,27 +893,25 @@ fn filtered_out(
     false
 }
 
-fn validated_payload_length<T>(
+fn validated_payload_length(
     header: &StandardHeader,
-    index: Option<usize>,
-    update_channel: Option<&cc::Sender<IndexingResults<T>>>,
-) -> Option<u16> {
+    remaining_bytes: usize,
+) -> Result<u16, DltParseError> {
     let message_length = header.overall_length();
     let headers_length = calculate_all_headers_length(header.header_type_byte());
     if message_length < headers_length {
-        if let Some(tx) = update_channel {
-            let _ = tx.send(Err(Notification {
-                severity: Severity::ERROR,
-                content: format!(
-                    "Invalid header length {} (message only has {} bytes)",
-                    headers_length, message_length
-                ),
-                line: index,
-            }));
-        }
-        return None;
+        return Err(DltParseError::ParsingHickup {
+            reason: "Parsed message-length is less then the length of all headers".to_string(),
+        });
     }
-    Some(message_length - headers_length)
+
+    let payload_length = message_length - headers_length;
+    if payload_length as usize > remaining_bytes {
+        return Err(DltParseError::ParsingHickup {
+            reason: "Payload length seems to be longer then the remaining bytes, message-length is malformed".to_string(),
+        });
+    }
+    Ok(message_length - headers_length)
 }
 
 fn skip_till_after_next_storage_header(input: &[u8]) -> Result<(&[u8], u64), DltParseError> {
@@ -986,7 +945,6 @@ pub fn dlt_statistic_row_info<'a, T>(
     with_storage_header: bool,
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> Result<(&'a [u8], StatisticRowInfo), DltParseError> {
-    let update_channel_ref = update_channel;
     // let (after_storage_header, _) = skip_till_after_next_storage_header(input)?;
     let (after_storage_header, _) = if with_storage_header {
         skip_till_after_next_storage_header(input)?
@@ -995,9 +953,9 @@ pub fn dlt_statistic_row_info<'a, T>(
     };
     let (after_storage_and_normal_header, header) = dlt_standard_header(after_storage_header)?;
 
-    let payload_length = match validated_payload_length(&header, index, update_channel_ref) {
-        Some(length) => length,
-        None => {
+    let payload_length = match validated_payload_length(&header, input.len()) {
+        Ok(length) => length,
+        Err(_e) => {
             return Ok((
                 after_storage_and_normal_header,
                 StatisticRowInfo {
