@@ -22,6 +22,10 @@ const MAX_NUMBER_OF_RECENT_FILES = 20;
 
 const MENU_TEMPLATE = [
     {
+        label: 'Chipmunk',
+        submenu: [ ],
+    },
+    {
         label: 'File',
         submenu: [ ],
     },
@@ -105,11 +109,11 @@ export default class ControllerElectronMenu {
     private _create() {
         const template: any[] = this._getTemplate();
         // Add files submenu
-        template[0].submenu.push(...this._getFilesLocalSubmenu());
+        template[1].submenu.push(...this._getFilesLocalSubmenu());
         // Add recent files (if it exists)
         if (ServiceStorage.get().get().recentFiles.length > 0) {
-            template[0].submenu.push({ type: 'separator' });
-            template[0].submenu.push({
+            template[1].submenu.push({ type: 'separator' });
+            template[1].submenu.push({
                 label: 'Open Recent',
                 submenu: [
                     ...this._getRecentFiles(),
@@ -126,15 +130,14 @@ export default class ControllerElectronMenu {
         }
         const exportActions: IExportAction[] = ServiceOutputExport.getActions(ServiceStreams.getActiveStreamId());
         if (exportActions.length > 0) {
-            template[0].submenu.push({ type: 'separator' });
+            template[1].submenu.push({ type: 'separator' });
             exportActions.forEach((action: IExportAction) => {
-                template[0].submenu.push({
+                template[1].submenu.push({
                     label: action.caption,
                     click: HandlerItemExportActionCall.bind(null, action.id),
                 });
             });
         }
-        template[0].submenu.push({ type: 'separator' });
         template[0].submenu.push({
             label: 'Plugins',
             click: HandlerItemPlugins,
