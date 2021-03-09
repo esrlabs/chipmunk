@@ -653,6 +653,9 @@ export { ShellProcessTerminatedListRequest };
 import { IShellProcessTerminatedListResponse, ShellProcessTerminatedListResponse } from './shell.process.terminated.list.response';
 export { IShellProcessTerminatedListResponse, ShellProcessTerminatedListResponse };
 
+import { IShortcuts, Shortcuts } from './shortcuts';
+export { IShortcuts, Shortcuts };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -868,7 +871,8 @@ export type TMessage =  AppRestartRequest |
                         ShellRecentCommandsClearRequest |
                         ShellRecentCommandsClearResponse |
                         ShellProcessTerminatedListRequest |
-                        ShellProcessTerminatedListResponse;
+                        ShellProcessTerminatedListResponse |
+                        Shortcuts;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
@@ -1117,4 +1121,6 @@ export const Map = {
     [ShellRecentCommandsClearResponse.signature     ]: ShellRecentCommandsClearResponse,
     [ShellProcessTerminatedListRequest.signature    ]: ShellProcessTerminatedListRequest,
     [ShellProcessTerminatedListResponse.signature   ]: ShellProcessTerminatedListResponse,
+
+    [Shortcuts.signature                            ]: Shortcuts,
 };

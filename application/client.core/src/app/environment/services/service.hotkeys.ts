@@ -110,6 +110,7 @@ export class HotkeysService implements IService {
                 this._logger.warn(`Fail get platform information due error: ${err.message}`);
             }).finally(() => {
                 this._subscriptions.onHotkeyCall = ElectronIpcService.subscribe(IPCMessages.HotkeyCall, this._onHotkeyCall.bind(this));
+                this._subscriptions.onShortcuts = ElectronIpcService.subscribe(IPCMessages.Shortcuts, this._onShowHotkeysMapDialog.bind(this));
                 this._subscriptions.onShowHotkeysMapDialog = this.getObservable().showHotkeysMapDialog.subscribe(this._onShowHotkeysMapDialog.bind(this));
                 this._keydownCombination = this._keydownCombination.bind(this);
                 this._checkFocusedElement = this._checkFocusedElement.bind(this);

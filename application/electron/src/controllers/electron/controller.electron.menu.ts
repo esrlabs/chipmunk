@@ -12,6 +12,7 @@ import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
 import HandlerItemAbout from './menu.functions/handler.item.about';
 import HandlerItemPlugins from './menu.functions/handler.item.plugins';
 import HandlerItemSettings from './menu.functions/handler.item.settings';
+import HandlerItemShortcuts from './menu.functions/handler.item.shortcuts';
 import HandlerItemExportActionCall from './menu.functions/handler.item.exportaction';
 
 import Logger from '../../tools/env.logger';
@@ -115,6 +116,7 @@ export default class ControllerElectronMenu {
             template[1].submenu.push({ type: 'separator' });
             template[1].submenu.push({
                 label: 'Open Recent',
+                accelerator: 'Ctrl+POrCmd+P',
                 submenu: [
                     ...this._getRecentFiles(),
                     { type: 'separator' },
@@ -182,6 +184,12 @@ export default class ControllerElectronMenu {
             });
             template[0].submenu.push({ type: 'separator' });
             template[0].submenu.push({
+                label: 'Keyboard shortcuts',
+                click: HandlerItemShortcuts,
+                accelerator: '?'
+            });
+            template[0].submenu.push({ type: 'separator' });
+            template[0].submenu.push({
                 label: 'About Chipmunk',
                 click: HandlerItemAbout,
             });
@@ -197,13 +205,14 @@ export default class ControllerElectronMenu {
         Menu.setApplicationMenu(this._menu);
     }
 
-    private _getFilesLocalSubmenu(): Array<{ label: string, click: () => any }> {
+    private _getFilesLocalSubmenu(): Array<{ label: string, click: () => any, accelerator: string }> {
         const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile(FileParsers.map((parser) => {
             return new parser.class();
         }));
         return [{
             label: wrapper.getLabel(),
             click: wrapper.getHandler(),
+            accelerator: 'Ctrl+OOrCmd+O',
         }];
     }
 
