@@ -1,5 +1,5 @@
 // Libs
-import { dialog, MessageBoxReturnValue, app, Event } from 'electron';
+import { dialog, MessageBoxReturnValue, app, Event, nativeTheme } from 'electron';
 import { CommonInterfaces } from './interfaces/interface.common';
 import { IApplication, EExitCodes } from './interfaces/interface.app';
 
@@ -231,6 +231,7 @@ class Application implements IApplication {
 
     private _init(stage: number = 0, callback: (error?: Error) => any): void {
         if (InitializeStages.length <= stage) {
+            nativeTheme.themeSource = 'dark';
             this._logger.debug(`Application is initialized`);
             this._state = EAppState.working;
             if (typeof callback === 'function') {
