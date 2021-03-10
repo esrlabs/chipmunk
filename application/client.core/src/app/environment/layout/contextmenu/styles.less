@@ -28,7 +28,8 @@
             overflow: hidden;
             & li.item {
                 position: relative;
-                display: block;
+                display: flex;
+                flex-direction: row;
                 padding: 0.25rem 1rem;
                 margin: 0;
                 list-style: none;
@@ -54,10 +55,17 @@
                         background: none;
                     }
                 }
-            }
-            & span.shortcut {
-                position: relative;
-                float: right;
+                & span.caption {
+                    position: relative;
+                    flex: 1 auto;
+                    white-space: nowrap;
+                }
+                & span.shortcut {
+                    position: relative;
+                    padding-left: 32px;
+                    white-space: nowrap;
+                    color: @scheme-color-3;
+                }
             }
         }
     }
