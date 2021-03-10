@@ -198,7 +198,7 @@ class ServiceCLI implements IService {
         this.isInstalled().then((state: boolean) => {
             if (state) {
                 if (process.platform !== 'win32') {
-                    ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
+                    ServiceElectron.getMenu()?.add(this._menuItemGuid, 'Chipmunk', [
                         { type: 'separator' },
                         { label: 'Uninstall "cm" Command Line Tool', click: () => {
                             this.uninstall().catch((err: Error) => this._logger.warn(err)).finally(() => {
@@ -208,7 +208,7 @@ class ServiceCLI implements IService {
                     ]);
                 }
             } else {
-                ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
+                ServiceElectron.getMenu()?.add(this._menuItemGuid, 'Chipmunk', [
                     { type: 'separator' },
                     { label: 'Install "cm" Command Line Tool', click: () => {
                         this.install().catch((err: Error) => this._logger.warn(err)).finally(() => {
