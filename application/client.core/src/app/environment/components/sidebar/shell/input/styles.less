@@ -7,10 +7,26 @@
 & .mat-stroked-button {
     position: relative;
     float: right;
-    margin-top: -5px;
+    margin-left: 6px;
 }
-& mat-form-field.regular{
-    & input {
-        padding: 7px .1rem 0;
+& div.shell {
+    display: flex;
+    flex-direction: row;
+    & mat-form-field.regular{
+        position: relative;
+        flex: 1 auto;
+        width: 70%;
+        & input {
+            padding: 7px .1rem 0;
+        }
+    }
+    & div.icons {
+        position: relative;
+        width: 30%;
+        margin-top: 13px;
+        & mat-icon {
+            display: inline-block;
+            margin-left: 6px;
+        }
     }
 }

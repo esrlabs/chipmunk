@@ -1,0 +1,6 @@
+<input matInput
+       class="edit"
+       (keyup)="_ng_onKeyUp($event)"
+       [ngStyle]="{ 'color': (_ng_valid ? _ng_validColor : _ng_invalidColor) }"
+       [(ngModel)]="pwd"/>
+<button mat-stroked-button color="primary" (click)="_ng_setPwd()">Set</button>

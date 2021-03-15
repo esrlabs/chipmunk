@@ -116,8 +116,8 @@ export default class ControllerStreamShell {
             cmd: request.command,
             settings: {
                 env: this._env.env,
-                pwd: this._env.pwd,
-                shell: this._env.shell,
+                pwd: request.pwd,
+                shell: request.shell,
             }
         });
         proc.on(Process.Events.destroy, () => {

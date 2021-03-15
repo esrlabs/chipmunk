@@ -1,14 +1,42 @@
-import { AfterContentInit, Component, ViewChild, ElementRef, Input } from '@angular/core';
+import { AfterContentInit, Component, ViewChild, ElementRef, Input, OnInit, OnDestroy } from '@angular/core';
 import { sortPairs, IPair, ISortedFile } from '../../../../thirdparty/code/engine';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { ShellService } from '../services/service';
+import { ShellService, IInformation } from '../services/service';
+import { SidebarAppShellEnvironmentComponent } from '../environment/component';
+import { SidebarAppShellInputPwdComponent } from '../pwd/component';
+import { Session } from '../../../../controller/session/session';
+
+import EventsSessionService from '../../../../services/standalone/service.events.session';
+import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import PopupsService from '../../../../services/standalone/service.popups';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+interface IEditing {
+    variable: boolean;
+    path: boolean;
+}
+
+export interface IEnvironment {
+    variable: string;
+    path: string;
+    custom: boolean;
+    editing: IEditing;
+    selected: boolean;
+}
+
+export interface INewInformation {
+    shells: string[];
+    shell: string;
+    pwd: string;
+    env: IEnvironment[];
+}
 
 @Component({
     selector: 'app-sidebar-app-shell-input',
@@ -16,7 +44,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppShellInputComponent implements AfterContentInit {
+export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, OnDestroy {
 
     @ViewChild(MatInput) _inputComRef: MatInput;
     @ViewChild(MatAutocompleteTrigger) _ng_autoComRef: MatAutocompleteTrigger;
@@ -27,12 +55,29 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     public _ng_inputCtrl = new FormControl();
     public _ng_commands: Observable<ISortedFile[]>;
     public _ng_recent: Observable<IPair[]>;
+    public _ng_information: INewInformation = {
+        env: [],
+        pwd: '',
+        shell: '',
+        shells: []
+    };
 
+    private _sessionID: string;
     private _recent: IPair[] = [];
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellInputComponent');
     private _selectedTextOnInputClick: boolean = false;
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
 
-    constructor(private _sanitizer: DomSanitizer) { }
+    constructor(private _sanitizer: DomSanitizer) {
+        this._sessionID = TabsSessionsService.getActive().getGuid();
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
+            this._onSessionChange.bind(this),
+        );
+    }
+
+    public ngOnInit() {
+        this._restoreEnvironment()
+    }
 
     public ngAfterContentInit() {
         this._loadRecentCommands();
@@ -40,6 +85,12 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
             startWith(''),
             map(value => this._filter(value))
         );
+    }
+
+    public ngOnDestroy() {
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
+        });
     }
 
     public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
@@ -116,13 +167,90 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
         return this._sanitizer.bypassSecurityTrustHtml(input);
     }
 
-    public _ng_clearRecent() {
+    public _ng_onClearRecent() {
         this._ng_autoComRef.closePanel();
         this._ng_inputCtrl.updateValueAndValidity();
         this.service.clearRecent().then(() => {
             this._loadRecentCommands();
         }).catch((error: string) => {
             this._logger.error(error);
+        });
+    }
+
+    public _ng_onEnvironment() {
+        PopupsService.add({
+            id: 'environment-settings-dialog',
+            caption: `Environment settings`,
+            component: {
+                factory: SidebarAppShellEnvironmentComponent,
+                inputs: {
+                    information: this._ng_information,
+                    setEnvironment: (information: INewInformation) => {
+                        const environment: { [variable: string]: string } = {};
+                        information.env.forEach((env: IEnvironment) => {
+                            environment[env.variable] = env.path;
+                        });
+                        this.service.setEnv({
+                            session: this._sessionID,
+                            env: environment,
+                        });
+                    }
+                }
+            },
+            buttons: [ ],
+            options: {
+                width: 60,
+            }
+        });
+    }
+
+    public _ng_onSetPwd() {
+        const popupId: string = PopupsService.add({
+            id: 'environment-pwd-dialog',
+            caption: `Set Pwd`,
+            component: {
+                factory: SidebarAppShellInputPwdComponent,
+                inputs: {
+                    service: this.service,
+                    sessionID: this._sessionID,
+                    pwd: this._ng_information.pwd.slice(),
+                    setPwd: (pwd: string) => {
+                        this._ng_information.pwd = pwd;
+                    },
+                    close: () => {
+                        PopupsService.remove(popupId);
+                    }
+                }
+            },
+            buttons: [ ],
+            options: {
+                width: 20,
+            }
+        });
+    }
+
+    public _ng_onSelectShell(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Select shell',
+                disabled: true,
+            }
+        ];
+        this._ng_information.shells.forEach((shell: string) => {
+            items.push({
+                caption: shell,
+                handler: () => {
+                    this._ng_information.shell = shell;
+                    this.service.setEnv({ session: this._sessionID, shell: shell }).catch((error: string) => {
+                        this._logger.error(error);
+                    });
+                }
+            });
+        });
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
         });
     }
 
@@ -136,7 +264,13 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
     }
 
     private _runCommand(command: string) {
-        this.service.runCommand(command).then(() => {
+        this.service.runCommand(
+            {
+                session: this._sessionID,
+                command: command,
+                pwd: this._ng_information.pwd,
+                shell: this._ng_information.shell,
+            }).then(() => {
             this._addRecentCommand(command);
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: string) => {
@@ -185,6 +319,36 @@ export class SidebarAppShellInputComponent implements AfterContentInit {
                 tcaption: ' ',
                 tdescription: command
             });
+        }
+    }
+
+    private _restoreEnvironment() {
+        this.service.getEnv({ session: this._sessionID }).then((information: IInformation) => {
+            this._ng_information.pwd = information.pwd;
+            this._ng_information.shell = information.shell;
+            this._ng_information.shells = information.shells;
+            this._ng_information.env = [];
+            Object.keys(information.env).forEach((variable: string) => {
+                this._ng_information.env.push({
+                    path: information.env[variable],
+                    variable: variable,
+                    custom: false,
+                    editing: {
+                        path: false,
+                        variable: false,
+                    },
+                    selected: false,
+                });
+            });
+        }).catch((error: string) => {
+            this._logger.error(error);
+        });
+    }
+
+    private _onSessionChange(session: Session | undefined) {
+        if (session !== undefined) {
+            this._sessionID = session.getGuid();
+            this._restoreEnvironment();
         }
     }
 

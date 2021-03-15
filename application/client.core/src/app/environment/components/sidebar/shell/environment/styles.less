@@ -1,0 +1,50 @@
+@import '../../../../theme/variables.less';
+
+& .mat-stroked-button {
+    position: relative;
+    float: right;
+    margin: 6px;
+}
+
+& div.listed {
+    color: @scheme-color-1;
+    & table {
+        width: 100%;
+        height: 100%;
+        overflow: scroll;
+        display: block;
+        border: 1px solid @scheme-color-1;
+        & th {
+            white-space: nowrap;        
+            padding-left: 7px;
+        }
+        & tr.selected {
+            background-color: @scheme-color-3;
+        }
+        & td {
+            white-space: nowrap;        
+            & span.header-bottom-border {
+                border-bottom: 1px solid @scheme-color-1;
+                margin-left: -4px;
+                display: block;
+            }    
+            & span.env {
+                flex: auto;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                padding-left: 6px;
+                color: @scheme-color-0;
+                cursor: default;
+            }
+            & input.edit {
+                margin: 0 6px;
+                padding: 0;
+                border-bottom: dashed 1px @scheme-color-1;
+                flex: auto;
+                white-space: nowrap;
+                color: @scheme-color-0;
+            }
+        }
+    }
+}
