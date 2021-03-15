@@ -4,7 +4,7 @@
         <mat-panel-description>{{_ng_count()}}</mat-panel-description>
     </mat-expansion-panel-header>
     <div *ngIf="_ng_running.length === 0">
-        <p>No processes are running</p>
+        <p class="t-small">No processes are running</p>
     </div>
     <div *ngIf="_ng_running.length > 0">
         <div appTooltip [appTooltipContent]="template" [appTooltipRefreshRate]="500" class="running" *ngFor="let running of _ng_running">

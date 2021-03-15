@@ -76,7 +76,7 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
     }
 
     public ngOnInit() {
-        this._restoreEnvironment()
+        this._restoreEnvironment();
     }
 
     public ngAfterContentInit() {
