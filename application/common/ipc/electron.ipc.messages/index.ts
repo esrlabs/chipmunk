@@ -160,8 +160,14 @@ export { IStreamPtyResizeRequest, StreamPtyResizeRequest };
 import { IStreamPtyResizeResponse, StreamPtyResizeResponse } from './stream.pty.resize.response';
 export { IStreamPtyResizeResponse, StreamPtyResizeResponse };
 
-import { ISearchResultMap, SearchResultMap, ISearchResultMapData } from './search.results.map';
-export { ISearchResultMap, SearchResultMap, ISearchResultMapData };
+import { ISearchResultMapRequest, SearchResultMapRequest } from './search.results.map.request';
+export { ISearchResultMapRequest, SearchResultMapRequest };
+
+import { ISearchResultMapUpdated, SearchResultMapUpdated } from './search.results.map.updated';
+export { ISearchResultMapUpdated, SearchResultMapUpdated };
+
+import { ISearchResultMapResponse, SearchResultMapResponse, ISearchResultMapData } from './search.results.map.response';
+export { ISearchResultMapResponse, SearchResultMapResponse, ISearchResultMapData };
 
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
@@ -708,7 +714,9 @@ export type TMessage =  AppRestartRequest |
                         StreamPtyPendingResponse |
                         StreamPtyResizeRequest |
                         StreamPtyResizeResponse |
-                        SearchResultMap |
+                        SearchResultMapRequest |
+                        SearchResultMapResponse |
+                        SearchResultMapUpdated |
                         SearchRequest |
                         SearchRequestCancelRequest |
                         SearchRequestCancelResponse |
@@ -933,7 +941,9 @@ export const Map = {
     [StreamPtyResizeRequest.signature           ]: StreamPtyResizeRequest,
     [StreamPtyResizeResponse.signature          ]: StreamPtyResizeResponse,
 
-    [SearchResultMap.signature                  ]: SearchResultMap,
+    [SearchResultMapRequest.signature           ]: SearchResultMapRequest,
+    [SearchResultMapResponse.signature          ]: SearchResultMapResponse,
+    [SearchResultMapUpdated.signature           ]: SearchResultMapUpdated,
     [SearchRequest.signature                    ]: SearchRequest,
     [SearchRequestCancelRequest.signature       ]: SearchRequestCancelRequest,
     [SearchRequestCancelResponse.signature      ]: SearchRequestCancelResponse,

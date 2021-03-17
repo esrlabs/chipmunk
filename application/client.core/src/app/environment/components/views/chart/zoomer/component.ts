@@ -124,70 +124,74 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         } else {
             width = this._ng_width;
         }
-        const labels: string[] = this.serviceData.getLabes(width);
-        const datasets: IResults = this.serviceData.getDatasets(width, undefined);
-        if (labels.length === 0 || datasets.dataset.length === 0) {
-            if (this._filters !== undefined) {
+        this.serviceData.getDatasets(width, undefined).then((datasets: IResults) => {
+            const labels: string[] = this.serviceData.getLabes(width);
+            if (labels.length === 0 || datasets.dataset.length === 0) {
+                if (this._filters !== undefined) {
+                    this._filters.destroy();
+                    this._filters = undefined;
+                }
+                return;
+            }
+            if (this._filters !== undefined && (this._filters.data.datasets === undefined || this._filters.data.datasets.length === 0)) {
                 this._filters.destroy();
                 this._filters = undefined;
             }
-            return;
-        }
-        if (this._filters !== undefined && (this._filters.data.datasets === undefined || this._filters.data.datasets.length === 0)) {
-            this._filters.destroy();
-            this._filters = undefined;
-        }
-        if (this._filters === undefined) {
-            this._filters = new Chart(`view-chart-zoomer-filters-canvas-${this.serviceData.getSessionGuid()}`, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets.dataset,
-                },
-                options: {
-                    title: {
-                        display: false,
+            if (this._filters === undefined) {
+                this._filters = new Chart(`view-chart-zoomer-filters-canvas-${this.serviceData.getSessionGuid()}`, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: datasets.dataset,
                     },
-                    legend: {
-                        display: false,
-                    },
-                    animation: {
-                        duration: 0
-                    },
-                    hover: {
-                        animationDuration: 0
-                    },
-                    responsiveAnimationDuration: 0,
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        yAxes: [{
-                            stacked: true,
-                            ticks: {
-                                beginAtZero: true
-                            },
+                    options: {
+                        title: {
                             display: false,
-                        }],
-                        xAxes: [{
-                            stacked: true,
+                        },
+                        legend: {
                             display: false,
-                        }]
+                        },
+                        animation: {
+                            duration: 0
+                        },
+                        hover: {
+                            animationDuration: 0
+                        },
+                        responsiveAnimationDuration: 0,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            yAxes: [{
+                                stacked: true,
+                                ticks: {
+                                    beginAtZero: true
+                                },
+                                display: false,
+                            }],
+                            xAxes: [{
+                                stacked: true,
+                                display: false,
+                            }]
+                        }
                     }
-                }
-            });
-        } else {
-            this._filters.data.labels = labels;
-            this._filters.data.datasets = datasets.dataset;
-            setTimeout(() => {
-                if (this._destroyed) {
-                    return;
-                }
-                if (this._filters === undefined) {
-                    return;
-                }
-                this._filters.update();
-            });
-        }
+                });
+            } else {
+                this._filters.data.labels = labels;
+                this._filters.data.datasets = datasets.dataset;
+                setTimeout(() => {
+                    if (this._destroyed) {
+                        return;
+                    }
+                    if (this._filters === undefined) {
+                        return;
+                    }
+                    this._filters.update();
+                });
+            }
+        });
+        /*
+        const datasets: IResults = this.serviceData.getDatasets(width, undefined);
+*/
     }
 
     private _buildCharts() {

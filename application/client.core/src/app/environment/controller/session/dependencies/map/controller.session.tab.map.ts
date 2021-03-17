@@ -1,11 +1,13 @@
 import { Subject, Observable, Subscription } from 'rxjs';
-import ServiceElectronIpc, { IPCMessages, Subscription as IPCSubscription } from '../../../../services/service.electron.ipc';
+import { IPCMessages as IPC, Subscription as IPCSubscription } from '../../../../services/service.electron.ipc';
 import { ControllerSessionTabSearch } from '../search/controller.session.tab.search';
 import { FilterRequest, IFilterUpdateEvent } from '../search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { ControllerSessionTabStream } from '../stream/controller.session.tab.stream';
 import { IPositionData } from '../output/controller.session.tab.stream.output';
 import { Lock } from '../../../helpers/lock';
 import { Dependency, SessionGetter } from '../session.dependency';
+
+import ServiceElectronIpc from '../../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -22,7 +24,6 @@ export interface IMapState {
     count: number;
     position: number;
     rowsInView: number;
-    points: IMapPoint[];
 }
 
 export interface IControllerSessionTabMap {
@@ -38,13 +39,16 @@ export interface IColumn {
     index: number;
 }
 
+export interface IMap {
+    points: IMapPoint[];
+    columns: number;
+}
+
 const CSettings = {
     columnWideWidth: 16,
     columnNarroweWidth: 8,
     minMarkerHeight: 1,
 };
-
-const CMatchesKey = '$__{matches}__$';
 
 export class ControllerSessionTabMap implements Dependency {
 
@@ -54,13 +58,25 @@ export class ControllerSessionTabMap implements Dependency {
         count: 0,
         position: 0,
         rowsInView: 0,
-        points: [],
     };
     private _subscriptions: { [key: string]: IPCSubscription | Subscription } = {};
-    private _columns: { [key: string]: IColumn } = {};
-    private _indexes: {[key: string]: number } = {};
-    private _searchExpanded: boolean = false;
+    private _expanded: boolean = false;
     private _width: number = CSettings.columnNarroweWidth;
+    private _cached: {
+        src: IPC.ISearchResultMapData | undefined,
+        map: IMap;
+        hash: {
+            SearchResultMapUpdated: string;
+            SearchResultMapRequest: string;
+        },
+    } = {
+        src: undefined,
+        map: { points: [], columns: 0 },
+        hash: {
+            SearchResultMapUpdated: Toolkit.guid(), // Hash created on event SearchResultMapUpdated
+            SearchResultMapRequest: Toolkit.guid() // Hash created on request map with SearchResultMapRequest    
+        },
+    };
     private _lock: Lock = new Lock();
     private _subjects: {
         onStateUpdate: Subject<IMapState>,
@@ -85,8 +101,8 @@ export class ControllerSessionTabMap implements Dependency {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._subscriptions.SearchResultMap = ServiceElectronIpc.subscribe(IPCMessages.SearchResultMap, this._ipc_SearchResultMap.bind(this));
-            this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
+            this._subscriptions.SearchResultMapUpdated = ServiceElectronIpc.subscribe(IPC.SearchResultMapUpdated, this._ipc_SearchResultMapUpdated.bind(this));
+            this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(IPC.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
             this._subscriptions.onSearchDropped = this._session().getSessionSearch().getFiltersAPI().getObservable().dropped.subscribe(this._onSearchDropped.bind(this));
             this._subscriptions.onSearchStarted = this._session().getSessionSearch().getFiltersAPI().getObservable().searching.subscribe(this._onSearchStarted.bind(this));
             this._subscriptions.onPositionChanged = this._session().getStreamOutput().getObservable().onPositionChanged.subscribe(this._onPositionChanged.bind(this));
@@ -132,13 +148,6 @@ export class ControllerSessionTabMap implements Dependency {
         };
     }
 
-    public getColumnsCount(): number {
-        if (this._state.points.length === 0) {
-            return 0;
-        }
-        return Object.keys(this._columns).length;
-    }
-
     public toggleColumnWidth() {
         this._width = this.isColumnsWide() ? CSettings.columnNarroweWidth : CSettings.columnWideWidth;
     }
@@ -148,51 +157,12 @@ export class ControllerSessionTabMap implements Dependency {
     }
 
     public isExpanded(): boolean {
-        return this._searchExpanded;
+        return this._expanded;
     }
 
-    public toggleExpanding() {
-        this._searchExpanded = !this._searchExpanded;
-        // Remove search colums
-        this._cleanColumns();
-        // Remap all points
-        this._indexes = {};
-        let index: number = 0;
-        if (this._searchExpanded) {
-            this._state.points = this._state.points.map((point: IMapPoint) => {
-                if (point.reg === undefined) {
-                    return point;
-                }
-                if (this._indexes[point.reg] === undefined) {
-                    this._indexes[point.reg] = index;
-                    this._columns[point.reg] = {
-                        description: point.reg,
-                        index: index,
-                        search: true,
-                        guid: Toolkit.guid(),
-                    };
-                    index += 1;
-                }
-                point.column = this._indexes[point.reg];
-                return point;
-            });
-        } else {
-            this._state.points = this._state.points.map((point: IMapPoint) => {
-                if (point.reg === undefined) {
-                    return point;
-                }
-                point.column = index;
-                return point;
-            });
-            this._columns[CMatchesKey] = {
-                description: 'Matches',
-                index: index,
-                search: true,
-                guid: Toolkit.guid(),
-            };
-        }
-        // Trigger event
-        this._saveTriggerStateUpdate();
+    public expanding() {
+        this._expanded = !this._expanded;
+        this._cached.map = this._extractMap(this._expanded, this._cached.src.map);
     }
 
     public getSettings(): {
@@ -212,15 +182,16 @@ export class ControllerSessionTabMap implements Dependency {
     }
 
     public getClosedMatchRow(row: number): { index: number, position: number } | undefined {
-        if (this._state.points.length === 0) {
+        const points: IMapPoint[] = this._cached.map.points;
+        if (points.length === 0) {
             return;
         }
         if (isNaN(row) || !isFinite(row)) {
             this._logger.warn(`Value of target row is incorrect.`);
         }
-        const target: { index: number, position: number } = { index: 0, position: this._state.points[0].position };
+        const target: { index: number, position: number } = { index: 0, position: points[0].position };
         let distance: number = Math.abs(row - target.position);
-        this._state.points.forEach((point: IMapPoint, i: number) => {
+        points.forEach((point: IMapPoint, i: number) => {
             const _distance: number = Math.abs(row - point.position);
             if (_distance < distance) {
                 distance = _distance;
@@ -231,12 +202,116 @@ export class ControllerSessionTabMap implements Dependency {
         return target;
     }
 
-    private _cleanColumns() {
-        Object.keys(this._columns).forEach((key: string) => {
-            if (this._columns[key].search) {
-                delete this._columns[key];
+    public getMap(scale: number, expanded?: boolean, force: boolean = false): Promise<IMap> {
+        expanded = expanded === undefined ? this._expanded : expanded;
+        return new Promise<IMap>((resolve, reject) => {
+            if (this._cached.hash.SearchResultMapRequest === this._cached.hash.SearchResultMapUpdated && !force) {
+                return resolve({
+                    points: this._cached.map.points,
+                    columns: this._cached.map.columns,
+                });
             }
+            ServiceElectronIpc.request(new IPC.SearchResultMapRequest({
+                streamId: this._guid,
+                scale: scale,
+                details: expanded,
+            }), IPC.SearchResultMapResponse).then((response: IPC.SearchResultMapResponse) => {
+                this._cached.hash.SearchResultMapUpdated = this._cached.hash.SearchResultMapRequest;
+                this._cached.src = response.getData();
+                this._cached.map = this._extractMap(expanded, this._cached.src.map);
+                resolve({
+                    points: this._cached.map.points,
+                    columns: this._cached.map.columns,
+                });
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.warn(`Fail delivery search result map due error: ${err.message}`)));
+            });
         });
+    }
+
+    public getMatchesMap(scale: number, range: { begin: number, end: number }): Promise<{
+        [key: number]: {
+            [key: string]: number;
+        };
+    }> {
+        return new Promise((resolve, reject) => {
+            ServiceElectronIpc.request(new IPC.SearchResultMapRequest({
+                streamId: this._guid,
+                scale: scale,
+                range: range,
+                details: true
+            }), IPC.SearchResultMapResponse).then((response: IPC.SearchResultMapResponse) => {
+                resolve(response.getData().map);
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.warn(`Fail delivery search result map due error: ${err.message}`)));
+            });
+        });
+    }
+
+    private _extractMap(expanded: boolean, scaled: { [key: number]: { [key: string ]: number } }): IMap {
+        function max(matches: { [match: string]: number }): string {
+            let v: number = 0;
+            let n: string = '';
+            Object.keys(matches).forEach((key: string) => {
+                if (v < matches[key]) {
+                    v = matches[key];
+                    n = key;
+                }
+            });
+            return n;
+        }
+        const results: IMap = {
+            points: [],
+            columns: 0,
+        };
+        const map: { [key: string]: FilterRequest } = {};
+        this._session().getSessionSearch().getFiltersAPI().getStorage().get().forEach((request: FilterRequest) => {
+            map[request.asDesc().request] = request;
+        });
+        let column: number = 0;
+        if (expanded) {
+            // Expanded
+            const columns: { [key: string]: number } = {};
+            Object.keys(scaled).forEach((position: number | string) => {
+                const matches: { [match: string]: number } = scaled[position];
+                Object.keys(matches).forEach((match: string) => {
+                    if (columns[match] === undefined) {
+                        columns[match] = column;
+                        column += 1;
+                    }
+                    const point: IMapPoint = {
+                        position: typeof position === 'number' ? position : parseInt(position, 10),
+                        color: map[match] === undefined ? '' : (map[match].getBackground() !== '' ? map[match].getBackground() : map[match].getColor()),
+                        column: columns[match],
+                        description: match,
+                        reg: match,
+                        regs: [match],
+                    };
+                    results.points.push(point);
+                });
+            });
+            results.columns = column;
+        } else {
+            // Single
+            Object.keys(scaled).forEach((position: number | string) => {
+                const matches: { [match: string]: number } = scaled[position];
+                const hotest: string = max(matches);
+                if (hotest !== '') {
+                    const all: string[] = Object.keys(matches);
+                    const point: IMapPoint = {
+                        position: typeof position === 'number' ? position : parseInt(position, 10),
+                        color: map[hotest] === undefined ? '' : (map[hotest].getBackground() !== '' ? map[hotest].getBackground() : map[hotest].getColor()),
+                        column: 0,
+                        description: all.join(', '),
+                        reg: hotest,
+                        regs: all,
+                    };
+                    results.points.push(point);
+                }
+            });
+            results.columns = 1;
+        }
+        return results;
     }
 
     private _onFiltersStyleUpdate(event: IFilterUpdateEvent) {
@@ -249,10 +324,6 @@ export class ControllerSessionTabMap implements Dependency {
     private _onSearchDropped() {
         // Lock update workflow
         this._lock.lock();
-        // Drop points
-        this._dropSearchColumns();
-        // Remove search colums
-        this._cleanColumns();
         // Trigger event
         this._saveTriggerStateUpdate();
     }
@@ -269,107 +340,20 @@ export class ControllerSessionTabMap implements Dependency {
         this._subjects.onPositionUpdate.next(this._state);
     }
 
-    private _dropSearchColumns() {
-        // Get columns to be reset
-        const toBeReset: number[] = [];
-        Object.keys(this._columns).forEach((key: string) => {
-            if (this._columns[key].search) {
-                toBeReset.push(this._columns[key].index);
-            }
-        });
-        // Reset columns
-        this._state.points = this._state.points.filter(p => toBeReset.indexOf(p.column) === -1);
-    }
-
     private _saveTriggerStateUpdate() {
         this._subjects.onStateUpdate.next({
             count: this._state.count,
             position: this._state.position,
             rowsInView: this._state.rowsInView,
-            points: this._state.points,
         });
     }
 
-    private _ipc_SearchResultMap(message: IPCMessages.SearchResultMap) {
-        if (message.streamId !== this._guid) {
-            return;
-        }
-        if (this._lock.isLocked()) {
-            // Update workflow is locked
-            return;
-        }
-        if (!message.append) {
-            this._dropSearchColumns();
-        }
-        if (!message.append || !this._searchExpanded) {
-            this._cleanColumns();
-            this._indexes = {};
-        }
-        const map: { [key: string]: FilterRequest } = {};
-        this._session().getSessionSearch().getFiltersAPI().getStorage().get().forEach((request: FilterRequest) => {
-            map[request.asDesc().request] = request;
-        });
-        const data: IPCMessages.ISearchResultMapData = message.getData();
-        let index: number = 0;
-        Object.keys(this._indexes).forEach((key: string) => {
-            if (index < this._indexes[key]) {
-                index = this._indexes[key] + 1;
-            }
-        });
-        if (this._searchExpanded) {
-            // Expanded
-            Object.keys(data.map).forEach((key: number | string) => {
-                const matches: string[] = data.map[key];
-                matches.forEach((match: string) => {
-                    if (this._indexes[match] === undefined) {
-                        this._indexes[match] = index;
-                        this._columns[match] = {
-                            description: match,
-                            index: index,
-                            search: true,
-                            guid: Toolkit.guid(),
-                        };
-                        index += 1;
-                    }
-                    const point: IMapPoint = {
-                        position: typeof key === 'number' ? key : parseInt(key, 10),
-                        color: map[match] === undefined ? '' : (map[match].getBackground() !== '' ? map[match].getBackground() : map[match].getColor()),
-                        column: this._indexes[match],
-                        description: match,
-                        reg: match,
-                        regs: [match],
-                    };
-                    this._state.points.push(point);
-                });
-            });
-        } else {
-            // Single
-            Object.keys(data.map).forEach((key: number | string) => {
-                const matches: string[] = data.map[key];
-                const match: string = matches[0];
-                const point: IMapPoint = {
-                    position: typeof key === 'number' ? key : parseInt(key, 10),
-                    color: map[match] === undefined ? '' : (map[match].getBackground() !== '' ? map[match].getBackground() : map[match].getColor()),
-                    column: index,
-                    description: matches.join(', '),
-                    reg: match,
-                    regs: matches,
-                };
-                this._state.points.push(point);
-            });
-            this._columns[CMatchesKey] = {
-                description: 'Matches',
-                index: index,
-                search: true,
-                guid: Toolkit.guid(),
-            };
-            index += 1;
-        }
-        // Trigger event
+    private _ipc_SearchResultMapUpdated(message: IPC.SearchResultMapUpdated) {
+        this._cached.hash.SearchResultMapUpdated = Toolkit.guid();
         this._saveTriggerStateUpdate();
     }
 
-    private _ipc_onStreamUpdated(message: IPCMessages.StreamUpdated) {
+    private _ipc_onStreamUpdated(message: IPC.StreamUpdated) {
         if (message.guid !== this._guid) {
             return;
         }

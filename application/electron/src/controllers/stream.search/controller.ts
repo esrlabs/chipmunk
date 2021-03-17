@@ -1,10 +1,10 @@
 import { EventsHub } from '../stream.common/events';
 import { IMapItem } from './file.map';
-import { SearchEngine, IMapData, IMapChunkEvent } from './engine/controller';
+import { SearchEngine, IMapChunkEvent } from './engine/controller';
 import { getSearchRegExp } from '../../../../common/functionlity/functions.search.requests';
+import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
 
-import ServiceElectron, { IPCMessages as IPCElectronMessages, Subscription } from '../../services/service.electron';
-
+import ServiceElectron from '../../services/service.electron';
 import Logger from '../../tools/env.logger';
 import ControllerStreamFileReader from '../stream.main/file.reader';
 import ControllerStreamProcessor from '../stream.main/controller';
@@ -44,27 +44,32 @@ export default class ControllerStreamSearch {
         // Create controllers
         this._state = new State(guid, streamFile, searchFile);
         this._logger = new Logger(`ControllerStreamSearch: ${this._state.getGuid()}`);
-        this._searching = new SearchEngine(this._state);
+        this._searching = new SearchEngine(this._state, stream);
         this._reader = new ControllerStreamFileReader(this._state.getGuid(), this._state.getSearchFile());
         // Listen map update event
         this._searching.on(SearchEngine.Events.onMapUpdated, this._onMapUpdated.bind(this));
         // Listen stream update event
         this._subscriptions.onStreamBytesMapUpdated = this._events.getSubject().onStreamBytesMapUpdated.subscribe(this._stream_onUpdate.bind(this));
         // Listen IPC messages
-        ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequest, this._ipc_onSearchRequest.bind(this)).then((subscription: Subscription) => {
+        ServiceElectron.IPC.subscribe(IPC.SearchRequest, this._ipc_onSearchRequest.bind(this)).then((subscription: Subscription) => {
             this._subscriptions.SearchRequest = subscription;
         }).catch((error: Error) => {
             this._logger.warn(`Fail to subscribe to render event "SearchRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
         });
-        ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchRequestCancelRequest, this._ipc_onSearchRequestCancelRequest.bind(this)).then((subscription: Subscription) => {
+        ServiceElectron.IPC.subscribe(IPC.SearchRequestCancelRequest, this._ipc_onSearchRequestCancelRequest.bind(this)).then((subscription: Subscription) => {
             this._subscriptions.SearchRequestCancelRequest = subscription;
         }).catch((error: Error) => {
             this._logger.warn(`Fail to subscribe to render event "SearchRequestCancelRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
         });
-        ServiceElectron.IPC.subscribe(IPCElectronMessages.SearchChunk, this._ipc_onSearchChunkRequested.bind(this)).then((subscription: Subscription) => {
+        ServiceElectron.IPC.subscribe(IPC.SearchChunk, this._ipc_onSearchChunkRequested.bind(this)).then((subscription: Subscription) => {
             this._subscriptions.SearchChunk = subscription;
         }).catch((error: Error) => {
             this._logger.warn(`Fail to subscribe to render event "StreamChunk" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+        });
+        ServiceElectron.IPC.subscribe(IPC.SearchResultMapRequest, this._ipc_onSearchResultMapRequest.bind(this) as any).then((subscription: Subscription) => {
+            this._subscriptions.SearchResultMapRequest = subscription;
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to subscribe to render event "SearchResultMapRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
         });
     }
 
@@ -173,9 +178,9 @@ export default class ControllerStreamSearch {
             this._logger.warn(`Fail to start inspecting search results due error: ${inspecting.message}`);
             return;
         }
-        inspecting.then((data: IMapData) => {
+        inspecting.then(() => {
             // Notify render
-            this._state.postman.notification().SearchResultMap(data, this._searching.isInspectingAppend());
+            this._state.postman.notification().SearchResultMap();
         }).catch((execErr: Error) => {
             this._logger.warn(`Fail to make inspecting search results due error: ${execErr.message}`);
         }).finally(() => {
@@ -227,8 +232,8 @@ export default class ControllerStreamSearch {
         this._state.postman.notification(false);
     }
 
-    private _ipc_onSearchRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {
-        const request: IPCElectronMessages.SearchRequest = message as IPCElectronMessages.SearchRequest;
+    private _ipc_onSearchRequest(message: IPC.TMessage, response: (instance: any) => any) {
+        const request: IPC.SearchRequest = message as IPC.SearchRequest;
         // Store starting tile
         const started: number = Date.now();
         // Check target stream
@@ -236,7 +241,7 @@ export default class ControllerStreamSearch {
             return;
         }
         // Clean requests
-        request.requests = request.requests.filter((filter: IPCElectronMessages.ISearchExpression) => {
+        request.requests = request.requests.filter((filter: IPC.ISearchExpression) => {
             if (filter.request === '') {
                 this._logger.warn(`From client was gotten empty search request. Session: ${request.session}. Request will be ignored.`);
             }
@@ -275,7 +280,7 @@ export default class ControllerStreamSearch {
         // Clear results file
         this._clear().then(() => {
             // Save requests
-            this._state.setRequests(request.requests.map((req: IPCElectronMessages.ISearchExpression) => {
+            this._state.setRequests(request.requests.map((req: IPC.ISearchExpression) => {
                 return getSearchRegExp(req.request, req.flags);
             }));
             // Check stream
@@ -317,7 +322,7 @@ export default class ControllerStreamSearch {
     private _ipc_searchRequestResponse(response: (instance: any) => any, res: {
         id: string, started: number, found?: number, error?: string,
     }) {
-        response(new IPCElectronMessages.SearchRequestResults({
+        response(new IPC.SearchRequestResults({
             streamId: this._state.getGuid(),
             requestId: res.id,
             error: res.error,
@@ -328,17 +333,17 @@ export default class ControllerStreamSearch {
         }));
     }
 
-    private _ipc_onSearchRequestCancelRequest(message: IPCElectronMessages.TMessage, response: (instance: any) => any) {
-        const request: IPCElectronMessages.SearchRequestCancelRequest = message as IPCElectronMessages.SearchRequestCancelRequest;
+    private _ipc_onSearchRequestCancelRequest(message: IPC.TMessage, response: (instance: any) => any) {
+        const request: IPC.SearchRequestCancelRequest = message as IPC.SearchRequestCancelRequest;
         this._state.setRequests([]);
         // Clear results file
         this._clear().then(() => {
-            response(new IPCElectronMessages.SearchRequestCancelResponse({
+            response(new IPC.SearchRequestCancelResponse({
                 streamId: this._state.getGuid(),
                 requestId: request.requestId,
             }));
         }).catch((error: Error) => {
-            response(new IPCElectronMessages.SearchRequestCancelResponse({
+            response(new IPC.SearchRequestCancelResponse({
                 streamId: this._state.getGuid(),
                 requestId: request.requestId,
                 error: error.message,
@@ -346,14 +351,14 @@ export default class ControllerStreamSearch {
         });
     }
 
-    private _ipc_onSearchChunkRequested(_message: IPCElectronMessages.TMessage, response: (isntance: IPCElectronMessages.TMessage) => any) {
-        const message: IPCElectronMessages.SearchChunk = _message as IPCElectronMessages.SearchChunk;
+    private _ipc_onSearchChunkRequested(_message: IPC.TMessage, response: (isntance: IPC.TMessage) => any) {
+        const message: IPC.SearchChunk = _message as IPC.SearchChunk;
         if (message.guid !== this._state.getGuid()) {
             return;
         }
         // Check current state
         if (!this._state.hasActiveRequests()) {
-            return response(new IPCElectronMessages.SearchChunk({
+            return response(new IPC.SearchChunk({
                 guid: this._state.getGuid(),
                 start: 0,
                 end: 0,
@@ -367,7 +372,7 @@ export default class ControllerStreamSearch {
             to: message.end,
         });
         if (range instanceof Error) {
-            return response(new IPCElectronMessages.SearchChunk({
+            return response(new IPC.SearchChunk({
                 guid: this._state.getGuid(),
                 start: -1,
                 end: -1,
@@ -378,7 +383,7 @@ export default class ControllerStreamSearch {
         }
         // Reading chunk
         this._reader.read(range.bytes.from, range.bytes.to).then((output: string) => {
-            response(new IPCElectronMessages.SearchChunk({
+            response(new IPC.SearchChunk({
                 guid: this._state.getGuid(),
                 start: range.rows.from,
                 end: range.rows.to,
@@ -389,6 +394,16 @@ export default class ControllerStreamSearch {
         }).catch((readError: Error) => {
             this._logger.error(`Fail to read data from storage file due error: ${readError.message}`);
         });
+    }
+
+    private _ipc_onSearchResultMapRequest(message: IPC.SearchResultMapRequest, response: (isntance: IPC.SearchResultMapResponse) => any) {
+        if (message.streamId !== this._state.getGuid()) {
+            return;
+        }
+        response(new IPC.SearchResultMapResponse({
+            streamId: this._state.getGuid(),
+            scaled: this._searching.getSearchResultMap(message.scale, message.details, message.range),
+        }));
     }
 
     private _stream_onUpdate(map: IMapItem) {

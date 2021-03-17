@@ -45,7 +45,6 @@ export class ServiceData {
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _sessionController: Session | undefined;
     private _stream: IStreamState | undefined;
-    private _matches: IMapState | undefined;
     private _charts: IPCMessages.TChartResults = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Charts ServiceData`);
     private _scale: IScaleState = {
@@ -74,7 +73,6 @@ export class ServiceData {
             this._subscriptions[key].unsubscribe();
         });
         this._stream = undefined;
-        this._matches = undefined;
     }
 
     public getObservable(): {
@@ -98,10 +96,10 @@ export class ServiceData {
     }
 
     public getLabes(width: number, range?: IRange): string[] {
-        if (this._stream === undefined || this._matches === undefined) {
+        if (this._stream === undefined) {
             return [];
         }
-        if (this._stream.count === 0 || this._matches.points.length === 0) {
+        if (this._stream.count === 0) {
             return [];
         }
         const countInRange: number =
@@ -123,77 +121,59 @@ export class ServiceData {
         return labels;
     }
 
-    public getDatasets(width: number, range?: IRange): IResults {
-        if (this._stream === undefined || this._matches === undefined) {
-            return { dataset: [], max: undefined, min: undefined };
-        }
-        if (this._stream.count === 0 || this._matches.points.length === 0) {
-            return { dataset: [], max: undefined, min: undefined };
-        }
-        const results: any = {};
-        const countInRange: number =
-            range === undefined ? this._stream.count : range.end - range.begin;
-        let rate: number = width / countInRange;
-        const commonWidth: number = Math.floor(this._stream.count / (countInRange / width));
-        const maxes: number[] = new Array(commonWidth).fill(0);
-        if (rate >= 1) {
-            rate = 1;
-            width = countInRange;
-        }
-        let max: number = -1;
-        if (range === undefined) {
-            range = {
-                begin: 0,
-                end: this._stream.count,
-            };
-        }
-        this._matches.points.forEach((point: IMapPoint) => {
-            if (!(point.regs instanceof Array)) {
-                return;
+    public getDatasets(width: number, range?: IRange): Promise<IResults> {
+        return new Promise((resolve, reject) => {
+            if (this._stream === undefined) {
+                return { dataset: [], max: undefined, min: undefined };
             }
-            let commonPosition: number = Math.floor(point.position * rate);
-            if (commonPosition > commonWidth - 1) {
-                commonPosition = commonWidth - 1;
+            if (this._stream.count === 0) {
+                return { dataset: [], max: undefined, min: undefined };
             }
-            maxes[commonPosition] += point.regs.length;
-            if (maxes[commonPosition] > max) {
-                max = maxes[commonPosition];
+            if (range === undefined) {
+                range = {
+                    begin: 0,
+                    end: this._stream.count,
+                };
             }
-            if (point.position < range.begin) {
-                return;
-            }
-            if (point.position > range.end) {
-                return;
-            }
-            point.regs.forEach((reg: string) => {
-                let offsetedPosition: number = Math.floor((point.position - range.begin) * rate);
-                if (results[reg] === undefined) {
-                    results[reg] = new Array(Math.round(width)).fill(0);
-                }
-                if (offsetedPosition > width - 1) {
-                    offsetedPosition = width - 1;
-                }
-                results[reg][offsetedPosition] += 1;
+            this._sessionController.getStreamMap().getMatchesMap(width, range).then((map) => {
+                const dss: any = {};
+                const indexes: number[] = Object.keys(map).map(k => typeof k !== 'number' ? parseInt(k, 10) : k);
+                const count: number = indexes.length;
+                let max: number = -1;
+                indexes.forEach((key: number) => {
+                    const matches: { [key: string]: number } = map[key];
+                    Object.keys(matches).forEach((match: string) => {
+                        if (dss[match] === undefined) {
+                            dss[match] = new Array(Math.round(count)).fill(0);
+                        }
+                        dss[match][key] = matches[match];
+                        if (matches[match] > max) {
+                            max = matches[match];
+                        }
+                    });
+                });
+                const datasets = [];
+                Object.keys(dss).forEach((filter: string) => {
+                    const smth: FilterRequest | ChartRequest | undefined = this._getFilterOrChart(filter);
+                    let color: string = scheme_color_accent;
+                    if (smth !== undefined) {
+                        color = smth instanceof FilterRequest ? smth.getBackground() : smth.getColor();
+                    }
+                    const dataset = {
+                        barPercentage: 1,
+                        categoryPercentage: 1,
+                        label: filter,
+                        backgroundColor: color,
+                        showLine: false,
+                        data: dss[filter],
+                    };
+                    datasets.push(dataset);
+                });
+                resolve({ dataset: datasets, max: max, min: undefined });
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.warn(`Fail to get dataset due error: ${err.message}`)));
             });
         });
-        const datasets = [];
-        Object.keys(results).forEach((filter: string) => {
-            const smth: FilterRequest | ChartRequest | undefined = this._getFilterOrChart(filter);
-            let color: string = scheme_color_accent;
-            if (smth !== undefined) {
-                color = smth instanceof FilterRequest ? smth.getBackground() : smth.getColor();
-            }
-            const dataset = {
-                barPercentage: 1,
-                categoryPercentage: 1,
-                label: filter,
-                backgroundColor: color,
-                showLine: false,
-                data: results[filter],
-            };
-            datasets.push(dataset);
-        });
-        return { dataset: datasets, max: max, min: undefined };
     }
 
     public getChartsDatasets(
@@ -309,15 +289,13 @@ export class ServiceData {
         if (this._stream === undefined || this._stream.count === 0) {
             return false;
         }
-        if (this._matches === undefined && this._charts === undefined) {
+        if (this._sessionController.getSessionSearch().getOutputStream().getRowsCount() > 0) {
+            return true;
+        }
+        if (this._charts === undefined) {
             return false;
         }
-        if (
-            this._matches !== undefined &&
-            this._matches.points.length === 0 &&
-            this._charts !== undefined &&
-            Object.keys(this._charts).length === 0
-        ) {
+        if (this._charts !== undefined && Object.keys(this._charts).length === 0) {
             return false;
         }
         return true;
@@ -410,14 +388,12 @@ export class ServiceData {
         this._stream = controller
             .getStreamOutput()
             .getState();
-        this._matches = controller.getStreamMap().getState();
         this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
         this._subjects.onData.next();
         this._subjects.onCharts.next();
     }
 
     private _onSearchMapStateUpdate(state: IMapState) {
-        this._matches = state;
         this._subjects.onData.next();
     }
 

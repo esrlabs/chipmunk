@@ -14,6 +14,16 @@ import ServicePaths from '../../../services/service.paths';
 import NullWritableStream from '../../../classes/stream.writable.null';
 import Transform from './transform.inspecting';
 
+export interface IMapData {
+    map: { [key: number]: string[] };
+    stats: { [key: string]: number };
+}
+
+export interface IScaledMapData {
+    map: { [key: number]: { [key: string ]: number } };
+    stats: { [key: string]: number };
+}
+
 type THandler = () => void;
 
 export class OperationInspecting extends EventEmitter {
@@ -25,8 +35,11 @@ export class OperationInspecting extends EventEmitter {
     private _cleaners: Map<string, THandler> = new Map();
     private _readTo: number = 0;
     private _readFrom: number = 0;
-    private _matches: number[] = [];
-    private _tasks: Map<string, CancelablePromise<number[], void>> = new Map();
+    private _tasks: Map<string, CancelablePromise<void, void>> = new Map();
+    private _inspected: IMapData = {
+        stats: {},
+        map: {},
+    };
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -40,9 +53,9 @@ export class OperationInspecting extends EventEmitter {
         this.removeAllListeners();
     }
 
-    public perform(regExp: RegExp): CancelablePromise<number[], void> {
+    public perform(regExp: RegExp): CancelablePromise<void, void> {
         const taskId: string = guid();
-        const task: CancelablePromise<number[], void> = new CancelablePromise<number[], void>((resolve, reject, cancel, self) => {
+        const task: CancelablePromise<void, void> = new CancelablePromise<void, void>((resolve, reject, cancel, self) => {
             // Listen cancel for case if it will be canceled while fs.stat
             let canceled: boolean = false;
             self.cancel(() => {
@@ -54,7 +67,7 @@ export class OperationInspecting extends EventEmitter {
                     return;
                 }
                 if (!exists) {
-                    return resolve([]);
+                    return resolve(undefined);
                 }
                 if (this._readFrom >= this._readTo || isNaN(this._readFrom) || !isFinite(this._readFrom) || isNaN(this._readTo) || !isFinite(this._readTo)) {
                     return reject(new Error(`(inspecting) Cannot perform search because a range isn't correct: from = ${this._readFrom}; to = ${this._readTo}`));
@@ -89,9 +102,8 @@ export class OperationInspecting extends EventEmitter {
                 });
                 // Handeling finishing
                 process.once('close', () => {
-                    const added: number[] = transform.getLines();
-                    this._matches = this._matches.concat(added);
-                    resolve(added);
+                    this._store(regExp.source, transform.getLines());
+                    resolve(undefined);
                 });
                 // Create cleaner
                 this._cleaners.set(taskId, () => {
@@ -123,7 +135,7 @@ export class OperationInspecting extends EventEmitter {
                 });
             }).catch((err: Error) => {
                 this._logger.warn(`Fail to check target file "${this._streamFile}" due error: ${err.message}`);
-                return resolve([]);
+                return resolve(undefined);
             });
         }).finally(this._clear.bind(this, taskId));
         this._tasks.set(taskId, task);
@@ -132,7 +144,7 @@ export class OperationInspecting extends EventEmitter {
 
     public drop() {
         // Cancel all tasks before
-        this._tasks.forEach((task: CancelablePromise<number[], void>, id: string) => {
+        this._tasks.forEach((task: CancelablePromise<void, void>, id: string) => {
             this._logger.warn(`Dropping search controller, while search operation is still in progress. Current task "${id}" will be dropped`);
             task.break();
         });
@@ -141,7 +153,7 @@ export class OperationInspecting extends EventEmitter {
         this._cleaners.clear();
         this._readTo = 0;
         this._readFrom = 0;
-        this._matches = [];
+        this._inspected = { map: {}, stats: {} };
     }
 
     public setReadTo(read: number) {
@@ -151,6 +163,87 @@ export class OperationInspecting extends EventEmitter {
 
     public getReadFrom(): number {
         return this._readFrom;
+    }
+
+    public getMap(streamLength: number, factor: number, details: boolean, range?: { begin: number, end: number }): IScaledMapData {
+        const measurePostProcessing = this._logger.measure(`scaling`);
+        const scaled: IScaledMapData = {
+            map: {},
+            stats: this._inspected.stats,
+        };
+        if (range === undefined) {
+            const rate: number = Math.floor(streamLength / factor);
+            if (rate <= 1) {
+                return scaled;
+            }
+            for (let i = 1; i <= factor; i += 1) {
+                scaled.map[i] = {};
+                const ref = scaled.map[i];
+                for (let j = (i - 1) * rate; j <= i * rate; j += 1) {
+                    if (this._inspected.map[j] !== undefined) {
+                        this._inspected.map[j].forEach((match: string) => {
+                            if (ref[match] === undefined) {
+                                ref[match] = 1;
+                            } else {
+                                ref[match] += 1;
+                            }
+                        });
+                        if (!details) {
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            const rangeLength: number = range.end - range.begin;
+            if (rangeLength < 0 || isNaN(rangeLength) || !isFinite(rangeLength)) {
+                this._logger.warn(`Invalid range to scale map correctly`);
+                return scaled;
+            }
+            const rate: number = Math.floor(rangeLength / factor);
+            if (rate <= 1) {
+                return scaled;
+            }
+            for (let i = 1; i <= factor; i += 1) {
+                scaled.map[i] = {};
+                const ref = scaled.map[i];
+
+                for (let j = range.begin + (i - 1) * rate; j <= range.begin + i * rate; j += 1) {
+                    if (j > range.end) {
+                        break;
+                    }
+                    if (this._inspected.map[j] !== undefined) {
+                        this._inspected.map[j].forEach((match: string) => {
+                            if (ref[match] === undefined) {
+                                ref[match] = 1;
+                            } else {
+                                ref[match] += 1;
+                            }
+                        });
+                        if (!details) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        measurePostProcessing();
+        return scaled;
+
+    }
+
+    private _store(request: string, matches: number[]) {
+        const measurePostProcessing = this._logger.measure(`mapping "${request}"`);
+        this._inspected.stats[request] = this._inspected.stats[request] === undefined ? 0 : this._inspected.stats[request];
+        this._inspected.stats[request] += matches.length;
+        matches.forEach((line: number) => {
+            if (this._inspected.map[line] === undefined) {
+                this._inspected.map[line] = [request];
+            } else if (this._inspected.map[line].indexOf(request) === -1) {
+                this._inspected.map[line].push(request);
+            }
+        });
+        measurePostProcessing();
     }
 
     private _clear(id: string) {
