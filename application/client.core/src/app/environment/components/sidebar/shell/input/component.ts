@@ -8,7 +8,6 @@ import { Subscription, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ShellService, IInformation } from '../services/service';
 import { SidebarAppShellEnvironmentComponent } from '../environment/component';
-import { SidebarAppShellInputPwdComponent } from '../pwd/component';
 import { Session } from '../../../../controller/session/session';
 
 import EventsSessionService from '../../../../services/standalone/service.events.session';
@@ -205,27 +204,12 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
     }
 
     public _ng_onSetPwd() {
-        const popupId: string = PopupsService.add({
-            id: 'environment-pwd-dialog',
-            caption: `Set Pwd`,
-            component: {
-                factory: SidebarAppShellInputPwdComponent,
-                inputs: {
-                    service: this.service,
-                    sessionID: this._sessionID,
-                    pwd: this._ng_information.pwd.slice(),
-                    setPwd: (pwd: string) => {
-                        this._ng_information.pwd = pwd;
-                    },
-                    close: () => {
-                        PopupsService.remove(popupId);
-                    }
-                }
-            },
-            buttons: [ ],
-            options: {
-                width: 20,
+        this.service.setPwd({ session: this._sessionID }).then((path: string) => {
+            if (path.trim() !== '') {
+                this._ng_information.pwd = path;
             }
+        }).catch((error: string) => {
+            this._logger.error(error);
         });
     }
 

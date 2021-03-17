@@ -160,4 +160,17 @@ export class ShellService {
         });
     }
 
+    public setPwd(request: IPCMessages.IShellPwdRequest): Promise<string> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellPwdRequest(request), IPCMessages.ShellPwdResponse).then((response: IPCMessages.ShellPwdResponse) => {
+                if (response.error !== undefined) {
+                    return reject(`Failed to set pwd due to the error: ${response.error}`);
+                }
+                resolve(response.path);
+            }).catch((error: Error) => {
+                reject(`Failed to set pwd due to the error: ${error.message}`);
+            });
+        });
+    }
+
 }
