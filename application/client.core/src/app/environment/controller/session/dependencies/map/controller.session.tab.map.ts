@@ -52,6 +52,8 @@ const CSettings = {
 
 export class ControllerSessionTabMap implements Dependency {
 
+    public static SearchResultMapRequestDelay: number = 250;
+
     private _guid: string;
     private _logger: Toolkit.Logger;
     private _state: IMapState = {
@@ -65,16 +67,22 @@ export class ControllerSessionTabMap implements Dependency {
     private _cached: {
         src: IPC.ISearchResultMapData | undefined,
         map: IMap;
-        hash: {
-            SearchResultMapUpdated: string;
-            SearchResultMapRequest: string;
-        },
+        pending: {
+            scale: number;
+            expanded: boolean;
+            timer: any;
+            requested: number;
+            progress: boolean;
+        };
     } = {
         src: undefined,
         map: { points: [], columns: 0 },
-        hash: {
-            SearchResultMapUpdated: Toolkit.guid(), // Hash created on event SearchResultMapUpdated
-            SearchResultMapRequest: Toolkit.guid(), // Hash created on request map with SearchResultMapRequest
+        pending: {
+            progress: false,
+            scale: -1,
+            expanded: false,
+            timer: -1,
+            requested: -1,
         },
     };
     private _lock: Lock = new Lock();
@@ -84,12 +92,14 @@ export class ControllerSessionTabMap implements Dependency {
         onRepaint: Subject<void>,
         onRepainted: Subject<void>,
         onRestyle: Subject<FilterRequest>,
+        onMapRecalculated: Subject<IMap>,
     } = {
         onStateUpdate: new Subject(),
         onPositionUpdate: new Subject(),
         onRepaint: new Subject(),
         onRepainted: new Subject(),
         onRestyle: new Subject(),
+        onMapRecalculated: new Subject(),
     };
     private _session: SessionGetter;
 
@@ -113,6 +123,7 @@ export class ControllerSessionTabMap implements Dependency {
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
+            clearTimeout(this._cached.pending.timer);
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].unsubscribe();
             });
@@ -138,6 +149,7 @@ export class ControllerSessionTabMap implements Dependency {
         onRepaint: Observable<void>,
         onRepainted: Observable<void>,
         onRestyle: Observable<FilterRequest>,
+        onMapRecalculated: Observable<IMap>,
     } {
         return {
             onStateUpdate: this._subjects.onStateUpdate.asObservable(),
@@ -145,6 +157,7 @@ export class ControllerSessionTabMap implements Dependency {
             onRepaint: this._subjects.onRepaint.asObservable(),
             onRepainted: this._subjects.onRepainted.asObservable(),
             onRestyle: this._subjects.onRestyle.asObservable(),
+            onMapRecalculated: this._subjects.onMapRecalculated.asObservable(),
         };
     }
 
@@ -202,31 +215,50 @@ export class ControllerSessionTabMap implements Dependency {
         return target;
     }
 
-    public getMap(scale: number, expanded?: boolean, force: boolean = false): Promise<IMap> {
-        expanded = expanded === undefined ? this._expanded : expanded;
-        return new Promise<IMap>((resolve, reject) => {
-            if (this._cached.hash.SearchResultMapRequest === this._cached.hash.SearchResultMapUpdated && !force) {
-                return resolve({
-                    points: this._cached.map.points,
-                    columns: this._cached.map.columns,
-                });
-            }
+    public requestMapCalculation(scale: number, expanded?: boolean) {
+        const request = () => {
+            this._cached.pending.progress = true;
+            const expandedReq = this._cached.pending.expanded;
             ServiceElectronIpc.request(new IPC.SearchResultMapRequest({
                 streamId: this._guid,
-                scale: scale,
-                details: expanded,
+                scale: this._cached.pending.scale,
+                details: expandedReq,
             }), IPC.SearchResultMapResponse).then((response: IPC.SearchResultMapResponse) => {
-                this._cached.hash.SearchResultMapUpdated = this._cached.hash.SearchResultMapRequest;
                 this._cached.src = response.getData();
-                this._cached.map = this._extractMap(expanded, this._cached.src.map);
-                resolve({
+                this._cached.map = this._extractMap(expandedReq, this._cached.src.map);
+                this._subjects.onMapRecalculated.next({
                     points: this._cached.map.points,
                     columns: this._cached.map.columns,
                 });
+                this._cached.pending.progress = false;
+                if (this._cached.pending.scale !== -1) {
+                    // While IPC message was in progress we get new request.
+                    this.requestMapCalculation(this._cached.pending.scale, this._cached.pending.expanded);
+                }
             }).catch((err: Error) => {
-                reject(new Error(this._logger.warn(`Fail delivery search result map due error: ${err.message}`)));
+                this._logger.warn(`Fail delivery search result map due error: ${err.message}`);
             });
-        });
+            this._cached.pending.requested = -1;
+            this._cached.pending.scale = -1;
+        };
+        expanded = expanded === undefined ? this._expanded : expanded;
+        if (this._cached.pending.requested === -1) {
+            this._cached.pending.requested = Date.now();
+        }
+        this._cached.pending.scale = scale;
+        this._cached.pending.expanded = expanded;
+        if (this._cached.pending.progress) {
+            return;
+        }
+        clearTimeout(this._cached.pending.timer);
+        const timeout: number = Date.now() - this._cached.pending.requested;
+        if (timeout > ControllerSessionTabMap.SearchResultMapRequestDelay) {
+            request();
+        } else {
+            this._cached.pending.timer = setTimeout(() => {
+                request();
+            }, timeout);
+        }
     }
 
     public getMatchesMap(scale: number, range: { begin: number, end: number }): Promise<{
@@ -349,7 +381,6 @@ export class ControllerSessionTabMap implements Dependency {
     }
 
     private _ipc_SearchResultMapUpdated(message: IPC.SearchResultMapUpdated) {
-        this._cached.hash.SearchResultMapUpdated = Toolkit.guid();
         this._saveTriggerStateUpdate();
     }
 
