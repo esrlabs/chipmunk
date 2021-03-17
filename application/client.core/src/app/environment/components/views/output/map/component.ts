@@ -35,6 +35,10 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         position: 0,
         rowsInView: 0,
     };
+    private _map: IMap = {
+        columns: 0,
+        points: [],
+    };
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger(`ViewContentMapComponent`);
@@ -82,6 +86,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     }
 
     public ngAfterContentInit() {
+        this._subscriptions.onMapRecalculated = this.service.getObservable().onMapRecalculated.subscribe(this._onMapRecalculated.bind(this));
         this._subscriptions.onUpdateStateSubject = this.service.getObservable().onStateUpdate.subscribe(this._onUpdateState.bind(this));
         this._subscriptions.onPositionUpdateSubject = this.service.getObservable().onPositionUpdate.subscribe(this._onPositionUpdate.bind(this));
         this._subscriptions.onRepaintSubject = this.service.getObservable().onRepaint.subscribe(this._onRepaint.bind(this));
@@ -137,31 +142,30 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         if (!this._setHeight() && resizing) {
             return;
         }
-        this._draw(undefined, true);
+        this.service.requestMapCalculation(this._ng_height);
         this._updateCursor();
         this._forceUpdate();
         this.service.repainted();
     }
 
-    private _onRestyle(request: FilterRequest) {
-        const desc = request.asDesc();
-        this.service.getMap(this._ng_height).then((map: IMap) => {
-            this._draw({
-                columns: map.columns,
-                points: map.points.map((point: IMapPoint) => {
-                    if (point.reg !== desc.request) {
-                        return point;
-                    }
-                    point.color = desc.background;
-                    return point;
-                }),
-            });
-        }).catch((err: Error) => {
-            this._logger.warn(`Fail get map due error: ${err.message}`);
-        });
+    private _onMapRecalculated(map: IMap) {
+        this._map = map;
+        this._draw();
     }
 
-    private _draw(loadedmap?: IMap, force: boolean = false) {
+    private _onRestyle(request: FilterRequest) {
+        const desc = request.asDesc();
+        this._map.points = this._map.points.map((point: IMapPoint) => {
+            if (point.reg !== desc.request) {
+                return point;
+            }
+            point.color = desc.background;
+            return point;
+        });
+        this._draw();
+    }
+
+    private _draw() {
         const width = (columns: number) => {
             this._ng_width = this.service.getColumnWidth() * columns;
             this.width = `${this._ng_width}px`;
@@ -195,17 +199,8 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
                 );
             });
         };
-        if (loadedmap === undefined) {
-            this.service.getMap(this._ng_height, undefined, force).then((map: IMap) => {
-                width(map.columns);
-                draw(map.points);
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail get points due error: ${err.message}`);
-            });
-        } else {
-            width(loadedmap.columns);
-            draw(loadedmap.points);
-        }
+        width(this._map.columns);
+        draw(this._map.points);
     }
 
     private _updateCursor() {
