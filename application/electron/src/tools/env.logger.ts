@@ -105,7 +105,8 @@ export default class Logger {
         this._unixtimes[id] = Date.now();
         this.env(`starting "${operation}"`);
         return () => {
-            this.env(`"${operation}" finished in: ${((Date.now() - this._unixtimes[id]) / 1000).toFixed(2)} sec`);
+            const duration: number = (Date.now() - this._unixtimes[id]);
+            this.env(`"${operation}" finished in: ${(duration / 1000).toFixed(2)} sec (${duration}ms)`);
             delete this._unixtimes[id];
         };
     }

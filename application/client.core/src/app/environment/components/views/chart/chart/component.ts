@@ -202,78 +202,79 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         }
         let width: number = 0;
         if (this._ng_width < this.service.getStreamSize()) {
-            width = Math.round(this._ng_width / 4);
+            width = Math.round(this._ng_width / 2);
         } else {
             width = this._ng_width;
         }
-        const labels: string[] = this.service.getLabes(width, this._getRange());
-        const datasets: IResults = this.service.getDatasets(width, this._getRange());
-        if (labels.length === 0 || datasets.dataset.length === 0) {
-            if (this._ng_filters !== undefined) {
-                this._ng_filters.destroy();
+        this.service.getDatasets(width, this._getRange()).then((datasets: IResults) => {
+            const labels: string[] = this.service.getLabes(width, this._getRange());
+            if (labels.length === 0 || datasets.dataset.length === 0) {
+                if (this._ng_filters !== undefined) {
+                    this._ng_filters.destroy();
+                }
+                this._ng_filters = undefined;
+                return this._forceUpdate();
             }
-            this._ng_filters = undefined;
-            return this._forceUpdate();
-        }
-        if (this._ng_filters !== undefined && (this._ng_filters.data.datasets === undefined || this._ng_filters.data.datasets.length === 0)) {
-            this._ng_filters.destroy();
-            this._ng_filters = undefined;
-        }
-        if (this._ng_filters === undefined) {
-            this._ng_filters = new Chart(`view-chart-canvas-filters-${this.service.getSessionGuid()}`, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets.dataset,
-                },
-                options: {
-                    title: {
-                        display: false,
+            if (this._ng_filters !== undefined && (this._ng_filters.data.datasets === undefined || this._ng_filters.data.datasets.length === 0)) {
+                this._ng_filters.destroy();
+                this._ng_filters = undefined;
+            }
+            if (this._ng_filters === undefined) {
+                this._ng_filters = new Chart(`view-chart-canvas-filters-${this.service.getSessionGuid()}`, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: datasets.dataset,
                     },
-                    legend: {
-                        display: false,
-                    },
-                    animation: {
-                        duration: 0
-                    },
-                    hover: {
-                        animationDuration: 0
-                    },
-                    responsiveAnimationDuration: 0,
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        yAxes: [{
-                            display: false, // TODO: make axes visible
-                            stacked: true,
-                            ticks: {
-                                beginAtZero: true,
-                                max: Math.round(datasets.max + datasets.max * 0.1)
-                            },
-                        }],
-                        xAxes: [{
-                            stacked: true,
+                    options: {
+                        title: {
                             display: false,
-                        }]
+                        },
+                        legend: {
+                            display: false,
+                        },
+                        animation: {
+                            duration: 0
+                        },
+                        hover: {
+                            animationDuration: 0
+                        },
+                        responsiveAnimationDuration: 0,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            yAxes: [{
+                                display: false, // TODO: make axes visible
+                                stacked: true,
+                                ticks: {
+                                    beginAtZero: true,
+                                    // max: Math.round(datasets.max + datasets.max * 0.1)
+                                },
+                            }],
+                            xAxes: [{
+                                stacked: true,
+                                display: false,
+                            }]
+                        }
                     }
-                }
-            });
-            this._forceUpdate();
-        } else {
-            this._ng_filters.data.labels = labels;
-            this._ng_filters.data.datasets = datasets.dataset;
-            this._ng_filters.options.scales.yAxes[0].ticks.max = Math.round(datasets.max + datasets.max * 0.1);
-            setTimeout(() => {
-                if (this._destroyed) {
-                    return;
-                }
-                if (this._ng_filters === undefined) {
-                    return;
-                }
-                this._ng_filters.update();
-            });
-        }
-        this._scrollMainView();
+                });
+                this._forceUpdate();
+            } else {
+                this._ng_filters.data.labels = labels;
+                this._ng_filters.data.datasets = datasets.dataset;
+                // this._ng_filters.options.scales.yAxes[0].ticks.max = Math.round(datasets.max + datasets.max * 0.1);
+                setTimeout(() => {
+                    if (this._destroyed) {
+                        return;
+                    }
+                    if (this._ng_filters === undefined) {
+                        return;
+                    }
+                    this._ng_filters.update();
+                });
+            }
+            this._scrollMainView();
+        });
     }
 
     private _charts() {

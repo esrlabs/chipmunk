@@ -3,7 +3,6 @@ import ServiceElectron from '../../services/service.electron';
 import BytesRowsMap from './file.map';
 
 import { IPCMessages as IPC } from '../../services/service.electron';
-import { IMapData } from './engine/controller';
 
 const DELAY = {
     SearchUpdated: 250,     // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
@@ -16,10 +15,10 @@ export default class ControllerSearchUpdatesPostman {
     private _streamId: string;
     private _notification: {
         SearchUpdated: { timer: any, last: number },
-        SearchResultMap: { timer: any, last: number, data: IMapData, append: boolean },
+        SearchResultMap: { timer: any, last: number },
     } = {
         SearchUpdated: { timer: -1, last: 0 },
-        SearchResultMap: { timer: -1, last: 0, data: { stats: {}, map: {} }, append: false },
+        SearchResultMap: { timer: -1, last: 0 },
     };
     private _map: BytesRowsMap;
     private _destroyed: boolean = false;
@@ -41,19 +40,19 @@ export default class ControllerSearchUpdatesPostman {
 
     public notification(ignoreQueue: boolean = false): {
         SearchUpdated: () => void,
-        SearchResultMap: (map: IMapData, append: boolean) => void,
+        SearchResultMap: () => void,
     } {
         const self = this;
-        function notify(target: 'SearchUpdated' | 'SearchResultMap') {
+        function notify(target: 'SearchUpdated' | 'SearchResultMap', ...args: any[]) {
             clearTimeout(self._notification[target].timer);
             const past: number = Date.now() - self._notification[target].last;
             if (!self._working && (past >= DELAY[target] || ignoreQueue)) {
-                self._notify()[target]();
+                (self._notify()[target] as any)(...args);
                 return;
             }
             const delay = past > DELAY[target] ? 0 : (DELAY[target] - past);
             self._notification[target].timer = setTimeout(() => {
-                self._notify()[target]();
+                (self._notify()[target] as any)(...args);
             }, delay);
         }
         return {
@@ -64,31 +63,11 @@ export default class ControllerSearchUpdatesPostman {
                 }
                 notify('SearchUpdated');
             },
-            SearchResultMap: (data: IMapData, append: boolean) => {
+            SearchResultMap: () => {
                 if (self._destroyed) {
                     self._logger.warn(`Attempt to notify after postman was destroyed.`);
                     return;
                 }
-                if (append) {
-                    const ref = self._notification.SearchResultMap.data;
-                    Object.keys(data.map).forEach((key: string) => {
-                        if ((ref.map as any)[key] === undefined) {
-                            (ref.map as any)[key] = (data.map as any)[key];
-                        } else {
-                            (ref.map as any)[key] = (ref.map as any)[key].concat((data.map as any)[key]);
-                        }
-                    });
-                    Object.keys(data.stats).forEach((key: string) => {
-                        if ((ref.stats as any)[key] === undefined) {
-                            (ref.stats as any)[key] = (data.stats as any)[key];
-                        } else {
-                            (ref.stats as any)[key] += (data.stats as any)[key];
-                        }
-                    });
-                } else {
-                    self._notification.SearchResultMap.data = data;
-                }
-                self._notification.SearchResultMap.append = append;
                 notify('SearchResultMap');
             },
         };
@@ -127,11 +106,8 @@ export default class ControllerSearchUpdatesPostman {
                     return;
                 }
                 self._working = true;
-                ServiceElectron.IPC.send(new IPC.SearchResultMap({
+                ServiceElectron.IPC.send(new IPC.SearchResultMapUpdated({
                     streamId: self._streamId,
-                    append: self._notification.SearchResultMap.append,
-                    map: self._notification.SearchResultMap.data.map,
-                    stats: self._notification.SearchResultMap.data.stats,
                 })).catch((error: Error) => {
                     self._logger.warn(`Fail send notification to render due error: ${error.message}`);
                 });

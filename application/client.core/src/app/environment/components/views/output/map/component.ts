@@ -1,6 +1,6 @@
 import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabMap, IMapPoint, IMapState } from '../../../../controller/session/dependencies/map/controller.session.tab.map';
+import { ControllerSessionTabMap, IMapPoint, IMapState, IMap } from '../../../../controller/session/dependencies/map/controller.session.tab.map';
 import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
@@ -9,6 +9,7 @@ import ContextMenuService from '../../../../services/standalone/service.contextm
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-views-content-map',
@@ -33,17 +34,18 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         count: 0,
         position: 0,
         rowsInView: 0,
-        points: [],
     };
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
+    private _logger: Toolkit.Logger = new Toolkit.Logger(`ViewContentMapComponent`);
 
     @HostListener('contextmenu', ['$event']) public _ng_onContextMenu(event: MouseEvent) {
         const items: IMenuItem[] = [
             {
                 caption: this.service.isExpanded() ? 'Abridge Filters' : 'Expand Filters',
                 handler: () => {
-                    this.service.toggleExpanding();
+                    this.service.expanding();
+                    this._onRepaint();
                 }
             },
             { /* Delimiter */ },
@@ -71,7 +73,8 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     }
 
     @HostListener('dblclick', ['$event']) public _ng_onDblClick(event: MouseEvent) {
-        this.service.toggleExpanding();
+        this.service.expanding();
+        this._onRepaint();
     }
 
     constructor(private _cdRef: ChangeDetectorRef,
@@ -90,7 +93,6 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
 
     public ngAfterViewInit() {
         this._setHeight();
-        this._setWidth();
         this._draw();
         this._forceUpdate();
     }
@@ -104,7 +106,6 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
 
     private _setState(state: IMapState) {
         this._state.count = state.count;
-        this._state.points = state.points;
         this._state.position = state.position;
         this._state.rowsInView = state.rowsInView;
     }
@@ -119,14 +120,6 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         }
         this._ng_height = size.height;
         return true;
-    }
-
-    private _setWidth() {
-        if (this.service === undefined) {
-            return;
-        }
-        this._ng_width = this.service.getColumnWidth() * this.service.getColumnsCount();
-        this.width = `${this._ng_width}px`;
     }
 
     private _onUpdateState(state: IMapState) {
@@ -144,41 +137,50 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         if (!this._setHeight() && resizing) {
             return;
         }
-        this._setWidth();
+        this._draw(undefined, true);
         this._updateCursor();
         this._forceUpdate();
-        this._draw();
         this.service.repainted();
     }
 
     private _onRestyle(request: FilterRequest) {
         const desc = request.asDesc();
-        this._state.points = this._state.points.map((point: IMapPoint) => {
-            if (point.reg !== desc.request) {
-                return point;
-            }
-            point.color = desc.background;
-            return point;
+        this.service.getMap(this._ng_height).then((map: IMap) => {
+            this._draw({
+                columns: map.columns,
+                points: map.points.map((point: IMapPoint) => {
+                    if (point.reg !== desc.request) {
+                        return point;
+                    }
+                    point.color = desc.background;
+                    return point;
+                }),
+            });
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail get map due error: ${err.message}`);
         });
-        this._draw();
     }
 
-    private _draw() {
-        if (this._ng_canvas === undefined) {
-            return;
-        }
-        const context: CanvasRenderingContext2D = (this._ng_canvas.nativeElement as HTMLCanvasElement).getContext('2d');
-        // Drop background
-        context.fillStyle = 'rgb(0,0,0)';
-        context.fillRect(0, 0, this._ng_width, this._ng_height);
-        // Drawing markers
-        const rate: number = this._ng_height / this._state.count;
-        const height: number = this.service.getSettings().minMarkerHeight * rate;
-        if (this._ng_height < this._state.count) {
+    private _draw(loadedmap?: IMap, force: boolean = false) {
+        const width = (columns: number) => {
+            this._ng_width = this.service.getColumnWidth() * columns;
+            this.width = `${this._ng_width}px`;
+            this._forceUpdate();
+        };
+        const draw = (points: IMapPoint[]) => {
+            if (this._ng_canvas === undefined || this.service === undefined) {
+                return;
+            }
+            const context: CanvasRenderingContext2D = (this._ng_canvas.nativeElement as HTMLCanvasElement).getContext('2d');
+            // Drop background
+            context.fillStyle = 'rgb(0,0,0)';
+            context.fillRect(0, 0, this._ng_width, this._ng_height);
+            // Drawing markers
+            const height: number = this.service.getSettings().minMarkerHeight;
             const done: {[key: string]: boolean} = {};
-            this._state.points.forEach((point: IMapPoint) => {
+            points.forEach((point: IMapPoint) => {
                 const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
-                const y: number = Math.ceil(point.position * rate);
+                const y: number = Math.ceil(point.position);
                 const key: string = y + '-' + x;
                 if (done[key]) {
                     return;
@@ -192,18 +194,17 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
                     height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height
                 );
             });
-        } else {
-            this._state.points.forEach((point: IMapPoint) => {
-                context.fillStyle = point.color === '' ? 'rgb(255,0,0)' : point.color;
-                const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
-                const y: number = point.position * rate;
-                context.fillRect(
-                    x - 1,
-                    y,
-                    this.service.getColumnWidth() - 1,
-                    height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height
-                );
+        };
+        if (loadedmap === undefined) {
+            this.service.getMap(this._ng_height, undefined, force).then((map: IMap) => {
+                width(map.columns);
+                draw(map.points);
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail get points due error: ${err.message}`);
             });
+        } else {
+            width(loadedmap.columns);
+            draw(loadedmap.points);
         }
     }
 
