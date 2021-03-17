@@ -175,7 +175,6 @@ export class SearchEngine extends EventEmitter {
                 stock.set(requestTaskId, task);
                 // Processing results
                 task.then(() => {
-                    
                     stock.delete(requestTaskId);
                     if (stock.size === 0) {
                         return resolve(undefined);

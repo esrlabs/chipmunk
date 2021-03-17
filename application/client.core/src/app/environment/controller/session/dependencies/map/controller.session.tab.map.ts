@@ -74,7 +74,7 @@ export class ControllerSessionTabMap implements Dependency {
         map: { points: [], columns: 0 },
         hash: {
             SearchResultMapUpdated: Toolkit.guid(), // Hash created on event SearchResultMapUpdated
-            SearchResultMapRequest: Toolkit.guid() // Hash created on request map with SearchResultMapRequest    
+            SearchResultMapRequest: Toolkit.guid(), // Hash created on request map with SearchResultMapRequest
         },
     };
     private _lock: Lock = new Lock();
