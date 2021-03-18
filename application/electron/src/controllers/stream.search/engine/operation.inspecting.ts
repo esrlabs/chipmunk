@@ -172,24 +172,43 @@ export class OperationInspecting extends EventEmitter {
             stats: this._inspected.stats,
         };
         if (range === undefined) {
-            const rate: number = Math.floor(streamLength / factor);
+            let rate: number = Math.floor(streamLength / factor);
             if (rate <= 1) {
-                return scaled;
-            }
-            for (let i = 1; i <= factor; i += 1) {
-                scaled.map[i] = {};
-                const ref = scaled.map[i];
-                for (let j = (i - 1) * rate; j <= i * rate; j += 1) {
-                    if (this._inspected.map[j] !== undefined) {
-                        this._inspected.map[j].forEach((match: string) => {
-                            if (ref[match] === undefined) {
-                                ref[match] = 1;
-                            } else {
-                                ref[match] += 1;
+                rate = Math.floor(streamLength / factor);
+                for (let i = 1; i <= factor; i += 1) {
+                    scaled.map[i] = {};
+                    const ref = scaled.map[i];
+                    for (let j = Math.floor((i - 1) * rate); j <= Math.floor(i * rate); j += 1) {
+                        if (this._inspected.map[j] !== undefined) {
+                            this._inspected.map[j].forEach((match: string) => {
+                                if (ref[match] === undefined) {
+                                    ref[match] = 1;
+                                } else {
+                                    ref[match] += 1;
+                                }
+                            });
+                            if (!details) {
+                                break;
                             }
-                        });
-                        if (!details) {
-                            break;
+                        }
+                    }
+                }
+            } else {
+                for (let i = 1; i <= factor; i += 1) {
+                    scaled.map[i] = {};
+                    const ref = scaled.map[i];
+                    for (let j = (i - 1) * rate; j <= i * rate; j += 1) {
+                        if (this._inspected.map[j] !== undefined) {
+                            this._inspected.map[j].forEach((match: string) => {
+                                if (ref[match] === undefined) {
+                                    ref[match] = 1;
+                                } else {
+                                    ref[match] += 1;
+                                }
+                            });
+                            if (!details) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -200,28 +219,49 @@ export class OperationInspecting extends EventEmitter {
                 this._logger.warn(`Invalid range to scale map correctly`);
                 return scaled;
             }
-            const rate: number = Math.floor(rangeLength / factor);
+            let rate: number = Math.floor(rangeLength / factor);
             if (rate <= 1) {
-                return scaled;
-            }
-            for (let i = 1; i <= factor; i += 1) {
-                scaled.map[i] = {};
-                const ref = scaled.map[i];
-
-                for (let j = range.begin + (i - 1) * rate; j <= range.begin + i * rate; j += 1) {
-                    if (j > range.end) {
-                        break;
-                    }
-                    if (this._inspected.map[j] !== undefined) {
-                        this._inspected.map[j].forEach((match: string) => {
-                            if (ref[match] === undefined) {
-                                ref[match] = 1;
-                            } else {
-                                ref[match] += 1;
-                            }
-                        });
-                        if (!details) {
+                rate = rangeLength / factor;
+                for (let i = 1; i <= factor; i += 1) {
+                    scaled.map[i] = {};
+                    const ref = scaled.map[i];
+                    for (let j = Math.floor(range.begin + (i - 1) * rate); j <= Math.floor(range.begin + i * rate); j += 1) {
+                        if (j > range.end) {
                             break;
+                        }
+                        if (this._inspected.map[j] !== undefined) {
+                            this._inspected.map[j].forEach((match: string) => {
+                                if (ref[match] === undefined) {
+                                    ref[match] = 1;
+                                } else {
+                                    ref[match] += 1;
+                                }
+                            });
+                            if (!details) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                for (let i = 1; i <= factor; i += 1) {
+                    scaled.map[i] = {};
+                    const ref = scaled.map[i];
+                    for (let j = range.begin + (i - 1) * rate; j <= range.begin + i * rate; j += 1) {
+                        if (j > range.end) {
+                            break;
+                        }
+                        if (this._inspected.map[j] !== undefined) {
+                            this._inspected.map[j].forEach((match: string) => {
+                                if (ref[match] === undefined) {
+                                    ref[match] = 1;
+                                } else {
+                                    ref[match] += 1;
+                                }
+                            });
+                            if (!details) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -229,7 +269,6 @@ export class OperationInspecting extends EventEmitter {
         }
         measurePostProcessing();
         return scaled;
-
     }
 
     private _store(request: string, matches: number[]) {
