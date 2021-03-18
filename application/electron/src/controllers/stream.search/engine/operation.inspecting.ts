@@ -172,25 +172,19 @@ export class OperationInspecting extends EventEmitter {
             stats: this._inspected.stats,
         };
         if (range === undefined) {
-            let rate: number = Math.floor(streamLength / factor);
+            const rate: number = Math.floor(streamLength / factor);
             if (rate <= 1) {
-                rate = Math.floor(streamLength / factor);
-                for (let i = 1; i <= factor; i += 1) {
+                for (let i = 1; i <= streamLength; i += 1) {
                     scaled.map[i] = {};
                     const ref = scaled.map[i];
-                    for (let j = Math.floor((i - 1) * rate); j <= Math.floor(i * rate); j += 1) {
-                        if (this._inspected.map[j] !== undefined) {
-                            this._inspected.map[j].forEach((match: string) => {
-                                if (ref[match] === undefined) {
-                                    ref[match] = 1;
-                                } else {
-                                    ref[match] += 1;
-                                }
-                            });
-                            if (!details) {
-                                break;
+                    if (this._inspected.map[i - 1] !== undefined) {
+                        this._inspected.map[i - 1].forEach((match: string) => {
+                            if (ref[match] === undefined) {
+                                ref[match] = 1;
+                            } else {
+                                ref[match] += 1;
                             }
-                        }
+                        });
                     }
                 }
             } else {
@@ -219,28 +213,20 @@ export class OperationInspecting extends EventEmitter {
                 this._logger.warn(`Invalid range to scale map correctly`);
                 return scaled;
             }
-            let rate: number = Math.floor(rangeLength / factor);
+            const rate: number = Math.floor(rangeLength / factor);
             if (rate <= 1) {
-                rate = rangeLength / factor;
-                for (let i = 1; i <= factor; i += 1) {
+                for (let i = 1; i <= rangeLength; i += 1) {
                     scaled.map[i] = {};
                     const ref = scaled.map[i];
-                    for (let j = Math.floor(range.begin + (i - 1) * rate); j <= Math.floor(range.begin + i * rate); j += 1) {
-                        if (j > range.end) {
-                            break;
-                        }
-                        if (this._inspected.map[j] !== undefined) {
-                            this._inspected.map[j].forEach((match: string) => {
-                                if (ref[match] === undefined) {
-                                    ref[match] = 1;
-                                } else {
-                                    ref[match] += 1;
-                                }
-                            });
-                            if (!details) {
-                                break;
+                    const j = range.begin + i;
+                    if (this._inspected.map[j - 1] !== undefined) {
+                        this._inspected.map[j - 1].forEach((match: string) => {
+                            if (ref[match] === undefined) {
+                                ref[match] = 1;
+                            } else {
+                                ref[match] += 1;
                             }
-                        }
+                        });
                     }
                 }
             } else {
