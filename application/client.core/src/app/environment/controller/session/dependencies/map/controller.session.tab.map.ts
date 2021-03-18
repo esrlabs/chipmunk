@@ -143,6 +143,10 @@ export class ControllerSessionTabMap implements Dependency {
         return this._state;
     }
 
+    public getStreamLength(): number {
+        return this._session().getStreamOutput().getRowsCount();
+    }
+
     public getObservable(): {
         onStateUpdate: Observable<IMapState>,
         onPositionUpdate: Observable<IMapState>,

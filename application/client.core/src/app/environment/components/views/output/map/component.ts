@@ -180,11 +180,12 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
             context.fillStyle = 'rgb(0,0,0)';
             context.fillRect(0, 0, this._ng_width, this._ng_height);
             // Drawing markers
-            const height: number = this.service.getSettings().minMarkerHeight;
+            let height: number = this._ng_height / this.service.getStreamLength();
+            height = height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height;
             const done: {[key: string]: boolean} = {};
             points.forEach((point: IMapPoint) => {
                 const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
-                const y: number = Math.ceil(point.position);
+                const y: number = Math.ceil(point.position) * height - height;
                 const key: string = y + '-' + x;
                 if (done[key]) {
                     return;
@@ -195,7 +196,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
                     x - 1,
                     y,
                     this.service.getColumnWidth() - 1,
-                    height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height
+                    height
                 );
             });
         };
