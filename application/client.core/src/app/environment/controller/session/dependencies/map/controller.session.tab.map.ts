@@ -219,7 +219,7 @@ export class ControllerSessionTabMap implements Dependency {
         return target;
     }
 
-    public requestMapCalculation(scale: number, expanded?: boolean) {
+    public requestMapCalculation(scale: number, force: boolean) {
         const request = () => {
             this._cached.pending.progress = true;
             const expandedReq = this._cached.pending.expanded;
@@ -237,7 +237,7 @@ export class ControllerSessionTabMap implements Dependency {
                 this._cached.pending.progress = false;
                 if (this._cached.pending.scale !== -1) {
                     // While IPC message was in progress we get new request.
-                    this.requestMapCalculation(this._cached.pending.scale, this._cached.pending.expanded);
+                    this.requestMapCalculation(this._cached.pending.scale, false);
                 }
             }).catch((err: Error) => {
                 this._logger.warn(`Fail delivery search result map due error: ${err.message}`);
@@ -245,18 +245,17 @@ export class ControllerSessionTabMap implements Dependency {
             this._cached.pending.requested = -1;
             this._cached.pending.scale = -1;
         };
-        expanded = expanded === undefined ? this._expanded : expanded;
         if (this._cached.pending.requested === -1) {
             this._cached.pending.requested = Date.now();
         }
         this._cached.pending.scale = scale;
-        this._cached.pending.expanded = expanded;
+        this._cached.pending.expanded = this._expanded;
         if (this._cached.pending.progress) {
             return;
         }
         clearTimeout(this._cached.pending.timer);
         const timeout: number = Date.now() - this._cached.pending.requested;
-        if (timeout > ControllerSessionTabMap.SearchResultMapRequestDelay) {
+        if (timeout > ControllerSessionTabMap.SearchResultMapRequestDelay || force) {
             request();
         } else {
             this._cached.pending.timer = setTimeout(() => {

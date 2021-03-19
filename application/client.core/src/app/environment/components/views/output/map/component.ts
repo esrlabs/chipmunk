@@ -97,6 +97,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     }
 
     public ngAfterViewInit() {
+        this.service.requestMapCalculation(this._ng_height, true);
         this._setHeight();
         this._draw();
         this._forceUpdate();
@@ -142,7 +143,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         if (!this._setHeight() && resizing) {
             return;
         }
-        this.service.requestMapCalculation(this._ng_height);
+        this.service.requestMapCalculation(this._ng_height, false);
         this._updateCursor();
         this._forceUpdate();
         this.service.repainted();
