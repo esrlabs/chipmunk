@@ -2,7 +2,7 @@ import ServiceElectron, { IPCMessages as IPCElectronMessages } from '../../servi
 import Logger from '../../tools/env.logger';
 
 const CSettings = {
-    notificationDelayOnStream: 500, // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
+    notificationDelayOnStream: 1000, // ms, Delay for sending notifications about stream's update to render (client) via IPC, when stream is blocked
 };
 
 interface IProgress {
@@ -16,7 +16,7 @@ export default class ProgressState {
     private _streamId: string;
     private _tracks: Map<string, IProgress> = new Map();
     private _timer: any;
-    private _last: number = 0;
+    private _last: number = Date.now();
     private _logger: Logger;
 
     constructor(streamId: string) {
@@ -70,18 +70,24 @@ export default class ProgressState {
     }
 
     private _notify() {
+        const send = () => {
+            ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
+                streamId: this._streamId,
+                tracks: Array.from(this._tracks.values()),
+            })).catch((error: Error) => {
+                this._logger.warn(`Fail to send StreamProgressState due error: ${error.message}`);
+            }).finally(() => {
+                this._last = Date.now();
+            });
+        };
         clearTimeout(this._timer);
         const past: number = Date.now() - this._last;
-        if (past < CSettings.notificationDelayOnStream) {
+        if (past > CSettings.notificationDelayOnStream) {
+            send();
+        } else {
             this._timer = setTimeout(() => {
-                ServiceElectron.IPC.send(new IPCElectronMessages.StreamProgressState({
-                    streamId: this._streamId,
-                    tracks: Array.from(this._tracks.values()),
-                })).catch((error: Error) => {
-                    this._logger.warn(`Fail to send StreamProgressState due error: ${error.message}`);
-                });
+                send();
             }, CSettings.notificationDelayOnStream - past);
-            return;
         }
     }
 
