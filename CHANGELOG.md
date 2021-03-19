@@ -1,6 +1,7 @@
 # Changelog
 
-### [2.15.4] - 03/19/2021
+## [2.15.4] - 03/19/2021
+### Fixed
 * Correct resizing chart-cursor position
 * Show progress of BE operation on FE (fix)
 
