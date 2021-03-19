@@ -3,9 +3,7 @@ import { Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import { ServiceData, IResults, IChartsResults, IScaleState, EScaleType } from '../service.data';
 import { ServicePosition } from '../service.position';
-import { Session } from '../../../../controller/session/session';
 
-import EventsSessionService from '../../../../services/standalone/service.events.session';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -23,7 +21,6 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
 
     public _ng_width: number = 100;
     public _ng_height: number = 100;
-    public _ng_offset: number = 0;
     public _ng_onOffsetUpdated: EventEmitter<void> = new EventEmitter();
     public _ng_isCursorVisible: boolean = true;
 
@@ -83,9 +80,8 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         if (!this._updateCursor()) {
             this._forceUpdate();
         }
-        if (this._filters !== undefined && (force || this._ng_offset === 0)) {
+        if (this._filters !== undefined && force) {
             this._filters.resize();
-            this._ng_offset = this._filters.chartArea.left;
             this._ng_onOffsetUpdated.emit();
         }
         if (this._charts !== undefined && force) {
@@ -189,9 +185,6 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                 });
             }
         });
-        /*
-        const datasets: IResults = this.serviceData.getDatasets(width, undefined);
-*/
     }
 
     private _buildCharts() {
