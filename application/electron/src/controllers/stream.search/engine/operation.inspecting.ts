@@ -40,6 +40,13 @@ export class OperationInspecting extends EventEmitter {
         stats: {},
         map: {},
     };
+    private _cached: {
+        hash: string;
+        cache: IScaledMapData | undefined;
+    } = {
+        hash: '',
+        cache: undefined,
+    };
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
         super();
@@ -167,6 +174,11 @@ export class OperationInspecting extends EventEmitter {
 
     public getMap(streamLength: number, factor: number, details: boolean, range?: { begin: number, end: number }): IScaledMapData {
         const measurePostProcessing = this._logger.measure(`scaling`);
+        const hash: string = `${streamLength}.${factor}.${details}.${JSON.stringify(range)}.${JSON.stringify(this._inspected.stats)}`;
+        if (hash === this._cached.hash && this._cached.cache !== undefined) {
+            measurePostProcessing();
+            return this._cached.cache;
+        }
         const scaled: IScaledMapData = {
             map: {},
             stats: this._inspected.stats,
@@ -253,6 +265,8 @@ export class OperationInspecting extends EventEmitter {
                 }
             }
         }
+        this._cached.hash = hash;
+        this._cached.cache = scaled;
         measurePostProcessing();
         return scaled;
     }
