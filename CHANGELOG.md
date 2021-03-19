@@ -1,5 +1,9 @@
 # Changelog
 
+### [2.15.4] - 03/19/2021
+* Correct resizing chart-cursor position
+* Show progress of BE operation on FE (fix)
+
 ## [2.15.3] - 03/19/2021
 ### Fixed
 * Refactoring workflow for getting search results map
