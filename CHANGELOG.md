@@ -1,26 +1,17 @@
 # Changelog
 
-### [2.15.3] - 03/19/2021
-* Fix restoring of seearch map os session switch
-* Correct calculation of matches on short files
-* Show matches for small output
-* Fix chart spinner style
-* Reduce amount of IPC calls to get search map
-* Resolve lint-js issues
-* Refactoring workflow for gettiing search results map
-* Correct calling postman for search results
-* Remove comments from code
+## [2.15.3] - 03/19/2021
+### Fixed
+* Refactoring workflow for getting search results map
 * Fix closing app workflow
-* Update search results postman
 * Fix progress postman
-* [#1107](refact) Adjust shortcut on context menu
-* [#1107](refact) Add shortcut hints to context menu
-* [#1107](refact) Remove redundant  shortcuts
+* Adjust shortcut on context menu
+* Add shortcut hints to context menu
+* Remove redundant  shortcuts
 * Fix parsing of invalid length DLT messages
   skip to next message when payload length is invalid
   do not report each warning to client
-* [#1106](refact) Remove rate completely
-* [#1106](fix) Adjust position of chart cursor
+* Adjust position of chart cursor
 
 ## [2.15.2] - 03/08/2021
 ### Fixed
