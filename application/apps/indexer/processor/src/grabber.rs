@@ -1,18 +1,10 @@
-use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
-use crossbeam_channel::unbounded;
-use dlt::dlt::Message;
-use dlt::dlt_file::FileMessageProducer;
-use dlt::dlt_fmt::FormattableMessage;
-use dlt::dlt_parse::{dlt_consume_msg, ParsedMessage};
-use indexer_base::chunks::ChunkResults;
-use indexer_base::{progress::ComputationResult, utils};
+use indexer_base::progress::ComputationResult;
 use serde::{Deserialize, Serialize};
-use std::io::Cursor;
 use std::{
     fmt, fs,
-    io::{BufRead, Read, Seek, SeekFrom, Write},
+    io::{Read, Write},
     ops::RangeInclusive,
-    path::{Path, PathBuf},
+    path::Path,
 };
 use thiserror::Error;
 
@@ -32,9 +24,6 @@ pub enum GrabError {
     NotInitialize,
 }
 
-const REDUX_READER_CAPACITY: usize = 10 * 1024 * 1024;
-const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GrabbedElement {
     #[serde(rename = "id")]
@@ -48,8 +37,6 @@ pub struct GrabbedContent {
     pub grabbed_elements: Vec<GrabbedElement>,
 }
 
-const DEFAULT_SLOT_SIZE: usize = 64 * 1024usize;
-//const DEFAULT_SLOT_SIZE: usize = 20usize;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ByteIdentifier;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -119,6 +106,34 @@ pub struct GrabMetadata {
     pub line_count: usize,
 }
 
+pub trait MetadataSource {
+    fn source_id(&self) -> String;
+
+    fn from_file(
+        &self,
+        shutdown_receiver: Option<cc::Receiver<()>>,
+    ) -> Result<ComputationResult<GrabMetadata>, GrabError>;
+
+    fn get_entries(
+        &self,
+        metadata: &GrabMetadata,
+        line_range: &LineRange,
+    ) -> Result<GrabbedContent, GrabError>;
+
+    fn count_lines(&self) -> Result<usize, GrabError>;
+
+    fn input_size(&self) -> Result<u64, GrabError> {
+        let input_file_size = std::fs::metadata(&self.path())
+            .map_err(|e| {
+                GrabError::Config(format!("Could not determine size of input file: {}", e))
+            })?
+            .len();
+        Ok(input_file_size)
+    }
+
+    fn path(&self) -> &Path;
+}
+
 impl std::fmt::Debug for Slot {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -149,35 +164,27 @@ impl LogItem for String {
 }
 
 #[derive(Debug)]
-pub struct Grabber {
-    pub source_id: String,
-    pub path: PathBuf,
+pub struct Grabber<T: MetadataSource> {
+    source: T,
     pub metadata: Option<GrabMetadata>,
     pub input_file_size: u64,
-    pub last_line_empty: bool,
 }
 
-impl Grabber {
+impl<T: MetadataSource> Grabber<T> {
     /// Create a new Grabber without creating the metadata
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn lazy(path: impl AsRef<Path>, source_id: &str) -> Result<Self, GrabError> {
-        let input_file_size = std::fs::metadata(&path)
-            .map_err(|e| {
-                GrabError::Config(format!("Could not determine size of input file: {}", e))
-            })?
-            .len();
+    pub fn lazy(source: T) -> Result<Self, GrabError> {
+        let input_file_size = source.input_size()?;
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
 
         Ok(Self {
-            source_id: source_id.to_owned(),
-            path: path.as_ref().to_owned(),
+            source,
             metadata: None,
             input_file_size,
-            last_line_empty: Grabber::last_line_empty(&path)?,
         })
     }
 
@@ -188,9 +195,7 @@ impl Grabber {
         shutdown_rx: Option<cc::Receiver<()>>,
     ) -> Result<(), GrabError> {
         if self.metadata.is_none() {
-            if let ComputationResult::Item(md) =
-                Grabber::create_metadata_for_file(&self.path, shutdown_rx)?
-            {
+            if let ComputationResult::Item(md) = self.source.from_file(shutdown_rx)? {
                 self.metadata = Some(md)
             }
         }
@@ -203,28 +208,21 @@ impl Grabber {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn new(path: &Path, source_id: &str) -> Result<Self, GrabError> {
-        let input_file_size = std::fs::metadata(&path)?.len();
+    pub fn new(source: T) -> Result<Self, GrabError> {
+        let input_file_size = source.input_size()?;
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
 
-        let computation_res = match path.extension() {
-            Some(ext) if ext == "dlt" => Grabber::create_metadata_for_dlt_file(&path)?,
-            _ => Grabber::create_metadata_for_file(&path, None)?,
-        };
-
-        let metadata = match computation_res {
+        let metadata = match source.from_file(None)? {
             ComputationResult::Item(md) => Ok(Some(md)),
             ComputationResult::Stopped => Err(GrabError::Interrupted),
         }?;
 
         Ok(Self {
-            source_id: source_id.to_owned(),
-            path: path.to_owned(),
+            source,
             metadata,
             input_file_size,
-            last_line_empty: Grabber::last_line_empty(&path)?,
         })
     }
 
@@ -242,174 +240,33 @@ impl Grabber {
         Ok(self)
     }
 
+    pub fn get_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
+        match &self.metadata {
+            None => Err(GrabError::NotInitialize),
+            Some(md) => {
+                if line_range.range.is_empty() {
+                    return Err(GrabError::InvalidRange(line_range.clone()));
+                }
+                self.source.get_entries(md, line_range)
+            }
+        }
+    }
+
     /// if the metadata was already created, we know the number of log entries in a file
     pub fn log_entry_count(&self) -> Option<usize> {
         self.metadata.as_ref().map(|md| md.line_count)
     }
 
-    fn last_line_empty(path: impl AsRef<Path>) -> Result<bool, GrabError> {
-        let mut f = fs::File::open(&path)
-            .map_err(|e| GrabError::Config(format!("Could not open file to grab: {}", e)))?;
-        f.seek(SeekFrom::End(-1))
-            .map_err(|e| GrabError::Config(format!("Could seek to end of file: {}", e)))?;
-        let mut buffer = vec![0; 1];
-        let len = f.read(&mut buffer)?;
-        if len == 0 {
-            unreachable!("There must be a last line");
-        }
-        Ok(is_newline(buffer[0]))
-    }
-
-    pub async fn create_metadata_async(
-        path: impl AsRef<Path>,
-    ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-        log::trace!("create_metadata_async");
-        let p = PathBuf::from(path.as_ref());
-        let res = tokio::task::spawn_blocking(move || {
-            Grabber::create_metadata_for_file(p, None).unwrap()
-        })
-        .await;
-        let g: ComputationResult<GrabMetadata> =
-            res.map_err(|e| GrabError::Config(format!("Error executing async grab: {}", e)))?;
-        Ok(g)
-    }
-
-    pub fn create_metadata_for_dlt_file(
-        input: &Path,
-    ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-        if !fs::metadata(&input)?.is_file() {
-            return Err(GrabError::Config(format!(
-                "File {} does not exist",
-                input.to_string_lossy()
-            )));
-        }
-        let mut slots = Vec::<Slot>::new();
-
-        let f = fs::File::open(&input)?;
-
-        let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
-            .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
-
-        let mut bytes_in_slot = 0u64;
-        let mut bytes_offset = 0u64;
-        let mut log_entry_count = 0u64;
-        let mut logs_in_slot = 0u64;
-        let mut msg_cnt: u64 = 0;
-        loop {
-            match reader.fill_buf() {
-                Ok(content) => {
-                    if content.is_empty() {
-                        break;
-                    }
-                    if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
-                        reader.consume(consumed as usize);
-                        msg_cnt += 1;
-                        logs_in_slot += 1;
-                        bytes_offset += consumed;
-                        bytes_in_slot += consumed;
-                        log_entry_count += 1;
-                        if bytes_in_slot >= DEFAULT_SLOT_SIZE as u64 {
-                            let slot = Slot {
-                                bytes: ByteRange::from(
-                                    (bytes_offset - bytes_in_slot)..=bytes_offset,
-                                ),
-                                lines: LineRange::from(
-                                    log_entry_count - logs_in_slot..=log_entry_count,
-                                ),
-                            };
-                            slots.push(slot);
-                            bytes_in_slot = 0;
-                            logs_in_slot = 0;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                Err(e) => {
-                    trace!("no more content");
-                    return Err(GrabError::Config(format!(
-                        "error for filling buffer with dlt messages: {:?}",
-                        e
-                    )));
-                }
-            }
-        }
-        Ok(ComputationResult::Item(GrabMetadata {
-            slots,
-            line_count: msg_cnt as usize,
-        }))
-    }
-
-    pub fn create_metadata_for_file(
-        path: impl AsRef<Path>,
-        shutdown_receiver: Option<cc::Receiver<()>>,
-    ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-        let f = fs::File::open(&path)?;
-        // let mut reader = std::io::BufReader::new(f);
-        let mut slots = Vec::<Slot>::new();
-        // let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
-        // let mut rest: Vec<u8> = vec![];
-        let mut byte_index = 0u64;
-        let mut line_index = 0u64;
-
-        let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
-            .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
-
-        loop {
-            if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
-                return Ok(ComputationResult::Stopped);
-            }
-            match reader.fill_buf() {
-                Ok(content) => {
-                    let read_bytes = content.len();
-                    if read_bytes == 0 {
-                        // everything was processed
-                        break;
-                    }
-
-                    // Get list of all inlets in chunk
-                    let (nl, offset_last_newline) = count_lines_up_to_last_newline(&content);
-                    // println!(
-                    //     "nl-count to last nl: {}, offset_last_newline: {}",
-                    //     nl, offset_last_newline
-                    // );
-                    let (slot, consumed, processed_lines) = if nl == 0 {
-                        let consumed = read_bytes as u64;
-                        // we hit a very long line that exceeds our read buffer, best
-                        // to package everything we read into an entry and start a new one
-                        let slot = Slot {
-                            bytes: ByteRange::from(byte_index..=(byte_index + consumed) - 1),
-                            lines: LineRange::from(line_index..=line_index),
-                        };
-                        (slot, consumed, 1)
-                    } else {
-                        let consumed = offset_last_newline as u64 + 1;
-                        let slot = Slot {
-                            bytes: ByteRange::from(byte_index..=(byte_index + consumed - 1)),
-                            lines: LineRange::from(line_index..=(line_index + nl) - 1),
-                        };
-                        (slot, consumed, nl)
-                    };
-                    reader.consume(consumed as usize);
-                    slots.push(slot);
-                    byte_index += consumed;
-                    line_index += processed_lines;
-                }
-                Err(e) => {
-                    trace!("no more content");
-                    return Err(GrabError::Config(format!(
-                        "error for filling buffer with more content: {:?}",
-                        e
-                    )));
-                }
-            }
-        }
-
-        Ok(ComputationResult::Item(GrabMetadata {
-            slots,
-            line_count: (line_index + 1) as usize,
-        }))
-    }
+    // pub async fn create_metadata_async(
+    //     path: &Path,
+    // ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
+    //     log::trace!("create_metadata_async");
+    //     let p = PathBuf::from(path);
+    //     let res = tokio::task::spawn_blocking(move || T::from_file(None).unwrap()).await;
+    //     let g: ComputationResult<GrabMetadata> =
+    //         res.map_err(|e| GrabError::Config(format!("Error executing async grab: {}", e)))?;
+    //     Ok(g)
+    // }
 
     pub fn export_slots(
         &self,
@@ -420,129 +277,6 @@ impl Grabber {
         let mut output = fs::File::create(&out_path)?;
         output.write_all(&encoded)?;
         Ok(())
-    }
-
-    /// Get all lines in a file within the supplied line-range
-    /// naive implementation that just reads all slots that are involved and drops
-    /// everything that is not needed
-    pub fn get_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
-        match &self.metadata {
-            None => Err(GrabError::NotInitialize),
-            Some(metadata) => {
-                if line_range.range.is_empty() {
-                    return Err(GrabError::InvalidRange(line_range.clone()));
-                }
-                use std::io::prelude::*;
-                let file_part = identify_byte_range(&metadata.slots, line_range)
-                    .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
-                // println!(
-                //     "relevant file-part (starts at index {}): lines {}",
-                //     file_part.offset_in_file,
-                //     file_part.total_lines - file_part.lines_to_skip - file_part.lines_to_drop
-                // );
-
-                let mut read_buf = vec![0; file_part.length];
-                let mut read_from = fs::File::open(&self.path)?;
-                read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
-
-                read_from.read_exact(&mut read_buf)?;
-                let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
-
-                let all_lines = s.split(|c| c == '\n');
-                let lines_minus_end =
-                    all_lines.take(file_part.total_lines - file_part.lines_to_drop);
-                let pure_lines = lines_minus_end.skip(file_part.lines_to_skip);
-                let grabbed_elements = pure_lines
-                    .map(|s| GrabbedElement {
-                        source_id: self.source_id.clone(),
-                        content: s.to_owned(),
-                    })
-                    .collect::<Vec<GrabbedElement>>();
-                Ok(GrabbedContent { grabbed_elements })
-            }
-        }
-    }
-
-    pub fn get_dlt_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
-        // println!("get_dlt_entries for range: {:?}", line_range);
-        match &self.metadata {
-            None => Err(GrabError::NotInitialize),
-            Some(metadata) => {
-                if line_range.range.is_empty() {
-                    return Err(GrabError::InvalidRange(line_range.clone()));
-                }
-                use std::io::prelude::*;
-
-                let file_part = identify_byte_range(&metadata.slots, line_range)
-                    .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
-                // println!("file-part: {:?}", file_part);
-
-                let mut read_buf = vec![0; file_part.length];
-                let mut read_from = fs::File::open(&self.path)?;
-
-                read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
-                read_from.read_exact(&mut read_buf)?;
-
-                let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-                let message_stream =
-                    FileMessageProducer::new(Cursor::new(read_buf), None, tx, true, None);
-
-                let mut messages: Vec<Message> = Vec::new();
-                for msg_result in message_stream {
-                    trace!("got message from stream: {:?}", msg_result);
-                    match msg_result {
-                        ParsedMessage::Item(msg) => {
-                            // progress_reporter.make_progress(consumed);
-                            messages.push(msg)
-                        }
-                        _ => warn!("Could not produce message"),
-                    }
-                }
-
-                let items_to_grab = line_range.size();
-                let pure_lines = messages
-                    .iter()
-                    .skip(file_part.lines_to_skip)
-                    .take(items_to_grab as usize);
-
-                let grabbed_elements = pure_lines
-                    .map(|s| {
-                        let fmt_msg = FormattableMessage {
-                            message: s.clone(), //FIXME avoid clone
-                            fibex_metadata: None,
-                        };
-                        GrabbedElement {
-                            source_id: self.source_id.clone(),
-                            content: format!("{}", fmt_msg),
-                        }
-                    })
-                    .collect::<Vec<GrabbedElement>>();
-                Ok(GrabbedContent { grabbed_elements })
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn count_lines(path: impl Into<PathBuf>) -> Result<usize, GrabError> {
-        let chunk_size = 100 * 1024usize;
-        let mut f = fs::File::open(path.into())?;
-        let mut count = 0usize;
-        let mut buffer = vec![0; chunk_size];
-
-        loop {
-            let n = f.read(&mut buffer)?;
-            if n < chunk_size {
-                buffer.resize(n, 0);
-            }
-            if n == 0 {
-                break;
-            }
-            count += bytecount::count(&buffer, b'\n');
-            if n < chunk_size {
-                break;
-            }
-        }
-        Ok(count)
     }
 }
 
@@ -659,12 +393,4 @@ pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Sl
 
 fn is_newline(item: u8) -> bool {
     item == b'\n'
-}
-
-fn count_lines_up_to_last_newline(buffer: &[u8]) -> (u64, usize) {
-    if let Some(offset) = buffer.iter().rposition(|&v| v == b'\n') {
-        (bytecount::count(&buffer, b'\n') as u64, offset)
-    } else {
-        (0, 0)
-    }
 }
