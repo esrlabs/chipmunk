@@ -4,6 +4,7 @@ import Subject from '../tools/tools.subject';
 export interface ISourceInfo {
     id: number;
     name: string | undefined;
+    meta?: string;
 }
 
 export interface IOnRowSelectedEvent {
