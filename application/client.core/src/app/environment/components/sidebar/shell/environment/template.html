@@ -2,19 +2,30 @@
     <table>
         <tr>
             <th>Variable</th>
-            <th>Path</th>
+            <th>Value</th>
         </tr>
-        <tr>
-            <td>
-                <span class="header-bottom-border"></span>
+        <tr *ngFor="let environment of information.env" (click)="_ng_onClick(environment)" [attr.class]="_ng_selected === environment ? 'selected' : ''">
+            <td (dblclick)="_ng_onDoubleClick(environment, _ng_variable)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_variable)">
+                <span *ngIf="!environment.editing.variable" class="env">{{environment.variable}}</span>
+                <input *ngIf="environment.editing.variable"
+                       matInput
+                       class="edit"
+                       (keyup)="_ng_onKeyUp($event)"
+                       [(ngModel)]="environment.variable"/>
             </td>
-            <td>
-                <span class="header-bottom-border"></span>
+            <td (dblclick)="_ng_onDoubleClick(environment, _ng_value)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_value)">
+                <span *ngIf="!environment.editing.value" class="env">{{environment.value}}</span>
+                <input *ngIf="environment.editing.value"
+                       matInput
+                       class="edit"
+                       (keyup)="_ng_onKeyUp($event)"
+                       [(ngModel)]="environment.value"/>
             </td>
         </tr>
-        <tr *ngIf="_ng_creating">
+        <tr [ngStyle]="{ 'visibility': (_ng_adding ? 'visible' : 'hidden') }">
             <td>
-                <input matInput
+                <input #variableAdd
+                       matInput
                        class="edit"
                        (keyup)="_ng_onKeyUp($event)"
                        [(ngModel)]="_ng_newVariable"/>
@@ -26,28 +37,10 @@
                        [(ngModel)]="_ng_newPath"/>                
             </td>
         </tr>
-        <tr *ngFor="let environment of information.env" (click)="_ng_onClick(environment)" [attr.class]="_ng_selected === environment ? 'selected' : ''">
-            <td (dblclick)="_ng_onDoubleClick(environment, _ng_variable)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_variable)">
-                <span *ngIf="!environment.editing.variable" class="env">{{environment.variable}}</span>
-                <input *ngIf="environment.editing.variable"
-                       matInput
-                       class="edit"
-                       (keyup)="_ng_onKeyUp($event)"
-                       [(ngModel)]="environment.variable"/>
-            </td>
-            <td (dblclick)="_ng_onDoubleClick(environment, _ng_path)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_path)">
-                <span *ngIf="!environment.editing.path" class="env">{{environment.path}}</span>
-                <input *ngIf="environment.editing.path"
-                       matInput
-                       class="edit"
-                       (keyup)="_ng_onKeyUp($event)"
-                       [(ngModel)]="environment.path"/>
-            </td>
-        </tr>
     </table>
 </div>
 <div>
     <button mat-stroked-button color="primary" [disabled]="!_ng_canSave" (click)="_ng_saveChanges()">Save Changes</button>
-    <button mat-stroked-button color="primary" [disabled]="_ng_creating" (click)="_ng_create()">Create</button>
+    <button mat-stroked-button color="primary" [disabled]="_ng_adding" (click)="_ng_add()">Add</button>
     <button mat-stroked-button color="primary" [disabled]="!(this._ng_selected !== undefined && this._ng_selected.custom)" (click)="_ng_remove()">Remove</button>
 </div>

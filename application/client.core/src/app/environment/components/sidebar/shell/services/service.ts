@@ -166,7 +166,7 @@ export class ShellService {
                 if (response.error !== undefined) {
                     return reject(`Failed to set pwd due to the error: ${response.error}`);
                 }
-                resolve(response.path);
+                resolve(response.value);
             }).catch((error: Error) => {
                 reject(`Failed to set pwd due to the error: ${error.message}`);
             });

@@ -19,12 +19,12 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IEditing {
     variable: boolean;
-    path: boolean;
+    value: boolean;
 }
 
 export interface IEnvironment {
     variable: string;
-    path: string;
+    value: string;
     custom: boolean;
     editing: IEditing;
     selected: boolean;
@@ -187,7 +187,7 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
                     setEnvironment: (information: INewInformation) => {
                         const environment: { [variable: string]: string } = {};
                         information.env.forEach((env: IEnvironment) => {
-                            environment[env.variable] = env.path;
+                            environment[env.variable] = env.value;
                         });
                         this.service.setEnv({
                             session: this._sessionID,
@@ -204,9 +204,9 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
     }
 
     public _ng_onSetPwd() {
-        this.service.setPwd({ session: this._sessionID }).then((path: string) => {
-            if (path.trim() !== '') {
-                this._ng_information.pwd = path;
+        this.service.setPwd({ session: this._sessionID }).then((value: string) => {
+            if (value.trim() !== '') {
+                this._ng_information.pwd = value;
             }
         }).catch((error: string) => {
             this._logger.error(error);
@@ -314,11 +314,11 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
             this._ng_information.env = [];
             Object.keys(information.env).forEach((variable: string) => {
                 this._ng_information.env.push({
-                    path: information.env[variable],
+                    value: information.env[variable],
                     variable: variable,
                     custom: false,
                     editing: {
-                        path: false,
+                        value: false,
                         variable: false,
                     },
                     selected: false,

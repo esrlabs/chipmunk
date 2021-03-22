@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { IEnvironment, INewInformation } from '../input/component';
 
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
@@ -14,10 +14,12 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
     @Input() public information: INewInformation;
     @Input() public setEnvironment: (information: INewInformation) => void;
 
+    @ViewChild('variableAdd') _ng_variableAdd: ElementRef<HTMLInputElement>;
+
     public readonly _ng_variable: string = 'variable';
-    public readonly _ng_path: string = 'path';
+    public readonly _ng_value: string = 'value';
     public _ng_selected: IEnvironment;
-    public _ng_creating: boolean = false;
+    public _ng_adding: boolean = false;
     public _ng_canSave = false;
     public _ng_height: number = 200;
     public _ng_newVariable: string = '';
@@ -36,12 +38,12 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
     public ngOnDestroy() {
         if (this._ng_selected !== undefined) {
             this._ng_selected.editing = {
-                path: false,
+                value: false,
                 variable: false
             };
             this._ng_selected = undefined;
         }
-        this._ng_creating = false;
+        this._ng_adding = false;
         this.setEnvironment(this.information);
     }
 
@@ -51,9 +53,9 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
                 caption: 'Edit',
                 handler: () => {
                     this._changeFocus(env);
-                    if (type === this._ng_path) {
-                        env.editing.path = true;
-                        this._prevPath = env.path;
+                    if (type === this._ng_value) {
+                        env.editing.value = true;
+                        this._prevPath = env.value;
                     } else {
                         env.editing.variable = true;
                         this._prevVariable = env.variable;
@@ -65,7 +67,7 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
                 handler: () => {
                     this._changeFocus();
                     this.information.env = this.information.env.filter((ngEnv: IEnvironment) => {
-                        return ngEnv.variable !== env.variable && ngEnv.path !== env.path;
+                        return ngEnv.variable !== env.variable && ngEnv.value !== env.value;
                     });
                 },
                 disabled: env.custom ? false : true,
@@ -84,9 +86,9 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
             return;
         }
         this._finishCreating(true);
-        if (this._ng_selected !== undefined && (this._ng_selected.editing.path || this._ng_selected.editing.variable)) {
+        if (this._ng_selected !== undefined && (this._ng_selected.editing.value || this._ng_selected.editing.variable)) {
             this._ng_selected.editing = {
-                path: false,
+                value: false,
                 variable: false
             };
         }
@@ -106,24 +108,27 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
 
     public _ng_onDoubleClick(env: IEnvironment, type: string) {
         this._changeFocus(env);
-        if (type === this._ng_path) {
-            env.editing.path = true;
-            this._prevPath = env.path;
+        if (type === this._ng_value) {
+            env.editing.value = true;
+            this._prevPath = env.value;
         } else {
             env.editing.variable = true;
             this._prevVariable = env.variable;
         }
     }
 
-    public _ng_create() {
+    public _ng_add() {
         this._ng_selected = undefined;
-        this._ng_creating = true;
+        this._ng_adding = true;
+        if (this._ng_variableAdd !== undefined) {
+            this._ng_variableAdd.nativeElement.scrollIntoView();
+        }
     }
 
     public _ng_saveChanges() {
         this._ng_canSave = false;
         if (this._editing !== undefined) {
-            this._editing.editing.path = false;
+            this._editing.editing.value = false;
             this._editing.editing.variable = false;
         }
         this._finishCreating(true);
@@ -132,7 +137,7 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
     public _ng_remove() {
         if (this._ng_selected !== undefined) {
             this.information.env = this.information.env.filter((env: IEnvironment) => {
-                return (env.path !== this._ng_selected.path && env.variable !== this._ng_selected.variable);
+                return (env.value !== this._ng_selected.value && env.variable !== this._ng_selected.variable);
             });
         }
     }
@@ -140,7 +145,7 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
     private _changeFocus(newEditEnv?: IEnvironment) {
         if (this._editing !== undefined) {
             this._dropEditChanges();
-            this._editing.editing.path = false;
+            this._editing.editing.value = false;
             this._editing.editing.variable = false;
         }
         this._finishCreating(false);
@@ -148,39 +153,39 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
     }
 
     private _dropEditChanges() {
-        if (this._editing.editing.path) {
-            this._editing.path = this._prevPath;
+        if (this._editing.editing.value) {
+            this._editing.value = this._prevPath;
         } else if (this._editing.editing.variable) {
             this._editing.variable = this._prevVariable;
         }
     }
 
     private _isEdited(): boolean {
-        if (this._editing !== undefined && this._editing.editing && (this._editing.path.trim() === '' || this._editing.variable.trim() === '')) {
+        if (this._editing !== undefined && this._editing.editing && (this._editing.value.trim() === '' || this._editing.variable.trim() === '')) {
             return false;
-        } else if (this._ng_creating && (this._ng_newPath.trim() === '' || this._ng_newVariable.trim() === '')) {
+        } else if (this._ng_adding && (this._ng_newPath.trim() === '' || this._ng_newVariable.trim() === '')) {
             return false;
         }
         return true;
     }
 
     private _finishCreating(save: boolean) {
-        if (!this._ng_creating) {
+        if (!this._ng_adding) {
             return;
         }
         if (save) {
             this.information.env.unshift({
                 custom: true,
                 editing: {
-                    path: false,
+                    value: false,
                     variable: false,
                 },
-                path: this._ng_newPath,
+                value: this._ng_newPath,
                 variable: this._ng_newVariable,
                 selected: false,
             });
         }
-        this._ng_creating = false;
+        this._ng_adding = false;
         this._ng_newPath = '';
         this._ng_newVariable = '';
     }
