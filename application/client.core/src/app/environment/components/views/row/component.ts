@@ -217,6 +217,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 source: {
                     id: this.pluginId,
                     name: this._ng_sourceName,
+                    meta: this._sourceMeta,
                 },
                 str: this.str,
                 row: this._getPosition(),
