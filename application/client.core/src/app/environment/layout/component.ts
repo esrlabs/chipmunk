@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewContainerRef } from '@angular/core';
 import { AreaState } from './state';
 import { Subscription} from 'rxjs';
 import { Session } from '../controller/session/session';
@@ -22,6 +22,10 @@ enum EFuncLocation {
     left = 'func-left'
 }
 
+const FUNC_MIN_WIDTH = 50;
+const SEC_MIN_WIDTH = 50;
+const MAX_SIZE_RATE = 0.7;
+
 @Component({
     selector: 'app-layout',
     templateUrl: './template.html',
@@ -35,22 +39,30 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     public funcLocation: EFuncLocation = EFuncLocation.right;
     public _ng_sizes: {
         sec: {
-            current: number,
-            last: number
-        },
+            current: number;
+            last: number;
+        };
         func: {
-            current: number,
-            last: number
-        }
+            current: number;
+            last: number;
+        };
+        holder: {
+            width: number;
+            height: number;
+        };
     } = {
         sec: {
             current: ThemeParams.tabs_list_height,
-            last: ThemeParams.tabs_list_height * 13
+            last: ThemeParams.tabs_list_height * 13,
         },
         func: {
             current: ThemeParams.tabs_list_height,
-            last: ThemeParams.tabs_list_height * 13
+            last: ThemeParams.tabs_list_height * 13,
         },
+        holder: {
+            height: 0,
+            width: 0,
+        }
     };
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -62,7 +74,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         type: EResizeType,
     } = { x: 0, y: 0, type: EResizeType.nothing };
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef,
+                private _vcRef: ViewContainerRef) {
         this._subscribeToWinEvents();
         this._subscriptions.minimizedFunc = this.funcBarState.getObservable().minimized.subscribe(this._onFuncMinimized.bind(this));
         this._subscriptions.updatedFunc = this.funcBarState.getObservable().updated.subscribe(this._onFuncStateUpdated.bind(this));
@@ -136,9 +149,21 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         this._movement.x = event.x;
         this._movement.y = event.y;
         this._movement.type = EResizeType.func;
+        this._ng_sizes.func.last = this._ng_sizes.func.current;
+        this._getHolderSize();
     }
 
     private _onMouseMove(event: MouseEvent) {
+        const drop = () => {
+            this._movement.x = -1;
+            this._movement.y = -1;
+            this._movement.type = EResizeType.nothing;
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            this._cdRef.detectChanges();
+            ViewsEventsService.fire().onResize();
+        };
         if (this._movement.type === EResizeType.nothing) {
             return;
         }
@@ -151,9 +176,23 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
                 } else {
                     this._ng_sizes.func.current += dX;
                 }
+                if (this._ng_sizes.func.current < FUNC_MIN_WIDTH) {
+                    this._ng_sizes.func.current = this._ng_sizes.func.last;
+                    this.funcBarState.minimize();
+                    drop();
+                } else if (this._ng_sizes.func.current > this._ng_sizes.holder.width * MAX_SIZE_RATE) {
+                    this._ng_sizes.func.current = this._ng_sizes.holder.width * MAX_SIZE_RATE;
+                }
                 break;
             case EResizeType.sec:
                 this._ng_sizes.sec.current -= dY;
+                if (this._ng_sizes.sec.current < SEC_MIN_WIDTH) {
+                    this._ng_sizes.sec.current = this._ng_sizes.sec.last;
+                    this.secAreaState.minimize();
+                    drop();
+                } else if (this._ng_sizes.sec.current > this._ng_sizes.holder.height * MAX_SIZE_RATE) {
+                    this._ng_sizes.sec.current = this._ng_sizes.holder.height * MAX_SIZE_RATE;
+                }
                 break;
         }
         this._movement.x = event.x;
@@ -166,10 +205,15 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         if (this._movement.type === EResizeType.nothing) {
             return;
         }
+        if (!this.funcBarState.minimized && this._movement.type === EResizeType.func) {
+            this._ng_sizes.func.last = this._ng_sizes.func.current;
+        }
+        if (!this.secAreaState.minimized && this._movement.type === EResizeType.sec) {
+            this._ng_sizes.sec.last = this._ng_sizes.sec.current;
+        }
         this._movement.x = -1;
         this._movement.y = -1;
         this._movement.type = EResizeType.nothing;
-        this._ng_sizes.sec.last = this._ng_sizes.sec.current;
         this._saveHeight();
         this._cdRef.detectChanges();
         ViewsEventsService.fire().onResize();
@@ -218,6 +262,12 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
        };
     }
 
+    private _getHolderSize() {
+        const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        this._ng_sizes.holder.height = size.height;
+        this._ng_sizes.holder.width = size.width;
+    }
+
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Functions secondary area
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -245,6 +295,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         this._movement.x = event.x;
         this._movement.y = event.y;
         this._movement.type = EResizeType.sec;
+        this._ng_sizes.sec.last = this._ng_sizes.sec.current;
+        this._getHolderSize();
         this._cdRef.detectChanges();
         ViewsEventsService.fire().onResize();
     }
