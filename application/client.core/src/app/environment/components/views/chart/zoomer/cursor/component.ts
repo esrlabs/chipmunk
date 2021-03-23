@@ -1,10 +1,12 @@
-import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, EventEmitter, Input } from '@angular/core';
+import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, EventEmitter, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { IPositionChange, IPositionForce } from '../../service.position';
-import * as Toolkit from 'chipmunk.client.toolkit';
-import ViewsEventsService from '../../../../../services/standalone/service.views.events';
 import { ServiceData } from '../../service.data';
 import { ServicePosition } from '../../service.position';
+
+import ViewsEventsService from '../../../../../services/standalone/service.views.events';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
 
 enum EChangeKind {
     move = 'move',
@@ -23,7 +25,7 @@ const CSettings = {
     styleUrls: ['./styles.less']
 })
 
-export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, AfterViewInit, OnDestroy {
+export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDestroy {
 
     @Input() serviceData: ServiceData;
     @Input() servicePosition: ServicePosition;
@@ -122,15 +124,6 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         this._forceUpdate();
     }
 
-    public ngAfterContentInit() {
-        const position: IPositionChange | undefined = this.servicePosition.get();
-        if (position === undefined) {
-            return;
-        }
-        this._ng_left = position.l;
-        this._ng_width = position.w;
-    }
-
     public ngAfterViewInit() {
         // Cursor events
         this._subscriptions.onSwitch = this.servicePosition.getObservable().onSwitch.subscribe(this._onPositionRestored.bind(this));
@@ -142,6 +135,8 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResizeIsRequired.bind(this));
         // Listen offset changes
         this._subscriptions.onOffsetUpdated = this.onOffsetUpdated.subscribe(this._onResizeIsRequired.bind(this));
+        // Restore state
+        this._restore();
         // Update width
         this._resize();
     }
@@ -286,13 +281,11 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         // only 1 px offset can make more than 100 rows offset in range. It will change scale.
         this._ng_width = Math.round(this._ng_width);
         this._ng_left = Math.round(this._ng_left);
-        const _left: number = this._ng_left - this.getLeftOffset();
+        // const _left: number = this._ng_left - this.getLeftOffset();
         this.servicePosition.set({
-            left: _left < 0 ? 0 : _left,
+            left: this._ng_left,
             width: this._ng_width,
             full: this._width,
-            w: this._ng_width,
-            l: this._ng_left,
         });
     }
 
@@ -300,13 +293,8 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         this._resize();
     }
 
-    private _onPositionRestored(position: IPositionChange) {
-        if (position.l === undefined || position.w === undefined) {
-            return;
-        }
-        this._ng_left = position.l;
-        this._ng_width = position.w;
-        this._forceUpdate();
+    private _onPositionRestored() {
+        this._restore();
     }
 
     private _onPositionForced(change: IPositionForce) {
@@ -343,6 +331,21 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterContentInit, A
         this._ng_width = width;
         this._ng_left = left;
         this._emitChanges();
+        this._forceUpdate();
+    }
+
+    private _restore() {
+        if (this._vcRef === undefined) {
+            return;
+        }
+        const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        this.servicePosition.correction(size.width);
+        const position: IPositionChange | undefined = this.servicePosition.get();
+        if (position === undefined) {
+            return;
+        }
+        this._ng_left = position.left;
+        this._ng_width = position.width;
         this._forceUpdate();
     }
 

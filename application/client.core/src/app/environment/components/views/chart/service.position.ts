@@ -8,8 +8,6 @@ export interface IPositionChange {
     left: number;
     width: number;
     full: number;
-    w?: number;
-    l?: number;
 }
 
 export interface IPositionForce {
@@ -70,6 +68,18 @@ export class ServicePosition {
             onSwitch: this._subjects.onSwitch.asObservable(),
             onForce: this._subjects.onForce.asObservable(),
         };
+    }
+
+    public correction(width: number) {
+        if (this._position === undefined) {
+            return;
+        }
+        if (this._position.full === width) {
+            return;
+        }
+        const change: number = width / this._position.full;
+        this._position.width = this._position.width * change;
+        this._position.left = this._position.left * change;
     }
 
     private _init(controller?: Session) {
