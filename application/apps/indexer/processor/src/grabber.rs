@@ -106,22 +106,35 @@ pub struct GrabMetadata {
     pub line_count: usize,
 }
 
+/// A trait that defines how indexed content can be retrieved from a certain file type.
+///
+/// When any content should be displayed in chipmunk, it needs to be visualized
+/// as a sequence of lines of text that represent the content. This trait needs to be
+/// implemented for each file type that we support. It defines everything that is needed to
+/// calculate cached metadata that will subsequently be used for extracting parts of the
+/// file in question
 pub trait MetadataSource {
     fn source_id(&self) -> String;
 
+    /// This will initialize the cached metadata from a file
     fn from_file(
         &self,
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError>;
 
+    /// Calling this function is only possible when the metadata already has been
+    /// created.
+    /// It will deliever the content of the file that is requested by line_range.
     fn get_entries(
         &self,
         metadata: &GrabMetadata,
         line_range: &LineRange,
     ) -> Result<GrabbedContent, GrabError>;
 
+    /// will return the number of log entries in a file.
     fn count_lines(&self) -> Result<usize, GrabError>;
 
+    /// the size of the input content
     fn input_size(&self) -> Result<u64, GrabError> {
         let input_file_size = std::fs::metadata(&self.path())
             .map_err(|e| {
@@ -131,6 +144,7 @@ pub trait MetadataSource {
         Ok(input_file_size)
     }
 
+    /// the path of the file that is the source for the content
     fn path(&self) -> &Path;
 }
 
