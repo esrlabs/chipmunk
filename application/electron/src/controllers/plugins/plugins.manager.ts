@@ -245,7 +245,7 @@ export default class ControllerPluginsManager {
                     this._logger.env(`Plugin "${task.name}" is installed. Will include plugin into storage.`);
                     this._storage.include(plugin);
                 }).catch((installErr: Error) => {
-                    this._logger.warn(`Fail to isntall plugin "${task.name}" due error: ${installErr.message}`);
+                    this._logger.warn(`Fail to install plugin "${task.name}" due error: ${installErr.message}`);
                 });
             })).catch((error: Error) => {
                 reject(error);
@@ -648,7 +648,6 @@ export default class ControllerPluginsManager {
                         }));
                     }
                 });
-
             }).catch((impErr: Error) => {
                 response(new IPCMessages.PluginAddResponse({
                     error: this._logger.error(`Error while importing plugin: ${impErr.message}`),
