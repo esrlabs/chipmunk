@@ -67,10 +67,7 @@ impl MetadataSource for TextFileSource {
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         let f = fs::File::open(&self.path)?;
-        // let mut reader = std::io::BufReader::new(f);
         let mut slots = Vec::<Slot>::new();
-        // let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
-        // let mut rest: Vec<u8> = vec![];
         let mut byte_index = 0u64;
         let mut line_index = 0u64;
 
@@ -91,10 +88,6 @@ impl MetadataSource for TextFileSource {
 
                     // Get list of all inlets in chunk
                     let (nl, offset_last_newline) = count_lines_up_to_last_newline(&content);
-                    // println!(
-                    //     "nl-count to last nl: {}, offset_last_newline: {}",
-                    //     nl, offset_last_newline
-                    // );
                     let (slot, consumed, processed_lines) = if nl == 0 {
                         let consumed = read_bytes as u64;
                         // we hit a very long line that exceeds our read buffer, best

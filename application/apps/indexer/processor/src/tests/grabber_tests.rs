@@ -8,12 +8,12 @@ mod tests {
     use crate::grabber::FilePart;
     use crate::grabber::GrabMetadata;
     use crate::grabber::MetadataSource;
-    use crate::grabber::TextFileSource;
     use crate::grabber::{ByteRange, Grabber, LineRange, Slot};
+    use crate::text_source::TextFileSource;
     use anyhow::Result;
     use pretty_assertions::assert_eq;
     use proptest::prelude::*;
-    use std::{ops::RangeInclusive, time::Instant};
+    use std::ops::RangeInclusive;
 
     fn write_content_to_tmp_file(content: &[String]) -> Result<tempfile::TempPath> {
         use std::io::BufWriter;
