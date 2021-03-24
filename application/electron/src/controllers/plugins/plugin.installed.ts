@@ -480,19 +480,28 @@ export default class ControllerPluginInstalled {
     private _unpack(tgzfile: string, removetgz: boolean = true, cwd?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const _cwd = cwd === undefined ? ServicePaths.getPlugins() : cwd;
+            this._logger.debug(`Unpacking ${tgzfile} from ${_cwd}`);
             tar.x({
                 file: tgzfile,
                 cwd: cwd === undefined ? ServicePaths.getPlugins() : cwd,
             }).then(() => {
-                if (!removetgz) {
-                    return resolve(_cwd);
-                }
-                FS.unlink(tgzfile).catch((removeErr: Error) => {
-                    this._logger.warn(`Fail to remove ${tgzfile} due error: ${removeErr.message}`);
-                }).finally(() => {
+                this._logger.debug(`Unpacking of ${tgzfile} is done.`);
+                const included: boolean = ServicePaths.getIncludedPlugins().indexOf(path.dirname(tgzfile)) === 0;
+                if (!removetgz || included) {
+                    if (included) {
+                        this._logger.debug(`Source of plugin ${tgzfile} wouldn't be removed as soon as it's included plugin.`);
+                    }
                     resolve(_cwd);
-                });
-            }).catch(reject);
+                } else {
+                    FS.unlink(tgzfile).catch((removeErr: Error) => {
+                        this._logger.warn(`Fail to remove ${tgzfile} due error: ${removeErr.message}`);
+                    }).finally(() => {
+                        resolve(_cwd);
+                    });
+                }
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.error(`Fail unpack ${tgzfile} from ${_cwd} due error: ${err.message}`)));
+            });
         });
     }
 

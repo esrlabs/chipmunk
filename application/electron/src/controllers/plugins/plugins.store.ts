@@ -178,7 +178,7 @@ export default class ControllerPluginStore {
                     return reject(new Error(`Plugin "${plugin.name}" (${target}) is already downloading.`));
                 }
                 this._downloads.set(target, true);
-                this._logger.env(`Plugin "${plugin.name}" isn't found and will be downloaded: ${error.message}`);
+                this._logger.debug(`Plugin "${plugin.name}" isn't found and will be downloaded: ${error.message}`);
                 const temp: string = path.resolve(ServicePaths.getDownloads(), Tools.guid());
                 FS.unlink(target).then(() => {
                     download(url, temp).then(() => {
@@ -186,7 +186,7 @@ export default class ControllerPluginStore {
                             if (statErr) {
                                 return reject(new Error(this._logger.warn(`Fail download file "${temp}" due error: ${statErr.message}`)));
                             }
-                            this._logger.env(`Plugin "${name}" is downloaded:\n\t- file: ${temp} (${target}) \n\t- size: ${stat.size} bytes`);
+                            this._logger.debug(`Plugin "${name}" is downloaded:\n\t- file: ${temp} (${target}) \n\t- size: ${stat.size} bytes`);
                             fs.rename(temp, target, (renameErr: NodeJS.ErrnoException | null) => {
                                 if (renameErr) {
                                     return reject(new Error(this._logger.warn(`Fail rename file "${temp}" to "${target}" due error: ${renameErr.message}`)));
@@ -243,11 +243,11 @@ export default class ControllerPluginStore {
             this._findIn(filename, 'includes').then((file: string) => {
                 resolve(file);
             }).catch((inclErr: Error) => {
-                this._logger.env(`Fail to find a plugin "${filename}" in included due error: ${inclErr.message}`);
+                this._logger.debug(`Fail to find a plugin "${filename}" in included due error: ${inclErr.message}`);
                 this._findIn(filename, 'downloads').then((file: string) => {
                     resolve(file);
                 }).catch((downloadsErr: Error) => {
-                    this._logger.env(`Fail to find a plugin "${filename}" in downloads due error: ${downloadsErr.message}`);
+                    this._logger.debug(`Fail to find a plugin "${filename}" in downloads due error: ${downloadsErr.message}`);
                     reject(new Error(`Plugin "${filename}" isn't found.`));
                 });
             });
@@ -333,10 +333,10 @@ export default class ControllerPluginStore {
                                 plugins.set(valid.name, valid);
                             }
                         });
-                        ServiceElectronService.logStateToRender(`Information of last versions of plugins has been gotten`);
+                        ServiceElectronService.logStateToRender(this._logger.debug(`Information of last versions of plugins has been gotten`));
                         resolve(plugins);
                     } catch (e) {
-                        return reject(new Error(this._logger.warn(`Fail parse asset to JSON due error: ${e.message}`)));
+                        return reject(new Error(this._logger.warn(`Fail parse asset (from local store) to JSON due error: ${e.message}`)));
                     }
                 }).catch((readErr: Error) => {
                     reject(readErr);
