@@ -100,7 +100,6 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
-
         });
         this._unsubscribeToWinEvents();
     }
@@ -134,6 +133,10 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
             this._ng_sizes.func.last = this._ng_sizes.func.current;
             this._ng_sizes.func.current = ThemeParams.tabs_list_height;
         } else {
+            this._getHolderSize();
+            if (this._ng_sizes.func.last > this._ng_sizes.holder.width * MAX_SIZE_RATE) {
+                this._ng_sizes.func.last = this._ng_sizes.holder.width * MAX_SIZE_RATE;
+            }
             this._ng_sizes.func.current = this._ng_sizes.func.last;
         }
     }
@@ -277,6 +280,10 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
             this._ng_sizes.sec.last = this._ng_sizes.sec.current;
             this._ng_sizes.sec.current = ThemeParams.tabs_list_height;
         } else {
+            this._getHolderSize();
+            if (this._ng_sizes.sec.last > this._ng_sizes.holder.height * MAX_SIZE_RATE) {
+                this._ng_sizes.sec.last = this._ng_sizes.holder.height * MAX_SIZE_RATE;
+            }
             this._ng_sizes.sec.current = this._ng_sizes.sec.last;
         }
         this._cdRef.detectChanges();
