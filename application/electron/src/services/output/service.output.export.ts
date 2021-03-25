@@ -6,12 +6,10 @@ import Logger from '../../tools/env.logger';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 
-type TActionHandler = (request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest) => Promise<void>;
-
 export interface IExportAction {
     id: string;
     caption: string;
-    handler: TActionHandler;
+    handler: (request: IPCMessages.OutputExportFeatureCallRequest) => Promise<void>;
     isEnabled: (request: IPCMessages.OutputExportFeaturesRequest) => boolean;
 }
 

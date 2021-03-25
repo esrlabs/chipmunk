@@ -1,6 +1,4 @@
 
-import { IOutputSelectionRange } from './output.export.features.request';
-
 export interface IOutputExportFeatureSelectionRequest {
     session: string;
     actionId: string;

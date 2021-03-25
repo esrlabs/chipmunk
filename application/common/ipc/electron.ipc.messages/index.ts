@@ -415,14 +415,14 @@ export { IChartRequestResults, IChartMatch, ChartRequestResults, TChartResults }
 import { IChartResultsUpdated, ChartResultsUpdated } from './chart.results.updated';
 export { IChartResultsUpdated, ChartResultsUpdated };
 
-import { IOutputExportFeaturesRequest, OutputExportFeaturesRequest, IOutputSelectionRange } from './output.export.features.request';
-export { IOutputExportFeaturesRequest, OutputExportFeaturesRequest, IOutputSelectionRange };
+import { IOutputExportFeaturesRequest, OutputExportFeaturesRequest } from './output.export.features.request';
+export { IOutputExportFeaturesRequest, OutputExportFeaturesRequest };
 
 import { OutputExportFeaturesResponse, IOutputExportFeaturesResponse, IExportAction } from './output.export.features.response';
 export { OutputExportFeaturesResponse, IOutputExportFeaturesResponse, IExportAction };
 
-import { IOutputExportFeatureCallRequest, OutputExportFeatureCallRequest } from './output.export.feature.call.request';
-export { IOutputExportFeatureCallRequest, OutputExportFeatureCallRequest };
+import { IOutputExportFeatureCallRequest, OutputExportFeatureCallRequest, IOutputSelectionRange } from './output.export.feature.call.request';
+export { IOutputExportFeatureCallRequest, OutputExportFeatureCallRequest, IOutputSelectionRange };
 
 import { IOutputExportFeatureCallResponse, OutputExportFeatureCallResponse } from './output.export.feature.call.response';
 export { IOutputExportFeatureCallResponse, OutputExportFeatureCallResponse };

@@ -1,5 +1,5 @@
 
-import { IOutputSelectionRange } from './output.export.features.request';
+import { IOutputSelectionRange } from './output.export.feature.call.request';
 
 export interface IOutputExportFeatureSelectionResponse {
     session: string;
