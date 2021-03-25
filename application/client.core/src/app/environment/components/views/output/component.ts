@@ -311,8 +311,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                                     selRanges.forEach((range) => {
                                         this.session.getTimestamp().addRange(
                                             {
-                                                from: { position: range.start, str: range.content.start },
-                                                to: { position: range.end, str: range.content.end },
+                                                from: { position: range.start.output, str: range.content.start },
+                                                to: { position: range.end.output, str: range.content.end },
                                                 options: {},
                                             },
                                         );

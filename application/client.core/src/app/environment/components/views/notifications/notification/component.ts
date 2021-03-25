@@ -79,7 +79,7 @@ export class SidebarAppNotificationComponent implements OnDestroy, AfterContentI
         if (typeof this.data.notification.row !== 'number' || isNaN(this.data.notification.row) || !isFinite(this.data.notification.row)) {
             return;
         }
-        OutputRedirectionsService.select(EParent.notification, this.session, this.data.notification.row);
+        OutputRedirectionsService.select(EParent.notification, this.session, { output: this.data.notification.row });
     }
 
 }

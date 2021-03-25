@@ -78,8 +78,6 @@ export class Session {
     };
     private _viewportEventsHub: Toolkit.ControllerViewportEvents;
     private _tabAPI: ITabAPI | undefined;
-    private _sourceInfo: IPCMessages.IStreamSourceNew | undefined;
-    private _openSourceOptions: any;
     private _sessionsEventsHub: Toolkit.ControllerSessionsEvents;
     private _titleContextMenu: ControllerSessionTabTitleContextMenu | undefined;
     private _subscriptions: { [key: string]: Subscription | IPCSubscription } = {};
@@ -343,11 +341,6 @@ export class Session {
 
     public getTabTitleContextMenuService(): ControllerSessionTabTitleContextMenu | undefined {
         return this._titleContextMenu;
-    }
-
-    public setSourceInfo(source: IPCMessages.IStreamSourceNew, options: any) {
-        this._sourceInfo = source;
-        this._openSourceOptions = options;
     }
 
     public addOutputInjection(injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) {

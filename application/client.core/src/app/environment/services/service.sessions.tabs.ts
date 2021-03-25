@@ -81,7 +81,8 @@ export class TabsSessionsService implements IService {
             this._subscriptions.onPrevTab = HotkeysService.getObservable().prevTab.subscribe(this._onPrevTab.bind(this));
             this._subscriptions.onCtrlC = HotkeysService.getObservable().ctrlC.subscribe(this._onCtrlC.bind(this));
             this._subscriptions.RenderSessionAddRequest = ServiceElectronIpc.subscribe(IPCMessages.RenderSessionAddRequest, this._ipc_RenderSessionAddRequest.bind(this));
-            OutputRedirectionsService.init(this._currentSessionGuid);
+            const current = this._sessions.get(this._currentSessionGuid);
+            OutputRedirectionsService.init(current instanceof Session ? current : undefined);
             resolve();
         });
     }

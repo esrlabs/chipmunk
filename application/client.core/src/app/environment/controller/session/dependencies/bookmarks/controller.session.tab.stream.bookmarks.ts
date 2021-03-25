@@ -144,8 +144,8 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
             }).filter(p => p !== undefined);
             this._session().getSessionStream().getRowsSelection(positions.map((pos: number, i: number) => {
                 return {
-                    start: pos,
-                    end: pos,
+                    start: { output: pos },
+                    end: { output: pos },
                     id: `${i}`,
                 };
             })).then((rows: IRow[]) => {

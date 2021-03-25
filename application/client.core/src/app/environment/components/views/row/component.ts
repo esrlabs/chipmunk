@@ -2,10 +2,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit, HostListener, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabStreamOutput } from '../../../controller/session/dependencies/output/controller.session.tab.stream.output';
-import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../controller/session/dependencies/bookmarks/controller.session.tab.stream.bookmarks';
+import { IBookmark } from '../../../controller/session/dependencies/bookmarks/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from '../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
@@ -13,6 +11,7 @@ import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.
 import { scheme_color_accent } from '../../../theme/colors';
 import { EParent } from '../../../services/standalone/service.output.redirections';
 import { IRowAPI, ControllerRowAPI } from '../../../controller/session/dependencies/row/controller.row.api';
+import { ESource } from '../../../controller/helpers/selection';
 
 import SourcesService from '../../../services/service.sources';
 import OutputParsersService from '../../../services/standalone/service.output.parsers';
@@ -205,7 +204,15 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             event.stopImmediatePropagation();
             event.preventDefault();
         } else {
-            OutputRedirectionsService.select(this.parent, this.sessionId, this._getPosition(), this.str);
+            OutputRedirectionsService.select(
+                this.parent,
+                this.sessionId,
+                {
+                    output: this._getPosition(),
+                    search: this.parent === EParent.search ? this.position : undefined
+                },
+                this.str
+            );
             if (this.pluginId === -1) {
                 return;
             }
@@ -247,7 +254,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.api.getStreamOutput() === undefined) {
             return false;
         }
-        return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition());
+        return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition(), this.parent === EParent.search ? ESource.search : ESource.output);
     }
 
     public _ng_getRangeCssClass(): string {

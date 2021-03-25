@@ -20,27 +20,31 @@ export class OutputExportsService {
 
     public getActions(session: string): Promise<IExportAction[]> {
         return new Promise<IExportAction[]>((resolve, reject) => {
-            let selection: IRange[] | undefined = OutputRedirectionsService.getSelectionRanges(session);
-            if (selection === undefined) {
-                selection = [];
-            }
-            const converted: IPCMessages.IOutputSelectionRange[] = selection.map((range: IRange) => {
-                return { from: range.start, to: range.end };
-            });
-            ServiceElectronIpc.request(new IPCMessages.OutputExportFeaturesRequest({
-                session: session,
-                selection: converted,
-            }), IPCMessages.OutputExportFeaturesResponse).then((response: IPCMessages.OutputExportFeaturesResponse) => {
-                resolve(response.actions.map((action: IPCMessages.IExportAction) => {
-                    return {
-                        id: action.id,
-                        caption: action.caption,
-                        disabled: !action.enabled,
-                        caller: this._caller.bind(this, session, converted, action.id),
-                    };
-                }));
+            OutputRedirectionsService.getOutputSelectionRanges(session).then((selection: IRange[] | undefined) => {
+                if (selection === undefined) {
+                    selection = [];
+                }
+                const converted: IPCMessages.IOutputSelectionRange[] = selection.map((range: IRange) => {
+                    return { from: range.start.output, to: range.end.output };
+                });
+                ServiceElectronIpc.request(new IPCMessages.OutputExportFeaturesRequest({
+                    session: session,
+                    selection: converted,
+                }), IPCMessages.OutputExportFeaturesResponse).then((response: IPCMessages.OutputExportFeaturesResponse) => {
+                    resolve(response.actions.map((action: IPCMessages.IExportAction) => {
+                        return {
+                            id: action.id,
+                            caption: action.caption,
+                            disabled: !action.enabled,
+                            caller: this._caller.bind(this, session, converted, action.id),
+                        };
+                    }));
+                }).catch((err: Error) => {
+                    this._logger.warn(`Fail request export actions due error: ${err.message}`);
+                    reject(err);
+                });
             }).catch((err: Error) => {
-                this._logger.warn(`Fail request export actions due error: ${err.message}`);
+                this._logger.warn(`Fail request selection due error: ${err.message}`);
                 reject(err);
             });
         });
@@ -62,18 +66,28 @@ export class OutputExportsService {
     }
 
     private _ipc_OutputExportFeatureSelectionRequest(request: IPCMessages.OutputExportFeatureSelectionRequest, response: (res: IPCMessages.OutputExportFeatureSelectionResponse) => Promise<void>) {
-        let selection: IRange[] | undefined = OutputRedirectionsService.getSelectionRanges(request.session);
-        if (selection === undefined) {
-            selection = [];
-        }
-        const converted: IPCMessages.IOutputSelectionRange[] = selection.map((range: IRange) => {
-            return { from: range.start, to: range.end };
-        });
-        response(new IPCMessages.OutputExportFeatureSelectionResponse({
-            session: request.session,
-            selection: converted,
-        })).catch((err: Error) => {
-            this._logger.warn(`Fail to send selection for action "${request.actionId}" due error: ${err.message}`);
+        OutputRedirectionsService.getOutputSelectionRanges(request.session).then((selection: IRange[] | undefined) => {
+            if (selection === undefined) {
+                selection = [];
+            }
+            const converted: IPCMessages.IOutputSelectionRange[] = selection.map((range: IRange) => {
+                return { from: range.start.output, to: range.end.output };
+            });
+            response(new IPCMessages.OutputExportFeatureSelectionResponse({
+                session: request.session,
+                selection: converted,
+            })).catch((err: Error) => {
+                this._logger.warn(`Fail to send selection for action "${request.actionId}" due error: ${err.message}`);
+            });
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail request selection due error: ${err.message}`);
+            response(new IPCMessages.OutputExportFeatureSelectionResponse({
+                session: request.session,
+                selection: [],
+                error: err.message,
+            })).catch((e: Error) => {
+                this._logger.warn(`Fail to send selection for action "${request.actionId}" due error: ${e.message}`);
+            });
         });
     }
 

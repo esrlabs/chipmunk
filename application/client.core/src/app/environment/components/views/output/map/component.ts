@@ -73,7 +73,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         if (row > this._state.count - 1) {
             row = this._state.count - 1;
         }
-        OutputRedirectionsService.select(EParent.marker, this.service.getGuid(), row);
+        OutputRedirectionsService.select(EParent.marker, this.service.getGuid(), { output: row });
     }
 
     @HostListener('dblclick', ['$event']) public _ng_onDblClick(event: MouseEvent) {

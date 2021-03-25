@@ -14,6 +14,7 @@ import { IStreamStateEvent } from '../../../../controller/session/dependencies/s
 import { copyTextToClipboard } from '../../../../controller/helpers/clipboard';
 import { fullClearRowStr } from '../../../../controller/helpers/row.helpers';
 import { IRow } from '../../../../controller/session/dependencies/row/controller.row.api';
+import { IExportAction } from '../../../../services/standalone/service.output.exports';
 
 import FocusOutputService from '../../../../services/service.focus.output';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
@@ -21,6 +22,7 @@ import EventsHubService from '../../../../services/standalone/service.eventshub'
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 import SelectionParsersService from '../../../../services/standalone/service.selection.parsers';
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
+import OutputExportsService from '../../../../services/standalone/service.output.exports';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -155,6 +157,21 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                 disabled: textSelection === undefined || this._getFilterFromStr(textSelection.selection) === undefined
             }
         ]);
+        OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
+            if (actions.length > 0) {
+                items.push(...[
+                    { /* delimiter */ },
+                    ...actions.map((action: IExportAction) => {
+                        return {
+                            caption: action.caption,
+                            handler: action.caller
+                        };
+                    })
+                ]);
+            }
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail get actions due error: ${err.message}`);
+        });
         ContextMenuService.show({
             items: items,
             x: event.pageX,
