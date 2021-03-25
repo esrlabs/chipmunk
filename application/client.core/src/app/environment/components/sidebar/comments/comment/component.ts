@@ -60,7 +60,7 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     }
 
     public ngOnShow() {
-        OutputRedirectionsService.select(EParent.comment, this.controller.getGuid(), this.comment.selection.start.position);
+        OutputRedirectionsService.select(EParent.comment, this.controller.getGuid(), { output: this.comment.selection.start.position });
     }
 
     public ngOnRemove() {

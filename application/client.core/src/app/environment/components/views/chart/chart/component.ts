@@ -135,7 +135,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             const rate: number = size.width / rows;
             position = Math.round(event.offsetX / rate);
         }
-        OutputRedirectionsService.select(EParent.chart, this.service.getSessionGuid(), position);
+        OutputRedirectionsService.select(EParent.chart, this.service.getSessionGuid(), { output: position });
     }
 
     public _ng_onContexMenu(event: MouseEvent) {
@@ -459,7 +459,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             return;
         }
         if (this._redirectMainView) {
-            OutputRedirectionsService.select(EParent.chart, this.service.getSessionGuid(), range.begin);
+            OutputRedirectionsService.select(EParent.chart, this.service.getSessionGuid(), { output: range.begin });
         }
         this._mainViewPosition = range.begin;
     }

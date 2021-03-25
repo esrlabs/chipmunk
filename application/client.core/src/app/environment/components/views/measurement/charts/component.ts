@@ -218,7 +218,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                         if (this._session === undefined) {
                             return;
                         }
-                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), target.range.start.position);
+                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), { output: target.range.start.position });
                     },
                 },
                 {
@@ -227,7 +227,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                         if (this._session === undefined) {
                             return;
                         }
-                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), target.range.end.position);
+                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), { output: target.range.end.position });
                     },
                 }
             ]);
@@ -374,7 +374,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         OutputRedirectionsService.select(
             EParent.notassigned,
             this._session.getGuid(),
-            target.range.start.position < target.range.end.position ? target.range.start.position : target.range.end.position,
+            { output: target.range.start.position < target.range.end.position ? target.range.start.position : target.range.end.position },
         );
     }
 

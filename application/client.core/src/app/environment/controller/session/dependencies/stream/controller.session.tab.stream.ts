@@ -1,7 +1,6 @@
 import { IPCMessages, Subscription as IPCSubscription } from '../../../../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput, IStreamState } from '../output/controller.session.tab.stream.output';
-import { ControllerSessionTabStreamBookmarks } from '../bookmarks/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from '../scope/controller.session.tab.scope';
 import { ControllerSessionTabTimestamp } from '../timestamps/session.dependency.timestamps';
 import { IQueueController } from '../../../../services/standalone/service.queue';
@@ -85,9 +84,14 @@ export class ControllerSessionTabStream implements Dependency {
             let packets: IRow[] = [];
             Toolkit.sequences(ranges.map((range: IRange) => {
                 return () => {
-                    return this._session().getStreamOutput().loadRange({
-                        start: range.start,
-                        end: range.end,
+                    return range.start.search === undefined ? this._session().getStreamOutput().loadRange({
+                        start: range.start.output,
+                        end: range.end.output,
+                    }).then((packet: IRow[]) => {
+                        packets = packets.concat(packet);
+                    }) : this._session().getSessionSearch().getOutputStream().loadRange({
+                        start: range.start.search,
+                        end: range.end.search,
                     }).then((packet: IRow[]) => {
                         packets = packets.concat(packet);
                     });

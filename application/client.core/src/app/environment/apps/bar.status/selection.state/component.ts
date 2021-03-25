@@ -73,7 +73,7 @@ export class AppsStatusBarSelectionStateComponent implements OnDestroy, AfterVie
 
     private _update(selection: IRange[]) {
         this._ranges = selection.map((range: IRange) => {
-            return range.start === range.end ? `${range.start}` : `${range.start}:${range.end}`;
+            return range.start.output === range.end.output ? `${range.start.output}` : `${range.start.output}:${range.end.output}`;
         });
         this._cdRef.detectChanges();
     }
