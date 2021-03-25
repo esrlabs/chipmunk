@@ -20,48 +20,46 @@ export class OutputExportsService {
 
     public getActions(session: string): Promise<IExportAction[]> {
         return new Promise<IExportAction[]>((resolve, reject) => {
-            OutputRedirectionsService.getOutputSelectionRanges(session).then((selection: IRange[] | undefined) => {
-                if (selection === undefined) {
-                    selection = [];
-                }
-                const converted: IPCMessages.IOutputSelectionRange[] = selection.map((range: IRange) => {
-                    return { from: range.start.output, to: range.end.output };
-                });
-                ServiceElectronIpc.request(new IPCMessages.OutputExportFeaturesRequest({
-                    session: session,
-                    selection: converted,
-                }), IPCMessages.OutputExportFeaturesResponse).then((response: IPCMessages.OutputExportFeaturesResponse) => {
-                    resolve(response.actions.map((action: IPCMessages.IExportAction) => {
-                        return {
-                            id: action.id,
-                            caption: action.caption,
-                            disabled: !action.enabled,
-                            caller: this._caller.bind(this, session, converted, action.id),
-                        };
-                    }));
-                }).catch((err: Error) => {
-                    this._logger.warn(`Fail request export actions due error: ${err.message}`);
-                    reject(err);
-                });
+            ServiceElectronIpc.request(new IPCMessages.OutputExportFeaturesRequest({
+                session: session,
+            }), IPCMessages.OutputExportFeaturesResponse).then((response: IPCMessages.OutputExportFeaturesResponse) => {
+                resolve(response.actions.map((action: IPCMessages.IExportAction) => {
+                    return {
+                        id: action.id,
+                        caption: action.caption,
+                        disabled: !action.enabled,
+                        caller: this._caller.bind(this, session, action.id),
+                    };
+                }));
             }).catch((err: Error) => {
-                this._logger.warn(`Fail request selection due error: ${err.message}`);
+                this._logger.warn(`Fail request export actions due error: ${err.message}`);
                 reject(err);
             });
         });
     }
 
-    private _caller(session: string, selection: IPCMessages.IOutputSelectionRange[], actionId: string) {
-        ServiceElectronIpc.request(new IPCMessages.OutputExportFeatureCallRequest({
-            actionId: actionId,
-            session: session,
-            selection: selection,
-        }), IPCMessages.OutputExportFeatureCallResponse).then((response: IPCMessages.OutputExportFeatureCallResponse) => {
-            if (response.error) {
-                return this._logger.warn(`Fail to call action "${actionId}" due error: ${response.error}`);
+    private _caller(session: string, actionId: string) {
+        OutputRedirectionsService.getOutputSelectionRanges(session).then((selection: IRange[] | undefined) => {
+            if (selection === undefined) {
+                selection = [];
             }
-            this._logger.debug(`Action "${actionId}" done.`);
+            const converted: IPCMessages.IOutputSelectionRange[] = selection.map((range: IRange) => {
+                return { from: range.start.output, to: range.end.output };
+            });
+            ServiceElectronIpc.request(new IPCMessages.OutputExportFeatureCallRequest({
+                actionId: actionId,
+                session: session,
+                selection: converted,
+            }), IPCMessages.OutputExportFeatureCallResponse).then((response: IPCMessages.OutputExportFeatureCallResponse) => {
+                if (response.error) {
+                    return this._logger.warn(`Fail to call action "${actionId}" due error: ${response.error}`);
+                }
+                this._logger.debug(`Action "${actionId}" done.`);
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to call action "${actionId}" due error: ${err.message}`);
+            });
         }).catch((err: Error) => {
-            this._logger.warn(`Fail to call action "${actionId}" due error: ${err.message}`);
+            this._logger.warn(`Fail request selection due error: ${err.message}`);
         });
     }
 

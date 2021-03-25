@@ -58,7 +58,7 @@ export class DefaultOutputExport {
             });
         });
     }
-    private _exportSelection(session: string, request: IPCMessages.OutputExportFeaturesRequest | IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
+    private _exportSelection(session: string, request: IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
         return new Promise((resolve, reject) => {
             const sections: CommonInterfaces.IIndexSection[] = request.selection.map((range) => {
                 return { first_line: range.from, last_line: range.to };
