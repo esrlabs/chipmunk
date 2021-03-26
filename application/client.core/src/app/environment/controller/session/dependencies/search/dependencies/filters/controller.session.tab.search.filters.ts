@@ -1,9 +1,4 @@
 import { Observable, Subject, Subscription } from 'rxjs';
-import { ControllerSessionTabSearchOutput } from '../output/controller.session.tab.search.output';
-import { ControllerSessionTabStreamOutput } from '../../../output/controller.session.tab.stream.output';
-import { ControllerSessionTabSearchState } from '../state/controller.session.tab.search.state';
-import { ControllerSessionScope } from '../../../scope/controller.session.tab.scope';
-import { ControllerSessionTabTimestamp } from '../../../timestamps/session.dependency.timestamps';
 import { Importable } from '../../../importer/controller.session.importer.interface';
 import {
     FilterRequest,
@@ -14,8 +9,9 @@ import {
     IFilterDescOptional,
 } from './controller.session.tab.search.filters.storage';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
+import { IPCMessages } from '../../../../../../services/service.electron.ipc';
 
-import ServiceElectronIpc, { IPCMessages } from '../../../../../../services/service.electron.ipc';
+import ServiceElectronIpc from '../../../../../../services/service.electron.ipc';
 import OutputParsersService from '../../../../../../services/standalone/service.output.parsers';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -124,33 +120,54 @@ export class ControllerSessionTabSearchFilters
         requests?: FilterRequest | FilterRequest[],
     ): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
-            if (!this._accessor.search().getState().isDone()) {
-                const toBeCancelReq: string = this._accessor.search().getState().getId();
-                this.cancel(toBeCancelReq)
-                    .then(() => {
-                        this._search(requestId, requests)
-                            .then((res: number | undefined) => {
-                                resolve(res);
-                            })
-                            .catch((err: Error) => {
-                                reject(err);
-                            });
-                    })
-                    .catch((cancelErr: Error) => {
-                        this._logger.warn(
-                            `Fail to cancel request ${toBeCancelReq} due error: ${cancelErr.message}`,
-                        );
-                        reject(cancelErr);
-                    });
+            let _requests: FilterRequest[] = [];
+            if (requests === undefined) {
+                _requests = this._storage.getActive();
+            } else if (!(requests instanceof Array)) {
+                _requests = [requests];
             } else {
-                this._search(requestId, requests)
-                    .then((res: number | undefined) => {
-                        resolve(res);
-                    })
-                    .catch((err: Error) => {
-                        reject(err);
-                    });
+                _requests = requests;
             }
+            this._accessor.search().getState().finally(() => {
+                this._accessor.search().getState().start(requestId, resolve, reject);
+                this._subjects.searching.next();
+                // Drop output
+                this._accessor.search().getOutputStream().clearStream();
+                // Start search
+                ServiceElectronIpc.request(
+                    new IPCMessages.SearchRequest({
+                        requests: _requests.map((reg) => reg.asIPC()),
+                        session: this._guid,
+                        id: requestId,
+                    }),
+                    IPCMessages.SearchRequestResults,
+                )
+                    .then((results: IPCMessages.SearchRequestResults) => {
+                        this._subjects.complited.next();
+                        this._logger.env(
+                            `Search request ${results.requestId} was finished in ${(
+                                results.duration / 1000
+                            ).toFixed(2)}s.`,
+                        );
+                        if (results.error !== undefined) {
+                            // Some error during processing search request
+                            this._logger.error(
+                                `Search request id ${results.requestId} was finished with error: ${results.error}`,
+                            );
+                            return this._accessor.search().getState().fail(new Error(results.error));
+                        }
+                        // Share results
+                        OutputParsersService.setSearchResults(this._guid, _requests);
+                        // Update stream for render
+                        this._accessor.search().getOutputStream().updateStreamState(results.found);
+                        // Done
+                        this._accessor.search().getState().done(results.found);
+                    })
+                    .catch((error: Error) => {
+                        this._subjects.complited.next();
+                        this._accessor.search().getState().fail(error);
+                    });
+            });
         });
     }
 
@@ -275,112 +292,50 @@ export class ControllerSessionTabSearchFilters
         this._subjects.onExport.next();
     }
 
-    private _search(
-        requestId: string,
-        requests?: FilterRequest | FilterRequest[],
-    ): Promise<number | undefined> {
-        return new Promise((resolve, reject) => {
-            let _requests: FilterRequest[] = [];
-            if (requests === undefined) {
-                _requests = this._storage.getActive();
-            } else if (!(requests instanceof Array)) {
-                _requests = [requests];
-            } else {
-                _requests = requests;
-            }
-            if (!this._accessor.search().getState().isDone()) {
-                return reject(
-                    new Error(`Cannot start new search request while current isn't finished.`),
-                );
-            }
-            this._accessor.search().getState().start(requestId, resolve, reject);
-            this._subjects.searching.next();
-            // Drop output
-            this._accessor.search().getOutputStream().clearStream();
-            // Start search
-            ServiceElectronIpc.request(
-                new IPCMessages.SearchRequest({
-                    requests: _requests.map((reg) => reg.asIPC()),
-                    session: this._guid,
-                    id: requestId,
-                }),
-                IPCMessages.SearchRequestResults,
-            )
-                .then((results: IPCMessages.SearchRequestResults) => {
-                    this._subjects.complited.next();
-                    this._logger.env(
-                        `Search request ${results.requestId} was finished in ${(
-                            results.duration / 1000
-                        ).toFixed(2)}s.`,
-                    );
-                    if (results.error !== undefined) {
-                        // Some error during processing search request
-                        this._logger.error(
-                            `Search request id ${results.requestId} was finished with error: ${results.error}`,
-                        );
-                        return this._accessor.search().getState().fail(new Error(results.error));
-                    }
-                    // Share results
-                    OutputParsersService.setSearchResults(this._guid, _requests);
-                    // Update stream for render
-                    this._accessor.search().getOutputStream().updateStreamState(results.found);
-                    // Done
-                    this._accessor.search().getState().done(results.found);
-                })
-                .catch((error: Error) => {
-                    this._subjects.complited.next();
-                    this._accessor.search().getState().fail(error);
-                });
-        });
-    }
-
     private _drop(requestId: string): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
-            // Drop active requests
-            if (!this._accessor.search().getState().isDone()) {
-                return reject(
-                    new Error(`Cannot start new search request while current isn't finished.`),
-                );
-            }
-            this._accessor.search().getState().start(requestId, resolve, reject);
-            // Drop output
-            this._accessor.search().getOutputStream().clearStream();
-            // Trigger event
-            this._subjects.dropped.next();
-            // Start search
-            ServiceElectronIpc.request(
-                new IPCMessages.SearchRequest({
-                    requests: [],
-                    session: this._guid,
-                    id: requestId,
-                }),
-                IPCMessages.SearchRequestResults,
-            )
-                .then((results: IPCMessages.SearchRequestResults) => {
-                    this._logger.env(
-                        `Search request ${results.requestId} was finished in ${(
-                            results.duration / 1000
-                        ).toFixed(2)}s.`,
-                    );
-                    if (results.error !== undefined) {
-                        // Some error during processing search request
-                        this._logger.error(
-                            `Search request id ${results.requestId} was finished with error: ${results.error}`,
+            // Waiting for already started operations
+            this._accessor.search().getState().finally(() => {
+                this._accessor.search().getState().start(requestId, resolve, reject);
+                // Drop output
+                this._accessor.search().getOutputStream().clearStream();
+                // Trigger event
+                this._subjects.dropped.next();
+                // Start search
+                ServiceElectronIpc.request(
+                    new IPCMessages.SearchRequest({
+                        requests: [],
+                        session: this._guid,
+                        id: requestId,
+                    }),
+                    IPCMessages.SearchRequestResults,
+                )
+                    .then((results: IPCMessages.SearchRequestResults) => {
+                        this._logger.env(
+                            `Search request ${results.requestId} was finished in ${(
+                                results.duration / 1000
+                            ).toFixed(2)}s.`,
                         );
-                        return this._accessor.search().getState().fail(new Error(results.error));
-                    }
-                    // Share results
-                    OutputParsersService.setSearchResults(this._guid, []);
-                    // Update stream for render
-                    this._accessor.search().getOutputStream().updateStreamState(0);
-                    // Done
-                    this._accessor.search().getState().done(0);
-                    // Aplly filters if exsists
-                    this._update();
-                })
-                .catch((error: Error) => {
-                    this._accessor.search().getState().fail(error);
-                });
+                        if (results.error !== undefined) {
+                            // Some error during processing search request
+                            this._logger.error(
+                                `Search request id ${results.requestId} was finished with error: ${results.error}`,
+                            );
+                            return this._accessor.search().getState().fail(new Error(results.error));
+                        }
+                        // Share results
+                        OutputParsersService.setSearchResults(this._guid, []);
+                        // Update stream for render
+                        this._accessor.search().getOutputStream().updateStreamState(0);
+                        // Done
+                        this._accessor.search().getState().done(0);
+                        // Aplly filters if exsists
+                        this._update();
+                    })
+                    .catch((error: Error) => {
+                        this._accessor.search().getState().fail(error);
+                    });
+            });
         });
     }
 

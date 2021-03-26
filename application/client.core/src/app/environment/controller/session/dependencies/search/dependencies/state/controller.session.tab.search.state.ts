@@ -1,8 +1,12 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
+import { IPCMessages } from '../../../../../../services/service.electron.ipc';
+
+import ServiceElectronIpc from '../../../../../../services/service.electron.ipc';
 
 type TResolver = (output: number | undefined) => void;
 type TRejector = (error: Error) => void;
+type TFinally = () => void;
 
 export class ControllerSessionTabSearchState implements Dependency {
 
@@ -13,6 +17,7 @@ export class ControllerSessionTabSearchState implements Dependency {
     private _finished: number;
     private _resolver: TResolver;
     private _rejector: TRejector;
+    private _finally: TFinally[] = [];
     private _locked: boolean = false;
     private _accessor: {
         session: SessionGetter;
@@ -70,21 +75,20 @@ export class ControllerSessionTabSearchState implements Dependency {
         this._clear();
     }
 
+    public finally(cb: TFinally) {
+        if (this.isDone()) {
+            cb();
+        } else {
+            this._finally.push(cb);
+        }
+    }
+
     public isDone(): boolean {
         return this._id === undefined;
     }
 
     public equal(id: string): boolean {
         return this._id === id;
-    }
-
-    public cancel() {
-        if (this._id !== undefined && this._resolver !== undefined) {
-            this._finished = Date.now();
-            this._logger.env(`Search ${this._id} canceled in: ${((this._finished - this._started) / 1000).toFixed(2)}s`);
-            this._resolver(undefined);
-        }
-        this._clear();
     }
 
     public lock() {
@@ -103,6 +107,10 @@ export class ControllerSessionTabSearchState implements Dependency {
         this._id = undefined;
         this._resolver = undefined;
         this._rejector = undefined;
+        this._finally.forEach((cb: TFinally) => {
+            cb();
+        });
+        this._finally = [];
     }
 
 }
