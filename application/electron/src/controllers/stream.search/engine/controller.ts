@@ -74,9 +74,6 @@ export class SearchEngine extends EventEmitter {
 
     public drop(): Promise<void> {
         return new Promise((resolve) => {
-            this._operations.append.drop();
-            this._operations.inspecting.drop();
-            this._operations.search.drop();
             resolve();
         });
     }
@@ -205,15 +202,24 @@ export class SearchEngine extends EventEmitter {
         });
     }
 
-    public cancel() {
-        this._stock.search.forEach((task: CancelablePromise<any, void>) => {
-            task.break();
+    public cancel(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._stock.search.forEach((task: CancelablePromise<any, void>) => {
+                task.break();
+            });
+            this._stock.inspecting.forEach((task: CancelablePromise<any, void>) => {
+                task.break();
+            });
+            this._stock.search.clear();
+            this._stock.inspecting.clear();
+            Promise.all([
+                this._operations.append.drop(),
+                this._operations.inspecting.drop(),
+                this._operations.search.drop(),
+            ]).catch((err: Error) => {
+                this._logger.error(`Error during dropping search operations: ${err.message}`);
+            }).finally(resolve);
         });
-        this._stock.inspecting.forEach((task: CancelablePromise<any, void>) => {
-            task.break();
-        });
-        this._stock.search.clear();
-        this._stock.inspecting.clear();
     }
 
     public isWorking(): boolean {

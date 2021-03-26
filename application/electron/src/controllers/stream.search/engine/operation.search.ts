@@ -151,13 +151,19 @@ export class OperationSearch extends EventEmitter {
         return this._cleaner !== undefined;
     }
 
-    public drop() {
-        if (this._task !== undefined) {
-            this._logger.warn(`Dropping search controller, while search operation is still in progress. Current task will be dropped`);
-            this._task.break();
-        }
-        this._read = 0;
-        this._offset = { bytes: 0, rows: 0 };
+    public drop(): Promise<void> {
+        return new Promise((resolve) => {
+            this._read = 0;
+            this._offset = { bytes: 0, rows: 0 };
+            if (this._task !== undefined) {
+                this._logger.warn(`Dropping search controller, while search operation is still in progress. Current task will be dropped`);
+                this._task.after(() => {
+                    resolve();
+                }).break();
+            } else {
+                resolve();
+            }
+        });
     }
 
     private _clear() {
