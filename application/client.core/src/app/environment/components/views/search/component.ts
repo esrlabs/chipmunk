@@ -158,7 +158,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_searchRequestId !== undefined) {
             return;
         }
-        this._ng_isRequestValid = Toolkit.regTools.isRegStrValid(this._ng_inputCtrl.value);
+        this._validateRegExp();
         this._forceUpdate();
         if (event !== undefined && event.key === 'Escape') {
             if (this._ng_inputCtrl.value !== '') {
@@ -317,6 +317,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_flagsToggle(event: MouseEvent, key: string) {
         this._ng_flags[key] = !this._ng_flags[key];
+        this._validateRegExp();
         this._forceUpdate();
         if (this._ng_session.getSessionSearch().getState().isLocked()) {
             // Trigger re-search only if it was done already before
@@ -592,6 +593,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 }
             }
         }
+        this._validateRegExp();
     }
 
     private _onBeforeTabRemove() {
@@ -710,6 +712,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     private _saveSettings() {
         TabsSessionsService.setSearchSettings(this._ng_session.getGuid(), this._ng_flags);
+    }
+
+    private _validateRegExp() {
+        this._ng_isRequestValid = this._ng_flags.regexp ? Toolkit.regTools.isRegStrValid(this._ng_inputCtrl.value) : true;
     }
 
     private _forceUpdate() {
