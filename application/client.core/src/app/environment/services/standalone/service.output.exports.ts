@@ -1,6 +1,10 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import ServiceElectronIpc, { IPCMessages } from '../service.electron.ipc';
-import OutputRedirectionsService, { IRange } from './service.output.redirections';
+
+import ServiceElectronIpc from '../service.electron.ipc';
+import OutputRedirectionsService from './service.output.redirections';
+
+import { IPCMessages } from '../service.electron.ipc';
+import { IRange } from './service.output.redirections';
 
 export interface IExportAction {
     id: string;
@@ -18,10 +22,11 @@ export class OutputExportsService {
         this._subscriptions.OutputExportFeatureSelectionRequest = ServiceElectronIpc.subscribe(IPCMessages.OutputExportFeatureSelectionRequest, this._ipc_OutputExportFeatureSelectionRequest.bind(this));
     }
 
-    public getActions(session: string): Promise<IExportAction[]> {
+    public getActions(session: string, source: IPCMessages.EOutputExportFeaturesSource): Promise<IExportAction[]> {
         return new Promise<IExportAction[]>((resolve, reject) => {
             ServiceElectronIpc.request(new IPCMessages.OutputExportFeaturesRequest({
                 session: session,
+                source: source,
             }), IPCMessages.OutputExportFeaturesResponse).then((response: IPCMessages.OutputExportFeaturesResponse) => {
                 resolve(response.actions.map((action: IPCMessages.IExportAction) => {
                     return {

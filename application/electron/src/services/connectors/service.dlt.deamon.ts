@@ -181,12 +181,14 @@ class ServiceDLTDeamonConnector implements IService {
                         caption: 'Export all',
                         handler: this._exportAll.bind(this, req.session),
                         isEnabled: this._isExportPossible.bind(this, req.session),
+                        source: IPCMessages.EOutputExportFeaturesSource.output,
                     });
                     ServiceOutputExport.setAction(req.session, {
                         id: CExportSelectionActionId,
                         caption: 'Export selection',
                         handler: this._exportSelection.bind(this, req.session),
                         isEnabled: this._isExportPossible.bind(this, req.session),
+                        source: IPCMessages.EOutputExportFeaturesSource.all,
                     });
                 }
                 // Response to client

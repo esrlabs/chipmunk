@@ -1,5 +1,12 @@
+export enum EOutputExportFeaturesSource {
+    search = 'search',
+    output = 'output',
+    all = 'all',
+}
+
 export interface IOutputExportFeaturesRequest {
     session: string;
+    source: EOutputExportFeaturesSource;
 }
 
 export class OutputExportFeaturesRequest {
@@ -7,6 +14,7 @@ export class OutputExportFeaturesRequest {
     public static signature: string = 'OutputExportFeaturesRequest';
     public signature: string = OutputExportFeaturesRequest.signature;
     public session: string = '';
+    public source: EOutputExportFeaturesSource;
 
     constructor(params: IOutputExportFeaturesRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -16,5 +24,6 @@ export class OutputExportFeaturesRequest {
             throw new Error(`session should be defined.`);
         }
         this.session = params.session;
+        this.source = params.source;
     }
 }

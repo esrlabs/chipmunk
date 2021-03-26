@@ -9,6 +9,7 @@ import { IService } from '../../interfaces/interface.service';
 export interface IExportAction {
     id: string;
     caption: string;
+    source: IPCMessages.EOutputExportFeaturesSource;
     handler: (request: IPCMessages.OutputExportFeatureCallRequest) => Promise<void>;
     isEnabled: (request: IPCMessages.OutputExportFeaturesRequest) => boolean;
 }
@@ -119,6 +120,9 @@ class ServiceOutputExport implements IService {
         const actions: IPCMessages.IExportAction[] = [];
         if (store !== undefined) {
             store.forEach((action: IExportAction, actionId: string) => {
+                if (action.source !== IPCMessages.EOutputExportFeaturesSource.all && action.source !== req.source) {
+                    return;
+                }
                 actions.push({
                     id: actionId,
                     caption: action.caption,

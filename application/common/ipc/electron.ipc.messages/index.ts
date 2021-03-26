@@ -409,8 +409,8 @@ export { IChartRequestResults, IChartMatch, ChartRequestResults, TChartResults }
 import { IChartResultsUpdated, ChartResultsUpdated } from './chart.results.updated';
 export { IChartResultsUpdated, ChartResultsUpdated };
 
-import { IOutputExportFeaturesRequest, OutputExportFeaturesRequest } from './output.export.features.request';
-export { IOutputExportFeaturesRequest, OutputExportFeaturesRequest };
+import { IOutputExportFeaturesRequest, OutputExportFeaturesRequest, EOutputExportFeaturesSource } from './output.export.features.request';
+export { IOutputExportFeaturesRequest, OutputExportFeaturesRequest, EOutputExportFeaturesSource };
 
 import { OutputExportFeaturesResponse, IOutputExportFeaturesResponse, IExportAction } from './output.export.features.response';
 export { OutputExportFeaturesResponse, IOutputExportFeaturesResponse, IExportAction };

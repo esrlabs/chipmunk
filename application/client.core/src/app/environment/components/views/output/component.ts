@@ -231,7 +231,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                 disabled: textSelection === undefined || this._getFilterFromStr(textSelection.selection) === undefined
             }
         ]);
-        OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
+        OutputExportsService.getActions(this.session.getGuid(), IPCMessages.EOutputExportFeaturesSource.output).then((actions: IExportAction[]) => {
             if (actions.length > 0) {
                 items.push(...[
                     { /* delimiter */ },
