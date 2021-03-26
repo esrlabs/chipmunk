@@ -158,10 +158,10 @@ export class ControllerSessionImporter implements Dependency {
         if (this._uuid !== event.session) {
             return;
         }
-        this.import().then(() => {
-            this._locked = false;
-        }).catch((error: Error) => {
+        this.import().catch((error: Error) => {
             this._logger.warn(`Import for "${event.file}" is failed due error: ${error.message}`);
+        }).finally(() => {
+            this._locked = false;
         });
     }
 
