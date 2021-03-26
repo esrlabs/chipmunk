@@ -10,6 +10,11 @@ import ServiceElectron from './service.electron';
 import ServiceStreams from './service.streams';
 import Logger from '../tools/env.logger';
 
+interface IData {
+    length: number;
+    entities: IPCMessages.ISessionImporterData[];
+}
+
 /**
  * @class ServiceImporter
  * @description Provides access to logviewer configuration. Used on electron level
@@ -78,15 +83,28 @@ class ServiceImporter implements IService {
             }
             FS.readTextFile(sessionFile).then((data: string) => {
                 try {
-                    const parsed: IPCMessages.ISessionImporterData[] = JSON.parse(data);
-                    if (!(parsed instanceof Array)) {
+                    const parsed: IData = JSON.parse(data);
+                    if (typeof parsed !== 'object' || parsed === null || typeof parsed.length !== 'number' || !(parsed.entities instanceof Array)) {
                         return response(new IPCMessages.SessionImporterLoadResponse({
-                            error: `Fail parse session file because expecting an array`,
+                            error: `Fail parse session file because it's invalid or not supported`,
+                            session: message.session,
+                        }));
+                    }
+                    const len: number | Error = ServiceStreams.getStreamLen(message.session);
+                    if (len instanceof Error) {
+                        return response(new IPCMessages.SessionImporterLoadResponse({
+                            error: `Fail get length of stream`,
+                            session: message.session,
+                        }));
+                    }
+                    if (parsed.length !== len) {
+                        return response(new IPCMessages.SessionImporterLoadResponse({
+                            error: `Length of stored stream's data and actual stream are dismatch`,
                             session: message.session,
                         }));
                     }
                     response(new IPCMessages.SessionImporterLoadResponse({
-                        data: parsed,
+                        data: parsed.entities,
                         session: message.session,
                     }));
                 } catch (e) {
@@ -126,7 +144,17 @@ class ServiceImporter implements IService {
                 session: message.session,
             }));
         }
-        this._writer.write(this._getImporterFileName(file.bounds[0]), JSON.stringify(message.data));
+        const len: number | Error = ServiceStreams.getStreamLen(message.session);
+        if (len instanceof Error) {
+            return response(new IPCMessages.SessionImporterSaveResponse({
+                error: `Cannot get stream length`,
+                session: message.session,
+            }));
+        }
+        this._writer.write(this._getImporterFileName(file.bounds[0]), JSON.stringify({
+            length: len,
+            entities: message.data,
+        }));
         response(new IPCMessages.SessionImporterSaveResponse({
             session: message.session,
         }));

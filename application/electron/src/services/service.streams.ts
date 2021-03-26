@@ -191,6 +191,18 @@ class ServiceStreams implements IService  {
         return { streamId: streamId, file: stream.streamFile, bounds: stream.bounds };
     }
 
+    public getStreamLen(streamId?: string): number | Error {
+        if (streamId === undefined) {
+            streamId = this._activeStreamGuid;
+        }
+        // Get stream info
+        const stream: IStreamInfo | undefined = this._streams.get(streamId);
+        if (stream === undefined) {
+            return new Error(this._logger.warn(`Cannot return stream's filename, because fail to find a stream data for stream guid "${streamId}"`));
+        }
+        return stream.processor.getStreamLength();
+    }
+
     public addProgressSession(id: string, name: string, streamId?: string) {
         // Get stream id
         if (streamId === undefined) {
