@@ -1,4 +1,4 @@
-<div [attr.class]="(_ng_filters === undefined || _ng_charts === undefined) ? 'loading' : 'ready'">
+<div [attr.class]="_ng_progress() ? 'loading' : 'ready'">
     <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
 </div>
 <div [attr.class]="'container filters ' + (_ng_filters === undefined ? 'hidden' : '')"

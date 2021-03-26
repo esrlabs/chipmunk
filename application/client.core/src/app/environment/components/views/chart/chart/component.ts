@@ -62,6 +62,11 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         width: -1,
         full: -1,
     };
+    private _progress: {
+        matches: boolean;
+    } = {
+        matches: false,
+    };
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _vcRef: ViewContainerRef) {
@@ -156,6 +161,10 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         event.preventDefault();
     }
 
+    public _ng_progress(): boolean {
+        return this._progress.matches;
+    }
+
     private _resize(force: boolean = false) {
         if (this._destroyed) {
             return;
@@ -206,6 +215,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         } else {
             width = this._ng_width;
         }
+        this._progress.matches = true;
         this.service.getDatasets(width, this._getRange()).then((datasets: IResults) => {
             const labels: string[] = this.service.getLabes(width, this._getRange());
             if (labels.length === 0 || datasets.dataset.length === 0) {
@@ -258,7 +268,6 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         }
                     }
                 });
-                this._forceUpdate();
             } else {
                 this._ng_filters.data.labels = labels;
                 this._ng_filters.data.datasets = datasets.dataset;
@@ -274,6 +283,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 });
             }
             this._scrollMainView();
+        }).finally(() => {
+            this._progress.matches = false;
+            this._forceUpdate();
         });
     }
 
