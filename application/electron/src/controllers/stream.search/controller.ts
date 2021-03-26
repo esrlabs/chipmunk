@@ -56,11 +56,6 @@ export default class ControllerStreamSearch {
         }).catch((error: Error) => {
             this._logger.warn(`Fail to subscribe to render event "SearchRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
         });
-        ServiceElectron.IPC.subscribe(IPC.SearchRequestCancelRequest, this._ipc_onSearchRequestCancelRequest.bind(this)).then((subscription: Subscription) => {
-            this._subscriptions.SearchRequestCancelRequest = subscription;
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to subscribe to render event "SearchRequestCancelRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
-        });
         ServiceElectron.IPC.subscribe(IPC.SearchChunk, this._ipc_onSearchChunkRequested.bind(this)).then((subscription: Subscription) => {
             this._subscriptions.SearchChunk = subscription;
         }).catch((error: Error) => {
@@ -332,24 +327,6 @@ export default class ControllerStreamSearch {
             found: res.found === undefined ? 0 : res.found,
             duration: Date.now() - res.started,
         }));
-    }
-
-    private _ipc_onSearchRequestCancelRequest(message: IPC.TMessage, response: (instance: any) => any) {
-        const request: IPC.SearchRequestCancelRequest = message as IPC.SearchRequestCancelRequest;
-        this._state.setRequests([]);
-        // Clear results file
-        this._clear().then(() => {
-            response(new IPC.SearchRequestCancelResponse({
-                streamId: this._state.getGuid(),
-                requestId: request.requestId,
-            }));
-        }).catch((error: Error) => {
-            response(new IPC.SearchRequestCancelResponse({
-                streamId: this._state.getGuid(),
-                requestId: request.requestId,
-                error: error.message,
-            }));
-        });
     }
 
     private _ipc_onSearchChunkRequested(_message: IPC.TMessage, response: (isntance: IPC.TMessage) => any) {
