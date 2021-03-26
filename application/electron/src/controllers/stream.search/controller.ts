@@ -191,34 +191,35 @@ export default class ControllerStreamSearch {
     private _clear(): Promise<void> {
         return new Promise((resolve, reject) => {
             // Cancel current task if exist
-            this._searching.cancel();
-            // Drop map
-            this._state.map.drop();
-            // Drop postman
-            this._state.postman.drop();
-            // Close reader
-            this._reader.drop();
-            // Check and drop file
-            fs.open(this._state.getSearchFile(), 'r', (err: NodeJS.ErrnoException | null, fd: number) => {
-                if (err) {
-                    if (err.code === 'ENOENT') {
-                        return resolve();
-                    }
-                    return reject(new Error(this._logger.error(`Unexpected error with file "${this._state.getSearchFile()}": ${err.code}:: ${err.message}`)));
-                }
-                fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
-                    if (closeFileError) {
-                        return reject(closeFileError);
-                    }
-                    fs.unlink(this._state.getSearchFile(), (error: NodeJS.ErrnoException | null) => {
-                        if (error) {
-                            if (error.code === 'ENOENT') {
-                                return resolve();
-                            } else {
-                                return reject(new Error(this._logger.error(`Fail to remove search file due error: ${error.message}`)));
-                            }
+            this._searching.cancel().finally(() => {
+                // Drop map
+                this._state.map.drop();
+                // Drop postman
+                this._state.postman.drop();
+                // Close reader
+                this._reader.drop();
+                // Check and drop file
+                fs.open(this._state.getSearchFile(), 'r', (err: NodeJS.ErrnoException | null, fd: number) => {
+                    if (err) {
+                        if (err.code === 'ENOENT') {
+                            return resolve();
                         }
-                        resolve();
+                        return reject(new Error(this._logger.error(`Unexpected error with file "${this._state.getSearchFile()}": ${err.code}:: ${err.message}`)));
+                    }
+                    fs.close(fd, (closeFileError: NodeJS.ErrnoException | null) => {
+                        if (closeFileError) {
+                            return reject(closeFileError);
+                        }
+                        fs.unlink(this._state.getSearchFile(), (error: NodeJS.ErrnoException | null) => {
+                            if (error) {
+                                if (error.code === 'ENOENT') {
+                                    return resolve();
+                                } else {
+                                    return reject(new Error(this._logger.error(`Fail to remove search file due error: ${error.message}`)));
+                                }
+                            }
+                            resolve();
+                        });
                     });
                 });
             });

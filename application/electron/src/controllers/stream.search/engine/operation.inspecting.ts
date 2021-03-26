@@ -149,18 +149,25 @@ export class OperationInspecting extends EventEmitter {
         return task;
     }
 
-    public drop() {
-        // Cancel all tasks before
-        this._tasks.forEach((task: CancelablePromise<void, void>, id: string) => {
-            this._logger.warn(`Dropping search controller, while search operation is still in progress. Current task "${id}" will be dropped`);
-            task.break();
+    public drop(): Promise<void> {
+        return new Promise((resolve) => {
+            Promise.all(Array.from(this._tasks.values()).map((task: CancelablePromise<void, void>) => {
+                return new Promise((canceled) => {
+                    this._logger.warn(`Dropping search controller, while search operation is still in progress. Task will be dropped`);
+                    task.after(() => {
+                        canceled(undefined);
+                    }).break();
+                });
+            })).finally(() => {
+                // Drop data
+                this._tasks.clear();
+                this._cleaners.clear();
+                this._readTo = 0;
+                this._readFrom = 0;
+                this._inspected = { map: {}, stats: {} };
+                resolve();
+            });
         });
-        // Drop data
-        this._tasks.clear();
-        this._cleaners.clear();
-        this._readTo = 0;
-        this._readFrom = 0;
-        this._inspected = { map: {}, stats: {} };
     }
 
     public setReadTo(read: number) {

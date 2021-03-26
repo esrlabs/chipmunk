@@ -12,6 +12,7 @@ export class CancelablePromise<T, C> {
     private _rejectors: TRejector[] = [];
     private _cancelers: Array<TCanceler<C>> = [];
     private _finishes: TFinally[] = [];
+    private _after: TFinally[] = [];
     private _canceled: boolean = false;
     private _resolved: boolean = false;
     private _rejected: boolean = false;
@@ -44,6 +45,11 @@ export class CancelablePromise<T, C> {
 
     public finally(callback: TFinally): CancelablePromise<T, C> {
         this._finishes.push(callback);
+        return this;
+    }
+
+    public after(callback: TFinally): CancelablePromise<T, C> {
+        this._after.push(callback);
         return this;
     }
 
@@ -113,17 +119,20 @@ export class CancelablePromise<T, C> {
     private _doFinally() {
         this._handlers.clear();
         if (this._finished) {
+            this._doAfter();
             return;
         }
         this._finished = true;
         this._finishes.forEach((handler: TFinally) => {
             handler();
         });
+        this._doAfter();
     }
 
     private _doCancel(reason?: C) {
         this._handlers.clear();
         if (this._resolved || this._rejected || this._canceled) {
+            this._doAfter();
             // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
             return this;
         }
@@ -132,6 +141,13 @@ export class CancelablePromise<T, C> {
             cancler(reason);
         });
         this._doFinally();
+    }
+
+    private _doAfter() {
+        this._after.forEach((handler: TFinally) => {
+            handler();
+        });
+        this._after = [];
     }
 
 }
