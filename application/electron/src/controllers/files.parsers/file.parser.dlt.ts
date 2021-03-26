@@ -130,12 +130,14 @@ export default class FileParser extends AFileParser {
                     caption: 'Export all',
                     handler: this._exportAll.bind(this, srcFile),
                     isEnabled: () => true,
+                    source: IPCMessages.EOutputExportFeaturesSource.output,
                 });
                 ServiceOutputExport.setAction(this._guid as string, {
                     id: CExportSelectionActionId,
                     caption: 'Export selection',
                     handler: this._exportSelection.bind(this, srcFile),
                     isEnabled: () => true,
+                    source: IPCMessages.EOutputExportFeaturesSource.all,
                 });
             }).catch((error: Error) => {
                 ServiceNotifications.notify({

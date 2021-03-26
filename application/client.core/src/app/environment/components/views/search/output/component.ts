@@ -15,6 +15,7 @@ import { copyTextToClipboard } from '../../../../controller/helpers/clipboard';
 import { fullClearRowStr } from '../../../../controller/helpers/row.helpers';
 import { IRow } from '../../../../controller/session/dependencies/row/controller.row.api';
 import { IExportAction } from '../../../../services/standalone/service.output.exports';
+import { IPCMessages } from '../../../../services/service.electron.ipc';
 
 import FocusOutputService from '../../../../services/service.focus.output';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
@@ -157,7 +158,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
                 disabled: textSelection === undefined || this._getFilterFromStr(textSelection.selection) === undefined
             }
         ]);
-        OutputExportsService.getActions(this.session.getGuid()).then((actions: IExportAction[]) => {
+        OutputExportsService.getActions(this.session.getGuid(), IPCMessages.EOutputExportFeaturesSource.search).then((actions: IExportAction[]) => {
             if (actions.length > 0) {
                 items.push(...[
                     { /* delimiter */ },

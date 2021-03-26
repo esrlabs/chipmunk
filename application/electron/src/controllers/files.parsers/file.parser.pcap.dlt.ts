@@ -14,6 +14,7 @@ import { DLT, Progress, CancelablePromise } from "indexer-neon";
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { CExportAllActionId } from '../../consts/output.actions';
 import { dialog, SaveDialogReturnValue } from 'electron';
+import { IPCMessages } from "../../services/service.electron";
 
 export const CMetaData = 'dlt';
 
@@ -134,6 +135,7 @@ export default class FileParser extends AFileParser {
                     caption: 'Save file as DLT',
                     handler: this._saveAsDLT.bind(this, srcFile),
                     isEnabled: () => true,
+                    source: IPCMessages.EOutputExportFeaturesSource.output,
                 });
                 resolve(collectedChunks);
             }).catch((error: Error) => {

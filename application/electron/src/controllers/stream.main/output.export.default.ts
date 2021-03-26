@@ -28,12 +28,14 @@ export class DefaultOutputExport {
             caption: 'Export all',
             handler: this._exportAll.bind(this, this._guid),
             isEnabled: () => true,
+            source: IPCMessages.EOutputExportFeaturesSource.output,
         });
         ServiceOutputExport.setAction(this._guid, {
             id: CExportSelectionActionId,
             caption: 'Export selection',
             handler: this._exportSelection.bind(this, this._guid),
             isEnabled: () => true,
+            source: IPCMessages.EOutputExportFeaturesSource.all,
         });
     }
 
