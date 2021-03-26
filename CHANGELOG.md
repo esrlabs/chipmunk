@@ -1,5 +1,21 @@
 # Changelog
 
+### [2.15.5] - 03/26/2021
+* Do not restore session in case of changed length of file (close #1130)
+* Consider source of call on export operations (#1129)
+* Do not validate filter as regexp if word-search mode (close #1134)
+* Show chart spinner on loading data (close #1133)
+* Remove unused code (cancelation of search)
+* Wating for pending search actions before drop (close #1132)
+* Drop search results correctly (close #1131)
+* Do not parse selection before action call
+* Selection in search saves only search results (close #1129)
+* Keep included plugins after install (#1127)
+* Check sizes on restoring state
+* Limit resizing of layout parts (close #1109)
+* Correct restoring chart's cursor (close #1125)
+* Give source meta data on row-click
+
 ## [2.15.4] - 03/19/2021
 ### Fixed
 * Correct resizing chart-cursor position
