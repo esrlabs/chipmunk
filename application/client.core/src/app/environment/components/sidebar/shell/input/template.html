@@ -6,9 +6,10 @@
         <mat-panel-title>Input</mat-panel-title>
     </mat-expansion-panel-header>
     <div class="icons">
-        <mat-icon (click)="_ng_onSetPwd()" [matTooltip]="_ng_information.pwd">folder_open</mat-icon>
-        <mat-icon (click)="_ng_onSelectShell($event)" [matTooltip]="_ng_information.shell">featured_play_list</mat-icon>
+        <mat-icon (click)="_ng_onSetPwd()" [matTooltip]="service.selectedPreset.information.pwd">folder_open</mat-icon>
+        <mat-icon (click)="_ng_onSelectShell($event)" [matTooltip]="service.selectedPreset.information.shell">featured_play_list</mat-icon>
     </div>
+    <app-sidebar-app-shell-input-preset [service]="service"></app-sidebar-app-shell-input-preset>
     <div class="shell">
         <mat-form-field class="recent-requests outline regular no-margin" appearance="outline">
             <input  #requestinput
