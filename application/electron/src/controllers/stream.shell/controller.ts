@@ -1,5 +1,6 @@
 import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
 import { getEnvVars, getDefShell, getShells, TEnvVars } from 'chipmunk.shell.env';
+import { dialog, OpenDialogReturnValue } from 'electron';
 
 import ServiceStorage from '../../services/service.storage';
 import Process from './controller.process';
@@ -87,6 +88,9 @@ export default class ControllerStreamShell {
             ServiceElectron.IPC.subscribe(IPC.ShellSaveRequest, (this._ipc_ShellSaveRequest.bind(this) as any)).then((subscription: Subscription) => {
                 this._subscriptions.ShellSaveRequest = subscription;
             }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellSaveRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellPwdRequest, (this._ipc_ShellPwdRequest.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellPwdRequest = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellPwdRequest due error: ${err.message}`));
         }).catch((err: Error) => {
             this._logger.error(`Unexpecting error on load envvars: ${err.message}`);
         });
@@ -133,8 +137,8 @@ export default class ControllerStreamShell {
             cmd: request.command,
             settings: {
                 env: this._env.env,
-                pwd: this._env.pwd,
-                shell: this._env.shell,
+                pwd: request.pwd,
+                shell: request.shell,
             }
         });
         proc.on(Process.Events.destroy, () => {
@@ -257,6 +261,26 @@ export default class ControllerStreamShell {
         }
         this._presetTitle = request.presetTitle;
         response(new IPC.ShellSaveResponse());
+    }
+
+    private _ipc_ShellPwdRequest(request: IPC.ShellPwdRequest, response: (response: IPC.ShellPwdResponse) => Promise<void>) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        dialog.showOpenDialog({ properties: ['openDirectory'] }).then((value: OpenDialogReturnValue) => {
+            const dirPath: string | undefined = value.filePaths[0] === undefined ? '' : value.filePaths[0];
+            this._env.pwd = dirPath;
+            response(new IPC.ShellPwdResponse({
+                value: dirPath,
+                guid: this._guid,
+            }));
+        }).catch((error: Error) => {
+            response(new IPC.ShellPwdResponse({
+                value: '',
+                guid: this._guid,
+                error: error.message,
+            }));
+        });
     }
 
 }
