@@ -666,6 +666,36 @@ export { IShellPwdRequest, ShellPwdRequest };
 import { IShellPwdResponse, ShellPwdResponse } from './shell.pwd.response';
 export { IShellPwdResponse, ShellPwdResponse };
 
+import { IEditing, IEnvironment, IInformation, IPreset, IShellPresetSetRequest, ShellPresetSetRequest } from './shell.preset.set.request';
+export { IEditing, IEnvironment, IInformation, IPreset, IShellPresetSetRequest, ShellPresetSetRequest };
+
+import { ShellPresetSetResponse } from './shell.preset.set.response';
+export { ShellPresetSetResponse };
+
+import { IShellPresetRemoveRequest, ShellPresetRemoveRequest } from './shell.preset.remove.request';
+export { IShellPresetRemoveRequest, ShellPresetRemoveRequest };
+
+import { ShellPresetRemoveResponse } from './shell.preset.remove.response';
+export { ShellPresetRemoveResponse };
+
+import { IShellPresetGetRequest, ShellPresetGetRequest } from './shell.preset.get.request';
+export { IShellPresetGetRequest, ShellPresetGetRequest };
+
+import { IShellPresetGetResponse, ShellPresetGetResponse } from './shell.preset.get.response';
+export { IShellPresetGetResponse, ShellPresetGetResponse };
+
+import { IShellLoadRequest, ShellLoadRequest } from './shell.load.request';
+export { IShellLoadRequest, ShellLoadRequest };
+
+import { IShellLoadResponse, ShellLoadResponse } from './shell.load.response';
+export { IShellLoadResponse, ShellLoadResponse };
+
+import { IShellSaveRequest, ShellSaveRequest } from './shell.save.request';
+export { IShellSaveRequest, ShellSaveRequest };
+
+import { ShellSaveResponse } from './shell.save.response';
+export { ShellSaveResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -885,7 +915,18 @@ export type TMessage =  AppRestartRequest |
                         ShellProcessTerminatedListRequest |
                         ShellProcessTerminatedListResponse |
                         ShellPwdRequest |
-                        ShellPwdResponse;
+                        ShellPwdResponse |
+                        ShellPresetSetRequest |
+                        ShellPresetSetResponse |
+                        ShellPresetRemoveRequest |
+                        ShellPresetRemoveResponse |
+                        ShellPresetGetRequest |
+                        ShellPresetGetResponse |
+                        ShellLoadRequest |
+                        ShellLoadResponse |
+                        ShellSaveRequest |
+                        ShellSaveResponse;
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
@@ -1138,4 +1179,14 @@ export const Map = {
     [ShellProcessTerminatedListResponse.signature   ]: ShellProcessTerminatedListResponse,
     [ShellPwdRequest.signature                      ]: ShellPwdRequest,
     [ShellPwdResponse.signature                     ]: ShellPwdResponse,
+    [ShellPresetSetRequest.signature                ]: ShellPresetSetRequest,
+    [ShellPresetSetResponse.signature               ]: ShellPresetSetResponse,
+    [ShellPresetRemoveRequest.signature             ]: ShellPresetRemoveRequest,
+    [ShellPresetRemoveResponse.signature            ]: ShellPresetRemoveResponse,
+    [ShellPresetGetRequest.signature                ]: ShellPresetGetRequest,
+    [ShellPresetGetResponse.signature               ]: ShellPresetGetResponse,
+    [ShellLoadRequest.signature                     ]: ShellLoadRequest,
+    [ShellLoadResponse.signature                    ]: ShellLoadResponse,
+    [ShellSaveRequest.signature                     ]: ShellSaveRequest,
+    [ShellSaveResponse.signature                    ]: ShellSaveResponse,
 };

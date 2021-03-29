@@ -1,33 +1,84 @@
-import { Subscription } from 'rxjs';
+import { Observable, Subscription, Subject } from 'rxjs';
 import { IPair } from '../../../../thirdparty/code/engine';
+import { IEnvironment, INewInformation } from '../input/component';
+import { Session } from '../../../../controller/session/session';
+import { copy } from '../../../../../../../../client.libs/chipmunk.client.toolkit/src/tools/tools.object';
 
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export interface IInformation {
-    env: { [key: string]: string};
-    shells: string[];
-    shell: string;
-    pwd: string;
-}
-
-export interface ISettings {
-    env?: { [key: string]: string };
-    shell?: string;
+interface IPresetInfo {
     pwd?: string;
+    shell?: string;
+    env?: IEnvironment[];
 }
 
 export class ShellService {
 
-    private _subscriptions: { [key: string]:  Toolkit.Subscription | Subscription } = {};
+    public saveAs: string = 'Save as..';
+    public presets: IPCMessages.IPreset[] = [
+        {
+            custom: false,
+            title: this.saveAs,
+            information: {
+                pwd: '',
+                shell: '',
+                env: [],
+            }
+        }, {
+            title: 'Default',
+            custom: false,
+            information: {
+                pwd: '',
+                shell: '',
+                env: [],
+            }
+        }
+    ];
+    public selectedPreset: IPCMessages.IPreset = this.presets[1];
 
-    constructor() { }
+    private _sessionID: string;
+    private _shells: string[] = [];
+    private _defaultInformation: INewInformation;
+    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellService');
+    private _subscriptions: { [key: string]:  Toolkit.Subscription | Subscription } = {};
+    private subjects: {
+        restored: Subject<void>,
+    } = {
+        restored: new Subject<void>(),
+    };
+
+    constructor() {
+        this._sessionID = TabsSessionsService.getActive().getGuid();
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
+            this._onSessionChange.bind(this),
+        );
+        this._init();
+    }
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
+    }
+
+    public get shells(): string[] {
+        return this._shells;
+    }
+
+    public get defaultInformation(): INewInformation {
+        return this._defaultInformation;
+    }
+
+    public getObservable(): {
+        restored: Observable<void>,
+    } {
+        return {
+            restored: this.subjects.restored.asObservable(),
+        };
     }
 
     public terminate(request: IPCMessages.IShellProcessKillRequest, command: string): Promise<void> {
@@ -63,18 +114,23 @@ export class ShellService {
         });
     }
 
-    public getEnv(request: IPCMessages.IShellEnvRequest): Promise<IInformation> {
+    public getEnv(request: IPCMessages.IShellEnvRequest): Promise<INewInformation> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellEnvRequest(request), IPCMessages.ShellEnvResponse).then((response: IPCMessages.ShellEnvResponse) => {
                 if (response.error !== undefined) {
                     reject(`Failed to reqeust environment information due to Error: ${response.error}`);
                 } else {
-                    resolve({
-                        env: response.env,
-                        shells: response.shells,
+                    this._shells = response.shells;
+                    this._defaultInformation = {
+                        env: this._convertEnv(response.env),
                         shell: response.shell,
-                        pwd: response.pwd,
-                    });
+                        pwd: response.pwd
+                    };
+                    if (this.presets[1].information.pwd.trim() === '') {
+                        this.presets[1].information = copy(this._defaultInformation);
+                        this.setPreset(request.session);
+                    }
+                    resolve(this._defaultInformation);
                 }
             }).catch((error: Error) => {
                 reject(`Failed to reqeust environment information due to Error: ${error}`);
@@ -129,9 +185,9 @@ export class ShellService {
         });
     }
 
-    public runCommand(request: IPCMessages.IShellProcessRunRequest): Promise<void> {
+    public runCommand(request: { session: string; command: string}): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.ShellProcessRunRequest(request), IPCMessages.ShellProcessRunResponse).then((response: IPCMessages.ShellProcessRunResponse) => {
+            ElectronIpcService.request(new IPCMessages.ShellProcessRunRequest({ session: request.session, command: request.command, pwd: this.selectedPreset.information.pwd, shell: this.selectedPreset.information.shell }), IPCMessages.ShellProcessRunResponse).then((response: IPCMessages.ShellProcessRunResponse) => {
                 if (response.error !== undefined) {
                     return reject(`Failed to run command ${request.command} due Error: ${response.error}`);
                 }
@@ -171,6 +227,114 @@ export class ShellService {
                 reject(`Failed to set pwd due to the error: ${error.message}`);
             });
         });
+    }
+
+    public setPreset(session: string, info?: IPresetInfo): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellPresetSetRequest({ session: session, preset: (info === undefined ? this.selectedPreset : { title: this.selectedPreset.title, custom: this.selectedPreset.custom, information: info })}), IPCMessages.ShellPresetSetResponse).then((response: IPCMessages.ShellPresetSetResponse) => {
+                resolve();
+            }).catch((error: Error) => {
+                reject(`Failed to set preset due to the error: ${error.message}`);
+            });
+        });
+    }
+
+    public getPreset(session: string): Promise<IPCMessages.IShellPresetGetResponse> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellPresetGetRequest({ session: session }), IPCMessages.ShellPresetGetResponse).then((response: IPCMessages.ShellPresetGetResponse) => {
+                resolve(response);
+            }).catch((error: Error) => {
+                reject(`Failed to get presets due to the error: ${error.message}`);
+            });
+        });
+    }
+
+    public removePreset(request: IPCMessages.IShellPresetRemoveRequest): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellPresetRemoveRequest({ session: request.session, title: request.title }), IPCMessages.ShellPresetRemoveResponse).then((response: IPCMessages.ShellPresetRemoveResponse) => {
+                resolve();
+            }).catch((error: Error) => {
+                reject(`Failed to remove preset due to the error: ${error.message}`);
+            });
+        });
+    }
+
+    public restoreSession(request: IPCMessages.IShellLoadRequest, outside: boolean = false): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellLoadRequest(request), IPCMessages.ShellLoadResponse).then((response: IPCMessages.ShellLoadResponse) => {
+                if (response.presetTitle.trim() === '') {
+                    return;
+                }
+                this.presets.forEach((preset: IPCMessages.IPreset) => {
+                    if (preset.title === response.presetTitle) {
+                        this.selectedPreset = preset;
+                    }
+                });
+                if (!outside) {
+                    this.subjects.restored.next();
+                }
+                resolve();
+            }).catch((error: Error) => {
+                reject(`Fail to restore preset settings in session ${request.session} due to the error: ${error.message}`);
+            });
+        });
+    }
+
+    private _init() {
+        this.getPreset(this._sessionID).then((response: IPCMessages.IShellPresetGetResponse) => {
+            if (response.session !== this._sessionID) {
+                return;
+            }
+            if (response.presets.length > 0) {
+                response.presets.forEach((preset: IPCMessages.IPreset) => {
+                    if (preset.title === 'Default') {
+                        this.presets[1].information = copy(preset.information);
+                        return;
+                    }
+                });
+                this.presets.push(...response.presets.slice(1));
+            }
+            this.getEnv({ session: this._sessionID }).catch((error: Error) => {
+                this._logger.error(`Failed to get environment information due to the error: ${error.message}`);
+            });
+        }).catch((error: Error) => {
+            this._logger.error(`Failed to initialize service due to the error: ${error.message}`);
+        });
+    }
+
+    private _convertEnv(environment: {[key: string]: string}): IEnvironment[] {
+        const env: IEnvironment[] = [];
+        Object.keys(environment).forEach((variable: string) => {
+            env.push({
+                value: environment[variable],
+                variable: variable,
+                custom: false,
+                editing: {
+                    value: false,
+                    variable: false,
+                },
+                selected: false,
+            });
+        });
+        return env;
+    }
+
+    private _saveSession(request: IPCMessages.IShellSaveRequest) {
+        ElectronIpcService.request(new IPCMessages.ShellSaveRequest(request), IPCMessages.ShellSaveResponse)
+            .then((response: IPCMessages.ShellSaveResponse) => {})
+            .catch((error: Error) => {
+                this._logger.error(`Fail to save preset settings in session ${request.session} due to error: ${error.message}`);
+            });
+    }
+
+    private _onSessionChange(session: Session | undefined) {
+        if (session !== undefined) {
+            this._saveSession({ session: this._sessionID, presetTitle: this.selectedPreset.title });
+            this._sessionID = session.getGuid();
+            this.restoreSession({ session: this._sessionID }).catch((error: Error) => {
+                this._logger.error(error.message);
+            });
+        }
     }
 
 }
