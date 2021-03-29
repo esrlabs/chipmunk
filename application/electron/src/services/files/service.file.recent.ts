@@ -119,6 +119,61 @@ export class ServiceFileRecent implements IService {
         ServiceElectron.updateMenu();
     }
 
+    public modifyPreset(preset: IPCMessages.IPreset) {
+        const stored: IPCMessages.IPreset[] = ServiceStorage.get().get().recentPresets;
+        stored.forEach((storedPreset: IPCMessages.IPreset) => {
+            if (storedPreset.title === preset.title) {
+                if (preset.information.pwd !== undefined) {
+                    storedPreset.information.pwd = preset.information.pwd;
+                }
+                if (preset.information.shell !== undefined) {
+                    storedPreset.information.shell = preset.information.shell;
+                }
+                if (preset.information.env !== undefined) {
+                    storedPreset.information.env = preset.information.env;
+                }
+                return;
+            }
+        });
+        ServiceStorage.get().set({
+            recentPresets: stored,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
+        });
+    }
+
+    public savePreset(preset: IPCMessages.IPreset) {
+        const stored: IPCMessages.IPreset[] = ServiceStorage.get().get().recentPresets;
+        const presets: IPCMessages.IPreset[] = stored.filter((storedPreset: IPCMessages.IPreset) => {
+            return storedPreset.title !== preset.title;
+        });
+        if (presets.length > MAX_NUMBER_OF_RECENT_FILES) {
+            presets.splice(presets.length - 1, 1);
+        }
+        presets.unshift(preset);
+        ServiceStorage.get().set({
+            recentPresets: presets,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
+        });
+    }
+
+    public loadPreset(): IPCMessages.IPreset[] {
+        return ServiceStorage.get().get().recentPresets;
+    }
+
+    public removePreset(title: string) {
+        const stored: IPCMessages.IPreset[] = ServiceStorage.get().get().recentPresets;
+        const presets: IPCMessages.IPreset[] = stored.filter((storedPreset: IPCMessages.IPreset) => {
+            return storedPreset.title !== title;
+        });
+        ServiceStorage.get().set({
+            recentPresets: presets,
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
+        });
+    }
+
     public get(): Promise<IStorageScheme.IRecentFile[]> {
         return new Promise((resolve, reject) => {
             const stored: IStorageScheme.IStorage = ServiceStorage.get().get();

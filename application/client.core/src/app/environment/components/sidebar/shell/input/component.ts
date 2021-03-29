@@ -1,4 +1,4 @@
-import { AfterContentInit, Component, ViewChild, ElementRef, Input, OnInit, OnDestroy } from '@angular/core';
+import { AfterContentInit, Component, ViewChild, ElementRef, Input, OnDestroy } from '@angular/core';
 import { sortPairs, IPair, ISortedFile } from '../../../../thirdparty/code/engine';
 import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
@@ -6,7 +6,7 @@ import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { Subscription, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { ShellService, IInformation } from '../services/service';
+import { ShellService } from '../services/service';
 import { SidebarAppShellEnvironmentComponent } from '../environment/component';
 import { Session } from '../../../../controller/session/session';
 
@@ -31,7 +31,6 @@ export interface IEnvironment {
 }
 
 export interface INewInformation {
-    shells: string[];
     shell: string;
     pwd: string;
     env: IEnvironment[];
@@ -43,7 +42,7 @@ export interface INewInformation {
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, OnDestroy {
+export class SidebarAppShellInputComponent implements AfterContentInit, OnDestroy {
 
     @ViewChild(MatInput) _inputComRef: MatInput;
     @ViewChild(MatAutocompleteTrigger) _ng_autoComRef: MatAutocompleteTrigger;
@@ -54,12 +53,6 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
     public _ng_inputCtrl = new FormControl();
     public _ng_commands: Observable<ISortedFile[]>;
     public _ng_recent: Observable<IPair[]>;
-    public _ng_information: INewInformation = {
-        env: [],
-        pwd: '',
-        shell: '',
-        shells: []
-    };
 
     private _sessionID: string;
     private _recent: IPair[] = [];
@@ -72,10 +65,6 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
         );
-    }
-
-    public ngOnInit() {
-        this._restoreEnvironment();
     }
 
     public ngAfterContentInit() {
@@ -171,7 +160,7 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
         this._ng_inputCtrl.updateValueAndValidity();
         this.service.clearRecent().then(() => {
             this._loadRecentCommands();
-        }).catch((error: string) => {
+        }).catch((error: Error) => {
             this._logger.error(error);
         });
     }
@@ -183,7 +172,7 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
             component: {
                 factory: SidebarAppShellEnvironmentComponent,
                 inputs: {
-                    information: this._ng_information,
+                    information: this.service.selectedPreset.information,
                     setEnvironment: (information: INewInformation) => {
                         const environment: { [variable: string]: string } = {};
                         information.env.forEach((env: IEnvironment) => {
@@ -206,9 +195,12 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
     public _ng_onSetPwd() {
         this.service.setPwd({ session: this._sessionID }).then((value: string) => {
             if (value.trim() !== '') {
-                this._ng_information.pwd = value;
+                this.service.selectedPreset.information.pwd = value;
+                this.service.setPreset(this._sessionID, { pwd: value }).catch((error: Error) => {
+                    this._logger.error(error);
+                });
             }
-        }).catch((error: string) => {
+        }).catch((error: Error) => {
             this._logger.error(error);
         });
     }
@@ -220,12 +212,16 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
                 disabled: true,
             }
         ];
-        this._ng_information.shells.forEach((shell: string) => {
+        this.service.shells.forEach((shell: string) => {
             items.push({
                 caption: shell,
                 handler: () => {
-                    this._ng_information.shell = shell;
-                    this.service.setEnv({ session: this._sessionID, shell: shell }).catch((error: string) => {
+                    this.service.setEnv({ session: this._sessionID, shell: shell }).then(() => {
+                        this.service.selectedPreset.information.shell = shell;
+                        this.service.setPreset(this._sessionID, { shell: shell }).catch((error: Error) => {
+                            this._logger.error(error);
+                        });
+                    }).catch((error: Error) => {
                         this._logger.error(error);
                     });
                 }
@@ -242,22 +238,19 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
         this.service.loadRecentCommands().then((recentCommands: IPair[]) => {
             this._recent = recentCommands;
             this._ng_inputCtrl.updateValueAndValidity();
-        }).catch((error: string) => {
+        }).catch((error: Error) => {
             this._logger.error(error);
         });
     }
 
     private _runCommand(command: string) {
-        this.service.runCommand(
-            {
+        this.service.runCommand({
                 session: this._sessionID,
                 command: command,
-                pwd: this._ng_information.pwd,
-                shell: this._ng_information.shell,
             }).then(() => {
             this._addRecentCommand(command);
             this._ng_inputCtrl.updateValueAndValidity();
-        }).catch((error: string) => {
+        }).catch((error: Error) => {
             this._logger.error(error);
         });
     }
@@ -306,33 +299,9 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
         }
     }
 
-    private _restoreEnvironment() {
-        this.service.getEnv({ session: this._sessionID }).then((information: IInformation) => {
-            this._ng_information.pwd = information.pwd;
-            this._ng_information.shell = information.shell;
-            this._ng_information.shells = information.shells;
-            this._ng_information.env = [];
-            Object.keys(information.env).forEach((variable: string) => {
-                this._ng_information.env.push({
-                    value: information.env[variable],
-                    variable: variable,
-                    custom: false,
-                    editing: {
-                        value: false,
-                        variable: false,
-                    },
-                    selected: false,
-                });
-            });
-        }).catch((error: string) => {
-            this._logger.error(error);
-        });
-    }
-
     private _onSessionChange(session: Session | undefined) {
         if (session !== undefined) {
             this._sessionID = session.getGuid();
-            this._restoreEnvironment();
         }
     }
 

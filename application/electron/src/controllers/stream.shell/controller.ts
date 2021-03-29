@@ -5,6 +5,7 @@ import { dialog, OpenDialogReturnValue } from 'electron';
 import ServiceStorage from '../../services/service.storage';
 import Process from './controller.process';
 import ServiceElectron from '../../services/service.electron';
+import ServiceFileRecent from '../../services/files/service.file.recent';
 
 import Logger from '../../tools/env.logger';
 
@@ -20,6 +21,7 @@ export default class ControllerStreamShell {
     private _running: Map<string, Process> = new Map();
     private _terminated: Map<string, Process> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
+    private _presetTitle: string = '';
     private _env: {
         env: { [key: string]: string };
         shell: string;
@@ -74,6 +76,21 @@ export default class ControllerStreamShell {
             ServiceElectron.IPC.subscribe(IPC.ShellPwdRequest, (this._ipc_ShellPwdRequest.bind(this) as any)).then((subscription: Subscription) => {
                 this._subscriptions.ShellPwdRequest = subscription;
             }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellPwdRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellPresetSetRequest, (this._ipc_ShellPresetSetRequest.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellPresetSetRequest = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellPresetSetRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellPresetRemoveRequest, (this._ipc_ShellPresetRemoveRequest.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellPresetRemoveRequest = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellPresetRemoveRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellPresetGetRequest, (this._ipc_ShellPresetGetRequest.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellPresetGetRequest = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellPresetGetRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellLoadRequest, (this._ipc_ShellLoadRequest.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellLoadRequest = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellLoadRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellSaveRequest, (this._ipc_ShellSaveRequest.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellSaveRequest = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellSaveRequest due error: ${err.message}`));
         }).catch((err: Error) => {
             this._logger.error(`Unexpecting error on load envvars: ${err.message}`);
         });
@@ -212,16 +229,57 @@ export default class ControllerStreamShell {
             const dirPath: string | undefined = value.filePaths[0] === undefined ? '' : value.filePaths[0];
             this._env.pwd = dirPath;
             response(new IPC.ShellPwdResponse({
-                path: dirPath,
+                value: dirPath,
                 guid: this._guid,
             }));
         }).catch((error: Error) => {
             response(new IPC.ShellPwdResponse({
-                path: '',
+                value: '',
                 guid: this._guid,
                 error: error.message,
             }));
         });
     }
 
+    private _ipc_ShellPresetSetRequest(request: IPC.ShellPresetSetRequest, response: (response: IPC.ShellPresetSetResponse) => Promise<void>) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        if (request.preset.information.env !== undefined && request.preset.information.pwd !== undefined && request.preset.information.shell !== undefined) {
+            ServiceFileRecent.savePreset(request.preset);
+        } else {
+            ServiceFileRecent.modifyPreset(request.preset);
+        }
+        response(new IPC.ShellPresetSetResponse());
+    }
+
+    private _ipc_ShellPresetRemoveRequest(request: IPC.ShellPresetRemoveRequest, response: (response: IPC.ShellPresetRemoveResponse) => Promise<void>) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        ServiceFileRecent.removePreset(request.title);
+        response(new IPC.ShellPresetRemoveResponse());
+    }
+
+    private _ipc_ShellPresetGetRequest(request: IPC.ShellPresetGetRequest, response: (response: IPC.ShellPresetGetResponse) => Promise<IPC.IPreset[]>) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        response(new IPC.ShellPresetGetResponse({ session: this._guid, presets: ServiceFileRecent.loadPreset() }));
+    }
+
+    private _ipc_ShellLoadRequest(request: IPC.ShellLoadRequest, response: (response: IPC.ShellLoadResponse) => Promise<string>) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        response(new IPC.ShellLoadResponse({ session: this._guid, presetTitle: this._presetTitle }));
+    }
+
+    private _ipc_ShellSaveRequest(request: IPC.ShellSaveRequest, response: (response: IPC.ShellSaveResponse) => Promise<void>) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        this._presetTitle = request.presetTitle;
+        response(new IPC.ShellSaveResponse());
+    }
 }

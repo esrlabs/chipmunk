@@ -1,3 +1,4 @@
+import { IPreset } from '../../../common/ipc/electron.ipc.messages';
 import { IConnectionOptions } from '../controllers/connections/dlt.connection';
 
 export { IConnectionOptions };
@@ -30,6 +31,7 @@ export interface IStorage {
     recentCommands: string[];
     recentDLTConnectorSettings: IConnectionOptions[];
     recentDateTimeFormats: string[];
+    recentPresets: IPreset[];
     pluginDefaultUninstalled: string[];
 }
 
@@ -40,5 +42,6 @@ export const defaults: IStorage = {
     recentCommands: [],
     recentDLTConnectorSettings: [],
     recentDateTimeFormats: [],
+    recentPresets: [],
     pluginDefaultUninstalled: [],
 };
