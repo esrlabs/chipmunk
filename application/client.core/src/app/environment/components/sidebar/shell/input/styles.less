@@ -1,5 +1,19 @@
 @import '../../../../theme/variables.less';
 
+& mat-panel-title {
+    margin-top: 15px;
+}
+
+& div.icons {
+    position: relative;
+    float: right;
+    margin-top: -20px;
+    height: 20px;
+    & .mat-icon {
+        font-size: 19px;
+    }
+}
+
 & .mat-expansion-panel-header.mat-expanded {
     height: 40px;
     color: @scheme-color-0;
@@ -7,10 +21,17 @@
 & .mat-stroked-button {
     position: relative;
     float: right;
-    margin-top: -5px;
+    margin-left: 6px;
 }
-& mat-form-field.regular{
-    & input {
-        padding: 7px .1rem 0;
+& div.shell {
+    display: flex;
+    flex-direction: row;
+    & mat-form-field.regular{
+        position: relative;
+        flex: 1 auto;
+        width: 70%;
+        & input {
+            padding: 7px .1rem 0;
+        }
     }
 }

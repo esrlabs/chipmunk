@@ -7,12 +7,13 @@ import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material
 import { SidebarAppShellComponent               } from './component';
 import { SidebarAppShellInputComponent          } from './input/component';
 import { SidebarAppShellRunningComponent        } from './running/component';
-import { SidebarAppShellInformationComponent    } from './information/component';
+import { SidebarAppShellEnvironmentComponent    } from './environment/component';
 import { SidebarAppShellTerminatedComponent     } from './terminated/component';
 
 import { MatIconModule                          } from '@angular/material/icon';
 import { MatInputModule                         } from '@angular/material/input';
 import { MatButtonModule                        } from '@angular/material/button';
+import { MatSelectModule                        } from '@angular/material/select';
 import { MatTooltipModule                       } from '@angular/material/tooltip';
 import { MatExpansionModule                     } from '@angular/material/expansion';
 import { MatFormFieldModule                     } from '@angular/material/form-field';
@@ -24,7 +25,7 @@ const entryComponents = [
     SidebarAppShellComponent,
     SidebarAppShellRunningComponent,
     SidebarAppShellInputComponent,
-    SidebarAppShellInformationComponent,
+    SidebarAppShellEnvironmentComponent,
     SidebarAppShellTerminatedComponent,
 ];
 
@@ -39,6 +40,7 @@ const modules = [
     MatIconModule,
     MatInputModule,
     MatButtonModule,
+    MatSelectModule,
     MatTooltipModule,
     MatFormFieldModule,
     MatExpansionModule,

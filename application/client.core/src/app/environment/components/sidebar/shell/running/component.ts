@@ -77,7 +77,7 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
             {
                 caption: 'Terminate',
                 handler: () => {
-                    this.service.terminate(process).catch((error: string) => {
+                    this.service.terminate({ session: this._sessionID, guid: process.guid }, process.command ).catch((error: string) => {
                         this._logger.error(error);
                     });
                 },
@@ -98,7 +98,7 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
     private _update(guid: string) {
         if (!this._updating) {
             this._updating = true;
-            this.service.getDetails(guid).then((details: IPCMessages.IShellProcess) => {
+            this.service.getDetails({ session: this._sessionID, guid: guid }).then((details: IPCMessages.IShellProcess) => {
                 const index: number = this._ng_running.findIndex(p => p.guid === guid);
                 if (index === -1) {
                     return;
