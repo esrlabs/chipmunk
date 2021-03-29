@@ -174,7 +174,7 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
             return;
         }
         if (save) {
-            this.information.env.unshift({
+            this.information.env.push({
                 custom: true,
                 editing: {
                     value: false,
