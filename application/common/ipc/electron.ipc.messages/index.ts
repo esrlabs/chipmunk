@@ -660,6 +660,12 @@ export { ShellProcessTerminatedListRequest };
 import { IShellProcessTerminatedListResponse, ShellProcessTerminatedListResponse } from './shell.process.terminated.list.response';
 export { IShellProcessTerminatedListResponse, ShellProcessTerminatedListResponse };
 
+import { IShellPwdRequest, ShellPwdRequest } from './shell.pwd.request';
+export { IShellPwdRequest, ShellPwdRequest };
+
+import { IShellPwdResponse, ShellPwdResponse } from './shell.pwd.response';
+export { IShellPwdResponse, ShellPwdResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -877,7 +883,9 @@ export type TMessage =  AppRestartRequest |
                         ShellRecentCommandsClearRequest |
                         ShellRecentCommandsClearResponse |
                         ShellProcessTerminatedListRequest |
-                        ShellProcessTerminatedListResponse;
+                        ShellProcessTerminatedListResponse |
+                        ShellPwdRequest |
+                        ShellPwdResponse;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  */
@@ -1128,4 +1136,6 @@ export const Map = {
     [ShellRecentCommandsClearResponse.signature     ]: ShellRecentCommandsClearResponse,
     [ShellProcessTerminatedListRequest.signature    ]: ShellProcessTerminatedListRequest,
     [ShellProcessTerminatedListResponse.signature   ]: ShellProcessTerminatedListResponse,
+    [ShellPwdRequest.signature                      ]: ShellPwdRequest,
+    [ShellPwdResponse.signature                     ]: ShellPwdResponse,
 };

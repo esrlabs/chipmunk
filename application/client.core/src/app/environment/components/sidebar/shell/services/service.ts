@@ -1,10 +1,6 @@
-import { IShellProcess } from '../../../../../../../../common/ipc/electron.ipc.messages';
-import { Session } from '../../../../controller/session/session';
 import { Subscription } from 'rxjs';
 import { IPair } from '../../../../thirdparty/code/engine';
 
-import TabsSessionsService from '../../../../services/service.sessions.tabs';
-import EventsSessionService from '../../../../services/standalone/service.events.session';
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -16,15 +12,17 @@ export interface IInformation {
     pwd: string;
 }
 
+export interface ISettings {
+    env?: { [key: string]: string };
+    shell?: string;
+    pwd?: string;
+}
+
 export class ShellService {
 
-    private _session: Session | undefined;
     private _subscriptions: { [key: string]:  Toolkit.Subscription | Subscription } = {};
 
-    constructor() {
-        this._session = TabsSessionsService.getActive();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-    }
+    constructor() { }
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
@@ -32,15 +30,15 @@ export class ShellService {
         });
     }
 
-    public terminate(process: IShellProcess): Promise<void> {
+    public terminate(request: IPCMessages.IShellProcessKillRequest, command: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.ShellProcessKillRequest({ session: this._session.getGuid(), guid: process.guid }), IPCMessages.ShellProcessKillResponse).then((response: IPCMessages.ShellProcessKillResponse) => {
+            ElectronIpcService.request(new IPCMessages.ShellProcessKillRequest(request), IPCMessages.ShellProcessKillResponse).then((response: IPCMessages.ShellProcessKillResponse) => {
                 if (response.error !== undefined) {
-                    return reject(`Fail to terminate process "${process.command}" due error: ${response.error}`);
+                    return reject(`Fail to terminate process "${command}" due error: ${response.error}`);
                 }
                 resolve();
             }).catch((error: Error) => {
-                reject(`Fail to terminate process "${process.command}" due error: ${error.message}`);
+                reject(`Fail to terminate process "${command}" due error: ${error.message}`);
             });
         });
     }
@@ -65,15 +63,15 @@ export class ShellService {
         });
     }
 
-    public getEnv(): Promise<IInformation> {
+    public getEnv(request: IPCMessages.IShellEnvRequest): Promise<IInformation> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.ShellEnvRequest({ session: this._session.getGuid() }), IPCMessages.ShellEnvResponse).then((response: IPCMessages.ShellEnvResponse) => {
+            ElectronIpcService.request(new IPCMessages.ShellEnvRequest(request), IPCMessages.ShellEnvResponse).then((response: IPCMessages.ShellEnvResponse) => {
                 if (response.error !== undefined) {
                     reject(`Failed to reqeust environment information due to Error: ${response.error}`);
                 } else {
                     resolve({
-                        env: Object.assign({}, response.env),
-                        shells: [...response.shells],
+                        env: response.env,
+                        shells: response.shells,
                         shell: response.shell,
                         pwd: response.pwd,
                     });
@@ -84,11 +82,31 @@ export class ShellService {
         });
     }
 
-    public getDetails(guid: string): Promise<IPCMessages.IShellProcess> {
+    public setEnv(request: IPCMessages.IShellSetEnvRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.ShellProcessDetailsRequest({ session: this._session.getGuid(), guid: guid }), IPCMessages.ShellProcessDetailsResponse).then((response: IPCMessages.ShellProcessDetailsResponse) => {
+            ElectronIpcService.request(new IPCMessages.ShellSetEnvRequest(
+                {
+                    pwd: request.pwd,
+                    shell: request.shell,
+                    session: request.session,
+                    env: request.env,
+                }
+            ), IPCMessages.ShellSetEnvResponse).then((response: IPCMessages.ShellSetEnvResponse) => {
                 if (response.error !== undefined) {
-                    reject(`Failed to reqeust process details due to Error: ${response.error}`);
+                    reject(`Failed to set environment due to Error: ${response.error}`);
+                }
+                resolve();
+            }).catch((error: Error) => {
+                reject(`Failed to set environment due to Error: ${error}`);
+            });
+        });
+    }
+
+    public getDetails(request: IPCMessages.IShellProcessDetailsRequest): Promise<IPCMessages.IShellProcess> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellProcessDetailsRequest(request), IPCMessages.ShellProcessDetailsResponse).then((response: IPCMessages.ShellProcessDetailsResponse) => {
+                if (response.error !== undefined) {
+                    reject(`Failed to reqeust process details of due to Error: ${response.error}`);
                 } else {
                     resolve(response.info);
                 }
@@ -111,15 +129,15 @@ export class ShellService {
         });
     }
 
-    public runCommand(command: string): Promise<void> {
+    public runCommand(request: IPCMessages.IShellProcessRunRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.ShellProcessRunRequest({ session: this._session.getGuid(), command: command }), IPCMessages.ShellProcessRunResponse).then((response: IPCMessages.ShellProcessRunResponse) => {
+            ElectronIpcService.request(new IPCMessages.ShellProcessRunRequest(request), IPCMessages.ShellProcessRunResponse).then((response: IPCMessages.ShellProcessRunResponse) => {
                 if (response.error !== undefined) {
-                    return reject(`Failed to run command due Error: ${response.error}`);
+                    return reject(`Failed to run command ${request.command} due Error: ${response.error}`);
                 }
                 resolve();
             }).catch((error: Error) => {
-                reject(`Failed to run command due Error: ${error.message}`);
+                reject(`Failed to run command ${request.command} due Error: ${error.message}`);
             });
         });
     }
@@ -142,8 +160,17 @@ export class ShellService {
         });
     }
 
-    private _onSessionChange(session: Session | undefined) {
-        this._session = session;
+    public setPwd(request: IPCMessages.IShellPwdRequest): Promise<string> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(new IPCMessages.ShellPwdRequest(request), IPCMessages.ShellPwdResponse).then((response: IPCMessages.ShellPwdResponse) => {
+                if (response.error !== undefined) {
+                    return reject(`Failed to set pwd due to the error: ${response.error}`);
+                }
+                resolve(response.value);
+            }).catch((error: Error) => {
+                reject(`Failed to set pwd due to the error: ${error.message}`);
+            });
+        });
     }
 
 }
