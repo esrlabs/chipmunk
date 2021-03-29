@@ -286,13 +286,15 @@ export class ShellService {
                 return;
             }
             if (response.presets.length > 0) {
-                response.presets.forEach((preset: IPCMessages.IPreset) => {
+                for (const preset of response.presets) {
                     if (preset.title === 'Default') {
                         this.presets[1].information = copy(preset.information);
-                        return;
+                        break;
                     }
-                });
-                this.presets.push(...response.presets.slice(1));
+                }
+                this.presets.push(...response.presets.filter((preset: IPCMessages.IPreset) => {
+                    return preset.title !== 'Default';
+                }));
             }
             this.getEnv({ session: this._sessionID }).catch((error: Error) => {
                 this._logger.error(`Failed to get environment information due to the error: ${error.message}`);
