@@ -40,6 +40,7 @@
     </table>
 </div>
 <div>
+    <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
     <button mat-stroked-button color="primary" [disabled]="!_ng_canSave" (click)="_ng_saveChanges()">Save Changes</button>
     <button mat-stroked-button color="primary" [disabled]="_ng_adding" (click)="_ng_add()">Add</button>
     <button mat-stroked-button color="primary" [disabled]="!(_ng_selected !== undefined && _ng_selected.custom)" (click)="_ng_remove()">Remove</button>

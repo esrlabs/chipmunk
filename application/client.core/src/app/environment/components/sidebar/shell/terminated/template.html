@@ -1,10 +1,10 @@
 <mat-expansion-panel [expanded]="true">
-    <mat-expansion-panel-header>
+    <mat-expansion-panel-header class="nowrap">
         <mat-panel-title>Terminated</mat-panel-title>
         <mat-panel-description>{{_ng_count()}}</mat-panel-description>
     </mat-expansion-panel-header>
     <div *ngIf="_ng_terminated.length === 0">
-        <p class="t-small">No processes are terminated</p>
+        <p class="t-small nowrap">No processes are terminated</p>
     </div>
     <div *ngIf="_ng_terminated.length > 0">
         <div appTooltip [appTooltipContent]="template" class="terminated" *ngFor="let terminated of _ng_terminated">
