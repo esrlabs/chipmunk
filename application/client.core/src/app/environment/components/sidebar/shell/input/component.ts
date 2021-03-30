@@ -166,7 +166,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
     }
 
     public _ng_onEnvironment() {
-        PopupsService.add({
+        const popupId: string = PopupsService.add({
             id: 'environment-settings-dialog',
             caption: `Environment settings`,
             component: {
@@ -182,6 +182,9 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
                             session: this._sessionID,
                             env: environment,
                         });
+                    },
+                    close: () => {
+                        PopupsService.remove(popupId);
                     }
                 }
             },

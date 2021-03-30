@@ -58,7 +58,9 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
                 if (curr.title === this.service.saveAs) {
                     this._ng_add = true;
                 }
-                this._prevSelected = prev;
+                if (prev !== undefined && prev.title !== this.service.saveAs) {
+                    this._prevSelected = prev;
+                }
                 this.service.selectedPreset = curr;
             }
         );
@@ -75,12 +77,12 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
     }
 
     public _ng_onKeyUp(event: KeyboardEvent) {
-        if (this._ng_title.trim() === '' || this._titleExits()) {
-            this._ng_valid = false;
+        if (event.key === 'Escape') {
+            this._revertSelection();
             return;
         }
-        if (event.key === 'Esc') {
-            this._revertSelection();
+        if (this._ng_title.trim() === '' || this._titleExits()) {
+            this._ng_valid = false;
             return;
         }
         this._ng_valid = true;
@@ -126,6 +128,7 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
 
     private _revertSelection() {
         this._ng_add = false;
+        this._ng_title = '';
         this._ng_control.setValue(this._prevSelected);
         this.service.selectedPreset = this._prevSelected;
     }
@@ -138,6 +141,7 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
 
     private _onRestored() {
         this._ng_control.setValue(this.service.selectedPreset);
+        this._prevSelected = this.service.selectedPreset;
     }
 
 }

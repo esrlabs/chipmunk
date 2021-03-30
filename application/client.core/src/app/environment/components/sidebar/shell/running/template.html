@@ -1,10 +1,10 @@
 <mat-expansion-panel [expanded]="true">
-    <mat-expansion-panel-header>
+    <mat-expansion-panel-header class="nowrap">
         <mat-panel-title>Running</mat-panel-title>
         <mat-panel-description>{{_ng_count()}}</mat-panel-description>
     </mat-expansion-panel-header>
     <div *ngIf="_ng_running.length === 0">
-        <p class="t-small">No processes are running</p>
+        <p class="t-small nowrap">No processes are running</p>
     </div>
     <div *ngIf="_ng_running.length > 0">
         <div appTooltip [appTooltipContent]="template" [appTooltipRefreshRate]="500" class="running" *ngFor="let running of _ng_running">

@@ -13,6 +13,7 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
 
     @Input() public information: INewInformation;
     @Input() public setEnvironment: (information: INewInformation) => void;
+    @Input() public close: () => {};
 
     @ViewChild('variableAdd') _ng_variableAdd: ElementRef<HTMLInputElement>;
 
@@ -140,6 +141,11 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
                 return (env.value !== this._ng_selected.value && env.variable !== this._ng_selected.variable);
             });
         }
+    }
+
+    public _ng_onCancel() {
+        this._finishCreating(false);
+        this.close();
     }
 
     private _changeFocus(newEditEnv?: IEnvironment) {
