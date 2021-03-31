@@ -182,6 +182,9 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
                             session: this._sessionID,
                             env: environment,
                         });
+                        this.service.setPreset(this._sessionID, { env: information.env }).catch((error: Error) => {
+                            this._logger.error(error);
+                        });
                     },
                     close: () => {
                         PopupsService.remove(popupId);
