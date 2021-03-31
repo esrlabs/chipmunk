@@ -1,22 +1,31 @@
 @import '../../../../../theme/variables.less';
 
-& div.preset {
-    display: flex;
-    justify-content: space-between;
-    div.select {
-        width: 100%;
+app-sidebar-app-shell-input-preset {
+
+    & .mat-form-field-infix {
+        width: auto!important;
     }
-    div.preset-buttons {
-        margin-top: 10px;
-        margin-left: 10px;
-    }
-    & input.preset {
-        margin-top: 20px;
-        margin-bottom: 18px;
-        padding: 0;
-        border-bottom: dashed 1px @scheme-color-1;
-        flex: auto;
-        white-space: nowrap;
-        color: @scheme-color-0;
+
+    & div.preset {
+        display: flex;
+        flex-direction: row;
+        div.select {
+            width: 100%;
+            flex: auto;
+        }
+        div.preset-buttons {
+            flex: auto;
+            margin-top: 10px;
+            margin-left: 10px;
+        }
+        & input.preset {
+            margin-top: 20px;
+            margin-bottom: 18px;
+            padding: 0;
+            border-bottom: dashed 1px @scheme-color-1;
+            flex: auto;
+            white-space: nowrap;
+            color: @scheme-color-0;
+        }
     }
 }
