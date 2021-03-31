@@ -200,10 +200,6 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
                 return reject(new Error(`Range has incorrect format. Start and end shound be finite and not NaN`));
             }
-            const stored = Object.assign({}, this._state.stored);
-            if (range.start >= stored.start && range.end <= stored.end) {
-                return resolve(this._getRowsSliced(range.start, range.end + 1));
-            }
             this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
                 const packets: IRow[] = [];
                 this._parse(message.data, message.start, message.end, packets);

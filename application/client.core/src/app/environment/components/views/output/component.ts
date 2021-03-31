@@ -143,7 +143,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         const textSelection: IScrollBoxSelection | undefined = this._scrollBoxCom.getSelection();
-        const rowsSelection = OutputRedirectionsService.getSelectionRanges(this.session.getGuid());
         const contextRowNumber: number = SelectionParsersService.getContextRowNumber();
         const current: IRow | undefined = contextRowNumber !== -1 ? this._output.getRowByPosition(contextRowNumber) : undefined;
         const items: IMenuItem[] = [
@@ -153,15 +152,20 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     if (textSelection !== undefined) {
                         return this._scrollBoxCom.copySelection();
                     }
-                    if (rowsSelection !== undefined) {
-                        return this.session.getSessionStream().getRowsSelection(rowsSelection).then((rows) => {
+                    if (!OutputRedirectionsService.hasSelection(this.session.getGuid())) {
+                        return;
+                    }
+                    OutputRedirectionsService.getOutputSelectionRanges(this.session.getGuid()).then((selection) => {
+                        return this.session.getSessionStream().getRowsSelection(selection).then((rows) => {
                             copyTextToClipboard(fullClearRowStr(rows.map(row => row.str).join('\n')));
                         }).catch((err: Error) => {
-                            this._logger.warn(`Fail get text selection for range ${rowsSelection.join('; ')} due error: ${err.message}`);
+                            this._logger.warn(`Fail get text selection for range ${selection.join('; ')} due error: ${err.message}`);
                         });
-                    }
+                    }).catch((err: Error) => {
+                        this._logger.warn(`Fail to call OutputRedirectionsService.getOutputSelectionRanges due error: ${err.message}`);
+                    });
                 },
-                disabled: textSelection === undefined && rowsSelection === undefined,
+                disabled: textSelection === undefined && !OutputRedirectionsService.hasSelection(this.session.getGuid()),
             },
             { /* delimiter */ },
             {

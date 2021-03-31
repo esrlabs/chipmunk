@@ -11,7 +11,7 @@ import { CancelablePromise } from '../../../tools/promise.cancelable';
 import { EventEmitter } from 'events';
 import { OperationSearch, IMapChunkEvent } from './operation.search';
 import { OperationAppend } from './operation.append';
-import { OperationInspecting, IScaledMapData } from './operation.inspecting';
+import { OperationInspecting, IScaledMapData, IIndexAround } from './operation.inspecting';
 
 export { IMapChunkEvent };
 
@@ -228,6 +228,10 @@ export class SearchEngine extends EventEmitter {
 
     public getSearchResultMap(factor: number, details: boolean, range?: { begin: number, end: number }): IScaledMapData {
         return this._operations.inspecting.getMap(this._stream.getStreamLength(), factor, details, range);
+    }
+
+    public getIndexAround(position: number): IIndexAround {
+        return this._operations.inspecting.getIndexAround(position);
     }
 
     private _onMapUpdated(event: IMapChunkEvent) {

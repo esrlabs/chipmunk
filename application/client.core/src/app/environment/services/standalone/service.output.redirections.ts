@@ -3,7 +3,10 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Subscription } from 'rxjs';
 import { Selection, ISelectionAccessor, IRange, IRowPosition, ESource } from '../../controller/helpers/selection';
 import { Session } from '../../controller/session/session';
+import { IBookmark } from '../../controller/session/dependencies/bookmarks/controller.session.tab.stream.bookmarks';
+import { IPCMessages } from '../../services/service.electron.ipc';
 
+import ElectronIpcService from '../../services/service.electron.ipc';
 import EventsSessionService from './service.events.session';
 
 export enum EKey {
@@ -103,6 +106,11 @@ export class OutputRedirectionsService {
         return state === undefined ? false : state.selection.isSelected(position, source);
     }
 
+    public hasSelection(sessionId: string): boolean {
+        const state: IState | undefined = this._state.get(sessionId);
+        return state === undefined ? false : state.selection.getSelections().length > 0;
+    }
+
     public subscribe(sessionId: string, handler: THandler): Toolkit.Subscription {
         let handlers: Map<string, THandler> | undefined = this._subscribers.get(sessionId);
         const handlerId: string = Toolkit.guid();
@@ -142,19 +150,98 @@ export class OutputRedirectionsService {
             return Promise.resolve(this.getSelectionRanges(sessionId));
         }
         return new Promise((resolve, reject) => {
-            this._session.getSessionStream().getRowsSelection(state.selection.getSelections()).then((rows) => {
-                const selection: Selection = new Selection(rows);
-                resolve(selection.getSelections().map((range: IRange) => {
-                    const sstr: string | undefined = state.cache.get(range.start.output);
-                    const estr: string | undefined = state.cache.get(range.end.output);
-                    if (sstr === undefined || estr === undefined) {
-                        return range;
+            let bookmarks: IBookmark[] = Array.from(this._session.getBookmarks().get().values()).filter((bookmark: IBookmark) => {
+                return state.selection.isSelected(bookmark.position, ESource.search);
+            }).sort((a, b) => a.position > b.position ? 1 : -1);
+            const arounds: { [key: number]: { after: number, before: number }} = {};
+            state.selection.getSelections().forEach((range: IRange) => {
+                if (range.start.search === -1) {
+                    arounds[range.start.output] = { after: -1, before: -1 };
+                }
+                if (range.end.search === -1) {
+                    arounds[range.end.output] = { after: -1, before: -1 };
+                }
+            });
+            Promise.all(Object.keys(arounds).map((position: number | string) => {
+                return this._getIndexAround(parseInt(position as string, 10)).then((result) => {
+                    arounds[position] = result;
+                }).catch((err: Error) => {
+                    this._logger.error(`Fail to request positions in search around ${position} in stream due error: ${err.message}.`);
+                });
+            })).then(() => {
+                const ranges: IRange[] = [];
+                state.selection.getSelections().forEach((range: IRange) => {
+                    if (range.start.search === -1 && range.end.search === -1) {
+                        const start = arounds[range.start.output];
+                        const end = arounds[range.end.output];
+                        if (start.after !== -1 && end.before !== -1) {
+                            return ranges.push({
+                                start: { output: range.start.output, search: start.after },
+                                end: { output: range.end.output, search: end.before },
+                                id: Toolkit.guid(),
+                            });
+                        }
+                    } else if (range.start.search === -1) {
+                        const around = arounds[range.start.output];
+                        if (around.after !== -1) {
+                            return ranges.push({
+                                start: { output: range.start.output, search: around.after },
+                                end: { output: range.end.output, search: range.end.search },
+                                id: Toolkit.guid(),
+                            });
+                        }
+                    } if (range.end.search === -1) {
+                        const around = arounds[range.end.output];
+                        if (around.before !== -1) {
+                            return ranges.push({
+                                start: { output: range.start.output, search: range.start.search },
+                                end: { output: range.end.output, search: around.before },
+                                id: Toolkit.guid(),
+                            });
+                        }
                     } else {
-                        return Object.assign({ content: { start: sstr, end: estr }}, range);
+                        ranges.push(range);
                     }
-                }));
-            }).catch((err: Error) => {
-                reject(new Error(this._logger.error(`Fail get connect for ranges due error: ${err.message}`)));
+                });
+                this._session.getSessionStream().getRowsSelection(ranges).then((rows) => {
+                    const merged = [];
+                    rows.forEach((row) => {
+                        bookmarks = bookmarks.filter((bookmark) => {
+                            if (bookmark.position < row.positionInStream) {
+                                merged.push({
+                                    position: -1,
+                                    positionInStream: bookmark.position,
+                                    str: bookmark.str
+                                });
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        });
+                        merged.push(row);
+                    });
+                    if (bookmarks.length !== 0) {
+                        bookmarks.forEach((bookmark) => {
+                            merged.push({
+                                position: -1,
+                                positionInStream: bookmark.position,
+                                str: bookmark.str
+                            });
+                        });
+                    }
+                    const selection: Selection = new Selection(merged);
+                    resolve(selection.getSelections().map((range: IRange) => {
+                        const sstr: string | undefined = state.cache.get(range.start.output);
+                        const estr: string | undefined = state.cache.get(range.end.output);
+                        if (sstr === undefined || estr === undefined) {
+                            return range;
+                        } else {
+                            return Object.assign({ content: { start: sstr, end: estr }}, range);
+                        }
+                    }));
+                }).catch((err: Error) => {
+                    reject(new Error(this._logger.error(`Fail get connect for ranges due error: ${err.message}`)));
+                });
             });
         });
     }
@@ -208,6 +295,19 @@ export class OutputRedirectionsService {
 
     private _onGlobalKeyUp(event: KeyboardEvent) {
         this._keyHolded = undefined;
+    }
+
+    private _getIndexAround(position: number): Promise<{ after: number, before: number }> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(
+                new IPCMessages.SearchIndexAroundRequest({
+                    session: this._session.getGuid(),
+                    position: position
+                }), IPCMessages.SearchIndexAroundResponse)
+            .then((response: IPCMessages.SearchIndexAroundResponse) => {
+                resolve({ after: response.after, before: response.before });
+            }).catch(reject);
+        });
     }
 
 }
