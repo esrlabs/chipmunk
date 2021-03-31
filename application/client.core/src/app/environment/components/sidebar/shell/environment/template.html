@@ -6,6 +6,7 @@
         </tr>
         <tr *ngFor="let environment of information.env" (click)="_ng_onClick(environment)" [attr.class]="_ng_selected === environment ? 'selected' : ''">
             <td (dblclick)="_ng_onDoubleClick(environment, _ng_variable)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_variable)">
+                <span *ngIf="environment.custom && !environment.editing.variable && !environment.editing.value">*</span>
                 <span *ngIf="!environment.editing.variable" class="env white">{{environment.variable}}</span>
                 <input *ngIf="environment.editing.variable"
                        matInput
@@ -34,7 +35,7 @@
                 <input matInput
                        class="edit"
                        (keyup)="_ng_onKeyUp($event)"
-                       [(ngModel)]="_ng_newPath"/>                
+                       [(ngModel)]="_ng_newValue"/>                
             </td>
         </tr>
     </table>
