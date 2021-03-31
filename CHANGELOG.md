@@ -1,9 +1,11 @@
 # Changelog
 
-### [2.15.6] - 03/31/2021
+## [2.15.6] - 03/31/2021
+### Fixed
 * Prevent scaling search results without active filters
-* Clean text selection on range selection (#1135)
-* Include bookmarks into selection (close #1135)
+* Include bookmarks into selection
+### Changed
+* Clean text selection on range selection
 
 ## [2.15.5] - 03/26/2021
 ### Added
