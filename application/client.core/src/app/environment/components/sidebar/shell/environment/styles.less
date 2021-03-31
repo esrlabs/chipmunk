@@ -1,47 +1,51 @@
 @import '../../../../theme/variables.less';
 
-& .mat-stroked-button {
-    position: relative;
-    float: right;
-    margin: 6px;
-}
+:host {
 
-& div.listed {
-    color: @scheme-color-1;
-    & table {
-        width: 100%;
-        height: 100%;
-        overflow-y: scroll;
-        overflow-x: hidden;
-        display: block;
-        & th {
-            padding-left: 7px;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: @scheme-color-5;
-            border-bottom: 1px solid @scheme-color-1;
-        }
-        & tr.selected {
-            background-color: @scheme-color-3;
-        }
-        & td {
-            width: 50%;
-            & span.env {
-                flex: auto;
-                word-break: break-all;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                color: @scheme-color-0;
-                cursor: default;
+    & .mat-stroked-button {
+        position: relative;
+        float: right;
+        margin: 6px;
+    }
+    
+    & div.listed {
+        color: @scheme-color-1;
+        & table {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            display: block;
+            & th {
+                padding-left: 7px;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                background: @scheme-color-5;
+                border-bottom: 1px solid @scheme-color-1;
             }
-            & input.edit {
-                padding: 0;
-                border-bottom: dashed 1px @scheme-color-1;
-                flex: auto;
-                white-space: nowrap;
-                color: @scheme-color-0;
+            & tr.selected {
+                background-color: @scheme-color-3;
+            }
+            & td {
+                width: 50%;
+                & span.env {
+                    flex: auto;
+                    word-break: break-all;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    color: @scheme-color-0;
+                    cursor: default;
+                }
+                & input.edit {
+                    padding: 0;
+                    border-bottom: dashed 1px @scheme-color-1;
+                    flex: auto;
+                    white-space: nowrap;
+                    color: @scheme-color-0;
+                }
             }
         }
     }
+
 }
