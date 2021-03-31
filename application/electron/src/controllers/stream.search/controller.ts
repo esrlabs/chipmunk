@@ -383,10 +383,17 @@ export default class ControllerStreamSearch {
         if (message.streamId !== this._state.getGuid()) {
             return;
         }
-        response(new IPC.SearchResultMapResponse({
-            streamId: this._state.getGuid(),
-            scaled: this._searching.getSearchResultMap(message.scale, message.details, message.range),
-        }));
+        if (!this._state.hasActiveRequests()) {
+            response(new IPC.SearchResultMapResponse({
+                streamId: this._state.getGuid(),
+                scaled: { map: {}, stats: {} },
+            }));
+        } else {
+            response(new IPC.SearchResultMapResponse({
+                streamId: this._state.getGuid(),
+                scaled: this._searching.getSearchResultMap(message.scale, message.details, message.range),
+            }));
+        }
     }
 
     private _ipc_onSearchIndexAroundRequest(message: IPC.SearchIndexAroundRequest, response: (isntance: IPC.SearchIndexAroundResponse) => any) {
