@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { copy } from '../../../../../../../../../client.libs/chipmunk.client.toolkit/src/tools/tools.object';
 import { IPreset } from '../../../../../../../../../common/ipc/electron.ipc.messages';
@@ -14,7 +14,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-sidebar-app-shell-input-preset',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 
 export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
