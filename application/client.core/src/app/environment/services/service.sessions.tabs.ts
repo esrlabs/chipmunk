@@ -427,14 +427,14 @@ export class TabsSessionsService implements IService {
         if (session === undefined) {
             return;
         }
-        const selection = OutputRedirectionsService.getSelectionRanges(session.getGuid());
-        if (selection === undefined) {
-            return;
-        }
-        session.getSessionStream().getRowsSelection(selection).then((rows) => {
-            copyTextToClipboard(fullClearRowStr(rows.map(row => row.str).join('\n')));
+        OutputRedirectionsService.getOutputSelectionRanges(session.getGuid()).then((selection) => {
+            return session.getSessionStream().getRowsSelection(selection).then((rows) => {
+                copyTextToClipboard(fullClearRowStr(rows.map(row => row.str).join('\n')));
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail get text selection for range ${selection.join('; ')} due error: ${err.message}`);
+            });
         }).catch((err: Error) => {
-            this._logger.warn(`Fail get text selection for range ${selection.join('; ')} due error: ${err.message}`);
+            this._logger.warn(`Fail to call OutputRedirectionsService.getOutputSelectionRanges due error: ${err.message}`);
         });
     }
 

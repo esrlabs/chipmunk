@@ -24,6 +24,11 @@ export interface IScaledMapData {
     stats: { [key: string]: number };
 }
 
+export interface IIndexAround {
+    before: number;
+    after: number;
+}
+
 type THandler = () => void;
 
 export class OperationInspecting extends EventEmitter {
@@ -43,9 +48,13 @@ export class OperationInspecting extends EventEmitter {
     private _cached: {
         hash: string;
         cache: IScaledMapData | undefined;
+        lines: number[];
+        sorted: boolean;
     } = {
         hash: '',
         cache: undefined,
+        lines: [],
+        sorted: false,
     };
 
     constructor(streamGuid: string, streamFile: string, searchFile: string) {
@@ -165,6 +174,12 @@ export class OperationInspecting extends EventEmitter {
                 this._readTo = 0;
                 this._readFrom = 0;
                 this._inspected = { map: {}, stats: {} };
+                this._cached = {
+                    hash: '',
+                    cache: undefined,
+                    lines: [],
+                    sorted: false,
+                };
                 resolve();
             });
         });
@@ -278,8 +293,53 @@ export class OperationInspecting extends EventEmitter {
         return scaled;
     }
 
+    public getIndexAround(position: number): IIndexAround {
+        if (!this._cached.sorted) {
+            this._cached.lines = this._cached.lines.sort((a, b) => {
+                return a > b ? 1 : -1;
+            }).filter((item, pos, ary) => {
+                return !pos || item !== ary[pos - 1];
+            });
+        }
+        const luckyIndex: number = this._cached.lines.indexOf(position);
+        if (luckyIndex !== -1) {
+            return { before: luckyIndex, after: luckyIndex };
+        }
+        let diff: number = Infinity;
+        let index: number = -1;
+        for (let i = this._cached.lines.length - 1; i >= 0; i -= 1) {
+            if (Math.abs(this._cached.lines[i] - position) < diff) {
+                index = i;
+                diff = Math.abs(this._cached.lines[i] - position);
+            }
+        }
+        if (index === -1) {
+            return { before: -1, after: -1 };
+        } else if (index === 0) {
+            if (position < this._cached.lines[index]) {
+                return { before: -1, after: index };
+            } else {
+                return { before: index, after: index + 1 <= this._cached.lines.length - 1 ? index + 1 : -1 };
+            }
+        } else if (index === this._cached.lines.length - 1) {
+            if (position < this._cached.lines[index]) {
+                return { before: index - 1 >= 0 ? index - 1 : -1, after: index };
+            } else {
+                return { before: index, after: -1 };
+            }
+        } else {
+            if (position < this._cached.lines[index]) {
+                return { before: index - 1 >= 0 ? index - 1 : -1, after: index };
+            } else {
+                return { before: index, after: index + 1 <= this._cached.lines.length - 1 ? index + 1 : -1 };
+            }
+        }
+    }
+
     private _store(request: string, matches: number[]) {
         const measurePostProcessing = this._logger.measure(`mapping "${request}"`);
+        this._cached.lines = this._cached.lines.concat(matches);
+        this._cached.sorted = false;
         this._inspected.stats[request] = this._inspected.stats[request] === undefined ? 0 : this._inspected.stats[request];
         this._inspected.stats[request] += matches.length;
         matches.forEach((line: number) => {

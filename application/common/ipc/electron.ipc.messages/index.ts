@@ -202,6 +202,13 @@ export { ISearchRecentAddRequest, SearchRecentAddRequest };
 import { ISearchRecentAddResponse, SearchRecentAddResponse } from './search.recent.add.response';
 export { ISearchRecentAddResponse, SearchRecentAddResponse };
 
+import { ISearchIndexAroundRequest, SearchIndexAroundRequest } from './search.index.around.request';
+export { ISearchIndexAroundRequest, SearchIndexAroundRequest };
+
+import { ISearchIndexAroundResponse, SearchIndexAroundResponse } from './search.index.around.response';
+export { ISearchIndexAroundResponse, SearchIndexAroundResponse };
+
+
 import { IFileGetOptionsRequest, FileGetOptionsRequest } from './file.getoptions.request';
 export { IFileGetOptionsRequest, FileGetOptionsRequest };
 
@@ -722,6 +729,8 @@ export type TMessage =  AppRestartRequest |
                         SearchRecentClearResponse |
                         SearchRecentAddRequest |
                         SearchRecentAddResponse |
+                        SearchIndexAroundRequest | 
+                        SearchIndexAroundResponse |
                         FileOpenDoneEvent |
                         FileOpenInprogressEvent |
                         FileReadRequest |
@@ -947,6 +956,8 @@ export const Map = {
     [SearchRecentClearResponse.signature        ]: SearchRecentClearResponse,
     [SearchRecentAddRequest.signature           ]: SearchRecentAddRequest,
     [SearchRecentAddResponse.signature          ]: SearchRecentAddResponse,
+    [SearchIndexAroundRequest.signature         ]: SearchIndexAroundRequest,
+    [SearchIndexAroundResponse.signature        ]: SearchIndexAroundResponse,
 
     [FileOpenDoneEvent.signature                ]: FileOpenDoneEvent,
     [FileOpenInprogressEvent.signature          ]: FileOpenInprogressEvent,

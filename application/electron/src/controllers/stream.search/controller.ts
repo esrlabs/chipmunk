@@ -66,6 +66,11 @@ export default class ControllerStreamSearch {
         }).catch((error: Error) => {
             this._logger.warn(`Fail to subscribe to render event "SearchResultMapRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
         });
+        ServiceElectron.IPC.subscribe(IPC.SearchIndexAroundRequest, this._ipc_onSearchIndexAroundRequest.bind(this) as any).then((subscription: Subscription) => {
+            this._subscriptions.SearchIndexAroundRequest = subscription;
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to subscribe to render event "SearchIndexAroundRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
+        });
     }
 
     public destroy(): Promise<void> {
@@ -381,6 +386,17 @@ export default class ControllerStreamSearch {
         response(new IPC.SearchResultMapResponse({
             streamId: this._state.getGuid(),
             scaled: this._searching.getSearchResultMap(message.scale, message.details, message.range),
+        }));
+    }
+
+    private _ipc_onSearchIndexAroundRequest(message: IPC.SearchIndexAroundRequest, response: (isntance: IPC.SearchIndexAroundResponse) => any) {
+        if (message.session !== this._state.getGuid()) {
+            return;
+        }
+        const around = this._searching.getIndexAround(message.position);
+        response(new IPC.SearchIndexAroundResponse({
+            after: around.after,
+            before: around.before,
         }));
     }
 
