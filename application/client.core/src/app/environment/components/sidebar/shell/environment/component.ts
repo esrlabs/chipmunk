@@ -21,7 +21,6 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
     public readonly _ng_value: string = 'value';
     public _ng_selected: IEnvironment;
     public _ng_adding: boolean = false;
-    public _ng_canSave = false;
     public _ng_height: number = 200;
     public _ng_newVariable: string = '';
     public _ng_newPath: string = '';
@@ -71,7 +70,6 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
                         return ngEnv.variable !== env.variable && ngEnv.value !== env.value;
                     });
                 },
-                disabled: env.custom ? false : true,
             },
         ];
         ContextMenuService.show({
@@ -83,7 +81,6 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
 
     public _ng_onKeyUp(event: KeyboardEvent) {
         if (event.key !== 'Enter') {
-            this._ng_canSave = this._isEdited();
             return;
         }
         this._finishCreating(true);
@@ -93,7 +90,6 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
                 variable: false
             };
         }
-        this._ng_canSave = false;
     }
 
     public _ng_onClick(env: IEnvironment) {
@@ -124,15 +120,6 @@ export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
         if (this._ng_variableAdd !== undefined) {
             this._ng_variableAdd.nativeElement.scrollIntoView();
         }
-    }
-
-    public _ng_saveChanges() {
-        this._ng_canSave = false;
-        if (this._editing !== undefined) {
-            this._editing.editing.value = false;
-            this._editing.editing.variable = false;
-        }
-        this._finishCreating(true);
     }
 
     public _ng_remove() {

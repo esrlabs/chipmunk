@@ -6,7 +6,7 @@
         </tr>
         <tr *ngFor="let environment of information.env" (click)="_ng_onClick(environment)" [attr.class]="_ng_selected === environment ? 'selected' : ''">
             <td (dblclick)="_ng_onDoubleClick(environment, _ng_variable)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_variable)">
-                <span *ngIf="!environment.editing.variable" class="env">{{environment.variable}}</span>
+                <span *ngIf="!environment.editing.variable" class="env white">{{environment.variable}}</span>
                 <input *ngIf="environment.editing.variable"
                        matInput
                        class="edit"
@@ -14,7 +14,7 @@
                        [(ngModel)]="environment.variable"/>
             </td>
             <td (dblclick)="_ng_onDoubleClick(environment, _ng_value)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_value)">
-                <span *ngIf="!environment.editing.value" class="env">{{environment.value}}</span>
+                <span *ngIf="!environment.editing.value" [attr.class]="'env ' + (_ng_selected === environment ? 'white' : 'grey')">{{environment.value}}</span>
                 <input *ngIf="environment.editing.value"
                        matInput
                        class="edit"
@@ -41,7 +41,6 @@
 </div>
 <div>
     <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
-    <button mat-stroked-button color="primary" [disabled]="!_ng_canSave" (click)="_ng_saveChanges()">Save Changes</button>
+    <button mat-stroked-button color="primary" [disabled]="!(_ng_selected !== undefined)" (click)="_ng_remove()">Remove</button>
     <button mat-stroked-button color="primary" [disabled]="_ng_adding" (click)="_ng_add()">Add</button>
-    <button mat-stroked-button color="primary" [disabled]="!(_ng_selected !== undefined && _ng_selected.custom)" (click)="_ng_remove()">Remove</button>
 </div>
