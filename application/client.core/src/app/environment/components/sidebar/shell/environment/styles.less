@@ -16,6 +16,7 @@
             overflow-y: scroll;
             overflow-x: hidden;
             display: block;
+            border-spacing: 0px;
             & th {
                 padding-left: 7px;
                 position: sticky;
@@ -29,13 +30,19 @@
             }
             & td {
                 width: 50%;
+                vertical-align: top;
                 & span.env {
                     flex: auto;
                     word-break: break-all;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    color: @scheme-color-0;
                     cursor: default;
+                }
+                & span.white {
+                    color: @scheme-color-0;
+                }
+                & span.grey {
+                    color: @scheme-color-3;
                 }
                 & input.edit {
                     padding: 0;
