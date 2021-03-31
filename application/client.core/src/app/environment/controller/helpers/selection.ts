@@ -64,6 +64,9 @@ export class Selection implements ISelectionAccessor {
             }
             this._addRowsRange(from, to);
         }
+        if (to !== undefined || this._selection.size > 1) {
+            window.getSelection().removeAllRanges();
+        }
         this._prev = current;
     }
 

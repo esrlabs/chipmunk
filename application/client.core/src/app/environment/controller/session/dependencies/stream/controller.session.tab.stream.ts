@@ -81,6 +81,9 @@ export class ControllerSessionTabStream implements Dependency {
 
     public getRowsSelection(ranges: IRange[]): Promise<IRow[]> {
         return new Promise((resolve, reject) => {
+            if (ranges.length === 0) {
+                return resolve([]);
+            }
             let packets: IRow[] = [];
             Toolkit.sequences(ranges.map((range: IRange) => {
                 return () => {
