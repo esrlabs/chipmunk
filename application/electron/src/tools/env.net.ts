@@ -5,9 +5,16 @@ import * as fs from 'fs';
 
 import ServiceNetwork from '../services/service.network';
 import ServiceEnv from '../services/service.env';
+import ServicePackage from '../services/service.package';
 
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+
+const USER_AGENT_HEADER = 'User-Agent';
+
+function getUserAgent(): string {
+    return `Chipmunk@${ServicePackage.get().version}`;
+}
 
 function getProxyURI(uri: url.URL): string | undefined {
     const proxy = ServiceNetwork.getSettings().proxy;
@@ -21,11 +28,6 @@ function getProxyURI(uri: url.URL): string | undefined {
 		return env.HTTPS_PROXY || env.https_proxy || env.HTTP_PROXY || env.http_proxy || undefined;
 	}
 	return undefined;
-}
-
-export interface IOptions {
-	proxyUrl?: string;
-	strictSSL?: boolean;
 }
 
 export function getProxyAgent(uri: url.URL): http.Agent | https.Agent | undefined {
@@ -54,6 +56,9 @@ export function getRequestOptions(uri: url.URL, type: string = 'GET', headers: {
     };
     // TODO: Include into settings
     const auth = ServiceNetwork.getSettings().auth;
+    if (headers[USER_AGENT_HEADER] === undefined) {
+        headers[USER_AGENT_HEADER] = getUserAgent();
+    }
     return {
         agent: getProxyAgent(uri),
         headers: (typeof auth === 'string' && auth.trim() !== '') ? {
@@ -74,17 +79,17 @@ type TFileName = string;
 
 export function download(uri: string, filename: TFileName): Promise<TFileName> {
     return new Promise((resolve, reject) => {
-        const _url = url.parse(uri);
-        if (_url === undefined || _url.protocol === undefined || _url.protocol === null) {
+        const link = new url.URL(uri);
+        if (link.protocol === undefined || link.protocol === null) {
             return reject(new Error(`Not valid url: ${uri}`));
         }
-        const protocol = _url.protocol.slice(0, -1);
+        const protocol = link.protocol.slice(0, -1);
         const transport = {
             http: http,
             https: https,
         };
         (transport as any)[protocol]
-            .get(uri, (response: http.IncomingMessage) => {
+            .get(uri, getRequestOptions(link), (response: http.IncomingMessage) => {
                 if (
                     response.statusCode !== undefined &&
                     response.statusCode >= 200 &&
@@ -116,7 +121,7 @@ export function download(uri: string, filename: TFileName): Promise<TFileName> {
     });
 }
 
-export function getRaw(uri: string): Promise<string> {
+export function getRaw(uri: string, headers: { [key: string]: string } = {}): Promise<string> {
     return new Promise((resolve, reject) => {
         const link = new url.URL(uri);
         if (link.protocol === undefined || link.protocol === null) {
@@ -128,7 +133,7 @@ export function getRaw(uri: string): Promise<string> {
             https: https,
         };
         (transport as any)[protocol]
-            .get(uri, getRequestOptions(link), (response: http.IncomingMessage) => {
+            .get(uri, getRequestOptions(link, 'GET', headers), (response: http.IncomingMessage) => {
                 if (
                     response.statusCode !== undefined &&
                     response.statusCode >= 200 &&
