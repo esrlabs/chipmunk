@@ -1,5 +1,19 @@
 # Changelog
 
+### [2.16.0] - 04/02/2021
+* [#1100](refact) Add * to edited and restore env
+* [#1100](refact) Environment table adjustments
+* [#1100](refact) Adjust icon position
+* [#1100](refact) Put styles in "host"
+* [#1100](refact) Adjust preset remove element
+* [#1100](refact) Apply style changes
+* [#1100](fix) Prepare presets
+* [#1100](refact) Change environment style
+* [#1100](refact) Change icon color
+* [#1100](feat) Set pwd
+* [#1100](feat) Preset feature
+* [#1100](refact) #1
+
 ## [2.15.6] - 03/31/2021
 ### Fixed
 * Prevent scaling search results without active filters
