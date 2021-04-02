@@ -33,7 +33,7 @@ export interface IReleaseAsset {
     name: string;
     url: string;
 }
-
+// curl -H "Accept: application/vnd.github.v3+json"  https://api.github.com/repos/esrlabs/chipmunk/releases/latest
 export interface IReleaseData {
     assets: IReleaseAsset[];
     map?: Map<string, GitHubAsset>;

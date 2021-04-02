@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "esModuleInterop": true,
     "types": ["node"],
     "outDir": "./dist/compiled/",
     "sourceMap": true,

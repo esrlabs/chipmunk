@@ -1,5 +1,5 @@
 import Logger from '../tools/env.logger';
-import { getEnvVar } from 'chipmunk.shell.env';
+import { getEnvVar, getEnvVars } from 'chipmunk.shell.env';
 
 import { IService } from '../interfaces/interface.service';
 // TODO:
@@ -161,6 +161,7 @@ class ServiceEnv implements IService {
         CHIPMUNK_PLUGINS_NO_UPGRADE: undefined,
         CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID: undefined,
     };
+    private _os: typeof process.env = process.env;
 
     /**
      * Initialization function
@@ -203,7 +204,11 @@ class ServiceEnv implements IService {
                 this._logger.debug(`Next env vars are detected:\n${list.map((env: string) => {
                     return `\t${env}=${(this._env as any)[env]}`;
                 }).join('\n')}`);
-                resolve();
+                getEnvVars().then((vars) => {
+                    this._os = vars;
+                }).catch((err: Error) => {
+                    this._logger.warn(`Fail get all envvars due error: ${err.message}`);
+                }).finally(resolve);
             });
         });
     }
@@ -220,6 +225,10 @@ class ServiceEnv implements IService {
 
     public get(): IChipmunkEnvVars {
         return Object.assign({}, this._env);
+    }
+
+    public getOS(): typeof process.env {
+        return this._os;
     }
 }
 

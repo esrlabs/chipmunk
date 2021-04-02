@@ -93,6 +93,8 @@
         "fswin": "^3.19.908",
         "github-releases": "^0.4.2",
         "glob": "^7.1.6",
+        "http-proxy-agent": "^4.0.1",
+        "https-proxy-agent": "^5.0.0",
         "moment-timezone": "^0.5.25",
         "ncp": "^2.0.0",
         "semver": "^7.1.3",
