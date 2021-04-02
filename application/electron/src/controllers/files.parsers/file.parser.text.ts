@@ -1,7 +1,7 @@
 import { AFileParser, IMapItem } from "./interface";
 
 import * as path from "path";
-import * as ft from "file-type";
+import ft from "file-type";
 import * as fs from "fs";
 import * as Tools from "../../tools/index";
 

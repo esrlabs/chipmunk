@@ -1,5 +1,5 @@
 import * as path from 'path';
-import * as glob from 'glob';
+import glob from 'glob';
 
 import ServiceElectron from '../service.electron';
 import Logger from '../../tools/env.logger';
