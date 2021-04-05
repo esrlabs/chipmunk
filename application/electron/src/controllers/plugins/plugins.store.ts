@@ -281,9 +281,9 @@ export default class ControllerPluginStore {
                 if (asset === undefined) {
                     return reject(new Error(this._logger.warn(`Fail to find "${filename}" in assets of latest release.`)));
                 }
-                asset.get().then((buf: Buffer) => {
+                asset.raw().then((raw: string) => {
                     try {
-                        const list: CommonInterfaces.Plugins.IPlugin[] = JSON.parse(buf.toString());
+                        const list: CommonInterfaces.Plugins.IPlugin[] = JSON.parse(raw);
                         if (!(list instanceof Array)) {
                             return reject(new Error(this._logger.warn(`Incorrect format of asseets`)));
                         }

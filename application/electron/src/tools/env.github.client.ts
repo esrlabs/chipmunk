@@ -8,23 +8,23 @@ import Logger from '../tools/env.logger';
 import guid from '../tools/tools.guid';
 import ServicePaths from '../services/service.paths';
 
-// tslint:disable-next-line:no-var-requires
-const GitHub: any = require('github-releases');
+import { getRaw, download } from './env.net';
 
 const CSettings: {
-    user: string,
+    user: string;
+    uri: string;
 } = {
     user: 'esrlabs',
+    uri: 'https://api.github.com/repos/',
 };
 
 export interface IGitHubOptions {
     user?: string;
-    token?: string;
     repo: string;
 }
 
 export interface IAssetOptions {
-    version: string;
+    version?: string;
     name: string;
     dest: string;
 }
@@ -32,8 +32,9 @@ export interface IAssetOptions {
 export interface IReleaseAsset {
     name: string;
     url: string;
+    browser_download_url: string;
 }
-// curl -H "Accept: application/vnd.github.v3+json"  https://api.github.com/repos/esrlabs/chipmunk/releases/latest
+
 export interface IReleaseData {
     assets: IReleaseAsset[];
     map?: Map<string, GitHubAsset>;
@@ -44,59 +45,33 @@ export interface IReleaseData {
 export class GitHubAsset {
 
     private _asset: IReleaseAsset;
-    private _client: () => any;
+    private _logger: Logger;
 
-    constructor(asset: IReleaseAsset, client: () => any) {
+    constructor(asset: IReleaseAsset) {
         this._asset = asset;
-        this._client = client;
+        this._logger = new Logger(`Asset: ${this._asset.name}`);
     }
 
     public desc(): IReleaseAsset {
         return this._asset;
     }
 
-    public get(): Promise<Buffer> {
+    public raw(): Promise<string> {
         return new Promise((resolve, reject) => {
-            this._client().downloadAsset(this._asset, (downloadAssetError: Error | null | undefined, reader: fs.ReadStream) => {
-                if (downloadAssetError) {
-                    return reject(downloadAssetError);
-                }
-                const chunks: Buffer[] = [];
-                let error: Error | undefined;
-                reader.on('error', (err: Error) => {
-                    error = err;
-                    reject(error);
-                });
-                reader.on('data', (chunk: Buffer) => {
-                    chunks.push(chunk);
-                });
-                reader.on('end', () => {
-                    if (error) {
-                        return;
-                    }
-                    const content = Buffer.concat(chunks);
-                    resolve(content);
-                });
+            getRaw(this._asset.browser_download_url).then((raw: string) => {
+                resolve(raw);
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.error(`Fail to read asset due error: ${err.message}`)));
             });
         });
     }
 
-    public download(dest: string): Promise<string> {
+    public saveTo(dest: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            this._client().downloadAsset(this._asset, (downloadAssetError: Error | null | undefined, reader: fs.ReadStream) => {
-                if (downloadAssetError) {
-                    return reject(downloadAssetError);
-                }
-                // Create writer stream
-                const writer: fs.WriteStream = fs.createWriteStream(dest);
-                // Attach listeners
-                reader.on('error', reject);
-                writer.on('error', reject);
-                writer.on('close', () => {
-                    resolve(dest);
-                });
-                // Pipe
-                reader.pipe(writer);
+            download(this._asset.browser_download_url, dest).then((raw: string) => {
+                resolve(raw);
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.error(`Fail to download asset due error: ${err.message}`)));
             });
         });
     }
@@ -108,65 +83,67 @@ export class GitHubClient {
 
     public getLatestRelease(opt: IGitHubOptions): Promise<IReleaseData> {
         return new Promise((resolve, reject) => {
-            const github = this._getGithubClient(opt);
-            if (github instanceof Error) {
-                return reject(github);
-            }
-            github.callRepoApi('releases/latest', (error: Error | null, release: IReleaseData) => {
-                if (error) {
-                    return reject(error);
+            getRaw(`${CSettings.uri}${opt.user !== undefined ? opt.user : CSettings.user}/${opt.repo}/releases/latest`, {
+                'Accept': 'application/vnd.github.v3+json',
+            }).then((raw: string) => {
+                try {
+                    const release = JSON.parse(raw);
+                    if (release.assets instanceof Array) {
+                        release.map = new Map();
+                        release.assets.forEach((asset: IReleaseAsset) => {
+                            this._logger.debug(`Found asset for release: ${asset.name}`);
+                            release.map?.set(asset.name, new GitHubAsset(asset));
+                        });
+                    }
+                    resolve(release);
+                } catch (e) {
+                    reject(new Error(this._logger.error(`Fail parse releases list due error: ${e.message}`)));
                 }
-                if (typeof release !== 'object' || release === null) {
-                    return reject(new Error(`Unexpected format of release: ${util.inspect(release)}`));
-                }
-                if (release.assets instanceof Array) {
-                    release.map = new Map();
-                    release.assets.forEach((asset: IReleaseAsset) => {
-                        this._logger.debug(`Found asset for release: ${asset.name}`);
-                        release.map?.set(asset.name, new GitHubAsset(asset, this._getGithubClient.bind(this, opt)));
-                    });
-                }
-                resolve(release);
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.error(`Fail get releases list due error: ${err.message}`)));
             });
         });
     }
 
-    public getAllReleases(opt: IGitHubOptions): Promise<IReleaseData[]> {
+    public getReleases(opt: IGitHubOptions, filter?: { tag?: string }): Promise<IReleaseData[]> {
         return new Promise((resolve, reject) => {
-            const github = this._getGithubClient(opt);
-            if (github instanceof Error) {
-                return reject(github);
+            let uri: string = `${CSettings.uri}${opt.user !== undefined ? opt.repo : CSettings.user}/${opt.repo}/releases`;
+            if (filter !== undefined) {
+                if (filter.tag !== undefined) {
+                    uri += `/tags/${filter.tag}`;
+                }
             }
-            github.getReleases({}, (error: Error | null, releases: IReleaseData[]) => {
-                if (error) {
-                    return reject(error);
+            getRaw(uri, {
+                'Accept': 'application/vnd.github.v3+json',
+            }).then((raw: string) => {
+                try {
+                    let releases = JSON.parse(raw);
+                    if (!(releases instanceof Array) && typeof releases === 'object' && releases !== null) {
+                        releases = [releases];
+                    }
+                    if (!(releases instanceof Array)) {
+                        reject(new Error(`Unexpected format of releases list: ${util.inspect(releases)}`));
+                    } else {
+                        resolve(releases);
+                    }
+                } catch (e) {
+                    reject(new Error(this._logger.error(`Fail parse releases list due error: ${e.message}`)));
                 }
-                if (!(releases instanceof Array)) {
-                    return reject(new Error(`Unexpected format of releases list: ${util.inspect(releases)}`));
-                }
-                resolve(releases);
+            }).catch((err: Error) => {
+                reject(new Error(this._logger.error(`Fail get releases list due error: ${err.message}`)));
             });
         });
     }
 
     public download(opt: IGitHubOptions, asset: IAssetOptions): Promise<string> {
         return new Promise((resolve, reject) => {
-            // Create transport
-            const github = this._getGithubClient(opt);
-            if (github instanceof Error) {
-                return reject(github);
-            }
             const output = path.resolve(asset.dest, asset.name);
             // Check: does already exist
             if (fs.existsSync(output)) {
                 return resolve(output);
             }
             const tmp = path.resolve(ServicePaths.getTmp(), guid());
-            // Downloading
-            github.getReleases({ tag_name: asset.version }, (getReleaseError: Error | null | undefined, releases: any[]) => {
-                if (getReleaseError) {
-                    return reject(getReleaseError);
-                }
+            this.getReleases(opt, asset.version !== undefined ? { tag: asset.version } : undefined).then((releases: IReleaseData[]) => {
                 // Find neccessary asset
                 const last = releases[0];
                 const target = last.assets.find((_: any) => _.name === asset.name);
@@ -174,45 +151,25 @@ export class GitHubClient {
                     return reject(new Error(`No asset named ${asset.name} found`));
                 }
                 // Download asset
-                github.downloadAsset(target, (downloadAssetError: Error | null | undefined, reader: fs.ReadStream) => {
-                    if (downloadAssetError) {
-                        return reject(downloadAssetError);
-                    }
-                    // Create writer stream
-                    const writer: fs.WriteStream = fs.createWriteStream(tmp);
-                    // Attach listeners
-                    reader.on('error', reject);
-                    writer.on('error', reject);
-                    writer.on('close', () => {
-                        fs.copyFile(tmp, output, (copyErr: NodeJS.ErrnoException | null) => {
-                            if (copyErr) {
-                                reject(new Error(this._logger.warn(`Fail copy file "${tmp}" to "${output}" due error: ${copyErr.message}`)));
+                download(target.browser_download_url, tmp).then((filename: string) => {
+                    fs.copyFile(tmp, output, (copyErr: NodeJS.ErrnoException | null) => {
+                        if (copyErr) {
+                            reject(new Error(this._logger.warn(`Fail copy file "${tmp}" to "${output}" due error: ${copyErr.message}`)));
+                        }
+                        fs.unlink(tmp, (rmErr: NodeJS.ErrnoException | null) => {
+                            if (rmErr) {
+                                this._logger.warn(`Fail remove file "${tmp}" due error: ${rmErr.message}`);
                             }
-                            fs.unlink(tmp, (rmErr: NodeJS.ErrnoException | null) => {
-                                if (rmErr) {
-                                    this._logger.warn(`Fail remove file "${tmp}" due error: ${rmErr.message}`);
-                                }
-                                resolve(output);
-                            });
+                            resolve(output);
                         });
                     });
-                    // Pipe
-                    reader.pipe(writer);
+                }).catch((err: Error) => {
+                    reject(new Error(`Fail to download asset ${target.browser_download_url} to ${tmp} due error: ${err.message}`));
                 });
+            }).catch((err: Error) => {
+                reject(new Error(`Fail to get releases due error: ${err.message}`));
             });
         });
-    }
-
-    private _getGithubClient(opt: IGitHubOptions): any | Error {
-        try {
-            return new GitHub({
-                user: opt.user !== undefined ? opt.user : CSettings.user,
-                repo: opt.repo,
-                token: opt.token,
-            });
-        } catch (e) {
-            return new Error(this._logger.error(`Fail to create github client due error: ${e.message}`));
-        }
     }
 
 }
