@@ -145,6 +145,10 @@ export function getRaw(uri: string, headers: { [key: string]: string } = {}): Pr
                     response.on('end', () => {
                         resolve(raw);
                     });
+                } else if (response.headers.location) {
+                    getRaw(response.headers.location)
+                        .then(resolve)
+                        .catch(reject);
                 } else {
                     reject(new Error(response.statusCode + ' ' + response.statusMessage));
                 }

@@ -91,7 +91,6 @@
         "dltreader": "latest",
         "file-type": "^12.2.0",
         "fswin": "^3.19.908",
-        "github-releases": "^0.4.2",
         "glob": "^7.1.6",
         "http-proxy-agent": "^4.0.1",
         "https-proxy-agent": "^5.0.0",

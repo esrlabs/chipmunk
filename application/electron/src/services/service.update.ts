@@ -123,9 +123,9 @@ class ServiceUpdate implements IService {
         }
         if (!ServiceProduction.isProduction()) {
             // In dev mode do not check for updates
-            return;
+            //return;
         }
-        GitHubClient.getAllReleases({ repo: CSettings.repo }).then((releases: IReleaseData[]) => {
+        GitHubClient.getReleases({ repo: CSettings.repo }).then((releases: IReleaseData[]) => {
             const current: string | undefined = ServicePackage.get().version;
             if (typeof current !== 'string' || current.trim() === '') {
                 return this._logger.warn(`Fail to detect version of current app.`);
