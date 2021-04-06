@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { copy } from '../../../../../../../../../client.libs/chipmunk.client.toolkit/src/tools/tools.object';
-import { IPreset } from '../../../../../../../../../common/ipc/electron.ipc.messages';
+import { IEnvironment, IPreset } from '../../../../../../../../../common/ipc/electron.ipc.messages';
 import { ShellService } from '../../services/service';
 import { Session } from '../../../../../controller/session/session';
 import { pairwise, startWith } from 'rxjs/operators';
@@ -58,6 +58,14 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
             ([ prev, curr ]) => {
                 if (curr.title === this.service.saveAs) {
                     this._ng_add = true;
+                }
+                if (curr !== undefined && curr.title !== this.service.saveAs) {
+                    this.service.setEnv({
+                        session: this._sessionID,
+                        env: Object.assign({}, ...(curr.information.env.map((item: IEnvironment) => ({ [item.variable]: item.value })))),
+                    }).catch((error: string) => {
+                        this._logger.error(error);
+                    });
                 }
                 if (prev !== undefined && prev.title !== this.service.saveAs) {
                     this._prevSelected = prev;
@@ -141,12 +149,6 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
     }
 
     private _onRestored() {
-        this.service.setEnv({
-            session: this._sessionID,
-            env: Object.assign({}, ...(this.service.selectedPreset.information.env.map(item => ({ [item.variable]: item.value })))),
-        }).catch((error: string) => {
-            this._logger.error(error);
-        });
         this._ng_control.setValue(this.service.selectedPreset);
         this._prevSelected = this.service.selectedPreset;
     }
