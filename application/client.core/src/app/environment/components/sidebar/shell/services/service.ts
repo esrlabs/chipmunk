@@ -263,7 +263,7 @@ export class ShellService {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(new IPCMessages.ShellLoadRequest(request), IPCMessages.ShellLoadResponse).then((response: IPCMessages.ShellLoadResponse) => {
                 if (response.presetTitle.trim() === '') {
-                    return;
+                    return resolve();
                 }
                 this.presets.forEach((preset: IPCMessages.IPreset) => {
                     if (preset.title === response.presetTitle) {
