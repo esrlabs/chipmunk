@@ -1,10 +1,11 @@
 import Logger from '../tools/env.logger';
 import Subscription from '../tools/subscription';
 import Subject from '../tools/subject';
-import ServiceElectron, { IPCMessages } from './service.electron';
+import ServiceElectron from './service.electron';
 import ServiceStreams from './service.streams';
 import { IService } from '../interfaces/interface.service';
-import { app, globalShortcut } from 'electron';
+import { app, globalShortcut, powerMonitor } from 'electron';
+import { IPCMessages } from './service.electron';
 
 const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.newTab]:                  { darwin: ['Cmd+T'],                other: ['Ctrl+T'] },
@@ -77,6 +78,8 @@ class ServiceHotkeys implements IService {
                     this._subscriptions.onHotkeyLocalCall = subscription;
                 }),
             ]).then(() => {
+                powerMonitor.on('resume', this._resume.bind(this, false));
+                powerMonitor.on('shutdown', this._unbind.bind(this, false));
                 app.on('browser-window-blur', this._unbind.bind(this, false));
                 app.on('browser-window-focus', this._bind.bind(this));
                 this._bind();
@@ -130,6 +133,16 @@ class ServiceHotkeys implements IService {
                 }
                 globalShortcut.unregister(shortcut);
             });
+        }
+    }
+
+    private _resume() {
+        const win = ServiceElectron.getBrowserWindow();
+        if (win === undefined) {
+            return this._unbind(false);
+        }
+        if (!win.isFocused) {
+            this._unbind(false);
         }
     }
 
