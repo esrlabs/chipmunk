@@ -5,8 +5,8 @@ import * as FS from '../../tools/fs';
 import * as tar from 'tar';
 import * as semver from 'semver';
 import * as Tools from '../../tools/index';
-import ncp from 'ncp';
 
+import ncp from 'ncp';
 import Logger from '../../tools/env.logger';
 import LogsService from '../../tools/env.logger.service';
 
