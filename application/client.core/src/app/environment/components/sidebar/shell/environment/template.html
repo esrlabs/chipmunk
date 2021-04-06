@@ -10,6 +10,7 @@
                 <span *ngIf="!environment.editing.variable" class="env white">{{environment.variable}}</span>
                 <input *ngIf="environment.editing.variable"
                        matInput
+                       appFocusInput
                        class="edit"
                        (keyup)="_ng_onKeyUp($event)"
                        [(ngModel)]="environment.variable"/>
@@ -18,6 +19,7 @@
                 <span *ngIf="!environment.editing.value" [attr.class]="'env ' + (_ng_selected === environment ? 'white' : 'grey')">{{environment.value}}</span>
                 <input *ngIf="environment.editing.value"
                        matInput
+                       appFocusInput
                        class="edit"
                        (keyup)="_ng_onKeyUp($event)"
                        [(ngModel)]="environment.value"/>
