@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import ServiceNetwork from '../services/service.network';
 import ServiceEnv from '../services/service.env';
 import ServicePackage from '../services/service.package';
+import Logger from '../tools/env.logger';
 
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -16,9 +17,17 @@ function getUserAgent(): string {
     return `Chipmunk@${ServicePackage.get().version}`;
 }
 
+function getURL(uri: string): url.URL | Error {
+    try {
+        return new url.URL(uri);
+    } catch (e) {
+        return new Error(`Fail to parse ${uri} due error: ${e.message}`);
+    }
+}
+
 function getProxyURI(uri: url.URL): string | undefined {
     const proxy = ServiceNetwork.getSettings().proxy;
-    if (proxy === 'string' && proxy.trim() !== '') {
+    if (typeof proxy === 'string' && proxy.trim() !== '') {
         return proxy;
     }
     const env = ServiceEnv.getOS();
@@ -36,7 +45,11 @@ export function getProxyAgent(uri: url.URL): http.Agent | https.Agent | undefine
 	if (!proxyURL) {
 		return undefined;
 	}
-	const link = new url.URL(proxyURL);
+	const link: url.URL | Error = getURL(proxyURL);
+    if (link instanceof Error) {
+        (new Logger(`env.net: getProxyAgent`)).warn(link.message);
+        return undefined;
+    }
 	if (!/^https?:$/.test(link.protocol || '')) {
 		return undefined;
 	}
@@ -79,7 +92,11 @@ type TFileName = string;
 
 export function download(uri: string, filename: TFileName): Promise<TFileName> {
     return new Promise((resolve, reject) => {
-        const link = new url.URL(uri);
+        const logger: Logger = new Logger(`env.net: download`);
+        const link: url.URL | Error = getURL(uri);
+        if (link instanceof Error) {
+            return reject(new Error(logger.warn(`Fail to parse ${uri} due error: ${link.message}`)));
+        }
         if (link.protocol === undefined || link.protocol === null) {
             return reject(new Error(`Not valid url: ${uri}`));
         }
@@ -88,13 +105,15 @@ export function download(uri: string, filename: TFileName): Promise<TFileName> {
             http: http,
             https: https,
         };
+        const opt = getRequestOptions(link);
         (transport as any)[protocol]
-            .get(uri, getRequestOptions(link), (response: http.IncomingMessage) => {
+            .get(uri, opt, (response: http.IncomingMessage) => {
                 if (
                     response.statusCode !== undefined &&
                     response.statusCode >= 200 &&
                     response.statusCode < 300
                 ) {
+                    logger.debug(`Successfully requested: ${uri}`);
                     const writer = fs.createWriteStream(filename);
                     writer.on('error', (saveErr: NodeJS.ErrnoException) => {
                         fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
@@ -102,6 +121,7 @@ export function download(uri: string, filename: TFileName): Promise<TFileName> {
                         });
                     });
                     writer.on('close', () => {
+                        logger.debug(`Successfully download from ${uri} to ${filename}`);
                         resolve(filename);
                     });
                     response.pipe(writer);
@@ -110,7 +130,7 @@ export function download(uri: string, filename: TFileName): Promise<TFileName> {
                         .then(resolve)
                         .catch(reject);
                 } else {
-                    reject(new Error(response.statusCode + ' ' + response.statusMessage));
+                    reject(new Error(logger.warn(`Fail to connect to ${uri}: code = ${response.statusCode}; status: ${response.statusMessage}; proxy usage: ${opt.agent !== undefined}.`)));
                 }
             })
             .on('error', (requestErr: NodeJS.ErrnoException) => {
@@ -123,7 +143,11 @@ export function download(uri: string, filename: TFileName): Promise<TFileName> {
 
 export function getRaw(uri: string, headers: { [key: string]: string } = {}): Promise<string> {
     return new Promise((resolve, reject) => {
-        const link = new url.URL(uri);
+        const logger: Logger = new Logger(`env.net: getRaw`);
+        const link: url.URL | Error = getURL(uri);
+        if (link instanceof Error) {
+            return reject(new Error(logger.warn(`Fail to parse ${uri} due error: ${link.message}`)));
+        }
         if (link.protocol === undefined || link.protocol === null) {
             return reject(new Error(`Not valid url: ${uri}`));
         }
@@ -132,17 +156,20 @@ export function getRaw(uri: string, headers: { [key: string]: string } = {}): Pr
             http: http,
             https: https,
         };
+        const opt = getRequestOptions(link, 'GET', headers);
         (transport as any)[protocol]
-            .get(uri, getRequestOptions(link, 'GET', headers), (response: http.IncomingMessage) => {
+            .get(uri, opt, (response: http.IncomingMessage) => {
                 if (
                     response.statusCode !== undefined &&
                     response.statusCode >= 200 &&
                     response.statusCode < 300
                 ) {
+                    logger.debug(`Successfully requested: ${uri}`);
                     response.setEncoding('utf8');
                     let raw = '';
                     response.on('data', (chunk) => { raw += chunk; });
                     response.on('end', () => {
+                        logger.debug(`Successfully received from ${uri} ${raw.length} bytes`);
                         resolve(raw);
                     });
                 } else if (response.headers.location) {
@@ -150,7 +177,7 @@ export function getRaw(uri: string, headers: { [key: string]: string } = {}): Pr
                         .then(resolve)
                         .catch(reject);
                 } else {
-                    reject(new Error(response.statusCode + ' ' + response.statusMessage));
+                    reject(new Error(logger.warn(`Fail to connect to ${uri}: code = ${response.statusCode}; status: ${response.statusMessage}; proxy usage: ${opt.agent !== undefined}.`)));
                 }
             })
             .on('error', (requestErr: NodeJS.ErrnoException) => {

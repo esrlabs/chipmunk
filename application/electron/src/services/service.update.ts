@@ -123,7 +123,8 @@ class ServiceUpdate implements IService {
         }
         if (!ServiceProduction.isProduction()) {
             // In dev mode do not check for updates
-            //return;
+            this._logger.debug(`Updates would not check becuase developing mode is ON`);
+            return;
         }
         GitHubClient.getReleases({ repo: CSettings.repo }).then((releases: IReleaseData[]) => {
             const current: string | undefined = ServicePackage.get().version;
