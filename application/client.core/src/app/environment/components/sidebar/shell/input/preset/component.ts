@@ -102,6 +102,7 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
                 information: copy(this._prevSelected.information),
                 custom: true,
             });
+            this._ng_title = '';
             this._ng_control.setValue(this.service.presets[index - 1]);
             this.service.selectedPreset = this.service.presets[index - 1];
             this.service.setPreset(this._sessionID).catch((error: string) => {
