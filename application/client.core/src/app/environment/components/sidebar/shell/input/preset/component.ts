@@ -141,6 +141,12 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
     }
 
     private _onRestored() {
+        this.service.setEnv({
+            session: this._sessionID,
+            env: Object.assign({}, ...(this.service.selectedPreset.information.env.map(item => ({ [item.variable]: item.value })))),
+        }).catch((error: string) => {
+            this._logger.error(error);
+        });
         this._ng_control.setValue(this.service.selectedPreset);
         this._prevSelected = this.service.selectedPreset;
     }
