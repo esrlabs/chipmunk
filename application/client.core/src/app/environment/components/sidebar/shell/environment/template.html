@@ -23,9 +23,10 @@
                        [(ngModel)]="environment.value"/>
             </td>
         </tr>
-        <tr [ngStyle]="{ 'visibility': (_ng_adding ? 'visible' : 'hidden') }">
+        <tr *ngIf="_ng_adding">
             <td>
                 <input #variableAdd
+                       appFocusInput
                        matInput
                        class="edit"
                        (keyup)="_ng_onKeyUp($event)"

@@ -3,6 +3,7 @@ import { CommonModule                           } from '@angular/common';
 import { AppDirectiviesModule                   } from '../../../directives/module';
 import { EnvironmentCommonModule                } from '../../common/module';
 import { PrimitiveModule, ContainersModule      } from 'chipmunk-client-material';
+import { FocusInputDirective                    } from './directives/focus.input.directive';
 
 import { SidebarAppShellComponent               } from './component';
 import { SidebarAppShellInputComponent          } from './input/component';
@@ -50,11 +51,15 @@ const modules = [
     MatProgressSpinnerModule,
 ];
 
+const directives = [
+    FocusInputDirective,
+];
+
 @NgModule({
     entryComponents : [ ...entryComponents ],
     imports         : [ ...modules ],
-    declarations    : [ ...entryComponents ],
-    exports         : [ ...entryComponents ]
+    declarations    : [ ...entryComponents, ...directives ],
+    exports         : [ ...entryComponents, ...directives ]
 })
 
 export class SidebarAppShellModule {

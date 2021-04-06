@@ -2,6 +2,7 @@
     <div class="select">
         <div *ngIf="_ng_add">
             <input matInput
+                   appFocusInput
                    class="preset"
                    (blur)="_ng_onBlur()"
                    (keyup)="_ng_onKeyUp($event)"
