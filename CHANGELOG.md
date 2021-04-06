@@ -1,10 +1,9 @@
 # Changelog
 
-### [2.16.2] - 04/06/2021
+## [2.16.2] - 04/06/2021
+### Fixed
 * Unlock system shortcuts on reboot/shutdown
-* [](fix) Empty input after creating new preset
-* [](fix) Load env variables on preset change
-* [](fix) Focus on editing environment variables
+* Correct loading env variables on preset change
 
 ## [2.16.1] - 04/06/2021
 ### Added
