@@ -1,12 +1,11 @@
 # Changelog
 
-### [2.16.1] - 04/06/2021
-* Prevent crash on invalid url parsing
-* Replace github-releases lib with own implementation
-* Add User-Agent into headers by default
-* Settings for proxy network access
-* [](fix) Focus input when element shown
-* [#1141](fix) Load environment variables
+## [2.16.1] - 04/06/2021
+### Added
+* (experimental) support network operations via proxy
+### Fixed
+* Focus to input on adding new environment variable
+* Fix loading of environment variables
 
 ## [2.16.0] - 04/02/2021
 ### Added
