@@ -8,6 +8,7 @@ import { CLIAction, TAction } from './cli/cli.action';
 import { Actions} from './cli/cli.actions';
 import { collect, sequences } from '../tools/sequences';
 import { exec } from 'child_process';
+import { ENotificationType } from './service.notifications';
 
 import guid from '../tools/tools.guid';
 import Logger from '../tools/env.logger';
@@ -15,6 +16,7 @@ import ServiceProduction from './service.production';
 import ServiceRenderState from './service.render.state';
 import ServicePaths from './service.paths';
 import ServiceElectron from './service.electron';
+import ServiceNotifications from './service.notifications';
 
 /**
  * @class ServiceCLI
@@ -71,6 +73,9 @@ class ServiceCLI implements IService {
         return new Promise((resolve, reject) => {
             if (!ServiceProduction.isProduction()) {
                 return resolve();
+            }
+            if (ServicePaths.doesLocatedInSysFolder()) {
+                return reject(new Error(`Isn't possible to install CLI support as soon as chipmunk located in system folder like "tmp", "Downloads" or others simular. Current path is: ${ServicePaths.getRoot()}`));
             }
             this.isInstalled().then((state: boolean) => {
                 if (state) {
@@ -211,7 +216,13 @@ class ServiceCLI implements IService {
                 ServiceElectron.getMenu()?.add(this._menuItemGuid, 'File', [
                     { type: 'separator' },
                     { label: 'Install "cm" Command Line Tool', click: () => {
-                        this.install().catch((err: Error) => this._logger.warn(err)).finally(() => {
+                        this.install().catch((err: Error) => {
+                            ServiceNotifications.notify({
+                                message: this._logger.warn(err.message),
+                                caption: `CLI installation`,
+                                type: ENotificationType.error,
+                            });
+                        }).finally(() => {
                             this._initMenu();
                         });
                     }},

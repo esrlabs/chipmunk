@@ -255,6 +255,22 @@ class ServicePaths implements IService {
     }
 
     /**
+     * @MacOS only
+     * Check is application file (chipmunk.app) located in system folder like "tmp" or "Downloads".
+     * @returns boolean
+     */
+     public doesLocatedInSysFolder(): boolean {
+        if (process.platform !== 'darwin') {
+            return false;
+        }
+        if (this.getRoot().indexOf('/private/var/folders') === 0 && this.getRoot().indexOf('AppTranslocation') !== -1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Creates logviewer folder (if it's needed)
      * @returns Promise<void>
      */
