@@ -1,16 +1,21 @@
-import ServiceElectron, { IPCMessages } from '../service.electron';
+import ServiceElectron from '../service.electron';
 import ServiceStreams from '../service.streams';
 import ServiceStreamSource from '../service.stream.sources';
 import ServiceHotkeys from '../service.hotkeys';
 import ServiceFileRecent from './service.file.recent';
+import ServiceNotifications from '../service.notifications';
+import ServiceRenderState from '../service.render.state';
 import Logger from '../../tools/env.logger';
 
+import { IPCMessages } from '../service.electron';
+import { ENotificationType } from '../service.notifications';
 import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue } from 'electron';
 import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 import { isHidden } from '../../tools/fs';
+import { app } from 'electron';
 
 import * as Tools from '../../tools/index';
 import * as fs from 'fs';
@@ -32,6 +37,18 @@ class ServiceFileOpener implements IService {
     // Should detect by executable file
     private _subscriptions: { [key: string]: Subscription } = {};
     private _active: Map<string, AFileParser> = new Map<string, AFileParser>();
+    private _recent: {
+        path: string | undefined;
+        pending: boolean;
+    } = {
+        path: undefined,
+        pending: true,
+    };
+
+    constructor() {
+        app.on('open-file', this._onOSRecentFileOpen.bind(this));
+        ServiceRenderState.doOnInit(Tools.guid(), this._onRenderReady.bind(this));
+    }
 
     /**
      * Initialization function
@@ -192,6 +209,26 @@ class ServiceFileOpener implements IService {
         return this._openFile();
     }
 
+    private _onRenderReady() {
+        this._recent.pending = false;
+        if (this._recent.path === undefined) {
+            return;
+        }
+        const path = this._recent.path;
+        const subscription = ServiceStreams.getSubjects().onSessionCreated.subscribe((session) => {
+            subscription.unsubscribe();
+            this._logger.debug(`Attempt to open recent ${path}`);
+            this.open(path, session.stream.guid).catch((err: Error) => {
+                ServiceNotifications.notify({
+                    message: this._logger.warn(`Fail open file "${path}" due error: ${err.message}`),
+                    type: ENotificationType.warning,
+                    caption: 'Cannot open file',
+                })
+            });
+        });
+        
+    }
+
     private _ipc_FileListRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.FileListRequest = request as IPCMessages.FileListRequest;
         Promise.all(
@@ -214,6 +251,22 @@ class ServiceFileOpener implements IService {
     private _concatFileList(fileLists: IPCMessages.IFile[][]): IPCMessages.IFile[] {
         const cConcatFiles: IPCMessages.IFile[] = [];
         return cConcatFiles.concat(...fileLists);
+    }
+
+    private _onOSRecentFileOpen(_event: Event | undefined, path: string) {
+        if (this._recent.pending) {
+            this._logger.debug(`Open recent file operation for: ${path} would be postponed`);
+            this._recent.path = path;
+        } else {
+            this._logger.debug(`Attempt to open recent ${path}`);
+            this.openAsNew(path).catch((err: Error) => {
+                ServiceNotifications.notify({
+                    message: this._logger.warn(`Fail open file "${path}" due error: ${err.message}`),
+                    type: ENotificationType.warning,
+                    caption: 'Cannot open file',
+                })
+            });
+        }
     }
 
     private _ipc_FileOpenRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
