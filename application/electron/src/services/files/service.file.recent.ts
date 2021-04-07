@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import Logger from '../../tools/env.logger';
 import { Subscription } from '../../tools/index';
 import ServiceElectron, { IPCMessages } from '../service.electron';
 import ServiceStorage, { IStorageScheme } from '../service.storage';
 import { IService } from '../../interfaces/interface.service';
+import { app } from 'electron';
 
 export const MAX_NUMBER_OF_RECENT_FILES = 150;
 
@@ -213,6 +213,7 @@ export class ServiceFileRecent implements IService {
         }).catch((err: Error) => {
             this._logger.error(err.message);
         });
+        app.clearRecentDocuments();
         ServiceElectron.updateMenu();
     }
 
