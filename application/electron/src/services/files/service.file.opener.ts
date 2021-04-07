@@ -214,19 +214,18 @@ class ServiceFileOpener implements IService {
         if (this._recent.path === undefined) {
             return;
         }
-        const path = this._recent.path;
+        const filename = this._recent.path;
         const subscription = ServiceStreams.getSubjects().onSessionCreated.subscribe((session) => {
             subscription.unsubscribe();
-            this._logger.debug(`Attempt to open recent ${path}`);
-            this.open(path, session.stream.guid).catch((err: Error) => {
+            this._logger.debug(`Attempt to open recent ${filename}`);
+            this.open(filename, session.stream.guid).catch((err: Error) => {
                 ServiceNotifications.notify({
-                    message: this._logger.warn(`Fail open file "${path}" due error: ${err.message}`),
+                    message: this._logger.warn(`Fail open file "${filename}" due error: ${err.message}`),
                     type: ENotificationType.warning,
                     caption: 'Cannot open file',
-                })
+                });
             });
         });
-        
     }
 
     private _ipc_FileListRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
@@ -253,18 +252,18 @@ class ServiceFileOpener implements IService {
         return cConcatFiles.concat(...fileLists);
     }
 
-    private _onOSRecentFileOpen(_event: Event | undefined, path: string) {
+    private _onOSRecentFileOpen(_event: Event | undefined, filename: string) {
         if (this._recent.pending) {
-            this._logger.debug(`Open recent file operation for: ${path} would be postponed`);
-            this._recent.path = path;
+            this._logger.debug(`Open recent file operation for: ${filename} would be postponed`);
+            this._recent.path = filename;
         } else {
-            this._logger.debug(`Attempt to open recent ${path}`);
-            this.openAsNew(path).catch((err: Error) => {
+            this._logger.debug(`Attempt to open recent ${filename}`);
+            this.openAsNew(filename).catch((err: Error) => {
                 ServiceNotifications.notify({
-                    message: this._logger.warn(`Fail open file "${path}" due error: ${err.message}`),
+                    message: this._logger.warn(`Fail open file "${filename}" due error: ${err.message}`),
                     type: ENotificationType.warning,
                     caption: 'Cannot open file',
-                })
+                });
             });
         }
     }
