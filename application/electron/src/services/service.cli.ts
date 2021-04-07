@@ -75,7 +75,7 @@ class ServiceCLI implements IService {
                 return resolve();
             }
             if (ServicePaths.doesLocatedInSysFolder()) {
-                return reject(new Error(`Isn't possible to install CLI support as soon as chipmunk located in system folder like "tmp", "Downloads" or others simular. Current path is: ${ServicePaths.getRoot()}`));
+                return reject(new Error(`Isn't possible to install CLI support as soon as chipmunk located in temporary folders (located in /private/var/folders). Current path is: ${ServicePaths.getRoot()}`));
             }
             this.isInstalled().then((state: boolean) => {
                 if (state) {
