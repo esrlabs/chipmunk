@@ -453,16 +453,22 @@ class ServiceStreams implements IService  {
                 FS.readFolder(ServiceUserPaths.getStreams(), FS.EReadingFolderTarget.files),
             ]).then((result: [ string[], string[] ]) => {
                 const files: string[] = [];
+                const tm: number = Date.now();
                 files.push(...result[0].map((file: string) => Path.resolve(ServiceUserPaths.getSockets(), file) ));
                 files.push(...result[1].map((file: string) => Path.resolve(ServiceUserPaths.getStreams(), file) ));
                 const queue: Array<Promise<void>> = files.map((file: string) => {
                     return new Promise((resolveUnlink) => {
-                        fs.unlink(file, (errorUnlink: NodeJS.ErrnoException | null) => {
-                            if (errorUnlink) {
-                                this._logger.warn(`Fail to remove ${file} due error: ${errorUnlink.message}`);
+                        fs.stat(file, (errStat: NodeJS.ErrnoException | null, stats: fs.Stats) => {
+                            if (tm - stats.birthtimeMs < 60 * 1000 * 60 * 24) {
+                                return resolveUnlink();
                             }
-                            // Resolve in anyway
-                            resolveUnlink();
+                            fs.unlink(file, (errorUnlink: NodeJS.ErrnoException | null) => {
+                                if (errorUnlink) {
+                                    this._logger.warn(`Fail to remove ${file} due error: ${errorUnlink.message}`);
+                                }
+                                // Resolve in anyway
+                                resolveUnlink();
+                            });
                         });
                     });
                 });
