@@ -8,6 +8,12 @@ use std::{
 };
 use thiserror::Error;
 
+pub trait GrabTrait {
+    fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
+    fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
+    fn get_metadata(&self) -> Option<&GrabMetadata>;
+}
+
 #[derive(Error, Debug)]
 pub enum GrabError {
     #[error("Configuration error ({0})")]
@@ -182,6 +188,24 @@ pub struct Grabber<T: MetadataSource> {
     source: T,
     pub metadata: Option<GrabMetadata>,
     pub input_file_size: u64,
+}
+
+impl<T> GrabTrait for Grabber<T>
+where
+    T: MetadataSource,
+{
+    fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
+        self.get_entries(line_range)
+    }
+
+    fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
+        self.metadata = Some(metadata);
+        Ok(())
+    }
+
+    fn get_metadata(&self) -> Option<&GrabMetadata> {
+        self.metadata.as_ref()
+    }
 }
 
 impl<T: MetadataSource> Grabber<T> {
@@ -403,8 +427,4 @@ pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Sl
         }
     }
     None
-}
-
-fn is_newline(item: u8) -> bool {
-    item == b'\n'
 }

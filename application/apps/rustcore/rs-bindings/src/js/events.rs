@@ -10,16 +10,19 @@ use uuid::Uuid;
 pub enum NativeErrorKind {
     /// The file in question does not exist
     FileNotFound,
+    /// The file type is not currently supported
+    UnsupportedFileType,
+    ComputationFailed,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NativeError {
-    severity: Severity,
-    kind: NativeErrorKind,
+    pub severity: Severity,
+    pub kind: NativeErrorKind,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OperationDone{
+pub struct OperationDone {
     pub uuid: Uuid,
     pub result: Option<String>,
 }

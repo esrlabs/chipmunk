@@ -1245,7 +1245,8 @@ pub async fn main() -> Result<()> {
             println!("done with handle_dlt_pcap_subcommand");
             std::process::exit(0)
         }
-    };
+    }
+
     async fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches<'_>) {
         debug!("handle_dlt_udp_subcommand");
         if let (Some(ip_address), Some(tag), Some(output)) = (
