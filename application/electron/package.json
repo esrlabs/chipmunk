@@ -23,31 +23,21 @@
         "asar": false,
         "appId": "com.esrlabs.chipmunk",
         "productName": "chipmunk",
-        "copyright": "Copyright © 2019 year ESR Labs",
+        "copyright": "Copyright © 2021 year ESR Labs",
         "afterPack": "scripts/dist/scripts/afterPackHook.js",
         "afterSign": "scripts/dist/scripts/notarize.js",
         "files": [
-            "./dist/compiled/**"
+            "./dist/compiled/**",
+            "./resources/linux/**"
         ],
         "directories": {
             "output": "dist/release"
         },
-        "publish": [
-            {
-                "provider": "github",
-                "owner": "esrlabs",
-                "repo": "chipmunk"
-            }
-        ],
         "npmRebuild": true,
         "mac": {
             "category": "public.app-category.developer-tools",
-            "icon": "./icons/chipmunk.icns",
-            "target": [
-                {
-                    "target": "zip"
-                }
-            ],
+            "icon": "resources/mac/chipmunk.icns",
+            "target": [ ],
             "binaries": [
                 "dist/compiled/apps/launcher",
                 "dist/compiled/apps/cm",
@@ -64,20 +54,14 @@
             "entitlementsInherit": "./src/entitlements.mac.plist"
         },
         "linux": {
-            "icon": "./icons/chipmunk.png",
-            "target": [
-                {
-                    "target": "zip"
-                }
-            ]
+            "icon": "resources/linux/chipmunk.png",
+            "executableName": "chipmunk",
+            "desktop": "resources/linux/chipmunk.desktop",
+            "target": []
         },
         "win": {
-            "icon": "./icons/chipmunk.ico",
-            "target": [
-                {
-                    "target": "zip"
-                }
-            ]
+            "icon": ".resources/win/chipmunk.ico",
+            "target": [ ]
         }
     },
     "dependencies": {
@@ -120,9 +104,9 @@
         "build-scripts-ts": "./node_modules/.bin/tsc -p ./scripts/tsconfig.json",
         "start": "npm run build-ts && npm run electron",
         "postinstall": "electron-builder install-app-deps",
-        "build-mac": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --mac",
-        "build-linux": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --linux",
-        "build-win": "npm run build-scripts-ts && npm run build-ts && node_modules/.bin/electron-builder --win",
+        "build-mac": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --mac --dir",
+        "build-linux": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --linux --dir",
+        "build-win": "npm run build-scripts-ts && npm run build-ts && node_modules/.bin/electron-builder --win --dir",
         "package-check": "../node_modules/.bin/npm-check",
         "lint": "./node_modules/.bin/tslint --project .",
         "package-upgrade": "../node_modules/.bin/npm-check -y"
