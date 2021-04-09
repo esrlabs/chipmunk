@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.16.3] - 04/09/2021
+* Resolve lintjs issues
+* Add list of recent file into app menu (close #1117)
+* Open chart tab (close #1010)
+* Fix typo in notifiation (validation app paths)
+* Validate root path before install CLI (close #1038)
+
 ## [2.16.2] - 04/06/2021
 ### Fixed
 * Unlock system shortcuts on reboot/shutdown
