@@ -1,4 +1,5 @@
 import * as Url from 'url';
+import * as path from 'path';
 
 import { BrowserWindow, BrowserWindowConstructorOptions, Event } from 'electron';
 import { IWindowState } from '../../services/service.window.state.scheme';
@@ -92,6 +93,15 @@ export default class ControllerBrowserWindow extends EventEmitter {
 
     private _create(): Promise<void> {
         return new Promise((resolve, reject) => {
+            function getIcon(): string | undefined {
+                switch (process.platform) {
+                    case 'linux':
+                        return path.resolve(ServicePath.getResources(), 'linux/chipmunk.png');
+                    case 'win32':
+                        return path.resolve(ServicePath.getResources(), 'win/chipmunk.ico');
+                }
+                return undefined;
+            }
             const state: IWindowState = ServiceWindowState.getSettings().get();
             const options: BrowserWindowConstructorOptions = {
                 height: state.h,
@@ -99,6 +109,7 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 width: state.w,
                 x: state.x,
                 y: state.y,
+                icon: getIcon(),
                 webPreferences: {
                     nodeIntegration: true,
                     enableRemoteModule: false,

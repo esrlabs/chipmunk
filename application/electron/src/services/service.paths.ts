@@ -228,6 +228,14 @@ class ServicePaths implements IService {
     }
 
     /**
+     * Returns path to included resources
+     * @returns string
+     */
+    public getResources(): string {
+        return Path.resolve(this._resources, 'app/resources');
+    }
+
+    /**
      * Returns path from home perspective
      * @param {string} folder path to folder
      * @returns string
