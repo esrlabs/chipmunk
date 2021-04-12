@@ -10,6 +10,10 @@
         "email": "oliver.mueller@esrlabs.com",
         "url": "https://www.esrlabs.com/"
     },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/esrlabs/chipmunk.git"
+    },
     "contributors": [
         {
             "name": "Dmitry Astafyev",
