@@ -83,7 +83,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                     if (list.length === 1) {
                         // Single file
                         ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
-                            file: list[0].path,
+                            file: list[0].filename,
                             session: session.getGuid(),
                         }), IPCMessages.FileOpenResponse).then((openResponse: IPCMessages.FileReadResponse) => {
                             if (openResponse.error !== undefined) {
