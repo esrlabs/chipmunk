@@ -1,16 +1,23 @@
 import * as path from 'path';
 
-import { app } from 'electron';
+import { exec } from 'child_process';
+import { ExecException } from 'node:child_process';
+import { app, Menu, MenuItem } from 'electron';
 
 import ServicePath from '../../services/service.paths';
+import Logger from '../../tools/env.logger';
 
 export default class ControllerDock {
+
+    private _logger: Logger = new Logger(`ControllerDock`);
 
     constructor() {
         this._common();
         switch (process.platform) {
             case 'win32':
                 this._win();
+            case 'darwin':
+                this._mac();
         }
     }
 
@@ -30,5 +37,23 @@ export default class ControllerDock {
               description: 'Create a new window'
             }
         ]);
+    }
+
+    private _mac() {
+        app.dock.setMenu(Menu.buildFromTemplate([
+            new MenuItem({
+                label: 'New Window',
+                click: () => {
+                    this._logger.debug(`New instance of chipmunk would be started with: ${ServicePath.getLauncher()}`);
+                    exec(ServicePath.getLauncher(), (err: ExecException | null, stdout: string) => {
+                        if (err) {
+                            this._logger.error(`Fail to start instance of chipmunk due error: ${err.message}`);
+                        } else {
+                            this._logger.debug(`New instance of chipmunk is started.`);
+                        }
+                    });
+                },
+            })
+        ]));
     }
 }

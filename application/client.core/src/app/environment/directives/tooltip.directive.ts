@@ -5,6 +5,8 @@ import {
     TemplateRef,
     ElementRef,
     ComponentRef,
+    OnInit,
+    OnDestroy
 } from '@angular/core';
 import { Overlay, OverlayPositionBuilder, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
@@ -13,7 +15,7 @@ import { ComTooltipComponent } from '../components/common/tooltip/component';
 @Directive({
     selector: '[appTooltip]',
 })
-export class ToolTipDirective {
+export class ToolTipDirective implements OnInit, OnDestroy {
     @Input() public appTooltipText: string;
     @Input() public appTooltipContent: TemplateRef<any>;
     @Input() public appTooltipRefreshRate: number | undefined;
@@ -26,7 +28,7 @@ export class ToolTipDirective {
         private _elementRef: ElementRef,
     ) {}
 
-    ngOnInit() {
+    public ngOnInit() {
         const positionStrategy = this._overlayPositionBuilder
             .flexibleConnectedTo(this._elementRef)
             .withPositions([
@@ -57,7 +59,7 @@ export class ToolTipDirective {
         this.closeToolTip();
     }
 
-    ngOnDestroy() {
+    public ngOnDestroy() {
         this.closeToolTip();
     }
 

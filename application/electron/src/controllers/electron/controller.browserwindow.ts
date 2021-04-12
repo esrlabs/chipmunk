@@ -133,7 +133,9 @@ export default class ControllerBrowserWindow extends EventEmitter {
             }) + `?v${ServicePackage.get().version}`);
             try {
                 this._window.setTitle(`Chipmunk@${ServicePackage.get().version}`);
-                icon !== undefined && this._window.setIcon(icon);
+                if (icon !== undefined) {
+                    this._window.setIcon(icon);
+                }
             } catch (e) {
                 this._logger.error(`Fail to setup app title/icon due error: ${e.message}`);
             }
