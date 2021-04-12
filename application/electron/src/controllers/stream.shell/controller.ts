@@ -91,6 +91,9 @@ export default class ControllerStreamShell {
             ServiceElectron.IPC.subscribe(IPC.ShellPwdRequest, (this._ipc_ShellPwdRequest.bind(this) as any)).then((subscription: Subscription) => {
                 this._subscriptions.ShellPwdRequest = subscription;
             }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellPwdRequest due error: ${err.message}`));
+            ServiceElectron.IPC.subscribe(IPC.ShellRecentCommandsRemove, (this._ipc_ShellRecentCommandsRemove.bind(this) as any)).then((subscription: Subscription) => {
+                this._subscriptions.ShellRecentCommandsRemove = subscription;
+            }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellSaveRequest due error: ${err.message}`));
         }).catch((err: Error) => {
             this._logger.error(`Unexpecting error on load envvars: ${err.message}`);
         });
@@ -180,7 +183,7 @@ export default class ControllerStreamShell {
         })).then(() => {
             this._env.pwd = request.pwd !== undefined ? request.pwd : this._env.pwd;
             this._env.shell = request.shell !== undefined ? request.shell : this._env.shell;
-            this._env.env = request.env !== undefined ? request.env : this._env.env;
+            this._env.env = request.env !== undefined ? Object.assign({}, ...(request.env.map((item: IPC.IEnvironment) => ({ [item.variable]: item.value })))) : this._env.env;
             response(new IPC.ShellSetEnvResponse({ }));
         }).catch((err: Error) => {
             response(new IPC.ShellSetEnvResponse({
@@ -280,6 +283,19 @@ export default class ControllerStreamShell {
                 guid: this._guid,
                 error: error.message,
             }));
+        });
+    }
+
+    private _ipc_ShellRecentCommandsRemove(request: IPC.ShellRecentCommandsRemove) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        ServiceStorage.get().set({
+            recentCommands: ServiceStorage.get().get().recentCommands.filter((command: string) => {
+                return command !== request.command;
+            }),
+        }).catch((err: Error) => {
+            this._logger.error(`Failed to remove command from recent due error: ${err.message}`);
         });
     }
 

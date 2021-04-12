@@ -26,6 +26,7 @@ export enum EParent {
     timemeasurement = 'timemeasurement',
     comment = 'comment',
     notassigned = 'notassigned',
+    shell = 'shell',
 }
 
 interface IState {

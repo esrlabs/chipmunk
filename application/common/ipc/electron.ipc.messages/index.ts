@@ -696,6 +696,9 @@ export { IShellSaveRequest, ShellSaveRequest };
 import { ShellSaveResponse } from './shell.save.response';
 export { ShellSaveResponse };
 
+import { IShellRecentCommandsRemove, ShellRecentCommandsRemove } from './shell.recent.commands.remove';
+export { IShellRecentCommandsRemove, ShellRecentCommandsRemove };
+
 import { IViewSwitchEvent, ViewSwitchEvent, AvailableViews } from './view.switch.event';
 export { IViewSwitchEvent, ViewSwitchEvent, AvailableViews };
 
@@ -929,6 +932,7 @@ export type TMessage =  AppRestartRequest |
                         ShellLoadResponse |
                         ShellSaveRequest |
                         ShellSaveResponse |
+                        ShellRecentCommandsRemove |
                         ViewSwitchEvent;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -1193,5 +1197,6 @@ export const Map = {
     [ShellLoadResponse.signature                    ]: ShellLoadResponse,
     [ShellSaveRequest.signature                     ]: ShellSaveRequest,
     [ShellSaveResponse.signature                    ]: ShellSaveResponse,
+    [ShellRecentCommandsRemove.signature            ]: ShellRecentCommandsRemove,
     [ViewSwitchEvent.signature                      ]: ViewSwitchEvent,
 };

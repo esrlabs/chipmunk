@@ -8,9 +8,10 @@ import { FocusInputDirective                    } from './directives/focus.input
 import { SidebarAppShellComponent               } from './component';
 import { SidebarAppShellInputComponent          } from './input/component';
 import { SidebarAppShellRunningComponent        } from './running/component';
-import { SidebarAppShellEnvironmentComponent    } from './environment/component';
+import { SidebarAppShellEnvironmentVariablesComponent    } from './environment/environment_variables/component';
 import { SidebarAppShellTerminatedComponent     } from './terminated/component';
-import { SidebarAppShellPresetComponent         } from './input/preset/component';
+import { SidebarAppShellPresetComponent         } from './environment/preset/component';
+import { SidebarAppShellEnvironmentComponent    } from './environment/component';
 
 import { MatIconModule                          } from '@angular/material/icon';
 import { MatInputModule                         } from '@angular/material/input';
@@ -27,9 +28,10 @@ const entryComponents = [
     SidebarAppShellComponent,
     SidebarAppShellRunningComponent,
     SidebarAppShellInputComponent,
-    SidebarAppShellEnvironmentComponent,
+    SidebarAppShellEnvironmentVariablesComponent,
     SidebarAppShellTerminatedComponent,
     SidebarAppShellPresetComponent,
+    SidebarAppShellEnvironmentComponent,
 ];
 
 const modules = [

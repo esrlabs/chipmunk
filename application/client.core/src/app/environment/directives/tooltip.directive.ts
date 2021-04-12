@@ -5,7 +5,6 @@ import {
     TemplateRef,
     ElementRef,
     ComponentRef,
-    OnInit,
     OnDestroy
 } from '@angular/core';
 import { Overlay, OverlayPositionBuilder, OverlayRef } from '@angular/cdk/overlay';
@@ -15,7 +14,7 @@ import { ComTooltipComponent } from '../components/common/tooltip/component';
 @Directive({
     selector: '[appTooltip]',
 })
-export class ToolTipDirective implements OnInit, OnDestroy {
+export class ToolTipDirective implements OnDestroy {
     @Input() public appTooltipText: string;
     @Input() public appTooltipContent: TemplateRef<any>;
     @Input() public appTooltipRefreshRate: number | undefined;
@@ -28,8 +27,9 @@ export class ToolTipDirective implements OnInit, OnDestroy {
         private _elementRef: ElementRef,
     ) {}
 
-    public ngOnInit() {
-        const positionStrategy = this._overlayPositionBuilder
+    @HostListener('mouseenter') show() {
+        if (this._overlayRef === undefined) {
+            const positionStrategy = this._overlayPositionBuilder
             .flexibleConnectedTo(this._elementRef)
             .withPositions([
                 {
@@ -41,11 +41,9 @@ export class ToolTipDirective implements OnInit, OnDestroy {
                     offsetX: 5,
                 },
             ]);
-        this._overlayRef = this._overlay.create({ positionStrategy });
-    }
-
-    @HostListener('mouseenter') show() {
-        if (this._overlayRef && !this._overlayRef.hasAttached()) {
+            this._overlayRef = this._overlay.create({ positionStrategy });
+        }
+        if (!this._overlayRef.hasAttached()) {
             const tooltipRef: ComponentRef<ComTooltipComponent> = this._overlayRef.attach(
                 new ComponentPortal(ComTooltipComponent),
             );
@@ -60,12 +58,15 @@ export class ToolTipDirective implements OnInit, OnDestroy {
     }
 
     public ngOnDestroy() {
-        this.closeToolTip();
+        this.closeToolTip(true);
     }
 
-    private closeToolTip() {
+    private closeToolTip(destroy: boolean = false) {
         if (this._overlayRef) {
             this._overlayRef.detach();
+            if (destroy) {
+                this._overlayRef.dispose();
+            }
         }
     }
 }

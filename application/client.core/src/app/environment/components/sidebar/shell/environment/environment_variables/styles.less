@@ -1,0 +1,58 @@
+@import '../../../../../theme/variables.less';
+
+:host {
+
+    & .mat-stroked-button {
+        position: relative;
+        float: right;
+        margin: 6px;
+    }
+    
+    & div.listed {
+        color: @scheme-color-1;
+        & table {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            display: block;
+            border-spacing: 0px;
+            & th {
+                padding-left: 7px;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                background: @scheme-color-5;
+                border-bottom: 1px solid @scheme-color-1;
+            }
+            & tr.selected {
+                background-color: @scheme-color-3;
+            }
+            & td {
+                width: 50%;
+                vertical-align: top;
+                & span.env {
+                    flex: auto;
+                    word-break: break-all;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    cursor: default;
+                }
+                & span.white {
+                    color: @scheme-color-0;
+                }
+                & span.grey {
+                    color: @scheme-color-3;
+                }
+                & input.edit {
+                    padding: 0;
+                    border-bottom: dashed 1px @scheme-color-1;
+                    flex: auto;
+                    white-space: nowrap;
+                    color: @scheme-color-0;
+                }
+            }
+        }
+    }
+
+}

@@ -62,6 +62,13 @@ export default class Process extends EventEmitter {
         if (this._process !== undefined) {
             return this._logger.error(`Attempt to start process, which already was started`);
         }
+        const len: number | Error = ServiceStreams.getStreamLen(this._session);
+        if (len instanceof Error) {
+            this._logger.error(`Fail to get length of session ${this._session} due error: ${len.message}`);
+            this._stat.row = -1;
+        } else {
+            this._stat.row = len;
+        }
         this._meta.sourceId = ServiceStreamSource.add({
             name: this._command.cmd,
             session: this._session,

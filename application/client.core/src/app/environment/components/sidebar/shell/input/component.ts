@@ -1,48 +1,27 @@
-import { AfterContentInit, Component, ViewChild, ElementRef, Input, OnDestroy } from '@angular/core';
+import { OnInit, AfterContentInit, Component, ViewChild, ElementRef, Input, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { sortPairs, IPair, ISortedFile } from '../../../../thirdparty/code/engine';
-import { MatAutocompleteSelectedEvent, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatInput } from '@angular/material/input';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { Subscription, Observable } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ShellService } from '../services/service';
-import { SidebarAppShellEnvironmentComponent } from '../environment/component';
 import { Session } from '../../../../controller/session/session';
 
 import EventsSessionService from '../../../../services/standalone/service.events.session';
-import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
-import PopupsService from '../../../../services/standalone/service.popups';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-interface IEditing {
-    variable: boolean;
-    value: boolean;
-}
-
-export interface IEnvironment {
-    variable: string;
-    value: string;
-    custom: boolean;
-    editing: IEditing;
-    selected: boolean;
-}
-
-export interface INewInformation {
-    shell: string;
-    pwd: string;
-    env: IEnvironment[];
-}
-
 @Component({
     selector: 'app-sidebar-app-shell-input',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 
-export class SidebarAppShellInputComponent implements AfterContentInit, OnDestroy {
+export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, OnDestroy {
 
     @ViewChild(MatInput) _inputComRef: MatInput;
     @ViewChild(MatAutocompleteTrigger) _ng_autoComRef: MatAutocompleteTrigger;
@@ -67,6 +46,15 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
         );
     }
 
+    public ngOnInit() {
+        const session: Session = TabsSessionsService.getActive();
+        if (session !== undefined) {
+            this._sessionID = session.getGuid();
+        } else {
+            this._logger.error('Session not available');
+        }
+    }
+
     public ngAfterContentInit() {
         this._loadRecentCommands();
         this._ng_recent = this._ng_inputCtrl.valueChanges.pipe(
@@ -84,7 +72,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
     public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
         if (event.key === 'Tab' || event.key === 'ArrowRight') {
             if (this._ng_autoComRef.activeOption) {
-                this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
+                this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value);
             }
             return false;
         }
@@ -144,100 +132,18 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
         this._ng_autoComRef.updatePosition();
     }
 
-    public _ng_onRecentSelected(event: MatAutocompleteSelectedEvent) {
-        this._ng_inputCtrl.setValue(event.option.viewValue);
-        if (!this._selectedTextOnInputClick) {
-            this._ng_onKeyUpRequestInput();
-        }
-    }
-
     public _ng_getSafeHTML(input: string): SafeHtml {
         return this._sanitizer.bypassSecurityTrustHtml(input);
     }
 
-    public _ng_onClearRecent() {
-        this._ng_autoComRef.closePanel();
-        this._ng_inputCtrl.updateValueAndValidity();
-        this.service.clearRecent().then(() => {
-            this._loadRecentCommands();
-        }).catch((error: Error) => {
-            this._logger.error(error);
+    public _ng_onRemove(command: string) {
+        this._recent = this._recent.filter((recent: IPair) => {
+            return recent.description !== command;
         });
-    }
-
-    public _ng_onEnvironment() {
-        const popupId: string = PopupsService.add({
-            id: 'environment-settings-dialog',
-            caption: `Environment settings`,
-            component: {
-                factory: SidebarAppShellEnvironmentComponent,
-                inputs: {
-                    information: this.service.selectedPreset.information,
-                    setEnvironment: (information: INewInformation) => {
-                        const environment: { [variable: string]: string } = {};
-                        information.env.forEach((env: IEnvironment) => {
-                            environment[env.variable] = env.value;
-                        });
-                        this.service.setEnv({
-                            session: this._sessionID,
-                            env: environment,
-                        });
-                        this.service.setPreset(this._sessionID, { env: information.env }).catch((error: Error) => {
-                            this._logger.error(error);
-                        });
-                    },
-                    close: () => {
-                        PopupsService.remove(popupId);
-                    }
-                }
-            },
-            buttons: [ ],
-            options: {
-                width: 60,
-            }
+        this.service.removeRecentCommand({ session: this._sessionID, command: command }).catch((error: Error) => {
+            this._logger.error(error.message);
         });
-    }
-
-    public _ng_onSetPwd() {
-        this.service.setPwd({ session: this._sessionID }).then((value: string) => {
-            if (value.trim() !== '') {
-                this.service.selectedPreset.information.pwd = value;
-                this.service.setPreset(this._sessionID, { pwd: value }).catch((error: Error) => {
-                    this._logger.error(error);
-                });
-            }
-        }).catch((error: Error) => {
-            this._logger.error(error);
-        });
-    }
-
-    public _ng_onSelectShell(event: MouseEvent) {
-        const items: IMenuItem[] = [
-            {
-                caption: 'Select shell',
-                disabled: true,
-            }
-        ];
-        this.service.shells.forEach((shell: string) => {
-            items.push({
-                caption: shell,
-                handler: () => {
-                    this.service.setEnv({ session: this._sessionID, shell: shell }).then(() => {
-                        this.service.selectedPreset.information.shell = shell;
-                        this.service.setPreset(this._sessionID, { shell: shell }).catch((error: Error) => {
-                            this._logger.error(error);
-                        });
-                    }).catch((error: Error) => {
-                        this._logger.error(error);
-                    });
-                }
-            });
-        });
-        ContextMenuService.show({
-            items: items,
-            x: event.pageX,
-            y: event.pageY,
-        });
+        this._ng_inputCtrl.setValue('');
     }
 
     private _loadRecentCommands() {
@@ -245,7 +151,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
             this._recent = recentCommands;
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: Error) => {
-            this._logger.error(error);
+            this._logger.error(error.message);
         });
     }
 
@@ -257,7 +163,7 @@ export class SidebarAppShellInputComponent implements AfterContentInit, OnDestro
             this._addRecentCommand(command);
             this._ng_inputCtrl.updateValueAndValidity();
         }).catch((error: Error) => {
-            this._logger.error(error);
+            this._logger.error(error.message);
         });
     }
 

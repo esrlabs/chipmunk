@@ -3,6 +3,7 @@ export interface IShellProcessStat {
     created: number;
     terminated: number;
     pid: number;
+    row?: number;
 }
 
 export interface IShellProcessMeta {
