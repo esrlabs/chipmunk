@@ -1,7 +1,35 @@
-import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { IEnvironment, INewInformation } from '../input/component';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
+import { SidebarAppShellEnvironmentVariablesComponent } from './environment_variables/component';
+import { ShellService } from '../services/service';
+import { Subscription } from 'rxjs';
+import { Session } from '../../../../controller/session/session';
+import { MatSelectChange } from '@angular/material/select';
 
-import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import PopupsService from '../../../../services/standalone/service.popups';
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../../services/standalone/service.events.session';
+
+import * as Toolkit from 'chipmunk.client.toolkit';
+
+interface IEditing {
+    variable: boolean;
+    value: boolean;
+}
+
+export interface IEnvironment {
+    variable: string;
+    value: string;
+    custom: boolean;
+    editing: IEditing;
+    selected: boolean;
+}
+
+export interface INewInformation {
+    shell: string;
+    pwd: string;
+    env: IEnvironment[];
+}
 
 @Component({
     selector: 'app-sidebar-app-shell-environment',
@@ -9,189 +37,108 @@ import ContextMenuService, { IMenuItem } from '../../../../services/standalone/s
     styleUrls: ['./styles.less']
 })
 
-export class SidebarAppShellEnvironmentComponent implements OnInit, OnDestroy {
+export class SidebarAppShellEnvironmentComponent implements OnDestroy, OnInit {
 
-    @Input() public information: INewInformation;
-    @Input() public setEnvironment: (information: INewInformation) => void;
-    @Input() public close: () => {};
+    @Input() public service: ShellService;
 
-    @ViewChild('variableAdd') _ng_variableAdd: ElementRef<HTMLInputElement>;
+    public _ng_expanded: boolean = false;
+    public _ng_selectedShell: string = '';
 
-    public readonly _ng_variable: string = 'variable';
-    public readonly _ng_value: string = 'value';
-    public _ng_selected: IEnvironment;
-    public _ng_adding: boolean = false;
-    public _ng_height: number = 200;
-    public _ng_newVariable: string = '';
-    public _ng_newValue: string = '';
+    private _sessionID: string;
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
+    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellEnvironmentComponent');
 
-    private _prevValue: string = '';
-    private _prevVariable: string = '';
-    private _editing: IEnvironment | undefined;
-
-    constructor() { }
+    constructor(private _notificationsService: NotificationsService) {
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
+            this._onSessionChange.bind(this),
+        );
+    }
 
     public ngOnInit() {
-        this._sortInformation();
-        this._ng_height = Math.round(window.innerHeight * .7);
+        this._subscriptions.onShellChange = this.service.getObservable().onShellChange.subscribe(
+            this._onShellChange.bind(this),
+        );
+        const session: Session = TabsSessionsService.getActive();
+        if (session !== undefined) {
+            this._sessionID = session.getGuid();
+        } else {
+            this._logger.error('Session not available');
+        }
     }
 
     public ngOnDestroy() {
-        if (this._ng_selected !== undefined) {
-            this._ng_selected.editing = {
-                value: false,
-                variable: false
-            };
-            this._ng_selected = undefined;
-        }
-        this._ng_adding = false;
-        this.setEnvironment(this.information);
-    }
-
-    public _ng_onContexMenu(event: MouseEvent, env: IEnvironment, type: string) {
-        const items: IMenuItem[] = [
-            {
-                caption: 'Edit',
-                handler: () => {
-                    this._changeFocus(env);
-                    if (type === this._ng_value) {
-                        env.editing.value = true;
-                        this._prevValue = env.value;
-                    } else {
-                        env.editing.variable = true;
-                        this._prevVariable = env.variable;
-                    }
-                }
-            },
-            {
-                caption: 'Remove',
-                handler: () => {
-                    this._changeFocus();
-                    this.information.env = this.information.env.filter((ngEnv: IEnvironment) => {
-                        return ngEnv.variable !== env.variable && ngEnv.value !== env.value;
-                    });
-                },
-            },
-        ];
-        ContextMenuService.show({
-            items: items,
-            x: event.pageX,
-            y: event.pageY,
+        Object.keys(this._subscriptions).forEach((key: string) => {
+            this._subscriptions[key].unsubscribe();
         });
     }
 
-    public _ng_onKeyUp(event: KeyboardEvent) {
-        if (event.key !== 'Enter') {
-            return;
-        }
-        this._finishCreating(true);
-        this._setCustomStatus();
-        this._sortInformation();
-    }
-
-    public _ng_onClick(env: IEnvironment) {
-        if (this._ng_selected !== env) {
-            this._changeFocus();
-        }
-        if (this._ng_selected !== undefined) {
-            this._ng_selected.selected = false;
-        }
-        this._ng_selected = env;
-        this._ng_selected.selected = true;
-    }
-
-    public _ng_onDoubleClick(env: IEnvironment, type: string) {
-        this._changeFocus(env);
-        if (type === this._ng_value) {
-            env.editing.value = true;
-            this._prevValue = env.value;
-        } else {
-            env.editing.variable = true;
-            this._prevVariable = env.variable;
-        }
-    }
-
-    public _ng_add() {
-        this._ng_selected = undefined;
-        this._ng_adding = true;
-        if (this._ng_variableAdd !== undefined) {
-            this._ng_variableAdd.nativeElement.scrollIntoView();
-        }
-    }
-
-    public _ng_remove() {
-        if (this._ng_selected !== undefined) {
-            this.information.env = this.information.env.filter((env: IEnvironment) => {
-                return (env.value !== this._ng_selected.value && env.variable !== this._ng_selected.variable);
-            });
-        }
-    }
-
-    public _ng_onCancel() {
-        this._finishCreating(false);
-        this.close();
-    }
-
-    private _changeFocus(newEditEnv?: IEnvironment) {
-        if (this._editing !== undefined) {
-            this._dropEditChanges();
-            this._editing.editing.value = false;
-            this._editing.editing.variable = false;
-        }
-        this._finishCreating(false);
-        this._editing = newEditEnv;
-    }
-
-    private _dropEditChanges() {
-        if (this._editing.editing.value) {
-            this._editing.value = this._prevValue;
-        } else if (this._editing.editing.variable) {
-            this._editing.variable = this._prevVariable;
-        }
-    }
-
-    private _finishCreating(save: boolean) {
-        if (!this._ng_adding) {
-            return;
-        }
-        if (save) {
-            this.information.env.push({
-                custom: true,
-                editing: {
-                    value: false,
-                    variable: false,
-                },
-                value: this._ng_newValue,
-                variable: this._ng_newVariable,
-                selected: false,
-            });
-        }
-        this._ng_adding = false;
-        this._ng_newValue = '';
-        this._ng_newVariable = '';
-    }
-
-    private _setCustomStatus() {
-        if (this._ng_selected !== undefined && this._ng_selected.editing !== undefined) {
-            if (this._ng_selected.editing.value) {
-                if (this._prevValue !== this._ng_selected.value) {
-                    this._ng_selected.custom = true;
+    public _ng_onEnvironment() {
+        const popupId: string = PopupsService.add({
+            id: 'environment-settings-dialog',
+            caption: `Environment settings`,
+            component: {
+                factory: SidebarAppShellEnvironmentVariablesComponent,
+                inputs: {
+                    information: this.service.getPreset(this.service.selectedPresetTitle).information,
+                    setEnvironment: (information: INewInformation) => {
+                        this.service.setEnv({
+                            session: this._sessionID,
+                            env: information.env,
+                        }).catch((error: Error) => {
+                            this._logger.error(error.message);
+                        });
+                        this.service.setPreset(this._sessionID, { env: information.env }).catch((error: Error) => {
+                            this._logger.error(error.message);
+                        });
+                    },
+                    close: () => {
+                        PopupsService.remove(popupId);
+                    }
                 }
-                this._ng_selected.editing.value = false;
-            } else if (this._ng_selected.editing.variable) {
-                if (this._prevVariable !== this._ng_selected.variable) {
-                    this._ng_selected.custom = true;
-                }
-                this._ng_selected.editing.variable = false;
+            },
+            buttons: [ ],
+            options: {
+                width: 60,
             }
+        });
+    }
+
+    public _ng_onSetPwd() {
+        this.service.setPwd({ session: this._sessionID }).catch((error: Error) => {
+            this._showNotification({
+                caption: 'Failed to set PWD',
+                message: this._logger.error(error.message),
+            });
+        });
+    }
+
+    public _ng_onShellChange(event: MatSelectChange) {
+        this.service.setEnv({ session: this._sessionID, shell: event.value }).then(() => {
+            this.service.setPreset(this._sessionID, { shell: event.value }).catch((error: Error) => {
+                this._logger.error(error.message);
+            });
+        }).catch((error: Error) => {
+            this._showNotification({
+                caption: 'Failed to change Shell',
+                message: this._logger.error(error.message),
+            });
+        });
+    }
+
+    public _onShellChange(newShell: string) {
+        this._ng_selectedShell = this.service.shells.find((shell: string) => shell.toLowerCase() === newShell.toLowerCase());
+    }
+
+    private _onSessionChange(session: Session | undefined) {
+        if (session !== undefined) {
+            this._sessionID = session.getGuid();
         }
     }
 
-    private _sortInformation() {
-        this.information.env.sort((a: IEnvironment, b: IEnvironment) => {
-            if (a.variable < b.variable) { return -1; }
-            if (a.variable > b.variable) { return 1; }
-            return 0;
+    private _showNotification(notification: Toolkit.INotification) {
+        this._notificationsService.add({
+            caption: notification.caption,
+            message: notification.message,
         });
     }
 

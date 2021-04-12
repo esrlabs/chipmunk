@@ -1,10 +1,10 @@
-import { Component, OnDestroy, OnInit, Input, ViewEncapsulation } from '@angular/core';
+import { Component, OnDestroy, OnInit, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ShellService } from '../services/service';
 import { Session } from '../../../../controller/session/session';
+import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
-import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import SourcesService from '../../../../services/service.sources';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
@@ -31,7 +31,7 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellRunningComponent');
     private _updating: boolean = false;
 
-    constructor() {
+    constructor(private _notificationsService: NotificationsService) {
         this._sessionID = TabsSessionsService.getActive().getGuid();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
@@ -43,6 +43,12 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
     }
 
     public ngOnInit() {
+        const session: Session = TabsSessionsService.getActive();
+        if (session !== undefined) {
+            this._sessionID = session.getGuid();
+        } else {
+            this._logger.error('Session not available');
+        }
         this._restoreSession();
     }
 
@@ -72,21 +78,12 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
         };
     }
 
-    public _ng_onContexMenu(event: MouseEvent, process: IPCMessages.IShellProcess) {
-        const items: IMenuItem[] = [
-            {
-                caption: 'Terminate',
-                handler: () => {
-                    this.service.terminate({ session: this._sessionID, guid: process.guid }, process.command ).catch((error: string) => {
-                        this._logger.error(error);
-                    });
-                },
-            },
-        ];
-        ContextMenuService.show({
-            items: items,
-            x: event.pageX,
-            y: event.pageY,
+    public _ng_onTerminate(process: IPCMessages.IShellProcess) {
+        this.service.terminate({ session: this._sessionID, guid: process.guid }, process.command ).catch((error: Error) => {
+            this._showNotification({
+                caption: 'Failed to terminate process',
+                message: this._logger.error(error.message),
+            });
         });
     }
 
@@ -119,8 +116,8 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
                     this._ng_running = this._colored(response.processes);
                 }
             })
-            .catch((error: string) => {
-                this._logger.error(error);
+            .catch((error: Error) => {
+                this._logger.error(error.message);
             });
     }
 
@@ -142,5 +139,12 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
             this._sessionID = session.getGuid();
             this._restoreSession();
         }
+    }
+
+    private _showNotification(notification: Toolkit.INotification) {
+        this._notificationsService.add({
+            caption: notification.caption,
+            message: notification.message,
+        });
     }
 }

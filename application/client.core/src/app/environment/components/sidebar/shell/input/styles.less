@@ -1,45 +1,48 @@
 @import '../../../../theme/variables.less';
 
-:host {    
+app-sidebar-app-shell-input {
     & mat-panel-title {
         margin-top: 15px;
-    }
-    
-    & div.icons {
-        position: relative;
-        float: right;
-        margin-top: 15px;
-        height: 20px;
-        & .mat-icon {
-            margin-left: 9px;
-            color: @scheme-color-3;
-            font-size: 19px;
-        }
-    }
-    & div.buttons {
-        white-space: nowrap;
-        text-align: right;
-        & .button {
-            display: inline-block;
-        }
     }
     & .mat-expansion-panel-header.mat-expanded {
         height: 40px;
         color: @scheme-color-0;
     }
-    & .mat-stroked-button {
-        margin-left: 6px;
+    & mat-form-field.regular{
+        height: 30px;
+        & input {
+            padding: 7px .1rem 0;
+        }
     }
-    & div.shell {
+}
+& mat-option.app-sidebar-app-shell-input {
+    & :hover {
+        & mat-icon.clear {
+            display: inline-block!important;
+        }
+    }
+    
+    & .options {
         display: flex;
         flex-direction: row;
-        & mat-form-field.regular{
-            position: relative;
-            flex: 1 auto;
-            width: 70%;
-            & input {
-                padding: 7px .1rem 0;
-            }
+        & span.filename {
+            flex: auto;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            padding: 0px!important;
+        }
+        & mat-icon.clear {
+            width: 16px;
+            height: 16px;
+            font-size: 16px;
+            padding-top: 4px;
+            margin-right: 0px!important;
+            color: @scheme-color-3;
+            display: none;
+        }
+        mat-icon.clear:hover {
+            color: @scheme-color-0;
         }
     }
 }

@@ -12,14 +12,14 @@
         <mat-form-field *ngIf="!_ng_add">
             <mat-label>Preset</mat-label>
             <mat-select [formControl]="_ng_control">
-                <mat-option *ngFor="let preset of service.presets" [value]="preset">
+                <mat-option *ngFor="let preset of service.presets" [value]="preset.title">
                     {{preset.title}}
                 </mat-option>
             </mat-select>
         </mat-form-field>
     </div>
     <div class="preset-buttons">
-        <button mat-stroked-button color="primary" *ngIf="service.selectedPreset.custom" (click)="_ng_onRemove()">Remove</button>
-        <button mat-stroked-button color="primary" *ngIf="!service.selectedPreset.custom" [disabled]="_ng_add" (click)="_ng_onReset()">Reset</button>
+        <button mat-stroked-button color="primary" *ngIf="service.getPreset(this.service.selectedPresetTitle).custom" (click)="_ng_onRemove()">Remove</button>
+        <button mat-stroked-button color="primary" *ngIf="!service.getPreset(this.service.selectedPresetTitle).custom" [disabled]="_ng_add" (click)="_ng_onReset()">Reset</button>
     </div>
 </div>

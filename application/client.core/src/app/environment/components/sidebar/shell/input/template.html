@@ -4,40 +4,34 @@
     [expanded]="true">
     <mat-expansion-panel-header>
         <mat-panel-title>Input</mat-panel-title>
-        <div class="icons">
-            <mat-icon (click)="_ng_onSetPwd()" [matTooltip]="service.selectedPreset.information.pwd">folder_open</mat-icon>
-            <mat-icon (click)="_ng_onSelectShell($event)" [matTooltip]="service.selectedPreset.information.shell">featured_play_list</mat-icon>
-        </div>
     </mat-expansion-panel-header>
-    <app-sidebar-app-shell-input-preset [service]="service"></app-sidebar-app-shell-input-preset>
-    <div class="shell">
-        <mat-form-field class="recent-requests outline regular no-margin" appearance="outline">
-            <input  #requestinput
-                    type="text"
-                    placeholder="Type a command"
-                    aria-label="Filter"
-                    (focus)="_ng_onFocusRequestInput()"
-                    (blur)="_ng_onBlurRequestInput()"
-                    (keyup)="_ng_onKeyUpRequestInput($event)"
-                    (keydown)="_ng_onKeyDownRequestInput($event)"
-                    (click)="_ng_onClickRequestInput()"
-                    matInput
-                    [formControl]="_ng_inputCtrl"
-                    matAutocomplete
-                    [matAutocomplete]="auto">
-            <mat-autocomplete #auto="matAutocomplete" class="regular"
-                (optionSelected)="_ng_onRecentSelected($event)"
-                (opened)="_ng_onAutocompletePanelOpen()"
-                [classList]="'recent-requests'"
-                [disableRipple]="true">
-                <mat-option *ngFor="let recent of _ng_recent | async" [value]="recent" [attr.title]="recent" class="recent-requests small t-console t-small">
+    <mat-form-field class="recent-requests outline regular no-margin" appearance="outline">
+        <input  #requestinput
+                type="text"
+                placeholder="Type a command"
+                aria-label="Filter"
+                (focus)="_ng_onFocusRequestInput()"
+                (blur)="_ng_onBlurRequestInput()"
+                (keyup)="_ng_onKeyUpRequestInput($event)"
+                (keydown)="_ng_onKeyDownRequestInput($event)"
+                (click)="_ng_onClickRequestInput()"
+                matInput
+                [formControl]="_ng_inputCtrl"
+                matAutocomplete
+                [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete" class="regular"
+            (opened)="_ng_onAutocompletePanelOpen()"
+            [classList]="'recent-requests options'"
+            [disableRipple]="true">
+            <mat-option *ngFor="let recent of _ng_recent | async"
+                        [value]="recent.description"
+                        [attr.title]="recent.description"
+                        class="recent-requests small t-console t-small app-sidebar-app-shell-input">
+                <div class="options">
                     <span class="filename" [innerHTML]="_ng_getSafeHTML(recent.tdescription)"></span>
-                </mat-option>
-            </mat-autocomplete>
-        </mat-form-field>
-    </div>
-    <div class="buttons">
-        <button mat-stroked-button class="button" color="primary" (click)="_ng_onClearRecent()">Clear</button>
-        <button mat-stroked-button class="button" color="primary" (click)="_ng_onEnvironment()">Environment</button>
-    </div>
+                    <mat-icon class="clear" (click)="_ng_onRemove(recent.description)">close</mat-icon>
+                </div>
+            </mat-option>
+        </mat-autocomplete>
+    </mat-form-field>
 </mat-expansion-panel>

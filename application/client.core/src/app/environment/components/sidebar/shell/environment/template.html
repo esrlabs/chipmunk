@@ -1,50 +1,22 @@
-<div class="listed" [ngStyle]="{ 'height': _ng_height + 'px' }">
-    <table>
-        <tr>
-            <th>Variable</th>
-            <th>Value</th>
-        </tr>
-        <tr *ngFor="let environment of information.env" (click)="_ng_onClick(environment)" [attr.class]="_ng_selected === environment ? 'selected' : ''">
-            <td (dblclick)="_ng_onDoubleClick(environment, _ng_variable)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_variable)">
-                <span *ngIf="environment.custom && !environment.editing.variable && !environment.editing.value">*</span>
-                <span *ngIf="!environment.editing.variable" class="env white">{{environment.variable}}</span>
-                <input *ngIf="environment.editing.variable"
-                       matInput
-                       appFocusInput
-                       class="edit"
-                       (keyup)="_ng_onKeyUp($event)"
-                       [(ngModel)]="environment.variable"/>
-            </td>
-            <td (dblclick)="_ng_onDoubleClick(environment, _ng_value)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_value)">
-                <span *ngIf="!environment.editing.value" [attr.class]="'env ' + (_ng_selected === environment ? 'white' : 'grey')">{{environment.value}}</span>
-                <input *ngIf="environment.editing.value"
-                       matInput
-                       appFocusInput
-                       class="edit"
-                       (keyup)="_ng_onKeyUp($event)"
-                       [(ngModel)]="environment.value"/>
-            </td>
-        </tr>
-        <tr *ngIf="_ng_adding">
-            <td>
-                <input #variableAdd
-                       appFocusInput
-                       matInput
-                       class="edit"
-                       (keyup)="_ng_onKeyUp($event)"
-                       [(ngModel)]="_ng_newVariable"/>
-            </td>
-            <td>
-                <input matInput
-                       class="edit"
-                       (keyup)="_ng_onKeyUp($event)"
-                       [(ngModel)]="_ng_newValue"/>                
-            </td>
-        </tr>
-    </table>
-</div>
-<div>
-    <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
-    <button mat-stroked-button color="primary" [disabled]="!(_ng_selected !== undefined)" (click)="_ng_remove()">Remove</button>
-    <button mat-stroked-button color="primary" [disabled]="_ng_adding" (click)="_ng_add()">Add</button>
-</div>
+<mat-expansion-panel [(expanded)]="_ng_expanded">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Environment</mat-panel-title>
+        <mat-panel-description *ngIf="!_ng_expanded">{{service.getPreset(this.service.selectedPresetTitle).information.pwd}}</mat-panel-description>
+    </mat-expansion-panel-header>
+    <app-sidebar-app-shell-environment-preset [service]="service"></app-sidebar-app-shell-environment-preset>
+    <div class="pwd">
+        <mat-icon (click)="_ng_onSetPwd()">folder_open</mat-icon>
+        <span class="path">{{service.getPreset(this.service.selectedPresetTitle).information.pwd}}</span>
+    </div>
+    <mat-form-field>
+        <mat-label>Shell</mat-label>
+        <mat-select [(ngModel)]="_ng_selectedShell" (selectionChange)="_ng_onShellChange($event)">
+            <mat-option *ngFor="let shell of service.shells" [value]="shell">
+                {{shell}}
+            </mat-option>
+        </mat-select>
+    </mat-form-field>
+    <div class="buttons">
+        <button mat-stroked-button class="button" color="primary" (click)="_ng_onEnvironment()">Environment variables</button>
+    </div>
+</mat-expansion-panel>

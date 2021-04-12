@@ -7,7 +7,11 @@
         <p class="t-small nowrap">No processes are terminated</p>
     </div>
     <div *ngIf="_ng_terminated.length > 0">
-        <div appTooltip [appTooltipContent]="template" class="terminated" *ngFor="let terminated of _ng_terminated">
+        <div appTooltip
+             [appTooltipContent]="template"
+             class="terminated"
+             *ngFor="let terminated of _ng_terminated"
+             (click)="_ng_onClickTerminated(terminated)">
             <div class="colorIndicator" [ngStyle]="{'background-color': terminated.meta.color}"></div>
             <span class="command">{{terminated.command}}</span>
             <ng-template #template>
@@ -22,6 +26,7 @@
                     </tr>
                 </table>
             </ng-template>
+            <mat-icon class="replay" (click)="_ng_onReplay(terminated)">replay</mat-icon>
         </div>
     </div>
 </mat-expansion-panel>

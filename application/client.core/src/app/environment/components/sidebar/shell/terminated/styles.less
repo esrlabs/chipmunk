@@ -12,6 +12,19 @@
         color: @scheme-color-0;
         background-color: @scheme-color-4;
     }
+    & mat-icon.replay {
+        display: none;
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+        color: @scheme-color-3;
+    }
+    & mat-icon.replay:hover {
+        color: @scheme-color-0;
+    }
+    & div.terminated:hover mat-icon.replay {
+        display: inline-block;
+    }
     & div.colorIndicator {
         width: 6px;
         height: 100%;
@@ -25,5 +38,12 @@
     }
     & .nowrap {
         white-space: nowrap;
+    }
+    & .mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        right: 25px;
+        position: absolute;
     }
 }

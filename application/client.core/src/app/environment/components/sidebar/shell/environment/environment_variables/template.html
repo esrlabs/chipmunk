@@ -1,0 +1,52 @@
+<div class="listed" [ngStyle]="{ 'height': _ng_height + 'px' }">
+    <table>
+        <tr>
+            <th>Variable</th>
+            <th>Value</th>
+        </tr>
+        <tr *ngFor="let environment of information.env" (click)="_ng_onClick(environment)" [attr.class]="_ng_selected === environment ? 'selected' : ''">
+            <td (dblclick)="_ng_onDoubleClick(environment, _ng_inputType.variable)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_inputType.variable)">
+                <span *ngIf="environment.custom && !environment.editing.variable && !environment.editing.value">*</span>
+                <span *ngIf="!environment.editing.variable" class="env white">{{environment.variable}}</span>
+                <input *ngIf="environment.editing.variable"
+                       matInput
+                       appFocusInput
+                       class="edit"
+                       (keyup)="_ng_onKeyUp($event, true, environment)"
+                       [ngStyle]="{ 'color': (_ng_valid ? _ng_colors.valid : _ng_colors.invalid) }"
+                       [(ngModel)]="_ng_variable"/>
+            </td>
+            <td (dblclick)="_ng_onDoubleClick(environment, _ng_inputType.value)" (contextmenu)="_ng_onContexMenu($event, environment, _ng_inputType.value)">
+                <span *ngIf="!environment.editing.value" [attr.class]="'env ' + (_ng_selected === environment ? 'white' : 'grey')">{{environment.value}}</span>
+                <input *ngIf="environment.editing.value"
+                       matInput
+                       appFocusInput
+                       class="edit"
+                       (keyup)="_ng_onKeyUp($event, false, environment)"
+                       [(ngModel)]="_ng_value"/>
+            </td>
+        </tr>
+        <tr *ngIf="_ng_adding">
+            <td>
+                <input #variableAdd
+                       appFocusInput
+                       matInput
+                       class="edit"
+                       (keyup)="_ng_onKeyUpAdd($event, true)"
+                       [ngStyle]="{ 'color': (_ng_valid ? _ng_colors.valid : _ng_colors.invalid) }"
+                       [(ngModel)]="_ng_newVariable"/>
+            </td>
+            <td>
+                <input matInput
+                       class="edit"
+                       (keyup)="_ng_onKeyUpAdd($event)"
+                       [(ngModel)]="_ng_newValue"/>                
+            </td>
+        </tr>
+    </table>
+</div>
+<div>
+    <button mat-stroked-button color="primary" (click)="_ng_onCancel()">Cancel</button>
+    <button mat-stroked-button color="primary" [disabled]="!(_ng_selected !== undefined)" (click)="_ng_remove()">Remove</button>
+    <button mat-stroked-button color="primary" [disabled]="_ng_adding" (click)="_ng_add()">Add</button>
+</div>

@@ -2,7 +2,9 @@ import { Component, OnDestroy, OnInit, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ShellService } from '../services/service';
 import { Session } from '../../../../controller/session/session';
+import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 
+import OutputRedirectionsService, { EParent } from '../../../../services/standalone/service.output.redirections';
 import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import SourcesService from '../../../../services/service.sources';
@@ -30,7 +32,7 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellTerminatedComponent');
 
-    constructor() {
+    constructor(private _notificationsService: NotificationsService) {
         this._sessionID = TabsSessionsService.getActive().getGuid();
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
             this._onSessionChange.bind(this),
@@ -42,6 +44,12 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
     }
 
     public ngOnInit() {
+        const session: Session = TabsSessionsService.getActive();
+        if (session !== undefined) {
+            this._sessionID = session.getGuid();
+        } else {
+            this._logger.error('Session not available');
+        }
         this._restoreSession();
     }
 
@@ -74,6 +82,34 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
         return `${count} process${count > 1 ? 'es' : ''}`;
     }
 
+    public _ng_onReplay(process: IPCMessages.IShellProcess) {
+        this.service.runCommand({
+            session: this._sessionID,
+            command: process.command,
+        }).catch((error: Error) => {
+            this._showNotification({
+                caption: 'Failed to replay command',
+                message: this._logger.error(error.message),
+            });
+        });
+    }
+
+    public _ng_onClickTerminated(process: IPCMessages.IShellProcess) {
+        if (process.stat.recieved === 0) {
+            return;
+        }
+        const session: Session | Error = TabsSessionsService.getSessionController(this._sessionID);
+        if (session instanceof Error) {
+            this._logger.error(`Failed to jump to start of terminated process due to error: ${session.message}`);
+            return;
+        }
+        if (session.getStreamOutput().getRowsCount() < process.stat.row) {
+            this._logger.warn(`Row of terminated process '${process.command}' is outside of file`);
+            return;
+        }
+        OutputRedirectionsService.select(EParent.shell, this._sessionID, { output: process.stat.row });
+    }
+
     private _restoreSession() {
         this.service
             .getTerminated(this._sessionID)
@@ -82,8 +118,8 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
                     this._ng_terminated = this._colored(response.processes);
                 }
             })
-            .catch((error: string) => {
-                this._logger.error(error);
+            .catch((error: Error) => {
+                this._logger.error(error.message);
             });
     }
 
@@ -106,4 +142,12 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
             this._restoreSession();
         }
     }
+
+    private _showNotification(notification: Toolkit.INotification) {
+        this._notificationsService.add({
+            caption: notification.caption,
+            message: notification.message,
+        });
+    }
+
 }

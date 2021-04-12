@@ -3,6 +3,12 @@
 :host {
     position: relative;
     display: block;
+    & mat-panel-description {
+        color: @scheme-color-2!important;
+    }
+    & .mat-expansion-panel-header.mat-expanded {
+        color: @scheme-color-0;
+    }
     & div.running {
         display: flex;
         width: 100%;
@@ -11,6 +17,19 @@
         align-items: center;
         color: @scheme-color-0;
         background-color: @scheme-color-4;
+    }
+    & mat-icon.terminate {
+        display: none;
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+        color: @scheme-color-3;
+    }
+    & mat-icon.terminate:hover {
+        color: @scheme-color-0;
+    }
+    & div.running:hover mat-icon.terminate {
+        display: inline-block;
     }
     & div.colorIndicator {
         width: 6px;
@@ -25,5 +44,12 @@
     }
     & .nowrap {
         white-space: nowrap;
+    }
+    & .mat-icon {
+        font-size: 21px;
+        width: 21px;
+        height: 21px;
+        right: 25px;
+        position: absolute;
     }
 }

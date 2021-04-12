@@ -1,4 +1,7 @@
-<mat-expansion-panel [expanded]="true">
+<mat-expansion-panel
+    [disabled]="true"
+    [expanded]="true"
+    [hideToggle]="true">
     <mat-expansion-panel-header class="nowrap">
         <mat-panel-title>Running</mat-panel-title>
         <mat-panel-description>{{_ng_count()}}</mat-panel-description>
@@ -7,10 +10,14 @@
         <p class="t-small nowrap">No processes are running</p>
     </div>
     <div *ngIf="_ng_running.length > 0">
-        <div appTooltip [appTooltipContent]="template" [appTooltipRefreshRate]="500" class="running" *ngFor="let running of _ng_running">
+        <div appTooltip
+             [appTooltipContent]="template"
+             [appTooltipRefreshRate]="500"
+             class="running"
+             *ngFor="let running of _ng_running">
             <div class="colorIndicator" [ngStyle]="{'background-color': running.meta.color}"></div>
             <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
-            <span class="command" (contextmenu)="_ng_onContexMenu($event, running)">{{running.command}}</span>
+            <span class="command">{{running.command}}</span>
             <ng-template #template>
                 <table>
                     <tr>
@@ -23,6 +30,7 @@
                     </tr>
                 </table>
             </ng-template>
+            <mat-icon class="terminate" (click)="_ng_onTerminate(running)">close</mat-icon>
         </div>
     </div>
 </mat-expansion-panel>
