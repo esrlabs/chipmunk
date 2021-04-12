@@ -16,6 +16,7 @@ import ControllerElectronIpc from '../controllers/electron/controller.electron.i
 import ServiceProduction from './service.production';
 import ServiceEnv from './service.env';
 import ControllerBrowserWindow from '../controllers/electron/controller.browserwindow';
+import ControllerDock from '../controllers/electron/controller.dock';
 import ControllerElectronMenu from '../controllers/electron/controller.electron.menu';
 import Logger from '../tools/env.logger';
 
@@ -45,6 +46,7 @@ class ServiceElectron implements IService {
     private _logger: Logger = new Logger('ServiceElectron');
     private _controllerBrowserWindow: ControllerBrowserWindow | undefined;
     private _controllerElectronMenu: ControllerElectronMenu | undefined;
+    private _controllerDock: ControllerDock | undefined;
     private _onReadyResolve: THandler | null = null;
     private _ipc: ControllerElectronIpc | undefined;
     private _ipcLock: Lock = new Lock(false);
@@ -256,6 +258,7 @@ class ServiceElectron implements IService {
                 return resolve();
             }
             this._logger.debug(`Creating new browser window`);
+            this._controllerDock = new ControllerDock();
             this._controllerBrowserWindow = new ControllerBrowserWindow(uuid.v4());
             this._controllerBrowserWindow.getIpc().then((ipc: ControllerElectronIpc | undefined) => {
                 this._ipc = ipc;

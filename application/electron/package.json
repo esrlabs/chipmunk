@@ -4,7 +4,7 @@
     "chipmunk": {
         "versions": {}
     },
-    "description": "LogViewer",
+    "description": "LogViewer Tool",
     "author": {
         "name": "Oliver Mueller",
         "email": "oliver.mueller@esrlabs.com",
@@ -18,7 +18,7 @@
         }
     ],
     "main": "./dist/compiled/electron/src/main.js",
-    "copyright": "Copyright © 2019 year ESR Labs",
+    "copyright": "Copyright © 2021 year ESR Labs",
     "build": {
         "asar": false,
         "appId": "com.esrlabs.chipmunk",
@@ -28,7 +28,7 @@
         "afterSign": "scripts/dist/scripts/notarize.js",
         "files": [
             "./dist/compiled/**",
-            "./resources/linux/**"
+            "./resources/**"
         ],
         "directories": {
             "output": "dist/release"
@@ -37,7 +37,7 @@
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
-            "target": [ ],
+            "target": [],
             "binaries": [
                 "dist/compiled/apps/launcher",
                 "dist/compiled/apps/cm",
@@ -60,8 +60,9 @@
             "target": []
         },
         "win": {
-            "icon": ".resources/win/chipmunk.ico",
-            "target": [ ]
+            "icon": "resources/win/chipmunk.ico",
+            "target": [],
+            "publisherName": "ESR Labs"
         }
     },
     "dependencies": {

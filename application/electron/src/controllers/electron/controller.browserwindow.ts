@@ -103,13 +103,15 @@ export default class ControllerBrowserWindow extends EventEmitter {
                 return undefined;
             }
             const state: IWindowState = ServiceWindowState.getSettings().get();
+            const icon = getIcon();
+            const title = `Chipmunk@${ServicePackage.get().version}`;
             const options: BrowserWindowConstructorOptions = {
                 height: state.h,
-                title: ServicePackage.get().version,
                 width: state.w,
                 x: state.x,
                 y: state.y,
-                icon: getIcon(),
+                title: title,
+                // icon: getIcon(),
                 webPreferences: {
                     nodeIntegration: true,
                     enableRemoteModule: false,
@@ -129,6 +131,12 @@ export default class ControllerBrowserWindow extends EventEmitter {
 			    protocol: 'file:',
 			    slashes: true,
             }) + `?v${ServicePackage.get().version}`);
+            try {
+                this._window.setTitle(`Chipmunk@${ServicePackage.get().version}`);
+                icon !== undefined && this._window.setIcon(icon);
+            } catch (e) {
+                this._logger.error(`Fail to setup app title/icon due error: ${e.message}`);
+            }
             if (state.max) {
                 this._window.maximize();
             }
