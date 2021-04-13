@@ -1,25 +1,28 @@
 use crate::js::events::SyncChannel;
 use crate::js::events::{AsyncBroadcastChannel, AsyncChannel};
 use crate::js::events::{CallbackEvent, ComputationError, OperationDone};
+use crate::js::events::{NativeError, NativeErrorKind};
 use crossbeam_channel as cc;
 use indexer_base::progress::ComputationResult::Item;
-// use crate::logging::init_logging;
 use indexer_base::progress::Severity;
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     derive::node_bindgen,
     sys::napi_value,
 };
+use processor::dlt_source::DltSource;
+use processor::grabber::GrabTrait;
 use processor::grabber::LineRange;
+use processor::grabber::MetadataSource;
 use processor::grabber::{GrabMetadata, Grabber};
 use processor::search::SearchFilter;
+use processor::text_source::TextFileSource;
 use serde::Serialize;
 use std::path::Path;
-// use std::sync::{Arc, Mutex};
+use std::path::PathBuf;
 use std::thread;
 use tokio::runtime::Runtime;
 use tokio::sync::{broadcast, mpsc};
-// use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 use uuid::Uuid;
 
 pub struct SessionState {
@@ -33,15 +36,34 @@ enum Operation {
         file_path: String,
         source_id: String,
         operation_id: Uuid,
+        source_type: SupportedFileType,
     },
     End,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub enum SupportedFileType {
+    Text,
+    Dlt,
+}
+
+pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
+    let extension = path.extension().map(|ext| ext.to_string_lossy());
+    match extension {
+        Some(ext) => match ext.to_lowercase().as_ref() {
+            "dlt" => Some(SupportedFileType::Dlt),
+            "txt" | "text" => Some(SupportedFileType::Text),
+            _ => Some(SupportedFileType::Text),
+        },
+        None => Some(SupportedFileType::Text),
+    }
 }
 
 pub struct RustSession {
     pub id: String,
     pub running: bool,
-    pub content_grabber: Option<Grabber>,
-    pub search_grabber: Option<Grabber>,
+    pub content_grabber: Option<Box<dyn GrabTrait>>,
+    pub search_grabber: Option<Box<dyn GrabTrait>>,
     // pub state: Arc<Mutex<SessionState>>,
     callback: Option<Box<dyn Fn(CallbackEvent) + Send + 'static>>,
 
@@ -60,8 +82,8 @@ impl RustSession {
     /// written to the metadata-channel. If so, this metadata is used in the grabber.
     /// If there was no new metadata, we make sure that the metadata has been set.
     /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    fn get_loaded_grabber(&mut self) -> Result<&mut Grabber, ComputationError> {
-        let current_grabber: &mut processor::grabber::Grabber = match &mut self.content_grabber {
+    fn get_loaded_grabber(&mut self) -> Result<&mut Box<dyn GrabTrait>, ComputationError> {
+        let current_grabber = match &mut self.content_grabber {
             Some(c) => Ok(c),
             None => Err(ComputationError::Protocol(
                 "Need a grabber first to work with metadata".to_owned(),
@@ -69,7 +91,7 @@ impl RustSession {
         }?;
         let fresh_metadata_result = match self.metadata_channel.1.try_recv() {
             Ok(new_metadata) => {
-                println!("RUST: new metadata arrived");
+                println!("RUST: new metadata arrived: {:?} lines", new_metadata);
                 Ok(Some(new_metadata))
             }
             Err(cc::TryRecvError::Empty) => {
@@ -86,7 +108,9 @@ impl RustSession {
                 match res {
                     Ok(Some(metadata)) => {
                         println!("RUST: setting new metadata into content_grabber");
-                        current_grabber.metadata = Some(metadata);
+                        current_grabber
+                            .inject_metadata(metadata)
+                            .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
                         Ok(current_grabber)
                     }
                     Ok(None) => Err(ComputationError::Process(
@@ -98,7 +122,7 @@ impl RustSession {
                     ))),
                 }
             }
-            Ok(None) => match current_grabber.metadata {
+            Ok(None) => match current_grabber.get_metadata() {
                 Some(_) => {
                     println!("RUST: reusing cached metadata");
                     Ok(current_grabber)
@@ -157,6 +181,9 @@ impl RustSession {
         Ok(())
     }
 
+    /// this will start of the event loop that processes different rust operations
+    /// in the event-loop-thread
+    /// the callback is used to report back to javascript
     #[node_bindgen(mt)]
     fn start<F: Fn(CallbackEvent) + Send + 'static>(
         &mut self,
@@ -180,22 +207,51 @@ impl RustSession {
                                 file_path,
                                 source_id,
                                 operation_id,
+                                source_type,
                             } => {
                                 println!("RUST: received Assign operation event");
-
-                                match Grabber::create_metadata_async(file_path).await {
-                                    Ok(Item(metadata)) => {
+                                let file_path = Path::new(&file_path);
+                                let metadata_res = match source_type {
+                                    SupportedFileType::Dlt => {
+                                        let source = DltSource::new(file_path, &source_id);
+                                        Some(source.from_file(None))
+                                    }
+                                    SupportedFileType::Text => {
+                                        let source = TextFileSource::new(file_path, &source_id);
+                                        Some(source.from_file(None))
+                                    }
+                                };
+                                match metadata_res {
+                                    Some(Ok(Item(metadata))) => {
                                         println!("RUST: received metadata");
                                         let line_count: u64 = metadata.line_count as u64;
                                         let _ = metadata_tx.send(Ok(Some(metadata)));
                                         callback(CallbackEvent::StreamUpdated(line_count));
                                     }
-                                    Err(e) => {
+                                    Some(Ok(_)) => {
+                                        println!("RUST: metadata calculation aborted");
+                                        let _ = metadata_tx.send(Ok(None));
+                                    }
+                                    Some(Err(e)) => {
                                         println!("RUST error computing metadata");
                                         let _ = metadata_tx.send(Err(ComputationError::Process(
                                             format!("Could not compute metadata: {}", e),
                                         )));
+                                        callback(CallbackEvent::OperationError((
+                                            operation_id,
+                                            NativeError {
+                                                severity: Severity::WARNING,
+                                                kind: NativeErrorKind::ComputationFailed,
+                                            },
+                                        )));
                                     }
+                                    None => callback(CallbackEvent::OperationError((
+                                        operation_id,
+                                        NativeError {
+                                            severity: Severity::WARNING,
+                                            kind: NativeErrorKind::UnsupportedFileType,
+                                        },
+                                    ))),
                                 }
                                 callback(CallbackEvent::OperationDone(OperationDone {
                                     uuid: operation_id,
@@ -222,7 +278,7 @@ impl RustSession {
 
     #[node_bindgen]
     fn get_stream_len(&mut self) -> Result<i64, ComputationError> {
-        match &self.get_loaded_grabber()?.metadata {
+        match &self.get_loaded_grabber()?.get_metadata() {
             Some(md) => Ok(md.line_count as i64),
             None => Err(ComputationError::Protocol("Cannot happen".to_owned())),
         }
@@ -234,11 +290,14 @@ impl RustSession {
         start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationError> {
+        println!(
+            "RUST: grab from {} ({} lines)",
+            start_line_index, number_of_lines
+        );
         let grabbed_content = self
             .get_loaded_grabber()?
-            .get_entries(&LineRange::new(
-                start_line_index as u64,
-                (start_line_index + number_of_lines) as u64,
+            .grab_content(&LineRange::from(
+                (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
             ))
             .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
         let serialized =
@@ -258,16 +317,39 @@ impl RustSession {
     fn assign(&mut self, file_path: String, source_id: String) -> Result<String, ComputationError> {
         println!("RUST: send assign event on channel");
         let operation_id = Uuid::new_v4();
-
-        let grabber = Grabber::new(Path::new(&file_path), &source_id)
-            .map_err(|e| ComputationError::Process(format!("Could not create grabber: {}", e)))?;
-        self.content_grabber = Some(grabber);
+        let input_p = PathBuf::from(&file_path);
+        let source_type = match get_supported_file_type(&input_p) {
+            Some(SupportedFileType::Text) => {
+                type GrabberType = processor::grabber::Grabber<TextFileSource>;
+                let source = TextFileSource::new(&input_p, &source_id);
+                let grabber = GrabberType::new(source).map_err(|e| {
+                    ComputationError::Process(format!("Could not create grabber: {}", e))
+                })?;
+                self.content_grabber = Some(Box::new(grabber));
+                SupportedFileType::Text
+            }
+            Some(SupportedFileType::Dlt) => {
+                type GrabberType = processor::grabber::Grabber<DltSource>;
+                let source = DltSource::new(&input_p, &source_id);
+                let grabber = GrabberType::new(source).map_err(|e| {
+                    ComputationError::Process(format!("Could not create grabber: {}", e))
+                })?;
+                self.content_grabber = Some(Box::new(grabber));
+                SupportedFileType::Dlt
+            }
+            None => {
+                return Err(ComputationError::OperationNotSupported(
+                    "Unsupported file type".to_string(),
+                ));
+            }
+        };
         self.op_channel
             .0
             .send(Operation::Assign {
                 file_path,
                 source_id,
                 operation_id,
+                source_type,
             })
             .map_err(|_| {
                 ComputationError::Process("Could not send operation on channel".to_string())
