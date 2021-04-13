@@ -1,19 +1,17 @@
 extern crate dirs;
-use crate::dlt_fmt::FormattableMessage;
-use crate::fibex::gather_fibex_data;
 use crate::{
     dlt::*,
     dlt_file::create_dlt_session_file,
+    dlt_fmt::FormattableMessage,
     dlt_parse::{dlt_message, *},
-    fibex::FibexMetadata,
+    fibex::{gather_fibex_data, FibexMetadata},
     filtering,
 };
 use bytes::BytesMut;
 use crossbeam_channel as cc;
-use indexer_base::config::FibexConfig;
 use indexer_base::{
     chunks::{Chunk, ChunkFactory, ChunkResults},
-    config::{SocketConfig},
+    config::{FibexConfig, SocketConfig},
     progress::*,
     utils,
 };
@@ -23,7 +21,10 @@ use std::{
 };
 use thiserror::Error;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
-use tokio_util::{codec::Decoder, codec::Framed, udp::UdpFramed};
+use tokio_util::{
+    codec::{Decoder, Framed},
+    udp::UdpFramed,
+};
 
 #[derive(Debug, Error)]
 pub enum ConnectionError {
@@ -76,7 +77,9 @@ pub async fn index_from_socket(
     let bind_addr_and_port: SocketAddr = match socket_config.socket_addr() {
         Ok(addr) => addr,
         Err(e) => {
-            return Err(ConnectionError::WrongConfiguration { cause: format!("{}", e) });
+            return Err(ConnectionError::WrongConfiguration {
+                cause: format!("{}", e),
+            });
         }
     };
     debug!("Binding socket within: {}", bind_addr_and_port);
@@ -164,7 +167,7 @@ pub async fn index_from_socket_udp(
                     "Joining UDP multicast group: socket.join_multicast_v4({}, {})",
                     addr, inter
                 );
-            },
+            }
             IpAddr::V6(addr) => {
                 let inter: u32 = match multicast_info.interface.as_ref() {
                     Some(s) => s.parse::<u32>()?,

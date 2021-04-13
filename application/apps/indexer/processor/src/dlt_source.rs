@@ -1,23 +1,19 @@
-use crate::grabber::identify_byte_range;
-use crate::grabber::GrabError;
-use crate::grabber::GrabMetadata;
-use crate::grabber::GrabbedContent;
-use crate::grabber::GrabbedElement;
-use crate::grabber::MetadataSource;
-use crate::grabber::Slot;
-use crate::grabber::{ByteRange, LineRange};
+use crate::grabber::{
+    identify_byte_range, ByteRange, GrabError, GrabMetadata, GrabbedContent, GrabbedElement,
+    LineRange, MetadataSource, Slot,
+};
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use crossbeam_channel::unbounded;
-use dlt::dlt::Message;
-use dlt::dlt_file::FileMessageProducer;
-use dlt::dlt_fmt::FormattableMessage;
-use dlt::dlt_parse::{dlt_consume_msg, ParsedMessage};
-use indexer_base::chunks::ChunkResults;
-use indexer_base::{progress::ComputationResult, utils};
-use std::io::Cursor;
+use dlt::{
+    dlt::Message,
+    dlt_file::FileMessageProducer,
+    dlt_fmt::FormattableMessage,
+    dlt_parse::{dlt_consume_msg, ParsedMessage},
+};
+use indexer_base::{chunks::ChunkResults, progress::ComputationResult, utils};
 use std::{
     fs,
-    io::{BufRead, SeekFrom},
+    io::{BufRead, Cursor, SeekFrom},
     path::{Path, PathBuf},
 };
 

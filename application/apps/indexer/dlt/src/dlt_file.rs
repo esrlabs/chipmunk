@@ -9,15 +9,14 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use crate::dlt_fmt::FormattableMessage;
-use crate::dlt_parse::dlt_consume_msg;
-use crate::fibex::gather_fibex_data;
 use crate::{
     dlt::Message,
+    dlt_fmt::FormattableMessage,
     dlt_parse::{
-        dlt_message, forward_to_next_storage_header, skip_storage_header, DltParseError,
-        ParsedMessage, DLT_MIN_BUFFER_SPACE, DLT_PATTERN_SIZE, DLT_READER_CAPACITY,
+        dlt_consume_msg, dlt_message, forward_to_next_storage_header, skip_storage_header,
+        DltParseError, ParsedMessage, DLT_MIN_BUFFER_SPACE, DLT_PATTERN_SIZE, DLT_READER_CAPACITY,
     },
+    fibex::gather_fibex_data,
     filtering,
 };
 use anyhow::anyhow;
@@ -29,12 +28,10 @@ use indexer_base::{
     progress::*,
     utils,
 };
-use std::io::{Read, Seek};
-use std::path::Path;
 use std::{
     fs,
-    io::{BufRead, BufWriter, Write},
-    path::PathBuf,
+    io::{BufRead, BufWriter, Read, Seek, Write},
+    path::{Path, PathBuf},
 };
 
 use crate::fibex::FibexMetadata;

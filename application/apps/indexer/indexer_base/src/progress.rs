@@ -1,6 +1,7 @@
 use crossbeam_channel as cc;
 use serde::{Deserialize, Serialize};
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Severity {
     WARNING,

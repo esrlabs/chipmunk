@@ -11,8 +11,10 @@
 // from E.S.R.Labs.
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use std::net::{ SocketAddr, IpAddr };
-use std::path;
+use std::{
+    net::{IpAddr, SocketAddr},
+    path,
+};
 
 /// A IndexSection describes a section of a file by indicies
 /// to identify lines 10-12 (inclusively) => first_line = 10, last_line = 12
@@ -96,7 +98,8 @@ pub struct MulticastInfo {
 
 impl MulticastInfo {
     pub fn multicast_addr(&self) -> Result<IpAddr> {
-        self.multiaddr.to_string()
+        self.multiaddr
+            .to_string()
             .parse()
             .map_err(|e| anyhow!("Could not parse mulitcast address: {}", e))
     }
