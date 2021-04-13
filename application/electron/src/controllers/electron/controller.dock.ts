@@ -16,8 +16,10 @@ export default class ControllerDock {
         switch (process.platform) {
             case 'win32':
                 this._win();
+                break;
             case 'darwin':
                 this._mac();
+                break;
         }
     }
 
@@ -40,6 +42,9 @@ export default class ControllerDock {
     }
 
     private _mac() {
+        if (app.dock === undefined || app.dock === null) {
+            return;
+        }
         app.dock.setMenu(Menu.buildFromTemplate([
             new MenuItem({
                 label: 'New Window',
