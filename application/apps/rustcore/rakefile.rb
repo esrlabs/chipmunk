@@ -14,29 +14,26 @@ end
 
 namespace :build do
 
-  desc "Build TS"
+  desc 'Build TS'
   task :ts do
     sh "#{TSC} -p #{TS}/tsconfig.json"
   end
 
-  desc "Build RS"
+  desc 'Build RS'
   task :rs do
     Dir.chdir(RS) do
       sh ".#{BUILD_ENV} #{NJ_CLI} build --release"
     end
   end
 
-  desc "Delivery native"
+  desc 'Delivery native'
   task :delivery do
     sh "rm -rf #{TS}/native || true"
     sh "mkdir #{TS}/native || true"
     sh "cp #{RS}/dist/index.node #{TS}/native/index.node"
   end
 
-  task :all do
-    Rake::Task["build:rs"].invoke
-    Rake::Task["build:delivery"].invoke
-    Rake::Task["build:ts"].invoke
-  end
+  desc 'build all'
+  task :all => ['build:rs', 'build:delivery', 'build:ts']
 end
 
