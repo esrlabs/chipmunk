@@ -7,7 +7,6 @@ pub mod dlt_stats;
 pub mod exporting;
 pub mod format_verification;
 pub mod indexing;
-pub mod line_grabbing;
 pub mod merging;
 pub mod timestamp_detector;
 pub mod timestamp_extractor;

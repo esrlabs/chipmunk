@@ -24,8 +24,7 @@ use api::{
     dlt_pcap::JsDltPcapEventEmitter, dlt_sockets::JsDltSocketEventEmitter,
     dlt_stats::JsDltStatsEventEmitter, exporting::JsExporterEventEmitter,
     format_verification::JsFormatVerificationEmitter, indexing::JsIndexerEventEmitter,
-    line_grabbing::JsGrabber, merging::JsMergerEmitter,
-    timestamp_detector::detect_timestamp_in_string,
+    merging::JsMergerEmitter, timestamp_detector::detect_timestamp_in_string,
     timestamp_detector::JsTimestampFormatDetectionEmitter,
     timestamp_extractor::JsTimestampExtractEmitter,
 };
@@ -56,7 +55,6 @@ register_module!(mut cx, {
     cx.export_class::<JsMergerEmitter>("RustMergerEmitter")?;
     cx.export_class::<JsExporterEventEmitter>("RustExporterEventEmitter")?;
     cx.export_class::<JsFormatVerificationEmitter>("RustFormatVerificationEmitter")?;
-    cx.export_class::<JsGrabber>("RustGrabber")?;
 
     Ok(())
 });
