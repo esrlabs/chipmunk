@@ -16,7 +16,7 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use bytes::{BufMut, BytesMut};
 use indexer_base::error_reporter::*;
 use serde::Serialize;
-use std::{fmt, io, io::Error, str};
+use std::{io, io::Error, str};
 
 use proptest::prelude::*;
 use proptest_derive::Arbitrary;
@@ -29,12 +29,89 @@ pub enum Endianness {
     Big,
 }
 
+/// represents a DLT message including all headers
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Message {
+    pub storage_header: Option<StorageHeader>,
+    pub header: StandardHeader,
+    pub extended_header: Option<ExtendedHeader>,
+    pub payload: PayloadContent,
+}
+
+#[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
+pub struct StorageHeader {
+    pub timestamp: DltTimeStamp,
+    #[proptest(strategy = "\"[a-zA-Z 0-9]{4}\"")]
+    pub ecu_id: String,
+}
+
+/// The Standard Header shall be in big endian format
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct StandardHeader {
+    pub version: u8,
+    pub endianness: Endianness,
+    pub has_extended_header: bool,
+    pub message_counter: u8,
+    pub ecu_id: Option<String>,
+    pub session_id: Option<u32>,
+    pub timestamp: Option<u32>,
+    pub payload_length: u16,
+}
+
+/// The Extended Header shall be in big endian format
+#[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
+pub struct ExtendedHeader {
+    pub verbose: bool,
+    #[proptest(strategy = "0..=5u8")]
+    pub argument_count: u8,
+    pub message_type: MessageType,
+
+    #[proptest(strategy = "\"[a-zA-Z]{1,3}\"")]
+    pub application_id: String,
+    #[proptest(strategy = "\"[a-zA-Z]{1,3}\"")]
+    pub context_id: String,
+}
+
+/// There are 3 different types of payload:
+///     * one for verbose messages,
+///     * one for non-verbose messages,
+///     * one for control-messages
+///
+/// For Non-Verbose mode (without Extended Header), a fibex file provides an
+/// additional description for the payload.
+/// With the combination of a Message ID and an external fibex description,
+/// following information is be recoverable (otherwise provided
+/// in the Extended Header):
+///     * Message Type (MSTP)
+///     * Message Info (MSIN)
+///     * Number of arguments (NOAR)
+///     * Application ID (APID)
+///     * Context ID (CTID)
+///
+/// Control messages are normal Dlt messages with a Standard Header, an Extended Header,
+/// and payload. The payload contains of the Service ID and the contained parameters.
+///
+#[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
+pub enum PayloadContent {
+    #[proptest(strategy = "argument_vector_strategy().prop_map(PayloadContent::Verbose)")]
+    Verbose(Vec<Argument>),
+    #[proptest(
+        strategy = "(0..10u32, prop::collection::vec(any::<u8>(), 0..5)).prop_map(|(a, b)| PayloadContent::NonVerbose(a,b))"
+    )]
+    NonVerbose(u32, Vec<u8>), // (message_id, payload)
+    #[proptest(
+        strategy = "(any::<ControlType>(), prop::collection::vec(any::<u8>(), 0..5)).prop_map(|(a, b)| PayloadContent::ControlMsg(a,b))"
+    )]
+    ControlMsg(ControlType, Vec<u8>),
+}
+
 #[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
 pub struct DltTimeStamp {
     pub seconds: u32,
     #[proptest(strategy = "0..=1_000_000u32")]
     pub microseconds: u32,
 }
+
 impl DltTimeStamp {
     pub fn from_ms(ms: u64) -> Self {
         DltTimeStamp {
@@ -50,15 +127,10 @@ impl DltTimeStamp {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
-pub struct StorageHeader {
-    pub timestamp: DltTimeStamp,
-    #[proptest(strategy = "\"[a-zA-Z 0-9]{4}\"")]
-    pub ecu_id: String,
-}
 trait BytesMutExt {
     fn put_zero_terminated_string(&mut self, s: &str, max: usize);
 }
+
 impl BytesMutExt for BytesMut {
     fn put_zero_terminated_string(&mut self, s: &str, max: usize) {
         self.extend_from_slice(s.as_bytes());
@@ -69,6 +141,7 @@ impl BytesMutExt for BytesMut {
         }
     }
 }
+
 impl StorageHeader {
     #[allow(dead_code)]
     pub fn as_bytes(self: &StorageHeader) -> Vec<u8> {
@@ -80,18 +153,6 @@ impl StorageHeader {
         buf.put_zero_terminated_string(&self.ecu_id[..], 4);
         buf.to_vec()
     }
-}
-/// The Standard Header shall be in big endian format
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct StandardHeader {
-    pub version: u8,
-    pub endianness: Endianness,
-    pub has_extended_header: bool,
-    pub message_counter: u8,
-    pub ecu_id: Option<String>,
-    pub session_id: Option<u32>,
-    pub timestamp: Option<u32>,
-    pub payload_length: u16,
 }
 
 impl StandardHeader {
@@ -105,6 +166,9 @@ impl StandardHeader {
             self.version,
         )
     }
+
+    /// compute length of complete dlt message without storage header
+    /// header + extended-header + payload
     pub fn overall_length(&self) -> u16 {
         // header length
         let mut length: u16 = HEADER_MIN_LENGTH;
@@ -291,20 +355,6 @@ pub const DLT_TYPE_LOG: u8 = 0b000;
 pub const DLT_TYPE_APP_TRACE: u8 = 0b001;
 pub const DLT_TYPE_NW_TRACE: u8 = 0b010;
 pub const DLT_TYPE_CONTROL: u8 = 0b011;
-
-/// The Extended Header shall be in big endian format
-#[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
-pub struct ExtendedHeader {
-    pub verbose: bool,
-    #[proptest(strategy = "0..=5u8")]
-    pub argument_count: u8,
-    pub message_type: MessageType,
-
-    #[proptest(strategy = "\"[a-zA-Z]{1,3}\"")]
-    pub application_id: String,
-    #[proptest(strategy = "\"[a-zA-Z]{1,3}\"")]
-    pub context_id: String,
-}
 
 impl ExtendedHeader {
     #[allow(dead_code)]
@@ -1153,82 +1203,35 @@ fn put_signed_value<T: ByteOrder>(value: &Value, buf: &mut BytesMut) {
     }
 }
 
-/// There are 3 different types of payload:
-///     * one for verbose messages,
-///     * one for non-verbose messages,
-///     * one for control-messages
-///
-/// For Non-Verbose mode (without Extended Header), a fibex file provides an
-/// additional description for the payload.
-/// With the combination of a Message ID and an external fibex description,
-/// following information is be recoverable (otherwise provided
-/// in the Extended Header):
-///     * Message Type (MSTP)
-///     * Message Info (MSIN)
-///     * Number of arguments (NOAR)
-///     * Application ID (APID)
-///     * Context ID (CTID)
-///
-/// Control messages are normal Dlt messages with a Standard Header, an Extended Header,
-/// and payload. The payload contains of the Service ID and the contained parameters.
-///
-#[derive(Debug, Clone, PartialEq, Arbitrary, Serialize)]
-pub enum PayloadContent {
-    #[proptest(strategy = "argument_vector_strategy().prop_map(PayloadContent::Verbose)")]
-    Verbose(Vec<Argument>),
-    #[proptest(
-        strategy = "(0..10u32, prop::collection::vec(any::<u8>(), 0..5)).prop_map(|(a, b)| PayloadContent::NonVerbose(a,b))"
-    )]
-    NonVerbose(u32, Vec<u8>), // (message_id, payload)
-    #[proptest(
-        strategy = "(any::<ControlType>(), prop::collection::vec(any::<u8>(), 0..5)).prop_map(|(a, b)| PayloadContent::ControlMsg(a,b))"
-    )]
-    ControlMsg(ControlType, Vec<u8>),
-}
-fn payload_content_len<T: ByteOrder>(content: &PayloadContent) -> usize {
-    match content {
-        PayloadContent::Verbose(args) => args.iter().fold(0usize, |mut sum, arg| {
-            let old_len = arg.len_old::<T>();
-            let new_len = arg.len_new();
-            assert_eq!(old_len, new_len);
-            sum += new_len;
-            sum
-        }),
-        PayloadContent::NonVerbose(_id, payload) => 4usize + payload.len(),
-        PayloadContent::ControlMsg(_id, payload) => 1usize + payload.len(),
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct Payload2 {
-    pub payload_content: PayloadContent,
-}
-impl Payload2 {
+impl PayloadContent {
     pub fn arg_count(&self) -> u8 {
-        match &self.payload_content {
+        match &self {
             PayloadContent::Verbose(args) => std::cmp::min(args.len() as u8, u8::max_value()),
             _ => 0,
         }
     }
+
     #[allow(dead_code)]
     pub(crate) fn is_verbose(&self) -> bool {
-        matches!(self.payload_content, PayloadContent::Verbose(_))
+        matches!(self, PayloadContent::Verbose(_))
     }
+
     #[allow(dead_code)]
     fn is_non_verbose(&self) -> bool {
-        matches!(self.payload_content, PayloadContent::NonVerbose(_, _))
+        matches!(self, PayloadContent::NonVerbose(_, _))
     }
+
     #[allow(dead_code)]
     fn is_control_request(&self) -> Option<bool> {
-        match self.payload_content {
+        match self {
             PayloadContent::ControlMsg(ControlType::Request, _) => Some(true),
             _ => None,
         }
     }
 
     pub(crate) fn as_bytes<T: ByteOrder>(&self) -> Vec<u8> {
-        let mut buf = BytesMut::with_capacity(payload_content_len::<T>(&self.payload_content));
-        match &self.payload_content {
+        let mut buf = BytesMut::with_capacity(payload_content_len::<T>(&self));
+        match &self {
             PayloadContent::Verbose(args) => {
                 for arg in args {
                     let arg_bytes = &arg.as_bytes::<T>();
@@ -1261,18 +1264,19 @@ impl Payload2 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct Message {
-    pub storage_header: Option<StorageHeader>,
-    pub header: StandardHeader,
-    pub extended_header: Option<ExtendedHeader>,
-    pub payload: Payload2,
-    // #[serde(skip_serializing)]
-    // pub fibex_metadata: Option<Rc<FibexMetadata>>,
+fn payload_content_len<T: ByteOrder>(content: &PayloadContent) -> usize {
+    match content {
+        PayloadContent::Verbose(args) => args.iter().fold(0usize, |mut sum, arg| {
+            let old_len = arg.len_old::<T>();
+            let new_len = arg.len_new();
+            assert_eq!(old_len, new_len);
+            sum += new_len;
+            sum
+        }),
+        PayloadContent::NonVerbose(_id, payload) => 4usize + payload.len(),
+        PayloadContent::ControlMsg(_id, payload) => 1usize + payload.len(),
+    }
 }
-pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
-pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
-pub const DLT_NEWLINE_SENTINAL_SLICE: &[u8] = &[0x6];
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ExtendedHeaderConfig {
@@ -1288,7 +1292,7 @@ pub struct MessageConfig {
     pub ecu_id: Option<String>,
     pub session_id: Option<u32>,
     pub timestamp: Option<u32>,
-    pub payload: Payload2,
+    pub payload: PayloadContent,
     pub extended_header_info: Option<ExtendedHeaderConfig>,
 }
 
@@ -1399,34 +1403,6 @@ impl Message {
             ..self
         };
         self
-    }
-
-    pub(crate) fn write_app_id_context_id_and_message_type(
-        &self,
-        f: &mut fmt::Formatter,
-    ) -> Result<(), fmt::Error> {
-        match self.extended_header.as_ref() {
-            Some(ext) => {
-                write!(
-                    f,
-                    "{}{}{}{}{}{}",
-                    ext.application_id,
-                    DLT_COLUMN_SENTINAL,
-                    ext.context_id,
-                    DLT_COLUMN_SENTINAL,
-                    ext.message_type,
-                    DLT_COLUMN_SENTINAL,
-                )?;
-            }
-            None => {
-                write!(
-                    f,
-                    "-{}-{}-{}",
-                    DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL,
-                )?;
-            }
-        };
-        Ok(())
     }
 }
 

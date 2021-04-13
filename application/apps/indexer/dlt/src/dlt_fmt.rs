@@ -14,6 +14,10 @@ use std::{
     str,
 };
 
+pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
+pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
+pub const DLT_NEWLINE_SENTINAL_SLICE: &[u8] = &[0x6];
+
 lazy_static! {
     static ref DLT_NEWLINE_SENTINAL_STR: &'static str =
         unsafe { str::from_utf8_unchecked(DLT_NEWLINE_SENTINAL_SLICE) };
@@ -182,9 +186,9 @@ impl fmt::Display for LogLevel {
         }
     }
 }
-pub(crate) struct FormattableMessage<'a> {
-    pub(crate) message: Message,
-    pub(crate) fibex_metadata: Option<&'a FibexMetadata>,
+pub struct FormattableMessage<'a> {
+    pub message: Message,
+    pub fibex_metadata: Option<&'a FibexMetadata>,
 }
 
 impl<'a> fmt::Display for FormattableMessage<'a> {
@@ -219,7 +223,7 @@ impl Message {
         write!(f, "{}", self.header)?;
         write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
 
-        match &self.payload.payload_content {
+        match &self.payload {
             PayloadContent::Verbose(arguments) => {
                 self.write_app_id_context_id_and_message_type(f)?;
                 arguments
@@ -238,6 +242,35 @@ impl Message {
             }
         }
     }
+
+    fn write_app_id_context_id_and_message_type(
+        &self,
+        f: &mut fmt::Formatter,
+    ) -> Result<(), fmt::Error> {
+        match self.extended_header.as_ref() {
+            Some(ext) => {
+                write!(
+                    f,
+                    "{}{}{}{}{}{}",
+                    ext.application_id,
+                    DLT_COLUMN_SENTINAL,
+                    ext.context_id,
+                    DLT_COLUMN_SENTINAL,
+                    ext.message_type,
+                    DLT_COLUMN_SENTINAL,
+                )?;
+            }
+            None => {
+                write!(
+                    f,
+                    "-{}-{}-{}",
+                    DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL,
+                )?;
+            }
+        };
+        Ok(())
+    }
+
     pub(crate) fn format_nonverbose_data(
         &self,
         id: u32,

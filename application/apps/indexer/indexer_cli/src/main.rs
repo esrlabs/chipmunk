@@ -22,6 +22,7 @@ extern crate lazy_static;
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
+use dlt::dlt_file::count_dlt_messages;
 use dlt::{dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::pcap_to_dlt};
 use env_logger::Env;
 use indexer_base::{
@@ -485,6 +486,12 @@ pub async fn main() -> Result<()> {
                         .index(1),
                 )
                 .arg(
+                    Arg::with_name("count")
+                        .short("c")
+                        .long("count")
+                        .help("count dlt messages"),
+                )
+                .arg(
                     Arg::with_name("stdout")
                         .short("s")
                         .long("stdout")
@@ -597,17 +604,25 @@ pub async fn main() -> Result<()> {
                 }
 
                 let start_op = Instant::now();
-                let start_index = start - 1;
+                let start_index = if start > 0 { start - 1 } else { start };
                 let r = LineRange::from(start_index..=(start_index + length - 1));
-                let res = grabber.get_entries(&r);
+                let extension = input_p
+                    .extension()
+                    .expect("Could not get extension of file");
+                let res = if extension == "dlt" {
+                    grabber.get_dlt_entries(&r)
+                } else {
+                    grabber.get_entries(&r)
+                };
 
                 match res {
                     Ok(v) => {
                         duration_report(start_op, format!("grabbing {} lines", length));
                         let mut i = start_index;
+                        let cap_after = 150;
                         for (cnt, s) in v.grabbed_elements.iter().enumerate() {
-                            if s.content.len() > 50 {
-                                println!("[{}]--> {}", i + 1, &s.content[..50]);
+                            if s.content.len() > cap_after {
+                                println!("[{}]--> {}", i + 1, &s.content[..cap_after]);
                             } else {
                                 println!("[{}]--> {}", i + 1, &s.content);
                             }
@@ -1470,86 +1485,93 @@ pub async fn main() -> Result<()> {
     ) {
         let file_name = matches.value_of("input").expect("input must be present");
         let file_path = path::PathBuf::from(file_name);
-        let f = match fs::File::open(&file_path) {
-            Ok(file) => file,
-            Err(_) => {
-                report_error(format!("could not open {:?}", file_path));
-                std::process::exit(2)
+        let count: bool = matches.is_present("count");
+        if count {
+            if let Ok(res) = count_dlt_messages(&file_path) {
+                println!("counting dlt-msgs in file: {}", res);
             }
-        };
-        let source_file_size = match f.metadata() {
-            Ok(file_meta) => file_meta.len() as usize,
-            Err(_) => {
-                report_error("could not find out size of source file");
-                std::process::exit(2);
-            }
-        };
-        let progress_bar = initialize_progress_bar(source_file_size as u64);
-        let (tx, rx): (
-            cc::Sender<StatisticsResults>,
-            cc::Receiver<StatisticsResults>,
-        ) = unbounded();
+        } else {
+            let f = match fs::File::open(&file_path) {
+                Ok(file) => file,
+                Err(_) => {
+                    report_error(format!("could not open {:?}", file_path));
+                    std::process::exit(2)
+                }
+            };
+            let source_file_size = match f.metadata() {
+                Ok(file_meta) => file_meta.len() as usize,
+                Err(_) => {
+                    report_error("could not find out size of source file");
+                    std::process::exit(2);
+                }
+            };
+            let progress_bar = initialize_progress_bar(source_file_size as u64);
+            let (tx, rx): (
+                cc::Sender<StatisticsResults>,
+                cc::Receiver<StatisticsResults>,
+            ) = unbounded();
 
-        thread::spawn(move || {
-            if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&file_path, &tx, None) {
-                report_error(format!("couldn't collect statistics: {}", why));
-                std::process::exit(2)
-            }
-        });
-        loop {
-            match rx.recv() {
-                Ok(Ok(IndexingProgress::GotItem { item: res })) => {
-                    trace!("got item...");
+            thread::spawn(move || {
+                if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&file_path, &tx, None) {
+                    report_error(format!("couldn't collect statistics: {}", why));
+                    std::process::exit(2)
+                }
+            });
+            loop {
+                match rx.recv() {
+                    Ok(Ok(IndexingProgress::GotItem { item: res })) => {
+                        trace!("got item...");
 
-                    match serde_json::to_string(&res) {
-                        Ok(stats) => println!("{}", stats),
-                        Err(e) => {
-                            report_error(format!("serializing result {:?} failed: {}", res, e));
-                            std::process::exit(2)
+                        match serde_json::to_string(&res) {
+                            Ok(stats) => println!("{}", stats),
+                            Err(e) => {
+                                report_error(format!("serializing result {:?} failed: {}", res, e));
+                                std::process::exit(2)
+                            }
+                        }
+                        if status_updates {
+                            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                            let elapsed = start.elapsed();
+                            let ms = elapsed.as_millis();
+                            let duration_in_s = ms as f64 / 1000.0;
+                            eprintln!(
+                                "collecting statistics for ~{} MB took {:.3}s!",
+                                file_size_in_mb.round(),
+                                duration_in_s
+                            );
                         }
                     }
-                    if status_updates {
-                        let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                        let elapsed = start.elapsed();
-                        let ms = elapsed.as_millis();
-                        let duration_in_s = ms as f64 / 1000.0;
-                        eprintln!(
-                            "collecting statistics for ~{} MB took {:.3}s!",
-                            file_size_in_mb.round(),
-                            duration_in_s
-                        );
+                    Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
+                        let progress_fraction = t.0 as f64 / t.1 as f64;
+                        trace!("progress... ({:.1} %)", progress_fraction * 100.0);
+                        progress_bar
+                            .set_position((progress_fraction * (source_file_size as f64)) as u64);
                     }
-                }
-                Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
-                    let progress_fraction = t.0 as f64 / t.1 as f64;
-                    trace!("progress... ({:.1} %)", progress_fraction * 100.0);
-                    progress_bar
-                        .set_position((progress_fraction * (source_file_size as f64)) as u64);
-                }
-                Ok(Ok(IndexingProgress::Finished)) => {
-                    trace!("finished...");
-                    progress_bar.finish_and_clear();
-                    break;
-                }
-                Ok(Err(Notification {
-                    severity,
-                    content,
-                    line,
-                })) => {
-                    if severity == Severity::WARNING {
-                        report_warning_ln(content, line);
-                    } else {
-                        report_error_ln(content, line);
+                    Ok(Ok(IndexingProgress::Finished)) => {
+                        trace!("finished...");
+                        progress_bar.finish_and_clear();
+                        break;
                     }
-                }
-                Ok(Ok(IndexingProgress::Stopped)) => {
-                    trace!("stopped...");
-                    report_warning("IndexingProgress::Stopped");
-                    break;
-                }
-                Err(_) => {
-                    report_error("couldn't process");
-                    std::process::exit(2)
+                    Ok(Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    })) => {
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
+                    Ok(Ok(IndexingProgress::Stopped)) => {
+                        trace!("stopped...");
+                        report_warning("IndexingProgress::Stopped");
+                        break;
+                    }
+                    Err(_) => {
+                        report_error("couldn't process");
+                        std::process::exit(2)
+                    }
                 }
             }
         }

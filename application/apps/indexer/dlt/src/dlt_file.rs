@@ -10,6 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::dlt_fmt::FormattableMessage;
+use crate::dlt_parse::dlt_consume_msg;
 use crate::fibex::gather_fibex_data;
 use crate::{
     dlt::Message,
@@ -28,6 +29,8 @@ use indexer_base::{
     progress::*,
     utils,
 };
+use std::io::{Read, Seek};
+use std::path::Path;
 use std::{
     fs,
     io::{BufRead, BufWriter, Write},
@@ -35,6 +38,10 @@ use std::{
 };
 
 use crate::fibex::FibexMetadata;
+
+// pub async fn count_messages(in_file: &Path) -> Result<u64, DltParseError> {
+//     Ok(2)
+// }
 
 pub async fn parse_dlt_file(
     in_file: PathBuf,
@@ -48,13 +55,29 @@ pub async fn parse_dlt_file(
         cc::unbounded();
     let mut progress_reporter = ProgressReporter::new(source_file_size, update_channel.clone());
     let mut messages: Vec<Message> = Vec::new();
+
+    let f = match fs::File::open(&in_file) {
+        Ok(file) => file,
+        Err(e) => {
+            warn!("could not open {:?}", in_file);
+            let _ = update_channel.try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("could not open file ({})", e),
+                line: None,
+            }));
+            return Err(DltParseError::Unrecoverable(format!(
+                "could not open file ({})",
+                e
+            )));
+        }
+    };
     let mut message_stream = FileMessageProducer::new(
-        &in_file,
+        f,
         filter_config,
         update_channel.clone(),
         true,
         fibex_metadata,
-    )?;
+    );
     // type Item = Result<Option<Message>, DltParseError>;
     while let Some(msg_result) = tokio_stream::StreamExt::next(&mut message_stream).await {
         trace!("got message from stream: {:?}", msg_result);
@@ -87,13 +110,26 @@ pub fn create_index_and_mapping_dlt(
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
+
+    let f = match fs::File::open(&config.in_file) {
+        Ok(file) => file,
+        Err(e) => {
+            warn!("could not open {:?}", config.in_file);
+            let _ = update_channel.try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("could not open file ({})", e),
+                line: None,
+            }));
+            return Err(anyhow!(format!("could not open file ({})", e)));
+        }
+    };
     let mut message_producer = FileMessageProducer::new(
-        &config.in_file,
+        f,
         filter_config,
         update_channel.clone(),
         true,
         fibex_metadata,
-    )?;
+    );
     index_dlt_content(
         config,
         source_file_size,
@@ -108,8 +144,11 @@ pub struct MessageStats {
     parsed: usize,
     no_parse: usize,
 }
-pub struct FileMessageProducer {
-    reader: ReduxReader<fs::File, MinBuffered>,
+pub struct FileMessageProducer<R>
+where
+    R: Read + Seek + Unpin,
+{
+    reader: ReduxReader<R, MinBuffered>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     stats: MessageStats,
     update_channel: cc::Sender<ChunkResults>,
@@ -117,31 +156,21 @@ pub struct FileMessageProducer {
     fibex_metadata: Option<FibexMetadata>,
 }
 
-impl FileMessageProducer {
-    fn new(
-        in_path: &PathBuf,
+impl<R> FileMessageProducer<R>
+where
+    R: Read + Seek + Unpin,
+{
+    pub fn new(
+        // in_path: &PathBuf,
+        input: R,
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
         update_channel: cc::Sender<ChunkResults>,
         with_storage_header: bool,
         fibex_metadata: Option<FibexMetadata>,
-    ) -> Result<FileMessageProducer, DltParseError> {
-        let f = match fs::File::open(&in_path) {
-            Ok(file) => file,
-            Err(e) => {
-                warn!("could not open {:?}", in_path);
-                let _ = update_channel.try_send(Err(Notification {
-                    severity: Severity::WARNING,
-                    content: format!("could not open file ({})", e),
-                    line: None,
-                }));
-                return Err(DltParseError::Unrecoverable {
-                    cause: format!("could not open file ({})", e),
-                });
-            }
-        };
-        let reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
+    ) -> FileMessageProducer<R> {
+        let reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, input)
             .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE));
-        Ok(FileMessageProducer {
+        FileMessageProducer {
             reader,
             filter_config,
             stats: MessageStats {
@@ -151,24 +180,13 @@ impl FileMessageProducer {
             update_channel,
             with_storage_header,
             fibex_metadata,
-        })
+        }
     }
 
     fn fibex(&self) -> Option<&FibexMetadata> {
         self.fibex_metadata.as_ref()
     }
-}
 
-impl Iterator for FileMessageProducer {
-    type Item = ParsedMessage;
-    fn next(&mut self) -> Option<ParsedMessage> {
-        match self.produce_next_message() {
-            (_s, Ok(parsed_msg)) => Some(parsed_msg),
-            _ => None,
-        }
-    }
-}
-impl FileMessageProducer {
     fn produce_next_message(&mut self) -> (usize, Result<ParsedMessage, DltParseError>) {
         #[allow(clippy::never_loop)]
         let consume_and_parse_result = loop {
@@ -201,38 +219,34 @@ impl FileMessageProducer {
                                 Some(s) => format!("{}", s),
                                 None => "unknown".to_string(),
                             };
-                            break (0, Err(DltParseError::Unrecoverable {
-                                cause: format!(
+                            break (0, Err(DltParseError::Unrecoverable (
+                                format!(
                                     "read_one_dlt_message: imcomplete parsing error for dlt messages: (bytes left: {}, but needed: {})",
                                     content.len(),
                                     needed_s
                                 ),
-                            }));
+                            )));
                         }
-                        Err(DltParseError::ParsingHickup { reason }) => {
+                        Err(DltParseError::ParsingHickup(reason)) => {
                             warn!("parse error");
                             self.stats.no_parse += 1;
                             break (
                                 DLT_PATTERN_SIZE,
-                                Err(DltParseError::ParsingHickup {
-                                    reason: format!(
-                                        "read_one_dlt_message: parsing error for dlt messages: {}",
-                                        reason
-                                    ),
-                                }),
+                                Err(DltParseError::ParsingHickup(format!(
+                                    "read_one_dlt_message: parsing error for dlt messages: {}",
+                                    reason
+                                ))),
                             );
                         }
-                        Err(DltParseError::Unrecoverable { cause }) => {
+                        Err(DltParseError::Unrecoverable(cause)) => {
                             warn!("parse failure");
                             self.stats.no_parse += 1;
                             break (
                                 0,
-                                Err(DltParseError::Unrecoverable {
-                                    cause: format!(
+                                Err(DltParseError::Unrecoverable(format!(
                                     "read_one_dlt_message: parsing failure for dlt messages: {}",
                                     cause
-                                ),
-                                }),
+                                ))),
                             );
                         }
                     }
@@ -241,9 +255,10 @@ impl FileMessageProducer {
                     trace!("no more content");
                     break (
                         0,
-                        Err(DltParseError::Unrecoverable {
-                            cause: format!("error for filling buffer with dlt messages: {:?}", e),
-                        }),
+                        Err(DltParseError::Unrecoverable(format!(
+                            "error for filling buffer with dlt messages: {:?}",
+                            e
+                        ))),
                     );
                 }
             }
@@ -256,7 +271,24 @@ impl FileMessageProducer {
         consume_and_parse_result
     }
 }
-impl tokio_stream::Stream for FileMessageProducer {
+
+impl<R> Iterator for FileMessageProducer<R>
+where
+    R: Read + Seek + Unpin,
+{
+    type Item = ParsedMessage;
+    fn next(&mut self) -> Option<ParsedMessage> {
+        match self.produce_next_message() {
+            (_s, Ok(parsed_msg)) => Some(parsed_msg),
+            _ => None,
+        }
+    }
+}
+
+impl<R> tokio_stream::Stream for FileMessageProducer<R>
+where
+    R: Read + Seek + Unpin,
+{
     type Item = Result<(usize, Option<Message>), DltParseError>;
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
@@ -276,15 +308,56 @@ impl tokio_stream::Stream for FileMessageProducer {
     }
 }
 
+/// count how many recognizable DLT messages are stored in a file
+/// each message needs to be equiped with a storage header
+pub fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
+    if input.exists() {
+        let f = fs::File::open(&input)?;
+
+        let mut reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
+            .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE));
+
+        let mut msg_cnt: u64 = 0;
+        loop {
+            match reader.fill_buf() {
+                Ok(content) => {
+                    if content.is_empty() {
+                        break;
+                    }
+                    if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
+                        reader.consume(consumed as usize);
+                        msg_cnt += 1;
+                    } else {
+                        break;
+                    }
+                }
+                Err(e) => {
+                    trace!("no more content");
+                    return Err(DltParseError::Unrecoverable(format!(
+                        "error for filling buffer with dlt messages: {:?}",
+                        e
+                    )));
+                }
+            }
+        }
+        Ok(msg_cnt)
+    } else {
+        Err(DltParseError::Unrecoverable(format!(
+            "Couldn't find dlt file: {:?}",
+            input
+        )))
+    }
+}
+
 /// create index for a dlt file
 /// source_file_size: if progress updates should be made, add this value
 #[allow(clippy::cognitive_complexity)]
-pub fn index_dlt_content(
+pub fn index_dlt_content<R: Read + Seek + Unpin>(
     config: IndexingConfig,
     source_file_size: u64,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
-    message_producer: &mut FileMessageProducer,
+    message_producer: &mut FileMessageProducer<R>,
 ) -> Result<(), anyhow::Error> {
     trace!("index_dlt_file {:?}", config);
     let (out_file, current_out_file_size) =
@@ -352,7 +425,7 @@ pub fn index_dlt_content(
                 skipped += 1;
             }
             Err(e) => match e {
-                DltParseError::ParsingHickup { reason } => {
+                DltParseError::ParsingHickup(reason) => {
                     warn!(
                         "error parsing 1 dlt message, try to continue parsing: {}",
                         reason
@@ -463,7 +536,7 @@ pub fn export_as_dlt_file(
             content: reason.clone(),
             line: None,
         }));
-        Err(DltParseError::Unrecoverable { cause: reason })
+        Err(DltParseError::Unrecoverable(reason))
     }
 }
 

@@ -72,12 +72,12 @@ prop_compose! {
             payload.as_bytes::<LittleEndian>().len()
         } as u16;
         let header = StandardHeader { payload_length, ..standard_header };
-        let real_arg_cnt = match &payload.payload_content {
+        let real_arg_cnt = match &payload {
             PayloadContent::Verbose(args) => args.len(),
             _ => 0,
         };
         // println!("changing msg type from {} ...", ext_header.message_type);
-        let real_msg_type = match &payload.payload_content {
+        let real_msg_type = match &payload {
             PayloadContent::ControlMsg(control_type, _) => MessageType::Control(control_type.clone()),
             PayloadContent::Verbose(_) => MessageType::Log(LogLevel::Warn),
             PayloadContent::NonVerbose(_, _) => MessageType::Log(LogLevel::Debug),
@@ -98,6 +98,23 @@ prop_compose! {
         }
     }
 }
+
+pub fn message_with_storage_header_strat() -> impl Strategy<Value = Message> {
+    let storage_header = any::<StorageHeader>();
+    (message_strat(), storage_header).prop_map(|(m, storage_h)| Message {
+        storage_header: Some(storage_h),
+        ..m
+    })
+}
+
+pub fn messages_strat(len: usize) -> impl Strategy<Value = Vec<Message>> {
+    prop::collection::vec(message_strat(), 0..len)
+}
+
+pub fn stored_messages_strat(len: usize) -> impl Strategy<Value = Vec<Message>> {
+    prop::collection::vec(message_with_storage_header_strat(), 0..len)
+}
+
 fn value_strategy(info: &TypeInfo) -> impl Strategy<Value = Value> {
     // println!("value_strategy for {:?}", info);
     match &info.kind {
@@ -218,34 +235,24 @@ pub fn argument_strategy() -> impl Strategy<Value = Argument> {
 pub fn argument_vector_strategy() -> impl Strategy<Value = Vec<Argument>> {
     prop::collection::vec(argument_strategy(), 0..2)
 }
-fn payload_strategy(count: usize) -> impl Strategy<Value = Payload2> {
+fn payload_strategy(count: usize) -> impl Strategy<Value = PayloadContent> {
     if count == 0 {
-        Just(Payload2 {
-            payload_content: PayloadContent::Verbose(vec![]),
-        })
-        .boxed()
+        Just(PayloadContent::Verbose(vec![])).boxed()
     } else {
         prop::collection::vec(argument_strategy(), 0..count)
-            .prop_flat_map(|args| {
-                Just(Payload2 {
-                    payload_content: PayloadContent::Verbose(args),
-                })
-            })
+            .prop_flat_map(|args| Just(PayloadContent::Verbose(args)))
             .boxed()
     }
 }
-fn non_verbose_payload_strategy() -> impl Strategy<Value = Payload2> {
+fn non_verbose_payload_strategy() -> impl Strategy<Value = PayloadContent> {
     prop_oneof![
-        (0..10u32, prop::collection::vec(any::<u8>(), 0..5)).prop_map(|(a, b)| Payload2 {
-            payload_content: PayloadContent::NonVerbose(a, b)
-        }),
+        (0..10u32, prop::collection::vec(any::<u8>(), 0..5))
+            .prop_map(|(a, b)| PayloadContent::NonVerbose(a, b)),
         (
             any::<ControlType>(),
             prop::collection::vec(any::<u8>(), 0..6)
         )
-            .prop_map(|(a, b)| Payload2 {
-                payload_content: PayloadContent::ControlMsg(a, b)
-            })
+            .prop_map(|(a, b)| PayloadContent::ControlMsg(a, b))
     ]
 }
 // strategy to produce signed TypeInfoKinds for only 32 and 64 bit width fixed point or
@@ -264,7 +271,7 @@ pub fn unsigned_strategy() -> impl Strategy<Value = TypeInfoKind> {
     ]
 }
 fn extheader_payload_endian_strategy(
-) -> impl Strategy<Value = (ExtendedHeader, Payload2, Endianness)> {
+) -> impl Strategy<Value = (ExtendedHeader, PayloadContent, Endianness)> {
     any::<ExtendedHeader>().prop_flat_map(|ext_h| {
         let payload = if ext_h.verbose {
             payload_strategy(ext_h.argument_count as usize)
@@ -276,36 +283,3 @@ fn extheader_payload_endian_strategy(
         (Just(ext_h), payload, any::<Endianness>())
     })
 }
-
-// fn fp_offset_strategy(width32bit: bool) -> impl Strategy<Value = FixedPointValue> {
-//     (any::<i32>(), any::<i64>()).prop_map(move |(v32, v64)| {
-//         if width32bit {
-//             FixedPointValue::I32(v32)
-//         } else {
-//             FixedPointValue::I64(v64)
-//         }
-//     })
-// }
-// fn fixedpoint_strategy(type_info: TypeInfo) -> impl Strategy<Value = Option<FixedPoint>> {
-//     let (is32_bit, is_fp) = match type_info.kind {
-//         TypeInfoKind::Signed(TypeLength::BitLength32) => (true, false),
-//         TypeInfoKind::Unsigned(TypeLength::BitLength32) => (true, false),
-//         TypeInfoKind::SignedFixedPoint(FloatWidth::Width32) => (true, true),
-//         TypeInfoKind::UnsignedFixedPoint(FloatWidth::Width32) => (true, true),
-//         TypeInfoKind::Signed(TypeLength::BitLength64) => (false, false),
-//         TypeInfoKind::Unsigned(TypeLength::BitLength64) => (false, false),
-//         TypeInfoKind::SignedFixedPoint(FloatWidth::Width64) => (false, true),
-//         TypeInfoKind::UnsignedFixedPoint(FloatWidth::Width64) => (false, true),
-//         _ => (false, false),
-//     };
-//     (any::<f32>(), fp_offset_strategy(is32_bit)).prop_map(move |(quantization, offset)| {
-//         if !is_fp {
-//             None
-//         } else {
-//             Some(FixedPoint {
-//                 quantization,
-//                 offset,
-//             })
-//         }
-//     })
-// }
