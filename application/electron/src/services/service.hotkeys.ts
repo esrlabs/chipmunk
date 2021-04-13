@@ -2,7 +2,7 @@ import Logger from '../tools/env.logger';
 import Subscription from '../tools/subscription';
 import Subject from '../tools/subject';
 import ServiceElectron from './service.electron';
-import ServiceStreams from './service.streams';
+import ServiceStreams from './service.sessions';
 import { IService } from '../interfaces/interface.service';
 import { app, globalShortcut, powerMonitor } from 'electron';
 import { IPCMessages } from './service.electron';
