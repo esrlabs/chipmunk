@@ -25,7 +25,7 @@ use parse::detect_timestamp_in_string;
 use std::{
     fs,
     io::{BufRead, BufReader, BufWriter, Read, Write},
-    path::PathBuf,
+    path::Path,
     time::Instant,
 };
 
@@ -187,7 +187,7 @@ pub fn index_file<T: Read>(
     }
 }
 
-pub fn restore_original_from_indexed_file(indexed_file: &PathBuf, out: &PathBuf) -> Result<()> {
+pub fn restore_original_from_indexed_file(indexed_file: &Path, out: &Path) -> Result<()> {
     let f = fs::File::open(&indexed_file)?;
     let reader = &mut std::io::BufReader::new(f);
     let out_file = std::fs::File::create(out)?;

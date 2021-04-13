@@ -1,23 +1,21 @@
 #[cfg(test)]
 mod tests {
     extern crate rand;
-    use crate::grabber::identify_byte_range;
-    use crate::grabber::identify_end_slot_simple;
-    use crate::grabber::identify_start_slot;
-    use crate::grabber::identify_start_slot_simple;
-    use crate::grabber::FilePart;
-    use crate::grabber::GrabMetadata;
-    use crate::grabber::MetadataSource;
-    use crate::grabber::{ByteRange, Grabber, LineRange, Slot};
-    use crate::text_source::TextFileSource;
+    use crate::{
+        grabber::{
+            identify_byte_range, identify_end_slot_simple, identify_start_slot,
+            identify_start_slot_simple, ByteRange, FilePart, GrabMetadata, Grabber, LineRange,
+            MetadataSource, Slot,
+        },
+        text_source::TextFileSource,
+    };
     use anyhow::Result;
     use pretty_assertions::assert_eq;
     use proptest::prelude::*;
     use std::ops::RangeInclusive;
 
     fn write_content_to_tmp_file(content: &[String]) -> Result<tempfile::TempPath> {
-        use std::io::BufWriter;
-        use std::io::Write;
+        use std::io::{BufWriter, Write};
         use tempfile::NamedTempFile;
         let file = NamedTempFile::new()?;
         let mut line_length: Vec<u64> = vec![];

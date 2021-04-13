@@ -1,12 +1,15 @@
-use crate::dlt_fmt::FormattableMessage;
-use crate::fibex::gather_fibex_data;
-use crate::{dlt, dlt_parse::*, fibex::FibexMetadata, filtering};
+use crate::{
+    dlt,
+    dlt_fmt::FormattableMessage,
+    dlt_parse::*,
+    fibex::{gather_fibex_data, FibexMetadata},
+    filtering,
+};
 use crossbeam_channel as cc;
 use etherparse::*;
-use indexer_base::config::FibexConfig;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults, VoidResults},
-    config::IndexingConfig,
+    config::{FibexConfig, IndexingConfig},
     progress::*,
     utils,
 };
@@ -17,8 +20,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::sync;
-use tokio_stream::Stream;
-use tokio_stream::{wrappers::ReceiverStream, StreamExt};
+use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
 
 struct PcapMessageProducer {
     reader: PcapNGReader<File>,

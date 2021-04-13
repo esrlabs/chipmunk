@@ -16,7 +16,9 @@ use std::{
     fmt::Display,
     fs,
     io::{self, BufReader, Read, Seek, SeekFrom, Write},
-    path, str,
+    path,
+    path::Path,
+    str,
 };
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
@@ -223,7 +225,7 @@ pub fn get_out_file_and_size(
     Ok((out_file, current_out_file_size))
 }
 
-pub fn get_processed_bytes(append: bool, out: &path::PathBuf) -> u64 {
+pub fn get_processed_bytes(append: bool, out: &Path) -> u64 {
     if append {
         match fs::metadata(out) {
             Ok(metadata) => metadata.len(),

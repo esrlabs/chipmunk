@@ -1,8 +1,11 @@
 #[cfg(test)]
 mod tests {
 
-    use crate::dlt_net::DltMessageDecoder;
-    use crate::{dlt::Message, dlt_net::*, dlt_parse::DltParseError};
+    use crate::{
+        dlt::Message,
+        dlt_net::{DltMessageDecoder, *},
+        dlt_parse::DltParseError,
+    };
     use tokio::net::UdpSocket;
     use tokio_stream::StreamExt;
     use tokio_util::udp::UdpFramed;

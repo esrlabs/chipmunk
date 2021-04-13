@@ -1,11 +1,7 @@
-use crate::grabber::identify_byte_range;
-use crate::grabber::GrabError;
-use crate::grabber::GrabMetadata;
-use crate::grabber::GrabbedContent;
-use crate::grabber::GrabbedElement;
-use crate::grabber::MetadataSource;
-use crate::grabber::Slot;
-use crate::grabber::{ByteRange, LineRange};
+use crate::grabber::{
+    identify_byte_range, ByteRange, GrabError, GrabMetadata, GrabbedContent, GrabbedElement,
+    LineRange, MetadataSource, Slot,
+};
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::{progress::ComputationResult, utils};
 use std::{

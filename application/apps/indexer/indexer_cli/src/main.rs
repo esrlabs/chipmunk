@@ -22,8 +22,11 @@ extern crate lazy_static;
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::dlt_file::count_dlt_messages;
-use dlt::{dlt_file::export_as_dlt_file, dlt_parse::StatisticsResults, dlt_pcap::pcap_to_dlt};
+use dlt::{
+    dlt_file::{count_dlt_messages, export_as_dlt_file},
+    dlt_parse::StatisticsResults,
+    dlt_pcap::pcap_to_dlt,
+};
 use env_logger::Env;
 use indexer_base::{
     chunks::{serialize_chunks, Chunk, ChunkResults, VoidResults},
@@ -34,10 +37,11 @@ use indexer_base::{
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
-use processor::dlt_source::DltSource;
-use processor::grabber::GrabError;
-use processor::grabber::GrabbedContent;
-use processor::text_source::TextFileSource;
+use processor::{
+    dlt_source::DltSource,
+    grabber::{GrabError, GrabbedContent},
+    text_source::TextFileSource,
+};
 use std::path::Path;
 
 use tokio::sync;

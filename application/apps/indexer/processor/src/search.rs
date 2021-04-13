@@ -1,19 +1,16 @@
 // use grep::regex::{
 //     RegexMatcher as RustRegexMatcher, RegexMatcherBuilder as RustRegexMatcherBuilder,
 // };
-use grep_printer::SummaryBuilder;
-use grep_printer::SummaryKind;
+use grep_printer::{SummaryBuilder, SummaryKind};
 use grep_regex::RegexMatcherBuilder;
-use grep_searcher::Sink;
-use grep_searcher::SinkMatch;
+use grep_searcher::{Sink, SinkMatch};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
-use std::path::PathBuf;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{BufWriter, Write},
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -32,7 +29,10 @@ pub enum SearchError {
 }
 
 use grep_regex::RegexMatcher;
-use grep_searcher::{sinks::Bytes, sinks::UTF8, Searcher};
+use grep_searcher::{
+    sinks::{Bytes, UTF8},
+    Searcher,
+};
 
 pub struct SearchHolder {
     pub file_path: PathBuf,
@@ -192,7 +192,7 @@ impl Sink for MySink {
 }
 
 pub fn execute_binary_search_of_slice(slice: &[u8], pattern: &str) -> Result<u64, SearchError> {
-    let mut matched_lines = 0u64;
+    // let mut matched_lines = 0u64;
 
     let mut builder = RegexMatcherBuilder::new();
     builder

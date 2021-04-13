@@ -22,7 +22,7 @@ use std::{
     fs,
     io::{BufRead, BufReader, BufWriter, Read, Write},
     iter::Iterator,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -51,8 +51,8 @@ pub struct ConcatenatorResult {
     pub byte_cnt: usize,
 }
 pub fn concat_files_use_config_file(
-    config_path: &PathBuf,
-    out_path: &PathBuf,
+    config_path: &Path,
+    out_path: &Path,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
@@ -84,7 +84,7 @@ pub fn concat_files_use_config_file(
 }
 pub fn concat_files(
     concat_inputs: Vec<ConcatenatorInput>,
-    out_path: &PathBuf,
+    out_path: &Path,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
