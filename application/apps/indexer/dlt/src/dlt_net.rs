@@ -209,7 +209,7 @@ pub async fn index_from_socket_udp(
             Some(msg) = message_stream.next() => {
                 match msg {
                     Ok((dlt_event, _)) => processor.event(dlt_event, message_stream.codec().fibex())?,
-                    Err(DltParseError::ParsingHickup { reason }) => processor.error(reason),
+                    Err(DltParseError::ParsingHickup ( reason )) => processor.error(reason),
                     Err(e) => {
                         warn!("Unexpected error in message stream: {}", e);
                         break;
@@ -282,7 +282,7 @@ pub async fn index_from_socket_tcp(
             Some(msg) = message_stream.next() => {
                 match msg {
                     Ok(dlt_event) => processor.event(dlt_event, message_stream.codec().fibex())?,
-                    Err(DltParseError::ParsingHickup { reason }) => processor.error(reason),
+                    Err(DltParseError::ParsingHickup ( reason )) => processor.error(reason),
                     Err(e) => {
                         warn!("Unexpected error in message stream: {}", e);
                         break;

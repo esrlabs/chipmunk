@@ -1,8 +1,17 @@
+use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
+use crossbeam_channel::unbounded;
+use dlt::dlt::Message;
+use dlt::dlt_file::FileMessageProducer;
+use dlt::dlt_fmt::FormattableMessage;
+use dlt::dlt_parse::DltParseError;
+use dlt::dlt_parse::{dlt_consume_msg, ParsedMessage};
+use indexer_base::chunks::ChunkResults;
 use indexer_base::{progress::ComputationResult, utils};
 use serde::{Deserialize, Serialize};
+use std::io::Cursor;
 use std::{
     fmt, fs,
-    io::{Read, Seek, SeekFrom, Write},
+    io::{BufRead, Read, Seek, SeekFrom, Write},
     ops::RangeInclusive,
     path::{Path, PathBuf},
 };
@@ -23,6 +32,9 @@ pub enum GrabError {
     #[error("Metadata initialization not done")]
     NotInitialize,
 }
+
+const REDUX_READER_CAPACITY: usize = 10 * 1024 * 1024;
+const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GrabbedElement {
@@ -127,6 +139,16 @@ impl Slot {
     }
 }
 
+pub trait LogItem {
+    fn id(&self) -> String;
+}
+
+impl LogItem for String {
+    fn id(&self) -> String {
+        self.clone()
+    }
+}
+
 #[derive(Debug)]
 pub struct Grabber {
     pub source_id: String,
@@ -182,20 +204,28 @@ impl Grabber {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn new(path: impl AsRef<Path>, source_id: &str) -> Result<Self, GrabError> {
+    pub fn new(path: &Path, source_id: &str) -> Result<Self, GrabError> {
         let input_file_size = std::fs::metadata(&path)?.len();
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
+        let extension = path
+            .extension()
+            .ok_or_else(|| GrabError::Config("Cannot get path extension".to_owned()))?;
+        let computation_res = if extension == "dlt" {
+            Grabber::create_metadata_for_dlt_file(&path, None)?
+        } else {
+            Grabber::create_metadata_for_file(&path, None)?
+        };
 
-        let metadata = match Grabber::create_metadata_for_file(&path, None)? {
+        let metadata = match computation_res {
             ComputationResult::Item(md) => Ok(Some(md)),
             ComputationResult::Stopped => Err(GrabError::Interrupted),
         }?;
 
         Ok(Self {
             source_id: source_id.to_owned(),
-            path: path.as_ref().to_owned(),
+            path: path.to_owned(),
             metadata,
             input_file_size,
             last_line_empty: Grabber::last_line_empty(&path)?,
@@ -231,7 +261,7 @@ impl Grabber {
         if len == 0 {
             unreachable!("There must be a last line");
         }
-        Ok(buffer[0] == b'\n' || buffer[0] == b'\r')
+        Ok(is_newline(buffer[0]))
     }
 
     pub async fn create_metadata_async(
@@ -303,50 +333,159 @@ impl Grabber {
         Ok(g)
     }
 
+    pub fn create_metadata_for_dlt_file(
+        input: &Path,
+        shutdown_receiver: Option<cc::Receiver<()>>,
+    ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
+        if !fs::metadata(&input)?.is_file() {
+            return Err(GrabError::Config(format!(
+                "File {} does not exist",
+                input.to_string_lossy()
+            )));
+        }
+        let mut slots = Vec::<Slot>::new();
+
+        let f = fs::File::open(&input)?;
+
+        let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
+            .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
+
+        let mut bytes_in_slot = 0u64;
+        let mut bytes_offset = 0u64;
+        let mut log_entry_count = 0u64;
+        let mut logs_in_slot = 0u64;
+        let mut msg_cnt: u64 = 0;
+        loop {
+            match reader.fill_buf() {
+                Ok(content) => {
+                    if content.is_empty() {
+                        break;
+                    }
+                    if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
+                        reader.consume(consumed as usize);
+                        msg_cnt += 1;
+                        logs_in_slot += 1;
+                        bytes_offset += consumed;
+                        bytes_in_slot += consumed;
+                        log_entry_count += 1;
+                        if bytes_in_slot >= DEFAULT_SLOT_SIZE as u64 {
+                            let slot = Slot {
+                                bytes: ByteRange::from(
+                                    (bytes_offset - bytes_in_slot)..=bytes_offset,
+                                ),
+                                lines: LineRange::from(
+                                    log_entry_count - logs_in_slot..=log_entry_count,
+                                ),
+                            };
+                            slots.push(slot);
+                            bytes_in_slot = 0;
+                            logs_in_slot = 0;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                Err(e) => {
+                    trace!("no more content");
+                    return Err(GrabError::Config(format!(
+                        "error for filling buffer with dlt messages: {:?}",
+                        e
+                    )));
+                }
+            }
+        }
+        Ok(ComputationResult::Item(GrabMetadata {
+            slots,
+            line_count: msg_cnt as usize,
+        }))
+    }
+
     pub fn create_metadata_for_file(
         path: impl AsRef<Path>,
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         let f = fs::File::open(&path)?;
+        let input_file_size = f.metadata()?.len();
         let mut reader = std::io::BufReader::new(f);
         let mut slots = Vec::<Slot>::new();
 
+        // let slot_size = 20usize;
+        let slot_size = DEFAULT_SLOT_SIZE;
         // let mut buffer = vec![0; DEFAULT_SLOT_SIZE];
-        let mut buffer = vec![0; 20usize];
+        let mut buffer = vec![0; slot_size];
 
         let mut byte_index = 0u64;
-        let mut processed_lines = 0u64;
-        while let Ok(len) = reader.read(&mut buffer) {
+        let mut line_index = 0u64;
+        while let Ok(read_bytes) = reader.read(&mut buffer) {
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
                 return Ok(ComputationResult::Stopped);
             }
-            if len == 0 {
+            if read_bytes == 0 {
+                // we are done
                 break;
             }
-            if len < DEFAULT_SLOT_SIZE {
-                buffer.resize(len, 0);
+            // println!("we read {} bytes into the buffer", read_bytes);
+            if read_bytes < DEFAULT_SLOT_SIZE {
+                buffer.resize(read_bytes, 0);
             }
             let nl_count = bytecount::count(&buffer, b'\n') as u64;
-            let (line_count, byte_count) = (nl_count + 1, len as u64);
-            let line_rang_start = if processed_lines > 0 {
-                processed_lines - 1
-            } else {
-                0
-            };
+            if nl_count == 0 && input_file_size > slot_size as u64 {
+                return Err(GrabError::Config(format!(
+                    "Unable to load full item content into slot of size {}",
+                    slot_size
+                )));
+            }
+            let starts_with_nl = is_newline(buffer[0]);
+            let ends_with_nl = is_newline(buffer[read_bytes - 1]);
+            let lines_in_slot = nl_count + 1;
+            // - if starts_with_nl { 1 } else { 0 }
+            // - if ends_with_nl { 1 } else { 0 };
+            let mut line_range_start = line_index;
+            if starts_with_nl && read_bytes != 1 {
+                line_range_start += 1;
+            }
+            let line_range_end = subtract_what_is_possible(line_index + lines_in_slot, 1);
+            let byte_range_start = byte_index
+                + if starts_with_nl && read_bytes != 1 {
+                    1
+                } else {
+                    0
+                };
+            let byte_range_end = subtract_what_is_possible(
+                byte_index + read_bytes as u64,
+                if ends_with_nl { 2 } else { 1 },
+            );
             let slot = Slot {
-                bytes: ByteRange::from(byte_index..=byte_index + byte_count - 1),
-                lines: LineRange::from(line_rang_start..=processed_lines + line_count - 1),
+                bytes: ByteRange::from(byte_range_start..=byte_range_end),
+                lines: LineRange::from(line_range_start..=line_range_end),
             };
-            if processed_lines < 20 {
-                println!("[processed slot] {:?}", slot);
+
+            if slots.len() < 20 {
+                println!(
+                    "buffer[0] = '{}', buffer[read_bytes-1] = '{}'",
+                    buffer[0],
+                    buffer[read_bytes - 1],
+                );
+                println!(
+                    "[processed slot[{}]({} \\n)] {:?} {}{}",
+                    slots.len(),
+                    nl_count,
+                    slot,
+                    if starts_with_nl {
+                        "(started with \\n)"
+                    } else {
+                        ""
+                    },
+                    if ends_with_nl { "(ended with \\n)" } else { "" }
+                );
             }
             slots.push(slot);
-            byte_index += len as u64;
-            processed_lines += line_count;
+            byte_index += read_bytes as u64;
+            line_index += nl_count;
         }
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
-            line_count: processed_lines as usize,
+            line_count: (line_index + 1) as usize,
         }))
     }
 
@@ -384,7 +523,7 @@ impl Grabber {
                 read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
                 read_from.read_exact(&mut read_buf)?;
                 let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
-                println!("skipping {} lines", file_part.lines_to_skip);
+                println!("skipping {} entries", file_part.lines_to_skip);
 
                 let all_lines = s.split(|c| c == '\n' || c == '\r');
                 let lines_minus_end =
@@ -394,6 +533,71 @@ impl Grabber {
                     .map(|s| GrabbedElement {
                         source_id: self.source_id.clone(),
                         content: s.to_owned(),
+                    })
+                    .collect::<Vec<GrabbedElement>>();
+                Ok(GrabbedContent { grabbed_elements })
+            }
+        }
+    }
+
+    pub fn get_dlt_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
+        println!("get_dlt_entries for range: {:?}", line_range);
+        match &self.metadata {
+            None => Err(GrabError::NotInitialize),
+            Some(metadata) => {
+                if line_range.range.is_empty() {
+                    return Err(GrabError::InvalidRange(line_range.clone()));
+                }
+                use std::io::prelude::*;
+
+                let file_part = identify_byte_range(&metadata.slots, line_range)
+                    .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
+                println!("file-part: {:?}", file_part);
+
+                let mut read_buf = vec![0; file_part.length];
+                let mut read_from = fs::File::open(&self.path)?;
+
+                read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
+                read_from.read_exact(&mut read_buf)?;
+
+                let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+                let message_stream =
+                    FileMessageProducer::new(Cursor::new(read_buf), None, tx, true, None);
+
+                let mut messages: Vec<Message> = Vec::new();
+                for msg_result in message_stream {
+                    trace!("got message from stream: {:?}", msg_result);
+                    match msg_result {
+                        ParsedMessage::Item(msg) => {
+                            // progress_reporter.make_progress(consumed);
+                            messages.push(msg)
+                        }
+                        _ => warn!("Could not produce message"),
+                    }
+                }
+
+                // let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
+                // println!("skipping {} entries", file_part.lines_to_skip);
+
+                // let all_lines = s.split(|c| c == '\n' || c == '\r');
+                // let lines_minus_end =
+                //     all_lines.take(file_part.total_lines - file_part.lines_to_drop);
+                let items_to_grab = line_range.size();
+                let pure_lines = messages
+                    .iter()
+                    .skip(file_part.lines_to_skip)
+                    .take(items_to_grab as usize);
+
+                let grabbed_elements = pure_lines
+                    .map(|s| {
+                        let fmt_msg = FormattableMessage {
+                            message: s.clone(), //FIXME avoid clone
+                            fibex_metadata: None,
+                        };
+                        GrabbedElement {
+                            source_id: self.source_id.clone(),
+                            content: format!("{}", fmt_msg),
+                        }
                     })
                     .collect::<Vec<GrabbedElement>>();
                 Ok(GrabbedContent { grabbed_elements })
@@ -467,12 +671,12 @@ pub(crate) fn identify_end_slot_simple(slots: &[Slot], line_index: u64) -> Optio
     match slots.len() {
         0 => None,
         slots_len => {
-            let mut i = slots_len - 1;
+            let mut i = slots_len;
             for slot in slots.iter().rev() {
+                i -= 1;
                 if slot.lines.range.contains(&line_index) {
                     return Some((slot.clone(), i));
                 }
-                i -= 1;
             }
             None
         }
@@ -548,4 +752,16 @@ pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Sl
       //     }
       // }
     None
+}
+
+fn is_newline(item: u8) -> bool {
+    item == b'\n' || item == b'\r'
+}
+
+fn subtract_what_is_possible(n: u64, m: u64) -> u64 {
+    if n >= m {
+        n - m
+    } else {
+        0
+    }
 }

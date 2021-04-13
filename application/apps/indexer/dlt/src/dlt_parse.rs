@@ -615,17 +615,12 @@ fn dlt_payload<T: NomByteOrder>(
     payload_length: u16,
     arg_cnt: u8,
     is_controll_msg: bool,
-) -> IResult<&[u8], Payload2> {
+) -> IResult<&[u8], PayloadContent> {
     // trace!("try to parse dlt_payload for {:02X?}", input,);
     if verbose {
         // trace!("verbose, arg_cnt = {}", arg_cnt);
         let (rest, arguments) = count(dlt_argument::<T>, arg_cnt as usize)(input)?;
-        Ok((
-            rest,
-            Payload2 {
-                payload_content: PayloadContent::Verbose(arguments),
-            },
-        ))
+        Ok((rest, PayloadContent::Verbose(arguments)))
     } else if is_controll_msg {
         // trace!("is_controll_msg");
         if payload_length < 1 {
@@ -635,12 +630,10 @@ fn dlt_payload<T: NomByteOrder>(
         match tuple((nom::number::complete::be_u8, take(payload_length - 1)))(input) {
             Ok((rest, (control_msg_id, payload))) => Ok((
                 rest,
-                Payload2 {
-                    payload_content: PayloadContent::ControlMsg(
-                        ControlType::from_value(control_msg_id),
-                        payload.to_vec(),
-                    ),
-                },
+                PayloadContent::ControlMsg(
+                    ControlType::from_value(control_msg_id),
+                    payload.to_vec(),
+                ),
             )),
             Err(e) => {
                 // trace!("error e {:?}", e);
@@ -661,9 +654,7 @@ fn dlt_payload<T: NomByteOrder>(
         match tuple((T::parse_u32, take(payload_length - 4)))(input) {
             Ok((rest, (message_id, payload))) => Ok((
                 rest,
-                Payload2 {
-                    payload_content: PayloadContent::NonVerbose(message_id, payload.to_vec()),
-                },
+                PayloadContent::NonVerbose(message_id, payload.to_vec()),
             )),
             Err(e) => {
                 // trace!("error e {:?}", e);
@@ -922,9 +913,9 @@ fn skip_till_after_next_storage_header(input: &[u8]) -> Result<(&[u8], u64), Dlt
             let (after_storage_header, skipped_bytes) = skip_storage_header(rest)?;
             Ok((after_storage_header, consumed + skipped_bytes))
         }
-        None => Err(DltParseError::ParsingHickup {
-            reason: "did not find another storage header".into(),
-        }),
+        None => Err(DltParseError::ParsingHickup(
+            "did not find another storage header".into(),
+        )),
     }
 }
 
@@ -935,10 +926,19 @@ pub(crate) fn skip_storage_header(input: &[u8]) -> Result<(&[u8], u64), DltParse
     if input.len() - i.len() == STORAGE_HEADER_LENGTH as usize {
         Ok((i, STORAGE_HEADER_LENGTH))
     } else {
-        Err(DltParseError::ParsingHickup {
-            reason: "did not match DLT pattern".into(),
-        })
+        Err(DltParseError::ParsingHickup(
+            "did not match DLT pattern".into(),
+        ))
     }
+}
+
+pub fn dlt_consume_msg(input: &[u8]) -> Result<(&[u8], Option<u64>), DltParseError> {
+    let (after_storage_header, skipped_bytes) = skip_storage_header(input)?;
+    let (_, header) = dlt_standard_header(after_storage_header)?;
+    let overall_length_without_storage_header = header.overall_length() as u64;
+    let (after_message, _) = take(overall_length_without_storage_header)(after_storage_header)?;
+    let consumed = skipped_bytes + overall_length_without_storage_header;
+    Ok((after_message, Some(consumed)))
 }
 
 pub fn dlt_statistic_row_info<'a, T>(
@@ -947,7 +947,6 @@ pub fn dlt_statistic_row_info<'a, T>(
     with_storage_header: bool,
     update_channel: Option<&cc::Sender<IndexingResults<T>>>,
 ) -> Result<(&'a [u8], StatisticRowInfo), DltParseError> {
-    // let (after_storage_header, _) = skip_till_after_next_storage_header(input)?;
     let (after_storage_header, _) = if with_storage_header {
         skip_till_after_next_storage_header(input)?
     } else {
@@ -1004,32 +1003,26 @@ pub fn dlt_statistic_row_info<'a, T>(
 
 #[derive(Error, Debug, PartialEq)]
 pub enum DltParseError {
-    #[error("parsing stopped, cannot continue: {}", cause)]
-    Unrecoverable { cause: String },
-    #[error("parsing error, try to continue: {}", reason)]
-    ParsingHickup { reason: String },
+    #[error("parsing stopped, cannot continue: {0}")]
+    Unrecoverable(String),
+    #[error("parsing error, try to continue: {0}")]
+    ParsingHickup(String),
     #[error("parsing could not complete: {:?}", needed)]
     IncompleteParse { needed: Option<usize> },
 }
 impl From<std::io::Error> for DltParseError {
     fn from(err: std::io::Error) -> DltParseError {
-        DltParseError::Unrecoverable {
-            cause: format!("{}", err),
-        }
+        DltParseError::Unrecoverable(format!("{}", err))
     }
 }
 impl From<pcap_parser::PcapError> for DltParseError {
     fn from(err: pcap_parser::PcapError) -> DltParseError {
-        DltParseError::Unrecoverable {
-            cause: format!("{}", err),
-        }
+        DltParseError::Unrecoverable(format!("{}", err))
     }
 }
 impl From<anyhow::Error> for DltParseError {
     fn from(err: anyhow::Error) -> DltParseError {
-        DltParseError::Unrecoverable {
-            cause: format!("{}", err),
-        }
+        DltParseError::Unrecoverable(format!("{}", err))
     }
 }
 impl From<nom::Err<(&[u8], nom::error::ErrorKind)>> for DltParseError {
@@ -1042,12 +1035,16 @@ impl From<nom::Err<(&[u8], nom::error::ErrorKind)>> for DltParseError {
                 };
                 DltParseError::IncompleteParse { needed }
             }
-            nom::Err::Error((input, kind)) => DltParseError::ParsingHickup {
-                reason: format!("{:?} ({} bytes left in input)", kind, input.len()),
-            },
-            nom::Err::Failure((input, kind)) => DltParseError::Unrecoverable {
-                cause: format!("{:?} ({} bytes left in input)", kind, input.len()),
-            },
+            nom::Err::Error((input, kind)) => DltParseError::ParsingHickup(format!(
+                "{:?} ({} bytes left in input)",
+                kind,
+                input.len()
+            )),
+            nom::Err::Failure((input, kind)) => DltParseError::Unrecoverable(format!(
+                "{:?} ({} bytes left in input)",
+                kind,
+                input.len()
+            )),
         }
     }
 }
@@ -1238,7 +1235,7 @@ pub fn get_dlt_file_info(
                 // we couldn't parse the message. try to skip it and find the next.
                 debug!("stats...try to skip and continue parsing: {}", e);
                 match e {
-                    DltParseError::ParsingHickup { reason } => {
+                    DltParseError::ParsingHickup(reason) => {
                         // we couldn't parse the message. try to skip it and find the next.
                         reader.consume(4); // at least skip the magic DLT pattern
                         debug!(
@@ -1246,7 +1243,7 @@ pub fn get_dlt_file_info(
                             reason
                         );
                     }
-                    DltParseError::Unrecoverable { cause } => {
+                    DltParseError::Unrecoverable(cause) => {
                         warn!("cannot continue parsing: {}", cause);
                         let _ = update_channel.send(Err(Notification {
                             severity: Severity::ERROR,
@@ -1323,8 +1320,9 @@ fn read_one_dlt_message_info<T: Read>(
             let consumed = available - r.0.len();
             Ok(Some((consumed as u64, r.1)))
         }
-        Err(e) => Err(DltParseError::ParsingHickup {
-            reason: format!("error while parsing dlt messages: {}", e),
-        }),
+        Err(e) => Err(DltParseError::ParsingHickup(format!(
+            "error while parsing dlt messages: {}",
+            e
+        ))),
     }
 }
