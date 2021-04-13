@@ -1,5 +1,8 @@
 import { exec } from 'child_process';
+
 import * as os from 'os';
+
+export { detectAvailableProfiles as getProfiles, ITerminalProfile } from './profiles';
 
 const cache: any = {};
 

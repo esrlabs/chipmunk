@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -p ./tsconfig.json",
     "build:watch": "tsc -p ./tsconfig.json -w",
-    "test:unit": "./node_modules/.bin/jasmine-ts",
+    "test": "./node_modules/.bin/jasmine-ts",
     "tslint": "./node_modules/.bin/tslint -c tslint.json './src/**/*{.ts,.tsx}'"
   },
   "author": "Dmitry Astafyev (dmitry.astafyev@esrlabs.com)",
