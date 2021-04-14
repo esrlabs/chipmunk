@@ -1,3 +1,10 @@
+// tslint:disable: no-string-literal
+// tslint:disable: jsdoc-format
+// tslint:disable: radix
+// tslint:disable: no-shadowed-variable
+// tslint:disable: prefer-const
+// tslint:disable: no-namespace
+
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
