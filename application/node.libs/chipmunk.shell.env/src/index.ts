@@ -2,7 +2,9 @@ import { exec } from 'child_process';
 
 import * as os from 'os';
 
-export { detectAvailableProfiles as getProfiles, ITerminalProfile } from './profiles';
+import { detectAvailableProfiles as getProfiles, ITerminalProfile } from './profiles';
+
+export { getProfiles, ITerminalProfile };
 
 const cache: any = {};
 
@@ -152,29 +154,8 @@ export function getDefShell(ignoreCache: boolean = false): Promise<string> {
 
 export function getShells(ignoreCache: boolean = false): Promise<string[]> {
     return new Promise((resolve, reject) => {
-        let command: string = '';
-        switch (os.platform()) {
-            case EPlatforms.aix:
-            case EPlatforms.android:
-            case EPlatforms.darwin:
-            case EPlatforms.freebsd:
-            case EPlatforms.linux:
-            case EPlatforms.openbsd:
-            case EPlatforms.sunos:
-                command = 'cat /etc/shells';
-                break;
-            case EPlatforms.win32:
-                // TODO: Check solution with win
-                command = 'cmd.com';
-                break;
-        }
-        shell(command, ignoreCache).then((stdout: string) => {
-            const values: string[] = stdout.split(/[\n\r]/gi).filter((value: string) => {
-                return value.indexOf('/') === 0;
-            });
-            resolve(values);
-        }).catch((error: Error) => {
-            reject(error);
-        });
+        getProfiles().then((profiles: ITerminalProfile[]) => {
+            resolve(profiles.map((p) => p.path));
+        }).catch(reject);
     });
 }

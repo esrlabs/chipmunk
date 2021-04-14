@@ -24,6 +24,19 @@ describe('OS env tools', () => {
         });
     });
 
+    it('Getting shells', (done: () => any ) => {
+        EnvLib.getShells().then((shells: string[]) => {
+            expect(shells.length >= 1).toBe(true);
+            if (process.platform === 'win32') {
+                //expect(profiles.find((p) => p.profileName.toLowerCase() === 'Command Prompt'.toLowerCase())).toBeDefined();
+            }
+            console.info(`Found shells:\n\t- ${shells.join(`\n\t- `)}`);
+            done();
+        }).catch((err: Error) => {
+            fail(err);
+        });
+    });
+
     it('Getting envvars', (done: () => any ) => {
         EnvLib.getEnvVars().then((envvars: EnvLib.TEnvVars) => {
             expect(Object.keys(envvars).length > 0).toBe(true);
