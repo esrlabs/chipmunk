@@ -13,8 +13,10 @@ bytecount = "0.6.0"
 chrono = "0.4"
 crossbeam-channel = "0.5.0"
 dlt = { path = "../dlt" }
+dlt-core = "0.9"
+# dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
+# dlt-core = { path = "../../../../../dlt-core.git" }
 encoding_rs_io = "0.1.7"
-futures = { version = "0.3.4", features = ["std", "async-await"], default-features = false }
 grep-matcher = "0.1.4"
 grep-regex = "0.1.8"
 grep-searcher = "0.1.7"
@@ -23,25 +25,25 @@ indexer_base = { path = "../indexer_base" }
 itertools = "0.10.0"
 lazy_static = "1.4.0"
 log = "0.4"
-nom = "5.1.2"
+nom = "6.1.2"
 regex = "1"
 rustc-hash = "1.1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1.1.0", features = ["full"] }
+tokio = { version = "1.5", features = ["full"] }
 termcolor = "1.1.2"
 
 [dev-dependencies]
 criterion = "0.3.3"
 dirs = "3.0.1"
 env_logger = "0.8.1"
-pretty_assertions = "0.6"
-proptest = "0.10.1"
+pretty_assertions = "0.7.1"
+proptest = "1.0.0"
 proptest-derive = "0.2.0"
-rand = "0.7"
-tempfile = "3.1"
+rand = "0.8.3"
+tempfile = "3.2.0"
 test-generator = "0.3.0"
-tokio = { version = "1.2.0", features = ["full"] }
+tokio = { version = "1.5", features = ["full"] }
 
 [[bench]]
 name = "parse_benchmarks"

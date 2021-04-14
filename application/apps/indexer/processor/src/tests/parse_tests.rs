@@ -531,7 +531,7 @@ mod tests {
                     println!("found format was: {}", format);
                     assert_eq!($exp, format)
                 }
-                Err(e) => panic!(format!("error happened in detection: {}", e)),
+                Err(e) => panic!("error happened in detection: {}", e),
             }
             assert!(line_matching_format_expression($exp, $input).unwrap_or(false));
         };
@@ -676,7 +676,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
         match detect_timestamp_in_string("2019-07-30 09:38:02.555 -00:30", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -688,7 +688,7 @@ mod tests {
                     + THIRTY_MIN_IN_MS,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
     }
     #[test]
@@ -703,7 +703,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
     }
 
@@ -718,7 +718,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
         match detect_timestamp_in_string("2019-07-30T04:38:02.555 -05:30", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -730,7 +730,7 @@ mod tests {
                     + FIVE_HOURS_THIRTY_MIN_IN_MS,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
         match detect_timestamp_in_string("2019-07-30T11:08:02.555+01:00", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -741,7 +741,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
     }
     #[test]
@@ -756,7 +756,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
         match detect_timestamp_in_string("07-30 12:08:02.555 +0200", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -767,7 +767,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
     }
 
@@ -783,7 +783,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
         match detect_timestamp_in_string("07-30T15:08:02.555 +05:00", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -794,7 +794,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
     }
     #[test]
@@ -808,11 +808,11 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
         match detect_timestamp_in_string("07-30-2019 08:08:02.555 -0200", None) {
             Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
     }
     #[test]
@@ -826,7 +826,7 @@ mod tests {
                     * 1000,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
         match detect_timestamp_in_string(
             "109.169.248.247 - - [30/Jul/2019:12:08:02 +0200] xyz",
@@ -840,7 +840,7 @@ mod tests {
                     - TWO_HOURS_IN_MS,
                 timestamp
             ),
-            Err(e) => panic!(format!("error happened in detection: {}", e)),
+            Err(e) => panic!("error happened in detection: {}", e),
         }
     }
 

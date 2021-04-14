@@ -1,26 +1,36 @@
-use crate::{
-    dlt,
-    dlt_fmt::FormattableMessage,
-    dlt_parse::*,
-    fibex::{gather_fibex_data, FibexMetadata},
-    filtering,
-};
 use crossbeam_channel as cc;
-use etherparse::*;
+use dlt_core::{
+    dlt,
+    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
+    filtering,
+    fmt::FormattableMessage,
+    parse::*,
+};
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults, VoidResults},
-    config::{FibexConfig, IndexingConfig},
+    config::IndexingConfig,
     progress::*,
     utils,
 };
-use pcap_parser::{traits::PcapReaderIterator, PcapNGReader, *};
+use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
 use std::{
     fs::*,
     io::{BufWriter, Write},
     time::{SystemTime, UNIX_EPOCH},
 };
+use thiserror::Error;
 use tokio::sync;
 use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("IO error: {0:?}")]
+    Io(#[from] std::io::Error),
+    #[error("Utils error: {0:?}")]
+    Utils(#[from] indexer_base::utils::Error),
+    #[error("Parse error: {0:?}")]
+    Parse(#[from] DltParseError),
+}
 
 struct PcapMessageProducer {
     reader: PcapNGReader<File>,
@@ -44,7 +54,12 @@ impl PcapMessageProducer {
                 fibex_metadata,
                 filter_config,
             }),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(match e {
+                pcap_parser::PcapError::Incomplete => {
+                    DltParseError::IncompleteParse { needed: None }
+                }
+                _ => DltParseError::Unrecoverable(format!("problems parsing pcap: {}", e)),
+            }),
         }
     }
 
@@ -55,28 +70,28 @@ impl PcapMessageProducer {
 
 fn debug_block(b: PcapBlockOwned) {
     match b {
-        PcapBlockOwned::NG(Block::SectionHeader(_)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::SectionHeader(_)) => {
             trace!("NG SectionHeader");
         }
-        PcapBlockOwned::NG(Block::InterfaceDescription(_)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::InterfaceDescription(_)) => {
             trace!("NG InterfaceDescription");
         }
-        PcapBlockOwned::NG(Block::NameResolution(h)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::NameResolution(h)) => {
             trace!("NG NameResolution: {} namerecords", h.nr.len());
         }
-        PcapBlockOwned::NG(Block::InterfaceStatistics(h)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::InterfaceStatistics(h)) => {
             trace!("NG InterfaceStatistics: {:?}", h.options);
         }
-        PcapBlockOwned::NG(Block::SystemdJournalExport(_h)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::SystemdJournalExport(_h)) => {
             trace!("NG SystemdJournalExport");
         }
-        PcapBlockOwned::NG(Block::DecryptionSecrets(_h)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::DecryptionSecrets(_h)) => {
             trace!("NG DecryptionSecrets");
         }
-        PcapBlockOwned::NG(Block::Custom(_)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::Custom(_)) => {
             trace!("NG Custom");
         }
-        PcapBlockOwned::NG(Block::Unknown(_)) => {
+        PcapBlockOwned::NG(pcap_parser::Block::Unknown(_)) => {
             trace!("NG Unknown");
         }
         PcapBlockOwned::Legacy(_s) => {
@@ -109,7 +124,6 @@ impl Stream for PcapMessageProducer {
     ) -> core::task::Poll<Option<Self::Item>> {
         let mut consumed = 0usize;
         let filter_config = self.filter_config.clone();
-        let index = self.index;
         self.index += 1;
         let now = SystemTime::now();
         let since_the_epoch = now
@@ -120,12 +134,12 @@ impl Stream for PcapMessageProducer {
             Ok((offset, block)) => {
                 consumed = offset;
                 let data = match block {
-                    PcapBlockOwned::NG(Block::EnhancedPacket(ref epb)) => {
+                    PcapBlockOwned::NG(pcap_parser::Block::EnhancedPacket(ref epb)) => {
                         let ts_us: i64 = (epb.ts_high as i64) << 32 | epb.ts_low as i64;
                         last_in_ms = ts_us / 1000;
                         Some(epb.data)
                     }
-                    PcapBlockOwned::NG(Block::SimplePacket(ref spb)) => {
+                    PcapBlockOwned::NG(pcap_parser::Block::SimplePacket(ref spb)) => {
                         trace!("SimplePacket");
                         Some(spb.data)
                     }
@@ -135,7 +149,7 @@ impl Stream for PcapMessageProducer {
                     }
                 };
                 if let Some(payload) = data {
-                    match SlicedPacket::from_ethernet(&payload) {
+                    match etherparse::SlicedPacket::from_ethernet(&payload) {
                         Err(value) => core::task::Poll::Ready(Some((
                             consumed,
                             Err(DltParseError::ParsingHickup(format!(
@@ -147,14 +161,9 @@ impl Stream for PcapMessageProducer {
                             let mut input_slice = value.payload;
                             let mut found_dlt_messages = vec![];
                             let mut skipped = 0usize;
+                            // try to parse all the messages in the payload
                             while !input_slice.is_empty() {
-                                match dlt_message(
-                                    input_slice,
-                                    filter_config.as_ref(),
-                                    index,
-                                    None, // we do not want updates reported by the parser itself
-                                    false,
-                                ) {
+                                match dlt_message(input_slice, filter_config.as_ref(), false) {
                                     Ok((rest, ParsedMessage::Item(m))) => {
                                         trace!("Extracted a valid DLT message");
                                         let msg_with_storage_header = m.add_storage_header(Some(
@@ -171,7 +180,8 @@ impl Stream for PcapMessageProducer {
                                         input_slice = rest;
                                     }
                                     Err(e) => {
-                                        trace!("PCAP payload did not contain a valid DLT message, error: {}", e);
+                                        trace!("Found {} DLT messages, no more valid DLT message in packet, error: {}",
+                                            found_dlt_messages.len(), e);
                                         break;
                                     }
                                 }
@@ -234,7 +244,7 @@ pub async fn pcap_to_dlt(
     update_channel: cc::Sender<VoidResults>,
     shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex: Option<FibexConfig>,
-) -> Result<(), DltParseError> {
+) -> Result<(), Error> {
     trace!("Starting pcap_to_dlt");
 
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
@@ -371,7 +381,7 @@ pub async fn index_from_pcap(
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex: Option<FibexConfig>,
-) -> Result<(), DltParseError> {
+) -> Result<(), Error> {
     trace!("index_from_pcap for  conf: {:?}", config);
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
     let (out_file, current_out_file_size) =
@@ -520,7 +530,7 @@ pub async fn create_index_and_mapping_dlt_from_pcap(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: sync::mpsc::Receiver<()>,
     fibex: Option<FibexConfig>,
-) -> Result<(), DltParseError> {
+) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt_from_pcap");
     match utils::next_line_nr(&config.out_path) {
         Ok(initial_line_nr) => {

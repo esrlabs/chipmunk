@@ -1,10 +1,8 @@
 use crate::channels::EventEmitterTask;
 use crossbeam_channel as cc;
-use dlt::filtering;
-use indexer_base::{
-    chunks::ChunkResults,
-    config::{FibexConfig, SocketConfig},
-};
+use dlt_core::fibex::FibexConfig;
+use dlt_core::filtering::DltFilterConfig;
+use indexer_base::{chunks::ChunkResults, config::SocketConfig};
 use neon::prelude::*;
 use std::{path, thread};
 use tokio::sync;
@@ -28,7 +26,7 @@ impl SocketDltEventEmitter {
         chunk_result_sender: cc::Sender<ChunkResults>,
         thread_conf: SocketThreadConfig,
         socket_conf: SocketConfig,
-        filter_conf: Option<filtering::DltFilterConfig>,
+        filter_conf: Option<DltFilterConfig>,
         fibex: FibexConfig,
     ) {
         info!("start_indexing_socket_in_thread: {:?}", thread_conf);
@@ -73,7 +71,7 @@ declare_types! {
             let tag = cx.argument::<JsString>(2)?.value();
             let out_path = path::PathBuf::from(cx.argument::<JsString>(3)?.value().as_str());
             let arg_filter_conf = cx.argument::<JsValue>(4)?;
-            let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
+            let filter_conf: DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
 
             let arg_fibex_conf = cx.argument::<JsValue>(5)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;

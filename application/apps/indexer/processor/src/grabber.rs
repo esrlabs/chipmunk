@@ -389,6 +389,7 @@ pub(crate) fn identify_start_slot_simple(slots: &[Slot], line_index: u64) -> Opt
 /// we devide the logfile into slots that store the byte offsets.
 /// When we now want to find out the byte offset of a line, we first can quickly
 /// identify in which slot it is
+#[allow(dead_code)]
 pub(crate) fn identify_start_slot(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
     // println!("identify index {}", line_index);
     if slots.is_empty() {

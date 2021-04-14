@@ -1,11 +1,8 @@
 #[cfg(test)]
 mod tests {
 
-    use crate::{
-        dlt::Message,
-        dlt_net::{DltMessageDecoder, *},
-        dlt_parse::DltParseError,
-    };
+    use crate::dlt_net::{DltMessageDecoder, *};
+    use dlt_core::{dlt::Message, parse::DltParseError};
     use tokio::net::UdpSocket;
     use tokio_stream::StreamExt;
     use tokio_util::udp::UdpFramed;
@@ -46,7 +43,6 @@ mod tests {
             DltMessageDecoder {
                 filter_config: None,
                 fibex_metadata: None,
-                update_channel: None,
             },
         );
         let socket2 = UdpSocket::bind("127.0.0.1:0")

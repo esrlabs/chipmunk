@@ -642,14 +642,10 @@ pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult 
         Err(e) => FormatCheckResult::FormatInvalid(format!("format invalid: {}", e)),
         Ok(regex) => {
             let mut s = HashSet::new();
-            for n in regex.capture_names() {
-                if let Some(v) = n {
-                    s.insert(v);
-                }
+            for n in regex.capture_names().flatten() {
+                s.insert(n);
             }
-            if s.contains(ABSOLUTE_MS_TAG) {
-                FormatCheckResult::FormatRegex(regex.as_str().to_string())
-            } else {
+            if !s.contains(ABSOLUTE_MS_TAG) {
                 if !flags.miss_year && !s.contains(YEAR_GROUP) && !s.contains(YEAR_SHORT_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
                         "missing long or short year ({} or {})",
@@ -683,8 +679,8 @@ pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult 
                         MINUTES_FORMAT_TAG
                     ));
                 }
-                FormatCheckResult::FormatRegex(regex.as_str().to_string())
             }
+            FormatCheckResult::FormatRegex(regex.as_str().to_string())
         }
     }
 }
@@ -1087,7 +1083,7 @@ pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool)> {
                 take1,
                 timezone_parser,
             ));
-            let mapped = map(parser, |r| (r.0, r.2, r.4, r.6, r.8, r.10, r.12));
+            let mut mapped = map(parser, |r| (r.0, r.2, r.4, r.6, r.8, r.10, r.12));
             match mapped(mat.as_str()) {
                 Ok((_, (day, month, year, hour, minutes, seconds, offset))) => {
                     let date_time: Option<NaiveDateTime> =

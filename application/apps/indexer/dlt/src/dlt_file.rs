@@ -9,36 +9,51 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use crate::{
-    dlt::Message,
-    dlt_fmt::FormattableMessage,
-    dlt_parse::{
-        dlt_consume_msg, dlt_message, forward_to_next_storage_header, skip_storage_header,
-        DltParseError, ParsedMessage, DLT_MIN_BUFFER_SPACE, DLT_PATTERN_SIZE, DLT_READER_CAPACITY,
-    },
-    fibex::gather_fibex_data,
-    filtering,
-};
-use anyhow::anyhow;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use crossbeam_channel as cc;
+use dlt_core::{
+    dlt::{LogLevel, Message},
+    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
+    filtering,
+    fmt::FormattableMessage,
+    parse::{
+        dlt_consume_msg, dlt_message, forward_to_next_storage_header, skip_storage_header,
+        DltParseError, ParsedMessage,
+    },
+    statistics::{
+        dlt_statistic_row_info, IdMap, LevelDistribution, StatisticInfo, StatisticRowInfo,
+    },
+};
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
     config::*,
     progress::*,
     utils,
 };
+use rustc_hash::FxHashMap;
 use std::{
     fs,
     io::{BufRead, BufWriter, Read, Seek, Write},
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
-use crate::fibex::FibexMetadata;
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Config problem found: {0}")]
+    Config(String),
+    #[error("IO error: {0:?}")]
+    Io(#[from] std::io::Error),
+    #[error("Utils error: {0:?}")]
+    Utils(#[from] indexer_base::utils::Error),
+}
 
-// pub async fn count_messages(in_file: &Path) -> Result<u64, DltParseError> {
-//     Ok(2)
-// }
+pub(crate) const STOP_CHECK_LINE_THRESHOLD: usize = 250_000;
+pub(crate) const DLT_READER_CAPACITY: usize = 10 * 1024 * 1024;
+pub(crate) const DLT_MIN_BUFFER_SPACE: usize = 10 * 1024;
+pub(crate) const DLT_PATTERN_SIZE: usize = 4;
+
+pub type StatisticsResults = std::result::Result<IndexingProgress<StatisticInfo>, Notification>;
 
 pub async fn parse_dlt_file(
     in_file: PathBuf,
@@ -68,13 +83,7 @@ pub async fn parse_dlt_file(
             )));
         }
     };
-    let mut message_stream = FileMessageProducer::new(
-        f,
-        filter_config,
-        update_channel.clone(),
-        true,
-        fibex_metadata,
-    );
+    let mut message_stream = FileMessageProducer::new(f, filter_config, true, fibex_metadata);
     // type Item = Result<Option<Message>, DltParseError>;
     while let Some(msg_result) = tokio_stream::StreamExt::next(&mut message_stream).await {
         trace!("got message from stream: {:?}", msg_result);
@@ -102,31 +111,25 @@ pub fn create_index_and_mapping_dlt(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     fibex: Option<FibexConfig>,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt");
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
         dlt_filter.map(filtering::process_filter_config);
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
 
-    let f = match fs::File::open(&config.in_file) {
-        Ok(file) => file,
-        Err(e) => {
-            warn!("could not open {:?}", config.in_file);
-            let _ = update_channel.try_send(Err(Notification {
-                severity: Severity::WARNING,
-                content: format!("could not open file ({})", e),
-                line: None,
-            }));
-            return Err(anyhow!(format!("could not open file ({})", e)));
-        }
-    };
-    let mut message_producer = FileMessageProducer::new(
-        f,
-        filter_config,
-        update_channel.clone(),
-        true,
-        fibex_metadata,
-    );
+    let f = fs::File::open(&config.in_file)?;
+    //     Ok(file) => file,
+    //     Err(e) => {
+    //         warn!("could not open {:?}", config.in_file);
+    //         let _ = update_channel.try_send(Err(Notification {
+    //             severity: Severity::WARNING,
+    //             content: format!("could not open file ({})", e),
+    //             line: None,
+    //         }));
+    //         return Err(anyhow!(format!("could not open file ({})", e)));
+    //     }
+    // };
+    let mut message_producer = FileMessageProducer::new(f, filter_config, true, fibex_metadata);
     index_dlt_content(
         config,
         source_file_size,
@@ -148,7 +151,6 @@ where
     reader: ReduxReader<R, MinBuffered>,
     filter_config: Option<filtering::ProcessedDltFilterConfig>,
     stats: MessageStats,
-    update_channel: cc::Sender<ChunkResults>,
     with_storage_header: bool,
     fibex_metadata: Option<FibexMetadata>,
 }
@@ -158,10 +160,8 @@ where
     R: Read + Seek + Unpin,
 {
     pub fn new(
-        // in_path: &PathBuf,
         input: R,
         filter_config: Option<filtering::ProcessedDltFilterConfig>,
-        update_channel: cc::Sender<ChunkResults>,
         with_storage_header: bool,
         fibex_metadata: Option<FibexMetadata>,
     ) -> FileMessageProducer<R> {
@@ -174,7 +174,6 @@ where
                 parsed: 0,
                 no_parse: 0,
             },
-            update_channel,
             with_storage_header,
             fibex_metadata,
         }
@@ -198,8 +197,6 @@ where
                     let parse_result: Result<(&[u8], ParsedMessage), DltParseError> = dlt_message(
                         content,
                         self.filter_config.as_ref(),
-                        self.stats.parsed + self.stats.no_parse,
-                        Some(&self.update_channel),
                         self.with_storage_header,
                     );
 
@@ -355,7 +352,7 @@ pub fn index_dlt_content<R: Read + Seek + Unpin>(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     message_producer: &mut FileMessageProducer<R>,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), Error> {
     trace!("index_dlt_file {:?}", config);
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)?;
@@ -478,14 +475,15 @@ pub fn export_session_file(
     destination_path: PathBuf,
     sections: SectionConfig,
     update_channel: cc::Sender<ChunkResults>,
-) -> Result<(), DltParseError> {
+) -> Result<(), Error> {
     trace!(
         "export_as_dlt_file with id: {} to file: {:?}, exporting {:?}",
         session_id,
         destination_path,
         sections
     );
-    let session_file_path = session_file_path(&session_id)?;
+    let session_file_path = session_file_path(&session_id)
+        .ok_or_else(|| Error::Config("Session file path unavailable".to_owned()))?;
     export_as_dlt_file(
         session_file_path,
         destination_path,
@@ -499,7 +497,7 @@ pub fn export_as_dlt_file(
     destination_path: PathBuf,
     sections: SectionConfig,
     update_channel: cc::Sender<ChunkResults>,
-) -> Result<(), DltParseError> {
+) -> Result<(), Error> {
     trace!(
         "export_as_dlt_file {:?} to file: {:?}, exporting {:?}",
         dlt_file_path,
@@ -532,22 +530,24 @@ pub fn export_as_dlt_file(
             content: reason.clone(),
             line: None,
         }));
-        Err(DltParseError::Unrecoverable(reason))
+        Err(Error::Config(reason))
     }
 }
 
-pub(crate) fn session_file_path(session_id: &str) -> Result<PathBuf, anyhow::Error> {
-    let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("couldn't get home directory"))?;
+pub(crate) fn session_file_path(session_id: &str) -> Option<PathBuf> {
+    let home_dir = dirs::home_dir()?;
     let tmp_file_name = format!("{}.dlt", session_id);
-    Ok(home_dir
-        .join(".chipmunk")
-        .join("streams")
-        .join(tmp_file_name))
+    Some(
+        home_dir
+            .join(".chipmunk")
+            .join("streams")
+            .join(tmp_file_name),
+    )
 }
 
-pub(crate) fn create_dlt_session_file(session_id: &str) -> Result<std::fs::File, anyhow::Error> {
+pub(crate) fn create_dlt_session_file(session_id: &str) -> Option<std::fs::File> {
     let path = session_file_path(session_id)?;
-    Ok(std::fs::File::create(path)?)
+    std::fs::File::create(path).ok()
 }
 
 struct FilePartitioner {
@@ -557,7 +557,7 @@ struct FilePartitioner {
     file_size: u64,
 }
 impl FilePartitioner {
-    fn new(in_path: &PathBuf, c: SectionConfig) -> Result<Self, anyhow::Error> {
+    fn new(in_path: &Path, c: SectionConfig) -> Result<Self, std::io::Error> {
         let f = fs::File::open(&in_path)?;
         Ok(FilePartitioner {
             reader: ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
@@ -660,4 +660,213 @@ impl FilePartitioner {
 struct FilePart {
     offset: u64,
     length: u64,
+}
+
+pub fn get_dlt_file_info(
+    in_file: &Path,
+    update_channel: &cc::Sender<StatisticsResults>,
+    shutdown_receiver: Option<crossbeam_channel::Receiver<()>>,
+) -> Result<(), DltParseError> {
+    let f = fs::File::open(in_file)?;
+
+    let source_file_size = fs::metadata(&in_file)?.len();
+    let mut reader = ReduxReader::with_capacity(DLT_READER_CAPACITY, f)
+        .set_policy(MinBuffered(DLT_MIN_BUFFER_SPACE));
+
+    let mut app_ids: IdMap = FxHashMap::default();
+    let mut context_ids: IdMap = FxHashMap::default();
+    let mut ecu_ids: IdMap = FxHashMap::default();
+    let mut index = 0usize;
+    let mut processed_bytes = 0u64;
+    let mut contained_non_verbose = false;
+    loop {
+        match read_one_dlt_message_info(&mut reader, true) {
+            Ok(Some((
+                consumed,
+                StatisticRowInfo {
+                    app_id_context_id: Some((app_id, context_id)),
+                    ecu_id: ecu,
+                    level,
+                    verbose,
+                },
+            ))) => {
+                contained_non_verbose = contained_non_verbose || !verbose;
+                reader.consume(consumed as usize);
+                add_for_level(level, &mut app_ids, app_id);
+                add_for_level(level, &mut context_ids, context_id);
+                match ecu {
+                    Some(id) => add_for_level(level, &mut ecu_ids, id),
+                    None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
+                };
+                processed_bytes += consumed;
+            }
+            Ok(Some((
+                consumed,
+                StatisticRowInfo {
+                    app_id_context_id: None,
+                    ecu_id: ecu,
+                    level,
+                    verbose,
+                },
+            ))) => {
+                contained_non_verbose = contained_non_verbose || !verbose;
+                reader.consume(consumed as usize);
+                add_for_level(level, &mut app_ids, "NONE".to_string());
+                add_for_level(level, &mut context_ids, "NONE".to_string());
+                match ecu {
+                    Some(id) => add_for_level(level, &mut ecu_ids, id),
+                    None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
+                };
+                processed_bytes += consumed;
+            }
+            Ok(None) => {
+                break;
+            }
+            // Err(e) => {
+            //     return Err(err_msg(format!(
+            //         "error while parsing dlt messages[{}]: {}",
+            //         index, e
+            //     )))
+            Err(e) => {
+                // we couldn't parse the message. try to skip it and find the next.
+                debug!("stats...try to skip and continue parsing: {}", e);
+                match e {
+                    DltParseError::ParsingHickup(reason) => {
+                        // we couldn't parse the message. try to skip it and find the next.
+                        reader.consume(4); // at least skip the magic DLT pattern
+                        debug!(
+                            "error parsing 1 dlt message, try to continue parsing: {}",
+                            reason
+                        );
+                    }
+                    DltParseError::Unrecoverable(cause) => {
+                        warn!("cannot continue parsing: {}", cause);
+                        let _ = update_channel.send(Err(Notification {
+                            severity: Severity::ERROR,
+                            content: format!("error parsing dlt file: {}", cause),
+                            line: None,
+                        }));
+                        break;
+                    }
+                    DltParseError::IncompleteParse { needed } => {
+                        warn!(
+                            "cannot continue parsing, parse was incomplete: {:?}",
+                            needed
+                        );
+                        let _ = update_channel.send(Err(Notification {
+                            severity: Severity::ERROR,
+                            content: format!("parse was incomplete: {:?}", needed),
+                            line: None,
+                        }));
+                        break;
+                    }
+                }
+            }
+        }
+        index += 1;
+        if index % STOP_CHECK_LINE_THRESHOLD == 0 {
+            if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "dlt stats producer")
+            {
+                let _ = update_channel.send(Ok(IndexingProgress::Stopped));
+                break;
+            }
+            let _ = update_channel.send(Ok(IndexingProgress::Progress {
+                ticks: (processed_bytes, source_file_size),
+            }));
+        }
+    }
+    let res = StatisticInfo {
+        app_ids: app_ids
+            .into_iter()
+            .collect::<Vec<(String, LevelDistribution)>>(),
+        context_ids: context_ids
+            .into_iter()
+            .collect::<Vec<(String, LevelDistribution)>>(),
+        ecu_ids: ecu_ids
+            .into_iter()
+            .collect::<Vec<(String, LevelDistribution)>>(),
+        contained_non_verbose,
+    };
+
+    let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: res }));
+    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+    Ok(())
+}
+
+fn add_for_level(level: Option<LogLevel>, ids: &mut IdMap, id: String) {
+    if let Some(n) = ids.get_mut(&id) {
+        match level {
+            Some(LogLevel::Fatal) => {
+                *n = LevelDistribution {
+                    log_fatal: n.log_fatal + 1,
+                    ..*n
+                }
+            }
+            Some(LogLevel::Error) => {
+                *n = LevelDistribution {
+                    log_error: n.log_error + 1,
+                    ..*n
+                }
+            }
+            Some(LogLevel::Warn) => {
+                *n = LevelDistribution {
+                    log_warning: n.log_warning + 1,
+                    ..*n
+                }
+            }
+            Some(LogLevel::Info) => {
+                *n = LevelDistribution {
+                    log_info: n.log_info + 1,
+                    ..*n
+                }
+            }
+            Some(LogLevel::Debug) => {
+                *n = LevelDistribution {
+                    log_debug: n.log_debug + 1,
+                    ..*n
+                };
+            }
+            Some(LogLevel::Verbose) => {
+                *n = LevelDistribution {
+                    log_verbose: n.log_verbose + 1,
+                    ..*n
+                };
+            }
+            Some(LogLevel::Invalid(_)) => {
+                *n = LevelDistribution {
+                    log_invalid: n.log_invalid + 1,
+                    ..*n
+                };
+            }
+            None => {
+                *n = LevelDistribution {
+                    non_log: n.non_log + 1,
+                    ..*n
+                };
+            }
+        }
+    } else {
+        ids.insert(id, LevelDistribution::new(level));
+    }
+}
+
+fn read_one_dlt_message_info<T: Read>(
+    reader: &mut ReduxReader<T, MinBuffered>,
+    with_storage_header: bool,
+) -> Result<Option<(u64, StatisticRowInfo)>, DltParseError> {
+    match reader.fill_buf() {
+        Ok(content) => {
+            if content.is_empty() {
+                return Ok(None);
+            }
+            let available = content.len();
+            let r = dlt_statistic_row_info(content, with_storage_header)?;
+            let consumed = available - r.0.len();
+            Ok(Some((consumed as u64, r.1)))
+        }
+        Err(e) => Err(DltParseError::ParsingHickup(format!(
+            "error while parsing dlt messages: {}",
+            e
+        ))),
+    }
 }

@@ -3,14 +3,13 @@ use crate::grabber::{
     LineRange, MetadataSource, Slot,
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
-use crossbeam_channel::unbounded;
-use dlt::{
+use dlt::dlt_file::FileMessageProducer;
+use dlt_core::{
     dlt::Message,
-    dlt_file::FileMessageProducer,
-    dlt_fmt::FormattableMessage,
-    dlt_parse::{dlt_consume_msg, ParsedMessage},
+    fmt::FormattableMessage,
+    parse::{dlt_consume_msg, ParsedMessage},
 };
-use indexer_base::{chunks::ChunkResults, progress::ComputationResult, utils};
+use indexer_base::{progress::ComputationResult, utils};
 use std::{
     fs,
     io::{BufRead, Cursor, SeekFrom},
@@ -138,8 +137,7 @@ impl MetadataSource for DltSource {
         read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
         read_from.read_exact(&mut read_buf)?;
 
-        let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-        let message_stream = FileMessageProducer::new(Cursor::new(read_buf), None, tx, true, None);
+        let message_stream = FileMessageProducer::new(Cursor::new(read_buf), None, true, None);
 
         let mut messages: Vec<Message> = Vec::new();
         for msg_result in message_stream {

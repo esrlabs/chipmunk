@@ -231,7 +231,7 @@ pub fn execute_binary_search_of_slice(slice: &[u8], pattern: &str) -> Result<u64
 pub fn count_pattern_in_binary(pattern: &str, input_file: &Path) -> Result<u64, std::io::Error> {
     // execute_binary_search_of_slice(&DLT_LOGS, &pattern)
     //     .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))
-    let out_file_path = PathBuf::from(format!("{}.out", input_file.to_string_lossy()));
+    let _out_file_path = PathBuf::from(format!("{}.out", input_file.to_string_lossy()));
     let mut matcher_builder = RegexMatcherBuilder::new();
     matcher_builder.multi_line(true);
     let matcher = matcher_builder.build(&pattern).unwrap();
@@ -252,7 +252,7 @@ pub fn count_pattern_in_binary(pattern: &str, input_file: &Path) -> Result<u64, 
         .path_terminator(None);
     let wtr = termcolor::Buffer::no_color();
     let mut summary = builder.build(wtr);
-    let sink = summary.sink_with_path(&matcher, &input_file);
+    let _sink = summary.sink_with_path(&matcher, &input_file);
 
     Searcher::new().search_path(
         &matcher,
@@ -291,7 +291,7 @@ mod tests {
         "[Info](1.8): f",
     ];
     use super::*;
-    use grep_printer::SummaryBuilder;
+    // use grep_printer::SummaryBuilder;
     use std::io::{Error, ErrorKind};
     fn as_matches(content: &str) -> Vec<SearchMatch> {
         let lines: Vec<&str> = content.lines().collect();

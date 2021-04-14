@@ -23,9 +23,12 @@ use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
 use dlt::{
-    dlt_file::{count_dlt_messages, export_as_dlt_file},
-    dlt_parse::StatisticsResults,
+    dlt_file::{count_dlt_messages, export_as_dlt_file, get_dlt_file_info, StatisticsResults},
     dlt_pcap::pcap_to_dlt,
+};
+use dlt_core::{
+    fibex::FibexConfig,
+    filtering::{read_filter_options, DltFilterConfig},
 };
 use env_logger::Env;
 use indexer_base::{
@@ -984,9 +987,7 @@ pub async fn main() -> Result<()> {
     async fn handle_dlt_subcommand(matches: &clap::ArgMatches<'_>, start: std::time::Instant) {
         debug!("handle_dlt_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
-            let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
-                .value_of("filter_config")
-            {
+            let filter_conf: Option<DltFilterConfig> = match matches.value_of("filter_config") {
                 Some(filter_config_file_name) => {
                     let config_path = path::PathBuf::from(filter_config_file_name);
                     let mut cnf_file = match fs::File::open(&config_path) {
@@ -996,7 +997,7 @@ pub async fn main() -> Result<()> {
                             std::process::exit(2)
                         }
                     };
-                    dlt::filtering::read_filter_options(&mut cnf_file).ok()
+                    read_filter_options(&mut cnf_file)
                 }
                 None => None,
             };
@@ -1103,9 +1104,7 @@ pub async fn main() -> Result<()> {
     async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches<'_>) {
         debug!("handle_dlt_pcap_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
-            let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
-                .value_of("filter_config")
-            {
+            let filter_conf: Option<DltFilterConfig> = match matches.value_of("filter_config") {
                 Some(filter_config_file_name) => {
                     let config_path = path::PathBuf::from(filter_config_file_name);
                     let mut cnf_file = match fs::File::open(&config_path) {
@@ -1115,7 +1114,7 @@ pub async fn main() -> Result<()> {
                             std::process::exit(2)
                         }
                     };
-                    dlt::filtering::read_filter_options(&mut cnf_file).ok()
+                    read_filter_options(&mut cnf_file)
                 }
                 None => None,
             };
@@ -1258,9 +1257,7 @@ pub async fn main() -> Result<()> {
             matches.value_of("tag"),
             matches.value_of("output"),
         ) {
-            let filter_conf: Option<dlt::filtering::DltFilterConfig> = match matches
-                .value_of("filter_config")
-            {
+            let filter_conf: Option<DltFilterConfig> = match matches.value_of("filter_config") {
                 Some(filter_config_file_name) => {
                     let config_path = path::PathBuf::from(filter_config_file_name);
                     let mut cnf_file = match fs::File::open(&config_path) {
@@ -1270,7 +1267,7 @@ pub async fn main() -> Result<()> {
                             std::process::exit(2)
                         }
                     };
-                    dlt::filtering::read_filter_options(&mut cnf_file).ok()
+                    read_filter_options(&mut cnf_file)
                 }
                 None => None,
             };
@@ -1540,7 +1537,7 @@ pub async fn main() -> Result<()> {
             ) = unbounded();
 
             thread::spawn(move || {
-                if let Err(why) = dlt::dlt_parse::get_dlt_file_info(&file_path, &tx, None) {
+                if let Err(why) = get_dlt_file_info(&file_path, &tx, None) {
                     report_error(format!("couldn't collect statistics: {}", why));
                     std::process::exit(2)
                 }

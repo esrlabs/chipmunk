@@ -4,7 +4,6 @@ use crate::{
     progress::{IndexingProgress, Notification, Severity},
     utils::restore_line,
 };
-use anyhow::{Error, *};
 use crossbeam_channel as cc;
 use std::{
     fs,
@@ -12,6 +11,15 @@ use std::{
 };
 
 use std::path::PathBuf;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Unexpected value found: {0}")]
+    Export(String),
+    #[error("IO error: {0:?}")]
+    Io(#[from] std::io::Error),
+}
 
 /// will save sections of a file that is based on lines (newlines)
 /// and remove session file data if required (if `was_session_file` is true)
@@ -77,6 +85,6 @@ pub fn export_file_line_based(
             content: reason.clone(),
             line: None,
         }));
-        Err(anyhow!(reason))
+        Err(Error::Export(reason))
     }
 }
