@@ -155,7 +155,13 @@ export function getDefShell(ignoreCache: boolean = false): Promise<string> {
 export function getShells(ignoreCache: boolean = false): Promise<string[]> {
     return new Promise((resolve, reject) => {
         getProfiles().then((profiles: ITerminalProfile[]) => {
-            resolve(profiles.map((p) => p.path));
+            const shells: string[] = [];
+            profiles.forEach((p) => {
+                if (shells.indexOf(p.path) === -1) {
+                    shells.push(p.path);
+                }
+            });
+            resolve(shells);
         }).catch(reject);
     });
 }
