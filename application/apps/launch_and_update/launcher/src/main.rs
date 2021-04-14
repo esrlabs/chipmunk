@@ -39,7 +39,12 @@ fn init_logging() -> Result<()> {
             let mut log_config_file = fs::File::open(&log_config_path)?;
             log_config_file.read_to_string(&mut content)?;
         }
-        let log_config_content = content.replace("$HOME_DIR", &home_dir.to_string_lossy());
+        let indexer_log_path = chipmunk_home_dir().join("chipmunk.indexer.log");
+        let launcher_log_path = chipmunk_home_dir().join("chipmunk.launcher.log");
+        let log_config_content = content
+            .replace("$HOME_DIR", &home_dir.to_string_lossy())
+            .replace("$INDEXER_LOG_PATH", &indexer_log_path.to_string_lossy())
+            .replace("$LAUNCHER_LOG_PATH", &launcher_log_path.to_string_lossy());
 
         match fs::write(&log_config_path, &log_config_content) {
             Ok(_) => (),
@@ -122,13 +127,13 @@ fn find_electron_app() -> Result<PathBuf> {
     Ok(root_path.join(app_name()))
 }
 
-fn get_updater_path() -> Result<PathBuf> {
+fn get_updater_path() -> PathBuf {
     let updater_path = chipmunk_home_dir().join("apps");
-    Ok(if cfg!(target_os = "windows") {
+    if cfg!(target_os = "windows") {
         updater_path.join("updater.exe")
     } else {
         updater_path.join("updater")
-    })
+    }
 }
 
 fn update_package_path() -> Result<Option<PathBuf>> {
@@ -167,7 +172,7 @@ fn update_package_path() -> Result<Option<PathBuf>> {
 }
 
 fn update() -> Result<bool> {
-    let updater_path = get_updater_path()?;
+    let updater_path = get_updater_path();
 
     if !updater_path.exists() {
         error!("File of updater {:?} doesn't exist", updater_path);

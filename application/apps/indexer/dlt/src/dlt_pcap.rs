@@ -163,10 +163,13 @@ impl Stream for PcapMessageProducer {
                                         input_slice = rest;
                                         found_dlt_messages.push(msg_with_storage_header);
                                     }
-                                    Ok((_, ParsedMessage::FilteredOut(_))) => {
+                                    Ok((rest, ParsedMessage::FilteredOut(_))) => {
                                         skipped += 1;
+                                        input_slice = rest;
                                     }
-                                    Ok((_, ParsedMessage::Invalid)) => (),
+                                    Ok((rest, ParsedMessage::Invalid)) => {
+                                        input_slice = rest;
+                                    }
                                     Err(e) => {
                                         trace!("PCAP payload did not contain a valid DLT message, error: {}", e);
                                         break;

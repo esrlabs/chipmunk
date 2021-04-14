@@ -102,7 +102,7 @@ fn find_launcher() -> Result<String> {
     Ok(app)
 }
 
-fn main() -> Result<()> {
+fn main() {
     match init_logging() {
         Ok(()) => trace!("started logging"),
         Err(e) => eprintln!("couldn't initialize logging: {}", e),
@@ -143,5 +143,4 @@ fn main() -> Result<()> {
             error!(" Failed to start launcher ({})", e);
         }
     };
-    Ok(())
 }

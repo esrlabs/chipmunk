@@ -21,6 +21,7 @@ pub fn chipmunk_log_config() -> PathBuf {
 }
 
 pub fn initialize_from_fresh_yml() -> Result<()> {
+    println!("initialize_from_fresh_yml()");
     let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("Could not access home-directory"))?;
     let log_config_path = chipmunk_log_config();
     let indexer_log_path = chipmunk_home_dir().join("chipmunk.indexer.log");
