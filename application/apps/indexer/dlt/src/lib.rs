@@ -10,23 +10,14 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 //#![allow(dead_code)]
-#[macro_use]
 extern crate lazy_static;
-extern crate indexer_base;
 
 #[macro_use]
 extern crate log;
 
-pub mod dlt;
 pub mod dlt_file;
-pub mod dlt_fmt;
 pub mod dlt_net;
-pub mod dlt_parse;
 pub mod dlt_pcap;
-pub mod fibex;
-pub mod filtering;
-pub mod proptest_strategies;
-pub mod service_id;
 
 #[cfg(test)]
 mod tests;

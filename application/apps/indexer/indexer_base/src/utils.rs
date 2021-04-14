@@ -9,7 +9,6 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use anyhow::{Error, *};
 use crossbeam_channel as cc;
 use std::{
     char,
@@ -20,6 +19,15 @@ use std::{
     path::Path,
     str,
 };
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Malformed proprocessed content: {0}")]
+    MalformedPreprocessed(String),
+    #[error("IO error: {0:?}")]
+    Io(#[from] std::io::Error),
+}
 
 pub const ROW_NUMBER_SENTINAL: char = '\u{0002}';
 pub const PLUGIN_ID_SENTINAL: char = '\u{0003}';
@@ -188,7 +196,10 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     match reader.seek(SeekFrom::End(seek_offset as i64)) {
         Ok(_) => (),
         Err(e) => {
-            return Err(anyhow!("Could not read last entry in file {:?}", e));
+            return Err(Error::MalformedPreprocessed(format!(
+                "Could not read last entry in file {:?}",
+                e
+            )));
         }
     };
     let size_of_slice = seek_offset.abs() as usize;
@@ -199,15 +210,23 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
         if buf[i] == (PLUGIN_ID_SENTINAL as u8) && buf[i + 1] == ROW_NUMBER_SENTINAL as u8 {
             // row nr starts at i + 2
             let row_slice = &buf[i + 2..];
-            let row_string = std::str::from_utf8(row_slice)?;
+            let row_string = std::str::from_utf8(row_slice).map_err(|e| {
+                Error::MalformedPreprocessed(format!("Could not convert slice from utf8: {}", e))
+            })?;
             let row_nr: usize = row_string
                 .trim_end_matches(is_newline)
                 .trim_end_matches(ROW_NUMBER_SENTINAL)
-                .parse()?;
+                .parse()
+                .map_err(|e| {
+                    Error::MalformedPreprocessed(format!("Extract row number failed: {}", e))
+                })?;
             return Ok(row_nr + 1);
         }
     }
-    Err(anyhow!("did not find row number in line: {:X?}", buf))
+    Err(Error::MalformedPreprocessed(format!(
+        "did not find row number in line: {:X?}",
+        buf
+    )))
 }
 pub fn get_out_file_and_size(
     append: bool,

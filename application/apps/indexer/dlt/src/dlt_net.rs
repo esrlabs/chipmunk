@@ -1,23 +1,24 @@
 extern crate dirs;
-use crate::{
-    dlt::*,
-    dlt_file::create_dlt_session_file,
-    dlt_fmt::FormattableMessage,
-    dlt_parse::{dlt_message, *},
-    fibex::{gather_fibex_data, FibexMetadata},
-    filtering,
-};
+use crate::dlt_file::create_dlt_session_file;
 use bytes::BytesMut;
 use crossbeam_channel as cc;
+use dlt_core::{
+    dlt::*,
+    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
+    filtering,
+    fmt::FormattableMessage,
+    parse::{dlt_message, *},
+};
 use indexer_base::{
     chunks::{Chunk, ChunkFactory, ChunkResults},
-    config::{FibexConfig, SocketConfig},
+    config::SocketConfig,
     progress::*,
     utils,
 };
 use std::{
     io::{BufWriter, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::Path,
 };
 use thiserror::Error;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
@@ -69,7 +70,7 @@ pub async fn index_from_socket(
     update_channel: cc::Sender<ChunkResults>,
     fibex: Option<FibexConfig>,
     tag: &str,
-    out_path: &std::path::PathBuf,
+    out_path: &Path,
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
@@ -127,7 +128,7 @@ pub async fn index_from_socket_udp(
     update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<FibexMetadata>,
     tag: &str,
-    out_path: &std::path::PathBuf,
+    out_path: &Path,
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
@@ -151,7 +152,12 @@ pub async fn index_from_socket_udp(
         .udp_connection_info
         .map_or_else(Vec::new, |i| i.multicast_addr)
     {
-        let multi_addr = multicast_info.multicast_addr()?;
+        let multi_addr =
+            multicast_info
+                .multicast_addr()
+                .map_err(|e| ConnectionError::WrongConfiguration {
+                    cause: format!("{}", e),
+                })?;
         match multi_addr {
             IpAddr::V4(addr) => {
                 let inter: Ipv4Addr = match multicast_info.interface.as_ref() {
@@ -193,7 +199,6 @@ pub async fn index_from_socket_udp(
         DltMessageDecoder {
             filter_config,
             fibex_metadata,
-            update_channel: Some(update_channel.clone()),
         },
     );
 
@@ -235,7 +240,7 @@ pub async fn index_from_socket_tcp(
     update_channel: cc::Sender<ChunkResults>,
     fibex_metadata: Option<FibexMetadata>,
     tag: &str,
-    out_path: &std::path::PathBuf,
+    out_path: &Path,
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
 ) -> Result<(), ConnectionError> {
@@ -267,7 +272,6 @@ pub async fn index_from_socket_tcp(
         DltMessageDecoder {
             filter_config,
             fibex_metadata,
-            update_channel: Some(update_channel.clone()),
         },
     );
     let mut shutdown_stream = ReceiverStream::new(shutdown_receiver);
@@ -305,7 +309,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     session_id: String,
     socket_config: SocketConfig,
     tag: &str,
-    out_path: &std::path::PathBuf,
+    out_path: &Path,
     dlt_filter: Option<filtering::DltFilterConfig>,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
@@ -369,7 +373,7 @@ pub(crate) struct SessionProcessor {
 impl SessionProcessor {
     fn new(
         session_id: String,
-        out_path: &std::path::PathBuf,
+        out_path: &Path,
         initial_line_nr: usize,
         tag: &str,
         update_channel: cc::Sender<ChunkResults>,
@@ -382,7 +386,10 @@ impl SessionProcessor {
                 })
             }
         };
-        let tmp_dlt_file = create_dlt_session_file(&session_id)?;
+        let tmp_dlt_file =
+            create_dlt_session_file(&session_id).ok_or(ConnectionError::WrongConfiguration {
+                cause: "Could not create dlt session file".to_owned(),
+            })?;
         Ok(SessionProcessor {
             tmp_writer: BufWriter::new(tmp_dlt_file),
             chunk_factory: ChunkFactory::new(0, current_out_file_size),
@@ -458,7 +465,6 @@ impl SessionProcessor {
 pub(crate) struct DltMessageDecoder {
     pub(crate) filter_config: Option<filtering::ProcessedDltFilterConfig>,
     pub(crate) fibex_metadata: Option<FibexMetadata>,
-    pub(crate) update_channel: Option<cc::Sender<ChunkResults>>,
 }
 
 impl DltMessageDecoder {
@@ -483,13 +489,7 @@ impl Decoder for DltMessageDecoder {
         let mut messages: Vec<Message> = vec![];
         let mut consumed = 0usize;
         loop {
-            match dlt_message(
-                &buf[consumed..],
-                self.filter_config.as_ref(),
-                0,
-                self.update_channel.as_ref(),
-                false,
-            ) {
+            match dlt_message(&buf[consumed..], self.filter_config.as_ref(), false) {
                 Ok((_, ParsedMessage::Invalid)) => {
                     warn!("invalid message received");
                     if !messages.is_empty() {

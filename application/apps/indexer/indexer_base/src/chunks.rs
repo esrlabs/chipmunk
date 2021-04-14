@@ -10,12 +10,20 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::progress::{IndexingProgress, Notification};
-use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use thiserror::Error;
 
 pub type ChunkResults = std::result::Result<IndexingProgress<Chunk>, Notification>;
 pub type VoidResults = std::result::Result<IndexingProgress<()>, Notification>;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("IO error: {0:?}")]
+    Io(#[from] std::io::Error),
+    #[error("JSON error: {0:?}")]
+    Json(#[from] serde_json::Error),
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Chunk {

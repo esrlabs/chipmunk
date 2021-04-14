@@ -1,11 +1,11 @@
 [workspace]
 
 members = [
-    "indexer_cli",
     "dlt",
-    "processor",
     "indexer_base",
+    "indexer_cli",
     "merging",
+    "processor",
 ]
 
 # only uncomment when profiling

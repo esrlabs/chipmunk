@@ -1,9 +1,10 @@
 use crate::{channels::EventEmitterTask, config::IndexingThreadConfig};
 use crossbeam_channel as cc;
-use dlt::filtering;
+use dlt_core::fibex::FibexConfig;
+use dlt_core::filtering::DltFilterConfig;
 use indexer_base::{
     chunks::ChunkResults,
-    config::{FibexConfig, IndexingConfig},
+    config::IndexingConfig,
     progress::{Notification, Severity},
 };
 use neon::prelude::*;
@@ -21,7 +22,7 @@ impl IndexingDltEventEmitter {
         chunk_result_sender: cc::Sender<ChunkResults>,
         chunk_size: usize,
         thread_conf: IndexingThreadConfig,
-        filter_conf: Option<filtering::DltFilterConfig>,
+        filter_conf: Option<DltFilterConfig>,
         fibex: FibexConfig,
     ) {
         info!("start_indexing_dlt_in_thread: {:?}", thread_conf);
@@ -49,7 +50,7 @@ impl IndexingDltEventEmitter {
 
 fn index_dlt_file_with_progress(
     config: IndexingConfig,
-    filter_conf: Option<filtering::DltFilterConfig>,
+    filter_conf: Option<DltFilterConfig>,
     tx: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     fibex: Option<FibexConfig>,
@@ -92,7 +93,7 @@ declare_types! {
             let append: bool = cx.argument::<JsBoolean>(3)?.value();
             let chunk_size: usize = cx.argument::<JsNumber>(4)?.value() as usize;
             let arg_filter_conf = cx.argument::<JsValue>(5)?;
-            let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
+            let filter_conf: DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
             trace!("{:?}", filter_conf);
             let arg_fibex_conf = cx.argument::<JsValue>(6)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;

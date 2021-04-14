@@ -1,10 +1,8 @@
 use crate::{channels::EventEmitterTask, config::IndexingThreadConfig};
 use crossbeam_channel as cc;
-use dlt::filtering;
-use indexer_base::{
-    chunks::ChunkResults,
-    config::{FibexConfig, IndexingConfig},
-};
+use dlt_core::fibex::FibexConfig;
+use dlt_core::filtering::DltFilterConfig;
+use indexer_base::{chunks::ChunkResults, config::IndexingConfig};
 use neon::prelude::*;
 use std::{path, thread};
 use tokio::sync;
@@ -22,7 +20,7 @@ impl PcapDltEventEmitter {
         shutdown_rx: sync::mpsc::Receiver<()>,
         chunk_result_sender: cc::Sender<ChunkResults>,
         thread_conf: IndexingThreadConfig,
-        filter_conf: Option<filtering::DltFilterConfig>,
+        filter_conf: Option<DltFilterConfig>,
         fibex: FibexConfig,
     ) {
         info!("start_indexing_pcap_file_in_thread: {:?}", thread_conf);
@@ -69,7 +67,7 @@ declare_types! {
             let out_path = path::PathBuf::from(cx.argument::<JsString>(2)?.value().as_str());
             let chunk_size: usize = cx.argument::<JsNumber>(3)?.value() as usize;
             let arg_filter_conf = cx.argument::<JsValue>(4)?;
-            let filter_conf: dlt::filtering::DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
+            let filter_conf: DltFilterConfig = neon_serde::from_value(&mut cx, arg_filter_conf)?;
             let append: bool = cx.argument::<JsBoolean>(5)?.value();
 
             let arg_fibex_conf = cx.argument::<JsValue>(6)?;

@@ -9,12 +9,22 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::{
     net::{IpAddr, SocketAddr},
     path,
 };
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Problem with configuration found: {0}")]
+    Configuration(String),
+    // #[error("Data not valid: {0}")]
+    // InvalidData(String),
+    #[error("IO error: {0:?}")]
+    Io(#[from] std::io::Error),
+}
 
 /// A IndexSection describes a section of a file by indicies
 /// to identify lines 10-12 (inclusively) => first_line = 10, last_line = 12
@@ -41,11 +51,6 @@ pub struct IndexingConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct FibexConfig {
-    pub fibex_file_paths: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct UdpConnectionInfo {
     pub multicast_addr: Vec<MulticastInfo>,
 }
@@ -61,7 +66,7 @@ pub struct SocketConfig {
 }
 
 impl SocketConfig {
-    pub fn socket_addr(&self) -> Result<SocketAddr> {
+    pub fn socket_addr(&self) -> Result<SocketAddr, Error> {
         // Touch IPv4
         let addr: Option<SocketAddr> = match format!("{}:{}", self.bind_addr, self.port).parse() {
             Ok(addr) => Some(addr),
@@ -74,11 +79,10 @@ impl SocketConfig {
             format!("[{}]:{}", self.bind_addr, self.port)
                 .parse()
                 .map_err(|_| {
-                    anyhow!(
+                    Error::Configuration(format!(
                         "Could not parse socket address from {}, port {}",
-                        self.bind_addr,
-                        self.port
-                    )
+                        self.bind_addr, self.port
+                    ))
                 })
         }
     }
@@ -97,10 +101,10 @@ pub struct MulticastInfo {
 }
 
 impl MulticastInfo {
-    pub fn multicast_addr(&self) -> Result<IpAddr> {
+    pub fn multicast_addr(&self) -> Result<IpAddr, Error> {
         self.multiaddr
             .to_string()
             .parse()
-            .map_err(|e| anyhow!("Could not parse mulitcast address: {}", e))
+            .map_err(|e| Error::Configuration(format!("Could not parse mulitcast address: {}", e)))
     }
 }
