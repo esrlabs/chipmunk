@@ -1,5 +1,20 @@
 # Changelog
 
+### [2.16.4] - 04/14/2021
+* Prevent duplicates in shells list
+* Disable lintjs for imported VSCode code
+* chipmunk.shell.env 0.0.8 -> 0.0.9
+* Correct detecting of available profiles on windows
+* Fix pcap file parsing when we got stuck
+* Fix detecting mac dock
+* Add repository info
+* Mac: open new instance from dock
+* Windows: fix icon issue, add context menu to taskbar
+* Fix linux icon issue
+* Relocate icons
+* Avoid unnecessary builds
+* Prevent cleanup session files (close #469)
+
 ## [2.16.3] - 04/09/2021
 ### Fixes
 * Add list of recent file into app menu
