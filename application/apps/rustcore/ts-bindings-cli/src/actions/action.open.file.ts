@@ -11,6 +11,14 @@ import * as fs from 'fs';
 
 const KEYS: string[] = [`--grab`, `-g`];
 const ENOENT: string = 'ENOENT';
+const DEF_FROM: number = 0;
+const DEF_COUNT: number = 100;
+
+interface IFile {
+    filename: string;
+    from: number;
+    count: number;
+};
 
 export class OpenFile extends Action {
 
@@ -31,12 +39,12 @@ export class OpenFile extends Action {
     }
 
     public pattern(): string {
-        return `${KEYS[0]} filename`
+        return `${KEYS[0]} filename[start:count]`
     }
 
     public valid(args: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            const files: string[] | undefined | Error = this._getFiles(args);
+            const files: IFile[] | undefined | Error = this._getFiles(args);
             if (files instanceof Error) {
                 return reject(files);
             }
@@ -44,9 +52,9 @@ export class OpenFile extends Action {
                 return resolve();
             }
             const errors: string[] = [];
-            Promise.all(files.map((filename) => {
+            Promise.all(files.map((file) => {
                 return new Promise((rej, res) => {
-                    fs.access(filename, fs.constants.F_OK, (err: NodeJS.ErrnoException | null) => {
+                    fs.access(file.filename, fs.constants.F_OK, (err: NodeJS.ErrnoException | null) => {
                         if (err) {
                             if (err.code === ENOENT) {
                                 return rej(new Error(`File doesn't exist`));
@@ -71,27 +79,28 @@ export class OpenFile extends Action {
 
     public proceed(args: string[]): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            const files: string[] | undefined | Error = this._getFiles(args);
+            const files: IFile[] | undefined | Error = this._getFiles(args);
             if (files instanceof Error) {
                 return reject(files);
             }
             if (files === undefined) {
                 return resolve(args);
             }
-            Promise.all(files.map((filename: string) => {
+            Promise.all(files.map((file: IFile) => {
                 return new Promise<void>((done, fail) => {
+                    const started: number = Date.now();
                     const suuid: string = uuid();
                     const provider = new EventProvider(suuid);
                     // Set provider into debug mode
                     provider.debug().setStoring(true);
                     provider.debug().setTracking(true);
                     const session = new RustSessionDebug(suuid, provider.getEmitter());
-                    const operation: string | IGeneralError = session.assign(filename, {});
+                    const operation: string | IGeneralError = session.assign(file.filename, {});
                     if (typeof operation !== 'string') {
                         session.destroy();
                         return fail(new Error(`Expecting get ID of operation, but has been gotten: ${operation}`))
                     }
-                    const grabbed: IGrabbedElement[] | IGeneralError = session.grabStreamChunk(500, 7);
+                    const grabbed: IGrabbedElement[] | IGeneralError = session.grabStreamChunk(file.from, file.count);
                     if (!(grabbed instanceof Array)) {
                         session.destroy();
                         return fail(new Error(`Fail to grab data due error: ${grabbed.message}`));
@@ -104,9 +113,15 @@ export class OpenFile extends Action {
                         session.destroy();
                         return fail(new Error(`Errors:\n\t- ${provider.debug().stat.error().join('\n\t- ')}`));
                     }
-                    grabbed.forEach((item) => {
-                        console.log(item.content);
+                    session.destroy();
+                    const finished = Date.now();
+                    console.log(`\n${'='.repeat(62)}`);
+                    console.log(`Grab data from ${file.from} to ${file.from + file.count} in ${finished - started} ms`);
+                    console.log(`${'='.repeat(5)} BEGIN ${'='.repeat(50)}`);
+                    grabbed.forEach((item, i) => {
+                        console.log(`${i + file.from}:\t${item.content}`);
                     });
+                    console.log(`${'='.repeat(5)} END   ${'='.repeat(50)}`);
                     done();
                 });
             })).then(() => {
@@ -121,7 +136,14 @@ export class OpenFile extends Action {
         });
     }
 
-    private _getFiles(args: string[]): string[] | undefined | Error {
+    private _getFiles(args: string[]): IFile[] | undefined | Error {
+        function getFileName(filename: string): string {
+            if (filename.indexOf('.') === 0) {
+                return path.normalize(path.resolve(process.cwd(), filename));
+            } else {
+                return path.normalize(filename);
+            }
+        }
         const index: number = (() => {
             let i: number = -1;
             KEYS.forEach((key: string) => {
@@ -137,15 +159,25 @@ export class OpenFile extends Action {
         if (index === args.length - 1) {
             return new Error(`No filename provided`);
         }
-        const files: string[] = [];
+        const files: IFile[] = [];
         let end: number = -1;
         for (let i = index + 1; i < args.length; i += 1) {
             if (args[i].indexOf('-') !== 0) {
-                if (args[i].indexOf('.') === 0) {
-                    files.push(path.normalize(path.resolve(process.cwd(), args[i])));
-                } else {
-                    files.push(path.normalize(args[i]));
+                const file: IFile = {
+                    filename: getFileName(args[i].replace(/\[\d{1,}:\d{1,}\]/gi, '')),
+                    from: DEF_FROM,
+                    count: DEF_COUNT,
+                };
+                const coors: RegExpMatchArray | null = args[i].match(/\[\d{1,}:\d{1,}\]/gi);
+                if (coors !== null) {
+                    const pair = coors[0].replace(/[\[\]]/gi, '').split(':').map((v) => parseInt(v, 10));
+                    if (pair.length !== 2 || isNaN(pair[0]) || isNaN(pair[1]) || !isFinite(pair[0]) || !isFinite(pair[1])) {
+                        return new Error(`Invalid coors: ${coors[0]}`);
+                    }
+                    file.from = pair[0];
+                    file.count = pair[1];
                 }
+                files.push(file);
             } else {
                 end = i - 1;
                 break;

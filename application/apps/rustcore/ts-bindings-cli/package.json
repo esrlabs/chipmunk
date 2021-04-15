@@ -9,7 +9,7 @@
     "test": "./node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js"
   },
   "bin": {
-    "ts-bindings-cli": "dist/index.js"
+    "ts-bindings-cli": "./dist/apps/rustcore/ts-bindings-cli/src/index.js"
   },
   "author": "",
   "contributors": [],
