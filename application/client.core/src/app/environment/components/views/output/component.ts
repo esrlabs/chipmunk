@@ -631,7 +631,9 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         // Add new injection
         injections.set(event.injection.id, event.injection);
-        this._forceUpdate();
+        if (!event.silence) {
+            this._forceUpdate();
+        }
     }
 
     private _inj_onOutputInjectionRemove(event: IInjectionRemoveEvent) {

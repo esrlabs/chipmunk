@@ -1,11 +1,9 @@
 import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { ControllerSessionScope } from '../../../../controller/session/dependencies/scope/controller.session.tab.scope';
 import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
 import { ControllerColumns, IColumn } from './controller.columns';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { Session } from '../../../../controller/session/session';
-import { ControllerSessionTabStreamOutput } from '../../../../controller/session/dependencies/output/controller.session.tab.stream.output';
 import { ViewOutputRowColumnsHeadersComponent, CColumnsHeadersKey } from './headers/component';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
 import { ControllerRowAPI } from '../../../../controller/session/dependencies/row/controller.row.api';
@@ -73,10 +71,10 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         this._subscriptions.onUpdated = controller.getObservable().onUpdated.subscribe(this._onUpdated.bind(this));
         // Get widths
         this._columns = controller.getColumns();
-        // Set headers
-        this._headers();
         // Render
         this._render();
+        // Set headers
+        this._headers();
     }
 
     public ngAfterContentChecked() {
@@ -244,7 +242,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                 controller: this._getControllerColumns(),
                 api: this.api,
             }
-        }, Toolkit.EViewsTypes.outputTop);
+        }, Toolkit.EViewsTypes.outputTop, true);
         this.api.getScope().set(CColumnsHeadersKey, true);
     }
 
