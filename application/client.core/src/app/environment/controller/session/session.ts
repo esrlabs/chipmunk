@@ -41,6 +41,7 @@ export interface IControllerSession {
 export interface IInjectionAddEvent {
     injection: Toolkit.IComponentInjection;
     type: Toolkit.EViewsTypes;
+    silence: boolean;
 }
 
 export interface IInjectionRemoveEvent {
@@ -343,10 +344,11 @@ export class Session {
         return this._titleContextMenu;
     }
 
-    public addOutputInjection(injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes) {
+    public addOutputInjection(injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes, silence: boolean = false) {
         this._subjects.onOutputInjectionAdd.next({
             injection: injection,
             type: type,
+            silence: silence,
         });
     }
 
