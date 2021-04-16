@@ -4,12 +4,15 @@ import { IService } from '../interfaces/interface.service';
 import { Session } from '../controller/session/session';
 import { IPluginData } from '../services/service.plugins';
 import { getSharedServices } from './shared.services.sidebar';
-import { DefaultSidebarApps, IDefaultSidebarApp } from '../states/state.default.sidebar.apps';
+import { DefaultSidebarApps, IDefaultSidebarApp, CGuids } from '../states/state.default.sidebar.apps';
+import { IPCMessages } from '../services/service.electron.ipc';
 
 import EventsSessionService from './standalone/service.events.session';
 import TabsSessionsService from './service.sessions.tabs';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import PluginsService from '../services/service.plugins';
+import ElectronIpcService from '../services/service.electron.ipc';
+import LayoutStateService from '../services/standalone/service.layout.state';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -42,10 +45,11 @@ export class SidebarSessionsService implements IService {
     }
 
     public init(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
             this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
             this._subscriptions.onSidebarTitleInjection = EventsSessionService.getObservable().onSidebarTitleInjection.subscribe(this._onSidebarTitleInjection.bind(this));
+            this._subscriptions.ViewSwitchEvent = ElectronIpcService.subscribe(IPCMessages.ViewSwitchEvent, this._ipc_ViewSwitchEvent.bind(this));
             TabsSessionsService.setSidebarTabOpener(this.open.bind(this));
             resolve();
         });
@@ -379,6 +383,34 @@ export class SidebarSessionsService implements IService {
             inputs.services = getSharedServices();
         }
         return inputs;
+    }
+
+    private _ipc_ViewSwitchEvent(event: IPCMessages.ViewSwitchEvent) {
+        const active = this._getActiveSessionGuid();
+        if (active === undefined || active !== event.session) {
+            return;
+        }
+        LayoutStateService.sidebarMax();
+        switch (event.target) {
+            case IPCMessages.AvailableViews.SearchManager:
+                this.open(CGuids.search, event.session);
+                break;
+            case IPCMessages.AvailableViews.CommentsManager:
+                this.open(CGuids.comments, event.session);
+                break;
+            case IPCMessages.AvailableViews.Shell:
+                this.open(CGuids.shell, event.session);
+                break;
+            case IPCMessages.AvailableViews.DLTConnector:
+                this.open(CGuids.dltdeamon, event.session);
+                break;
+            case IPCMessages.AvailableViews.Concat:
+                this.open(CGuids.concat, event.session);
+                break;
+            case IPCMessages.AvailableViews.Merge:
+                this.open(CGuids.merging, event.session);
+                break;
+        }
     }
 
 }

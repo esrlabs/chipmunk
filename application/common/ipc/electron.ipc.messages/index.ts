@@ -696,6 +696,9 @@ export { IShellSaveRequest, ShellSaveRequest };
 import { ShellSaveResponse } from './shell.save.response';
 export { ShellSaveResponse };
 
+import { IViewSwitchEvent, ViewSwitchEvent, AvailableViews } from './view.switch.event';
+export { IViewSwitchEvent, ViewSwitchEvent, AvailableViews };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -925,7 +928,8 @@ export type TMessage =  AppRestartRequest |
                         ShellLoadRequest |
                         ShellLoadResponse |
                         ShellSaveRequest |
-                        ShellSaveResponse;
+                        ShellSaveResponse |
+                        ViewSwitchEvent;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -1189,4 +1193,5 @@ export const Map = {
     [ShellLoadResponse.signature                    ]: ShellLoadResponse,
     [ShellSaveRequest.signature                     ]: ShellSaveRequest,
     [ShellSaveResponse.signature                    ]: ShellSaveResponse,
+    [ViewSwitchEvent.signature                      ]: ViewSwitchEvent,
 };
