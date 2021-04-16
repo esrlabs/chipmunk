@@ -385,6 +385,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         this._session = controller;
         this._loadHeight();
         this._cdRef.detectChanges();
+        ViewsEventsService.fire().onResize();
     }
 
     private _onSessionClosed(guid: string) {

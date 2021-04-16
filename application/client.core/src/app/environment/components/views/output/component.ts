@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, Subject } from 'rxjs';
 import { Session, IInjectionAddEvent, IInjectionRemoveEvent } from '../../../controller/session/session';
 import { ControllerSessionTabMap } from '../../../controller/session/dependencies/map/controller.session.tab.map';
@@ -41,6 +41,7 @@ const CSettings: {
     selector: 'app-views-output',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterContentInit {
