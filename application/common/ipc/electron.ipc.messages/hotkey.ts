@@ -20,6 +20,7 @@ export enum EHotkeyActionRef {
     prevTab = 'prevTab',
     storeFilter = 'storeFilter',
     storeChart = 'storeChart',
+    selectAllSearchResult = 'selectAllSearchResult',
 }
 
 export interface IHotkeyCall {

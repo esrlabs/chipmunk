@@ -12,6 +12,7 @@ const CHotkeyMap = {
     [IPCMessages.EHotkeyActionRef.closeTab]:                { darwin: ['Cmd+W'],                other: ['Ctrl+w'] },
     [IPCMessages.EHotkeyActionRef.openLocalFile]:           { darwin: ['Cmd+O'],                other: ['Ctrl+O'] },
     [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { darwin: ['Cmd+F'],                other: ['Ctrl+F'] },
+    [IPCMessages.EHotkeyActionRef.selectAllSearchResult]:   { darwin: ['Cmd+A'],                other: ['Ctrl+A'] },
     [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { darwin: ['Shift+Cmd+F'],          other: ['Shift+Ctrl+F'] },
     [IPCMessages.EHotkeyActionRef.selectNextRow]:           { darwin: ['Cmd+['],                other: ['Ctrl+['] },
     [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { darwin: ['Cmd+]'],                other: ['Ctrl+]'] },
@@ -28,6 +29,8 @@ const CHotkeyMap = {
 };
 
 const CInputRelatedHotkeys = [
+    'Cmd+A',
+    'Ctrl+A',
     'j',
     'k',
     'J',
