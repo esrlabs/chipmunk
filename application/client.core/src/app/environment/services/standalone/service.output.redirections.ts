@@ -11,7 +11,8 @@ import EventsSessionService from './service.events.session';
 
 export enum EKey {
     ctrl = 'ctrl',
-    shift = 'shift'
+    shift = 'shift',
+    ignore = 'ignore',
 }
 
 export enum EParent {
@@ -64,9 +65,13 @@ export class OutputRedirectionsService {
         window.addEventListener('blur', this._onGlobalKeyUp);
     }
 
-    public select(sender: EParent, sessionId: string, row: IRowPosition, str?: string) {
+    public select(sender: EParent, sessionId: string, row: IRowPosition, str?: string, key?: EKey) {
         let state: IState | undefined = this._state.get(sessionId);
-        if (this._keyHolded === undefined || state === undefined || !state.selection.isRelevant(row)) {
+        const keyHolded = key === undefined ? this._keyHolded : (key === EKey.ignore ? undefined : key);
+        if (key !== undefined) {
+            this._keyHolded = undefined;
+        }
+        if (keyHolded === undefined || state === undefined || !state.selection.isRelevant(row)) {
             state = {
                 selection: new Selection(),
                 cache: new Map(),
@@ -74,7 +79,7 @@ export class OutputRedirectionsService {
             };
             state.selection.add(row);
         } else {
-            switch (this._keyHolded) {
+            switch (keyHolded) {
                 case EKey.ctrl:
                     state.selection.add(row);
                     break;

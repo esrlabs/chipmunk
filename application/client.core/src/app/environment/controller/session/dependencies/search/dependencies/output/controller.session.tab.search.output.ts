@@ -1,15 +1,17 @@
 import ServiceElectronIpc, { IPCMessages } from '../../../../../../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../output/controller.session.tab.stream.output';
-import { ControllerSessionTabStreamBookmarks, IBookmark } from '../../../bookmarks/controller.session.tab.stream.bookmarks';
+import { IBookmark } from '../../../bookmarks/controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabTimestamp } from '../../../timestamps/session.dependency.timestamps';
 import { ControllerSessionScope } from '../../../scope/controller.session.tab.scope';
 import { extractPluginId, extractRowPosition, clearRowStr } from '../../../../../helpers/row.helpers';
-import { EParent } from '../../../../../../services/standalone/service.output.redirections';
-import { IRow, ControllerRowAPI } from '../../../row/controller.row.api';
+import { EKey, EParent } from '../../../../../../services/standalone/service.output.redirections';
+import { IRow } from '../../../row/controller.row.api';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
+import { IHotkeyEvent } from '../../../../../../services/service.hotkeys';
 
 import OutputRedirectionsService from '../../../../../../services/standalone/service.output.redirections';
+import HotkeysService from '../../../../../../services/service.hotkeys';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -105,6 +107,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._uuid, this._onRowSelected.bind(this));
             this._subscriptions.onAddedBookmark = this._accessor.session().getBookmarks().getObservable().onAdded.subscribe(this._onUpdateBookmarksState.bind(this));
             this._subscriptions.onRemovedBookmark = this._accessor.session().getBookmarks().getObservable().onRemoved.subscribe(this._onUpdateBookmarksState.bind(this));
+            this._subscriptions.selectAllSearchResult = HotkeysService.getObservable().selectAllSearchResult.subscribe(this._onSelectAllSearchResult.bind(this));
             resolve();
         });
     }
@@ -695,6 +698,61 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                 }
                 resolve(response);
             });
+        });
+    }
+
+    private _onSelectAllSearchResult(event: IHotkeyEvent) {
+        const active = this._accessor.session().getGuid();
+        if (active !== event.session) {
+            return;
+        }
+        const count = this._state.originalCount;
+        if (count === 0) {
+            return;
+        }
+        const coors: {
+            begin: IRow | undefined;
+            end: IRow | undefined;
+        } = {
+            begin: undefined,
+            end: undefined,
+        };
+        Promise.all([
+            this.loadRange({ start: 0, end: 0}).then((rows: IRow[]) => {
+                if (rows.length !== 1) {
+                    return;
+                }
+                coors.begin = rows[0];
+            }),
+            this.loadRange({ start: count - 1, end: count - 1}).then((rows: IRow[]) => {
+                if (rows.length !== 1) {
+                    return;
+                }
+                coors.end = rows[0];
+            }),
+        ]).then(() => {
+            if (coors.begin === undefined || coors.end === undefined) {
+                return this._logger.warn(`Some ranges weren't found`);
+            }
+            // Check first and last bookmarks
+            const bookmarks: IBookmark[] = Array.from(this._accessor.session().getBookmarks().get().values());
+            bookmarks.sort((a, b) => a.position > b.position ? 1 : -1);
+            if (bookmarks.length !== 0) {
+                const first = bookmarks[0];
+                const last = bookmarks[bookmarks.length - 1];
+                if (first.position < coors.begin.positionInStream) {
+                    coors.begin.positionInStream = first.position;
+                    coors.begin.position = -1;
+                }
+                if (last.position < coors.begin.positionInStream) {
+                    coors.begin.positionInStream = last.position;
+                    coors.begin.position = -1;
+                }
+            }
+            OutputRedirectionsService.select(EParent.search, active, { output: coors.begin.positionInStream, search: coors.begin.position }, undefined, EKey.ignore);
+            OutputRedirectionsService.select(EParent.search, active, { output: coors.end.positionInStream, search: coors.end.position }, undefined, EKey.shift);
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail request ranges due error: ${err.message}`);
         });
     }
 
