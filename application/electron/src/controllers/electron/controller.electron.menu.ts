@@ -2,6 +2,7 @@ import { app, Menu, MenuItemConstructorOptions } from 'electron';
 import { FileParsers } from '../files.parsers/index';
 import { IStorageScheme } from '../../services/service.storage';
 import { IExportAction } from '../../services/output/service.output.export';
+import { IPCMessages } from '../../services/service.electron';
 
 import ServiceStorage from '../../services/service.storage';
 import ServiceStreams from '../../services/service.streams';
@@ -13,6 +14,7 @@ import HandlerItemAbout from './menu.functions/handler.item.about';
 import HandlerItemPlugins from './menu.functions/handler.item.plugins';
 import HandlerItemSettings from './menu.functions/handler.item.settings';
 import HandlerItemExportActionCall from './menu.functions/handler.item.exportaction';
+import HandlerItemViewSwitcher from './menu.functions/handler.item.viewswitcher';
 
 import Logger from '../../tools/env.logger';
 
@@ -42,15 +44,19 @@ const MENU_TEMPLATE = [
     {
         label: 'View',
         submenu: [
-            { role: 'reload' },
-            { role: 'forcereload' },
-            { role: 'toggledevtools' },
+            { label: 'Filters & Charts Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.SearchManager) },
+            { label: 'Comments Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.CommentsManager) },
+            { label: 'Shell Commands Executor', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Shell) },
+            { label: 'DLT Connector', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.DLTConnector) },
             { type: 'separator' },
-            { role: 'resetzoom' },
-            { role: 'zoomin' },
-            { role: 'zoomout' },
+            { label: 'Concat Files Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Concat) },
+            { label: 'Merge Files Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Merge) },
             { type: 'separator' },
-            { role: 'togglefullscreen' },
+            { label: 'Search Results', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.SearchResults) },
+            { label: 'Charts & Matches Frequency', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Charts) },
+            { label: 'Time Measurement', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.TimeMeasurement) },
+            { type: 'separator' },
+            { label: 'Notifications', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Notifications) },
         ],
     },
     {

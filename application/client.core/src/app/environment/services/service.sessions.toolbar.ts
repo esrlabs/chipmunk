@@ -4,13 +4,16 @@ import { IService } from '../interfaces/interface.service';
 import { DefaultViews, CDefaultTabsGuids } from '../states/state.default.toolbar.apps';
 import { Session } from '../controller/session/session';
 import { ControllerToolbarLifecircle } from '../controller/controller.toolbar.lifecircle';
+import { IPCMessages } from '../services/service.electron.ipc';
+import { IPluginData } from './service.plugins';
 
 import EventsSessionService from './standalone/service.events.session';
-import PluginsService, { IPluginData } from './service.plugins';
+import PluginsService from './service.plugins';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import HotkeysService from './service.hotkeys';
 import LayoutStateService from './standalone/service.layout.state';
+import ElectronIpcService from '../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -56,10 +59,11 @@ export class ToolbarSessionsService implements IService {
     }
 
     public init(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInputHotkey.bind(this));
             this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
             this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+            this._subscriptions.ViewSwitchEvent = ElectronIpcService.subscribe(IPCMessages.ViewSwitchEvent, this._ipc_ViewSwitchEvent.bind(this));
             TabsSessionsService.setToolbarTabOpener(this.setActive.bind(this), CDefaultTabsGuids);
             resolve();
         });
@@ -328,6 +332,27 @@ export class ToolbarSessionsService implements IService {
         return this._getAvailableTabs().find((tab: ITab) => {
             return tab.guid === guid;
         });
+    }
+
+    private _ipc_ViewSwitchEvent(event: IPCMessages.ViewSwitchEvent) {
+        if (this._active === undefined || this._active !== event.session) {
+            return;
+        }
+        LayoutStateService.toolbarMax();
+        switch (event.target) {
+            case IPCMessages.AvailableViews.SearchResults:
+                this.addByGuid(CDefaultTabsGuids.search);
+                break;
+            case IPCMessages.AvailableViews.Charts:
+                this.addByGuid(CDefaultTabsGuids.charts);
+                break;
+            case IPCMessages.AvailableViews.TimeMeasurement:
+                this.addByGuid(CDefaultTabsGuids.timemeasurement);
+                break;
+            case IPCMessages.AvailableViews.Notifications:
+                this.addByGuid(CDefaultTabsGuids.notification);
+                break;
+        }
     }
 }
 
