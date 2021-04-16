@@ -706,8 +706,16 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         if (active !== event.session) {
             return;
         }
+        const bookmarks: IBookmark[] = Array.from(this._accessor.session().getBookmarks().get().values());
+        bookmarks.sort((a, b) => a.position > b.position ? 1 : -1);
         const count = this._state.originalCount;
         if (count === 0) {
+            if (bookmarks.length > 0) {
+                OutputRedirectionsService.clear(active);
+                bookmarks.forEach((bookmark: IBookmark) => {
+                    OutputRedirectionsService.select(EParent.search, active, { output: bookmark.position, search: -1 }, undefined, EKey.ctrl);
+                });
+            }
             return;
         }
         const coors: {
@@ -717,6 +725,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             begin: undefined,
             end: undefined,
         };
+        OutputRedirectionsService.clear(active);
         Promise.all([
             this.loadRange({ start: 0, end: 0}).then((rows: IRow[]) => {
                 if (rows.length !== 1) {
@@ -735,8 +744,6 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                 return this._logger.warn(`Some ranges weren't found`);
             }
             // Check first and last bookmarks
-            const bookmarks: IBookmark[] = Array.from(this._accessor.session().getBookmarks().get().values());
-            bookmarks.sort((a, b) => a.position > b.position ? 1 : -1);
             if (bookmarks.length !== 0) {
                 const first = bookmarks[0];
                 const last = bookmarks[bookmarks.length - 1];

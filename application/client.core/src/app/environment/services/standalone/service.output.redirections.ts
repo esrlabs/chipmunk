@@ -106,6 +106,14 @@ export class OutputRedirectionsService {
         });
     }
 
+    public clear(sessionId: string) {
+        this._state.set(sessionId, {
+            selection: new Selection(),
+            cache: new Map(),
+            last: { output: -1 },
+        });
+    }
+
     public isSelected(sessionId: string, position: number, source: ESource): boolean {
         const state: IState | undefined = this._state.get(sessionId);
         return state === undefined ? false : state.selection.isSelected(position, source);
