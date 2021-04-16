@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.16.5] - 04/16/2021
+### Fixes
+* Update menu "View"
+* Fix toolbar rendering on session switching
+* Fix columns render on row view
+### Added
+* Ctrl + A (Cmd + A) to select all search matches
+
 ## [2.16.4] - 04/14/2021
 ### Fixes
 * Correct detecting of available profiles on windows
