@@ -122,7 +122,7 @@ impl MetadataSource for TextFileSource {
 
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
-            line_count: (line_index + 1) as usize,
+            line_count: line_index as usize,
         }))
     }
 
