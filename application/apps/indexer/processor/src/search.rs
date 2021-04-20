@@ -335,6 +335,8 @@ mod tests {
         Ok(())
     }
 
+    /*
+    @D.Astafyev: as soon as binary search isn't used, this test is off
     #[test]
     fn test_ripgrep_binary() -> Result<(), std::io::Error> {
         let mut tmp_file = tempfile::NamedTempFile::new()?;
@@ -349,6 +351,7 @@ mod tests {
         // assert_eq!("[Err](1.6): d", matches[1].content);
         Ok(())
     }
+    */
 
     #[test]
     fn test_ripgrep_case_sensitivity() -> Result<(), std::io::Error> {
