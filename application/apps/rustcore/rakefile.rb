@@ -1,3 +1,5 @@
+require 'fileutils'
+
 TS = "./ts-bindings"
 TS_CLI = "./ts-bindings-cli"
 RS = "./rs-bindings"
@@ -5,13 +7,24 @@ BUILD_ENV = "#{TS}/node_modules/.bin/electron-build-env"
 TSC = "#{TS}/node_modules/.bin/tsc"
 TSC_CLI = "#{TS_CLI}/node_modules/.bin/tsc"
 NJ_CLI = 'nj-cli'
-
-namespace :setup do
-  task :ts do
-    sh "rm #{TS}/package-lock.json || true"
-    sh "rm -rf #{TS}/node_modules || true"
-    sh "npm install --prefix #{TS}"
+# os detection
+module OS
+  def self.windows?
+    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
   end
+
+  def self.mac?
+    (/darwin/ =~ RUBY_PLATFORM) != nil
+  end
+
+  def self.unix?
+    !OS.windows?
+  end
+
+  def self.linux?
+    OS.unix? && !OS.mac?
+  end
+
 end
 
 namespace :install do
@@ -50,8 +63,9 @@ namespace :build do
 
   desc 'Delivery native'
   task :delivery do
-    sh "rm -rf #{TS}/native || true"
-    sh "mkdir #{TS}/native || true"
+    dir = "#{TS}/native"
+    FileUtils.rm_rf(dir) unless !File.exists?(dir)
+    Dir.mkdir(dir) unless File.exists?(dir)
     sh "cp #{RS}/dist/index.node #{TS}/native/index.node"
   end
 
@@ -59,15 +73,19 @@ namespace :build do
   task :ts_cli do
     sh "#{TSC_CLI} -p #{TS_CLI}/tsconfig.json"
     file = "#{TS_CLI}/dist/apps/rustcore/ts-bindings-cli/src/index.js"
-    link = "#{Dir.pwd}/ts-cli"
-    content = File.read(file)
-    File.write(file, "#{'#!/usr/bin/env node'}\n#{content}", mode: "w")
-    sh "chmod +x #{file}"
-    if File.exist?(link)
-      sh "rm #{link}"
+    if OS.windows?
+      #TODO
+    else
+      link = "#{Dir.pwd}/ts-cli"
+      content = File.read(file)
+      File.write(file, "#{'#!/usr/bin/env node'}\n#{content}", mode: "w")
+      sh "chmod +x #{file}"
+      if File.exist?(link)
+        sh "rm #{link}"
+      end
+      sh "ln -s #{file} #{link}"
+      sh "chmod +x #{link}"
     end
-    sh "ln -s #{file} #{link}"
-    sh "chmod +x #{link}"
   end
 
   desc 'build all'
