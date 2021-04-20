@@ -166,6 +166,8 @@ impl MetadataSource for DltSource {
                 GrabbedElement {
                     source_id: self.source_id.clone(),
                     content: format!("{}", fmt_msg),
+                    row: None,
+                    pos: None,
                 }
             })
             .collect::<Vec<GrabbedElement>>();

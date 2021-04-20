@@ -5,6 +5,7 @@ import { TEventData, TEventEmitter, IEventData } from './provider.general';
 
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
+    private readonly _uuid: String;
     private readonly _tracking: {
         subjects: {
             unsupported: Events.Subject<string>,
@@ -31,18 +32,18 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     public readonly logger: Logs.Logger;
 
     constructor(uuid: string) {
+        this._uuid = uuid;
         this._emitter = this._emitter.bind(this);
         this.logger = Logs.getLogger(`${this.getName()}: ${uuid}`);
     }
 
     public destroy(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (this._destroyed) {
-                return reject(new Error(`Computation is already destroying`));
-            }
+        if (this._destroyed) {
+            this.logger.warn(`Computation (${this._uuid}) is already destroying or destroyed`);
+        } else {
             this._destroy();
-            resolve();
-        });
+        }
+        return Promise.resolve();
     }
 
     public abstract getName(): string;
@@ -180,6 +181,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         });
         this._tracking.stat.error = [];
         this._tracking.stat.unsupported = [];
+        this.logger.debug(`Provider has been destroyed.`);
     }
 
     private _emit(event: string, data: any) {

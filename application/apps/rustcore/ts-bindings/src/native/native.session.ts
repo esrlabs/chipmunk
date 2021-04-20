@@ -10,7 +10,6 @@ import {
     IFilter,
     IGrabbedContent,
     IGrabbedElement,
-    IGrabbedSearchElement,
     IExtractDTFormatResult,
     IExtractDTFormatOptions,
 } from '../interfaces/index';
@@ -26,7 +25,10 @@ export type TCanceler = () => void;
 
 // Create abstract class to declare available methods
 export abstract class RustSession extends RustSessionRequiered {
-    constructor(uuid: string, emitter: TEventEmitter) {
+    constructor(
+        uuid: string,
+        emitter: TEventEmitter,
+    ) {
         super();
     }
 
@@ -40,7 +42,10 @@ export abstract class RustSession extends RustSessionRequiered {
      *
      * @error In case of incorrect range should return { IGeneralError }
      */
-    public abstract grabStreamChunk(start: number, len: number): IGrabbedElement[] | IGeneralError;
+    public abstract grabStreamChunk(
+        start: number,
+        len: number,
+    ): IGrabbedElement[] | IGeneralError;
 
     /**
      * Returns chunk of stream/session file.
@@ -52,12 +57,15 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract grabSearchChunk(
         start: number,
         len: number,
-    ): IGrabbedSearchElement[] | IGeneralError;
+    ): IGrabbedElement[] | IGeneralError;
 
     /**
      * TODO: @return needs interface. It should not be a string
      */
-    public abstract grabMatchesChunk(start: number, len: number): string[] | IGeneralError;
+    public abstract grabMatchesChunk(
+        start: number,
+        len: number,
+    ): string[] | IGeneralError;
 
     public abstract id(): string;
 
@@ -73,7 +81,7 @@ export abstract class RustSession extends RustSessionRequiered {
      *
      * @error { IGeneralError }
      */
-    public abstract setFilters(filters: IFilter[]): IGeneralError | undefined;
+    public abstract setFilters(filters: IFilter[]): IGeneralError | string;
 
     /**
      * Returns a list of filters, which are bound with session
@@ -136,7 +144,10 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract assign(filename: string, options: TFileOptions): string | IGeneralError;
+    public abstract assign(
+        filename: string,
+        options: TFileOptions,
+    ): string | IGeneralError;
 
     /**
      * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
@@ -186,6 +197,13 @@ export abstract class RustSessionNative {
     public abstract getStreamLen(): number;
 
     public abstract grab(start: number, len: number): string;
+
+    public abstract grabSearch(start: number, len: number): string;
+
+    public abstract getSearchLen(): number;
+
+    public abstract search(filters: Array<{ value: string, is_regex: boolean, ignore_case: boolean, is_word: boolean, }>): IGeneralError | string;
+
 }
 
 export class RustSessionDebug extends RustSession {
@@ -232,16 +250,33 @@ export class RustSessionDebug extends RustSession {
         }
     }
 
-    public grabSearchChunk(start: number, len: number): IGrabbedSearchElement[] | IGeneralError {
-        return [];
+    public grabSearchChunk(start: number, len: number): IGrabbedElement[] | IGeneralError {
+        try {
+            const result: IGrabbedContent = JSON.parse(this._native.grabSearch(start, len));
+            return result.grabbed_elements.map((item: IGrabbedElement) => {
+                return {
+                    content: item.content === undefined ? (item as any).c : item.content,
+                    source_id: item.source_id === undefined ? (item as any).id : item.source_id,
+                    position: item.position === undefined ? (item as any).p : item.position,
+                    row: item.row === undefined ? (item as any).r : item.row,
+                };
+            });
+        } catch (e) {
+            return {
+                severity: EErrorSeverity.error,
+                message: this._logger.error(
+                    `Fail to call grab(${start}, ${len}) due error: ${e.message}`,
+                ),
+            };
+        }
     }
 
     public grabMatchesChunk(start: number, len: number): string[] {
         return [];
     }
 
-    public setFilters(filters: IFilter[]): IGeneralError | undefined {
-        return undefined;
+    public setFilters(filters: IFilter[]): IGeneralError | string {
+        return 'not_implemented_yet';
     }
 
     public getFilters(): IFilter[] {
@@ -261,7 +296,7 @@ export class RustSessionDebug extends RustSession {
     }
 
     public getSearchLen(): number {
-        return this._assigned ? 10000 : 0;
+        return this._native.getSearchLen();
     }
 
     public getMatchesLen(): number {
@@ -273,18 +308,7 @@ export class RustSessionDebug extends RustSession {
     }
 
     public assign(filename: string, options: TFileOptions): string | IGeneralError {
-        // Temporary solution (assignFile (and any other async operation
-        // should return uuid or error))
-        const oUuid = uuid();
-        this._native.assign(filename, filename);
-        /*
-        setTimeout(() => {
-            this._assigned = true;
-            // this._emitter({ OperationDone: { uuid: oUuid, result: undefined } });
-            this._emitter({ StreamUpdated: 10000 });
-        }, 2000);
-        */
-        return oUuid;
+        return this._native.assign(filename, filename);
     }
 
     public concat(files: string[]): string | IGeneralError {
@@ -308,7 +332,14 @@ export class RustSessionDebug extends RustSession {
     }
 
     public search(filters: IFilter[]): string | IGeneralError {
-        return 'not_implemented_yet';
+        return this._native.search(filters.map((filter) => {
+            return {
+                value: filter.filter,
+                is_regex: filter.flags.reg,
+                ignore_case: filter.flags.cases,
+                is_word: filter.flags.word,
+            };
+        }));
     }
 
     public abort(uuid: string): undefined | IGeneralError {

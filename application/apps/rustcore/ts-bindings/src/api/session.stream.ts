@@ -49,15 +49,17 @@ export class SessionStream {
     }
 
     public destroy(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._provider
-                .destroy()
-                .then(resolve)
-                .catch((err: Error) => {
-                    this._logger.error(`Fail to destroy provider due error: ${err.message}`);
-                    reject(err);
-                });
-        });
+        return Promise.resolve(undefined);
+        // Provider would be destroyed on parent level (Session)
+        // return new Promise((resolve, reject) => {
+        //     this._provider
+        //         .destroy()
+        //         .then(resolve)
+        //         .catch((err: Error) => {
+        //             this._logger.error(`Fail to destroy provider due error: ${err.message}`);
+        //             reject(err);
+        //         });
+        // });
     }
 
     public grab(start: number, len: number): IGrabbedElement[] | IGeneralError {

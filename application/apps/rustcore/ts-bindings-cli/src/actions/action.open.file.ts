@@ -1,10 +1,8 @@
 import { Action } from './action';
-import { RustSessionDebug } from '../../../ts-bindings/src/native/native.session';
-import { EventProvider } from '../../../ts-bindings/src/api/session.provider';
+import { Session } from '../../../ts-bindings/src/api/session';
 import { IGrabbedElement } from '../../../ts-bindings/src/interfaces/index';
 import { IGeneralError } from '../../../ts-bindings/src/interfaces/errors';
-
-import uuid from '../../../ts-bindings/src/util/uuid';
+import { isOutputAllowed } from './action.output';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -89,40 +87,40 @@ export class OpenFile extends Action {
             Promise.all(files.map((file: IFile) => {
                 return new Promise<void>((done, fail) => {
                     const started: number = Date.now();
-                    const suuid: string = uuid();
-                    const provider = new EventProvider(suuid);
-                    // Set provider into debug mode
-                    provider.debug().setStoring(true);
-                    provider.debug().setTracking(true);
-                    const session = new RustSessionDebug(suuid, provider.getEmitter());
-                    const operation: string | IGeneralError = session.assign(file.filename, {});
-                    if (typeof operation !== 'string') {
-                        session.destroy();
-                        return fail(new Error(`Expecting get ID of operation, but has been gotten: ${operation}`))
+                    const session = new Session();
+                    session.debug(true);
+                    const stream = session.getStream();
+                    if (stream instanceof Error) {
+                        return fail(new Error(`Fail to create a session. Error: ${stream.message}`))
                     }
-                    const grabbed: IGrabbedElement[] | IGeneralError = session.grabStreamChunk(file.from, file.count);
-                    if (!(grabbed instanceof Array)) {
+                    stream.assign(file.filename, {}).then(() => {
+                        const grabbed: IGrabbedElement[] | IGeneralError = stream.grab(file.from, file.count);
+                        if (!(grabbed instanceof Array)) {
+                            return fail(new Error(`Fail to grab data due error: ${grabbed.message}`));
+                        }
+                        const finished = Date.now();
+                        isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
+                        console.log(`Grab data from ${file.from} to ${file.from + file.count} in ${finished - started} ms`);
+                        isOutputAllowed() && console.log(`${'='.repeat(5)} BEGIN ${'='.repeat(50)}`);
+                        grabbed.forEach((item, i) => {
+                            isOutputAllowed() && console.log(`${i + file.from}:\t${item.content}`);
+                        });
+                        isOutputAllowed() && console.log(`${'='.repeat(5)} END   ${'='.repeat(50)}`);
+                        const stat = session.getDebugStat();
+                        if (stat.unsupported.length !== 0) {
+                            return fail(new Error(`Unsupported events:\n\t- ${stat.unsupported.join('\n\t- ')}`));
+                        }
+                        if (stat.errors.length !== 0) {
+                            return fail(new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`));
+                        }
+                        isOutputAllowed() && console.log(`Session computation (provider) doesn't have any errors.`);
+                        isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
+                        done();
+                    }).catch((err: Error) => {
+                        fail(err);
+                    }).finally(() => {
                         session.destroy();
-                        return fail(new Error(`Fail to grab data due error: ${grabbed.message}`));
-                    }
-                    if (provider.debug().stat.unsupported().length !== 0) {
-                        session.destroy();
-                        return fail(new Error(`Unsupported events:\n\t- ${provider.debug().stat.unsupported().join('\n\t- ')}`));
-                    }
-                    if (provider.debug().stat.error().length !== 0) {
-                        session.destroy();
-                        return fail(new Error(`Errors:\n\t- ${provider.debug().stat.error().join('\n\t- ')}`));
-                    }
-                    session.destroy();
-                    const finished = Date.now();
-                    console.log(`\n${'='.repeat(62)}`);
-                    console.log(`Grab data from ${file.from} to ${file.from + file.count} in ${finished - started} ms`);
-                    console.log(`${'='.repeat(5)} BEGIN ${'='.repeat(50)}`);
-                    grabbed.forEach((item, i) => {
-                        console.log(`${i + file.from}:\t${item.content}`);
                     });
-                    console.log(`${'='.repeat(5)} END   ${'='.repeat(50)}`);
-                    done();
                 });
             })).then(() => {
                 resolve(args.filter((arg, i) => {

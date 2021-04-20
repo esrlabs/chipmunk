@@ -1,6 +1,7 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::Progress;
 use indexer_base::progress::Severity;
+use processor::search::SearchError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -81,6 +82,10 @@ pub enum CallbackEvent {
 
 #[derive(Error, Debug)]
 pub enum ComputationError {
+    #[error("Attemp to call operation before assign a session")]
+    NoAssignedContent,
+    #[error("Attemp to call operation before meta data is available")]
+    NoMetaAvailable,
     #[error("Native communication error ({0})")]
     Communication(String),
     #[error("Operation not supported ({0})")]
@@ -93,6 +98,8 @@ pub enum ComputationError {
     Process(String),
     #[error("Wrong usage of API: ({0})")]
     Protocol(String),
+    #[error("Search related error")]
+    SearchError(SearchError),
 }
 
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);

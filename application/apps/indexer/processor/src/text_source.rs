@@ -157,6 +157,8 @@ impl MetadataSource for TextFileSource {
             .map(|s| GrabbedElement {
                 source_id: self.source_id.clone(),
                 content: s.to_owned(),
+                row: None,
+                pos: None,
             })
             .collect::<Vec<GrabbedElement>>();
 

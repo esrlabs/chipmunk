@@ -3,7 +3,7 @@ import * as Logs from '../util/logging';
 import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { EventProvider } from './session.provider';
-import { IFilter, IMatchEntity, IResultSearchElement, IGrabbedSearchElement } from '../interfaces/index';
+import { IFilter, IGrabbedElement, IResultSearchElement } from '../interfaces/index';
 import { IGeneralError } from '../interfaces/errors';
 import { Executors } from './session.stream.executors';
 
@@ -21,15 +21,17 @@ export class SessionSearch {
     }
 
     public destroy(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._provider
-                .destroy()
-                .then(resolve)
-                .catch((err: Error) => {
-                    this._logger.error(`Fail to destroy provider due error: ${err.message}`);
-                    reject(err);
-                });
-        });
+        return Promise.resolve(undefined);
+        // Provider would be destroyed on parent level (Session)
+        // return new Promise((resolve, reject) => {
+        //     this._provider
+        //         .destroy()
+        //         .then(resolve)
+        //         .catch((err: Error) => {
+        //             this._logger.error(`Fail to destroy provider due error: ${err.message}`);
+        //             reject(err);
+        //         });
+        // });
     }
 
     /**
@@ -37,7 +39,8 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabSearchChunk(start: number, len: number): IGrabbedSearchElement[] | IGeneralError {
+     public grab(start: number, len: number): IGrabbedElement[] | IGeneralError {
+        // TODO grab content
         return this._session.grabSearchChunk(start, len);
     }
 
@@ -57,8 +60,8 @@ export class SessionSearch {
      * @param filters { IFilter[] }
      */
     public setFilters(filters: IFilter[]): Error | undefined {
-        const error: IGeneralError | undefined = this._session.setFilters(filters);
-        if (error !== undefined) {
+        const error: IGeneralError | string = this._session.setFilters(filters);
+        if (typeof error !== 'string') {
             this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
             return new Error(error.message);
         } else {
@@ -83,14 +86,14 @@ export class SessionSearch {
         }
     }
 
-    public search(filters: IFilter[]): CancelablePromise<IResultSearchElement[]> {
+    public search(filters: IFilter[]): CancelablePromise<void> {
         // TODO: field "filters" of IResultSearchElement cannot be empty, at least 1 filter
         // should be present there always. This is a right place for check of it
         return Executors.search(this._session, this._provider, this._logger, filters);
     }
 
     public len(): number {
-        const len = this._session.getStreamLen();
+        const len = this._session.getSearchLen();
         if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
             this._logger.warn(
                 `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,

@@ -1,6 +1,8 @@
 import { Action } from './action';
 
 import OpenFile from './action.open.file';
+import SearchInFile from './action.search';
+import Output from './action.output';
 
 
 const KEYS: string[] = [`--help`, `-h`];
@@ -28,8 +30,35 @@ export class Help extends Action {
             if (!this._hasKeys(args)) {
                 return resolve(args);
             }
-            [OpenFile, this].forEach((action: Action) => {
-                console.log(`${action.key()} (${action.pattern()})\t- ${action.name()}`);
+            const columns = {
+                key: 0,
+                pattern: 0,
+                name: 0,
+            };
+            const TAB: number = 4;
+            Object.keys(columns).forEach((key: string) => {
+                [OpenFile, SearchInFile, this].forEach((action: Action) => {
+                    let value = (action as any)[key]();
+                    if (value instanceof Array) {
+                        value = value.join(' ');
+                    }
+                    if (value.length > (columns as any)[key]) {
+                        (columns as any)[key] = value.length;
+                    }
+                });
+                (columns as any)[key] += TAB;
+            });
+            [Output, OpenFile, SearchInFile, this].forEach((action: Action) => {
+                let output: string = '';
+                Object.keys(columns).forEach((key: string) => {
+                    let value = (action as any)[key]();
+                    if (value instanceof Array) {
+                        value = value.join(' ');
+                    }
+                    value += ' '.repeat((columns as any)[key] - value.length);
+                    output += value;
+                });
+                console.log(output);
             });
             resolve(args);
         });

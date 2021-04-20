@@ -28,7 +28,6 @@ export {
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
     IResultSearchElement,
-    IGrabbedSearchElement,
     IMapEntity,
     IMatchEntity,
     IFilter,

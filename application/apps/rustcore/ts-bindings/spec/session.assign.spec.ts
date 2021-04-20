@@ -7,13 +7,9 @@
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 
-import { RustSessionDebug } from '../src/native/native.session';
-import { EventProvider } from '../src/api/session.provider';
-import { IGrabbedContent, IGrabbedElement } from '../src/interfaces/index';
-import { IFilter } from '../src/interfaces/index';
+import { Session } from '../src/api/session';
+import { IGrabbedElement } from '../src/interfaces/index';
 import { IGeneralError } from '../src/interfaces/errors';
-
-import uuid from '../src/util/uuid';
 
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
@@ -27,33 +23,25 @@ describe('Session', function() {
 			for (let i = 0; i < lines; i++) {
 				fs.appendFileSync(tmpobj.name, `some line data: ${i}\n`);
 			}
-			var stats = fs.statSync(tmpobj.name);
+			const stats = fs.statSync(tmpobj.name);
 			console.log(`file-size: ${stats.size}`);
 			return tmpobj;
 		}
 
-		const suuid: string = uuid();
-		const provider = new EventProvider(suuid);
+		const session = new Session();
 		// Set provider into debug mode
-		provider.debug().setStoring(true);
-		provider.debug().setTracking(true);
-
-		const session = new RustSessionDebug(suuid, provider.getEmitter());
-		expect(session.id()).toEqual(suuid);
-
-		const tmpobj = createSampleFile(5000);
-		const operation: string | IGeneralError = session.assign(tmpobj.name, {});
-		if (typeof operation !== 'string') {
-			fail(`Expecting get ID of operation, but has been gotten: ${operation}`);
-			session.destroy();
+		session.debug(true);
+		const stream = session.getStream();
+		if (stream instanceof Error) {
+			fail(stream);
 			return done();
 		}
-		setTimeout(() => {
+		const tmpobj = createSampleFile(5000);
+		stream.assign(tmpobj.name, {}).then(() => {
 			// While we do not have operation id
-			let result: IGrabbedElement[] | IGeneralError = session.grabStreamChunk(500, 7);
+			let result: IGrabbedElement[] | IGeneralError = stream.grab(500, 7);
 			if (!(result instanceof Array)) {
 				fail(`Fail to grab data due error: ${result.message}`);
-				session.destroy();
 				return done();
 			}
 			console.log('result of grab was: ' + JSON.stringify(result));
@@ -66,11 +54,21 @@ describe('Session', function() {
 				'some line data: 505',
 				'some line data: 506'
 			]);
-			// Check state of provider
-			expect(provider.debug().stat.unsupported().length).toEqual(0);
-			expect(provider.debug().stat.error().length).toEqual(0);
-			session.destroy();
+			const stat = session.getDebugStat();
+			if (stat.unsupported.length !== 0) {
+				fail(new Error(`Unsupported events:\n\t- ${stat.unsupported.join('\n\t- ')}`));
+				return done();
+			}
+			if (stat.errors.length !== 0) {
+				fail(new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`));
+				return done();
+			}
 			done();
-		}, 1000);
+		}).catch((err: Error) => {
+			fail(err);
+			done();
+		}).finally(() => {
+			session.destroy();
+		});
 	});
 });

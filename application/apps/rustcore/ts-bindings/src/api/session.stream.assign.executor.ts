@@ -33,6 +33,7 @@ export const executor: TExecutor<void, IExecuteAssignOptions> = (
             if (typeof uuid !== 'string') {
                 return new Error(uuid.message);
             } else {
+                logger.debug(`Assign started. Operation UUID: ${uuid}`);
                 return uuid;
             };
         },
