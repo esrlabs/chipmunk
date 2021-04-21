@@ -92,6 +92,11 @@ enum EKeys {
     undefined = 'undefined'
 }
 
+enum EDirection {
+    Down,
+    Up,
+}
+
 const DefaultSettings = {
     minScrollTopScale       : 100,          // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
     minScrollTopNotScale    : 0,            // To "catch" scroll event in reverse direction (to up) we should always keep minimal scroll offset
@@ -187,7 +192,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         out: boolean;
         selection: string | undefined;
         restored: boolean;
-        style: HTMLStyleElement | undefined;
     } = {
         focus: { index: -1, path: '', offset: -1, node: undefined, fragment: '' },
         anchor: { index: -1, path: '', offset: -1, node: undefined, fragment: '' },
@@ -195,7 +199,6 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         out: false,
         selection: undefined,
         restored: true,
-        style: undefined,
     };
 
     private _item: {
@@ -306,30 +309,12 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         this._ng_nodeHolder.nativeElement.focus();
         this._selection_drop(true);
         this._selection.going = true;
-        /*
-        this._selection.style = document.createElement('style');
-        this._selection.style.type = 'text/css';
-        this._selection.style.innerHTML = `
-            *:not(#${this._ng_guid}) { user-select: none; }
-            ul#${this._ng_guid} * { user-select: text; }
-        `;
-        document.getElementsByTagName('head')[0].appendChild(this._selection.style);
-        */
     }
 
     public _ng_onWindowMouseUp(event: MouseEvent) {
         if (!this._selection.going) {
             return;
         }
-        /*
-        // Remove extra styles
-        if (this._selection.style !== undefined) {
-            if (this._selection.style.parentNode !== null) {
-                this._selection.style.parentNode.removeChild(this._selection.style);
-            }
-            this._selection.style = undefined;
-        }
-        */
         // Set selection as started
         this._selection.going = false;
         // Check selection
@@ -862,14 +847,15 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
     }
 
     private _selection_UpdateFocus(selection: Selection | undefined) {
+        const direction = this._selection_getCloseBorder();
         if (selection === undefined) {
             this._selection.focus.offset = 0;
-            if (this._selection.focus.index > this._selection.anchor.index) {
+            if (direction === EDirection.Down) {
                 // Direction: down
                 this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.end}"]`;
                 this._selection.focus.index = this._state.end;
                 this._selection.focus.node = this._selection_restore();
-            } else if (this._selection.focus.index < this._selection.anchor.index) {
+            } else if (direction === EDirection.Up) {
                 // Direction: up
                 this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.start}"]`;
                 this._selection.focus.index = this._state.start;
@@ -886,12 +872,12 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 this._selection.focus.offset = selection.focusOffset;
             } else {
                 this._selection.focus.offset = 0;
-                if (this._selection.focus.index > this._selection.anchor.index) {
+                if (direction === EDirection.Down) {
                     // Direction: down
                     this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.end}"]`;
                     this._selection.focus.index = this._state.end;
                     this._selection.focus.node = this._selection_restore();
-                } else if (this._selection.focus.index < this._selection.anchor.index) {
+                } else if (direction === EDirection.Up) {
                     // Direction: up
                     this._selection.focus.path = `li[${CRowIndexAttr}="${this._state.start}"]`;
                     this._selection.focus.index = this._state.start;
@@ -1010,11 +996,26 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
         }
     }
 
+    private _selection_getCloseBorder(): EDirection | undefined {
+        if (this._selection.focus.index === -1 || this._state.end === -1 || this._state.start === -1) {
+            return undefined;
+        }
+        const toEnd = this._state.end - this._selection.focus.index;
+        const toBegin = this._selection.focus.index - this._state.start;
+        if (toEnd < toBegin) {
+            return EDirection.Down;
+        } else if (toEnd > toBegin) {
+            return EDirection.Up;
+        }
+        return undefined;
+    }
+
     private _selection_scroll() {
         if (!this._selection.going) {
             return;
         }
-        if (this._selection.focus.index > this._selection.anchor.index) {
+        const direction = this._selection_getCloseBorder();
+        if (direction === EDirection.Down) {
             // Direction: down
             if (this._selection.focus.index >= this._storageInfo.count - 1) {
                 this._selection.restored = true;
@@ -1025,7 +1026,7 @@ export class ComplexScrollBoxComponent implements OnDestroy, AfterContentInit, A
                 this._selection.restored = false;
                 this._onScrollTo(false, this._state.start + 1, true);
             }
-        } else if (this._selection.focus.index < this._selection.anchor.index) {
+        } else if (direction === EDirection.Up) {
             // Direction: up
             if (this._selection.focus.index === 0) {
                 this._selection.restored = true;
