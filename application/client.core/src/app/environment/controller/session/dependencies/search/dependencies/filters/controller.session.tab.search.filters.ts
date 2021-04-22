@@ -47,11 +47,11 @@ export class ControllerSessionTabSearchFilters
         onExport: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
-    private _requestedSearch: string | undefined;
     private _accessor: {
         session: SessionGetter;
         search: SearchSessionGetter;
     };
+    private _single: boolean = false;
 
     constructor(uuid: string, session: SessionGetter, search: SearchSessionGetter) {
         super();
@@ -121,9 +121,11 @@ export class ControllerSessionTabSearchFilters
     ): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
             let _requests: FilterRequest[] = [];
+            this._single = false;
             if (requests === undefined) {
                 _requests = this._storage.getActive();
             } else if (!(requests instanceof Array)) {
+                this._single = true;
                 _requests = [requests];
             } else {
                 _requests = requests;
@@ -232,6 +234,10 @@ export class ControllerSessionTabSearchFilters
             this._storage.add(filters);
             resolve();
         });
+    }
+
+    public isSingle(): boolean {
+        return this._single;
     }
 
     private _onStorageUpdated(event: IFiltersStorageUpdated | undefined) {
