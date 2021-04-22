@@ -39,7 +39,16 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
         }
         let html = this.str;
         // Apply search matches parser
-        const highlight = OutputParsersService.highlight(this.sessionId, this.str);
+        const highlight = (() => {
+            if (!OutputParsersService.isSingle()) {
+                return OutputParsersService.highlight(this.sessionId, this.str);
+            } else {
+                return {
+                    background: undefined,
+                    color: undefined,
+                };
+            }
+        })();
         this.color = highlight.color;
         this.background = highlight.background;
         // Rid of HTML

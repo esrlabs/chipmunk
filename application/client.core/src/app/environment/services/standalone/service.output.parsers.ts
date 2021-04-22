@@ -2,13 +2,13 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { Observable, Subject } from 'rxjs';
 import { ComponentFactory, ModuleWithComponentFactories } from '@angular/core';
-import { shadeColor, scheme_color_4, scheme_color_0, getContrastColor } from '../../theme/colors';
+import { getContrastColor } from '../../theme/colors';
 import { CColors } from '../../conts/colors';
 import { FilterRequest } from '../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { Session } from '../../controller/session/session';
 import { Subscription } from 'rxjs';
 import { EKey, EParent } from '../../services/standalone/service.output.redirections';
-import { IRequest, Modifier, EApplyTo } from 'chipmunk.client.toolkit';
+import { IRequest, Modifier } from 'chipmunk.client.toolkit';
 
 import { ModifierProcessor } from './row.modifiers/modifiers.processor';
 import { HighlightsModifier } from './row.modifiers/row.modifier.highlights';
@@ -253,6 +253,13 @@ export class OutputParsersService {
             color: target === undefined ? undefined : (target.color === CColors[0] ? undefined : target.color),
             background: target === undefined ? undefined : (target.background === CColors[0] ? undefined : target.background)
         };
+    }
+
+    public isSingle(): boolean {
+        if (this._controller === undefined) {
+            return false;
+        }
+        return this._controller.getSessionSearch().getFiltersAPI().isSingle();
     }
 
     public escapeHTML(html: string): string {
