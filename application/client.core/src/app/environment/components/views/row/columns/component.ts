@@ -109,16 +109,7 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         this.background = undefined;
         let html = this.str;
         // Apply search matches parser
-        const highlight = (() => {
-            if (!OutputParsersService.isSingle()) {
-                return OutputParsersService.highlight(this.sessionId, this.str);
-            } else {
-                return {
-                    background: undefined,
-                    color: undefined,
-                };
-            }
-        })();
+        const highlight = OutputParsersService.highlight(this.sessionId, this.str);
         this.color = highlight.color;
         this.background = highlight.background;
         // Rid of HTML
