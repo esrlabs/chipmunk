@@ -245,6 +245,18 @@ export class OutputParsersService {
     }
 
     public highlight(sessionId: string, str: string): IHighlight {
+        const single: boolean = (() => {
+            if (this._controller === undefined) {
+                return false;
+            }
+            return this._controller.getSessionSearch().getFiltersAPI().isSingle();
+        })();
+        if (single) {
+            return {
+                color: undefined,
+                background: undefined,
+            };
+        }
         const requests: IRequest[] = this._search.has(sessionId) ? this._search.get(sessionId) : [];
         const highlights: IRequest[] = this._highlights.has(sessionId) ? this._highlights.get(sessionId) : [];
         const charts: IRequest[] = this._charts.has(sessionId) ? this._charts.get(sessionId) : [];
@@ -253,13 +265,6 @@ export class OutputParsersService {
             color: target === undefined ? undefined : (target.color === CColors[0] ? undefined : target.color),
             background: target === undefined ? undefined : (target.background === CColors[0] ? undefined : target.background)
         };
-    }
-
-    public isSingle(): boolean {
-        if (this._controller === undefined) {
-            return false;
-        }
-        return this._controller.getSessionSearch().getFiltersAPI().isSingle();
     }
 
     public escapeHTML(html: string): string {
