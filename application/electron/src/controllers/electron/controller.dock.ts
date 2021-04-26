@@ -16,8 +16,10 @@ export default class ControllerDock {
         switch (process.platform) {
             case 'win32':
                 this._win();
+                break;
             case 'darwin':
                 this._mac();
+                break;
         }
     }
 
