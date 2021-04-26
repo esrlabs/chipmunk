@@ -1,6 +1,7 @@
 require 'fileutils'
 
 TS = "./ts-bindings"
+TS_BUILD = "./ts-bindings/dist/apps/rustcore/ts-bindings"
 TS_CLI = "./ts-bindings-cli"
 RS = "./rs-bindings"
 BUILD_ENV = "#{TS}/node_modules/.bin/electron-build-env"
@@ -63,9 +64,15 @@ namespace :build do
 
   desc 'Delivery native'
   task :delivery do
-    dir = "#{TS}/native"
-    FileUtils.rm_rf(dir) unless !File.exists?(dir)
-    Dir.mkdir(dir) unless File.exists?(dir)
+    # Copy native for production
+    dir_prod = "#{TS_BUILD}/native"
+    FileUtils.rm_rf(dir_prod) unless !File.exists?(dir_prod)
+    Dir.mkdir(dir_prod) unless File.exists?(dir_prod)
+    sh "cp #{RS}/dist/index.node #{TS_BUILD}/native/index.node"
+    # Copy native for tests (jasmine usage)
+    dir_tests = "#{TS}/native"
+    FileUtils.rm_rf(dir_tests) unless !File.exists?(dir_tests)
+    Dir.mkdir(dir_tests) unless File.exists?(dir_tests)
     sh "cp #{RS}/dist/index.node #{TS}/native/index.node"
   end
 
@@ -89,6 +96,6 @@ namespace :build do
   end
 
   desc 'build all'
-  task :all => ['build:rs', 'build:delivery', 'build:ts', 'build:ts_cli']
+  task :all => ['build:rs', 'build:ts', 'build:delivery', 'build:ts_cli']
 end
 
