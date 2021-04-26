@@ -5,14 +5,9 @@ export interface IRustModuleExports {
 }
 
 export function getNativeModule(): IRustModuleExports {
-    let lib: string;
-    if (module.path.search('rustcore/dist') !== -1) {
-        lib = module.path.replace(/rustcore\/dist.*/gi, '');
-        return require(path.join(lib, '/rustcore/native/index.node'));
-    } else {
-        lib = module.path.replace(/ts-bindings.*/gi, '');
-        return require(path.join(lib, '/ts-bindings/native/index.node'));
-    }
+    console.log(module.path);
+    const target = path.resolve(module.path, '../../native/index.node');
+    return require(target);
 }
 
 const {
