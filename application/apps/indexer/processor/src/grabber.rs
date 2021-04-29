@@ -4,7 +4,7 @@ use std::{
     fmt, fs,
     io::{Read, Write},
     ops::RangeInclusive,
-    path::Path,
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -12,6 +12,7 @@ pub trait GrabTrait {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
     fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
     fn get_metadata(&self) -> Option<&GrabMetadata>;
+    fn associated_file(&self) -> PathBuf;
 }
 
 #[derive(Error, Debug)]
@@ -205,6 +206,10 @@ where
 
     fn get_metadata(&self) -> Option<&GrabMetadata> {
         self.metadata.as_ref()
+    }
+
+    fn associated_file(&self) -> PathBuf {
+        self.source.path().to_path_buf()
     }
 }
 

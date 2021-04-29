@@ -13,7 +13,7 @@ import OutputRedirectionsService from '../../../../../../services/standalone/ser
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
+export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.SearchChunk>;
 
 export interface IParameters {
     guid: string;
@@ -200,7 +200,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
                 return reject(new Error(`Range has incorrect format. Start and end shound be finite and not NaN`));
             }
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
+            this._requestData(range.start, range.end).then((message: IPCMessages.SearchChunk) => {
                 const packets: IRow[] = [];
                 this._parse(message.data, message.start, message.end, packets);
                 resolve(packets.filter((packet: IRow) => {
@@ -263,15 +263,15 @@ export class ControllerSessionTabSearchOutput implements Dependency {
      * @param { number } rows - number or rows in stream
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
-    public updateStreamState(rowsCount: number): void {
-        if (rowsCount === 0) {
+    public updateStreamState(rows: number): void {
+        if (rows === 0) {
             // Drop
             this.clearStream();
             // Update bookmarks state
             this._updateBookmarksData();
         } else {
             // Update count of rows
-            this._setTotalStreamCount(rowsCount);
+            this._setTotalStreamCount(rows);
             // Update bookmarks state
             this._updateBookmarksData();
             // Trigger events
@@ -477,7 +477,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         }
         this._state.lastLoadingRequestId = setTimeout(() => {
             this._state.lastLoadingRequestId = undefined;
-            this._requestData(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
+            this._requestData(request.start, request.end).then((message: IPCMessages.SearchChunk) => {
                 // Check: response is empty
                 if (message.data === undefined) {
                     // Response is empty. Looks like search was dropped.
@@ -525,7 +525,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                 return resolve(range);
             }
             this._preloadTimestamp = timestamp;
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
+            this._requestData(range.start, range.end).then((message: IPCMessages.SearchChunk) => {
                 // Drop request ID
                 this._preloadTimestamp = -1;
                 // Update size of whole stream (real size - count of rows in stream file)
@@ -583,14 +583,14 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         } catch (e) {
             // do nothing
         }
-        packets = packets.filter((packet: IRow) => {
-            return (packet.positionInStream !== -1);
-        });
+        // packets = packets.filter((packet: IRow) => {
+        //     return (packet.positionInStream !== -1);
+        // });
         if (dest !== undefined) {
             // Destination storage is defined: we don't need to store rows (accept it)
             dest.push(...packets);
         } else {
-            if (packets.length !== (to - from + 1)) {
+            if (packets.length !== (to - from)) {
                 throw new Error(`Count of gotten rows dismatch with defined range. Range: ${from}-${to}. Actual count: ${rows.length}; expected count: ${to - from}.`);
             }
             this._acceptPackets(packets);

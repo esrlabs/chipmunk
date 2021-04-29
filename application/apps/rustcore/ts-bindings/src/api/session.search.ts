@@ -37,7 +37,8 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabSearchChunk(start: number, len: number): IGrabbedSearchElement[] | IGeneralError {
+     public grab(start: number, len: number): IGrabbedSearchElement[] | IGeneralError {
+        // TODO grab content
         return this._session.grabSearchChunk(start, len);
     }
 
@@ -90,7 +91,7 @@ export class SessionSearch {
     }
 
     public len(): number {
-        const len = this._session.getStreamLen();
+        const len = this._session.getSearchLen();
         if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
             this._logger.warn(
                 `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,

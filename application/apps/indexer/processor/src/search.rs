@@ -45,10 +45,10 @@ pub struct SearchHolder {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SearchFilter {
-    value: String,
-    is_regex: bool,
-    ignore_case: bool,
-    is_word: bool,
+    pub value: String,
+    pub is_regex: bool,
+    pub ignore_case: bool,
+    pub is_word: bool,
 }
 
 use std::borrow::Cow;
@@ -158,15 +158,16 @@ impl SearchHolder {
             &self.file_path,
             UTF8(|lnum, line| {
                 matched_lines += 1;
-                let line_match = SearchMatch {
-                    line: lnum,
-                    content: Cow::Borrowed(line.trim_end()),
-                };
-                if let Ok(content) = serde_json::to_string(&line_match) {
-                    writeln!(writer, "{}", content)?;
-                } else {
-                    log::error!("Could not serialize {:?}", line_match);
-                }
+                writeln!(writer, "{}", lnum)?;
+                // let line_match = SearchMatch {
+                //     line: lnum,
+                //     content: Cow::Borrowed(line.trim_end()),
+                // };
+                // if let Ok(content) = serde_json::to_string(&line_match) {
+                //     writeln!(writer, "{}", content)?;
+                // } else {
+                //     log::error!("Could not serialize {:?}", line_match);
+                // }
                 Ok(true)
             }),
         )?;

@@ -6,7 +6,14 @@ use crossbeam_channel as cc;
 use indexer_base::progress::ComputationResult::Item;
 use indexer_base::progress::Severity;
 use node_bindgen::{
-    core::{val::JsEnv, NjError, TryIntoJs},
+    core::{
+        val::{
+            JsEnv,
+            JsObject,
+        },
+        JSValue,
+        NjError, 
+        TryIntoJs},
     derive::node_bindgen,
     sys::napi_value,
 };
@@ -14,8 +21,11 @@ use processor::dlt_source::DltSource;
 use processor::grabber::GrabTrait;
 use processor::grabber::LineRange;
 use processor::grabber::MetadataSource;
-use processor::grabber::{GrabMetadata, Grabber};
-use processor::search::SearchFilter;
+use processor::grabber::{GrabMetadata, Grabber, GrabbedContent};
+use processor::search::{
+    SearchFilter,
+    SearchHolder,
+};
 use processor::text_source::TextFileSource;
 use serde::Serialize;
 use std::path::Path;
@@ -38,6 +48,10 @@ enum Operation {
         operation_id: Uuid,
         source_type: SupportedFileType,
     },
+    SearchDone {
+        file_path: String,
+        operation_id: Uuid,
+    },
     End,
 }
 
@@ -45,6 +59,22 @@ enum Operation {
 pub enum SupportedFileType {
     Text,
     Dlt,
+}
+
+#[derive(Debug, Clone)]
+enum GrabberTarget {
+    Content,
+    Search,
+}
+
+impl std::fmt::Display for GrabberTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GrabberTarget::Content => write!(f, "content grabber"),
+            GrabberTarget::Search => write!(f, "search grabber"),
+        }
+        
+    }
 }
 
 pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
@@ -71,25 +101,33 @@ pub struct RustSession {
     // channel that allows to propagate shutdown requests to ongoing operations
     shutdown_channel: AsyncBroadcastChannel<()>,
     // channel to store the metadata of a file once available
-    metadata_channel: SyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
+    content_metadata_channel: SyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
     // channel to store the metadata of the search results once available
-    search_metadata_channel: AsyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
+    search_metadata_channel: SyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
+    // search_metadata_channel: AsyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
 }
 
 impl RustSession {
+
     /// will result in a grabber that has it's metadata generated
     /// this function will first check if there has been some new metadata that was previously
     /// written to the metadata-channel. If so, this metadata is used in the grabber.
     /// If there was no new metadata, we make sure that the metadata has been set.
     /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    fn get_loaded_grabber(&mut self) -> Result<&mut Box<dyn GrabTrait>, ComputationError> {
-        let current_grabber = match &mut self.content_grabber {
+    fn get_grabber(&mut self, target: GrabberTarget) -> Result<&mut Box<dyn GrabTrait>, ComputationError> {
+        let current_grabber = match match target {
+            GrabberTarget::Content => &mut self.content_grabber,
+            GrabberTarget::Search => &mut self.search_grabber, 
+        } {
             Some(c) => Ok(c),
             None => Err(ComputationError::Protocol(
                 "Need a grabber first to work with metadata".to_owned(),
             )),
         }?;
-        let fresh_metadata_result = match self.metadata_channel.1.try_recv() {
+        let fresh_metadata_result = match match target {
+            GrabberTarget::Content => self.content_metadata_channel.1.try_recv(),
+            GrabberTarget::Search => self.search_metadata_channel.1.try_recv(), 
+        } {
             Ok(new_metadata) => {
                 println!("RUST: new metadata arrived: {:?} lines", new_metadata);
                 Ok(Some(new_metadata))
@@ -107,7 +145,7 @@ impl RustSession {
                 println!("RUST: Trying to use new results");
                 match res {
                     Ok(Some(metadata)) => {
-                        println!("RUST: setting new metadata into content_grabber");
+                        println!("RUST: setting new metadata into {}", target);
                         current_grabber
                             .inject_metadata(metadata)
                             .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
@@ -135,11 +173,7 @@ impl RustSession {
         }?;
         Ok(grabber)
     }
-}
 
-enum GrabberKind {
-    Content,
-    Search,
 }
 
 async fn compute() -> Uuid {
@@ -160,12 +194,12 @@ impl RustSession {
             //     filters: vec![],
             // })),
             content_grabber: None,
-            callback: None,
             search_grabber: None,
+            callback: None,
             shutdown_channel: broadcast::channel(1),
             op_channel: broadcast::channel(10),
-            metadata_channel: cc::bounded(1),
-            search_metadata_channel: mpsc::channel(1),
+            content_metadata_channel: cc::bounded(1),
+            search_metadata_channel: cc::bounded(1),
         }
     }
 
@@ -196,7 +230,8 @@ impl RustSession {
         let mut event_stream = self.op_channel.0.subscribe();
         self.running = true;
         let shutdown_tx = self.shutdown_channel.0.clone();
-        let metadata_tx = self.metadata_channel.0.clone();
+        let content_metadata_tx = self.content_metadata_channel.0.clone();
+        let search_metadata_tx = self.search_metadata_channel.0.clone();
         thread::spawn(move || {
             rt.block_on(async {
                 println!("RUST: running runtime");
@@ -225,16 +260,16 @@ impl RustSession {
                                     Some(Ok(Item(metadata))) => {
                                         println!("RUST: received metadata");
                                         let line_count: u64 = metadata.line_count as u64;
-                                        let _ = metadata_tx.send(Ok(Some(metadata)));
+                                        let _ = content_metadata_tx.send(Ok(Some(metadata)));
                                         callback(CallbackEvent::StreamUpdated(line_count));
                                     }
                                     Some(Ok(_)) => {
                                         println!("RUST: metadata calculation aborted");
-                                        let _ = metadata_tx.send(Ok(None));
+                                        let _ = content_metadata_tx.send(Ok(None));
                                     }
                                     Some(Err(e)) => {
                                         println!("RUST error computing metadata");
-                                        let _ = metadata_tx.send(Err(ComputationError::Process(
+                                        let _ = content_metadata_tx.send(Err(ComputationError::Process(
                                             format!("Could not compute metadata: {}", e),
                                         )));
                                         callback(CallbackEvent::OperationError((
@@ -252,6 +287,44 @@ impl RustSession {
                                             kind: NativeErrorKind::UnsupportedFileType,
                                         },
                                     ))),
+                                }
+                                callback(CallbackEvent::OperationDone(OperationDone {
+                                    uuid: operation_id,
+                                    result: None,
+                                }));
+                            }
+                            Operation::SearchDone {
+                                file_path,
+                                operation_id,
+                            } => {
+                                println!("RUST: received SearchDone operation event");
+                                let file_path = Path::new(&file_path);
+                                let source = TextFileSource::new(file_path, "search_results");
+                                let metadata_res = source.from_file(None);
+                                match metadata_res {
+                                    Ok(Item(metadata)) => {
+                                        println!("RUST: received search metadata");
+                                        let line_count: u64 = metadata.line_count as u64;
+                                        let _ = search_metadata_tx.send(Ok(Some(metadata)));
+                                        callback(CallbackEvent::SearchUpdated(line_count));
+                                    }
+                                    Ok(_) => {
+                                        println!("RUST: search metadata calculation aborted");
+                                        let _ = search_metadata_tx.send(Ok(None));
+                                    }
+                                    Err(e) => {
+                                        println!("RUST error computing search metadata");
+                                        let _ = search_metadata_tx.send(Err(ComputationError::Process(
+                                            format!("Could not compute search metadata: {}", e),
+                                        )));
+                                        callback(CallbackEvent::OperationError((
+                                            operation_id,
+                                            NativeError {
+                                                severity: Severity::WARNING,
+                                                kind: NativeErrorKind::ComputationFailed,
+                                            },
+                                        )));
+                                    }
                                 }
                                 callback(CallbackEvent::OperationDone(OperationDone {
                                     uuid: operation_id,
@@ -278,8 +351,16 @@ impl RustSession {
 
     #[node_bindgen]
     fn get_stream_len(&mut self) -> Result<i64, ComputationError> {
-        match &self.get_loaded_grabber()?.get_metadata() {
+        match &self.get_grabber(GrabberTarget::Content)?.get_metadata() {
             Some(md) => Ok(md.line_count as i64),
+            None => Err(ComputationError::Protocol("Cannot happen".to_owned())),
+        }
+    }
+
+    #[node_bindgen]
+    fn get_search_len(&mut self) -> Result<i64, ComputationError> {
+        match &self.get_grabber(GrabberTarget::Search)?.get_metadata() {
+            Some(md) => Ok(md.line_count as i64 - 1),
             None => Err(ComputationError::Protocol("Cannot happen".to_owned())),
         }
     }
@@ -287,7 +368,7 @@ impl RustSession {
     #[node_bindgen]
     fn grab(
         &mut self,
-        start_line_index: i64,
+        start_line_index: i64, // TODO: Check for nodebindget support for u64
         number_of_lines: i64,
     ) -> Result<String, ComputationError> {
         println!(
@@ -295,7 +376,7 @@ impl RustSession {
             start_line_index, number_of_lines
         );
         let grabbed_content = self
-            .get_loaded_grabber()?
+            .get_grabber(GrabberTarget::Content)?
             .grab_content(&LineRange::from(
                 (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
             ))
@@ -356,11 +437,111 @@ impl RustSession {
             })?;
         Ok(operation_id.to_string())
     }
+
+    #[node_bindgen]
+    fn grab_search(
+        &mut self,
+        start_line_index: i64,
+        number_of_lines: i64,
+    ) -> Result<String, ComputationError> {
+        println!(
+            "RUST: grab search results from {} ({} lines)",
+            start_line_index, number_of_lines
+        );
+        let grabbed_content : GrabbedContent= self
+            .get_grabber(GrabberTarget::Search)?
+            .grab_content(&LineRange::from(
+                (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
+            ))
+            .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+        let mut results: GrabbedContent = GrabbedContent { grabbed_elements: vec![] };
+        let mut ranges = vec![];
+        let mut from_pos: u64 = 0;
+        let mut to_pos: u64 = 0;
+        for (i, el ) in grabbed_content.grabbed_elements.iter().enumerate() {
+            match el.content.parse::<u64>() {
+                Ok(pos) => {
+                    if i == 0 {
+                        from_pos = pos;
+                        to_pos = pos;
+                    } else if to_pos + 1 != pos {
+                        ranges.push(std::ops::RangeInclusive::new(from_pos - 1, to_pos - 1));
+                        from_pos = pos;
+                        to_pos = pos;
+                    } else {
+                        to_pos = pos;
+                    }
+                },
+                Err(e) => { return Err(ComputationError::Process(format!("{}", e))); }
+            }
+        }
+        if ranges[ranges.len() - 1].start() != &from_pos {
+            ranges.push(std::ops::RangeInclusive::new(from_pos - 1, to_pos - 1));
+        }
+        for range in ranges.iter() {
+            let mut original_content = self
+                .get_grabber(GrabberTarget::Content)?
+                .grab_content(&LineRange::from(
+                    range.clone()
+                ))
+            .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+            results.grabbed_elements.append(&mut original_content.grabbed_elements);
+        }
+        println!("RUST: grabbing search result from original content {} rows", results.grabbed_elements.len());
+        // println!("RUST: grabbing search result from original content. Ranges: {:?}", ranges);
+        let serialized =
+            serde_json::to_string(&results).map_err(|_| ComputationError::InvalidData)?;
+
+        Ok(serialized)
+    }
+
+    #[node_bindgen]
+    fn set_filters(&mut self, filters: Vec<WrappedSearchFilter>) -> Result<String, ComputationError> {
+        let target = if let Some(content) = self.content_grabber.as_ref() {
+            content.as_ref().associated_file()
+        } else {
+            return Err(ComputationError::NoAssignedContent);
+        };
+        let operation_id = Uuid::new_v4();
+        let filters: Vec<SearchFilter> = filters.iter().map(|f| { f.as_filter() }).collect();
+        println!("Search will be done in {:?} withing next fileters: {:?}", target, filters);
+        let search_holder = SearchHolder::new(&target.as_path(), filters.iter());
+        match search_holder.execute_search() {
+            Ok((file_path, _found)) => {
+                type GrabberType = processor::grabber::Grabber<TextFileSource>;
+                let source = TextFileSource::new(&file_path, "search_results");
+                let grabber = GrabberType::new(source).map_err(|e| {
+                    ComputationError::Process(format!("Could not create grabber: {}", e))
+                })?;
+                self.search_grabber = Some(Box::new(grabber));
+                if let Err(e) = self.op_channel
+                    .0
+                    .send(Operation::SearchDone {
+                        file_path: (if let Some(p) = file_path.to_str() {
+                            String::from(p)
+                        } else {
+                            return Err(ComputationError::Process("Fail to convert path to string".to_string()))
+                        }),
+                        operation_id,
+                    })
+                    .map_err(|_| {
+                        ComputationError::Process("Could not send operation on channel".to_string())
+                    }) {
+                        return Err(e);
+                    }
+            },
+            Err(e) => {
+                return Err(ComputationError::SearchError(e));
+            }
+        };
+        Ok(operation_id.to_string())
+    }
 }
 
 // TODO:
-//         method grab_search_results(mut cx) {
-//         method setFilters(mut cx) {
+//         - allow break search operation
+//         - break previous search before start new
+//
 //         method getFilters(mut cx) {
 //         method shutdown(mut cx) {
 
@@ -385,6 +566,90 @@ impl TryIntoJs for CallbackEvent {
         // json.set_property("value", js_env.create_string_utf8(&s)?);
         // json.try_to_js(js_env)
     }
+}
+
+/*
+    From JS world we will get an object:
+    
+    JSFilterDefinition {
+        value: string,
+        is_regex: boolean,
+        ignore_case: boolean,
+        is_word: boolean,
+    }
+
+    This object we are converting into SearchFilter
+*/
+
+#[derive(Serialize, Debug, Clone)]
+pub struct WrappedSearchFilter(SearchFilter);
+
+impl WrappedSearchFilter {
+
+    pub fn as_filter(&self) -> SearchFilter {
+        self.0.clone()
+    }
+}
+
+impl JSValue<'_> for WrappedSearchFilter {
+    fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
+        if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
+            // let mut filter = ;
+            let value: String = match js_obj.get_property("value") {
+                Ok(value) => if let Some(value) = value {
+                    match value.as_value::<String>() {
+                        Ok(s) => s,
+                        Err(e) => { return  Err(e); }
+                    }
+                } else {
+                    return Err(NjError::Other("[value] property is not found".to_owned()));
+                },
+                Err(e) => { return Err(e); },
+            };
+            let is_regex: bool = match js_obj.get_property("is_regex") {
+                Ok(value) => if let Some(value) = value {
+                    match value.as_value::<bool>() {
+                        Ok(s) => s,
+                        Err(e) => { return  Err(e); }
+                    }
+                } else {
+                    return Err(NjError::Other("[is_regex] property is not found".to_owned()));
+                },
+                Err(e) => { return Err(e); },
+            };
+            let is_word: bool = match js_obj.get_property("is_word") {
+                Ok(value) => if let Some(value) = value {
+                    match value.as_value::<bool>() {
+                        Ok(s) => s,
+                        Err(e) => { return  Err(e); }
+                    }
+                } else {
+                    return Err(NjError::Other("[is_word] property is not found".to_owned()));
+                },
+                Err(e) => { return Err(e); },
+            };
+            let ignore_case: bool = match js_obj.get_property("ignore_case") {
+                Ok(value) => if let Some(value) = value {
+                    match value.as_value::<bool>() {
+                        Ok(s) => s,
+                        Err(e) => { return  Err(e); }
+                    }
+                } else {
+                    return Err(NjError::Other("[ignore_case] property is not found".to_owned()));
+                },
+                Err(e) => { return Err(e); },
+            };
+            Ok(WrappedSearchFilter(SearchFilter {
+                value,
+                is_regex,
+                ignore_case,
+                is_word,
+            }))
+        } else {
+            Err(NjError::Other("not valid format".to_owned()))
+        }
+    }
+
 }
 // impl JSValue<'_> for CallbackEvent {
 // fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {

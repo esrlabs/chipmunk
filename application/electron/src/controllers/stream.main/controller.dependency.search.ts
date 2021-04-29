@@ -11,6 +11,7 @@ import {
     Events,
     IEventMapUpdated,
 } from 'rustcore';
+import { Postman } from '../../tools/postman';
 import { Dependency } from './controller.dependency';
 import { Channel } from './controller.channel';
 import { CommonInterfaces } from '../../interfaces/interface.common';
@@ -35,8 +36,8 @@ export class Search extends Dependency {
         ipc: {},
     };
     private readonly _session: Session;
-    private readonly _search: SessionSearch;
     private readonly _channel: Channel;
+    private readonly _postman: Postman<IPC.SearchUpdated>;
     private _filters: CommonInterfaces.API.IFilter[] = [];
 
     constructor(session: Session, channel: Channel) {
@@ -44,12 +45,21 @@ export class Search extends Dependency {
         this._logger = new Logger(`Search: ${session.getUUID()}`);
         this._session = session;
         this._channel = channel;
-        const search: SessionSearch | Error = session.getSearch();
-        if (search instanceof Error) {
-            this._logger.error(`Fail to get search controller due error: ${search.message}`);
-            throw search;
-        }
-        this._search = search;
+        this._postman = new Postman<IPC.SearchUpdated>(session.getUUID(), 250, () => {
+            const search = session.getSearch();
+            if (search instanceof Error) {
+                return search;
+            }
+            const stream = session.getStream();
+            if (stream instanceof Error) {
+                return stream;
+            }
+            return new IPC.SearchUpdated({
+                guid: this._session.getUUID(),
+                matches: search.len(),
+                rows: stream.len(),
+            });
+        });
     }
 
     public getName(): string {
@@ -74,18 +84,6 @@ export class Search extends Dependency {
             }
             this._ipc().subscribe().then(resolve).catch(reject);
         });
-    }
-
-    public setFilters(filters: CommonInterfaces.API.IFilter[]): Error | undefined {
-        const error: Error | undefined = this._search.setFilters(filters);
-        if (error instanceof Error) {
-            this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
-            return error;
-        } else {
-            this._filters = filters;
-            this._channel.getEvents().afterFiltersListUpdated.emit(this._filters.map(f => Object.assign({}, f)));
-            return undefined;
-        }
     }
 
     private _events(): {
@@ -119,7 +117,7 @@ export class Search extends Dependency {
             },
             handlers: {
                 search(rows: number): void {
-                    //
+                    self._postman.notify();
                 },
                 map(event: IEventMapUpdated): void {
                     //
@@ -170,7 +168,7 @@ export class Search extends Dependency {
                             return Promise.reject(
                                 new Error(
                                     self._logger.warn(
-                                        `Fail to subscribe to render event "StreamChunk" due error: ${error.message}. This is not blocked error, loading will be continued.`,
+                                        `Fail to subscribe to render event "SearchChunk" due error: ${error.message}. This is not blocked error, loading will be continued.`,
                                     ),
                                 ),
                             );
@@ -189,10 +187,74 @@ export class Search extends Dependency {
                     msg: IPC.SearchRequest,
                     response: (instance: IPC.SearchRequestResults) => any,
                 ): void {
-                    //
+                    const search = self._session.getSearch();
+                    if (search instanceof Error) {
+                        self._logger.warn(`Fail get access to search controller due error: ${search.message}`);
+                        return;
+                    }
+                    const filters: CommonInterfaces.API.IFilter[] = msg.requests.map((f) => {
+                        return {
+                            filter: f.request,
+                            flags: {
+                                word: f.flags.wholeword,
+                                cases: f.flags.casesensitive,
+                                reg: f.flags.regexp,
+                            },
+                        };
+                    });
+                    const error: Error | undefined = search.setFilters(filters);
+                    if (error instanceof Error) {
+                        self._logger.warn(`Fail to set filters for search due error: ${error.message}`);
+                        return;
+                    } else {
+                        self._filters = filters;
+                        self._channel.getEvents().afterFiltersListUpdated.emit(self._filters.map(f => Object.assign({}, f)));
+                        return undefined;
+                    }
+                    // response(new IPC.SearchRequestResults({}));
                 },
                 chunk(msg: IPC.SearchChunk, response: (isntance: IPC.SearchChunk) => any): void {
-                    //
+                    if (msg.guid !== self._session.getUUID()) {
+                        return;
+                    }
+                    const search = self._session.getSearch();
+                    if (search instanceof Error) {
+                        return response(
+                            new IPC.SearchChunk({
+                                error: self._logger.warn(
+                                    `Fail to access session controller due error: ${search.message}`,
+                                ),
+                                start: msg.start,
+                                end: msg.end,
+                                guid: msg.guid,
+                            }),
+                        );
+                    }
+                    const rows = search.grab(msg.start, msg.end - msg.start);
+                    if (!(rows instanceof Array)) {
+                        return response(
+                            new IPC.SearchChunk({
+                                error: self._logger.warn(
+                                    `Fail to get requested rows due error: ${rows.message}`,
+                                ),
+                                start: msg.start,
+                                end: msg.end,
+                                guid: msg.guid,
+                            }),
+                        );
+                    }
+                    console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>> len: ${search.len()}`);
+                    console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>> has been gotten: ${rows.length}`);
+                    console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>> has been requested: ${msg.end - msg.start} (${msg.start}/${msg.end})`);
+                    response(
+                        new IPC.SearchChunk({
+                            start: msg.start,
+                            end: msg.end,
+                            guid: msg.guid,
+                            data: rows.map((r) => r.content).join('\n'),
+                            rows: search.len(),
+                        }),
+                    );
                 },
             },
         };
