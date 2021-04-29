@@ -49,8 +49,8 @@ export interface ILoadedRange {
 }
 
 export const Settings = {
-    trigger         : 1000,     // Trigger to load addition chunk
-    maxRequestCount : 2000,     // chunk size in rows
+    trigger         : 200,      // Trigger to load addition chunk
+    maxRequestCount : 200,      // chunk size in rows
     maxStoredCount  : 2000,     // limit of rows to have it in RAM. All above should be removed
     requestDelay    : 0,        // ms, delay before to do request
 };

@@ -475,7 +475,7 @@ impl RustSession {
                 Err(e) => { return Err(ComputationError::Process(format!("{}", e))); }
             }
         }
-        if ranges[ranges.len() - 1].start() != &from_pos {
+        if !ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos {
             ranges.push(std::ops::RangeInclusive::new(from_pos - 1, to_pos - 1));
         }
         let mut row: usize = start_line_index as usize;
