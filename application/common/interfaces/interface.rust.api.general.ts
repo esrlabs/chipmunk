@@ -31,6 +31,8 @@ export interface IGrabbedContent {
 export interface IGrabbedElement {
 	source_id: string,
     content: string,
+	position?: number,
+	row?: number,
 }
 
 /**
@@ -39,7 +41,8 @@ export interface IGrabbedElement {
  */
 export interface IGrabbedSearchElement {
 	source_id: string,	// Id of source
-	position: number, 	// Original position in stream
+	position: number, 	// Original position in original (main) stream
+	row: number, 		// Original position in stream (for example in search)
     content: string, 	// Row value
 }
 

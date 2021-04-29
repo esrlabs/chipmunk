@@ -25,7 +25,7 @@ describe('Session', function() {
 			const tmpobj = tmp.fileSync();
 			console.log(`Create example grabber file`);
 			for (let i = 0; i < lines; i++) {
-				fs.appendFileSync(tmpobj.name, `[${i + 1}]:: ${(i % 99 === 0 || i <= 5) ? `some match line data\n` : `some line data\n`}`);
+				fs.appendFileSync(tmpobj.name, `[${i}]:: ${(i % 100 === 0 || i <= 5) ? `some match line data\n` : `some line data\n`}`);
 			}
 			var stats = fs.statSync(tmpobj.name);
 			console.log(`file-size: ${stats.size}`);
@@ -59,24 +59,49 @@ describe('Session', function() {
 					flags: { reg: true, word: false, cases: false },
 				}
 			]);
-			expect(session.getSearchLen()).toEqual(55);
+			expect(session.getSearchLen()).toEqual(54);
 			let result: IGrabbedElement[] | IGeneralError = session.grabSearchChunk(0, 10);
 			if (!(result instanceof Array)) {
 				fail(`Fail to grab data due error: ${result.message}`);
 				session.destroy();
 				return done();
 			}
+			console.log(result);
 			expect(result.map(i => i.content)).toEqual([
+				'[0]:: some match line data',
 				'[1]:: some match line data',
 				'[2]:: some match line data',
 				'[3]:: some match line data',
 				'[4]:: some match line data',
 				'[5]:: some match line data',
-				'[6]:: some match line data',
 				'[100]:: some match line data',
-				'[199]:: some match line data',
-				'[298]:: some match line data',
-				'[397]:: some match line data',
+				'[200]:: some match line data',
+				'[300]:: some match line data',
+				'[400]:: some match line data',
+			]);
+			expect(result.map(i => i.row)).toEqual([
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+			]);
+			expect(result.map(i => i.position)).toEqual([
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				100,
+				200,
+				300,
+				400,
 			]);
 			console.log('result of grab was: ' + result.map((x) => x.content).join('\n'));
 			expect(provider.debug().stat.unsupported().length).toEqual(0);

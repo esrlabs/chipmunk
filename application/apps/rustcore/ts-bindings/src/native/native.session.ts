@@ -258,7 +258,8 @@ export class RustSessionDebug extends RustSession {
                 return {
                     content: item.content === undefined ? (item as any).c : item.content,
                     source_id: item.source_id === undefined ? (item as any).id : item.source_id,
-                    position: 0,
+                    position: item.position === undefined ? (item as any).p : item.position,
+                    row: item.row === undefined ? (item as any).r : item.row,
                 };
             });
         } catch (e) {

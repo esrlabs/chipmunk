@@ -37,6 +37,10 @@ pub struct GrabbedElement {
     pub source_id: String,
     #[serde(rename = "c")]
     pub content: String,
+    #[serde(rename = "r")]
+    pub row: Option<usize>,
+    #[serde(rename = "p")]
+    pub pos: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
