@@ -478,7 +478,7 @@ impl RustSession {
         if ranges[ranges.len() - 1].start() != &from_pos {
             ranges.push(std::ops::RangeInclusive::new(from_pos - 1, to_pos - 1));
         }
-        let mut row: usize = 0;
+        let mut row: usize = start_line_index as usize;
         for range in ranges.iter() {
             let mut original_content = self
                 .get_grabber(GrabberTarget::Content)?
@@ -495,7 +495,8 @@ impl RustSession {
             results.grabbed_elements.append(&mut original_content.grabbed_elements);
         }
         println!("RUST: grabbing search result from original content {} rows", results.grabbed_elements.len());
-        // println!("RUST: grabbing search result from original content. Ranges: {:?}", results.grabbed_elements);
+        //println!("RUST: grabbing search result from original content. Ranges: {:?}", ranges);
+        //println!("RUST: grabbing search result from original content. Elements: {:?}", results.grabbed_elements);
         let serialized =
             serde_json::to_string(&results).map_err(|_| ComputationError::InvalidData)?;
 

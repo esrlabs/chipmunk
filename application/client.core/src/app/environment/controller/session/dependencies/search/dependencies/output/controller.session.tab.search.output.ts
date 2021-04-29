@@ -554,11 +554,11 @@ export class ControllerSessionTabSearchOutput implements Dependency {
      * @returns void
      */
     private _parse(input: string, from: number, to: number, dest?: IRow[], frame?: IRange): void {
-        const rows: string[] = input.split(/\n/gi);
+        const rows: { content: string, position: number, row: number, source_id: string }[] = JSON.parse(input);
         let packets: IRow[] = [];
         // Conver rows to packets
         try {
-            rows.forEach((str: string, i: number) => {
+            rows.forEach((row, i: number) => {
                 if (frame !== undefined) {
                     // Frame is defined. We do not need to parse all, just range in frame
                     if (frame.end < from + i) {
@@ -568,13 +568,11 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                         return;
                     }
                 }
-                const position: number = extractRowPosition(str); // Get position
-                const pluginId: number = extractPluginId(str);    // Get plugin id
                 packets.push({
-                    str: clearRowStr(str),
-                    position: from + i,
-                    positionInStream: position,
-                    pluginId: pluginId,
+                    str: clearRowStr(row.content),
+                    position: row.row,
+                    positionInStream: row.position,
+                    pluginId: 1,
                     sessionId: this._uuid,
                     parent: EParent.search,
                     api: this._accessor.session().getRowAPI(),
@@ -583,9 +581,9 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         } catch (e) {
             // do nothing
         }
-        // packets = packets.filter((packet: IRow) => {
-        //     return (packet.positionInStream !== -1);
-        // });
+        packets = packets.filter((packet: IRow) => {
+            return (packet.positionInStream !== -1);
+        });
         if (dest !== undefined) {
             // Destination storage is defined: we don't need to store rows (accept it)
             dest.push(...packets);

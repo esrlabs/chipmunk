@@ -251,7 +251,7 @@ export class Search extends Dependency {
                             start: msg.start,
                             end: msg.end,
                             guid: msg.guid,
-                            data: rows.map((r) => r.content).join('\n'),
+                            data: JSON.stringify(rows),
                             rows: search.len(),
                         }),
                     );
