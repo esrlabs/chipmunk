@@ -3,7 +3,7 @@ import * as Logs from '../util/logging';
 import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { EventProvider } from './session.provider';
-import { IFilter, IMatchEntity, IResultSearchElement, IGrabbedSearchElement } from '../interfaces/index';
+import { IFilter, IGrabbedElement, IResultSearchElement } from '../interfaces/index';
 import { IGeneralError } from '../interfaces/errors';
 import { Executors } from './session.stream.executors';
 
@@ -37,7 +37,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-     public grab(start: number, len: number): IGrabbedSearchElement[] | IGeneralError {
+     public grab(start: number, len: number): IGrabbedElement[] | IGeneralError {
         // TODO grab content
         return this._session.grabSearchChunk(start, len);
     }

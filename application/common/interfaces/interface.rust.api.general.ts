@@ -36,17 +36,6 @@ export interface IGrabbedElement {
 }
 
 /**
- * Output for @grabSearchChunk method of session
- * (application/apps/rustcore/ts/src/native/native.session.ts)
- */
-export interface IGrabbedSearchElement {
-	source_id: string,	// Id of source
-	position: number, 	// Original position in original (main) stream
-	row: number, 		// Original position in stream (for example in search)
-    content: string, 	// Row value
-}
-
-/**
  * Output for @search method of session
  * (application/apps/rustcore/ts/src/native/native.session.ts)
  */

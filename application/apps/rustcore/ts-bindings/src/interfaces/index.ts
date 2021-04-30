@@ -3,7 +3,6 @@ export {
 	IFilterFlags,
 	IGrabbedContent,
 	IGrabbedElement,
-	IGrabbedSearchElement,
 	IResultSearchElement,
 	IExtractDTFormatOptions,
 	IExtractDTFormatResult,

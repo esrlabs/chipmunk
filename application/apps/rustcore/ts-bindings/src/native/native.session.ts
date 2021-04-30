@@ -10,7 +10,6 @@ import {
     IFilter,
     IGrabbedContent,
     IGrabbedElement,
-    IGrabbedSearchElement,
     IExtractDTFormatResult,
     IExtractDTFormatOptions,
 } from '../interfaces/index';
@@ -58,7 +57,7 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract grabSearchChunk(
         start: number,
         len: number,
-    ): IGrabbedSearchElement[] | IGeneralError;
+    ): IGrabbedElement[] | IGeneralError;
 
     /**
      * TODO: @return needs interface. It should not be a string
@@ -251,7 +250,7 @@ export class RustSessionDebug extends RustSession {
         }
     }
 
-    public grabSearchChunk(start: number, len: number): IGrabbedSearchElement[] | IGeneralError {
+    public grabSearchChunk(start: number, len: number): IGrabbedElement[] | IGeneralError {
         try {
             const result: IGrabbedContent = JSON.parse(this._native.grabSearch(start, len));
             return result.grabbed_elements.map((item: IGrabbedElement) => {
