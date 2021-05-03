@@ -3,16 +3,16 @@
 import * as Tools from '../../tools/index';
 
 import { CommonInterfaces } from '../../interfaces/interface.common';
-import { IOperationProgress } from 'indexer-neon';
+import { IProgressState } from 'indexer-neon';
 
-export { IOperationProgress };
+export { IProgressState };
 
 export class ProgressiveTask {
     private _uuid: string;
     private _done: () => void;
-    private _progress: (progress: IOperationProgress) => void;
+    private _progress: (progress: IProgressState) => void;
 
-    constructor(uuid: string, done: () => void, progress: (progress: IOperationProgress) => void) {
+    constructor(uuid: string, done: () => void, progress: (progress: IProgressState) => void) {
         this._uuid = uuid;
         this._done = done;
         this._progress = progress;
@@ -22,29 +22,29 @@ export class ProgressiveTask {
         this._done();
     }
 
-    public progress(progress: IOperationProgress): void {
+    public progress(progress: IProgressState): void {
         this._progress(progress);
     }
 }
 
 export class Channel {
 
-    private _progressive: Map<string, IOperationProgress> = new Map();
+    private _progressive: Map<string, IProgressState> = new Map();
 
     private _subjects: {
         afterFiltersListUpdated: Tools.Subject<CommonInterfaces.API.IFilter[]>;
         afterChartsListUpdated: Tools.Subject<CommonInterfaces.API.IFilter[]>;
-        updatedProgressiveTask: Tools.Subject<IOperationProgress[]>;
+        updatedProgressiveTask: Tools.Subject<IProgressState[]>;
     } = {
         afterFiltersListUpdated: new Tools.Subject<CommonInterfaces.API.IFilter[]>(),
         afterChartsListUpdated: new Tools.Subject<CommonInterfaces.API.IFilter[]>(),
-        updatedProgressiveTask: new Tools.Subject<IOperationProgress[]>(),
+        updatedProgressiveTask: new Tools.Subject<IProgressState[]>(),
     };
 
     public getEvents(): {
         afterFiltersListUpdated: Tools.Subject<CommonInterfaces.API.IFilter[]>;
         afterChartsListUpdated: Tools.Subject<CommonInterfaces.API.IFilter[]>;
-        updatedProgressiveTask: Tools.Subject<IOperationProgress[]>;
+        updatedProgressiveTask: Tools.Subject<IProgressState[]>;
     } {
         return {
             afterFiltersListUpdated: this._subjects.afterFiltersListUpdated,
@@ -64,7 +64,7 @@ export class Channel {
                 this._progressive.delete(uuid);
                 emit();
             },
-            (progress: IOperationProgress) => {
+            (progress: IProgressState) => {
                 if (!this._progressive.has(uuid)) {
                     return;
                 }
@@ -73,7 +73,8 @@ export class Channel {
             },
         );
         this._progressive.set(uuid, {
-            percentage: 0,
+            total: 0,
+            done: 0,
         });
         emit();
         return task;
