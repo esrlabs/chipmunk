@@ -9,7 +9,6 @@ import {
     Session,
     SessionSearch,
     Events,
-    IEventSearchUpdated,
     IEventMapUpdated,
 } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
@@ -93,7 +92,7 @@ export class Search extends Dependency {
         subscribe(): Error | undefined;
         unsubscribe(): void;
         handlers: {
-            search(event: IEventSearchUpdated): void;
+            search(rows: number): void;
             map(event: IEventMapUpdated): void;
         };
     } {
@@ -108,10 +107,10 @@ export class Search extends Dependency {
                         ),
                     );
                 }
-                self._subscriptions.session.search = events.search.subscribe(
+                self._subscriptions.session.search = events.SearchUpdated.subscribe(
                     self._events().handlers.search,
                 );
-                self._subscriptions.session.map = events.map.subscribe(self._events().handlers.map);
+                self._subscriptions.session.map = events.MapUpdated.subscribe(self._events().handlers.map);
             },
             unsubscribe(): void {
                 Object.keys(self._subscriptions.session).forEach((key: string) => {
@@ -119,7 +118,7 @@ export class Search extends Dependency {
                 });
             },
             handlers: {
-                search(event: IEventSearchUpdated): void {
+                search(rows: number): void {
                     //
                 },
                 map(event: IEventMapUpdated): void {

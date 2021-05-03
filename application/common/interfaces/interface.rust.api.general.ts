@@ -9,11 +9,15 @@ export interface IMapEntity {
     rows: number[];
 }
 
-export interface ISearchFilter {
-	value: string,
-	is_regex: boolean,
-	case_sensitive: boolean,
-	is_word: boolean,
+export interface IFilterFlags {
+	reg: boolean,
+	word: boolean,
+	cases: boolean,
+}
+
+export interface IFilter {
+	filter: string,
+	flags: IFilterFlags,
 }
 
 export interface IGrabbedContent {

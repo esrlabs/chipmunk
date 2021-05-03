@@ -286,7 +286,7 @@ export class ControllerSessionTabStreamOutput implements Dependency {
      */
     public updateStreamState(message: IPCMessages.StreamUpdated): void {
         // Update count of rows
-        this._setTotalStreamCount(message.rowsCount);
+        this._setTotalStreamCount(message.rows);
         this._subjects.onStateUpdated.next(Object.assign({}, this._state));
     }
 
@@ -451,6 +451,7 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         // Conver rows to packets
         try {
             rows.forEach((str: string, i: number) => {
+                /*
                 const position: number = extractRowPosition(str); // Get position
                 const pluginId: number = extractPluginId(str);    // Get plugin id
                 if (frame !== undefined) {
@@ -462,11 +463,12 @@ export class ControllerSessionTabStreamOutput implements Dependency {
                         return;
                     }
                 }
+                */
                 packets.push({
                     str: clearRowStr(str),
-                    position: position,
-                    positionInStream: position,
-                    pluginId: pluginId,
+                    position: start + i,
+                    positionInStream: start + i,
+                    pluginId: 1,
                     sessionId: this._guid,
                     parent: EParent.output,
                     api: this._session().getRowAPI(),
