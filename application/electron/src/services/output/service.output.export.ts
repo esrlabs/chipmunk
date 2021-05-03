@@ -1,5 +1,5 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import ServiceStreams, { INewSessionEvent } from '../service.streams';
+import ServiceStreams from '../service.sessions';
 
 import Logger from '../../tools/env.logger';
 
@@ -31,6 +31,7 @@ class ServiceOutputExport implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            /*
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.OutputExportFeaturesRequest, this._onOutputExportFeaturesRequest.bind(this)).then((subscription: Subscription) => {
                     this._subscription.OutputExportFeaturesRequest = subscription;
@@ -46,6 +47,7 @@ class ServiceOutputExport implements IService {
                 this._logger.error(`Fail to init module due error: ${error.message}`);
                 reject(error);
             });
+            */
         });
     }
 
@@ -103,6 +105,7 @@ class ServiceOutputExport implements IService {
         });
     }
 
+/*
     private _onSessionCreated(event: INewSessionEvent) {
         if (this._store.has(event.stream.guid)) {
             return;
@@ -113,6 +116,7 @@ class ServiceOutputExport implements IService {
     private _onSessionClosed(session: string) {
         this._store.delete(session);
     }
+*/
 
     private _onOutputExportFeaturesRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
         const req: IPCMessages.OutputExportFeaturesRequest = request as IPCMessages.OutputExportFeaturesRequest;

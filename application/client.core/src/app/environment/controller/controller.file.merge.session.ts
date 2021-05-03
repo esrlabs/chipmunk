@@ -326,9 +326,11 @@ export class ControllerFileMergeSession {
             ElectronIpcService.request(new IPCMessages.FileInfoRequest({
                 file: file,
             }), IPCMessages.FileInfoResponse).then((stats: IPCMessages.FileInfoResponse) => {
+                /*
                 if (stats.parser === undefined) {
                     return reject(new Error('Fail to find parser for selected file.'));
                 }
+                */
                 resolve(stats);
             }).catch((error: Error) => {
                 reject(error);
@@ -369,6 +371,7 @@ export class ControllerFileMergeSession {
     private _getFileInfo(path: string): CancelablePromise<IFileInfo> {
         const id: string = Toolkit.guid();
         const task: CancelablePromise<IFileInfo> = new CancelablePromise<IFileInfo>((resolve, reject) => {
+            /*
             this._getFileStats(path).then((stats: IPCMessages.FileInfoResponse) => {
                 this._getFileContent(path).then((preview: IPCMessages.FileReadResponse) => {
                     resolve({
@@ -384,6 +387,7 @@ export class ControllerFileMergeSession {
             }).catch((parserError: Error) => {
                 reject(new Error(`Fail detect file parser due error: ${parserError.message}`));
             });
+            */
         }).finally(() => {
             this._tasks.delete(id);
         });

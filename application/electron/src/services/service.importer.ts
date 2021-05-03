@@ -7,7 +7,7 @@ import { IPCMessages, Subscription } from './service.electron';
 import { ImporterWriter } from '../controllers/importer/importer.writer';
 
 import ServiceElectron from './service.electron';
-import ServiceStreams from './service.streams';
+import ServiceStreams from './service.sessions';
 import Logger from '../tools/env.logger';
 
 interface IData {
@@ -29,6 +29,7 @@ class ServiceImporter implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
+            /*
             // Subscribe to IPC messages / errors
             ServiceElectron.IPC.subscribe(IPCMessages.SessionImporterLoadRequest, this._ipc_onSessionImporterLoadRequest.bind(this)).then((subscription: Subscription) => {
                 this._subscriptions.SessionImporterLoadRequest = subscription;
@@ -40,6 +41,7 @@ class ServiceImporter implements IService {
             }).catch((error: Error) => {
                 this._logger.warn(`Fail to subscribe to render event "SessionImporterSaveRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`);
             });
+            */
             resolve();
         });
     }
@@ -63,7 +65,7 @@ class ServiceImporter implements IService {
     public get(): StateFile<IScheme.IStorage> {
         return this._settings as StateFile<IScheme.IStorage>;
     }
-
+/*
     private _ipc_onSessionImporterLoadRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => void) {
         if (!(message instanceof IPCMessages.SessionImporterLoadRequest)) {
             return;
@@ -159,7 +161,7 @@ class ServiceImporter implements IService {
             session: message.session,
         }));
     }
-
+*/
     private _getImporterFileName(filename: string): string {
         return `${filename}.chip`;
     }

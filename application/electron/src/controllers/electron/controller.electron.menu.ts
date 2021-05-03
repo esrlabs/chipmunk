@@ -1,12 +1,11 @@
 import { app, Menu, MenuItemConstructorOptions } from 'electron';
-import { FileParsers } from '../files.parsers/index';
 import { IStorageScheme } from '../../services/service.storage';
 import { IExportAction } from '../../services/output/service.output.export';
 import { IPCMessages } from '../../services/service.electron';
 
 import ServiceStorage from '../../services/service.storage';
 import ServiceStreams from '../../services/service.streams';
-import ServiceFileOpener from '../../services/files/service.file.opener';
+// import ServiceFileOpener from '../../services/files/service.file.opener';
 import ServiceFileRecent from '../../services/files/service.file.recent';
 import ServiceOutputExport from '../../services/output/service.output.export';
 import FunctionOpenLocalFile from './menu.functions/function.file.local.open';
@@ -201,9 +200,7 @@ export default class ControllerElectronMenu {
     }
 
     private _getFilesLocalSubmenu(): Array<{ label: string, click: () => any }> {
-        const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile(FileParsers.map((parser) => {
-            return new parser.class();
-        }));
+        const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile();
         return [{
             label: wrapper.getLabel(),
             click: wrapper.getHandler(),
@@ -217,9 +214,11 @@ export default class ControllerElectronMenu {
             return {
                 label: `${(file.size / 1024 / 1024).toFixed(2)}Mb: ${file.file.replace(home, '~')}`,
                 click: () => {
+                    /*
                     ServiceFileOpener.openAsNew(file.file).catch((error: Error) => {
                         this._logger.warn(`Fail to open file "${file.file}" due error: ${error.message}`);
                     });
+                    */
                 },
             };
         });
