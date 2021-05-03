@@ -25,6 +25,7 @@ class ServiceTimestamp implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
+            resolve();
             /*
             Promise.all([
                 ServiceElectron.IPC.subscribe(IPCMessages.TimestampDiscoverRequest, this._onTimestampDiscoverRequest.bind(this)).then((subscription: Subscription) => {

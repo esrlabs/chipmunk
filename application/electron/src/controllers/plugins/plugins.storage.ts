@@ -1,12 +1,13 @@
 import Logger from '../../tools/env.logger';
 import ControllerPluginRender from './plugin.controller.render';
 
-import InstalledPlugin, { TConnectionFactory } from './plugin.installed';
+import InstalledPlugin from './plugin.installed';
 
+import { ControllerSession } from '../../controllers/stream.main/controller';
 import { IPCMessages } from '../../services/service.electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 
-export { InstalledPlugin, TConnectionFactory };
+export { InstalledPlugin };
 
 /**
  * @class ControllerPluginInstalled
@@ -61,10 +62,10 @@ export default class ControllerPluginsStorage {
         });
     }
 
-    public bindWithSession(session: string, connectionFactory: TConnectionFactory): Promise<void> {
+    public bindWithSession(session: ControllerSession): Promise<void> {
         return new Promise((resolve, reject) => {
             return Promise.all(Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
-                return plugin.bindWithSession(session, connectionFactory).then((error: Error | undefined) => {
+                return plugin.bindWithSession(session).then((error: Error | undefined) => {
                     if (error instanceof Error) {
                         this._logger.debug(`Plugin "${plugin.getName()}" wouldn't be attached because: ${error.message}`);
                     }

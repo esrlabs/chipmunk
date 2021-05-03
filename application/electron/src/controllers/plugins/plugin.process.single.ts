@@ -20,7 +20,7 @@ const CSettings = {
 
 interface IConnection {
     socket: Net.Socket;
-    file: string;
+    path: string;
 }
 
 interface IOpt {
@@ -203,10 +203,10 @@ export default class ControllerPluginProcessSingle extends Emitter {
                 // Send socket to plugin process
                 if (process.platform === 'win32') {
                     // Passing sockets is not supported on Windows.
-                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`);
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.path}`);
                 } else {
                     // On all other platforms we can pass socket
-                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`, connection.socket);
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.path}`, connection.socket);
                 }
                 this._setBindResolver(guid, resolve);
             }).catch(reject);

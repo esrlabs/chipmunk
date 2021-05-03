@@ -13,7 +13,7 @@ import LogsService from '../../tools/env.logger.service';
 import ControllerPluginPackage, { IPackageJson } from './plugin.package';
 import ControllerPluginStore from './plugins.store';
 import ControllerPluginRender from './plugin.controller.render';
-import ControllerPluginProcess, { TConnectionFactory } from './plugin.controller.process';
+import ControllerPluginProcess from './plugin.controller.process';
 import ControllerIPCPlugin from './plugin.process.ipc';
 import ServicePaths from '../../services/service.paths';
 import ServiceElectronService from '../../services/service.electron.state';
@@ -23,8 +23,9 @@ import ServiceElectron from '../../services/service.electron';
 import { IPCMessages } from '../../services/service.electron';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { getPluginReleaseInfoFromStr } from './plugins.validator';
+import { ControllerSession } from '../../controllers/stream.main/controller';
 
-export { IPackageJson, TConnectionFactory };
+export { IPackageJson };
 
 export type TPluginName = string;
 
@@ -411,7 +412,7 @@ export default class ControllerPluginInstalled {
         return this._controllers.process.runAsSingle();
     }
 
-    public bindWithSession(session: string, connectionFactory: TConnectionFactory): Promise<Error | undefined> {
+    public bindWithSession(session: ControllerSession): Promise<Error | undefined> {
         return new Promise((resolve, reject) => {
             if (this._info === undefined) {
                 return resolve(new Error(`Plugin isn't inited`));
@@ -420,11 +421,11 @@ export default class ControllerPluginInstalled {
                 return resolve(new Error(`Plugin doesn't have process part`));
             }
             if (this._controllers.process.isSingleProcess()) {
-                this._controllers.process.bindSinglePlugin(session, connectionFactory).then(() => {
+                this._controllers.process.bindSinglePlugin(session).then(() => {
                     resolve(undefined);
                 }).catch(reject);
             } else if (this._controllers.process.isMultipleProcess()) {
-                this._controllers.process.bindMultiplePlugin(session, connectionFactory).then(() => {
+                this._controllers.process.bindMultiplePlugin(session).then(() => {
                     resolve(undefined);
                 }).catch(reject);
             }
