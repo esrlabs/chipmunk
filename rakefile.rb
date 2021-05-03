@@ -296,7 +296,8 @@ namespace :client do
     # puts t.investigation
     cd CLIENT_CORE_DIR do
       puts 'Building client.core'
-      sh "#{NPM_RUN} prod"
+      #sh "#{NPM_RUN} prod"
+      sh "#{NPM_RUN} build"
     end
     puts 'Deliver client.core'
     rm_rf(dest_client_path)
