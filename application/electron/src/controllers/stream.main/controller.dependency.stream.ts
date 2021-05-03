@@ -6,12 +6,7 @@ import Logger from '../../tools/env.logger';
 
 import { Postman } from '../../tools/postman';
 import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
-import {
-    Session,
-    SessionSearch,
-    Events,
-    IEventStreamUpdated,
-} from 'indexer-neon';
+import { Session, Events } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
 import { Channel } from './controller.channel';
 import { CommonInterfaces } from '../../interfaces/interface.common';
@@ -52,7 +47,7 @@ export class Stream extends Dependency {
             }
             return new IPC.StreamUpdated({
                 guid: this._session.getUUID(),
-                rows: stream.len()
+                rows: stream.len(),
             });
         });
     }
@@ -85,7 +80,7 @@ export class Stream extends Dependency {
         subscribe(): Error | undefined;
         unsubscribe(): void;
         handlers: {
-            stream(event: IEventStreamUpdated): void;
+            stream(rows: number): void;
         };
     } {
         const self = this;
@@ -99,7 +94,7 @@ export class Stream extends Dependency {
                         ),
                     );
                 }
-                self._subscriptions.session.stream = events.stream.subscribe(
+                self._subscriptions.session.stream = events.StreamUpdated.subscribe(
                     self._events().handlers.stream,
                 );
             },
@@ -109,7 +104,7 @@ export class Stream extends Dependency {
                 });
             },
             handlers: {
-                stream(event: IEventStreamUpdated): void {
+                stream(rows: number): void {
                     self._postman.notify();
                 },
             },
@@ -159,29 +154,39 @@ export class Stream extends Dependency {
                     }
                     const stream = self._session.getStream();
                     if (stream instanceof Error) {
-                        return response(new IPC.StreamChunk({
-                            error: self._logger.warn(`Fail to access session controller due error: ${stream.message}`),
-                            start: msg.start,
-                            end: msg.end,
-                            guid: msg.guid,
-                        }));
+                        return response(
+                            new IPC.StreamChunk({
+                                error: self._logger.warn(
+                                    `Fail to access session controller due error: ${stream.message}`,
+                                ),
+                                start: msg.start,
+                                end: msg.end,
+                                guid: msg.guid,
+                            }),
+                        );
                     }
                     const rows = stream.grab(msg.start, msg.end - msg.start);
-                    if (typeof rows !== 'string') {
-                        return response(new IPC.StreamChunk({
-                            error: self._logger.warn(`Fail to get requested rows due error: ${rows.message}`),
+                    if (!(rows instanceof Array)) {
+                        return response(
+                            new IPC.StreamChunk({
+                                error: self._logger.warn(
+                                    `Fail to get requested rows due error: ${rows.message}`,
+                                ),
+                                start: msg.start,
+                                end: msg.end,
+                                guid: msg.guid,
+                            }),
+                        );
+                    }
+                    response(
+                        new IPC.StreamChunk({
                             start: msg.start,
                             end: msg.end,
                             guid: msg.guid,
-                        }));
-                    }
-                    response(new IPC.StreamChunk({
-                        start: msg.start,
-                        end: msg.end,
-                        guid: msg.guid,
-                        data: rows,
-                        rows: stream.len(),
-                    }));
+                            data: rows.map((r) => r.content).join('\n'),
+                            rows: stream.len(),
+                        }),
+                    );
                 },
             },
         };

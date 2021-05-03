@@ -149,42 +149,33 @@ export class ControllerSession {
                 this._unsubscribe();
                 return reject(err);
             }
-            session
-                .init()
+            this._logger = new Logger(`ControllerSession: ${session.getUUID()}`);
+            this._session = session;
+            // Initialization of dependencies
+            Promise.all([
+                getDependency<Socket>(this, session, Socket).then((dep: Socket) => {
+                    this._dependencies.socket = dep;
+                }),
+                getDependency<Stream>(this, session, Stream).then((dep: Stream) => {
+                    this._dependencies.stream = dep;
+                }),
+                getDependency<Search>(this, session, Search).then((dep: Search) => {
+                    this._dependencies.search = dep;
+                }),
+                getDependency<Charts>(this, session, Charts).then((dep: Charts) => {
+                    this._dependencies.charts = dep;
+                }),
+                getDependency<Files>(this, session, Files).then((dep: Files) => {
+                    this._dependencies.files = dep;
+                }),
+            ])
                 .then(() => {
-                    this._logger = new Logger(`ControllerSession: ${session.getUUID()}`);
-                    this._session = session;
-                    // Initialization of dependencies
-                    Promise.all([
-                        getDependency<Socket>(this, session, Socket).then((dep: Socket) => {
-                            this._dependencies.socket = dep;
-                        }),
-                        getDependency<Stream>(this, session, Stream).then((dep: Stream) => {
-                            this._dependencies.stream = dep;
-                        }),
-                        getDependency<Search>(this, session, Search).then((dep: Search) => {
-                            this._dependencies.search = dep;
-                        }),
-                        getDependency<Charts>(this, session, Charts).then((dep: Charts) => {
-                            this._dependencies.charts = dep;
-                        }),
-                        getDependency<Files>(this, session, Files).then((dep: Files) => {
-                            this._dependencies.files = dep;
-                        }),
-                    ])
-                        .then(() => {
-                            this._logger.debug(`Session "${session.getUUID()}" is created`);
-                            this._ipc().subscribe();
-                            resolve(session.getUUID());
-                            this._subjects.inited.emit(this);
-                        })
-                        .catch(reject);
+                    this._logger.debug(`Session "${session.getUUID()}" is created`);
+                    this._ipc().subscribe();
+                    resolve(session.getUUID());
+                    this._subjects.inited.emit(this);
                 })
-                .catch((err: Error) => {
-                    this._logger.error(`Fail to init a session due error: ${err.message}`);
-                    this._unsubscribe();
-                    reject(err);
-                });
+                .catch(reject);
         });
     }
 
@@ -451,7 +442,7 @@ export class ControllerSession {
                     response: (instance: IPC.MergeFilesFormatResponse) => any,
                 ): void {
                     // TODO: Implement
-                }
+                },
             },
         };
     }

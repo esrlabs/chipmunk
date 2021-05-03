@@ -16,7 +16,7 @@ import {
     IEventMapUpdated,
 } from 'indexer-neon';
 import { Dependency } from './controller.dependency';
-import { Channel, IOperationProgress } from './controller.channel';
+import { Channel, IProgressState } from './controller.channel';
 import { getExtendFilesInfo, getExtendFileInfo } from '../../tools/fs';
 
 export class Files extends Dependency {
@@ -87,7 +87,7 @@ export class Files extends Dependency {
                 const progress = this._sessionChannel.addProgressiveTask();
                 return this._stream
                     .assign(filename, options)
-                    .on('progress', (event: IOperationProgress) => {
+                    .on('progress', (event: IProgressState) => {
                         progress.progress(event);
                     })
                     .catch((err: Error) => {
@@ -134,10 +134,10 @@ export class Files extends Dependency {
                         ),
                     );
                 }
-                self._subscriptions.session.matches = events.matches.subscribe(
+                self._subscriptions.session.matches = events.MatchesUpdated.subscribe(
                     self._events().handlers.matches,
                 );
-                self._subscriptions.session.map = events.map.subscribe(self._events().handlers.map);
+                self._subscriptions.session.map = events.MapUpdated.subscribe(self._events().handlers.map);
             },
             unsubscribe(): void {
                 Object.keys(self._subscriptions.session).forEach((key: string) => {

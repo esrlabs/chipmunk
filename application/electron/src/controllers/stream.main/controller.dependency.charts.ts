@@ -122,10 +122,10 @@ export class Charts extends Dependency {
                         ),
                     );
                 }
-                self._subscriptions.session.matches = events.matches.subscribe(
+                self._subscriptions.session.matches = events.MatchesUpdated.subscribe(
                     self._events().handlers.matches,
                 );
-                self._subscriptions.session.map = events.map.subscribe(self._events().handlers.map);
+                self._subscriptions.session.map = events.MapUpdated.subscribe(self._events().handlers.map);
             },
             unsubscribe(): void {
                 Object.keys(self._subscriptions.session).forEach((key: string) => {
