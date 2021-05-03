@@ -71,7 +71,9 @@ class ServiceUserPaths implements IService {
             }).finally(() => {
                 this._getSettings().catch((err: Error) => {
                     this._logger.error(`Fail to load settings due error: ${err.message}`);
-                }).finally(resolve);
+                }).finally(() => {
+                    resolve(undefined);
+                });
             });
         });
     }
@@ -170,7 +172,9 @@ class ServiceUserPaths implements IService {
                     });
                 })).catch((err: Error) => {
                     this._logger.warn(`Fail to validate settings due error: ${err.message}`);
-                }).finally(resolve);
+                }).finally(() => {
+                    resolve(undefined);
+                });
             });
         });
 
