@@ -9,6 +9,7 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
 
     public getOptions(request: IPCMessages.FileGetOptionsRequest): Promise<CommonInterfaces.DLT.IDLTOptions> {
         return new Promise((resolve, reject) => {
+            /*
             const guid: string = PopupsService.add({
                 id: 'dlt-options-dialog',
                 options: {
@@ -33,6 +34,7 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
                     }
                 }
             });
+            */
         });
     }
 

@@ -1,8 +1,6 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import { FileParsers, AFileParser } from '../../controllers/files.parsers/index';
 import Logger from '../../tools/env.logger';
 import * as fs from 'fs';
-import * as path from 'path';
 import { Subscription } from '../../tools/index';
 import { IService } from '../../interfaces/interface.service';
 
@@ -44,19 +42,6 @@ class ServiceFileReader implements IService {
 
     public getName(): string {
         return 'ServiceFileReader';
-    }
-
-    public getParser(name: string): any {
-        let parserClass: any;
-        FileParsers.forEach((parser) => {
-            if (parserClass !== undefined) {
-                return;
-            }
-            if (name === parser.name) {
-                parserClass = parser.class;
-            }
-        });
-        return parserClass;
     }
 
     private _onFileReadRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {

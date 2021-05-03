@@ -77,7 +77,8 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     private _filterChecked(fileList: IPCMessages.IFile[]): IPCMessages.IFile[] {
-        return fileList.filter((file: IPCMessages.IFile) => file.checked === true);
+        return fileList;
+        // return fileList.filter((file: IPCMessages.IFile) => file.checked === true);
     }
 
     public open(files: IPCMessages.IFile[]): Promise<void> {

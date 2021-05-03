@@ -1,11 +1,6 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import ServiceStreams, { IStreamInfo } from '../service.streams';
-import ServiceStorage, { IStorageScheme } from '../service.storage';
-import ServiceStreamSource from '../service.stream.sources';
-import ServiceHotkeys from '../service.hotkeys';
-import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
-import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue, FileFilter } from 'electron';
+
 import Logger from '../../tools/env.logger';
 import * as Tools from '../../tools/index';
 import * as fs from 'fs';
