@@ -4,7 +4,7 @@ import * as Tools from '../../tools/index';
 
 import Logger from '../../tools/env.logger';
 
-import { Session } from "indexer-neon";
+import { Session } from "rustcore";
 import { Dependency } from './controller.dependency';
 
 const CConnectionTimeout = 5 * 1000;
