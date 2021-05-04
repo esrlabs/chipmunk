@@ -3,10 +3,14 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamBookmarks } from '../bookmarks/controller.session.tab.stream.bookmarks';
 import { ControllerSessionScope } from '../scope/controller.session.tab.scope';
 import { ControllerSessionTabTimestamp } from '../timestamps/session.dependency.timestamps';
-import { extractPluginId, extractRowPosition, clearRowStr } from '../../../helpers/row.helpers';
+import { clearRowStr } from '../../../helpers/row.helpers';
 import { ISelectionAccessor, EParent } from '../../../../services/standalone/service.output.redirections';
-import { IRow, ControllerRowAPI } from '../row/controller.row.api';
+import { IRow } from '../row/controller.row.api';
 import { Dependency, SessionGetter } from '../session.dependency';
+import { CommonInterfaces } from '../../../../interfaces/interface.common';
+
+import { StreamDataProvider } from '../../../providers/provider.stream';
+import { StreamDataAccessor, IData } from '../../../providers/accessor.stream';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ServiceElectronIpc from '../../../../services/service.electron.ipc';
@@ -56,13 +60,23 @@ export const Settings = {
 
 export class ControllerSessionTabStreamOutput implements Dependency {
 
-    private _guid: string;
-    private _logger: Toolkit.Logger;
-    private _rows: IRow[] = [];
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription} = {};
-    private _preloadTimestamp: number = -1;
-    private _horScrollOffset: number = 0;
-    private _lastRequestedRows: IRow[] = [];
+    private readonly _guid: string;
+    private readonly _logger: Toolkit.Logger;
+    private readonly _subscriptions: { [key: string]: Toolkit.Subscription | Subscription} = {};
+    private readonly _provider: StreamDataProvider;
+    private readonly _session: SessionGetter;
+    private readonly _subjects = {
+        onStateUpdated: new Subject<IStreamState>(),
+        onRangeLoaded: new Subject<ILoadedRange>(),
+        onReset: new Subject<void>(),
+        onScrollTo: new Subject<number>(),
+        onSelected: new Subject<number>(),
+        onRankChanged: new Subject<number>(),
+        onSourceChanged: new Subject<number>(),
+        onHorScrollOffset: new Subject<number>(),
+        onPositionChanged: new Subject<IPositionData>(),
+    };
+
     private _state: IStreamState = {
         count: 0,
         countRank: 1,
@@ -77,32 +91,25 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         lastLoadingRequestId: undefined,
         bufferLoadingRequestId: undefined,
     };
+    private _rows: IRow[] = [];
+    private _horScrollOffset: number = 0;
+    private _lastRequestedRows: IRow[] = [];
 
-    private _subjects = {
-        onStateUpdated: new Subject<IStreamState>(),
-        onRangeLoaded: new Subject<ILoadedRange>(),
-        onReset: new Subject<void>(),
-        onScrollTo: new Subject<number>(),
-        onSelected: new Subject<number>(),
-        onRankChanged: new Subject<number>(),
-        onSourceChanged: new Subject<number>(),
-        onHorScrollOffset: new Subject<number>(),
-        onPositionChanged: new Subject<IPositionData>(),
-    };
-
-    private _session: SessionGetter;
-
-    constructor(uuid: string, getter: SessionGetter) {
+    constructor(
+        uuid: string,
+        getter: SessionGetter
+    ) {
         this._guid = uuid;
         this._session = getter;
-        // this._requestData = params.requestDataHandler;
         this._logger = new Toolkit.Logger(`ControllerSessionTabStreamOutput: ${this._guid}`);
+        this._provider = new StreamDataProvider(uuid, new StreamDataAccessor(uuid));
     }
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
             this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._guid, this._onRowSelected.bind(this));
             this._subscriptions.onBookmarkRowSelected = this._session().getBookmarks().getObservable().onSelected.subscribe(this._onRowSelected.bind(this, EParent.bookmark, {}));
+            this._subscriptions.onProviderChunk = this._provider.subjects().chunk.subscribe(this._onProviderChunk.bind(this));
             resolve();
         });
     }
@@ -123,7 +130,6 @@ export class ControllerSessionTabStreamOutput implements Dependency {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * API of controller
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
      /**
      * List of available observables.
      * @returns { onStateUpdated: Observable<IStreamState>, onRangeLoaded: Observable<ILoadedRange>, onReset: Observable<void>, onScrollTo: Observable<number>, onSelected: Observable<number>, onRankChanged: Observable<number> }
@@ -221,15 +227,16 @@ export class ControllerSessionTabStreamOutput implements Dependency {
             if (range.start >= stored.start && range.end <= stored.end) {
                 return resolve(this._getRowsSliced(range.start, range.end + 1));
             }
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
-                const packets: IRow[] = [];
-                this._parse(message.data, message.start, packets);
-                resolve(packets.filter((packet: IRow) => {
-                    return packet.position >= range.start && packet.position <= range.end;
-                }));
-            }).catch((error: Error) => {
-                reject(new Error(`Error during requesting data (rows from ${range.start} to ${range.end}): ${error.message}`));
-            });
+            resolve([]);
+            // this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
+            //     const packets: IRow[] = [];
+            //     this._parse(message.data, message.start, packets);
+            //     resolve(packets.filter((packet: IRow) => {
+            //         return packet.position >= range.start && packet.position <= range.end;
+            //     }));
+            // }).catch((error: Error) => {
+            //     reject(new Error(`Error during requesting data (rows from ${range.start} to ${range.end}): ${error.message}`));
+            // });
         });
     }
 
@@ -298,10 +305,6 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         return this._state.count;
     }
 
-    public preload(range: IRange): Promise<IRange> {
-        return this._preload(range);
-    }
-
     public setHorScrollOffset(offset: number) {
         this._horScrollOffset = offset;
         this._subjects.onHorScrollOffset.next(offset);
@@ -320,17 +323,6 @@ export class ControllerSessionTabStreamOutput implements Dependency {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Rows operations
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _isRangeStored(range: IRange): boolean {
-        const stored = Object.assign({}, this._state.stored);
-        if (this._state.count === 0 || range.start < 0 || range.end < 0) {
-            return true;
-        }
-        if (range.start >= stored.start && range.end <= stored.end) {
-            return true;
-        }
-        return false;
-    }
-
     private _getRowsSliced(from: number, to: number): IRow[] {
         const offset: number = this._state.stored.start > 0 ? this._state.stored.start : 0;
         return this._rows.slice(from - offset, to - offset);
@@ -375,65 +367,13 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         } else {
             request.end = this._state.count;
         }
-        this._state.lastLoadingRequestId = setTimeout(() => {
-            this._state.lastLoadingRequestId = undefined;
-            this._requestData(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
-                // Check: do we already have other request
-                if (this._state.lastLoadingRequestId !== undefined) {
-                    // No need to parse - new request was created
-                    this._lastRequestedRows = [];
-                    this._parse(message.data, message.start, this._lastRequestedRows, frame);
-                    return;
-                }
-                // Update size of whole stream (real size - count of rows in stream file)
-                this._setTotalStreamCount(message.rows);
-                // Parse and accept rows
-                this._parse(message.data, message.start);
-                // Check again last requested frame
-                if (stored.start <= frame.start && stored.end >= frame.end) {
-                    // Send notification about update
-                    this._subjects.onRangeLoaded.next({
-                        range: { start: frame.start, end: frame.end },
-                        rows: this._getRowsSliced(frame.start, frame.end + 1)
-                    });
-                    return;
-                } else {
-                    this._logger.warn(`Requested frame isn't in scope of stored data. Request - rows from ${request.start} to ${request.end}.`);
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
-            });
-        }, Settings.requestDelay);
-        return true;
-    }
-
-    private _preload(range: IRange): Promise<IRange | null> {
-        return new Promise((resolve, reject) => {
-            const timestamp: number = Date.now();
-            if (this._preloadTimestamp !== -1 && timestamp - this._preloadTimestamp < 500) {
-                return resolve(null);
-            }
-            if (this._isRangeStored(range)) {
-                this._preloadTimestamp = -1;
-                return resolve(range);
-            }
-            this._preloadTimestamp = timestamp;
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
-                // Drop request ID
-                this._preloadTimestamp = -1;
-                // Update size of whole stream (real size - count of rows in stream file)
-                this._setTotalStreamCount(message.rows);
-                // Parse and accept rows
-                this._parse(message.data, range.start);
-                // Return actual preloaded range
-                resolve({ start: message.start, end: message.end});
-            }).catch((error: Error) => {
-                // Drop request ID
-                this._preloadTimestamp = -1;
-                // Reject
-                reject(new Error(this._logger.error(`Fail to preload data (rows from ${range.start} to ${range.end}) due error: ${error.message}`)));
-            });
+        const error: Error | undefined = this._provider.request({
+            from: request.start,
+            to: request.end,
         });
+        if (error instanceof Error) {
+            this._logger.error(`Fail request chunk. Error: ${error.message}`);
+        }
     }
 
     /**
@@ -444,30 +384,15 @@ export class ControllerSessionTabStreamOutput implements Dependency {
      * @param { number } count - total count of rows in whole stream (not in input, but in whole stream)
      * @returns void
      */
-    private _parse(input: string, start: number, dest?: IRow[], frame?: IRange): void {
-        // TODO: filter here should be removed -> bad data comes from process, it should be resolved there
-        const rows: string[] = input.split(/\n/gi);
+    private _parse(rows: CommonInterfaces.API.IGrabbedElement[], start: number, dest?: IRow[], frame?: IRange): void {
         let packets: IRow[] = [];
         // Conver rows to packets
         try {
-            rows.forEach((str: string, i: number) => {
-                /*
-                const position: number = extractRowPosition(str); // Get position
-                const pluginId: number = extractPluginId(str);    // Get plugin id
-                if (frame !== undefined) {
-                    // Frame is defined. We do not need to parse all, just range in frame
-                    if (frame.end < position) {
-                        throw new Error('No need to parse');
-                    }
-                    if (frame.start > position) {
-                        return;
-                    }
-                }
-                */
+            rows.forEach((row: CommonInterfaces.API.IGrabbedElement, i: number) => {
                 packets.push({
-                    str: clearRowStr(str),
-                    position: start + i,
-                    positionInStream: start + i,
+                    str: clearRowStr(row.content),
+                    position: typeof row.row === 'number' ? row.row : start + i,
+                    positionInStream: typeof row.position === 'number' ? row.position : start + i,
                     pluginId: 1,
                     sessionId: this._guid,
                     parent: EParent.output,
@@ -570,23 +495,40 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         }
     }
 
-    private _requestData(start: number, end: number): Promise<IPCMessages.StreamChunk> {
-        return new Promise((resolve, reject) => {
-            const s = Date.now();
-            ServiceElectronIpc.request(
-                new IPCMessages.StreamChunk({
-                    guid: this._guid,
-                    start: start,
-                    end: end
-                }), IPCMessages.StreamChunk
-            ).then((response: IPCMessages.StreamChunk) => {
-                this._logger.env(`Chunk [${start} - ${end}] is read in: ${((Date.now() - s) / 1000).toFixed(2)}s`);
-                if (response.error !== undefined) {
-                    return reject(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
-                }
-                resolve(response);
-            });
+    private _onProviderChunk(data: IData) {
+        // Update size of whole stream (real size - count of rows in stream file)
+        this._setTotalStreamCount(data.count);
+        // Parse and accept rows
+        this._parse(data.rows, data.from);
+        this._lastRequestedRows = this._getRowsSliced(data.from, data.to + 1);
+        // Check again last requested frame
+        this._subjects.onRangeLoaded.next({
+            range: { start: data.from, end: data.to },
+            rows: this._lastRequestedRows
         });
     }
+
+    // private _requestData(start: number, end: number): Promise<IPCMessages.StreamChunk> {
+    //     return new Promise((resolve, reject) => {
+    //         const error = this._provider.request({ from: start, to: end });
+    //         if (error instanceof Error) {
+    //             console.error(error);
+    //         }
+    //         const s = Date.now();
+    //         ServiceElectronIpc.request(
+    //             new IPCMessages.StreamChunk({
+    //                 guid: this._guid,
+    //                 start: start,
+    //                 end: end
+    //             }), IPCMessages.StreamChunk
+    //         ).then((response: IPCMessages.StreamChunk) => {
+    //             this._logger.env(`Chunk [${start} - ${end}] is read in: ${((Date.now() - s) / 1000).toFixed(2)}s`);
+    //             if (response.error !== undefined) {
+    //                 return reject(new Error(this._logger.warn(`Request to stream chunk was finished within error: ${response.error}`)));
+    //             }
+    //             resolve(response);
+    //         });
+    //     });
+    // }
 
 }
