@@ -5,7 +5,7 @@ export interface IRustModuleExports {
 }
 
 export function getNativeModule(): IRustModuleExports {
-    console.log(module.path);
+    console.log(`Target: ${path.resolve(module.path, '../../native/index.node')}`);
     const target = path.resolve(module.path, '../../native/index.node');
     return require(target);
 }

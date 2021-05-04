@@ -1,4 +1,5 @@
 import OpenFile from './actions/action.open.file';
+import SearchInFile from './actions/action.search';
 import Help from './actions/action.help';
 
 import { Action } from './actions/action';
@@ -10,7 +11,7 @@ type TRejector = (err: Error) => void;
 
 class Executor {
     
-    static Actions: Action[] = [Help, OpenFile];
+    static Actions: Action[] = [Help, OpenFile, SearchInFile];
 
     public run(): Promise<void> {
         return new Promise((resolve, reject) => {
