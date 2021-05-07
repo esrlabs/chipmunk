@@ -1,4 +1,9 @@
 # Changelog
+## [2.16.6] - 05/07/2021
+### Changes
+* Lib chipmunk.client.components has been upgraded
+* Highlights on single search do not apply
+* Shell sidebar application improved 
 
 ## [2.16.5] - 04/16/2021
 ### Fixes
