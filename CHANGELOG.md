@@ -1,4 +1,9 @@
 # Changelog
+
+## [2.17.0] - 05/07/2021
+### Changes
+* Using relevant version
+
 ## [2.16.6] - 05/07/2021
 ### Changes
 * Lib chipmunk.client.components has been upgraded
