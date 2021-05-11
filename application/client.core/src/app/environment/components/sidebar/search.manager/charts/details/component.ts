@@ -62,6 +62,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
     }
 
     public ngOnDestroy() {
+        this.provider.getSession().getSessionSearch().getChartsAPI().selectBySource(undefined);
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
@@ -108,6 +109,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
             this._ng_options = this._getOptions();
             this._setColors();
         }
+        this.provider.getSession().getSessionSearch().getChartsAPI().selectBySource(this._ng_request);
     }
 
     private _setColors() {

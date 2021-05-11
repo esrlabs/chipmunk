@@ -487,7 +487,7 @@ export class ServiceData {
     }
 
     private _getValidNumberValue(val: string): number | undefined {
-        const value: number = parseInt(val, 10);
+        const value: number = parseFloat(val);
         if (isNaN(value) || !isFinite(value)) {
             return undefined;
         }

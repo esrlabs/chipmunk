@@ -15,6 +15,11 @@ import TabsSessionsService from '../../../../services/service.sessions.tabs';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+interface ITickSettings {
+    precision: number;
+    isFloat: boolean;
+}
+
 const CSettings = {
     rebuildDelay: 250,
     redrawDelay: 50,
@@ -36,6 +41,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     public _ng_height: number = 100;
     public _ng_filters: Chart | undefined;
     public _ng_charts: Chart | undefined;
+    public _ng_filtersLeft: number = 0;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _subscriptionsSession: { [key: string]: Subscription } = {};
@@ -43,6 +49,11 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     private _destroyed: boolean = false;
     private _mainViewPosition: number | undefined;
     private _redirectMainView: boolean = false;
+    private _size: ClientRect;
+    private _tickSettings: ITickSettings = {
+        precision: 1,
+        isFloat: false,
+    };
     private _rebuild: {
         timer: any,
         last: number,
@@ -135,10 +146,16 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         let position: number | undefined = this._getPositionByChartPointData(event);
         // Try to get data
         if (position === undefined) {
-            const rows: number = this.service.getStreamSize();
-            const size: ClientRect = (event.target as HTMLElement).getBoundingClientRect();
-            const rate: number = size.width / rows;
-            position = Math.round(event.offsetX / rate);
+            if (this._ng_charts === undefined) {
+                return;
+            }
+            const visible: boolean = this._isYAxisVisible();
+            const range: IRange = this._getRange();
+            const rows: number = range.end - range.begin;
+            const width: number = this._size.width - (visible ? this._ng_charts.chartArea.left : 0) ;
+            const rate: number = width / rows;
+            const offsetX: number = event.offsetX - (visible ? this._ng_charts.chartArea.left : 0);
+            position = Math.round(offsetX / rate) + range.begin;
         }
         OutputRedirectionsService.select(EParent.chart, this.service.getSessionGuid(), { output: position });
     }
@@ -165,16 +182,26 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         return this._progress.matches;
     }
 
+    private _isYAxisVisible(): boolean {
+        let visible: boolean = false;
+        this._ng_charts.options.scales.yAxes.forEach((yAxis: Chart.ChartYAxe) => {
+            if (yAxis.display === true) {
+                visible = true;
+            }
+        });
+        return visible;
+    }
+
     private _resize(force: boolean = false) {
         if (this._destroyed) {
             return;
         }
-        const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
-        if (this._ng_width === size.width && this._ng_height === size.height) {
+        this._size = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        if (this._ng_width === this._size.width && this._ng_height === this._size.height) {
             return;
         }
-        this._ng_width = size.width;
-        this._ng_height = size.height;
+        this._ng_width = this._size.width;
+        this._ng_height = this._size.height;
         this._forceUpdate();
         clearTimeout(this._redraw.timer);
         if (!force && this._redraw.postponed < CSettings.maxPostponedRedraws) {
@@ -387,7 +414,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             let min: number = 0;
             let max: number = 100;
             switch (this.service.getScaleType()) {
-                case EScaleType.common:
+                case EScaleType.single:
                     min = scale.min[i];
                     max = scale.max[i];
                     break;
@@ -403,13 +430,62 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 id: yAxisID,
                 position: 'left',
                 ticks: {
-                    min: min === undefined ? undefined : Math.floor(min - min * 0.02),
-                    max: max === undefined ? undefined : Math.ceil(max + max * 0.02),
+                    min: min === undefined ? undefined : this._prepMin(min),
+                    max: max === undefined ? undefined : this._prepMax(max),
                     fontColor: display ? scale.colors[i] : undefined,
                     fontSize: 11,
+                    callback: (value: number) => {
+                        if (this._tickSettings.isFloat) {
+                            return value.toPrecision(this._tickSettings.precision);
+                        }
+                        return value;
+                    },
                 },
             };
         });
+    }
+
+    private _prepMin(min: number): number {
+        if (Number.isInteger(min)) {
+            this._tickSettings.isFloat = false;
+            if (min < 0) {
+                return Math.floor(min + min * 0.02);
+            }
+            return Math.floor(min - min * 0.02);
+        }
+        if (min < 0) {
+            min = min + min * 0.02;
+        } else {
+            min = min - min * 0.02;
+        }
+        this._setDigitsAfterDot(min);
+        return min;
+    }
+
+    private _prepMax(max: number): number {
+        if (Number.isInteger(max)) {
+            this._tickSettings.isFloat = false;
+            if (max < 0) {
+                return Math.ceil(max - max * 0.02);
+            }
+            return Math.ceil(max + max * 0.02);
+        }
+        if (max < 0) {
+            max = max - max * 0.02;
+        } else {
+            max = max + max * 0.02;
+        }
+        this._setDigitsAfterDot(max);
+        return max;
+    }
+
+    private _setDigitsAfterDot(value: number) {
+        this._tickSettings.isFloat = true;
+        for (let i = 1; i < 5; i++) {
+            if (((value * (10 ** i)) % 10 !== 0) && i > this._tickSettings.precision) {
+                this._tickSettings.precision = i + 1;
+            }
+        }
     }
 
     private _getRange(): IRange | undefined {
@@ -456,6 +532,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 return;
             }
             this._ng_charts.update();
+            this._ng_filtersLeft = this._ng_charts.options.scales.yAxes[0].display ? this._ng_charts.chartArea.left : 0;
         });
     }
 
@@ -548,6 +625,9 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                 return;
             }
             if (chart === undefined) {
+                return;
+            }
+            if (event.x < chart.chartArea.left) {
                 return;
             }
             // This feature of chartjs isn't documented well,
