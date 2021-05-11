@@ -3,7 +3,7 @@ import * as Logs from '../util/logging';
 import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { EventProvider } from './session.provider';
-import { IFilter, IGrabbedElement, ISearchResults } from '../interfaces/index';
+import { IFilter, IGrabbedElement, ISearchResults, ISearchMap } from '../interfaces/index';
 import { IGeneralError } from '../interfaces/errors';
 import { Executors } from './session.stream.executors';
 
@@ -90,6 +90,10 @@ export class SessionSearch {
         // TODO: field "filters" of IResultSearchElement cannot be empty, at least 1 filter
         // should be present there always. This is a right place for check of it
         return Executors.search(this._session, this._provider, this._logger, filters);
+    }
+
+    public getMap(datasetLength: number, from?: number, to?: number): CancelablePromise<ISearchMap> {
+        return Executors.map(this._session, this._provider, this._logger, { datasetLength, from, to });
     }
 
     public len(): number {

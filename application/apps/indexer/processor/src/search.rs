@@ -136,11 +136,13 @@ impl SearchHolder {
     /// return the file that contains the search results along with the
     /// map of found matches. Format of map is an array of matches:
     /// [
-    ///     [position in stream, ...[number of filter] ],
+    ///     (position in stream, [index of matching filter]),
     ///     ...
-    ///     [position in stream, ...[number of filter] ],
+    ///     (position in stream, [index of matching filter]),
     /// ]
-    pub fn execute_search(&self) -> Result<(PathBuf, Vec<Vec<usize>>), SearchError> {
+    pub fn execute_search(
+        &self,
+    ) -> Result<(PathBuf, Vec<(u64, Vec<u8>)>, Vec<(u8, u64)>), SearchError> {
         use regex::Regex;
         use std::str::FromStr;
 
@@ -166,16 +168,18 @@ impl SearchHolder {
         let out_file = File::create(&self.out_file_path)?;
         let mut matched_lines = 0u64;
         let mut writer = BufWriter::new(out_file);
-        let mut indexes: Vec<Vec<usize>> = vec![];
+        let mut indexes: Vec<(u64, Vec<u8>)> = vec![];
+        let mut stats: HashMap<u8, u64> = HashMap::new();
         Searcher::new().search_path(
             &matcher,
             &self.file_path,
             UTF8(|lnum, line| {
                 matched_lines += 1;
-                let mut line_indexes: Vec<usize> = vec![lnum as usize];
+                let mut line_indexes: (u64, Vec<u8>) = (lnum, vec![]);
                 for (index, re) in matchers.iter().enumerate() {
                     if re.is_match(line) {
-                        line_indexes.push(index);
+                        line_indexes.1.push(index as u8);
+                        *stats.entry(index as u8).or_insert(0) += 1;
                     }
                 }
                 indexes.push(line_indexes);
@@ -184,7 +188,14 @@ impl SearchHolder {
             }),
         )?;
 
-        Ok((self.out_file_path.clone(), indexes))
+        Ok((
+            self.out_file_path.clone(),
+            indexes,
+            stats
+                .into_iter()
+                .map(|(filter_index, meets)| (filter_index, meets))
+                .collect(),
+        ))
     }
 }
 

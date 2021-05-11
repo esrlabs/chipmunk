@@ -33,7 +33,7 @@ pub struct OperationDone {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchOperationResult {
     pub found: usize,
-    pub matches: String,
+    pub stats: Vec<(u8, u64)>,
 }
 
 #[derive(strum_macros::ToString, Debug, Serialize, Deserialize)]

@@ -5,6 +5,7 @@ export {
 	IGrabbedElement,
 	IResultSearchElement,
 	ISearchResults,
+	ISearchMap,
 	IExtractDTFormatOptions,
 	IExtractDTFormatResult,
 	IMatchEntity,

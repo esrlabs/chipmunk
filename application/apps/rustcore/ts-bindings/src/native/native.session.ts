@@ -184,6 +184,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract search(filters: IFilter[]): string | IGeneralError;
 
+    public abstract getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string;
+
     public abstract abort(uuid: string): undefined | IGeneralError;
 }
 
@@ -203,6 +205,8 @@ export abstract class RustSessionNative {
     public abstract getSearchLen(): number;
 
     public abstract search(filters: Array<{ value: string, is_regex: boolean, ignore_case: boolean, is_word: boolean, }>): IGeneralError | string;
+
+    public abstract getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string;
 
 }
 
@@ -341,6 +345,11 @@ export class RustSessionDebug extends RustSession {
             };
         }));
     }
+
+    public getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string {
+        return this._native.getMap(datasetLength, from, to);
+    }
+
 
     public abort(uuid: string): undefined | IGeneralError {
         return undefined;

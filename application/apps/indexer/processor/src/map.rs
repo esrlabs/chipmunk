@@ -23,8 +23,18 @@ impl PartialEq for FilterMatch {
     }
 }
 
+/// Holds search results map
+/// Full dataset is:
+///     Vec<
+///         (
+///             position in stream: u64,
+///             array of filter's indexes matched with row: Vec<u8>
+///         )
+///     >
+///
 pub struct SearchMap {
     matches: Vec<(u64, Vec<u8>)>,
+    stream_len: u64,
 }
 
 impl Default for SearchMap {
@@ -35,19 +45,22 @@ impl Default for SearchMap {
 
 impl SearchMap {
     pub fn new() -> Self {
-        Self { matches: vec![] }
+        Self {
+            matches: vec![],
+            stream_len: 0,
+        }
     }
 
-    pub fn get_scaled_map(
+    /// Returns scaled search results map. As soon as we are limited with screen/frame size (dataset_len).
+    pub fn get(
         &self,
-        stream_len: u64,
-        factor: u16,
+        dataset_len: u16,
         range: Option<(u64, u64)>,
     ) -> Vec<Vec<(u8, u16)>> {
         let mut map: Vec<Vec<(u8, u16)>> = vec![];
         if let Some((from, to)) = range {
             let range_len = to - from;
-            let rate: f64 = (range_len as f64) / (factor as f64);
+            let rate: f64 = (range_len as f64) / (dataset_len as f64);
             let mut cursor: usize = 0;
             if rate <= 1.0 {
                 loop {
@@ -76,16 +89,20 @@ impl SearchMap {
                     }
                 }
             } else {
-                for n in 1..=factor {
+                for n in 1..=dataset_len {
                     if cursor < self.matches.len() {
-                        let right: u64 = (rate * (n as f64) + from as f64).floor() as u64;
-                        let left: u64 = (rate * ((n - 1) as f64) + from as f64).floor() as u64;
+                        let last_pos_in_results: u64 =
+                            (rate * (n as f64) + from as f64).floor() as u64;
+                        let first_pos_in_results: u64 =
+                            (rate * ((n - 1) as f64) + from as f64).floor() as u64;
                         let mut segment: HashMap<u8, u16> = HashMap::new();
                         loop {
-                            if cursor >= self.matches.len() || self.matches[cursor].0 > right {
+                            if cursor >= self.matches.len()
+                                || self.matches[cursor].0 > last_pos_in_results
+                            {
                                 break;
                             }
-                            if self.matches[cursor].0 < left {
+                            if self.matches[cursor].0 < first_pos_in_results {
                                 cursor += 1;
                                 continue;
                             }
@@ -107,10 +124,10 @@ impl SearchMap {
                 }
             }
         } else {
-            let rate: f64 = ((stream_len as f64) / (factor as f64)).floor();
+            let rate: f64 = (self.stream_len as f64) / (dataset_len as f64);
             let mut cursor: usize = 0;
             if rate <= 1.0 {
-                for n in 1..=stream_len {
+                for n in 1..=self.stream_len {
                     if cursor < self.matches.len() {
                         if (self.matches[cursor]).0 == n {
                             map.push(
@@ -129,12 +146,14 @@ impl SearchMap {
                     }
                 }
             } else {
-                for n in 1..=factor {
+                for n in 1..=dataset_len {
                     if cursor < self.matches.len() {
-                        let right: u64 = (rate * (n as f64)).floor() as u64;
+                        let last_pos_in_segment: u64 = (rate * (n as f64)).floor() as u64;
                         let mut segment: HashMap<u8, u16> = HashMap::new();
                         loop {
-                            if cursor >= self.matches.len() || self.matches[cursor].0 > right {
+                            if cursor >= self.matches.len()
+                                || self.matches[cursor].0 > last_pos_in_segment
+                            {
                                 break;
                             }
                             for filter_ref in &self.matches[cursor].1 {
@@ -164,6 +183,10 @@ impl SearchMap {
         } else {
             self.matches = vec![];
         }
+    }
+
+    pub fn set_stream_len(&mut self, len: u64) {
+        self.stream_len = len;
     }
 
     pub fn append(&mut self, matches: &mut Vec<(u64, Vec<u8>)>) {
@@ -197,7 +220,8 @@ fn test() {
         (200, vec![1]),
     ]));
 
-    let scaled = map.get_scaled_map(200, 10, None);
+    map.set_stream_len(200);
+    let scaled = map.get(10, None);
     assert_eq!(scaled.len(), 10);
     for matches in scaled.iter() {
         assert_eq!(matches.len(), 2);
@@ -208,7 +232,8 @@ fn test() {
         }
     }
 
-    let scaled = map.get_scaled_map(200, 5, None);
+    map.set_stream_len(200);
+    let scaled = map.get(5, None);
     assert_eq!(scaled.len(), 5);
     for matches in scaled.iter() {
         assert_eq!(matches.len(), 2);
@@ -219,7 +244,8 @@ fn test() {
         }
     }
 
-    let scaled = map.get_scaled_map(1000, 10, None);
+    map.set_stream_len(1000);
+    let scaled = map.get(10, None);
     assert_eq!(scaled.len(), 10);
     for n in 0..10 {
         if n < 2 {
@@ -230,21 +256,24 @@ fn test() {
         }
     }
 
-    let scaled = map.get_scaled_map(200, 200, None);
+    map.set_stream_len(200);
+    let scaled = map.get(200, None);
     assert_eq!(scaled.len(), 200);
     for n in (1..=20).step_by(2) {
         assert_eq!(scaled[n * 10 - 1][0], (0, 1));
         assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
     }
 
-    let scaled = map.get_scaled_map(200, 1000, None);
+    map.set_stream_len(200);
+    let scaled = map.get(1000, None);
     assert_eq!(scaled.len(), 200);
     for n in (1..=20).step_by(2) {
         assert_eq!(scaled[n * 10 - 1][0], (0, 1));
         assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
     }
 
-    let scaled = map.get_scaled_map(1000, 1000, None);
+    map.set_stream_len(1000);
+    let scaled = map.get(1000, None);
     assert_eq!(scaled.len(), 1000);
     for n in (1..=20).step_by(2) {
         assert_eq!(scaled[n * 10 - 1][0], (0, 1));
@@ -254,7 +283,8 @@ fn test() {
         assert_eq!(scaled[n].is_empty(), true);
     }
 
-    let scaled = map.get_scaled_map(200, 20, Some((100, 150)));
+    map.set_stream_len(200);
+    let scaled = map.get(20, Some((100, 150)));
     assert_eq!(scaled.len(), 20);
     assert_eq!(scaled[0][0], (1, 1));
     assert_eq!(scaled[1].is_empty(), true);
@@ -277,7 +307,8 @@ fn test() {
     assert_eq!(scaled[18].is_empty(), true);
     assert_eq!(scaled[19][0], (0, 1));
 
-    let scaled = map.get_scaled_map(200, 10, Some((0, 200)));
+    map.set_stream_len(200);
+    let scaled = map.get(10, Some((0, 200)));
     assert_eq!(scaled.len(), 10);
     for matches in scaled.iter() {
         assert_eq!(matches.len(), 2);
@@ -288,7 +319,8 @@ fn test() {
         }
     }
 
-    let scaled = map.get_scaled_map(200, 400, Some((100, 150)));
+    map.set_stream_len(200);
+    let scaled = map.get(400, Some((100, 150)));
     assert_eq!(scaled.len(), 51);
     assert_eq!(scaled[0][0], (1, 1));
     assert_eq!(scaled[10][0], (0, 1));
@@ -320,7 +352,8 @@ fn test() {
         (200, vec![3]),
     ]));
 
-    let scaled = map.get_scaled_map(200, 10, None);
+    map.set_stream_len(200);
+    let scaled = map.get(10, None);
     assert_eq!(scaled.len(), 10);
     assert_eq!(scaled[0], vec![(0, 1), (1, 2), (2, 1), (3, 1)]);
     assert_eq!(scaled[1], vec![(2, 1), (3, 1)]);

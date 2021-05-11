@@ -23,6 +23,7 @@ pub mod grabber;
 pub mod parse;
 pub mod processor;
 pub mod search;
+pub mod map;
 pub mod text_source;
 
 #[cfg(test)]
