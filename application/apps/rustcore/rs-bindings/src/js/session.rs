@@ -7,13 +7,9 @@ use indexer_base::progress::ComputationResult::Item;
 use indexer_base::progress::Severity;
 use node_bindgen::{
     core::{
-        val::{
-            JsEnv,
-            JsObject,
-        },
-        JSValue,
-        NjError, 
-        TryIntoJs},
+        val::{JsEnv, JsObject},
+        JSValue, NjError, TryIntoJs,
+    },
     derive::node_bindgen,
     sys::napi_value,
 };
@@ -21,11 +17,8 @@ use processor::dlt_source::DltSource;
 use processor::grabber::GrabTrait;
 use processor::grabber::LineRange;
 use processor::grabber::MetadataSource;
-use processor::grabber::{GrabMetadata, Grabber, GrabbedContent};
-use processor::search::{
-    SearchFilter,
-    SearchHolder,
-};
+use processor::grabber::{GrabMetadata, GrabbedContent, Grabber};
+use processor::search::{SearchFilter, SearchHolder};
 use processor::text_source::TextFileSource;
 use serde::Serialize;
 use std::path::Path;
@@ -74,7 +67,6 @@ impl std::fmt::Display for GrabberTarget {
             GrabberTarget::Content => write!(f, "content grabber"),
             GrabberTarget::Search => write!(f, "search grabber"),
         }
-        
     }
 }
 
@@ -109,7 +101,6 @@ pub struct RustSession {
 }
 
 impl RustSession {
-
     /// will result in a grabber that has it's metadata generated
     /// this function will first check if there has been some new metadata that was previously
     /// written to the metadata-channel. If so, this metadata is used in the grabber.
@@ -178,23 +169,29 @@ impl RustSession {
                     let mut grabber = match GrabberType::new(source) {
                         Ok(grabber) => grabber,
                         Err(err) => {
-                            return Err(ComputationError::Protocol(format!("Fail to create search grabber. Error: {}", err)));
+                            return Err(ComputationError::Protocol(format!(
+                                "Fail to create search grabber. Error: {}",
+                                err
+                            )));
                         }
                     };
                     if let Err(err) = grabber.inject_metadata(metadata) {
-                        return Err(ComputationError::Protocol(format!("Fail to inject metadata into search grabber. Error: {}", err)));
+                        return Err(ComputationError::Protocol(format!(
+                            "Fail to inject metadata into search grabber. Error: {}",
+                            err
+                        )));
                     }
                     self.search_grabber = Some(Box::new(grabber));
-                },
+                }
                 Err(cc::TryRecvError::Empty) => {
                     println!("RUST: no new search metadata arrived");
                     return Ok(None);
-                },
+                }
                 Err(cc::TryRecvError::Disconnected) => {
                     return Err(ComputationError::Protocol(
                         "Search metadata channel was disconnected".to_owned(),
                     ));
-                },
+                }
             };
         }
         let grabber = match &mut self.search_grabber {
@@ -213,7 +210,6 @@ impl RustSession {
             )),
         }
     }
-
 }
 
 async fn compute() -> Uuid {
@@ -308,9 +304,12 @@ impl RustSession {
                                     }
                                     Some(Err(e)) => {
                                         println!("RUST error computing metadata");
-                                        let _ = content_metadata_tx.send(Err(ComputationError::Process(
-                                            format!("Could not compute metadata: {}", e),
-                                        )));
+                                        let _ = content_metadata_tx.send(Err(
+                                            ComputationError::Process(format!(
+                                                "Could not compute metadata: {}",
+                                                e
+                                            )),
+                                        ));
                                         callback(CallbackEvent::OperationError((
                                             operation_id,
                                             NativeError {
@@ -340,7 +339,8 @@ impl RustSession {
                                 operation_id,
                             } => {
                                 println!("RUST: Search operation is requested");
-                                let mut search_holder = SearchHolder::new(&target_file.as_path(), filters.iter());
+                                let search_holder =
+                                    SearchHolder::new(&target_file.as_path(), filters.iter());
                                 let (file_path, matches) = match search_holder.execute_search() {
                                     Ok((file_path, matches)) => (file_path, matches),
                                     Err(err) => {
@@ -349,7 +349,10 @@ impl RustSession {
                                             NativeError {
                                                 severity: Severity::ERROR,
                                                 kind: NativeErrorKind::OperationSearch,
-                                                message: Some(format!("Fail to execute search. Error: {}", err)),
+                                                message: Some(format!(
+                                                    "Fail to execute search. Error: {}",
+                                                    err
+                                                )),
                                             },
                                         )));
                                         continue;
@@ -393,23 +396,23 @@ impl RustSession {
                                         }) {
                                             Ok(res) => {
                                                 serialized = Some(res);
-                                            },
+                                            }
                                             Err(err) => {
                                                 error = Some(NativeError {
                                                     severity: Severity::ERROR,
                                                     kind: NativeErrorKind::ComputationFailed,
                                                     message: Some(format!("{}", err)),
                                                 });
-                                            },
+                                            }
                                         };
-                                    },
+                                    }
                                     Err(err) => {
                                         error = Some(NativeError {
                                             severity: Severity::ERROR,
                                             kind: NativeErrorKind::ComputationFailed,
                                             message: Some(format!("{}", err)),
                                         });
-                                    },
+                                    }
                                 };
                                 if let Some(serialized) = serialized.take() {
                                     callback(CallbackEvent::OperationDone(OperationDone {
@@ -417,10 +420,7 @@ impl RustSession {
                                         result: Some(serialized),
                                     }));
                                 } else if let Some(error) = error.take() {
-                                    callback(CallbackEvent::OperationError((
-                                        operation_id,
-                                        error,
-                                    )));
+                                    callback(CallbackEvent::OperationError((operation_id, error)));
                                 }
                             }
                             Operation::End => {
@@ -548,7 +548,10 @@ impl RustSession {
         let grabber = if let Some(grabber) = self.get_search_grabber()? {
             grabber
         } else {
-            let serialized = serde_json::to_string(&GrabbedContent { grabbed_elements: vec![] }).map_err(|_| ComputationError::InvalidData)?;
+            let serialized = serde_json::to_string(&GrabbedContent {
+                grabbed_elements: vec![],
+            })
+            .map_err(|_| ComputationError::InvalidData)?;
             return Ok(serialized);
         };
         let grabbed_content: GrabbedContent = grabber
@@ -556,11 +559,13 @@ impl RustSession {
                 (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
             ))
             .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
-        let mut results: GrabbedContent = GrabbedContent { grabbed_elements: vec![] };
+        let mut results: GrabbedContent = GrabbedContent {
+            grabbed_elements: vec![],
+        };
         let mut ranges = vec![];
         let mut from_pos: u64 = 0;
         let mut to_pos: u64 = 0;
-        for (i, el ) in grabbed_content.grabbed_elements.iter().enumerate() {
+        for (i, el) in grabbed_content.grabbed_elements.iter().enumerate() {
             match el.content.parse::<u64>() {
                 Ok(pos) => {
                     if i == 0 {
@@ -573,31 +578,37 @@ impl RustSession {
                     } else {
                         to_pos = pos;
                     }
-                },
-                Err(e) => { return Err(ComputationError::Process(format!("{}", e))); }
+                }
+                Err(e) => {
+                    return Err(ComputationError::Process(format!("{}", e)));
+                }
             }
         }
-        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos) || 
-           (ranges.is_empty() && !grabbed_content.grabbed_elements.is_empty()) {
+        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+            || (ranges.is_empty() && !grabbed_content.grabbed_elements.is_empty())
+        {
             ranges.push(std::ops::RangeInclusive::new(from_pos - 1, to_pos - 1));
         }
         let mut row: usize = start_line_index as usize;
         for range in ranges.iter() {
             let mut original_content = self
                 .get_content_grabber()?
-                .grab_content(&LineRange::from(
-                    range.clone()
-                ))
-            .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+                .grab_content(&LineRange::from(range.clone()))
+                .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
             let start = *range.start() as usize;
             for (j, element) in original_content.grabbed_elements.iter_mut().enumerate() {
                 element.pos = Some(start + j);
                 element.row = Some(row);
                 row += 1;
             }
-            results.grabbed_elements.append(&mut original_content.grabbed_elements);
+            results
+                .grabbed_elements
+                .append(&mut original_content.grabbed_elements);
         }
-        println!("RUST: grabbing search result from original content {} rows", results.grabbed_elements.len());
+        println!(
+            "RUST: grabbing search result from original content {} rows",
+            results.grabbed_elements.len()
+        );
         //println!("RUST: grabbing search result from original content. Ranges: {:?}", ranges);
         //println!("RUST: grabbing search result from original content. Elements: {:?}", results.grabbed_elements);
         let serialized =
@@ -614,18 +625,23 @@ impl RustSession {
             return Err(ComputationError::NoAssignedContent);
         };
         let operation_id = Uuid::new_v4();
-        let filters: Vec<SearchFilter> = filters.iter().map(|f| { f.as_filter() }).collect();
-        println!("Search (operation: {}) will be done in {:?} withing next fileters: {:?}", operation_id, target_file, filters);
-        if let Err(e) = self.op_channel
-                        .0
-                        .send(Operation::Search {
-                            target_file: target_file.clone(),
-                            operation_id,
-                            filters,
-                        })
-                        .map_err(|_| {
-                            ComputationError::Process("Could not send operation on channel".to_string())
-                        }) {
+        let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
+        println!(
+            "Search (operation: {}) will be done in {:?} withing next fileters: {:?}",
+            operation_id, target_file, filters
+        );
+        if let Err(e) = self
+            .op_channel
+            .0
+            .send(Operation::Search {
+                target_file: target_file.clone(),
+                operation_id,
+                filters,
+            })
+            .map_err(|_| {
+                ComputationError::Process("Could not send operation on channel".to_string())
+            })
+        {
             return Err(e);
         }
         Ok(operation_id.to_string())
@@ -664,7 +680,6 @@ impl TryIntoJs for CallbackEvent {
 
 /*
     From JS world we will get an object:
-    
     JSFilterDefinition {
         value: string,
         is_regex: boolean,
@@ -679,7 +694,6 @@ impl TryIntoJs for CallbackEvent {
 pub struct WrappedSearchFilter(SearchFilter);
 
 impl WrappedSearchFilter {
-
     pub fn as_filter(&self) -> SearchFilter {
         self.0.clone()
     }
@@ -690,48 +704,76 @@ impl JSValue<'_> for WrappedSearchFilter {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
             // let mut filter = ;
             let value: String = match js_obj.get_property("value") {
-                Ok(value) => if let Some(value) = value {
-                    match value.as_value::<String>() {
-                        Ok(s) => s,
-                        Err(e) => { return  Err(e); }
+                Ok(value) => {
+                    if let Some(value) = value {
+                        match value.as_value::<String>() {
+                            Ok(s) => s,
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    } else {
+                        return Err(NjError::Other("[value] property is not found".to_owned()));
                     }
-                } else {
-                    return Err(NjError::Other("[value] property is not found".to_owned()));
-                },
-                Err(e) => { return Err(e); },
+                }
+                Err(e) => {
+                    return Err(e);
+                }
             };
             let is_regex: bool = match js_obj.get_property("is_regex") {
-                Ok(value) => if let Some(value) = value {
-                    match value.as_value::<bool>() {
-                        Ok(s) => s,
-                        Err(e) => { return  Err(e); }
+                Ok(value) => {
+                    if let Some(value) = value {
+                        match value.as_value::<bool>() {
+                            Ok(s) => s,
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    } else {
+                        return Err(NjError::Other(
+                            "[is_regex] property is not found".to_owned(),
+                        ));
                     }
-                } else {
-                    return Err(NjError::Other("[is_regex] property is not found".to_owned()));
-                },
-                Err(e) => { return Err(e); },
+                }
+                Err(e) => {
+                    return Err(e);
+                }
             };
             let is_word: bool = match js_obj.get_property("is_word") {
-                Ok(value) => if let Some(value) = value {
-                    match value.as_value::<bool>() {
-                        Ok(s) => s,
-                        Err(e) => { return  Err(e); }
+                Ok(value) => {
+                    if let Some(value) = value {
+                        match value.as_value::<bool>() {
+                            Ok(s) => s,
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    } else {
+                        return Err(NjError::Other("[is_word] property is not found".to_owned()));
                     }
-                } else {
-                    return Err(NjError::Other("[is_word] property is not found".to_owned()));
-                },
-                Err(e) => { return Err(e); },
+                }
+                Err(e) => {
+                    return Err(e);
+                }
             };
             let ignore_case: bool = match js_obj.get_property("ignore_case") {
-                Ok(value) => if let Some(value) = value {
-                    match value.as_value::<bool>() {
-                        Ok(s) => s,
-                        Err(e) => { return  Err(e); }
+                Ok(value) => {
+                    if let Some(value) = value {
+                        match value.as_value::<bool>() {
+                            Ok(s) => s,
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    } else {
+                        return Err(NjError::Other(
+                            "[ignore_case] property is not found".to_owned(),
+                        ));
                     }
-                } else {
-                    return Err(NjError::Other("[ignore_case] property is not found".to_owned()));
-                },
-                Err(e) => { return Err(e); },
+                }
+                Err(e) => {
+                    return Err(e);
+                }
             };
             Ok(WrappedSearchFilter(SearchFilter {
                 value,
@@ -743,7 +785,6 @@ impl JSValue<'_> for WrappedSearchFilter {
             Err(NjError::Other("not valid format".to_owned()))
         }
     }
-
 }
 // impl JSValue<'_> for CallbackEvent {
 // fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
