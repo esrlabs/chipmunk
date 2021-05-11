@@ -2,7 +2,7 @@
     <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
 </div>
 <div [attr.class]="'container filters ' + (_ng_filters === undefined ? 'hidden' : '')"
-     [ngStyle]="{'width': _ng_width + 'px', 'height': _ng_height + 'px'}"
+     [ngStyle]="{'width': (_ng_width - _ng_filtersLeft) + 'px', 'height': _ng_height + 'px', 'margin-left': _ng_filtersLeft + 'px'}"
      (click)="_ng_onClick($event)"
      (contextmenu)="_ng_onContexMenu($event)">
     <canvas [attr.id]="'view-chart-canvas-filters-' + service.getSessionGuid()"></canvas>
