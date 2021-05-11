@@ -4,6 +4,7 @@ export {
 	IGrabbedContent,
 	IGrabbedElement,
 	IResultSearchElement,
+	ISearchResults,
 	IExtractDTFormatOptions,
 	IExtractDTFormatResult,
 	IMatchEntity,

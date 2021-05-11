@@ -36,6 +36,7 @@ export interface IGrabbedElement {
 }
 
 /**
+ * TODO: it should be removed!
  * Output for @search method of session
  * (application/apps/rustcore/ts/src/native/native.session.ts)
  */
@@ -45,6 +46,17 @@ export interface IResultSearchElement {
 						// provided with search(filters: IFilter[]) 
 						// (application/apps/rustcore/ts/src/native/native.session.ts)
     content: string,    // Row value
+}
+
+/**
+ * Output for @search method of session
+ * (application/apps/rustcore/ts/src/native/native.session.ts)
+ */
+ export interface ISearchResults {
+	found: number;
+	matches: string; // This is Array<Array<number>>
+					 // Each index in root array - position in search stream
+					 // Each sub index - index of filter, which has a match
 }
 
 

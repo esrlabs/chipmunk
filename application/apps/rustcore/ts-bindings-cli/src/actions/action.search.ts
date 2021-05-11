@@ -125,7 +125,7 @@ export class SearchInFile extends Action {
                     reject(err);
                 }).finally(() => {
                     session.destroy();
-                })
+                });
             }).catch((err: Error) => {
                 session.destroy();
                 reject(err);

@@ -14,18 +14,26 @@ pub enum NativeErrorKind {
     /// The file type is not currently supported
     UnsupportedFileType,
     ComputationFailed,
+    OperationSearch,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NativeError {
     pub severity: Severity,
     pub kind: NativeErrorKind,
+    pub message: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OperationDone {
     pub uuid: Uuid,
     pub result: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchOperationResult {
+    pub found: usize,
+    pub matches: String,
 }
 
 #[derive(strum_macros::ToString, Debug, Serialize, Deserialize)]

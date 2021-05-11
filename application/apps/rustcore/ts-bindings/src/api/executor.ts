@@ -155,7 +155,7 @@ export function withResultsExecutor<TResult, TOptions>(
                 } else if (lifecircle.canceled) {
                     cancel();
                 } else {
-                    reader(undefined, resolve, reject);
+                    reader(event.result, resolve, reject);
                 }
             }),
             unsunscribe(): void {

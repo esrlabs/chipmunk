@@ -134,8 +134,16 @@ impl SearchHolder {
 
     /// execute a search for the given input path and filters
     /// return the file that contains the search results along with the
-    /// number of found matches
-    pub fn execute_search(&self) -> Result<(PathBuf, u64), SearchError> {
+    /// map of found matches. Format of map is an array of matches:
+    /// [
+    ///     [position in stream, ...[number of filter] ],
+    ///     ...
+    ///     [position in stream, ...[number of filter] ],
+    /// ]
+    pub fn execute_search(&self) -> Result<(PathBuf, Vec<Vec<usize>>), SearchError> {
+        use regex::Regex;
+        use std::str::FromStr;
+
         if self.search_filters.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
@@ -149,30 +157,34 @@ impl SearchHolder {
                 .join("|")
         );
         let matcher = RegexMatcher::new(&regex)?;
+        let mut matchers: Vec<Regex> = vec![];
+        for filter in self.search_filters.iter() {
+            if let Ok(r) = Regex::from_str(&filter.value.clone()) {
+                matchers.push(r);
+            }
+        }
         let out_file = File::create(&self.out_file_path)?;
         let mut matched_lines = 0u64;
-
         let mut writer = BufWriter::new(out_file);
+        let mut indexes: Vec<Vec<usize>> = vec![];
         Searcher::new().search_path(
             &matcher,
             &self.file_path,
             UTF8(|lnum, line| {
                 matched_lines += 1;
+                let mut line_indexes: Vec<usize> = vec![lnum as usize];
+                for (index, re) in matchers.iter().enumerate() {
+                    if re.is_match(line) {
+                        line_indexes.push(index);
+                    }
+                }
+                indexes.push(line_indexes);
                 writeln!(writer, "{}", lnum)?;
-                // let line_match = SearchMatch {
-                //     line: lnum,
-                //     content: Cow::Borrowed(line.trim_end()),
-                // };
-                // if let Ok(content) = serde_json::to_string(&line_match) {
-                //     writeln!(writer, "{}", content)?;
-                // } else {
-                //     log::error!("Could not serialize {:?}", line_match);
-                // }
                 Ok(true)
             }),
         )?;
 
-        Ok((self.out_file_path.clone(), matched_lines))
+        Ok((self.out_file_path.clone(), indexes))
     }
 }
 
@@ -307,7 +319,7 @@ mod tests {
         let input_file = tmp_file.as_file_mut();
         input_file.write_all(LOGS.join("\n").as_bytes())?;
         let search_holder = SearchHolder::new(tmp_file.path(), filters.iter());
-        let (out_path, _found) = search_holder
+        let (out_path, _indexes) = search_holder
             .execute_search()
             .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
         std::fs::read_to_string(out_path)
