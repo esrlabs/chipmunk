@@ -104,7 +104,7 @@ pub struct RustSession {
     // channel to store the metadata of a file once available
     content_metadata_channel: SyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
     // channel to store the metadata of the search results once available
-    search_metadata_channel: SyncChannel<(PathBuf, GrabMetadata, Vec<(u64, Vec<u8>)>)>,
+    search_metadata_channel: SyncChannel<(PathBuf, GrabMetadata)>,
     // search_metadata_channel: AsyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
 }
 
@@ -171,7 +171,7 @@ impl RustSession {
     fn get_search_grabber(&mut self) -> Result<Option<&mut Box<dyn GrabTrait>>, ComputationError> {
         if self.search_grabber.is_none() {
             match self.search_metadata_channel.1.try_recv() {
-                Ok((file_path, metadata, _matches)) => {
+                Ok((file_path, metadata)) => {
                     type GrabberType = processor::grabber::Grabber<TextFileSource>;
                     let source = TextFileSource::new(&file_path, "search_results");
                     let mut grabber = match GrabberType::new(source) {
@@ -391,7 +391,7 @@ impl RustSession {
                                 };
                                 let found = matches.len();
                                 match search_map.write() {
-                                    Ok(mut search_map) => search_map.set(Some(matches.clone())),
+                                    Ok(mut search_map) => search_map.set(Some(matches)),
                                     Err(err) => {
                                         callback(CallbackEvent::OperationError((
                                             operation_id,
@@ -417,7 +417,7 @@ impl RustSession {
                                             println!("RUST: received search metadata");
                                             let line_count: u64 = metadata.line_count as u64;
                                             let _ = search_metadata_tx
-                                                .send((file_path, metadata, matches));
+                                                .send((file_path, metadata));
                                             callback(CallbackEvent::SearchUpdated(line_count));
                                         }
                                         Ok(_) => {
@@ -725,7 +725,7 @@ impl RustSession {
             .op_channel
             .0
             .send(Operation::Search {
-                target_file: target_file.clone(),
+                target_file,
                 operation_id,
                 filters,
             })

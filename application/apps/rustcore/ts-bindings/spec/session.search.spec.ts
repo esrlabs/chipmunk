@@ -108,8 +108,6 @@ describe('Session', function() {
 					}
 					done();
 				}).catch((err: Error) => {
-					console.log(`\n\n\n\n\n\n>>>>>>>>>>>>>>\n\n\n\n`)
-					console.log(err);
 					fail(err);
 					done();
 				});

@@ -22,6 +22,14 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
         logger,
         options,
         function(session: RustSession, options: IOptions): string | Error {
+            if (options.from !== undefined && options.to !== undefined) {
+                if (isNaN(options.from) || isNaN(options.to) || !isFinite(options.from) || !isFinite(options.to)) {
+                    return new Error(`Range is invalid`);
+                }
+                if (options.from > options.to) {
+                    return new Error(`Range is invalid: "from" should not be less "to"`);
+                }
+            }
             const uuid: string | IGeneralError = session.getMap(options.datasetLength, options.from, options.to);
             if (typeof uuid !== 'string') {
                 return new Error(uuid.message);
