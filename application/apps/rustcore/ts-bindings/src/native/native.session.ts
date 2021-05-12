@@ -347,7 +347,7 @@ export class RustSessionDebug extends RustSession {
     }
 
     public getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string {
-        return this._native.getMap(datasetLength, from, to);
+        return this._native.getMap(datasetLength, from === undefined ? -1 : from, to === undefined ? -1 : to);
     }
 
 

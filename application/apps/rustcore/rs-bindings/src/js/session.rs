@@ -739,18 +739,11 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn get_map(&mut self, dataset_len: i32, from: Option<i64>, to: Option<i64>) -> Result<String, ComputationError> {
+    fn get_map(&mut self, dataset_len: i32, from: i64, to: i64) -> Result<String, ComputationError> {
         let operation_id = Uuid::new_v4();
         let mut range: Option<(u64, u64)> = None;
-        if let Some(from) = from {
-            if let Some(to) = to {
-                // TODO:
-                // (1) check search results length
-                // (2) return error if something is wrong
-                if from > to {
-                    range = Some((from as u64, to as u64));
-                }
-            }
+        if from > 0 && to > 0 && from > to {
+            range = Some((from as u64, to as u64));
         }
         println!(
             "Map requested (operation: {}). Range: {:?}",
