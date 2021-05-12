@@ -388,20 +388,6 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a141330240c921ec6d074a3e188a7c7ef95668bb95e7d44fa0e5778ec2a7afe"
-dependencies = [
- "lazy_static",
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "regex",
- "rustc_version",
- "syn 0.15.44",
-]
-
-[[package]]
-name = "derive_more"
 version = "0.99.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f82b1b72f1263f214c0f823371768776c4f5841b942c9883aa8e5ec584fd0ba6"
@@ -450,11 +436,9 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "buf_redux",
- "byteorder",
  "bytes",
  "chrono",
  "crossbeam-channel",
- "derive_more 0.15.0",
  "dirs",
  "dlt-core",
  "env_logger",
@@ -463,12 +447,8 @@ dependencies = [
  "indexer_base",
  "lazy_static",
  "log",
- "nom 6.1.2",
  "pcap-parser",
  "pretty_assertions 0.7.1",
- "proptest",
- "proptest-derive",
- "quick-xml 0.19.0",
  "rand 0.8.3",
  "rustc-hash",
  "serde",
@@ -489,12 +469,12 @@ dependencies = [
  "bytes",
  "chrono",
  "crossbeam-channel",
- "derive_more 0.99.13",
+ "derive_more",
  "humantime 2.1.0",
  "lazy_static",
  "log",
- "nom 6.1.2",
- "quick-xml 0.22.0",
+ "nom",
+ "quick-xml",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -978,17 +958,6 @@ dependencies = [
 
 [[package]]
 name = "nom"
-version = "5.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb4262d26ed83a1c0a33a38fe2bb15797329c85770da05e6b828ddb782627af"
-dependencies = [
- "lexical-core",
- "memchr",
- "version_check",
-]
-
-[[package]]
-name = "nom"
 version = "6.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7413f999671bd4745a7b624bd370a569fb6bc574b23c83a3c5ed2e453f3d5e2"
@@ -1101,12 +1070,12 @@ dependencies = [
 
 [[package]]
 name = "pcap-parser"
-version = "0.9.4"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31802525ed92d2fb6d5c7d2a7f993d6bad9de89755ce341c8ee6ab69ce322424"
+checksum = "b02dbff869a341d90be2efb64dd4d61681f7e981e07c5f1483d5e72ce4d5cf9a"
 dependencies = [
  "circular",
- "nom 5.1.2",
+ "nom",
  "rusticata-macros",
 ]
 
@@ -1216,7 +1185,7 @@ dependencies = [
  "itertools 0.10.0",
  "lazy_static",
  "log",
- "nom 6.1.2",
+ "nom",
  "pretty_assertions 0.7.1",
  "proptest",
  "proptest-derive",
@@ -1274,15 +1243,6 @@ name = "quick-error"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ac73b1112776fc109b2e61909bc46c7e1bf0d7f690ffb1676553acce16d5cda"
-
-[[package]]
-name = "quick-xml"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3d72d5477478f85bd00b6521780dfba1ec6cdaadcf90b8b181c36d7de561f9b"
-dependencies = [
- "memchr",
-]
 
 [[package]]
 name = "quick-xml"
@@ -1518,11 +1478,11 @@ dependencies = [
 
 [[package]]
 name = "rusticata-macros"
-version = "2.1.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8a9050636e8a1b487ba1fbe99114021cd7594dde3ce6ed95bfc1691e5b5367b"
+checksum = "7390af60e66c44130b4c5ea85f2555b7ace835d73b4b889c704dc3cb4c0468c8"
 dependencies = [
- "nom 5.1.2",
+ "nom",
 ]
 
 [[package]]

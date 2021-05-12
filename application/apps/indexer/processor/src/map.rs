@@ -1,6 +1,6 @@
-use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
+#[derive(Eq)]
 struct FilterMatch(u8, u16);
 
 impl PartialOrd for FilterMatch {
@@ -14,8 +14,6 @@ impl Ord for FilterMatch {
         self.0.cmp(&other.0)
     }
 }
-
-impl Eq for FilterMatch {}
 
 impl PartialEq for FilterMatch {
     fn eq(&self, other: &Self) -> bool {
@@ -32,15 +30,10 @@ impl PartialEq for FilterMatch {
 ///         )
 ///     >
 ///
+#[derive(Default)]
 pub struct SearchMap {
     matches: Vec<(u64, Vec<u8>)>,
     stream_len: u64,
-}
-
-impl Default for SearchMap {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl SearchMap {
@@ -52,11 +45,7 @@ impl SearchMap {
     }
 
     /// Returns scaled search results map. As soon as we are limited with screen/frame size (dataset_len).
-    pub fn get(
-        &self,
-        dataset_len: u16,
-        range: Option<(u64, u64)>,
-    ) -> Vec<Vec<(u8, u16)>> {
+    pub fn get(&self, dataset_len: u16, range: Option<(u64, u64)>) -> Vec<Vec<(u8, u16)>> {
         let mut map: Vec<Vec<(u8, u16)>> = vec![];
         if let Some((from, to)) = range {
             let range_len = to - from;

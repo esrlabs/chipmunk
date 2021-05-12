@@ -1,10 +1,9 @@
-use crate::js::events::SyncChannel;
-use crate::js::events::{AsyncBroadcastChannel, AsyncChannel};
-use crate::js::events::{CallbackEvent, ComputationError, OperationDone, SearchOperationResult};
-use crate::js::events::{NativeError, NativeErrorKind};
+use crate::js::events::{
+    AsyncBroadcastChannel, CallbackEvent, ComputationError, NativeError, NativeErrorKind,
+    OperationDone, SearchOperationResult, SyncChannel,
+};
 use crossbeam_channel as cc;
-use indexer_base::progress::ComputationResult::Item;
-use indexer_base::progress::Severity;
+use indexer_base::progress::{ComputationResult, ComputationResult::Item, Progress, Severity};
 use node_bindgen::{
     core::{
         val::{JsEnv, JsObject},
@@ -13,26 +12,26 @@ use node_bindgen::{
     derive::node_bindgen,
     sys::napi_value,
 };
-use processor::dlt_source::DltSource;
-use processor::grabber::GrabTrait;
-use processor::grabber::LineRange;
-use processor::grabber::MetadataSource;
-use processor::grabber::{GrabMetadata, GrabbedContent, Grabber};
-use processor::map::SearchMap;
-use processor::search::{SearchFilter, SearchHolder};
-use processor::text_source::TextFileSource;
+use processor::{
+    dlt_source::DltSource,
+    grabber::{GrabError, GrabMetadata, GrabTrait, GrabbedContent, LineRange, MetadataSource},
+    map::SearchMap,
+    search::{SearchFilter, SearchHolder},
+    text_source::TextFileSource,
+};
 use serde::Serialize;
-use std::path::Path;
-use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
-use std::thread;
-use tokio::runtime::Runtime;
-use tokio::sync::{broadcast, mpsc};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+    thread,
+};
+use tokio::{runtime::Runtime, sync::broadcast};
 use uuid::Uuid;
 
 pub struct SessionState {
     pub assigned_file: Option<String>,
     pub filters: Vec<SearchFilter>,
+    pub search_map: SearchMap,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -62,21 +61,6 @@ pub enum SupportedFileType {
     Dlt,
 }
 
-#[derive(Debug, Clone)]
-enum GrabberTarget {
-    Content,
-    Search,
-}
-
-impl std::fmt::Display for GrabberTarget {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            GrabberTarget::Content => write!(f, "content grabber"),
-            GrabberTarget::Search => write!(f, "search grabber"),
-        }
-    }
-}
-
 pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
     let extension = path.extension().map(|ext| ext.to_string_lossy());
     match extension {
@@ -94,10 +78,9 @@ pub struct RustSession {
     pub running: bool,
     pub content_grabber: Option<Box<dyn GrabTrait>>,
     pub search_grabber: Option<Box<dyn GrabTrait>>,
-    pub search_map: Arc<RwLock<SearchMap>>,
-    // pub state: Arc<Mutex<SessionState>>,
-    callback: Option<Box<dyn Fn(CallbackEvent) + Send + 'static>>,
-
+    pub state: Arc<Mutex<SessionState>>,
+    // TODO: think about if we need to keep a callback around
+    // callback: Option<Box<dyn Fn(CallbackEvent) + Send + 'static>>,
     op_channel: AsyncBroadcastChannel<Operation>,
     // channel that allows to propagate shutdown requests to ongoing operations
     shutdown_channel: AsyncBroadcastChannel<()>,
@@ -123,7 +106,9 @@ impl RustSession {
         }?;
         let fresh_metadata_result = match self.content_metadata_channel.1.try_recv() {
             Ok(new_metadata) => {
-                println!("RUST: new metadata arrived: {:?} lines", new_metadata);
+                if let Ok(Some(md)) = &new_metadata {
+                    println!("RUST: new metadata arrived: {} lines", md.line_count);
+                }
                 Ok(Some(new_metadata))
             }
             Err(cc::TryRecvError::Empty) => {
@@ -220,11 +205,6 @@ impl RustSession {
     }
 }
 
-async fn compute() -> Uuid {
-    thread::sleep(std::time::Duration::from_millis(1000));
-    Uuid::new_v4()
-}
-
 #[node_bindgen]
 impl RustSession {
     #[node_bindgen(constructor)]
@@ -233,14 +213,13 @@ impl RustSession {
         Self {
             id,
             running: false,
-            // state: Arc::new(Mutex::new(SessionState {
-            //     assigned_file: None,
-            //     filters: vec![],
-            // })),
+            state: Arc::new(Mutex::new(SessionState {
+                assigned_file: None,
+                filters: vec![],
+                search_map: SearchMap::new(),
+            })),
             content_grabber: None,
             search_grabber: None,
-            search_map: Arc::new(RwLock::new(SearchMap::new())),
-            callback: None,
             shutdown_channel: broadcast::channel(1),
             op_channel: broadcast::channel(10),
             content_metadata_channel: cc::bounded(1),
@@ -276,7 +255,7 @@ impl RustSession {
         let shutdown_tx = self.shutdown_channel.0.clone();
         let content_metadata_tx = self.content_metadata_channel.0.clone();
         let search_metadata_tx = self.search_metadata_channel.0.clone();
-        let search_map = self.search_map.clone();
+        let state = Arc::clone(&self.state);
         thread::spawn(move || {
             rt.block_on(async {
                 println!("RUST: running runtime");
@@ -290,25 +269,15 @@ impl RustSession {
                                 source_type,
                             } => {
                                 println!("RUST: received Assign operation event");
-                                let file_path = Path::new(&file_path);
-                                let metadata_res = match source_type {
-                                    SupportedFileType::Dlt => {
-                                        let source = DltSource::new(file_path, &source_id);
-                                        Some(source.from_file(None))
-                                    }
-                                    SupportedFileType::Text => {
-                                        let source = TextFileSource::new(file_path, &source_id);
-                                        Some(source.from_file(None))
-                                    }
-                                };
-                                match metadata_res {
+                                match create_metadata_for_source(file_path, source_type, source_id)
+                                {
                                     Some(Ok(Item(metadata))) => {
                                         println!("RUST: received metadata");
                                         let line_count: u64 = metadata.line_count as u64;
                                         let _ = content_metadata_tx.send(Ok(Some(metadata)));
-                                        match search_map.write() {
-                                            Ok(mut search_map) => {
-                                                search_map.set_stream_len(line_count)
+                                        match state.lock() {
+                                            Ok(mut state) => {
+                                                state.search_map.set_stream_len(line_count)
                                             }
                                             Err(err) => {
                                                 callback(CallbackEvent::OperationError((
@@ -368,93 +337,57 @@ impl RustSession {
                                 operation_id,
                             } => {
                                 println!("RUST: Search operation is requested");
-                                let search_holder =
-                                    SearchHolder::new(&target_file.as_path(), filters.iter());
-                                let (file_path, matches, stats) = match search_holder
-                                    .execute_search()
-                                {
-                                    Ok((file_path, matches, stats)) => (file_path, matches, stats),
-                                    Err(err) => {
-                                        callback(CallbackEvent::OperationError((
-                                            operation_id,
-                                            NativeError {
-                                                severity: Severity::ERROR,
-                                                kind: NativeErrorKind::OperationSearch,
-                                                message: Some(format!(
-                                                    "Fail to execute search. Error: {}",
-                                                    err
-                                                )),
-                                            },
-                                        )));
-                                        continue;
+                                match run_search(&target_file, filters.iter(), &state) {
+                                    Ok((file_path, found, stats)) => {
+                                        if found == 0 {
+                                            callback(CallbackEvent::SearchUpdated(0));
+                                        } else {
+                                            let source =
+                                                TextFileSource::new(&file_path, "search_results");
+                                            let metadata_res = source.from_file(None);
+                                            match metadata_res {
+                                                Ok(Item(metadata)) => {
+                                                    println!("RUST: received search metadata");
+                                                    let line_count: u64 =
+                                                        metadata.line_count as u64;
+                                                    let _ = search_metadata_tx
+                                                        .send((file_path, metadata));
+                                                    callback(CallbackEvent::SearchUpdated(
+                                                        line_count,
+                                                    ));
+                                                }
+                                                Ok(_) => {
+                                                    println!("RUST: search metadata calculation aborted");
+                                                    callback(CallbackEvent::Progress((
+                                                        operation_id,
+                                                        Progress::Stopped
+                                                    )));
+                                                }
+                                                Err(e) => {
+                                                    let err_msg = format!("RUST error computing search metadata: {:?}", e);
+                                                    callback(CallbackEvent::OperationError((
+                                                        operation_id,
+                                                        NativeError {
+                                                            severity: Severity::WARNING,
+                                                            kind:
+                                                                NativeErrorKind::ComputationFailed,
+                                                            message: Some(err_msg),
+                                                        },
+                                                    )));
+                                                }
+                                            }
+                                        }
+                                        callback(as_callback_event(
+                                            &SearchOperationResult {
+                                                found,
+                                                stats,
+                                            }, operation_id));
                                     }
-                                };
-                                let found = matches.len();
-                                match search_map.write() {
-                                    Ok(mut search_map) => search_map.set(Some(matches)),
-                                    Err(err) => {
-                                        callback(CallbackEvent::OperationError((
-                                            operation_id,
-                                            NativeError {
-                                                severity: Severity::ERROR,
-                                                kind: NativeErrorKind::OperationSearch,
-                                                message: Some(format!(
-                                                    "Fail write search map. Error: {}",
-                                                    err
-                                                )),
-                                            },
-                                        )));
+                                    Err(e) => {
+                                        callback(CallbackEvent::OperationError((operation_id, e)));
                                         continue;
-                                    }
-                                };
-                                if found == 0 {
-                                    callback(CallbackEvent::SearchUpdated(0));
-                                } else {
-                                    let source = TextFileSource::new(&file_path, "search_results");
-                                    let metadata_res = source.from_file(None);
-                                    match metadata_res {
-                                        Ok(Item(metadata)) => {
-                                            println!("RUST: received search metadata");
-                                            let line_count: u64 = metadata.line_count as u64;
-                                            let _ = search_metadata_tx
-                                                .send((file_path, metadata));
-                                            callback(CallbackEvent::SearchUpdated(line_count));
-                                        }
-                                        Ok(_) => {
-                                            println!("RUST: search metadata calculation aborted");
-                                        }
-                                        Err(e) => {
-                                            println!("RUST error computing search metadata");
-                                            callback(CallbackEvent::OperationError((
-                                                operation_id,
-                                                NativeError {
-                                                    severity: Severity::WARNING,
-                                                    kind: NativeErrorKind::ComputationFailed,
-                                                    message: None,
-                                                },
-                                            )));
-                                        }
                                     }
                                 }
-                                match serde_json::to_string(&SearchOperationResult { found, stats })
-                                {
-                                    Ok(serialized) => {
-                                        callback(CallbackEvent::OperationDone(OperationDone {
-                                            uuid: operation_id,
-                                            result: Some(serialized),
-                                        }));
-                                    }
-                                    Err(err) => {
-                                        callback(CallbackEvent::OperationError((
-                                            operation_id,
-                                            NativeError {
-                                                severity: Severity::ERROR,
-                                                kind: NativeErrorKind::ComputationFailed,
-                                                message: Some(format!("{}", err)),
-                                            },
-                                        )));
-                                    }
-                                };
                             }
                             Operation::Map {
                                 dataset_len,
@@ -462,28 +395,10 @@ impl RustSession {
                                 operation_id,
                             } => {
                                 println!("RUST: received Map operation event");
-                                match search_map.read() {
-                                    Ok(search_map) => {
-                                        match serde_json::to_string(&(search_map.get(dataset_len, range))) {
-                                            Ok(serialized) => {
-                                                callback(CallbackEvent::OperationDone(
-                                                    OperationDone {
-                                                        uuid: operation_id,
-                                                        result: Some(serialized),
-                                                    },
-                                                ));
-                                            }
-                                            Err(err) => {
-                                                callback(CallbackEvent::OperationError((
-                                                    operation_id,
-                                                    NativeError {
-                                                        severity: Severity::ERROR,
-                                                        kind: NativeErrorKind::ComputationFailed,
-                                                        message: Some(format!("{}", err)),
-                                                    },
-                                                )));
-                                            }
-                                        };
+                                match state.lock() {
+                                    Ok(state) => {
+                                        callback(as_callback_event(
+                                            &&(state.search_map.get(dataset_len, range)), operation_id));
                                     }
                                     Err(err) => {
                                         callback(CallbackEvent::OperationError((
@@ -701,8 +616,8 @@ impl RustSession {
     #[node_bindgen]
     fn search(&mut self, filters: Vec<WrappedSearchFilter>) -> Result<String, ComputationError> {
         self.search_grabber = None;
-        match self.search_map.write() {
-            Ok(mut search_map) => search_map.set(None),
+        match self.state.lock() {
+            Ok(mut state) => state.search_map.set(None),
             Err(err) => {
                 return Err(ComputationError::Process(format!(
                     "Cannot drop search map. Error: {}",
@@ -739,7 +654,12 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn get_map(&mut self, dataset_len: i32, from: i64, to: i64) -> Result<String, ComputationError> {
+    fn get_map(
+        &mut self,
+        dataset_len: i32,
+        from: i64,
+        to: i64,
+    ) -> Result<String, ComputationError> {
         let operation_id = Uuid::new_v4();
         let mut range: Option<(u64, u64)> = None;
         if from > 0 && to > 0 && from > to {
@@ -783,8 +703,6 @@ pub struct GeneralError {
 impl TryIntoJs for CallbackEvent {
     /// serialize into json object
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        // create JSON
-
         match serde_json::to_string(&self) {
             Ok(s) => js_env.create_string_utf8(&s),
             Err(e) => Err(NjError::Other(format!(
@@ -792,22 +710,8 @@ impl TryIntoJs for CallbackEvent {
                 e
             ))),
         }
-        // json.set_property("value", js_env.create_string_utf8(&s)?);
-        // json.try_to_js(js_env)
     }
 }
-
-/*
-    From JS world we will get an object:
-    JSFilterDefinition {
-        value: string,
-        is_regex: boolean,
-        ignore_case: boolean,
-        is_word: boolean,
-    }
-
-    This object we are converting into SearchFilter
-*/
 
 #[derive(Serialize, Debug, Clone)]
 pub struct WrappedSearchFilter(SearchFilter);
@@ -905,53 +809,73 @@ impl JSValue<'_> for WrappedSearchFilter {
         }
     }
 }
-// impl JSValue<'_> for CallbackEvent {
-// fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
-//     // check if it is integer
-//     if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
-//         if let Some(val_property) = js_obj.get_property("signature")? {
-//             let signature = val_property.as_value::<String>()?;
-//             match signature.as_str() {
-//                 "StreamUpdated" => {
-//                     let mut data = StreamUpdated::default();
-//                     if let Some(val_property) = js_obj.get_property("bytes")? {
-//                         data.bytes = val_property.as_value::<i32>()?;
-//                     } else {
-//                         return Err(NjError::Other("bytes is not found".to_owned()));
-//                     }
-//                     if let Some(val_property) = js_obj.get_property("rows")? {
-//                         data.rows = val_property.as_value::<i32>()?;
-//                     } else {
-//                         return Err(NjError::Other("rows is not found".to_owned()));
-//                     }
-//                     Ok(Self::StreamUpdated(data))
-//                 }
-//                 "SearchUpdated" => {
-//                     let mut data = SearchUpdated::default();
-//                     if let Some(val_property) = js_obj.get_property("bytes")? {
-//                         data.bytes = val_property.as_value::<i32>()?;
-//                     } else {
-//                         return Err(NjError::Other("bytes is not found".to_owned()));
-//                     }
-//                     if let Some(val_property) = js_obj.get_property("rows")? {
-//                         data.rows = val_property.as_value::<i32>()?;
-//                     } else {
-//                         return Err(NjError::Other("rows is not found".to_owned()));
-//                     }
-//                     if let Some(val_property) = js_obj.get_property("done")? {
-//                         data.done = val_property.as_value::<f64>()?;
-//                     } else {
-//                         return Err(NjError::Other("done is not found".to_owned()));
-//                     }
-//                     Ok(Self::SearchUpdated(data))
-//                 }
-//                 _ => Err(NjError::Other("Unknown event has been gotten".to_owned())),
-//             }
-//         } else {
-//             Err(NjError::Other("Fail to find event signature".to_owned()))
-//         }
-//     } else {
-//         Err(NjError::Other("not valid format".to_owned()))
-//     }
-// }
-// }
+
+fn create_metadata_for_source(
+    file_path: String,
+    source_type: SupportedFileType,
+    source_id: String,
+) -> Option<Result<ComputationResult<GrabMetadata>, GrabError>> {
+    let file_path = Path::new(&file_path);
+    match source_type {
+        SupportedFileType::Dlt => {
+            let source = DltSource::new(file_path, &source_id);
+            Some(source.from_file(None))
+        }
+        SupportedFileType::Text => {
+            let source = TextFileSource::new(file_path, &source_id);
+            Some(source.from_file(None))
+        }
+    }
+}
+
+fn run_search<'a, I>(
+    target_file_path: &Path,
+    filters: I,
+    state: &Arc<Mutex<SessionState>>,
+) -> Result<(PathBuf, usize, Vec<(u8, u64)>), NativeError>
+where
+    I: Iterator<Item = &'a SearchFilter>,
+{
+    let search_holder = SearchHolder::new(&target_file_path, filters);
+    match search_holder.execute_search() {
+        Ok((file_path, matches, stats)) => {
+            let found = matches.len();
+            match state.lock() {
+                Ok(mut state) => {
+                    state.search_map.set(Some(matches));
+                    Ok((file_path, found, stats))
+                }
+                Err(err) => Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::OperationSearch,
+                    message: Some(format!("Fail write search map. Error: {}", err)),
+                }),
+            }
+        }
+        Err(err) => Err(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::OperationSearch,
+            message: Some(format!("Fail to execute search. Error: {}", err)),
+        }),
+    }
+}
+
+fn as_callback_event<T>(v: &T, operation_id: Uuid) -> CallbackEvent
+where
+    T: Serialize,
+{
+    match serde_json::to_string(v) {
+        Ok(serialized) => CallbackEvent::OperationDone(OperationDone {
+            uuid: operation_id,
+            result: Some(serialized),
+        }),
+        Err(err) => CallbackEvent::OperationError((
+            operation_id,
+            NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ComputationFailed,
+                message: Some(format!("{}", err)),
+            },
+        )),
+    }
+}
