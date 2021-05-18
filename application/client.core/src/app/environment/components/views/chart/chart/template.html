@@ -1,5 +1,6 @@
-<div [attr.class]="_ng_progress() ? 'loading' : 'ready'">
-    <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
+<div class="info-container">
+    <mat-spinner *ngIf="_ng_progress()" [diameter]="32" mode="indeterminate"></mat-spinner>
+    <p *ngIf="_ng_noData()" class="t-medium color-scheme-2">No Data</p>
 </div>
 <div [attr.class]="'container filters ' + (_ng_filters === undefined ? 'hidden' : '')"
      [ngStyle]="{'width': (_ng_width - _ng_filtersLeft) + 'px', 'height': _ng_height + 'px', 'margin-left': _ng_filtersLeft + 'px'}"

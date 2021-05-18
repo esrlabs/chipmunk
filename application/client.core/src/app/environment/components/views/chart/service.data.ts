@@ -124,10 +124,10 @@ export class ServiceData {
     public getDatasets(width: number, range?: IRange): Promise<IResults> {
         return new Promise((resolve, reject) => {
             if (this._stream === undefined) {
-                return { dataset: [], max: undefined, min: undefined };
+                return resolve({ dataset: [], max: undefined, min: undefined });
             }
             if (this._stream.count === 0) {
-                return { dataset: [], max: undefined, min: undefined };
+                return resolve({ dataset: [], max: undefined, min: undefined });
             }
             if (range === undefined) {
                 range = {
