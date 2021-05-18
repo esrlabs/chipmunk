@@ -192,6 +192,19 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         return visible;
     }
 
+    public _ng_noData(): boolean {
+        const matches: boolean = this._progress.matches;
+        let displayFilter: boolean = false;
+        let displayChart: boolean = false;
+        if (this._ng_filters && this._ng_filters.data.datasets && this._ng_filters.data.datasets.length > 0) {
+            displayFilter = true;
+        }
+        if (this._ng_charts && this._ng_charts.data.datasets && this._ng_charts.data.datasets.length > 0) {
+            displayChart = true;
+        }
+        return !matches && !displayFilter && !displayChart;
+    }
+
     private _resize(force: boolean = false) {
         if (this._destroyed) {
             return;
