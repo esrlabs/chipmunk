@@ -24,7 +24,8 @@ pub enum SearchError {
     #[error("IO error while grabbing: ({0})")]
     IoOperation(#[from] std::io::Error),
     #[error("Regex-Error: ({0})")]
-    Regex(#[from] grep_regex::Error),
+    Regex(String),
+    //Regex(#[from] grep_regex::Error),
     #[error("Input-Error: ({0})")]
     Input(String),
 }
@@ -156,11 +157,15 @@ impl SearchHolder {
                 .map(|f: &SearchFilter| filter_as_regex(&f))
                 .join("|")
         );
-        let matcher = RegexMatcher::new(&regex)?;
+        let matcher = match RegexMatcher::new(&regex) {
+            Ok(regex) => regex,
+            Err(err) => return Err(SearchError::Regex(format!("{}", err))),
+        };
         let mut matchers: Vec<Regex> = vec![];
         for filter in self.search_filters.iter() {
-            if let Ok(r) = Regex::from_str(&filter.value.clone()) {
-                matchers.push(r);
+            match Regex::from_str(&filter.value.clone()) {
+                Ok(reg) => matchers.push(reg),
+                Err(err) => return Err(SearchError::Regex(format!("{}", err))),
             }
         }
         let out_file = File::create(&self.out_file_path)?;
