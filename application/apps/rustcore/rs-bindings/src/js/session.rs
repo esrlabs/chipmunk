@@ -398,7 +398,7 @@ impl RustSession {
                                 match state.lock() {
                                     Ok(state) => {
                                         callback(as_callback_event(
-                                            &&(state.search_map.get(dataset_len, range)), operation_id));
+                                            &(state.search_map.scaled(dataset_len, range)), operation_id));
                                     }
                                     Err(err) => {
                                         callback(CallbackEvent::OperationError((

@@ -44,12 +44,14 @@ describe('Session', function() {
 
 		const tmpobj = createSampleFile(5000);
 		stream.assign(tmpobj.name, {}).then(() => {
+			// metadata was created
 			search.search([
 				{
 					filter: 'match',
 					flags: { reg: true, word: false, cases: false },
 				},
-			]).then(() => {
+			]).then((_) => {
+				// search results available on rust side
 				expect(search.len()).toEqual(54);
 				search.getMap(54).then((map) => {
 					console.log(map);
@@ -129,9 +131,9 @@ describe('Session', function() {
 			const tmpobj = tmp.fileSync();
 			console.log(`Create example grabber file`);
 			for (let i = 0; i < lines; i++) {
-				fs.appendFileSync(tmpobj.name, `[${i}]:: ${(i % 100 === 0 || i <= 5) ? 
-					`some match A line data\n` : 
-					i % 50 === 0 ? `some match B line data\n` : 
+				fs.appendFileSync(tmpobj.name, `[${i}]:: ${(i % 100 === 0 || i <= 5) ?
+					`some match A line data\n` :
+					i % 50 === 0 ? `some match B line data\n` :
 					i === 9 ? `some 666 line data\n` : `some line data\n`}`);
 			}
 			var stats = fs.statSync(tmpobj.name);

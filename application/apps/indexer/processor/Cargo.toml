@@ -7,11 +7,11 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 thiserror = "1.0"
-bincode = "1.3.1"
-buf_redux = "0.8.4"
-bytecount = "0.6.0"
+bincode = "1.3"
+buf_redux = "0.8"
+bytecount = "0.6"
 chrono = "0.4"
-crossbeam-channel = "0.5.0"
+crossbeam-channel = "0.5"
 dlt = { path = "../dlt" }
 dlt-core = "0.9"
 # dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
@@ -23,27 +23,31 @@ grep-searcher = "0.1.7"
 grep-printer = "0.1.5"
 indexer_base = { path = "../indexer_base" }
 itertools = "0.10.0"
-lazy_static = "1.4.0"
+lazy_static = "1.4"
 log = "0.4"
-nom = "6.1.2"
+nom = "6.1"
 regex = "1"
-rustc-hash = "1.1.0"
+rustc-hash = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.5", features = ["full"] }
-termcolor = "1.1.2"
+termcolor = "1.1"
 
 [dev-dependencies]
-criterion = "0.3.3"
-dirs = "3.0.1"
-env_logger = "0.8.1"
-pretty_assertions = "0.7.1"
-proptest = "1.0.0"
-proptest-derive = "0.2.0"
-rand = "0.8.3"
-tempfile = "3.2.0"
-test-generator = "0.3.0"
+criterion = { version = "0.3", features = ["html_reports"]}
+dirs = "3.0"
+env_logger = "0.8"
+pretty_assertions = "0.7"
+proptest = "1.0"
+proptest-derive = "0.3"
+rand = "0.8"
+tempfile = "3.2"
+test-generator = "0.3"
 tokio = { version = "1.5", features = ["full"] }
+
+[[bench]]
+name = "map_benchmarks"
+harness = false
 
 [[bench]]
 name = "parse_benchmarks"

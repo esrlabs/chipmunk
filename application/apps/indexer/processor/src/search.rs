@@ -1,9 +1,10 @@
-// use grep::regex::{
-//     RegexMatcher as RustRegexMatcher, RegexMatcherBuilder as RustRegexMatcherBuilder,
-// };
+use crate::map::FilterMatch;
 use grep_printer::{SummaryBuilder, SummaryKind};
-use grep_regex::RegexMatcherBuilder;
-use grep_searcher::{Sink, SinkMatch};
+use grep_regex::{RegexMatcher, RegexMatcherBuilder};
+use grep_searcher::{
+    sinks::{Bytes, UTF8},
+    Searcher, Sink, SinkMatch,
+};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -27,12 +28,6 @@ pub enum SearchError {
     #[error("Input-Error: ({0})")]
     Input(String),
 }
-
-use grep_regex::RegexMatcher;
-use grep_searcher::{
-    sinks::{Bytes, UTF8},
-    Searcher,
-};
 
 pub struct SearchHolder {
     pub file_path: PathBuf,
@@ -136,13 +131,16 @@ impl SearchHolder {
     /// return the file that contains the search results along with the
     /// map of found matches. Format of map is an array of matches:
     /// [
-    ///     (position in stream, [index of matching filter]),
+    ///     (index in stream, [index of matching filter]),
     ///     ...
-    ///     (position in stream, [index of matching filter]),
+    ///     (index in stream, [index of matching filter]),
     /// ]
+    ///
+    /// stat information shows how many times a filter matched:
+    /// [(index_of_filter, count_of_matches), ...]
     pub fn execute_search(
         &self,
-    ) -> Result<(PathBuf, Vec<(u64, Vec<u8>)>, Vec<(u8, u64)>), SearchError> {
+    ) -> Result<(PathBuf, Vec<FilterMatch>, Vec<(u8, u64)>), SearchError> {
         use regex::Regex;
         use std::str::FromStr;
 
@@ -168,17 +166,17 @@ impl SearchHolder {
         let out_file = File::create(&self.out_file_path)?;
         let mut matched_lines = 0u64;
         let mut writer = BufWriter::new(out_file);
-        let mut indexes: Vec<(u64, Vec<u8>)> = vec![];
+        let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats: HashMap<u8, u64> = HashMap::new();
         Searcher::new().search_path(
             &matcher,
             &self.file_path,
             UTF8(|lnum, line| {
                 matched_lines += 1;
-                let mut line_indexes: (u64, Vec<u8>) = (lnum, vec![]);
+                let mut line_indexes = FilterMatch::new(lnum, vec![]);
                 for (index, re) in matchers.iter().enumerate() {
                     if re.is_match(line) {
-                        line_indexes.1.push(index as u8);
+                        line_indexes.filters.push(index as u8);
                         *stats.entry(index as u8).or_insert(0) += 1;
                     }
                 }
@@ -213,82 +211,6 @@ impl Sink for MySink {
         );
         Ok(true)
     }
-}
-
-pub fn execute_binary_search_of_slice(slice: &[u8], pattern: &str) -> Result<u64, SearchError> {
-    // let mut matched_lines = 0u64;
-
-    let mut builder = RegexMatcherBuilder::new();
-    builder
-        .case_smart(false)
-        .case_insensitive(false)
-        .multi_line(true)
-        .unicode(true)
-        .octal(false)
-        .word(false);
-    let matcher = builder.build(pattern)?;
-
-    let sink = MySink { matches: 0 };
-    // let matcher = RegexMatcher::new(pattern)?;
-    Searcher::new().search_slice(
-        &matcher,
-        slice,
-        sink
-        // UTF8(|lnum, line| {
-        //     matched_lines += 1;
-        //     let line_match = SearchMatch {
-        //         line: lnum,
-        //         content: Cow::Borrowed(line.trim_end()),
-        //     };
-        //     if let Ok(content) = serde_json::to_string(&line_match) {
-        //         writeln!(writer, "{}", content)?;
-        //     } else {
-        //         log::error!("Could not serialize {:?}", line_match);
-        //     }
-        //     Ok(true)
-        // }),
-    )?;
-
-    Ok(999)
-}
-
-pub fn count_pattern_in_binary(pattern: &str, input_file: &Path) -> Result<u64, std::io::Error> {
-    // execute_binary_search_of_slice(&DLT_LOGS, &pattern)
-    //     .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))
-    let _out_file_path = PathBuf::from(format!("{}.out", input_file.to_string_lossy()));
-    let mut matcher_builder = RegexMatcherBuilder::new();
-    matcher_builder.multi_line(true);
-    let matcher = matcher_builder.build(&pattern).unwrap();
-    // let out_file = File::create(&out_file_path)?;
-    let mut matched_lines = 0u64;
-
-    let mut builder = SummaryBuilder::new();
-    //         args.rs:835: === print_summary, stats: false
-    // TRACE|rg::args|crates/core/args.rs:836: === print_summary, max_count: None
-    // TRACE|rg::args|crates/core/args.rs:837: === print_summary, include-zero: false
-    // TRACE|rg::args|crates/core/args.rs:841: === print_summary, path_separator: None
-    // TRACE|rg::args|crates/core/args.rs:845: === print_summary, path_terminator: None
-    builder
-        .kind(SummaryKind::CountMatches)
-        .stats(false)
-        .exclude_zero(true)
-        .separator_path(None)
-        .path_terminator(None);
-    let wtr = termcolor::Buffer::no_color();
-    let mut summary = builder.build(wtr);
-    let _sink = summary.sink_with_path(&matcher, &input_file);
-
-    Searcher::new().search_path(
-        &matcher,
-        &input_file,
-        // sink,
-        Bytes(|lnum, line| {
-            println!("found match with lnum: {}: len = {}", lnum, line.len());
-            matched_lines += 1;
-            Ok(true)
-        }),
-    )?;
-    Ok(matched_lines)
 }
 
 #[cfg(test)]
@@ -348,24 +270,6 @@ mod tests {
         assert_eq!("[Err](1.6): d", matches[1].content);
         Ok(())
     }
-
-    /*
-    @D.Astafyev: as soon as binary search isn't used, this test is off
-    #[test]
-    fn test_ripgrep_binary() -> Result<(), std::io::Error> {
-        let mut tmp_file = tempfile::NamedTempFile::new()?;
-        let file_path = PathBuf::from(tmp_file.path());
-        let input_file = tmp_file.as_file_mut();
-        input_file.write_all(DLT_LOGS)?;
-        let result_content = count_pattern_in_binary(r"\x44\x4C\x54\x01", &file_path)?;
-        assert_eq!(2, result_content);
-        // assert_eq!(2, matches[0].line);
-        // assert_eq!("[Warn](1.4): b", matches[0].content);
-        // assert_eq!(4, matches[1].line);
-        // assert_eq!("[Err](1.6): d", matches[1].content);
-        Ok(())
-    }
-    */
 
     #[test]
     fn test_ripgrep_case_sensitivity() -> Result<(), std::io::Error> {
