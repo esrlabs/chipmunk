@@ -87,7 +87,7 @@ pub struct RustSession {
     // channel to store the metadata of a file once available
     content_metadata_channel: SyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
     // channel to store the metadata of the search results once available
-    search_metadata_channel: SyncChannel<(PathBuf, GrabMetadata)>,
+    search_metadata_channel: SyncChannel<Option<(PathBuf, GrabMetadata)>>,
     // search_metadata_channel: AsyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
 }
 
@@ -154,45 +154,40 @@ impl RustSession {
     }
 
     fn get_search_grabber(&mut self) -> Result<Option<&mut Box<dyn GrabTrait>>, ComputationError> {
-        if self.search_grabber.is_none() {
-            match self.search_metadata_channel.1.try_recv() {
-                Ok((file_path, metadata)) => {
-                    type GrabberType = processor::grabber::Grabber<TextFileSource>;
-                    let source = TextFileSource::new(&file_path, "search_results");
-                    let mut grabber = match GrabberType::new(source) {
-                        Ok(grabber) => grabber,
-                        Err(err) => {
-                            return Err(ComputationError::Protocol(format!(
-                                "Fail to create search grabber. Error: {}",
-                                err
-                            )));
-                        }
-                    };
-                    if let Err(err) = grabber.inject_metadata(metadata) {
+        if self.search_grabber.is_none() && !self.search_metadata_channel.1.is_empty() {
+            // We are intrested only in last message in queue, all others messages can be just dropped.
+            let mut queue: Vec<Option<(PathBuf, GrabMetadata)>> =
+                self.search_metadata_channel.1.try_iter().collect();
+            let latest = queue.remove(queue.len() - 1);
+            // Drop rest messages in queue
+            drop(queue);
+            if let Some((file_path, metadata)) = latest {
+                type GrabberType = processor::grabber::Grabber<TextFileSource>;
+                let source = TextFileSource::new(&file_path, "search_results");
+                let mut grabber = match GrabberType::new(source) {
+                    Ok(grabber) => grabber,
+                    Err(err) => {
                         return Err(ComputationError::Protocol(format!(
-                            "Fail to inject metadata into search grabber. Error: {}",
+                            "Fail to create search grabber. Error: {}",
                             err
                         )));
                     }
-                    self.search_grabber = Some(Box::new(grabber));
+                };
+                if let Err(err) = grabber.inject_metadata(metadata) {
+                    return Err(ComputationError::Protocol(format!(
+                        "Fail to inject metadata into search grabber. Error: {}",
+                        err
+                    )));
                 }
-                Err(cc::TryRecvError::Empty) => {
-                    println!("RUST: no new search metadata arrived");
-                    return Ok(None);
-                }
-                Err(cc::TryRecvError::Disconnected) => {
-                    return Err(ComputationError::Protocol(
-                        "Search metadata channel was disconnected".to_owned(),
-                    ));
-                }
-            };
+                self.search_grabber = Some(Box::new(grabber));
+            } else {
+                self.search_grabber = None;
+            }
         }
         let grabber = match &mut self.search_grabber {
-            Some(c) => Ok(c),
-            None => Err(ComputationError::Protocol(
-                "Search grabber channel was disconnected".to_owned(),
-            )),
-        }?;
+            Some(c) => c,
+            None => return Ok(None),
+        };
         match grabber.get_metadata() {
             Some(_) => {
                 println!("RUST: reusing cached metadata");
@@ -223,7 +218,7 @@ impl RustSession {
             shutdown_channel: broadcast::channel(1),
             op_channel: broadcast::channel(10),
             content_metadata_channel: cc::bounded(1),
-            search_metadata_channel: cc::bounded(1),
+            search_metadata_channel: cc::unbounded(),
         }
     }
 
@@ -337,55 +332,68 @@ impl RustSession {
                                 operation_id,
                             } => {
                                 println!("RUST: Search operation is requested");
-                                match run_search(&target_file, filters.iter(), &state) {
-                                    Ok((file_path, found, stats)) => {
-                                        if found == 0 {
-                                            callback(CallbackEvent::SearchUpdated(0));
-                                        } else {
-                                            let source =
-                                                TextFileSource::new(&file_path, "search_results");
-                                            let metadata_res = source.from_file(None);
-                                            match metadata_res {
-                                                Ok(Item(metadata)) => {
-                                                    println!("RUST: received search metadata");
-                                                    let line_count: u64 =
-                                                        metadata.line_count as u64;
-                                                    let _ = search_metadata_tx
-                                                        .send((file_path, metadata));
-                                                    callback(CallbackEvent::SearchUpdated(
-                                                        line_count,
-                                                    ));
-                                                }
-                                                Ok(_) => {
-                                                    println!("RUST: search metadata calculation aborted");
-                                                    callback(CallbackEvent::Progress((
-                                                        operation_id,
-                                                        Progress::Stopped
-                                                    )));
-                                                }
-                                                Err(e) => {
-                                                    let err_msg = format!("RUST error computing search metadata: {:?}", e);
-                                                    callback(CallbackEvent::OperationError((
-                                                        operation_id,
-                                                        NativeError {
-                                                            severity: Severity::WARNING,
-                                                            kind:
-                                                                NativeErrorKind::ComputationFailed,
-                                                            message: Some(err_msg),
-                                                        },
-                                                    )));
+                                if filters.is_empty() {
+                                    println!("RUST: Search will be dropped. Filters are empty");
+                                    // This is dropping of search
+                                    let _ = search_metadata_tx.send(None);
+                                    callback(CallbackEvent::SearchUpdated(0));
+                                    callback(as_callback_event(
+                                        &SearchOperationResult {
+                                            found: 0,
+                                            stats: vec![],
+                                        }, operation_id));
+                                } else {
+                                    match run_search(&target_file, filters.iter(), &state) {
+                                        Ok((file_path, found, stats)) => {
+                                            if found == 0 {
+                                                let _ = search_metadata_tx.send(None);
+                                                callback(CallbackEvent::SearchUpdated(0));
+                                            } else {
+                                                let source =
+                                                    TextFileSource::new(&file_path, "search_results");
+                                                let metadata_res = source.from_file(None);
+                                                match metadata_res {
+                                                    Ok(Item(metadata)) => {
+                                                        println!("RUST: received search metadata");
+                                                        let line_count: u64 =
+                                                            metadata.line_count as u64;
+                                                        let _ = search_metadata_tx
+                                                            .send(Some((file_path, metadata)));
+                                                        callback(CallbackEvent::SearchUpdated(
+                                                            line_count,
+                                                        ));
+                                                    }
+                                                    Ok(_) => {
+                                                        println!("RUST: search metadata calculation aborted");
+                                                        callback(CallbackEvent::Progress((
+                                                            operation_id,
+                                                            Progress::Stopped
+                                                        )));
+                                                    }
+                                                    Err(e) => {
+                                                        let err_msg = format!("RUST error computing search metadata: {:?}", e);
+                                                        callback(CallbackEvent::OperationError((
+                                                            operation_id,
+                                                            NativeError {
+                                                                severity: Severity::WARNING,
+                                                                kind:
+                                                                    NativeErrorKind::ComputationFailed,
+                                                                message: Some(err_msg),
+                                                            },
+                                                        )));
+                                                    }
                                                 }
                                             }
+                                            callback(as_callback_event(
+                                                &SearchOperationResult {
+                                                    found,
+                                                    stats,
+                                                }, operation_id));
                                         }
-                                        callback(as_callback_event(
-                                            &SearchOperationResult {
-                                                found,
-                                                stats,
-                                            }, operation_id));
-                                    }
-                                    Err(e) => {
-                                        callback(CallbackEvent::OperationError((operation_id, e)));
-                                        continue;
+                                        Err(e) => {
+                                            callback(CallbackEvent::OperationError((operation_id, e)));
+                                            continue;
+                                        }
                                     }
                                 }
                             }
@@ -454,7 +462,7 @@ impl RustSession {
             return Ok(0);
         };
         match grabber.get_metadata() {
-            Some(md) => Ok(md.line_count as i64 - 1),
+            Some(md) => Ok(md.line_count as i64),
             None => Ok(0),
         }
     }
@@ -462,7 +470,7 @@ impl RustSession {
     #[node_bindgen]
     fn grab(
         &mut self,
-        start_line_index: i64, // TODO: Check for nodebindget support for u64
+        start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationError> {
         println!(
@@ -477,7 +485,6 @@ impl RustSession {
             .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
         let serialized =
             serde_json::to_string(&grabbed_content).map_err(|_| ComputationError::InvalidData)?;
-
         Ok(serialized)
     }
 
@@ -553,7 +560,7 @@ impl RustSession {
         };
         let grabbed_content: GrabbedContent = grabber
             .grab_content(&LineRange::from(
-                (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
+                (start_line_index as u64)..=((start_line_index + number_of_lines) as u64),
             ))
             .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
         let mut results: GrabbedContent = GrabbedContent {
@@ -662,8 +669,15 @@ impl RustSession {
     ) -> Result<String, ComputationError> {
         let operation_id = Uuid::new_v4();
         let mut range: Option<(u64, u64)> = None;
-        if from > 0 && to > 0 && from > to {
-            range = Some((from as u64, to as u64));
+        if from >= 0 && to >= 0 {
+            if from <= to {
+                range = Some((from as u64, to as u64));
+            } else {
+                println!(
+                    "Invalid range (operation: {}): from = {}; to = {}",
+                    operation_id, from, to
+                );
+            }
         }
         println!(
             "Map requested (operation: {}). Range: {:?}",

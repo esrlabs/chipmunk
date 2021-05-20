@@ -120,7 +120,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * Returns length (count of rows) of search results stream
      * @returns { nummber }
      */
-    public abstract getSearchLen(): number;
+    public abstract getSearchLen(): number | IGeneralError;
 
     /**
      * Returns length (count of rows with matches) of getting matches in stream
@@ -299,7 +299,7 @@ export class RustSessionDebug extends RustSession {
         return this._native.getStreamLen();
     }
 
-    public getSearchLen(): number {
+    public getSearchLen(): number | IGeneralError {
         return this._native.getSearchLen();
     }
 

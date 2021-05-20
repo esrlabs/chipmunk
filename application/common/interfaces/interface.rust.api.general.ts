@@ -59,7 +59,7 @@ export interface IResultSearchElement {
 					 // Each sub index - index of filter, which has a match
 }
 
-export type ISearchMap = Array<Array<number>>;
+export type ISearchMap = Array<Array<Array<number>>>;
 
 /**
  * Output for @extract method of session
