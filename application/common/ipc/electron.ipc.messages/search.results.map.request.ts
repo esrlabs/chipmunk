@@ -1,7 +1,6 @@
 export interface ISearchResultMapRequest {
     streamId: string;
     scale: number;
-    details: boolean;
     range?: {
         begin: number;
         end: number;
@@ -9,12 +8,11 @@ export interface ISearchResultMapRequest {
 }
 
 export class SearchResultMapRequest {
-    public static signature: string = 'SearchResultMapRequest';
-    public signature: string = SearchResultMapRequest.signature;
-    public streamId: string;
-    public scale: number;
-    public details: boolean;
-    public range?: {
+    public static readonly signature: string = 'SearchResultMapRequest';
+    public readonly signature: string = SearchResultMapRequest.signature;
+    public readonly streamId: string;
+    public readonly scale: number;
+    public readonly range?: {
         begin: number;
         end: number;
     };
@@ -26,16 +24,12 @@ export class SearchResultMapRequest {
         if (typeof params.streamId !== 'string' || params.streamId.trim() === '') {
             throw new Error(`Field "streamId" should be defined`);
         }
-        if (typeof params.details !== 'boolean') {
-            throw new Error(`Field "details" should be defined`);
-        }
         if (typeof params.scale !== 'number' || isNaN(params.scale) || !isFinite(params.scale)) {
             throw new Error(`Field "scale" should be valid number`);
         }
         this.streamId = params.streamId;
         this.scale = params.scale;
         this.range = params.range;
-        this.details = params.details;
     }
 
 }

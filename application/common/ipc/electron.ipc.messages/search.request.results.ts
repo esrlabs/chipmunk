@@ -1,7 +1,7 @@
 export interface ISearchRequestResults {
     streamId: string;
     requestId: string;
-    matches: string;
+    stats: number[][];
     error?: string;
     found: number;
     duration: number;
@@ -12,7 +12,7 @@ export class SearchRequestResults {
     public signature: string = SearchRequestResults.signature;
     public streamId: string;
     public requestId: string;
-    public matches: string;
+    public stats: number[][];
     public found: number;
     public duration: number;
     public error?: string;
@@ -27,8 +27,8 @@ export class SearchRequestResults {
         if (typeof params.requestId !== 'string' || params.requestId.trim() === '') {
             throw new Error(`Field "requestId" should be defined`);
         }
-        if (typeof params.matches !== 'string' || params.matches.trim() === '') {
-            throw new Error(`Field "matches" should be defined`);
+        if (!(params.stats instanceof Array)) {
+            throw new Error(`Field "stats" should be defined`);
         }
         if (params.error !== undefined && typeof params.error !== 'string') {
             throw new Error(`Field "error" should be defined`);
@@ -41,7 +41,7 @@ export class SearchRequestResults {
         }
         this.streamId = params.streamId;
         this.requestId = params.requestId;
-        this.matches = params.matches;
+        this.stats = params.stats;
         this.error = params.error;
         this.found = params.found;
         this.duration = params.duration;

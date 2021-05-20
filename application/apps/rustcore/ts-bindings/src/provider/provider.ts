@@ -185,21 +185,29 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     }
 
     private _emit(event: string, data: any) {
-        if ((this.getEventsSignatures() as any)[event] === undefined) {
-            const msg: string = `Has been gotten unsupported event: "${event}".`;
-            this.debug().emit.unsupported(msg);
-            this.logger.error(msg);
-        } else {
-            const err: Error | undefined = Events.Subject.validate(
-                (this.getEventsInterfaces() as any)[event],
-                data,
-            );
-            if (err instanceof Error) {
-                this.logger.error(`Fail to parse event "${event}" due error: ${err.message}`);
+        // Callback (_emitter(data: TEventData)) is executed in rust scope.
+        // It means if we will have some JS exception it will make rust crash.
+        // To prevent it, we have to move event forward in separeted "JS-thread".
+        // That's why here used timer with 0 delay.
+        // Using of try { } catch() {} here isn't good idea as soon as it would not
+        // allow to localize an issue
+        setTimeout(() => {
+            if ((this.getEventsSignatures() as any)[event] === undefined) {
+                const msg: string = `Has been gotten unsupported event: "${event}".`;
+                this.debug().emit.unsupported(msg);
+                this.logger.error(msg);
             } else {
-                (this.getEvents() as any)[event].emit(data);
+                const err: Error | undefined = Events.Subject.validate(
+                    (this.getEventsInterfaces() as any)[event],
+                    data,
+                );
+                if (err instanceof Error) {
+                    this.logger.error(`Fail to parse event "${event}" due error: ${err.message}`);
+                } else {
+                    (this.getEvents() as any)[event].emit(data);
+                }
             }
-        }
+        }, 0);
     }
 
     public getEmitter(): TEventEmitter {
