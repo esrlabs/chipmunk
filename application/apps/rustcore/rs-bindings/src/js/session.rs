@@ -15,7 +15,7 @@ use node_bindgen::{
 use processor::{
     dlt_source::DltSource,
     grabber::{GrabError, GrabMetadata, GrabTrait, GrabbedContent, LineRange, MetadataSource},
-    map::SearchMap,
+    map::{SearchMap, NearestPosition},
     search::{SearchFilter, SearchHolder},
     text_source::TextFileSource,
 };
@@ -576,7 +576,7 @@ impl RustSession {
                         from_pos = pos;
                         to_pos = pos;
                     } else if to_pos + 1 != pos {
-                        ranges.push(std::ops::RangeInclusive::new(from_pos - 1, to_pos - 1));
+                        ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
                         from_pos = pos;
                         to_pos = pos;
                     } else {
@@ -591,7 +591,7 @@ impl RustSession {
         if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
             || (ranges.is_empty() && !grabbed_content.grabbed_elements.is_empty())
         {
-            ranges.push(std::ops::RangeInclusive::new(from_pos - 1, to_pos - 1));
+            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
         }
         let mut row: usize = start_line_index as usize;
         for range in ranges.iter() {
@@ -698,6 +698,29 @@ impl RustSession {
             return Err(e);
         }
         Ok(operation_id.to_string())
+    }
+
+    #[node_bindgen]
+    fn get_nearest_to(
+        &mut self,
+        position_in_stream: i64,
+    ) -> Result<(
+        i64, // Position in search results
+        i64  // Position in stream/file
+    ), ComputationError> {
+        match self.state.lock() {
+            Ok(mut state) => {
+                if let Some(nearest) = state.search_map.nearest_to(position_in_stream as u64) {
+                    Ok((
+                        nearest.index as i64,
+                        nearest.position as i64,
+                    ))
+                } else {
+                    Ok((-1, -1))
+                }
+            },
+            Err(err) => Err(ComputationError::Process(format!("Could not get access to state of session: {}", err))),
+        }
     }
 }
 

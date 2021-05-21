@@ -327,13 +327,12 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onRerequest.next();
     }
 
-    private _onScrollTo(bookmark: boolean, row: number) {
-        if (isNaN(row) || !isFinite(row)) {
+    private _onScrollTo(bookmark: boolean, rowInMainStream: number) {
+        if (isNaN(rowInMainStream) || !isFinite(rowInMainStream)) {
             return;
         }
-        OutputRedirectionsService.getIndexAround(row).then((around: IPCMessages.ISearchIndexAroundResponse) => {
-            const target: number | undefined = around.before !== -1 ? around.before : (around.after !== -1 ? around.after : undefined);
-            if (target === undefined) {
+        this.session.getStreamMap().getClosedMatchRow(rowInMainStream).then((pos: { index: number, position: number } | undefined) => {
+            if (pos === undefined) {
                 return;
             }
             // Make offset because bookmarks
@@ -341,9 +340,9 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
             if (bookmark) {
                 this._onKeepScrollPrevent();
             }
-            this._ng_outputAPI.onScrollTo.next(target);
+            this._ng_outputAPI.onScrollTo.next(pos.index);
         }).catch((err: Error) => {
-            this._logger.warn(`Fail to detect nearest position in search. Error: ${err.message}`);
+            this._logger.warn(`Fail get nearest position. Error: ${err.message}`);
         });
     }
 

@@ -173,12 +173,15 @@ impl SearchHolder {
         let mut writer = BufWriter::new(out_file);
         let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats: HashMap<u8, u64> = HashMap::new();
+        // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
+        // from 0 line always. But grep gives results from 1. That's why here is a point of correct:println!
+        // lnum - 1
         Searcher::new().search_path(
             &matcher,
             &self.file_path,
             UTF8(|lnum, line| {
                 matched_lines += 1;
-                let mut line_indexes = FilterMatch::new(lnum, vec![]);
+                let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
                 for (index, re) in matchers.iter().enumerate() {
                     if re.is_match(line) {
                         line_indexes.filters.push(index as u8);
@@ -186,7 +189,7 @@ impl SearchHolder {
                     }
                 }
                 indexes.push(line_indexes);
-                writeln!(writer, "{}", lnum)?;
+                writeln!(writer, "{}", lnum - 1)?;
                 Ok(true)
             }),
         )?;

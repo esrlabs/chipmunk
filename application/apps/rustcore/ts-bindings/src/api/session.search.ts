@@ -96,6 +96,18 @@ export class SessionSearch {
         return Executors.map(this._session, this._provider, this._logger, { datasetLength, from, to });
     }
 
+    public getNearest(positionInStream: number): { index: number, position: number } | undefined {
+        const nearest = this._session.getNearestTo(positionInStream);
+        if (typeof nearest === 'object' && typeof (nearest as any).index === 'number' && typeof (nearest as any).position === 'number') {
+            const index: number = (nearest as any).index;
+            const position: number = (nearest as any).position;
+            if (!isNaN(index) && !isNaN(position) && isFinite(index) && isFinite(position)) {
+                return index < 0 || position < 0 ? undefined : { index, position };
+            }
+        }
+        return undefined;
+    }
+
     public len(): number {
         const len = this._session.getSearchLen();
         if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {

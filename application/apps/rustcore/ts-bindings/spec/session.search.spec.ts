@@ -52,7 +52,7 @@ describe('Session', function() {
 				},
 			]).then((_) => {
 				// search results available on rust side
-				expect(search.len()).toEqual(54);
+				expect(search.len()).toEqual(55);
 				search.getMap(54).then((map) => {
 					console.log(map);
 					let result: IGrabbedElement[] | IGeneralError = search.grab(0, 10);
@@ -73,6 +73,7 @@ describe('Session', function() {
 						'[200]:: some match line data',
 						'[300]:: some match line data',
 						'[400]:: some match line data',
+						'[500]:: some match line data',
 					]);
 					expect(result.map(i => i.row)).toEqual([
 						0,
@@ -85,20 +86,28 @@ describe('Session', function() {
 						7,
 						8,
 						9,
+						10,
 					]);
 					expect(result.map(i => i.position)).toEqual([
-						0,
-						1,
-						2,
-						3,
-						4,
-						5,
-						100,
-						200,
-						300,
-						400,
+						0,	// 0
+						1,	// 1
+						2,	// 2
+						3,	// 3
+						4,	// 4
+						5,	// 5
+						100,// 6
+						200,// 7
+						300,// 8
+						400,// 9
+						500,// 10
 					]);
 					console.log('result of grab was: ' + result.map((x) => x.content).join('\n'));
+					[[10, 5, 5], [110, 6, 100], [390, 9, 400], [600, 11, 600]].forEach((data) => {
+						const nearest = search.getNearest(data[0]);
+						expect(typeof nearest).toEqual('object');
+						expect((nearest as any).index).toEqual(data[1]);
+						expect((nearest as any).position).toEqual(data[2]);
+					});
 					const stat = session.getDebugStat();
 					if (stat.unsupported.length !== 0) {
 						fail(new Error(`Unsupported events:\n\t- ${stat.unsupported.join('\n\t- ')}`));
@@ -171,7 +180,7 @@ describe('Session', function() {
 					flags: { reg: true, word: false, cases: false },
 				},
 			]).then(() => {
-				expect(search.len()).toEqual(110);
+				expect(search.len()).toEqual(111);
 				let result: IGrabbedElement[] | IGeneralError = search.grab(0, 10);
 				if (!(result instanceof Array)) {
 					fail(`Fail to grab data due error: ${result.message}`);
@@ -190,6 +199,7 @@ describe('Session', function() {
 					'[50]:: some match B line data',
 					'[100]:: some match A line data',
 					'[150]:: some match B line data',
+					'[200]:: some match A line data',
 				]);
 				expect(result.map(i => i.row)).toEqual([
 					0,
@@ -202,20 +212,28 @@ describe('Session', function() {
 					7,
 					8,
 					9,
+					10,
 				]);
 				expect(result.map(i => i.position)).toEqual([
-					0,
-					1,
-					2,
-					3,
-					4,
-					5,
-					9,
-					50,
-					100,
-					150,
+					0,	// 0
+					1,	// 1
+					2,	// 2
+					3,	// 3
+					4,	// 4
+					5,	// 5
+					9,	// 6
+					50,	// 7
+					100,// 8
+					150,// 9
+					200,// 10
 				]);
 				console.log('result of grab was: ' + result.map((x) => x.content).join('\n'));
+				[[5, 5, 5], [10, 6, 9], [55, 7, 50], [190, 10, 200]].forEach((data) => {
+					const nearest = search.getNearest(data[0]);
+					expect(typeof nearest).toEqual('object');
+					expect((nearest as any).index).toEqual(data[1]);
+					expect((nearest as any).position).toEqual(data[2]);
+				});
 				const stat = session.getDebugStat();
 				if (stat.unsupported.length !== 0) {
 					fail(new Error(`Unsupported events:\n\t- ${stat.unsupported.join('\n\t- ')}`));
