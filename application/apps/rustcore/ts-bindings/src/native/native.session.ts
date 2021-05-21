@@ -186,6 +186,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string;
 
+    public abstract getNearestTo(positionInStream: number): IGeneralError | { index: number, position: number };
+
     public abstract abort(uuid: string): undefined | IGeneralError;
 }
 
@@ -207,6 +209,8 @@ export abstract class RustSessionNative {
     public abstract search(filters: Array<{ value: string, is_regex: boolean, ignore_case: boolean, is_word: boolean, }>): IGeneralError | string;
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string;
+
+    public abstract getNearestTo(positionInStream: number): IGeneralError | number[];
 
 }
 
@@ -348,6 +352,20 @@ export class RustSessionDebug extends RustSession {
 
     public getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string {
         return this._native.getMap(datasetLength, from === undefined ? -1 : from, to === undefined ? -1 : to);
+    }
+
+    public getNearestTo(positionInStream: number): IGeneralError | { index: number, position: number } {
+        const nearest = this._native.getNearestTo(positionInStream);
+        if (nearest instanceof Array && nearest.length === 2) {
+            return { index: nearest[0], position: nearest[1] };
+        } else if (nearest instanceof Array && nearest.length !== 2) {
+            return {
+                severity: EErrorSeverity.error,
+                message: `Invalid format of data: ${nearest}. Expecting an array (size 2): [number, number]`,
+            }
+        } else {
+            return nearest as IGeneralError;
+        }
     }
 
 

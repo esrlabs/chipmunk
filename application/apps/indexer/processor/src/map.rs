@@ -20,6 +20,12 @@ impl FilterMatch {
     }
 }
 
+#[derive(Default)]
+pub struct NearestPosition {
+    pub index: u64,     // Position in search results
+    pub position: u64,  // Position in original stream/file
+}
+
 /// Holds search results map
 /// Full dataset is:
 ///     Vec<
@@ -157,6 +163,35 @@ impl SearchMap {
             }
         }
         map
+    }
+
+    /// Takes position of row in main stream/file and try to find
+    /// relevant nearest position in search results.
+    /// For example, search results are (indexes or rows):
+    /// 10, 200, 300, 350
+    /// In that case nearest for 310 will be - 300
+    /// Returns None if there are no search results
+    pub fn nearest_to(&self, position_in_stream: u64) -> Option<NearestPosition> {
+        if self.matches.is_empty() {
+            None
+        } else {
+            let mut distance: i64 = i64::MAX;
+            let mut index: u64 = 0;
+            let mut position: u64 = 0;
+            for (position_in_search, filter_match) in self.matches.iter().enumerate() {
+                let diff = (position_in_stream as i64 - filter_match.index as i64).abs();
+                if  diff < distance {
+                    distance = diff;
+                    position = filter_match.index;
+                    index = position_in_search as u64;
+                }
+            }
+            if distance == i64::MAX {
+                None
+            } else {
+                Some(NearestPosition { index, position })
+            }
+        }
     }
 
     pub fn set(&mut self, matches: Option<Vec<FilterMatch>>) {
