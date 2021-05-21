@@ -664,19 +664,23 @@ impl RustSession {
     fn get_map(
         &mut self,
         dataset_len: i32,
-        from: i64,
-        to: i64,
+        from: Option<i64>,
+        to: Option<i64>,
     ) -> Result<String, ComputationError> {
         let operation_id = Uuid::new_v4();
         let mut range: Option<(u64, u64)> = None;
-        if from >= 0 && to >= 0 {
-            if from <= to {
-                range = Some((from as u64, to as u64));
-            } else {
-                println!(
-                    "Invalid range (operation: {}): from = {}; to = {}",
-                    operation_id, from, to
-                );
+        if let Some(from) = from {
+            if let Some(to) = to {
+                if from >= 0 && to >= 0 {
+                    if from <= to {
+                        range = Some((from as u64, to as u64));
+                    } else {
+                        println!(
+                            "Invalid range (operation: {}): from = {}; to = {}",
+                            operation_id, from, to
+                        );
+                    }
+                }
             }
         }
         println!(
@@ -704,19 +708,19 @@ impl RustSession {
     fn get_nearest_to(
         &mut self,
         position_in_stream: i64,
-    ) -> Result<(
+    ) -> Result<Option<(
         i64, // Position in search results
         i64  // Position in stream/file
-    ), ComputationError> {
+    )>, ComputationError> {
         match self.state.lock() {
-            Ok(mut state) => {
+            Ok(state) => {
                 if let Some(nearest) = state.search_map.nearest_to(position_in_stream as u64) {
-                    Ok((
+                    Ok(Some((
                         nearest.index as i64,
                         nearest.position as i64,
-                    ))
+                    )))
                 } else {
-                    Ok((-1, -1))
+                    Ok(None)
                 }
             },
             Err(err) => Err(ComputationError::Process(format!("Could not get access to state of session: {}", err))),

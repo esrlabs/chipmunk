@@ -186,7 +186,7 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string;
 
-    public abstract getNearestTo(positionInStream: number): IGeneralError | { index: number, position: number };
+    public abstract getNearestTo(positionInStream: number): IGeneralError | { index: number, position: number } | undefined;
 
     public abstract abort(uuid: string): undefined | IGeneralError;
 }
@@ -210,7 +210,7 @@ export abstract class RustSessionNative {
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string;
 
-    public abstract getNearestTo(positionInStream: number): IGeneralError | number[];
+    public abstract getNearestTo(positionInStream: number): IGeneralError | number[] | null;
 
 }
 
@@ -351,10 +351,14 @@ export class RustSessionDebug extends RustSession {
     }
 
     public getMap(datasetLength: number, from?: number, to?: number): IGeneralError | string {
-        return this._native.getMap(datasetLength, from === undefined ? -1 : from, to === undefined ? -1 : to);
+        if (from === undefined || to === undefined) {
+            return this._native.getMap(datasetLength);
+        } else {
+            return this._native.getMap(datasetLength, from, to);
+        }
     }
 
-    public getNearestTo(positionInStream: number): IGeneralError | { index: number, position: number } {
+    public getNearestTo(positionInStream: number): IGeneralError | { index: number, position: number } | undefined {
         const nearest = this._native.getNearestTo(positionInStream);
         if (nearest instanceof Array && nearest.length === 2) {
             return { index: nearest[0], position: nearest[1] };
@@ -363,6 +367,8 @@ export class RustSessionDebug extends RustSession {
                 severity: EErrorSeverity.error,
                 message: `Invalid format of data: ${nearest}. Expecting an array (size 2): [number, number]`,
             }
+        } else if (nearest === null) {
+            return undefined;
         } else {
             return nearest as IGeneralError;
         }
