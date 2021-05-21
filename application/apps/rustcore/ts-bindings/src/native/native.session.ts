@@ -344,7 +344,7 @@ export class RustSessionDebug extends RustSession {
             return {
                 value: filter.filter,
                 is_regex: filter.flags.reg,
-                ignore_case: filter.flags.cases,
+                ignore_case: !filter.flags.cases,
                 is_word: filter.flags.word,
             };
         }));
