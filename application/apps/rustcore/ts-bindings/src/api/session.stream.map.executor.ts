@@ -30,7 +30,11 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
                     return new Error(`Range is invalid: "from" should not be less "to"`);
                 }
             }
-            const uuid: string | IGeneralError = session.getMap(options.datasetLength, options.from, options.to);
+            const uuid: string | IGeneralError = session.getMap(
+                options.datasetLength,
+                options.from,
+                options.to
+            );
             if (typeof uuid !== 'string') {
                 return new Error(uuid.message);
             } else {

@@ -174,7 +174,7 @@ impl SearchHolder {
         let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats: HashMap<u8, u64> = HashMap::new();
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
-        // from 0 line always. But grep gives results from 1. That's why here is a point of correct:println!
+        // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
         Searcher::new().search_path(
             &matcher,

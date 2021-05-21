@@ -168,8 +168,8 @@ impl SearchMap {
     /// Takes position of row in main stream/file and try to find
     /// relevant nearest position in search results.
     /// For example, search results are (indexes or rows):
-    /// 10, 200, 300, 350
-    /// In that case nearest for 310 will be - 300
+    /// [10, 200, 300, 350]
+    /// In that case nearest for 310 will be 300
     /// Returns None if there are no search results
     pub fn nearest_to(&self, position_in_stream: u64) -> Option<NearestPosition> {
         if self.matches.is_empty() {
