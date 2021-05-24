@@ -3,7 +3,6 @@ import { CancelablePromise } from '../util/promise';
 import { RustSession } from '../native/native.session';
 import { EventProvider, IErrorEvent, IOperationDoneEvent } from './session.provider';
 import { Subscription } from '../util/events.subscription';
-import { IGeneralError } from '../interfaces/errors';
 export { Logger, CancelablePromise };
 
 export type TExecutor<TReturn, TOptions> = (

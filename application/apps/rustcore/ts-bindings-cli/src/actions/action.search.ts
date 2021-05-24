@@ -1,7 +1,6 @@
 import { Action } from './action';
 import { Session } from '../../../ts-bindings/src/api/session';
 import { IGrabbedElement } from '../../../ts-bindings/src/interfaces/index';
-import { IGeneralError } from '../../../ts-bindings/src/interfaces/errors';
 import { isOutputAllowed } from './action.output';
 
 import * as path from 'path';
@@ -92,8 +91,8 @@ export class SearchInFile extends Action {
                         flags: { reg: true, word: false, cases: false },
                     };
                 })).then(() => {
-                    const grabbed: IGrabbedElement[] | IGeneralError = search.grab(params.from, params.count);
-                    if (!(grabbed instanceof Array)) {
+                    const grabbed: IGrabbedElement[] | Error = search.grab(params.from, params.count);
+                    if (grabbed instanceof Error) {
                         return reject(new Error(`Fail to grab data due error: ${grabbed.message}`));
                     }
                     const stat = session.getDebugStat();
