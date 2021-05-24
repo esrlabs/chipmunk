@@ -120,6 +120,10 @@ export class Session {
         return this._session.getSocketPath();
     }
 
+    public getNativeSession(): RustSession {
+        return this._session;
+    }
+
     /**
      * Switch session provider into debug mode
      * Shows addition logs related to lifecircle

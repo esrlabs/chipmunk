@@ -4,8 +4,8 @@ import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { EventProvider } from './session.provider';
 import { IFilter, IGrabbedElement, ISearchResults, ISearchMap } from '../interfaces/index';
-import { IGeneralError } from '../interfaces/errors';
 import { Executors } from './session.stream.executors';
+import { NativeError } from '../interfaces/errors';
 
 export class SessionSearch {
     private readonly _provider: EventProvider;
@@ -39,7 +39,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-     public grab(start: number, len: number): IGrabbedElement[] | IGeneralError {
+     public grab(start: number, len: number): IGrabbedElement[] | Error {
         // TODO grab content
         return this._session.grabSearchChunk(start, len);
     }
@@ -49,7 +49,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grabMatchesChunk(start: number, len: number): string[] | IGeneralError {
+    public grabMatchesChunk(start: number, len: number): string[] | Error {
         return this._session.grabMatchesChunk(start, len);
     }
 
@@ -60,13 +60,11 @@ export class SessionSearch {
      * @param filters { IFilter[] }
      */
     public setFilters(filters: IFilter[]): Error | undefined {
-        const error: IGeneralError | string = this._session.setFilters(filters);
-        if (typeof error !== 'string') {
-            this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
-            return new Error(error.message);
-        } else {
-            return undefined;
+        const error: Error | string = this._session.setFilters(filters);
+        if (error instanceof Error) {
+            return error;
         }
+        return undefined;
     }
 
     /**
@@ -77,13 +75,11 @@ export class SessionSearch {
      * @param filters { IFilter[] }
      */
     public setMatches(filters: IFilter[]): Error | undefined {
-        const error: IGeneralError | undefined = this._session.setMatches(filters);
-        if (error !== undefined) {
-            this._logger.warn(`Fail to set filters for matches due error: ${error.message}`);
-            return new Error(error.message);
-        } else {
-            return undefined;
+        const error: Error | undefined = this._session.setMatches(filters);
+        if (error instanceof Error) {
+            return error;
         }
+        return undefined;
     }
 
     public search(filters: IFilter[]): CancelablePromise<ISearchResults> {
@@ -114,7 +110,10 @@ export class SessionSearch {
 
     public len(): number {
         const len = this._session.getSearchLen();
-        if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
+        if (len instanceof Error) {
+            this._logger.warn(`Fail get length of stream. Error: ${len.message}`);
+            return 0;
+        } else if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
             this._logger.warn(
                 `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,
             );

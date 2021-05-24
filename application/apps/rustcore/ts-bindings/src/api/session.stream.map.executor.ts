@@ -1,7 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, withResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
-import { IGeneralError } from '../interfaces/errors';
 import { IFilter, ISearchMap } from '../interfaces/index';
 
 export interface IOptions {
@@ -30,13 +29,15 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
                     return new Error(`Range is invalid: "from" should not be less "to"`);
                 }
             }
-            const uuid: string | IGeneralError = session.getMap(
+            const uuid: string | Error = session.getMap(
                 options.datasetLength,
                 options.from,
                 options.to
             );
-            if (typeof uuid !== 'string') {
-                return new Error(uuid.message);
+            if (uuid instanceof Error) {
+                return uuid;
+            } else if (typeof uuid !== 'string') {
+                return new Error(`Unexpected format of output of "getMap". Expecting {uuid}; get: ${uuid}`);
             } else {
                 return uuid;
             };

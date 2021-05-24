@@ -1,7 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, withResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
-import { IGeneralError } from '../interfaces/errors';
 
 export interface IDetectOptions {
 
@@ -24,12 +23,7 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
         logger,
         options,
         function(session: RustSession, options: IDetectOptions): string | Error {
-            const uuid: string | IGeneralError = session.detect(options);
-            if (typeof uuid !== 'string') {
-                return new Error(uuid.message);
-            } else {
-                return uuid;
-            };
+            return session.detect(options);
         },
         function(result: any, resolve: (res: IDetectDTFormatResult) => void, reject: (err: Error) => void) {
             // TODO: implement result checks/convert
