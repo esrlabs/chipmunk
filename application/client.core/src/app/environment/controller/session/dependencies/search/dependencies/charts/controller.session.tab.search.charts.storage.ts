@@ -106,7 +106,7 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
         }
         this._subjects.updated.next({ requests: this._stored, added: added.length === 1 ? added[0] : added });
         if (this._stored.length > 0) {
-            import('../../../../../../services/service.sessions.tabs').then((TabsSessionsService) => {
+            require('../../../../../../services/service.sessions.tabs').then((TabsSessionsService) => {
                 TabsSessionsService.default.bars().openToolbarApp(TabsSessionsService.default.bars().getDefsToolbarApps().charts, true);
             }).catch((err: Error) => {
                 this._logger.warn(`Fail dynamically import module TabsSessionsService due error: ${err.message}`);
