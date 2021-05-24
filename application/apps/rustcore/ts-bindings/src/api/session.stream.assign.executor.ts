@@ -1,7 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, noResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
-import { IGeneralError } from '../interfaces/errors';
 
 export interface IFileOptionsDLT {}
 
@@ -29,9 +28,11 @@ export const executor: TExecutor<void, IExecuteAssignOptions> = (
         logger,
         options,
         function(session: RustSession, options: IExecuteAssignOptions): string | Error {
-            const uuid: string | IGeneralError = session.assign(options.filename, options.options);
-            if (typeof uuid !== 'string') {
-                return new Error(uuid.message);
+            const uuid: string | Error = session.assign(options.filename, options.options);
+            if (uuid instanceof Error) {
+                return uuid;
+            } else if (typeof uuid !== 'string') {
+                return new Error(`Unexpected format of output of "assign". Expecting {uuid}; get: ${uuid}`);
             } else {
                 logger.debug(`Assign started. Operation UUID: ${uuid}`);
                 return uuid;
