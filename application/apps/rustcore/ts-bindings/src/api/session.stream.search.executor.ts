@@ -1,7 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, withResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
-import { IGeneralError } from '../interfaces/errors';
 import { IFilter, ISearchResults } from '../interfaces/index';
 
 export const executor: TExecutor<ISearchResults, IFilter[]> = (
@@ -16,9 +15,11 @@ export const executor: TExecutor<ISearchResults, IFilter[]> = (
         logger,
         filters,
         function(session: RustSession, filters: IFilter[]): string | Error {
-            const uuid: string | IGeneralError = session.search(filters);
-            if (typeof uuid !== 'string') {
-                return new Error(uuid.message);
+            const uuid: string | Error = session.search(filters);
+            if (uuid instanceof Error) {
+                return uuid;
+            } else if (typeof uuid !== 'string') {
+                return new Error(`Unexpected format of output of "search". Expecting {uuid}; get: ${uuid}`);
             } else {
                 return uuid;
             };

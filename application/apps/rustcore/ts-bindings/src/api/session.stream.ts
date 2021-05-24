@@ -9,7 +9,7 @@ import { IExportOptions } from './session.stream.export.executor';
 import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
 import { Executors } from './session.stream.executors';
 import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.executor';
-import { IGeneralError, getErrorFrom } from '../interfaces/errors';
+import { NativeError } from '../interfaces/errors';
 import {
     IGrabbedElement,
     IExtractDTFormatOptions,
@@ -62,7 +62,7 @@ export class SessionStream {
         // });
     }
 
-    public grab(start: number, len: number): IGrabbedElement[] | IGeneralError {
+    public grab(start: number, len: number): IGrabbedElement[] | Error {
         // TODO grab content
         return this._session.grabStreamChunk(start, len);
     }
@@ -96,7 +96,7 @@ export class SessionStream {
     }
 
     public extractTimeformat(options: IExtractDTFormatOptions): IExtractDTFormatResult | Error {
-        let results: IExtractDTFormatResult | Error = getErrorFrom(this._session.extract(options));
+        let results: IExtractDTFormatResult | Error = this._session.extract(options);
         if (typeof results !== 'object' || results === null) {
             results = new Error(
                 `Expecting {IExtractDTFormatOptions} as result of "extractTimeformat", but has been gotten: ${typeof results}`,
@@ -131,7 +131,10 @@ export class SessionStream {
 
     public len(): number {
         const len = this._session.getStreamLen();
-        if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
+        if (len instanceof Error) {
+            this._logger.warn(`Fail get length of stream. Error: ${len.message}`);
+            return 0;
+        } else if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
             this._logger.warn(
                 `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,
             );

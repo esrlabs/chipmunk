@@ -1,7 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, noResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
-import { IGeneralError } from '../interfaces/errors';
 
 export interface IExecuteConcatOptions {
     files: string[];
@@ -19,12 +18,7 @@ export const executor: TExecutor<void, IExecuteConcatOptions> = (
         logger,
         options,
         function(session: RustSession, options: IExecuteConcatOptions): string | Error {
-            const uuid: string | IGeneralError = session.concat(options.files);
-            if (typeof uuid !== 'string') {
-                return new Error(uuid.message);
-            } else {
-                return uuid;
-            };
+            return session.concat(options.files);
         },
         "concat",
     );

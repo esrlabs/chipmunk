@@ -1,7 +1,6 @@
 import { Action } from './action';
 import { Session } from '../../../ts-bindings/src/api/session';
 import { IGrabbedElement } from '../../../ts-bindings/src/interfaces/index';
-import { IGeneralError } from '../../../ts-bindings/src/interfaces/errors';
 import { isOutputAllowed } from './action.output';
 
 import * as path from 'path';
@@ -94,8 +93,8 @@ export class OpenFile extends Action {
                         return fail(new Error(`Fail to create a session. Error: ${stream.message}`))
                     }
                     stream.assign(file.filename, {}).then(() => {
-                        const grabbed: IGrabbedElement[] | IGeneralError = stream.grab(file.from, file.count);
-                        if (!(grabbed instanceof Array)) {
+                        const grabbed: IGrabbedElement[] | Error = stream.grab(file.from, file.count);
+                        if (grabbed instanceof Error) {
                             return fail(new Error(`Fail to grab data due error: ${grabbed.message}`));
                         }
                         const finished = Date.now();
