@@ -1,4 +1,4 @@
-import { TExecutor, Logger, CancelablePromise, noResultsExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, AsyncVoidExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
 
@@ -22,21 +22,25 @@ export const executor: TExecutor<void, IExecuteAssignOptions> = (
     logger: Logger,
     options: IExecuteAssignOptions,
 ): CancelablePromise<void> => {
-    return noResultsExecutor<IExecuteAssignOptions>(
+    return AsyncVoidExecutor<IExecuteAssignOptions>(
         session,
         provider,
         logger,
         options,
-        function(session: RustSession, options: IExecuteAssignOptions): string | Error {
-            const uuid: string | Error = session.assign(options.filename, options.options);
-            if (uuid instanceof Error) {
-                return uuid;
-            } else if (typeof uuid !== 'string') {
-                return new Error(`Unexpected format of output of "assign". Expecting {uuid}; get: ${uuid}`);
-            } else {
-                logger.debug(`Assign started. Operation UUID: ${uuid}`);
-                return uuid;
-            };
+        function(session: RustSession, options: IExecuteAssignOptions, operationUuid: string): Promise<void> {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    const uuid: string | Error = session.assign(options.filename, options.options, operationUuid);
+                    if (uuid instanceof Error) {
+                        return reject(uuid);
+                    } else if (typeof uuid !== 'string') {
+                        return reject(new Error(`Unexpected format of output of "assign". Expecting {uuid}; get: ${uuid}`));
+                    } else {
+                        logger.debug(`Assign started. Operation UUID: ${uuid}`);
+                        return resolve();
+                    };
+                });
+            });
         },
         "assign",
     );

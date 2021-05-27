@@ -1,4 +1,4 @@
-import { TExecutor, Logger, CancelablePromise, noResultsExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, VoidExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
 
@@ -18,7 +18,7 @@ export const executor: TExecutor<void, IExecuteMergeOptions> = (
     logger: Logger,
     options: IExecuteMergeOptions,
 ): CancelablePromise<void> => {
-    return noResultsExecutor<IExecuteMergeOptions>(
+    return VoidExecutor<IExecuteMergeOptions>(
         session,
         provider,
         logger,
