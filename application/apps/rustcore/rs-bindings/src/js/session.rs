@@ -22,6 +22,7 @@ use processor::{
 };
 use serde::Serialize;
 use std::{
+    collections::HashMap,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
     thread,
@@ -36,18 +37,20 @@ pub struct SessionState {
     pub metadata: Option<GrabMetadata>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Clone)]
 enum Operation {
     Assign {
         file_path: String,
         source_id: String,
         operation_id: Uuid,
         source_type: SupportedFileType,
+        canceler: cc::Receiver<()>,
     },
     Search {
         target_file: PathBuf,
         filters: Vec<SearchFilter>,
         operation_id: Uuid,
+        canceler: cc::Receiver<()>,
     },
     Map {
         dataset_len: u16,
@@ -257,6 +260,47 @@ impl RustSession {
             ))),
         }
     }
+
+    #[node_bindgen]
+    fn abort(&mut self, operation_id: String) -> Result<(), ComputationError> {
+        println!("Attempt to cancel operation {}", operation_id);
+        match self.cancelers.lock() {
+            Ok(mut cancelers) => {
+                let uuid = match Uuid::parse_str(&operation_id) {
+                    Ok(uuid) => uuid,
+                    Err(e) => {
+                        return Err(ComputationError::Cancelation(format!(
+                            "Fail to parse operation uuid {}. Error: {}",
+                            operation_id, e
+                        )))
+                    }
+                };
+                let mut canceler = cancelers.remove(&uuid);
+                if let Some(canceler) = canceler.take() {
+                    println!("Canceler of operation {} has been found", operation_id);
+                    if let Err(e) = canceler.send(()) {
+                        Err(ComputationError::Cancelation(format!(
+                            "Fail to send cancel operation for {}. Error: {}",
+                            operation_id, e
+                        )))
+                    } else {
+                        println!("Cancel signal for operation {} has been sent", operation_id);
+                        Ok(())
+                    }
+                } else {
+                    Err(ComputationError::Cancelation(format!(
+                        "Fail to find canceler for {}",
+                        operation_id
+                    )))
+                }
+            }
+            Err(e) => Err(ComputationError::Cancelation(format!(
+                "Fail to get access to cancelers. Fail to cancel operation {}. Error: {}",
+                operation_id, e
+            ))),
+        }
+    }
+
     /// this will start of the event loop that processes different rust operations
     /// in the event-loop-thread
     /// the callback is used to report back to javascript
@@ -285,6 +329,7 @@ impl RustSession {
                                 source_id,
                                 operation_id,
                                 source_type,
+                                canceler,
                             } => {
                                 debug!("RUST: received Assign operation event");
                                 thread::sleep(std::time::Duration::from_millis(4000));
@@ -300,6 +345,7 @@ impl RustSession {
                                 target_file,
                                 filters,
                                 operation_id,
+                                canceler,
                             } => {
                                 debug!("RUST: Search operation is requested");
                                 if filters.is_empty() {
@@ -313,9 +359,14 @@ impl RustSession {
                                             stats: FilterStats::new(vec![]),
                                         }, operation_id));
                                 } else {
-                                    match run_search(&target_file, filters.iter(), &state) {
-                                        Ok((file_path, found, stats)) => {
+                                    let search_results = run_search(&target_file, filters.iter(), &state, canceler);
+                                    remove_canceler("Operation::Search", &operation_id);
+                                    match search_results {
+                                        Ok((file_path, found, stats, canceled)) => {
                                             if found == 0 {
+                                                if canceled {
+                                                    println!("Search operation was canceled");
+                                                }
                                                 let _ = search_metadata_tx.send(None);
                                                 callback(CallbackEvent::SearchUpdated(0));
                                             } else {
@@ -511,18 +562,32 @@ impl RustSession {
                 ));
             }
         };
-        self.op_channel
-            .0
-            .send(Operation::Assign {
-                file_path,
-                source_id,
-                operation_id,
-                source_type,
-            })
-            .map_err(|_| {
-                ComputationError::Process("Could not send operation on channel".to_string())
-            })?;
-        Ok(operation_id.to_string())
+        let (sender, canceler): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
+        match self.cancelers.lock() {
+            Ok(mut cancelers) => {
+                cancelers.insert(operation_id, sender);
+                match self.op_channel.0.send(Operation::Assign {
+                    file_path,
+                    source_id,
+                    operation_id,
+                    source_type,
+                    canceler,
+                }) {
+                    Ok(_) => Ok(operation_id.to_string()),
+                    Err(e) => {
+                        cancelers.remove(&operation_id);
+                        Err(ComputationError::Process(format!(
+                            "Could not send operation on channel. Error: {}",
+                            e
+                        )))
+                    }
+                }
+            }
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not register canceler for operation. Error: {}",
+                e
+            ))),
+        }
     }
 
     #[node_bindgen]
@@ -622,27 +687,42 @@ impl RustSession {
         } else {
             return Err(ComputationError::NoAssignedContent);
         };
-        let operation_id = Uuid::new_v4();
         let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
         info!(
             "Search (operation: {}) will be done in {:?} withing next filters: {:?}",
             operation_id, target_file, filters
         );
-        if let Err(e) = self
-            .op_channel
-            .0
-            .send(Operation::Search {
-                target_file,
-                operation_id,
-                filters,
-            })
-            .map_err(|_| {
-                ComputationError::Process("Could not send operation on channel".to_string())
-            })
-        {
-            return Err(e);
+        let (sender, canceler): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
+        match self.cancelers.lock() {
+            Ok(mut cancelers) => {
+                cancelers.insert(operation_id, sender);
+                match self
+                    .op_channel
+                    .0
+                    .send(Operation::Search {
+                        target_file,
+                        operation_id,
+                        filters,
+                        canceler,
+                    })
+                    .map_err(|_| {
+                        ComputationError::Process("Could not send operation on channel".to_string())
+                    }) {
+                    Ok(_) => Ok(operation_id.to_string()),
+                    Err(e) => {
+                        cancelers.remove(&operation_id);
+                        Err(ComputationError::Process(format!(
+                            "Could not send operation on channel. Error: {}",
+                            e
+                        )))
+                    }
+                }
+            }
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not register canceler for operation. Error: {}",
+                e
+            ))),
         }
-        Ok(operation_id.to_string())
     }
 
     #[node_bindgen]
@@ -843,16 +923,17 @@ fn create_metadata_for_source(
     file_path: String,
     source_type: SupportedFileType,
     source_id: String,
+    canceler: cc::Receiver<()>,
 ) -> Option<Result<ComputationResult<GrabMetadata>, GrabError>> {
     let file_path = Path::new(&file_path);
     match source_type {
         SupportedFileType::Dlt => {
             let source = DltSource::new(file_path, &source_id);
-            Some(source.from_file(None))
+            Some(source.from_file(Some(canceler)))
         }
         SupportedFileType::Text => {
             let source = TextFileSource::new(file_path, &source_id);
-            Some(source.from_file(None))
+            Some(source.from_file(Some(canceler)))
         }
     }
 }
@@ -872,7 +953,7 @@ where
             match state.lock() {
                 Ok(mut state) => {
                     state.search_map.set(Some(matches));
-                    Ok((file_path, found, stats))
+                    Ok((file_path, found, stats, canceled))
                 }
                 Err(err) => Err(NativeError {
                     severity: Severity::ERROR,

@@ -113,6 +113,11 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         return this._uuid;
     }
 
+    public stopCancelation(): void {
+        this._canceled = false;
+        this._canceling = false;
+    }
+
     private _refCancellationCallback(callback: TCanceler<C>) {
         this._cancellation = callback;
     }

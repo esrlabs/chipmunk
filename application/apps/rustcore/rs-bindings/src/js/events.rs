@@ -106,6 +106,8 @@ pub enum ComputationError {
     Process(String),
     #[error("Wrong usage of API: ({0})")]
     Protocol(String),
+    #[error("Cancelation error: ({0})")]
+    Cancelation(String),
     #[error("Search related error")]
     SearchError(SearchError),
 }
