@@ -14,6 +14,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use thiserror::Error;
+use indexer_base::{progress::ComputationResult, utils};
 
 #[derive(Error, Debug)]
 pub enum SearchError {
@@ -141,7 +142,8 @@ impl SearchHolder {
     /// [(index_of_filter, count_of_matches), ...]
     pub fn execute_search(
         &self,
-    ) -> Result<(PathBuf, Vec<FilterMatch>, Vec<(u8, u64)>), SearchError> {
+        shutdown_receiver: Option<cc::Receiver<()>>,
+    ) -> Result<(PathBuf, Vec<FilterMatch>, Vec<(u8, u64)>, bool), SearchError> {
         use regex::Regex;
         use std::str::FromStr;
 
@@ -173,6 +175,7 @@ impl SearchHolder {
         let mut writer = BufWriter::new(out_file);
         let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats: HashMap<u8, u64> = HashMap::new();
+        let mut canceled: bool = false;
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
@@ -180,17 +183,25 @@ impl SearchHolder {
             &matcher,
             &self.file_path,
             UTF8(|lnum, line| {
-                matched_lines += 1;
-                let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
-                for (index, re) in matchers.iter().enumerate() {
-                    if re.is_match(line) {
-                        line_indexes.filters.push(index as u8);
-                        *stats.entry(index as u8).or_insert(0) += 1;
+                if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "search") {
+                    indexes = vec![];
+                    stats = HashMap::new();
+                    matched_lines = 0;
+                    canceled = true;
+                    Ok(false)
+                } else {
+                    matched_lines += 1;
+                    let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
+                    for (index, re) in matchers.iter().enumerate() {
+                        if re.is_match(line) {
+                            line_indexes.filters.push(index as u8);
+                            *stats.entry(index as u8).or_insert(0) += 1;
+                        }
                     }
+                    indexes.push(line_indexes);
+                    writeln!(writer, "{}", lnum - 1)?;
+                    Ok(true)
                 }
-                indexes.push(line_indexes);
-                writeln!(writer, "{}", lnum - 1)?;
-                Ok(true)
             }),
         )?;
 
@@ -201,6 +212,7 @@ impl SearchHolder {
                 .into_iter()
                 .map(|(filter_index, meets)| (filter_index, meets))
                 .collect(),
+            canceled,
         ))
     }
 }

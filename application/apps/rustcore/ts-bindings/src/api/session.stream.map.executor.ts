@@ -1,4 +1,4 @@
-import { TExecutor, Logger, CancelablePromise, withResultsExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, ResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
 import { IFilter, ISearchMap } from '../interfaces/index';
@@ -15,7 +15,7 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
     logger: Logger,
     options: IOptions,
 ): CancelablePromise<ISearchMap> => {
-    return withResultsExecutor<ISearchMap, IOptions>(
+    return ResultsExecutor<ISearchMap, IOptions>(
         session,
         provider,
         logger,

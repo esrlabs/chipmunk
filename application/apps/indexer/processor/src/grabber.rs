@@ -12,6 +12,7 @@ pub trait GrabTrait {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
     fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
     fn get_metadata(&self) -> Option<&GrabMetadata>;
+    fn drop_metadata(&mut self);
     fn associated_file(&self) -> PathBuf;
 }
 
@@ -212,6 +213,10 @@ where
         self.metadata.as_ref()
     }
 
+    fn drop_metadata(&mut self) {
+        self.metadata = None;
+    }
+
     fn associated_file(&self) -> PathBuf {
         self.source.path().to_path_buf()
     }
@@ -227,7 +232,6 @@ impl<T: MetadataSource> Grabber<T> {
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
-
         Ok(Self {
             source,
             metadata: None,
