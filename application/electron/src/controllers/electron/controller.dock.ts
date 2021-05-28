@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 import { exec } from 'child_process';
-import { ExecException } from 'node:child_process';
+import { ExecException } from 'child_process';
 import { app, Menu, MenuItem } from 'electron';
 
 import ServicePath from '../../services/service.paths';

@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.18.0] - 05/28/2021
+### Add
+* Show Y-axis on selected chart
+### Fixes
+* Support scale for 0 > values on chart
+
 ## [2.17.0] - 05/07/2021
 ### Changes
 * Using relevant version
