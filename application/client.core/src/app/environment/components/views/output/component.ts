@@ -376,7 +376,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                             ]);
                         }
                     }
-                    const selected: number | undefined = this.session.getTimestamp().getRangeIdByPosition(current.position);
+                    const selected: number | undefined = current === undefined ? undefined : this.session.getTimestamp().getRangeIdByPosition(current.position);
                     if (this.session.getTimestamp().getRanges().length > 0) {
                         if (selected !== undefined) {
                             items.push(...[
