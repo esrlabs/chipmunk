@@ -300,10 +300,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_isButtonsVisible(): boolean {
         if (this._prevRequest === this._ng_inputCtrl.value && this._ng_inputCtrl.value !== '') {
-            this._ng_session.getSessionSearch().getState().lock();
+            this._ng_session.getSessionSearch().getQueue().lock();
             return true;
         } else {
-            this._ng_session.getSessionSearch().getState().unlock();
+            this._ng_session.getSessionSearch().getQueue().unlock();
             return false;
         }
     }
@@ -319,7 +319,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._ng_flags[key] = !this._ng_flags[key];
         this._validateRegExp();
         this._forceUpdate();
-        if (this._ng_session.getSessionSearch().getState().isLocked()) {
+        if (this._ng_session.getSessionSearch().getQueue().isLocked()) {
             // Trigger re-search only if it was done already before
             this._search(false);
         }
@@ -582,7 +582,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_read = state.read;
             // Get actual data if active search is present
             if (this._ng_searchRequestId !== undefined) {
-                this._ng_searchRequestId = this._ng_session.getSessionSearch().getState().getId();
+                this._ng_searchRequestId = this._ng_session.getSessionSearch().getQueue().getId();
                 if (this._ng_searchRequestId !== undefined) {
                     this._ng_read = this._ng_session.getStreamOutput().getRowsCount();
                     this._ng_found = this._ng_session.getSessionSearch().getOutputStream().getRowsCount();
