@@ -20,6 +20,7 @@ const REDUX_READER_CAPACITY: usize = 10 * 1024 * 1024;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 const DEFAULT_SLOT_SIZE: usize = 64 * 1024usize;
 
+#[derive(Debug)]
 pub struct DltSource {
     source_id: String,
     path: PathBuf,

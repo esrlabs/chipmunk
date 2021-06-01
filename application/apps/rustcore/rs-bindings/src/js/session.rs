@@ -15,8 +15,8 @@ use node_bindgen::{
 };
 use processor::{
     dlt_source::DltSource,
-    grabber::{GrabError, GrabMetadata, GrabTrait, GrabbedContent, LineRange, MetadataSource},
-    map::SearchMap,
+    grabber::{GrabError, GrabMetadata, GrabTrait, AsyncGrabTrait, GrabbedContent, LineRange, MetadataSource},
+    map::{NearestPosition, SearchMap},
     search::{FilterStats, SearchFilter, SearchHolder},
     text_source::TextFileSource,
 };
@@ -30,6 +30,7 @@ use std::{
 use tokio::{runtime::Runtime, sync::broadcast};
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub struct SessionState {
     pub assigned_file: Option<String>,
     pub filters: Vec<SearchFilter>,
@@ -44,13 +45,11 @@ enum Operation {
         source_id: String,
         operation_id: Uuid,
         source_type: SupportedFileType,
-        canceler: cc::Receiver<()>,
     },
     Search {
         target_file: PathBuf,
         filters: Vec<SearchFilter>,
         operation_id: Uuid,
-        canceler: cc::Receiver<()>,
     },
     Map {
         dataset_len: u16,
@@ -81,11 +80,13 @@ pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
     }
 }
 
+
+#[derive(Debug)]
 pub struct RustSession {
     pub id: String,
     pub running: bool,
-    pub content_grabber: Option<Box<dyn GrabTrait>>,
-    pub search_grabber: Option<Box<dyn GrabTrait>>,
+    pub content_grabber: Option<Box<dyn AsyncGrabTrait>>,
+    pub search_grabber: Option<Box<dyn AsyncGrabTrait>>,
     pub state: Arc<Mutex<SessionState>>,
     // TODO: think about if we need to keep a callback around
     // callback: Option<Box<dyn Fn(CallbackEvent) + Send + 'static>>,
@@ -103,7 +104,7 @@ impl RustSession {
     /// written to the metadata-channel. If so, this metadata is used in the grabber.
     /// If there was no new metadata, we make sure that the metadata has been set.
     /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    fn get_content_grabber(&mut self) -> Result<&mut Box<dyn GrabTrait>, ComputationError> {
+    fn get_content_grabber(&mut self) -> Result<&mut Box<dyn AsyncGrabTrait>, ComputationError> {
         let current_grabber = match &mut self.content_grabber {
             Some(c) => Ok(c),
             None => Err(ComputationError::Protocol(
@@ -173,7 +174,7 @@ impl RustSession {
         Ok(grabber)
     }
 
-    fn get_search_grabber(&mut self) -> Result<Option<&mut Box<dyn GrabTrait>>, ComputationError> {
+    fn get_search_grabber(&mut self) -> Result<Option<&mut Box<dyn AsyncGrabTrait>>, ComputationError> {
         if self.search_grabber.is_none() && !self.search_metadata_channel.1.is_empty() {
             // We are intrested only in last message in queue, all others messages can be just dropped.
             let mut queue: Vec<Option<(PathBuf, GrabMetadata)>> =
@@ -261,46 +262,6 @@ impl RustSession {
         }
     }
 
-    #[node_bindgen]
-    fn abort(&mut self, operation_id: String) -> Result<(), ComputationError> {
-        println!("Attempt to cancel operation {}", operation_id);
-        match self.cancelers.lock() {
-            Ok(mut cancelers) => {
-                let uuid = match Uuid::parse_str(&operation_id) {
-                    Ok(uuid) => uuid,
-                    Err(e) => {
-                        return Err(ComputationError::Cancelation(format!(
-                            "Fail to parse operation uuid {}. Error: {}",
-                            operation_id, e
-                        )))
-                    }
-                };
-                let mut canceler = cancelers.remove(&uuid);
-                if let Some(canceler) = canceler.take() {
-                    println!("Canceler of operation {} has been found", operation_id);
-                    if let Err(e) = canceler.send(()) {
-                        Err(ComputationError::Cancelation(format!(
-                            "Fail to send cancel operation for {}. Error: {}",
-                            operation_id, e
-                        )))
-                    } else {
-                        println!("Cancel signal for operation {} has been sent", operation_id);
-                        Ok(())
-                    }
-                } else {
-                    Err(ComputationError::Cancelation(format!(
-                        "Fail to find canceler for {}",
-                        operation_id
-                    )))
-                }
-            }
-            Err(e) => Err(ComputationError::Cancelation(format!(
-                "Fail to get access to cancelers. Fail to cancel operation {}. Error: {}",
-                operation_id, e
-            ))),
-        }
-    }
-
     /// this will start of the event loop that processes different rust operations
     /// in the event-loop-thread
     /// the callback is used to report back to javascript
@@ -329,11 +290,8 @@ impl RustSession {
                                 source_id,
                                 operation_id,
                                 source_type,
-                                canceler,
                             } => {
                                 debug!("RUST: received Assign operation event");
-                                thread::sleep(std::time::Duration::from_millis(4000));
-                                debug!("RUST: ...continue after sleep");
                                 let callback_event = handle_assign(operation_id, file_path, source_type, source_id, &state);
                                 callback(callback_event);
                                 callback(CallbackEvent::OperationDone(OperationDone {
@@ -345,7 +303,6 @@ impl RustSession {
                                 target_file,
                                 filters,
                                 operation_id,
-                                canceler,
                             } => {
                                 debug!("RUST: Search operation is requested");
                                 if filters.is_empty() {
@@ -359,8 +316,7 @@ impl RustSession {
                                             stats: FilterStats::new(vec![]),
                                         }, operation_id));
                                 } else {
-                                    let search_results = run_search(&target_file, filters.iter(), &state, canceler);
-                                    remove_canceler("Operation::Search", &operation_id);
+                                    let search_results = run_search(&target_file, filters.iter(), &state);
                                     match search_results {
                                         Ok((file_path, found, stats, canceled)) => {
                                             if found == 0 {
@@ -533,9 +489,14 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn assign(&mut self, file_path: String, source_id: String) -> Result<String, ComputationError> {
-        debug!("RUST: send assign event on channel");
-        let operation_id = Uuid::new_v4();
+    async fn assign(
+        &mut self,
+        file_path: String,
+        source_id: String,
+        operation_id: String,
+    ) -> Result<(), ComputationError> {
+        println!("RUST: send assign event on channel");
+        let operation_id = get_operation_id(&operation_id)?;
         let input_p = PathBuf::from(&file_path);
         let source_type = match get_supported_file_type(&input_p) {
             Some(SupportedFileType::Text) => {
@@ -562,32 +523,23 @@ impl RustSession {
                 ));
             }
         };
-        let (sender, canceler): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
-        match self.cancelers.lock() {
-            Ok(mut cancelers) => {
-                cancelers.insert(operation_id, sender);
-                match self.op_channel.0.send(Operation::Assign {
-                    file_path,
-                    source_id,
-                    operation_id,
-                    source_type,
-                    canceler,
-                }) {
-                    Ok(_) => Ok(operation_id.to_string()),
-                    Err(e) => {
-                        cancelers.remove(&operation_id);
-                        Err(ComputationError::Process(format!(
-                            "Could not send operation on channel. Error: {}",
-                            e
-                        )))
-                    }
+        let op_channel_tx = self.op_channel.0.clone();
+        async move {
+            match op_channel_tx.send(Operation::Assign {
+                file_path,
+                source_id,
+                operation_id,
+                source_type,
+            }) {
+                Ok(_) => Ok(()),
+                Err(e) => {
+                    Err(ComputationError::Process(format!(
+                        "Could not send operation on channel. Error: {}",
+                        e
+                    )))
                 }
             }
-            Err(e) => Err(ComputationError::Process(format!(
-                "Could not register canceler for operation. Error: {}",
-                e
-            ))),
-        }
+        }.await
     }
 
     #[node_bindgen]
@@ -667,11 +619,12 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn apply_search_filters(
+    async fn apply_search_filters(
         &mut self,
         filters: Vec<WrappedSearchFilter>,
-    ) -> Result<String, ComputationError> {
-        // TODO take care that re-applying this function does not choke the metadata-channel for the search metadata
+        operation_id: String,
+    ) -> Result<(), ComputationError> {
+        let operation_id = get_operation_id(&operation_id)?;
         self.search_grabber = None;
         match self.state.lock() {
             Ok(mut state) => state.search_map.set(None),
@@ -692,37 +645,25 @@ impl RustSession {
             "Search (operation: {}) will be done in {:?} withing next filters: {:?}",
             operation_id, target_file, filters
         );
-        let (sender, canceler): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
-        match self.cancelers.lock() {
-            Ok(mut cancelers) => {
-                cancelers.insert(operation_id, sender);
-                match self
-                    .op_channel
-                    .0
-                    .send(Operation::Search {
-                        target_file,
-                        operation_id,
-                        filters,
-                        canceler,
-                    })
-                    .map_err(|_| {
-                        ComputationError::Process("Could not send operation on channel".to_string())
-                    }) {
-                    Ok(_) => Ok(operation_id.to_string()),
-                    Err(e) => {
-                        cancelers.remove(&operation_id);
-                        Err(ComputationError::Process(format!(
-                            "Could not send operation on channel. Error: {}",
-                            e
-                        )))
-                    }
+        let op_channel_tx = self.op_channel.0.clone();
+        async move {
+            match op_channel_tx.send(Operation::Search {
+                target_file,
+                operation_id,
+                filters,
+            })
+            .map_err(|_| {
+                ComputationError::Process("Could not send operation on channel".to_string())
+            }) {
+                Ok(_) => Ok(()),
+                Err(e) => {
+                    Err(ComputationError::Process(format!(
+                        "Could not send operation on channel. Error: {}",
+                        e
+                    )))
                 }
             }
-            Err(e) => Err(ComputationError::Process(format!(
-                "Could not register canceler for operation. Error: {}",
-                e
-            ))),
-        }
+        }.await
     }
 
     #[node_bindgen]
@@ -794,7 +735,9 @@ impl RustSession {
             ))),
         }
     }
+
 }
+
 
 // TODO:
 //         - allow break search operation
@@ -923,17 +866,16 @@ fn create_metadata_for_source(
     file_path: String,
     source_type: SupportedFileType,
     source_id: String,
-    canceler: cc::Receiver<()>,
 ) -> Option<Result<ComputationResult<GrabMetadata>, GrabError>> {
     let file_path = Path::new(&file_path);
     match source_type {
         SupportedFileType::Dlt => {
             let source = DltSource::new(file_path, &source_id);
-            Some(source.from_file(Some(canceler)))
+            Some(source.from_file(None))
         }
         SupportedFileType::Text => {
             let source = TextFileSource::new(file_path, &source_id);
-            Some(source.from_file(Some(canceler)))
+            Some(source.from_file(None))
         }
     }
 }
@@ -953,7 +895,7 @@ where
             match state.lock() {
                 Ok(mut state) => {
                     state.search_map.set(Some(matches));
-                    Ok((file_path, found, stats, canceled))
+                    Ok((file_path, found, stats))
                 }
                 Err(err) => Err(NativeError {
                     severity: Severity::ERROR,
@@ -1063,5 +1005,15 @@ fn update_state(
             Some(())
         }
         Err(_) => None,
+    }
+}
+
+fn get_operation_id(operation_id: &str) -> Result<Uuid, ComputationError> {
+    match Uuid::parse_str(operation_id) {
+        Ok(uuid) => Ok(uuid),
+        Err(e) => Err(ComputationError::Process(format!(
+            "Fail to parse operation uuid from {}. Error: {}",
+            operation_id, e
+        ))),
     }
 }

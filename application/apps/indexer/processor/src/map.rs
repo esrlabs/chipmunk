@@ -9,6 +9,7 @@ use std::collections::HashMap;
 type ScaledDistribution = Vec<Vec<(u8, u16)>>;
 
 /// Lists all matching filters at an index
+#[derive(Debug, Clone)]
 pub struct FilterMatch {
     pub index: u64,
     pub filters: Vec<u8>,
@@ -35,7 +36,7 @@ pub struct NearestPosition {
 ///         )
 ///     >
 ///
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct SearchMap {
     matches: Vec<FilterMatch>,
     stream_len: u64,
