@@ -35,7 +35,8 @@ export interface ISubjects {
 
 export class ControllerSessionTabSearchFilters
     extends Importable<IFilterDescOptional[]>
-    implements Dependency {
+    implements Dependency
+{
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _storage: FiltersStorage;
@@ -132,78 +133,116 @@ export class ControllerSessionTabSearchFilters
             }
             this._accessor
                 .search()
-                .getState()
-                .finally(() => {
-                    this._accessor.search().getState().start(requestId, resolve, reject);
-                    this._subjects.searching.next();
-                    // Drop output
-                    this._accessor.search().getOutputStream().clearStream();
-                    // Start search
-                    ServiceElectronIpc.request(
-                        new IPCMessages.SearchRequest({
-                            requests: _requests.map((reg) => reg.asIPC()),
-                            session: this._guid,
-                            id: requestId,
-                        }),
-                        IPCMessages.SearchRequestResults,
-                    )
-                        .then((results: IPCMessages.SearchRequestResults) => {
-                            this._subjects.complited.next();
-                            this._logger.env(
-                                `Search request ${results.requestId} was finished in ${(
-                                    results.duration / 1000
-                                ).toFixed(2)}s.`,
-                            );
-                            if (results.error !== undefined) {
-                                // Some error during processing search request
-                                this._logger.error(
-                                    `Search request id ${results.requestId} was finished with error: ${results.error}`,
+                .getQueue()
+                .add(requestId, () => {
+                    return new Promise((done, fail) => {
+                        this._subjects.searching.next();
+                        // Drop output
+                        this._accessor.search().getOutputStream().clearStream();
+                        // Start search
+                        ServiceElectronIpc.request(
+                            new IPCMessages.SearchRequest({
+                                requests: _requests.map((reg) => reg.asIPC()),
+                                session: this._guid,
+                                id: requestId,
+                            }),
+                            IPCMessages.SearchRequestResults,
+                        )
+                            .then((results: IPCMessages.SearchRequestResults) => {
+                                this._subjects.complited.next();
+                                this._logger.env(
+                                    `Search request ${results.requestId} was finished in ${(
+                                        results.duration / 1000
+                                    ).toFixed(2)}s.`,
                                 );
-                                return this._accessor
+                                if (results.error !== undefined) {
+                                    // Some error during processing search request
+                                    this._logger.error(
+                                        `Search request id ${results.requestId} was finished with error: ${results.error}`,
+                                    );
+                                    reject(new Error(results.error));
+                                    return fail(new Error(results.error));
+                                }
+                                // Share results
+                                OutputParsersService.setSearchResults(this._guid, _requests);
+                                // Update stream for render
+                                this._accessor
                                     .search()
-                                    .getState()
-                                    .fail(new Error(results.error));
-                            }
-                            // Share results
-                            OutputParsersService.setSearchResults(this._guid, _requests);
-                            // Update stream for render
-                            this._accessor
-                                .search()
-                                .getOutputStream()
-                                .updateStreamState(results.found);
-                            // Done
-                            this._accessor.search().getState().done(results.found);
-                        })
-                        .catch((error: Error) => {
-                            this._subjects.complited.next();
-                            this._accessor.search().getState().fail(error);
-                        });
+                                    .getOutputStream()
+                                    .updateStreamState(results.found);
+                                // Resolve request
+                                resolve(results.found);
+                                // Resolve task
+                                done();
+                            })
+                            .catch((error: Error) => {
+                                this._subjects.complited.next();
+                                reject(error);
+                                fail(error);
+                            });
+                    });
                 });
         });
     }
 
     public drop(requestId: string): Promise<number | undefined> {
         return new Promise((resolve, reject) => {
+            // Waiting for already started operations
             this._accessor
                 .search()
-                .getState()
-                .finally(() => {
-                    this._drop(requestId)
-                        .then((res: number | undefined) => {
-                            resolve(res);
-                        })
-                        .catch((err: Error) => {
-                            reject(err);
-                        })
-                        .finally(() => {
-                            // Emit event
-                            this._accessor
-                                .session()
-                                .getScope()
-                                .getSessionEventsHub()
-                                .emit()
-                                .onSearchUpdated({ rows: 0, session: this._guid });
-                        });
+                .getQueue()
+                .add(requestId, () => {
+                    return new Promise((done, fail) => {
+                        // Drop output
+                        this._accessor.search().getOutputStream().clearStream();
+                        // Trigger event
+                        this._subjects.dropped.next();
+                        // Start search
+                        ServiceElectronIpc.request(
+                            new IPCMessages.SearchRequest({
+                                requests: [],
+                                session: this._guid,
+                                id: requestId,
+                            }),
+                            IPCMessages.SearchRequestResults,
+                        )
+                            .then((results: IPCMessages.SearchRequestResults) => {
+                                this._logger.env(
+                                    `Search request ${results.requestId} was finished in ${(
+                                        results.duration / 1000
+                                    ).toFixed(2)}s.`,
+                                );
+                                if (results.error !== undefined) {
+                                    // Some error during processing search request
+                                    this._logger.error(
+                                        `Search request id ${results.requestId} was finished with error: ${results.error}`,
+                                    );
+                                    reject(new Error(results.error));
+                                    return fail(new Error(results.error));
+                                }
+                                // Share results
+                                OutputParsersService.setSearchResults(this._guid, []);
+                                // Update stream for render
+                                this._accessor.search().getOutputStream().updateStreamState(0);
+                                // Resolve request
+                                resolve(0);
+                                // Resolve task
+                                done();
+                                // Aplly filters if exsists
+                                this._update();
+                            })
+                            .catch((error: Error) => {
+                                fail(error);
+                            }).finally(() => {
+                                // Emit event
+                                this._accessor
+                                    .session()
+                                    .getScope()
+                                    .getSessionEventsHub()
+                                    .emit()
+                                    .onSearchUpdated({ rows: 0, session: this._guid });
+                            });
+                    });
                 });
         });
     }
@@ -245,7 +284,7 @@ export class ControllerSessionTabSearchFilters
         OutputParsersService.updateRowsView();
         this._subjects.updated.next(this._storage);
         this._subjects.onExport.next();
-        if (this._accessor.search().getState().isLocked()) {
+        if (this._accessor.search().getQueue().isLocked()) {
             // Do not apply search, because we have active search
             return;
         }
@@ -268,59 +307,6 @@ export class ControllerSessionTabSearchFilters
             OutputParsersService.updateRowsView();
         }
         this._subjects.onExport.next();
-    }
-
-    private _drop(requestId: string): Promise<number | undefined> {
-        return new Promise((resolve, reject) => {
-            // Waiting for already started operations
-            this._accessor
-                .search()
-                .getState()
-                .finally(() => {
-                    this._accessor.search().getState().start(requestId, resolve, reject);
-                    // Drop output
-                    this._accessor.search().getOutputStream().clearStream();
-                    // Trigger event
-                    this._subjects.dropped.next();
-                    // Start search
-                    ServiceElectronIpc.request(
-                        new IPCMessages.SearchRequest({
-                            requests: [],
-                            session: this._guid,
-                            id: requestId,
-                        }),
-                        IPCMessages.SearchRequestResults,
-                    )
-                        .then((results: IPCMessages.SearchRequestResults) => {
-                            this._logger.env(
-                                `Search request ${results.requestId} was finished in ${(
-                                    results.duration / 1000
-                                ).toFixed(2)}s.`,
-                            );
-                            if (results.error !== undefined) {
-                                // Some error during processing search request
-                                this._logger.error(
-                                    `Search request id ${results.requestId} was finished with error: ${results.error}`,
-                                );
-                                return this._accessor
-                                    .search()
-                                    .getState()
-                                    .fail(new Error(results.error));
-                            }
-                            // Share results
-                            OutputParsersService.setSearchResults(this._guid, []);
-                            // Update stream for render
-                            this._accessor.search().getOutputStream().updateStreamState(0);
-                            // Done
-                            this._accessor.search().getState().done(0);
-                            // Aplly filters if exsists
-                            this._update();
-                        })
-                        .catch((error: Error) => {
-                            this._accessor.search().getState().fail(error);
-                        });
-                });
-        });
     }
 
     private _update() {

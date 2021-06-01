@@ -1,23 +1,17 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
-import { IPCMessages } from '../../../../../../services/service.electron.ipc';
 
-import ServiceElectronIpc from '../../../../../../services/service.electron.ipc';
+export interface ITask {
+    task: () => Promise<void>;
+    id: string;
+}
 
-type TResolver = (output: number | undefined) => void;
-type TRejector = (error: Error) => void;
-type TFinally = () => void;
-
-export class ControllerSessionTabSearchState implements Dependency {
+export class ControllerSessionTabSearchQueue implements Dependency {
 
     private _logger: Toolkit.Logger;
     private _uuid: string;
-    private _id: string | undefined;
-    private _started: number;
-    private _finished: number;
-    private _resolver: TResolver;
-    private _rejector: TRejector;
-    private _finally: TFinally[] = [];
+    private _progress: string | undefined;
+    private _tasks: ITask[] = [];
     private _locked: boolean = false;
     private _accessor: {
         session: SessionGetter;
@@ -38,6 +32,7 @@ export class ControllerSessionTabSearchState implements Dependency {
     }
 
     public destroy(): Promise<void> {
+        this._tasks = [];
         return Promise.resolve();
     }
 
@@ -46,49 +41,19 @@ export class ControllerSessionTabSearchState implements Dependency {
     }
 
     public getId(): string | undefined {
-        return this._id;
+        return this._progress;
     }
 
-    public start(id: string, resolver: TResolver, rejector: TRejector) {
-        this._id = id;
-        this._resolver = resolver;
-        this._rejector = rejector;
-        this._started = Date.now();
-    }
-
-    public done(output: number) {
-        if (this._id === undefined || this._resolver === undefined) {
-            return this._logger.warn(`Attempt to finish search, which was already done`);
-        }
-        this._finished = Date.now();
-        this._logger.env(`Search "${this._id}" done in: ${((this._finished - this._started) / 1000).toFixed(2)}s`);
-        this._resolver(output);
-        this._clear();
-    }
-
-    public fail(error: Error) {
-        if (this._id === undefined || this._rejector === undefined) {
-            return this._logger.warn(`Attempt to finish search, which was already done`);
-        }
-        this._logger.warn(`Search "${this._id}" is finished with error: ${error.message}`);
-        this._rejector(error);
-        this._clear();
-    }
-
-    public finally(cb: TFinally) {
-        if (this.isDone()) {
-            cb();
-        } else {
-            this._finally.push(cb);
-        }
-    }
-
-    public isDone(): boolean {
-        return this._id === undefined;
+    public add(id: string, task: () => Promise<void>) {
+        this._tasks.push({
+            task,
+            id,
+        });
+        this._next();
     }
 
     public equal(id: string): boolean {
-        return this._id === id;
+        return this._progress === id;
     }
 
     public lock() {
@@ -103,14 +68,24 @@ export class ControllerSessionTabSearchState implements Dependency {
         return this._locked;
     }
 
-    private _clear() {
-        this._id = undefined;
-        this._resolver = undefined;
-        this._rejector = undefined;
-        this._finally.forEach((cb: TFinally) => {
-            cb();
+    public _next() {
+        if (this._tasks.length === 0) {
+            return;
+        }
+        if (this._progress !== undefined) {
+            return;
+        }
+        const task = this._tasks.splice(0, 1)[0];
+        this._progress = task.id;
+        const started = Date.now();
+        task.task().then(() => {
+            this._logger.env(`Search "${this._progress}" done in: ${((Date.now() - started) / 1000).toFixed(2)}s`);
+        }).catch((err: Error) => {
+            this._logger.warn(`Search "${this._progress}" is finished in: ${((Date.now() - started) / 1000).toFixed(2)}s) with error: ${err.message}`);
+        }).finally(() => {
+            this._progress = undefined;
+            this._next();
         });
-        this._finally = [];
     }
 
 }
