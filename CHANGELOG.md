@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.18.1] - 06/01/2021
+### Fixes
+* Fix an issue on actions with multiple filters/charts
+* Fix redirection issue from stream to search
+* Fix rendering of the scrollbar (matches)
+
 ## [2.18.0] - 05/28/2021
 ### Add
 * Show Y-axis on selected chart
