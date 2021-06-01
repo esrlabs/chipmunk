@@ -264,7 +264,7 @@ export class OutputRedirectionsService {
         return this._keyHolded;
     }
 
-    public getIndexAround(position: number): Promise<{ after: number, before: number }> {
+    public getIndexAround(position: number): Promise<IPCMessages.ISearchIndexAroundResponse> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(
                 new IPCMessages.SearchIndexAroundRequest({
