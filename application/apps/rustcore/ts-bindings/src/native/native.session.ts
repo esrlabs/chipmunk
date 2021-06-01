@@ -131,7 +131,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract assign(filename: string, options: TFileOptions, operationUuid?: string): string | NativeError;
+    public abstract assign(filename: string, options: TFileOptions, operationUuid: string): Promise<void>;
 
     /**
      * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
@@ -164,7 +164,7 @@ export abstract class RustSession extends RustSessionRequiered {
      */
     public abstract extract(options: IExtractDTFormatOptions): IExtractDTFormatResult | NativeError;
 
-    public abstract search(filters: IFilter[], operationUuid?: string): string | NativeError;
+    public abstract search(filters: IFilter[], operationUuid: string): Promise<void>;
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): NativeError | string;
 
@@ -172,7 +172,12 @@ export abstract class RustSession extends RustSessionRequiered {
         positionInStream: number,
     ): NativeError | { index: number; position: number } | undefined;
 
-    public abstract abort(operationUuid: string): undefined | NativeError;
+    public abstract abort(operationUuid: string): boolean | NativeError;
+
+    // public abstract sleep(duration: number): void;
+
+    // public abstract sleepUnblock(duration: number): Promise<void>;
+
 }
 
 export abstract class RustSessionNative {
@@ -180,7 +185,7 @@ export abstract class RustSessionNative {
 
     public abstract start(callback: TEventEmitter): undefined;
 
-    public abstract assign(filename: string, options: TFileOptions, operationUuid?: string): string;
+    public abstract assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void>;
 
     public abstract getStreamLen(): number;
 
@@ -197,14 +202,18 @@ export abstract class RustSessionNative {
             ignore_case: boolean;
             is_word: boolean;
         }>,
-        operationUuid?: string,
-    ): string;
+        operationUuid: string,
+    ): Promise<void>;
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): string;
 
     public abstract getNearestTo(positionInStream: number): number[] | null;
 
-    public abstract abort(operationUuid: string): void;
+    public abstract abort(operationUuid: string): boolean;
+
+    // public abstract sleep(duration: number): void;
+
+    // public abstract sleepUnblock(duration: number): Promise<void>;
 
 }
 
@@ -331,12 +340,16 @@ export class RustSessionDebug extends RustSession {
         return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
     }
 
-    public assign(filename: string, options: TFileOptions, operationUuid?: string): string | NativeError {
-        try {
-            return this._native.assign(filename, filename, operationUuid);
-        } catch (err) {
-            return new NativeError(err, Type.Other, Source.Assign);
-        }
+    public assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._native.assign(filename, filename, operationUuid).then(resolve).catch((err: Error) => {
+                    reject(new NativeError(err, Type.Other, Source.Assign));
+                });
+            } catch (err) {
+                return reject(new NativeError(err, Type.Other, Source.Assign));
+            }
+        });
     }
 
     public concat(files: string[]): string | NativeError {
@@ -361,23 +374,27 @@ export class RustSessionDebug extends RustSession {
 
     public search(
         filters: IFilter[],
-        operationUuid?: string,
-    ): string | NativeError {
-        try {
-            return this._native.search(
-                filters.map((filter) => {
-                    return {
-                        value: filter.filter,
-                        is_regex: filter.flags.reg,
-                        ignore_case: !filter.flags.cases,
-                        is_word: filter.flags.word,
-                    };
-                }),
-                operationUuid,
-            );
-        } catch (err) {
-            return new NativeError(err, Type.Other, Source.Search);
-        }
+        operationUuid: string,
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._native.search(
+                    filters.map((filter) => {
+                        return {
+                            value: filter.filter,
+                            is_regex: filter.flags.reg,
+                            ignore_case: !filter.flags.cases,
+                            is_word: filter.flags.word,
+                        };
+                    }),
+                    operationUuid,
+                ).then(resolve).catch((err: Error) => {
+                    reject(new NativeError(err, Type.Other, Source.Search));
+                });
+            } catch (err) {
+                return reject(new NativeError(err, Type.Other, Source.Search));
+            }
+        });
     }
 
     public getMap(datasetLength: number, from?: number, to?: number): NativeError | string {
@@ -418,15 +435,30 @@ export class RustSessionDebug extends RustSession {
         }
     }
 
-    public abort(operationUuid: string): undefined | NativeError {
-        // return new NativeError(new Error('FAIL TEST'), Type.Other, Source.Abort);
+    public abort(operationUuid: string): boolean | NativeError {
         try {
-            this._native.abort(operationUuid);
-            return undefined;
+            return this._native.abort(operationUuid);
         } catch (err) {
             return new NativeError(err, Type.CancelationError, Source.Abort);
         }
     }
+
+    // public sleep(duration: number): undefined | NativeError {
+    //     try {
+    //         this._native.sleep(duration);
+    //         return undefined;
+    //     } catch (err) {
+    //         return new NativeError(err, Type.CancelationError, Source.Abort);
+    //     }
+    // }
+
+    // public sleepUnblock(duration: number): Promise<void> {
+    //     try {
+    //         return this._native.sleepUnblock(duration);
+    //     } catch (err) {
+    //         return Promise.reject(new NativeError(err, Type.CancelationError, Source.Abort));
+    //     }
+    // }
 }
 
 let RustSessionDebugConstructor: RustSessionConstructorImpl<RustSessionDebug> = RustSessionDebug;
