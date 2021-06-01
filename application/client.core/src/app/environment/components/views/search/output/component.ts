@@ -333,17 +333,20 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         if (isNaN(row) || !isFinite(row)) {
             return;
         }
-        // Get nearest position
-        const pos: { index: number, position: number } | undefined = this.session.getStreamMap().getClosedMatchRow(row);
-        if (pos === undefined) {
-            return;
-        }
-        // Make offset because bookmarks
-        // const offset: number = this.session.getSessionBooksmarks().getNumberBookmarksBefore(pos.position);
-        if (bookmark) {
-            this._onKeepScrollPrevent();
-        }
-        this._ng_outputAPI.onScrollTo.next(pos.index);
+        OutputRedirectionsService.getIndexAround(row).then((around) => {
+            const target: number | undefined = around.before !== -1 ? around.before : (around.after !== -1 ? around.after : undefined);
+            if (target === undefined) {
+                return;
+            }
+            // Make offset because bookmarks
+            // const offset: number = this.session.getSessionBooksmarks().getNumberBookmarksBefore(pos.position);
+            if (bookmark) {
+                this._onKeepScrollPrevent();
+            }
+            this._ng_outputAPI.onScrollTo.next(target);
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail to detect nearest position in search. Error: ${err.message}`);
+        });
     }
 
     private _onScrolled(range: IRange) {
