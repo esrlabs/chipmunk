@@ -35,8 +35,7 @@ export interface ISubjects {
 
 export class ControllerSessionTabSearchFilters
     extends Importable<IFilterDescOptional[]>
-    implements Dependency
-{
+    implements Dependency {
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _storage: FiltersStorage;
@@ -233,7 +232,8 @@ export class ControllerSessionTabSearchFilters
                             })
                             .catch((error: Error) => {
                                 fail(error);
-                            }).finally(() => {
+                            })
+                            .finally(() => {
                                 // Emit event
                                 this._accessor
                                     .session()

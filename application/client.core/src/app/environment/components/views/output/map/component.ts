@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
+import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ChangeDetectionStrategy, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControllerSessionTabMap, IMapPoint, IMapState, IMap } from '../../../../controller/session/dependencies/map/controller.session.tab.map';
 import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
@@ -14,7 +14,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-views-content-map',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
 export class ViewContentMapComponent implements OnDestroy, AfterContentInit, AfterViewInit {
@@ -22,8 +23,6 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     @ViewChild('canvas') _ng_canvas: ElementRef;
 
     @Input() service: ControllerSessionTabMap;
-
-    @HostBinding('style.width') width = '0px';
 
     public _ng_width: number = 0;
     public _ng_height: number = 0;
@@ -93,12 +92,11 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onRepaint.bind(this, true));
         this._subscriptions.onRestyleSubject = this.service.getObservable().onRestyle.subscribe(this._onRestyle.bind(this));
         this._setState(this.service.getState());
-        this._onRepaint();
     }
 
     public ngAfterViewInit() {
-        this.service.requestMapCalculation(this._ng_height, true);
         this._setHeight();
+        this.service.requestMapCalculation(this._ng_height, true);
         this._draw();
         this._forceUpdate();
     }
@@ -169,7 +167,6 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     private _draw() {
         const width = (columns: number) => {
             this._ng_width = this.service.getColumnWidth() * columns;
-            this.width = `${this._ng_width}px`;
             this._forceUpdate();
         };
         const draw = (points: IMapPoint[]) => {

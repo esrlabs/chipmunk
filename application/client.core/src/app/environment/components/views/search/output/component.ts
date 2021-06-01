@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterViewInit, ViewChild, Input, AfterContentInit, HostListener, ViewEncapsulation } from '@angular/core';
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
 import { Session } from '../../../../controller/session/session';
 import { ControllerSessionTabSearchOutput, IStreamState, ILoadedRange } from '../../../../controller/session/dependencies/search/dependencies/output/controller.session.tab.search.output';
 import { IDataAPI, IRange, IRowsPacket, IStorageInformation, ComplexScrollBoxComponent, IScrollBoxSelection } from 'chipmunk-client-material';
@@ -32,8 +32,6 @@ const CSettings: {
 } = {
     preloadCount: 100
 };
-
-type TParentButtonsGetter = () => IButton[];
 
 @Component({
     selector: 'app-views-search-output',
@@ -333,7 +331,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         if (isNaN(row) || !isFinite(row)) {
             return;
         }
-        OutputRedirectionsService.getIndexAround(row).then((around) => {
+        OutputRedirectionsService.getIndexAround(row).then((around: IPCMessages.ISearchIndexAroundResponse) => {
             const target: number | undefined = around.before !== -1 ? around.before : (around.after !== -1 ? around.after : undefined);
             if (target === undefined) {
                 return;
