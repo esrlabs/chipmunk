@@ -198,27 +198,6 @@ export class ControllerSessionTabMap implements Dependency {
         return this._width;
     }
 
-    public getClosedMatchRow(row: number): { index: number, position: number } | undefined {
-        const points: IMapPoint[] = this._cached.map.points;
-        if (points.length === 0) {
-            return;
-        }
-        if (isNaN(row) || !isFinite(row)) {
-            this._logger.warn(`Value of target row is incorrect.`);
-        }
-        const target: { index: number, position: number } = { index: 0, position: points[0].position };
-        let distance: number = Math.abs(row - target.position);
-        points.forEach((point: IMapPoint, i: number) => {
-            const _distance: number = Math.abs(row - point.position);
-            if (_distance < distance) {
-                distance = _distance;
-                target.position = point.position;
-                target.index = i;
-            }
-        });
-        return target;
-    }
-
     public requestMapCalculation(scale: number, force: boolean) {
         const request = () => {
             this._cached.pending.progress = true;

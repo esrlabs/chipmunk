@@ -177,7 +177,7 @@ export class OutputRedirectionsService {
                 }
             });
             Promise.all(Object.keys(arounds).map((position: number | string) => {
-                return this._getIndexAround(parseInt(position as string, 10)).then((result) => {
+                return this.getIndexAround(parseInt(position as string, 10)).then((result) => {
                     arounds[position] = result;
                 }).catch((err: Error) => {
                     this._logger.error(`Fail to request positions in search around ${position} in stream due error: ${err.message}.`);
@@ -264,6 +264,19 @@ export class OutputRedirectionsService {
         return this._keyHolded;
     }
 
+    public getIndexAround(position: number): Promise<{ after: number, before: number }> {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(
+                new IPCMessages.SearchIndexAroundRequest({
+                    session: this._session.getGuid(),
+                    position: position
+                }), IPCMessages.SearchIndexAroundResponse)
+            .then((response: IPCMessages.SearchIndexAroundResponse) => {
+                resolve({ after: response.after, before: response.before });
+            }).catch(reject);
+        });
+    }
+
     private _unsubscribe(sessionId: string, handlerId: string) {
         const handlers: Map<string, THandler> | undefined = this._subscribers.get(sessionId);
         if (handlers === undefined) {
@@ -309,19 +322,6 @@ export class OutputRedirectionsService {
 
     private _onGlobalKeyUp(event: KeyboardEvent) {
         this._keyHolded = undefined;
-    }
-
-    private _getIndexAround(position: number): Promise<{ after: number, before: number }> {
-        return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
-                new IPCMessages.SearchIndexAroundRequest({
-                    session: this._session.getGuid(),
-                    position: position
-                }), IPCMessages.SearchIndexAroundResponse)
-            .then((response: IPCMessages.SearchIndexAroundResponse) => {
-                resolve({ after: response.after, before: response.before });
-            }).catch(reject);
-        });
     }
 
 }
