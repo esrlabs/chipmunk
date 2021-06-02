@@ -30,6 +30,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     @Input() public close: () => void;
 
     public _ng_comments: IComment[] = [];
+    public _ng_hidden: Array<{ count: number, color: string | undefined}> = [];
     public _ng_controller: Session | undefined;
     public _ng_broadcastEditorUsage: Subject<string> = new Subject<string>();
     public _ng_colors: string[] = CShortColors.slice();
@@ -40,6 +41,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppCommentsComponent');
     private _filter: string | undefined;
     private _destroyed: boolean = false;
+    private _comments: IComment[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef) {
     }
@@ -65,24 +67,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
 
     public ngOnSetFilter(color: string | undefined) {
         this._filter = color;
-        this._forceUpdate();
-    }
-
-    public ngGetComments(): IComment[] {
-        return this._ng_comments.filter(c => this._filter === undefined || this._filter === c.color);
-    }
-
-    public ngGetHiddenComments(): Array<{ count: number, color: string | undefined}> {
-        const data: Array<{ count: number, color: string | undefined}> = [];
-        this._ng_comments.filter(c => this._filter !== undefined && this._filter !== c.color).map((comment: IComment) => {
-            const index: number = data.findIndex(d => d.color === comment.color);
-            if (index === -1) {
-                data.push({ count: 1, color: comment.color });
-            } else {
-                data[index].count += 1;
-            }
-        });
-        return data;
+        this._update();
     }
 
     public ngOnRemoveAll() {
@@ -92,6 +77,20 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     public ngOnOrderingSwitch() {
         this._ng_ordring = this._ng_ordring === ECommentsOrdering.colors ? ECommentsOrdering.position : ECommentsOrdering.colors;
         this._load();
+    }
+
+    public _update() {
+        this._ng_comments = this._comments.filter(c => this._filter === undefined || this._filter === c.color).map(c => Object.assign({}, c));
+        this._ng_hidden = [];
+        this._comments.filter(c => this._filter !== undefined && this._filter !== c.color).map((comment: IComment) => {
+            const index: number = this._ng_hidden.findIndex(d => d.color === comment.color);
+            if (index === -1) {
+                this._ng_hidden.push({ count: 1, color: comment.color });
+            } else {
+                this._ng_hidden[index].count += 1;
+            }
+        });
+        this._forceUpdate();
     }
 
     private _onSessionChange(controller: Session | undefined) {
@@ -109,7 +108,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
 
     private _load() {
         if (this._ng_controller === undefined) {
-            this._ng_comments = [];
+            this._comments = [];
         } else {
             let comments: IComment[] = [];
             const all: IComment[] = Array.from(this._ng_controller.getSessionComments().get().values());
@@ -130,9 +129,9 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
                     comments = all;
                     break;
             }
-            this._ng_comments = comments;
+            this._comments = comments;
         }
-        this._forceUpdate();
+        this._update();
     }
 
     private _onCommentAdded(comment: IComment) {

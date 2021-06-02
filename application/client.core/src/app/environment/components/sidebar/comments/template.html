@@ -11,12 +11,12 @@
         [comment]="comment"
         [controller]="_ng_controller"
         [broadcastEditorUsage]="_ng_broadcastEditorUsage"
-        *ngFor="let comment of ngGetComments()">
+        *ngFor="let comment of _ng_comments">
     </app-sidebar-app-comments-item>
 
-    <div class="hidden" *ngIf="ngGetHiddenComments().length > 0">
+    <div class="hidden" *ngIf="_ng_hidden.length > 0">
         <mat-card>
-            <div *ngFor="let hidden of ngGetHiddenComments()" class="hidden-comment-wrapper">
+            <div *ngFor="let hidden of _ng_hidden" class="hidden-comment-wrapper">
                 <div class="hidden-comment" (click)="ngOnSetFilter(hidden.color)">
                     <button 
                         class="hidden-comment"
