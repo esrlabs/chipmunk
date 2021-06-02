@@ -5,6 +5,7 @@ import { ControllerSessionTabSearchDisabled } from './dependencies/disabled/cont
 import { ControllerSessionTabSearchOutput } from './dependencies/output/controller.session.tab.search.output';
 import { ControllerSessionTabSearchStore } from './dependencies/store/controller.session.tab.search.store';
 import { ControllerSessionTabSearchQueue } from './dependencies/state/controller.session.tab.search.state';
+import { Provider } from '../../../../components/sidebar/search.manager/providers/provider';
 import { Dependency, SessionGetter } from '../session.dependency';
 
 import { Subject, Observable } from 'rxjs';
@@ -39,6 +40,7 @@ export class ControllerSessionTabSearch implements Dependency {
         store: undefined,
     };
     private _session: SessionGetter;
+    private _selected: Provider<any> | undefined;
 
     constructor(uuid: string, getter: SessionGetter) {
         this._guid = uuid;
@@ -179,6 +181,14 @@ export class ControllerSessionTabSearch implements Dependency {
 
     public search(request: FilterRequest) {
         this._subjects.search.next(request);
+    }
+
+    public get selected(): Provider<any> | undefined {
+        return this._selected;
+    }
+
+    public set selected(provider: Provider<any> | undefined) {
+        this._selected = provider;
     }
 
 }

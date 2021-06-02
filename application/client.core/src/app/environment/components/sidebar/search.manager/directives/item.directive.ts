@@ -80,6 +80,7 @@ export class SidebarAppSearchManagerItemDirective implements OnInit, OnDestroy {
         if (this.provider !== undefined && this.entity !== undefined) {
             this._ng_selected = this.provider.select().get().indexOf(this.entity.getGUID()) !== -1;
         }
+        this.provider.getSession().getSessionSearch().selected = this._ng_selected ? this.provider : undefined;
     }
 
     public ignoreMouseClick(event: MouseEvent) {

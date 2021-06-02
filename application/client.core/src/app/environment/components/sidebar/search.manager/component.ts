@@ -149,7 +149,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         Object.keys(this._subs).forEach((prop: string) => {
             this._subs[prop].unsubscribe();
         });
-        this._ng_selected = undefined;
         if (session === undefined) {
             session = TabsSessionsService.getActive();
         }
@@ -158,6 +157,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             return;
         }
         this._session = session;
+        if (this._session !== undefined) {
+            this._ng_selected = this._session.getSessionSearch().selected;
+        }
         this._subs.filename = session.getSessionSearch().getStoreAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
     }
 
