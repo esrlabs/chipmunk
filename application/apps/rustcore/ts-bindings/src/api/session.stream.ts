@@ -9,7 +9,6 @@ import { IExportOptions } from './session.stream.export.executor';
 import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
 import { Executors } from './session.stream.executors';
 import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.executor';
-import { NativeError } from '../interfaces/errors';
 import {
     IGrabbedElement,
     IExtractDTFormatOptions,

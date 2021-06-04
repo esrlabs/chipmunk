@@ -6,7 +6,7 @@
 
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger } from './common';
+import { checkSessionDebugger, isAsyncResearchTest } from './common';
 
 const TEST_LOG_FILE: string | undefined = (() => {
     const envValue = (process.env as any)['TEXT_LOG_FILE_FOR_JASMIN'];
@@ -17,7 +17,9 @@ const TEST_LOG_FILE: string | undefined = (() => {
     }
 })();
 
-if (TEST_LOG_FILE === undefined) {
+if (isAsyncResearchTest()) {
+    // Ignore test
+} else if (TEST_LOG_FILE === undefined) {
     console.log(`${'='.repeat(60)}`);
     console.log(`WARNING!`);
     console.log(`${'='.repeat(60)}`);

@@ -56,6 +56,13 @@ enum Operation {
         range: Option<(u64, u64)>,
         operation_id: Uuid,
     },
+    // TO REMOVE: begin
+    Sleep {
+        operation_id: Uuid,
+        ms: u64,
+        just_busy: bool,
+    },
+    // TO REMOVE: end
     End,
 }
 
@@ -255,22 +262,76 @@ impl RustSession {
         self.id.clone()
     }
 
+    // TO REMOVE: begin
     #[node_bindgen]
-    fn sleep(&self, duration: i64) -> Result<(), ComputationError> {
+    fn sleep_sync(&self, duration: i64) -> Result<(), ComputationError> {
+        println!("RUST (sleep_sync): I'm going to sleep for {} ms", duration);
         thread::sleep(std::time::Duration::from_millis(duration as u64));
+        println!("RUST (sleep_sync): wakeup");
         Ok(())
     }
 
     #[node_bindgen]
-    async fn sleep_unblock(&self, duration: i64) -> Result<String, ComputationError> {
-        println!("RUST: I'm going to sleep for {} ms", duration);
+    fn sleep_loop(&self, duration: i64, on_busy: bool) -> Result<String, ComputationError> {
+        let operation_id = Uuid::new_v4();
+        println!("RUST (sleep_loop): sending message to channel");
+        if on_busy {
+            println!("RUST (sleep_loop): sending message to channel (make loop busy for {}ms)", duration * 2);
+            if let Err(e) = self.op_channel.0.send(Operation::Sleep {
+                operation_id,
+                ms: (duration * 2 )as u64,
+                just_busy: true,
+            }) {
+                println!("RUST (sleep_loop): oops, something is wrong {}", e);
+                return Err(ComputationError::Process(format!(
+                    "Could not send operation on channel. Error: {}",
+                    e
+                )));
+            }
+        }
+        match self.op_channel.0.send(Operation::Sleep {
+            operation_id,
+            ms: duration as u64,
+            just_busy: false,
+        }) {
+            Ok(_) => {
+                println!("RUST (sleep_loop): message to channel has been sent");
+                Ok(operation_id.to_string())
+            },
+            Err(e) => {
+                println!("RUST (sleep_loop): oops, something is wrong {}", e);
+                Err(ComputationError::Process(format!(
+                    "Could not send operation on channel. Error: {}",
+                    e
+                )))
+            }
+        }
+    }
+
+    #[node_bindgen]
+    async fn sleep_async(&self, duration: i64, error: bool) -> Result<String, ComputationError> {
+        println!("RUST (sleep_async): I'm going to sleep for {} ms", duration);
         async move {
             thread::sleep(std::time::Duration::from_millis(duration as u64));
-            println!("RUST: wakeup");
-            //Ok(String::from("Test Done"))
-            Err(ComputationError::Protocol(String::from("Promise should be rejected")))
+            println!("RUST (sleep_async): wakeup");
+            if error {
+                Err(ComputationError::Protocol(String::from("Promise should be rejected")))
+            } else {
+                Ok(String::from("Test Done"))
+            }
         }.await
     }
+
+    #[node_bindgen]
+    fn sleep_thread(&self, duration: i64) -> Result<String, ComputationError> {
+        println!("RUST (sleep_thread): I'm going to sleep for {} ms", duration);
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_millis(duration as u64));
+            println!("RUST (sleep_thread): wakeup");
+        });
+        Ok(String::new())
+    }
+    // TO REMOVE: end
 
     #[node_bindgen]
     fn cancel_operations(&mut self) -> Result<(), ComputationError> {
@@ -335,6 +396,24 @@ impl RustSession {
                 loop {
                     match event_stream.recv().await {
                         Ok(op_event) => match op_event {
+                            // TO REMOVE: begin
+                            Operation::Sleep {
+                                operation_id,
+                                ms,
+                                just_busy
+                            } => {
+                                println!("RUST (sleep_loop): message has been gotten");
+                                println!("RUST (sleep_loop): I'm going to sleep {}ms", ms);
+                                thread::sleep(std::time::Duration::from_millis(ms));
+                                println!("RUST (sleep_loop): time to wakeup!");
+                                if !just_busy {
+                                    callback(CallbackEvent::OperationDone(OperationDone {
+                                        uuid: operation_id,
+                                        result: None,
+                                    }));
+                                }
+                            }
+                            // TO REMOVE: end
                             Operation::Assign {
                                 file_path,
                                 source_id,
@@ -586,68 +665,69 @@ impl RustSession {
         Ok(())
     }
 
-    // #[node_bindgen]
-    // fn assign(
-    //     &mut self,
-    //     file_path: String,
-    //     source_id: String,
-    //     operation_id: String,
-    // ) -> Result<String, ComputationError> {
-    //     println!("RUST: send assign event on channel");
-    //     let operation_id = get_operation_id(operation_id)?;
-    //     let input_p = PathBuf::from(&file_path);
-    //     let source_type = match get_supported_file_type(&input_p) {
-    //         Some(SupportedFileType::Text) => {
-    //             type GrabberType = processor::grabber::Grabber<TextFileSource>;
-    //             let source = TextFileSource::new(&input_p, &source_id);
-    //             let grabber = GrabberType::new(source).map_err(|e| {
-    //                 ComputationError::Process(format!("Could not create grabber: {}", e))
-    //             })?;
-    //             self.content_grabber = Some(Box::new(grabber));
-    //             SupportedFileType::Text
-    //         }
-    //         Some(SupportedFileType::Dlt) => {
-    //             type GrabberType = processor::grabber::Grabber<DltSource>;
-    //             let source = DltSource::new(&input_p, &source_id);
-    //             let grabber = GrabberType::new(source).map_err(|e| {
-    //                 ComputationError::Process(format!("Could not create grabber: {}", e))
-    //             })?;
-    //             self.content_grabber = Some(Box::new(grabber));
-    //             SupportedFileType::Dlt
-    //         }
-    //         None => {
-    //             return Err(ComputationError::OperationNotSupported(
-    //                 "Unsupported file type".to_string(),
-    //             ));
-    //         }
-    //     };
-    //     let (sender, canceler): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
-    //     match self.cancelers.lock() {
-    //         Ok(mut cancelers) => {
-    //             cancelers.insert(operation_id, sender);
-    //             match self.op_channel.0.send(Operation::Assign {
-    //                 file_path,
-    //                 source_id,
-    //                 operation_id,
-    //                 source_type,
-    //                 canceler,
-    //             }) {
-    //                 Ok(_) => Ok(operation_id.to_string()),
-    //                 Err(e) => {
-    //                     cancelers.remove(&operation_id);
-    //                     Err(ComputationError::Process(format!(
-    //                         "Could not send operation on channel. Error: {}",
-    //                         e
-    //                     )))
-    //                 }
-    //             }
-    //         }
-    //         Err(e) => Err(ComputationError::Process(format!(
-    //             "Could not register canceler for operation. Error: {}",
-    //             e
-    //         ))),
-    //     }
-    // }
+    // TO REMOVE: begin
+    #[node_bindgen]
+    fn assign_sync(
+        &mut self,
+        file_path: String,
+        source_id: String,
+    ) -> Result<String, ComputationError> {
+        println!("RUST: send assign event on channel");
+        let operation_id = Uuid::new_v4();
+        let input_p = PathBuf::from(&file_path);
+        let source_type = match get_supported_file_type(&input_p) {
+            Some(SupportedFileType::Text) => {
+                type GrabberType = processor::grabber::Grabber<TextFileSource>;
+                let source = TextFileSource::new(&input_p, &source_id);
+                let grabber = GrabberType::new(source).map_err(|e| {
+                    ComputationError::Process(format!("Could not create grabber: {}", e))
+                })?;
+                self.content_grabber = Some(Box::new(grabber));
+                SupportedFileType::Text
+            }
+            Some(SupportedFileType::Dlt) => {
+                type GrabberType = processor::grabber::Grabber<DltSource>;
+                let source = DltSource::new(&input_p, &source_id);
+                let grabber = GrabberType::new(source).map_err(|e| {
+                    ComputationError::Process(format!("Could not create grabber: {}", e))
+                })?;
+                self.content_grabber = Some(Box::new(grabber));
+                SupportedFileType::Dlt
+            }
+            None => {
+                return Err(ComputationError::OperationNotSupported(
+                    "Unsupported file type".to_string(),
+                ));
+            }
+        };
+        let (sender, canceler): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
+        match self.cancelers.lock() {
+            Ok(mut cancelers) => {
+                cancelers.insert(operation_id, sender);
+                match self.op_channel.0.send(Operation::Assign {
+                    file_path,
+                    source_id,
+                    operation_id,
+                    source_type,
+                    canceler,
+                }) {
+                    Ok(_) => Ok(operation_id.to_string()),
+                    Err(e) => {
+                        cancelers.remove(&operation_id);
+                        Err(ComputationError::Process(format!(
+                            "Could not send operation on channel. Error: {}",
+                            e
+                        )))
+                    }
+                }
+            }
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not register canceler for operation. Error: {}",
+                e
+            ))),
+        }
+    }
+    // TO REMOVE: end
 
     #[node_bindgen]
     async fn assign(

@@ -18,3 +18,11 @@ export function checkSessionDebugger(session: Session) {
 		fail(new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`));
 	}
 }
+
+export function isAsyncResearchTest(): boolean {
+	const value = (process.env as any)['ASYNC_RESEARCH_JASMIN_TEST'];
+	if (typeof value !== 'string') {
+		return false;
+	}
+	return value.toLowerCase() == 'on';
+}

@@ -5,6 +5,10 @@ import { executor as ConcatExecutor } from './session.stream.concat.executor';
 import { executor as MergeExecutor } from './session.stream.merge.executor';
 import { executor as ExportExecutor } from './session.stream.export.executor';
 import { executor as TimeformatDetectExecutor } from './session.stream.timeformat.detect.executor';
+// TO REMOVE: begin
+import { executor as SleepLoopExecutor } from './session.stream.sleep_loop.executor';
+import { executor as AssignSyncExecutor } from './session.stream.assign_sync.executor';
+// TO REMOVE: end
 
 export const Executors = {
     search: SearchExecutor,
@@ -14,4 +18,8 @@ export const Executors = {
     merge: MergeExecutor,
     export: ExportExecutor,
     timeformatDetect: TimeformatDetectExecutor,
+    // TO REMOVE: begin
+    sleepLoopExecutor: SleepLoopExecutor,
+    assignSyncExecutor: AssignSyncExecutor,
+    // TO REMOVE: end
 };

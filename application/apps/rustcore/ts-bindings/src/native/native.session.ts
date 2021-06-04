@@ -174,9 +174,18 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract abort(operationUuid: string): boolean | NativeError;
 
-    // public abstract sleep(duration: number): void;
+    // TO REMOVE: begin
 
-    // public abstract sleepUnblock(duration: number): Promise<void>;
+    public abstract assignSync(filename: string): string | NativeError;
+
+    public abstract sleepSync(duration: number): void | NativeError;
+
+    public abstract sleepLoop(duration: number, onBusyLoop: boolean): string | NativeError;
+
+    public abstract sleepAsync(duration: number, error: boolean): Promise<string>;
+
+    public abstract sleepThread(duration: number): void | NativeError;
+    // TO REMOVE: end
 
 }
 
@@ -211,9 +220,18 @@ export abstract class RustSessionNative {
 
     public abstract abort(operationUuid: string): boolean;
 
-    // public abstract sleep(duration: number): void;
+    // TO REMOVE: begin
 
-    // public abstract sleepUnblock(duration: number): Promise<void>;
+    public abstract assignSync(filename: string, source_id: string): string | NativeError;
+
+    public abstract sleepSync(duration: number): void | NativeError;
+
+    public abstract sleepLoop(duration: number, onBusyLoop: boolean): string | NativeError;
+
+    public abstract sleepAsync(duration: number, error: boolean): Promise<string>;
+
+    public abstract sleepThread(duration: number): void | NativeError;
+    // TO REMOVE: end
 
 }
 
@@ -443,22 +461,47 @@ export class RustSessionDebug extends RustSession {
         }
     }
 
-    // public sleep(duration: number): undefined | NativeError {
-    //     try {
-    //         this._native.sleep(duration);
-    //         return undefined;
-    //     } catch (err) {
-    //         return new NativeError(err, Type.CancelationError, Source.Abort);
-    //     }
-    // }
+    // TO REMOVE: begin
 
-    // public sleepUnblock(duration: number): Promise<void> {
-    //     try {
-    //         return this._native.sleepUnblock(duration);
-    //     } catch (err) {
-    //         return Promise.reject(new NativeError(err, Type.CancelationError, Source.Abort));
-    //     }
-    // }
+    public assignSync(filename: string): string | NativeError {
+        try {
+            return this._native.assignSync(filename, filename);
+        } catch (err) {
+            return new NativeError(err, Type.CancelationError, Source.Abort);
+        }
+    }
+
+    public sleepSync(duration: number): void | NativeError {
+        try {
+            this._native.sleepSync(duration);
+            return undefined;
+        } catch (err) {
+            return new NativeError(err, Type.CancelationError, Source.Abort);
+        }
+    }
+
+    public sleepLoop(duration: number, onBusyLoop: boolean): string | NativeError {
+        try {
+            return this._native.sleepLoop(duration, onBusyLoop);
+        } catch (err) {
+            return new NativeError(err, Type.CancelationError, Source.Abort);
+        }
+    }
+
+    public sleepAsync(duration: number, error: boolean): Promise<string> {
+        return this._native.sleepAsync(duration, error);
+    }
+
+    public sleepThread(duration: number): void | NativeError {
+        try {
+            this._native.sleepThread(duration);
+            return undefined;
+        } catch (err) {
+            return new NativeError(err, Type.CancelationError, Source.Abort);
+        }
+    }
+    // TO REMOVE: end
+
 }
 
 let RustSessionDebugConstructor: RustSessionConstructorImpl<RustSessionDebug> = RustSessionDebug;

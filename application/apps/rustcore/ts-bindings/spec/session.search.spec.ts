@@ -9,9 +9,9 @@ import * as fs from 'fs';
 
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger } from './common';
+import { checkSessionDebugger, isAsyncResearchTest } from './common';
 
-describe('Search', function () {
+!isAsyncResearchTest() && describe('Search', function () {
     it('Assign & single search', function (done) {
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();

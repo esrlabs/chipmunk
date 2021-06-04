@@ -9,9 +9,9 @@ import * as fs from 'fs';
 
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger } from './common';
+import { checkSessionDebugger, isAsyncResearchTest } from './common';
 
-describe('Errors', function () {
+!isAsyncResearchTest() && describe('Errors', function () {
     it('Error: Stream len before assign', function (done) {
         const session = new Session();
         // Set provider into debug mode
