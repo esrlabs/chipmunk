@@ -82,16 +82,16 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 }
             },
         };
-        logger.debug('Assign operation is started');
+        logger.debug(`Operation "${name}" is started`);
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
-            logger.debug(`Get command "break" operation. Starting breaking.`);
+            logger.debug(`Get command "break" operation ("${name}"). Starting breaking.`);
             lifecircle.cancel();
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Assign operation promise is closed as well');
+            logger.debug(`Operation "${name}"  promise is closed as well`);
             lifecircle.unsunscribe();
         });
         // Call operation

@@ -26,8 +26,9 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 import { Subject, IEventDesc } from '../src/util/events.subject';
 import { CancelablePromise } from '../src/util/promise';
 import { PromiseExecutor } from '../src/util/promise.executor';
+import { isAsyncResearchTest } from './common';
 
-describe('Utils tests', () => {
+!isAsyncResearchTest() && describe('Utils tests', () => {
 
     it('Subject interface validator', (done: Function)=> {
 

@@ -7,6 +7,8 @@ import { RustSession, RustSessionConstructor } from '../native/index';
 import { EventProvider, ISessionEvents, IError } from './session.provider';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
+import { Executors } from './session.stream.executors';
+import { CancelablePromise } from './executor';
 
 export { ISessionEvents, IProgressEvent, IProgressState, IEventMapUpdated, IEventMatchesUpdated } from './session.provider';
 
@@ -81,6 +83,17 @@ export class Session {
             });
         });
     }
+
+    // TO REMOVE: begin
+    public sleepLoop(duration: number, onBusyLoop: boolean): CancelablePromise<void> {
+        return Executors.sleepLoopExecutor(this._session, this._provider, this._logger, {duration, onBusyLoop});
+    }
+
+
+    public assignSync(filename: string): CancelablePromise<void> {
+        return Executors.assignSyncExecutor(this._session, this._provider, this._logger, {filename});
+    }
+    // TO REMOVE: end
 
     public getUUID(): string {
         return this._uuid;
