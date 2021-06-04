@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.18.2] - 06/04/2021
+### Fixes
+* Fix updating of comment(s)
+* Fix rendering of comments list
+* Fix spinner on empty chart
+
 ## [2.18.1] - 06/01/2021
 ### Fixes
 * Fix an issue on actions with multiple filters/charts
