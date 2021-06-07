@@ -1,5 +1,6 @@
 import { IComponentDesc } from './client.components.containers';
 
+export type TCallback = () => void;
 /**
  * Options for client popup window
  */
@@ -79,4 +80,14 @@ export interface IPopup {
      * @property {IOptions} options - options of popup
      */
     options?: IOptions;
+
+    /**
+     * Callback would be called after popup is rendered
+     */
+    afterOpen?: TCallback;
+
+    /**
+     * Callback would be called before popup would be removed
+     */
+     beforeClose?: TCallback;
 }
