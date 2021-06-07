@@ -4,7 +4,7 @@ use std::{
     fmt, fs,
     io::{Read, Write},
     ops::RangeInclusive,
-    path::Path,
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -12,7 +12,11 @@ pub trait GrabTrait {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
     fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
     fn get_metadata(&self) -> Option<&GrabMetadata>;
+    fn drop_metadata(&mut self);
+    fn associated_file(&self) -> PathBuf;
 }
+
+pub trait AsyncGrabTrait: GrabTrait + Sync + Send + std::fmt::Debug {}
 
 #[derive(Error, Debug)]
 pub enum GrabError {
@@ -36,6 +40,10 @@ pub struct GrabbedElement {
     pub source_id: String,
     #[serde(rename = "c")]
     pub content: String,
+    #[serde(rename = "r")]
+    pub row: Option<usize>,
+    #[serde(rename = "p")]
+    pub pos: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -190,9 +198,11 @@ pub struct Grabber<T: MetadataSource> {
     pub input_file_size: u64,
 }
 
+impl<T> AsyncGrabTrait for Grabber<T> where T: MetadataSource + Sync + Send + std::fmt::Debug {}
+
 impl<T> GrabTrait for Grabber<T>
 where
-    T: MetadataSource,
+    T: MetadataSource + Sync + Send + std::fmt::Debug,
 {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
         self.get_entries(line_range)
@@ -206,6 +216,14 @@ where
     fn get_metadata(&self) -> Option<&GrabMetadata> {
         self.metadata.as_ref()
     }
+
+    fn drop_metadata(&mut self) {
+        self.metadata = None;
+    }
+
+    fn associated_file(&self) -> PathBuf {
+        self.source.path().to_path_buf()
+    }
 }
 
 impl<T: MetadataSource> Grabber<T> {
@@ -218,7 +236,6 @@ impl<T: MetadataSource> Grabber<T> {
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
-
         Ok(Self {
             source,
             metadata: None,

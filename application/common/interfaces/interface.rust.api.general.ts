@@ -31,19 +31,12 @@ export interface IGrabbedContent {
 export interface IGrabbedElement {
 	source_id: string,
     content: string,
+	position?: number,
+	row?: number,
 }
 
 /**
- * Output for @grabSearchChunk method of session
- * (application/apps/rustcore/ts/src/native/native.session.ts)
- */
-export interface IGrabbedSearchElement {
-	source_id: string,	// Id of source
-	position: number, 	// Original position in stream
-    content: string, 	// Row value
-}
-
-/**
+ * TODO: it should be removed!
  * Output for @search method of session
  * (application/apps/rustcore/ts/src/native/native.session.ts)
  */
@@ -55,6 +48,18 @@ export interface IResultSearchElement {
     content: string,    // Row value
 }
 
+/**
+ * Output for @search method of session
+ * (application/apps/rustcore/ts/src/native/native.session.ts)
+ */
+ export interface ISearchResults {
+	found: number;
+	stats: Array<Array<number>>; // This is Array<Array<number>>
+					 // Each index in root array - position in search stream
+					 // Each sub index - index of filter, which has a match
+}
+
+export type ISearchMap = Array<Array<Array<number>>>;
 
 /**
  * Output for @extract method of session

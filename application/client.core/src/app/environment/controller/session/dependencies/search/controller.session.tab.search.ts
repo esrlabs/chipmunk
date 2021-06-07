@@ -4,7 +4,7 @@ import { ControllerSessionTabSearchRanges } from './dependencies/timeranges/cont
 import { ControllerSessionTabSearchDisabled } from './dependencies/disabled/controller.session.tab.search.disabled';
 import { ControllerSessionTabSearchOutput } from './dependencies/output/controller.session.tab.search.output';
 import { ControllerSessionTabSearchStore } from './dependencies/store/controller.session.tab.search.store';
-import { ControllerSessionTabSearchState } from './dependencies/state/controller.session.tab.search.state';
+import { ControllerSessionTabSearchQueue } from './dependencies/state/controller.session.tab.search.state';
 import { Dependency, SessionGetter } from '../session.dependency';
 
 import { ControllerSessionScope } from '../scope/controller.session.tab.scope';
@@ -28,7 +28,7 @@ export class ControllerSessionTabSearch implements Dependency {
         ranges: ControllerSessionTabSearchRanges | undefined,
         disabled: ControllerSessionTabSearchDisabled | undefined,
         output: ControllerSessionTabSearchOutput | undefined,
-        state: ControllerSessionTabSearchState | undefined,
+        queue: ControllerSessionTabSearchQueue | undefined,
         store: ControllerSessionTabSearchStore | undefined,
     } = {
         charts: undefined,
@@ -36,7 +36,7 @@ export class ControllerSessionTabSearch implements Dependency {
         ranges: undefined,
         disabled: undefined,
         output: undefined,
-        state: undefined,
+        queue: undefined,
         store: undefined,
     };
     private _session: SessionGetter;
@@ -96,9 +96,9 @@ export class ControllerSessionTabSearch implements Dependency {
                 this,
                 ControllerSessionTabSearchOutput,
             );
-            this._dependencies.state = factory<ControllerSessionTabSearchState>(
+            this._dependencies.queue = factory<ControllerSessionTabSearchQueue>(
                 this,
-                ControllerSessionTabSearchState,
+                ControllerSessionTabSearchQueue,
             );
             this._dependencies.store = factory<ControllerSessionTabSearchStore>(
                 this,
@@ -110,7 +110,7 @@ export class ControllerSessionTabSearch implements Dependency {
                 init<ControllerSessionTabSearchRanges>(this, this._dependencies.ranges ),
                 init<ControllerSessionTabSearchDisabled>(this, this._dependencies.disabled ),
                 init<ControllerSessionTabSearchOutput>(this, this._dependencies.output ),
-                init<ControllerSessionTabSearchState>(this, this._dependencies.state ),
+                init<ControllerSessionTabSearchQueue>(this, this._dependencies.queue ),
                 init<ControllerSessionTabSearchStore>(this, this._dependencies.store ),
             ])
                 .then(() => {
@@ -150,8 +150,8 @@ export class ControllerSessionTabSearch implements Dependency {
         };
     }
 
-    public getState(): ControllerSessionTabSearchState {
-        return this._dependencies.state;
+    public getQueue(): ControllerSessionTabSearchQueue {
+        return this._dependencies.queue;
     }
 
     public getOutputStream(): ControllerSessionTabSearchOutput {

@@ -44,6 +44,8 @@ jobs:
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+      - name: cargo install nj-cli
+        run: cargo install nj-cli
       - name: setup keychain for signing and notarising
         if: runner.os == 'macOS'
         env:

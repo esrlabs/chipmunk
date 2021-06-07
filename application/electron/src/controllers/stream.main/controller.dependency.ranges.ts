@@ -38,7 +38,8 @@ export class Ranges extends Dependency {
     };
     private readonly _session: Session;
     private readonly _channel: Channel;
-    private readonly _tasks: Map<string, CancelablePromise<IResultSearchElement[]>> = new Map();
+    // private readonly _tasks: Map<string, CancelablePromise<IResultSearchElement[]>> = new Map();
+    private readonly _tasks: Map<string, CancelablePromise<void>> = new Map();
     private _destroy: TDestroyCallback | undefined;
 
     constructor(session: Session, channel: Channel) {
@@ -233,8 +234,8 @@ export class Ranges extends Dependency {
                         };
                     }),
                 )
-                .then((matches: IResultSearchElement[]) => {
-                    resolve(this._getRanges(format, matches, definitions));
+                .then((/*matches: IResultSearchElement[]*/) => {
+                    // resolve(this._getRanges(format, matches, definitions));
                 })
                 .catch(reject)
                 .canceled(cancel)
@@ -244,7 +245,7 @@ export class Ranges extends Dependency {
                         this._destroy();
                     }
                 });
-            this._tasks.set(uuid, task);
+            // this._tasks.set(uuid, task);
         });
     }
 

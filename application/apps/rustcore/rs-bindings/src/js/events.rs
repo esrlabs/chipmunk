@@ -1,6 +1,7 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::Progress;
 use indexer_base::progress::Severity;
+use processor::search::SearchError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -13,18 +14,26 @@ pub enum NativeErrorKind {
     /// The file type is not currently supported
     UnsupportedFileType,
     ComputationFailed,
+    OperationSearch,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NativeError {
     pub severity: Severity,
     pub kind: NativeErrorKind,
+    pub message: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OperationDone {
     pub uuid: Uuid,
     pub result: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchOperationResult {
+    pub found: usize,
+    pub stats: Vec<(u8, u64)>,
 }
 
 #[derive(strum_macros::ToString, Debug, Serialize, Deserialize)]
@@ -81,6 +90,10 @@ pub enum CallbackEvent {
 
 #[derive(Error, Debug)]
 pub enum ComputationError {
+    #[error("Attemp to call operation before assign a session")]
+    NoAssignedContent,
+    #[error("Attemp to call operation before meta data is available")]
+    NoMetaAvailable,
     #[error("Native communication error ({0})")]
     Communication(String),
     #[error("Operation not supported ({0})")]
@@ -93,6 +106,10 @@ pub enum ComputationError {
     Process(String),
     #[error("Wrong usage of API: ({0})")]
     Protocol(String),
+    #[error("Cancelation error: ({0})")]
+    Cancelation(String),
+    #[error("Search related error")]
+    SearchError(SearchError),
 }
 
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);

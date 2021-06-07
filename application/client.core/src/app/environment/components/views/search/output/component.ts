@@ -329,21 +329,23 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         this._ng_outputAPI.onRerequest.next();
     }
 
-    private _onScrollTo(bookmark: boolean, row: number) {
-        if (isNaN(row) || !isFinite(row)) {
+    private _onScrollTo(bookmark: boolean, rowInMainStream: number) {
+        if (isNaN(rowInMainStream) || !isFinite(rowInMainStream)) {
             return;
         }
-        // Get nearest position
-        const pos: { index: number, position: number } | undefined = this.session.getStreamMap().getClosedMatchRow(row);
-        if (pos === undefined) {
-            return;
-        }
-        // Make offset because bookmarks
-        // const offset: number = this.session.getSessionBooksmarks().getNumberBookmarksBefore(pos.position);
-        if (bookmark) {
-            this._onKeepScrollPrevent();
-        }
-        this._ng_outputAPI.onScrollTo.next(pos.index);
+        this.session.getStreamMap().getClosedMatchRow(rowInMainStream).then((pos: { index: number, position: number } | undefined) => {
+            if (pos === undefined) {
+                return;
+            }
+            // Make offset because bookmarks
+            // const offset: number = this.session.getSessionBooksmarks().getNumberBookmarksBefore(pos.position);
+            if (bookmark) {
+                this._onKeepScrollPrevent();
+            }
+            this._ng_outputAPI.onScrollTo.next(pos.index);
+        }).catch((err: Error) => {
+            this._logger.warn(`Fail get nearest position. Error: ${err.message}`);
+        });
     }
 
     private _onScrolled(range: IRange) {
@@ -383,15 +385,15 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         if (frame.end === range.end) {
             return;
         }
-        this._output.preload(range).then((loaded: IRange | null) => {
-            if (loaded === null) {
-                // Already some request is in progress: do nothing
-                return;
-            }
-            this._ng_outputAPI.onScrollUntil.next(loaded.end);
-        }).catch((error: Error) => {
-            // Do nothing, no data available
-        });
+        // this._output.preload(range).then((loaded: IRange | null) => {
+        //     if (loaded === null) {
+        //         // Already some request is in progress: do nothing
+        //         return;
+        //     }
+        //     this._ng_outputAPI.onScrollUntil.next(loaded.end);
+        // }).catch((error: Error) => {
+        //     // Do nothing, no data available
+        // });
     }
 
     private _ctrl_inject() {

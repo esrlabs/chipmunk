@@ -7,6 +7,8 @@ import { RustSession, RustSessionConstructor } from '../native/index';
 import { EventProvider, ISessionEvents, IError } from './session.provider';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
+import { Executors } from './session.stream.executors';
+import { CancelablePromise } from './executor';
 
 export { ISessionEvents, IProgressEvent, IProgressState, IEventMapUpdated, IEventMatchesUpdated } from './session.provider';
 
@@ -37,7 +39,7 @@ export class Session {
         this._stream = new SessionStream(this._provider, this._session, this._uuid);
         this._search = new SessionSearch(this._provider, this._session, this._uuid);
         this._subs.SessionError = this._provider.getEvents().SessionError.subscribe((err: IError) => {
-            // log error
+            this._logger.error(`Session "${this._uuid}" would be destroyed because of error: [${err.kind}/${err.severity}]:: ${err.message}`)
         });
         this._subs.SessionDestroyed = this._provider.getEvents().SessionDestroyed.subscribe(() => {
             this._logger.warn(`Destroy event has been gotten unexpectedly. Force destroy of session.`);
@@ -67,22 +69,31 @@ export class Session {
                         `Fail correctly destroy SessionSearch due error: ${err.message}`,
                     );
                 }),
-            ])
-                .catch((err: Error) => {
-                    this._logger.error(`Error while destroying: ${err.message}`);
-                })
-                .finally(() => {
-                    if (!unexpectedly) {
-                        this._provider.getEvents().SessionDestroyed.subscribe(() => {
-                            this._provider.destroy().then(resolve).catch(reject);
-                        });
-                        this._session.destroy();
-                    } else {
-                        resolve();
-                    }
-                });
+            ]).catch((err: Error) => {
+                this._logger.error(`Error while destroying: ${err.message}`);
+            }).finally(() => {
+                if (!unexpectedly) {
+                    this._provider.getEvents().SessionDestroyed.subscribe(() => {
+                        this._provider.destroy().then(resolve).catch(reject);
+                    });
+                    this._session.destroy();
+                } else {
+                    this._provider.destroy().then(resolve).catch(reject);
+                }
+            });
         });
     }
+
+    // TO REMOVE: begin
+    public sleepLoop(duration: number, onBusyLoop: boolean): CancelablePromise<void> {
+        return Executors.sleepLoopExecutor(this._session, this._provider, this._logger, {duration, onBusyLoop});
+    }
+
+
+    public assignSync(filename: string): CancelablePromise<void> {
+        return Executors.assignSyncExecutor(this._session, this._provider, this._logger, {filename});
+    }
+    // TO REMOVE: end
 
     public getUUID(): string {
         return this._uuid;
@@ -120,6 +131,40 @@ export class Session {
             return new Error(`RustSession wasn't created`);
         }
         return this._session.getSocketPath();
+    }
+
+    public getNativeSession(): RustSession {
+        return this._session;
+    }
+
+    /**
+     * Switch session provider into debug mode
+     * Shows addition logs related to lifecircle
+     * @param state {boolean}: true - debug mode ON; false - debug mode OFF
+     */
+    public debug(state: boolean) {
+        this._provider.debug().setStoring(state);
+        this._provider.debug().setTracking(state);
+    }
+
+    /**
+     * Returns debug information:
+     * - unsupported - list of unsupported events. Events come from rust side to typescript side
+     * - error - list of errors on provider level
+     * Note: data will be available only if debug mode is ON
+     * @returns {
+     *   unsupported: number; 
+     *   errors: number;
+     * }
+     */
+    public getDebugStat(): {
+        unsupported: string[];
+        errors: string[];
+    } {
+        return {
+            unsupported: this._provider.debug().stat.unsupported(),
+            errors: this._provider.debug().stat.error(),
+        }
     }
 
 }

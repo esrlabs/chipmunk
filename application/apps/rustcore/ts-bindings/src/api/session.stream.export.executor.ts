@@ -1,7 +1,6 @@
-import { TExecutor, Logger, CancelablePromise, noResultsExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, VoidExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
-import { IGeneralError } from '../interfaces/errors';
 
 export interface IExportOptions {
     from: number;
@@ -16,18 +15,13 @@ export const executor: TExecutor<void, IExportOptions> = (
     logger: Logger,
     options: IExportOptions,
 ): CancelablePromise<void> => {
-    return noResultsExecutor<IExportOptions>(
+    return VoidExecutor<IExportOptions>(
         session,
         provider,
         logger,
         options,
         function(session: RustSession, options: IExportOptions): string | Error {
-            const uuid: string | IGeneralError = session.export(options);
-            if (typeof uuid !== 'string') {
-                return new Error(uuid.message);
-            } else {
-                return uuid;
-            };
+            return session.export(options);
         },
         "export",
     );

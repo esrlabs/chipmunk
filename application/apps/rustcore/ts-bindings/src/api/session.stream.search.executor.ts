@@ -1,33 +1,32 @@
-import { TExecutor, Logger, CancelablePromise, withResultsExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
-import { IGeneralError } from '../interfaces/errors';
-import { IFilter, IResultSearchElement } from '../interfaces/index';
+import { IFilter, ISearchResults } from '../interfaces/index';
 
-export const executor: TExecutor<IResultSearchElement[], IFilter[]> = (
+export const executor: TExecutor<ISearchResults, IFilter[]> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     filters: IFilter[],
-): CancelablePromise<IResultSearchElement[]> => {
-    return withResultsExecutor<IResultSearchElement[], IFilter[]>(
+): CancelablePromise<ISearchResults> => {
+    return AsyncResultsExecutor<ISearchResults, IFilter[]>(
         session,
         provider,
         logger,
         filters,
-        function(session: RustSession, filters: IFilter[]): string | Error {
-            const uuid: string | IGeneralError = session.search(filters);
-            if (typeof uuid !== 'string') {
-                return new Error(uuid.message);
-            } else {
-                return uuid;
-            };
+        function(session: RustSession, filters: IFilter[], operationUuid: string): Promise<void> {
+            return session.search(filters, operationUuid);
         },
-        function(result: any, resolve: (res: IResultSearchElement[]) => void, reject: (err: Error) => void) {
-            if (!(result instanceof Array)) {
-                return reject(new Error(`Operation: search. Expected result: { IResultSearchElement[] }. Has been gotten: typeof: ${typeof result}`));
+        function(data: any, resolve: (res: ISearchResults) => void, reject: (err: Error) => void) {
+            try {
+                const result: ISearchResults = JSON.parse(data);
+                if (typeof result.found !== 'number' || !(result.stats instanceof Array)) {
+                    return reject(new Error(`Fail to parse search results. Invalid format. Expecting ISearchResults.`));
+                }
+                resolve(result);
+            } catch (e) {
+                return reject(new Error(`Fail to parse search results. Error: ${e.message}`));
             }
-            resolve(result as IResultSearchElement[]);
         },
         "search",
     );
