@@ -90,28 +90,16 @@ export class PopupsComponent implements OnDestroy {
     }
 
     private _remove(id: string) {
+        const removed = this.popups.find(popup => popup.id === id);
+        if (removed === undefined) {
+            return;
+        }
         this.popups = this.popups.filter(popup => popup.id !== id);
+        if (typeof removed.beforeClose === 'function') {
+            removed.beforeClose();
+        }
         PopupsService.clear(id);
         this._cdRef.detectChanges();
-    }
-
-    private _update(id: string, updated: any): boolean {
-        let index: number = -1;
-        this.popups.forEach((notify: Toolkit.IPopup, i: number) => {
-            if (index !== -1) {
-                return;
-            }
-            if (notify.id === id) {
-                index = i;
-            }
-        });
-        if (index === -1) {
-            return false;
-        }
-        Object.keys(updated).forEach((key: string) => {
-            this.popups[index][key] = updated[key];
-        });
-        return true;
     }
 
 }

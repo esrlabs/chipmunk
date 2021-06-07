@@ -189,10 +189,16 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                 return;
             } else if (crossing.length === 1) {
                 const recover = Toolkit.copy(crossing[0]);
-                crossing[0].selection.start.position = Math.min(crossing[0].selection.start.position, comment.selection.start.position);
-                crossing[0].selection.end.position = Math.max(crossing[0].selection.end.position, comment.selection.end.position);
-                crossing[0].selection.start.offset = Math.min(crossing[0].selection.start.offset, comment.selection.start.offset);
-                crossing[0].selection.end.offset = Math.max(crossing[0].selection.end.offset, comment.selection.end.offset);
+                if (crossing[0].selection.start.position > comment.selection.start.position ||
+                   (crossing[0].selection.start.position >= comment.selection.start.position &&
+                    crossing[0].selection.start.offset > comment.selection.start.offset)) {
+                    crossing[0].selection.start = Toolkit.copy(comment.selection.start);
+                }
+                if (crossing[0].selection.end.position < comment.selection.end.position ||
+                   (crossing[0].selection.end.position <= comment.selection.end.position &&
+                    crossing[0].selection.end.offset < comment.selection.end.offset)) {
+                    crossing[0].selection.end = Toolkit.copy(comment.selection.end);
+                }
                 crossing[0].state = ECommentState.pending;
                 return { comment: crossing[0], recover: recover };
             } else {
@@ -210,6 +216,17 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
 
     public edit(comment: IComment, recover?: IComment) {
         const creating: boolean = comment.comment === '';
+        const cancel = (id: string) => {
+            PopupsService.remove(id);
+            if (creating) {
+                this._comments.delete(comment.guid);
+            }
+            if (recover !== undefined) {
+                this._comments.set(recover.guid, recover);
+            }
+            OutputParsersService.updateRowsView();
+        };
+        let anyActionCalled: boolean = false;
         comment.state = ECommentState.pending;
         const guid: string = PopupsService.add({
             id: 'commend-add-on-row-dialog',
@@ -218,11 +235,18 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                 width: 40,
             },
             caption: `Add new comment`,
+            beforeClose: () => {
+                if (anyActionCalled) {
+                    return;
+                }
+                cancel(guid);
+            },
             component: {
                 factory: DialogsAddCommentOnRowComponent,
                 inputs: {
                     comment: comment,
                     accept: (text: string) => {
+                        anyActionCalled = true;
                         PopupsService.remove(guid);
                         comment.comment = text;
                         comment.state = ECommentState.done;
@@ -239,18 +263,13 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                         LayoutStateService.sidebarMax();
                     },
                     remove: () => {
+                        anyActionCalled = true;
                         PopupsService.remove(guid);
                         this.remove(comment.guid);
                     },
                     cancel: () => {
-                        PopupsService.remove(guid);
-                        if (creating) {
-                            this._comments.delete(comment.guid);
-                        }
-                        if (recover !== undefined) {
-                            this._comments.set(recover.guid, recover);
-                        }
-                        OutputParsersService.updateRowsView();
+                        anyActionCalled = true;
+                        cancel(guid);
                     }
                 }
             }

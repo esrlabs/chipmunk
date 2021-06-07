@@ -31,5 +31,8 @@ export class PopupComponent implements AfterContentInit, AfterViewInit {
         if (containers.length > 0 && containers[0].firstChild !== null) {
             (containers[0].firstChild as HTMLElement).focus();
         }
+        if (typeof this.popup.afterOpen === 'function') {
+            this.popup.afterOpen();
+        }
     }
 }
