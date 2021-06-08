@@ -89,5 +89,5 @@ export interface IPopup {
     /**
      * Callback would be called before popup would be removed
      */
-     beforeClose?: TCallback;
+    beforeClose?: TCallback;
 }

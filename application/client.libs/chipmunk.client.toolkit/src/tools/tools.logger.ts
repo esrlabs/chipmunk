@@ -75,6 +75,15 @@ export default class Logger {
         return this._log(this._getMessage(...args), ELogLevels.ENV);
     }
 
+    public measure(operation: string): () => void {
+        const started = Date.now();
+        this.env(`starting "${operation}"`);
+        return () => {
+            const duration: number = (Date.now() - started);
+            this.env(`"${operation}" finished in: ${(duration / 1000).toFixed(2)} sec (${duration}ms)`);
+        };
+    }
+
     private _console(message: string, level: ELogLevels) {
         if (!this._parameters.console) {
             return false;
