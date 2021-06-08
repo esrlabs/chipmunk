@@ -355,7 +355,11 @@ export class RustSessionDebug extends RustSession {
     }
 
     public getSocketPath(): string | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
+        return '';
+        // Returning of error here breaks session init process on electron side.
+        // Keep just empty string while developing
+        
+        // return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
     }
 
     public assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void> {
