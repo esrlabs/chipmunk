@@ -80,7 +80,7 @@ export class ControllerSessionTabSearchCharts
             search,
         };
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchCharts: ${uuid}`);
-        this._storage = new ChartsStorage(uuid);
+        this._storage = new ChartsStorage(uuid, session);
     }
 
     public init(): Promise<void> {

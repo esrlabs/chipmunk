@@ -8,6 +8,7 @@ import {
     IDescUpdating as IChartDescUpdating,
 } from './controller.session.tab.search.charts.request';
 import { IStore, EStoreKeys, IStoreData } from '../../dependencies/store/controller.session.tab.search.store.support';
+import { SessionGetter } from '../search.dependency';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -35,20 +36,22 @@ export {
 
 export class ChartsStorage implements IStore<IChartDesc[]> {
 
-    private _logger: Toolkit.Logger;
-    private _guid: string;
-    private _stored: ChartRequest[] = [];
-    private _subjects: {
+    private readonly _logger: Toolkit.Logger;
+    private readonly _guid: string;
+    private readonly _subjects: {
         updated: Subject<IUpdateEvent>,
         changed: Subject<IChartUpdateEvent>,
     } = {
         updated: new Subject<IUpdateEvent>(),
         changed: new Subject<IChartUpdateEvent>(),
     };
+    private readonly _session: SessionGetter;
+    private _stored: ChartRequest[] = [];
 
-    constructor(session: string) {
-        this._guid = session;
-        this._logger = new Toolkit.Logger(`ChartsStorage: ${session}`);
+    constructor(guid: string, session: SessionGetter) {
+        this._guid = guid;
+        this._session = session;
+        this._logger = new Toolkit.Logger(`ChartsStorage: ${guid}`);
     }
 
     public destroy(): Promise<void> {
@@ -106,11 +109,8 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
         }
         this._subjects.updated.next({ requests: this._stored, added: added.length === 1 ? added[0] : added });
         if (this._stored.length > 0) {
-            import('../../../../../../services/service.sessions.tabs').then((TabsSessionsService) => {
-                TabsSessionsService.default.bars().openToolbarApp(TabsSessionsService.default.bars().getDefsToolbarApps().charts, true);
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail dynamically import module TabsSessionsService due error: ${err.message}`);
-            });
+            const api = this._session().getAPI();
+            api.openToolbarApp(api.getDefaultToolbarAppsIds().charts, true);
         }
         return undefined;
     }
