@@ -58,6 +58,11 @@ export enum EActions {
     edit = 'edit',
 }
 
+interface IStoredSelection {
+    current: string[];
+    last: Entity<any> | undefined;
+}
+
 export abstract class Provider<T> {
 
     private _subjects: {
@@ -66,18 +71,17 @@ export abstract class Provider<T> {
         edit: Subject<string | undefined>,
         context: Subject<IContextMenuEvent>,
         doubleclick: Subject<IDoubleclickEvent>,
+        reload: Subject<string>,
     } = {
         change: new Subject(),
         selection: new Subject(),
         edit: new Subject(),
         context: new Subject(),
         doubleclick: new Subject(),
+        reload: new Subject(),
     };
     private _session: Session | undefined;
-    private _selection: {
-        current: string[],
-        last: { provider: Provider<any>, entity: Entity<any> } | undefined,
-    } = {
+    private _selection: IStoredSelection = {
         current: [],
         last: undefined,
     };
@@ -110,7 +114,7 @@ export abstract class Provider<T> {
         this._providers = getter;
     }
 
-    public setLastSelection(selection: { provider: Provider<any>, entity: Entity<any> } | undefined) {
+    public setLastSelection(selection: Entity<any> | undefined) {
         this._selection.last = selection;
     }
 
@@ -145,7 +149,7 @@ export abstract class Provider<T> {
                 }
             } else if (this._keyboard.shift() && this._selection.last !== undefined) {
                 let guids: string[] = [].concat.apply([], this._providers().map(p => p.get().map(e => e.getGUID())));
-                const from: number = guids.findIndex(g => g === this._selection.last.entity.getGUID());
+                const from: number = guids.findIndex(g => g === this._selection.last.getGUID());
                 const to: number = guids.findIndex(g => g === selection.guid);
                 if (from !== -1 && to !== -1) {
                     guids = guids.slice(Math.min(from, to), Math.max(from, to) + 1);
@@ -153,7 +157,7 @@ export abstract class Provider<T> {
                         guids.filter(g => this._selection.current.indexOf(g) === -1),
                     );
                 }
-                entity = this._selection.last.entity;
+                entity = this._selection.last;
             } else {
                 if (index === -1) {
                     this._selection.current = [selection.guid];
@@ -339,6 +343,7 @@ export abstract class Provider<T> {
         edit: Observable<string | undefined>,
         context: Observable<IContextMenuEvent>,
         doubleclick: Observable<IDoubleclickEvent>,
+        reload: Observable<string>,
     } {
         return {
             change: this._subjects.change.asObservable(),
@@ -346,6 +351,7 @@ export abstract class Provider<T> {
             edit: this._subjects.edit.asObservable(),
             context: this._subjects.context.asObservable(),
             doubleclick: this._subjects.doubleclick.asObservable(),
+            reload: this._subjects.reload.asObservable(),
         };
     }
 
@@ -412,8 +418,14 @@ export abstract class Provider<T> {
 
     private _onSessionChange(session: Session | undefined) {
         this._session = session;
+        // Change session
         this.setSessionController(session);
+        // Force loading of entities
+        this.get();
+        // Trigger event of changes
         this._subjects.change.next();
+        // Trigger event of reloading
+        this._subjects.reload.next(this.getGuid());
     }
 
 }

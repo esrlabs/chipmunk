@@ -56,6 +56,10 @@ export class ControllerSessionScope implements Dependency {
         return this._scope.get(key);
     }
 
+    public delete(key: string) {
+        this._scope.delete(key);
+    }
+
     public getSessionEventsHub(): Toolkit.ControllerSessionsEvents {
         return this._session().getSessionEventsHub();
     }

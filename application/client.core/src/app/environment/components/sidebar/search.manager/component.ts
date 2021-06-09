@@ -141,24 +141,22 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         return false;
     }
 
-    private _focus() {
-        this._self.nativeElement.focus();
-    }
-
     private _onSessionChange(session: Session | undefined) {
         Object.keys(this._subs).forEach((prop: string) => {
             this._subs[prop].unsubscribe();
         });
-        this._ng_selected = undefined;
         if (session === undefined) {
             session = TabsSessionsService.getActive();
         }
         if (session === undefined) {
+            this._ng_selected = undefined;
             this._forceUpdate();
-            return;
+        } else {
+            this._session = session;
+            const single = this._providers.select().single(this._session.getGuid());
+            this._ng_selected = single === undefined ? undefined : single.provider;
+            this._subs.filename = session.getSessionSearch().getStoreAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
         }
-        this._session = session;
-        this._subs.filename = session.getSessionSearch().getStoreAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
     }
 
     private _onSingleSelection(event: ISelectEvent | undefined) {
