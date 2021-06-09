@@ -1,21 +1,29 @@
 import { Provider, EProviders, ISelectEvent, IContextMenuEvent, EActions, IDoubleclickEvent } from './provider';
 import { Subject, Observable, Subscription } from 'rxjs';
+import { Session } from '../../../../controller/session/session';
 import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from 'src/app/environment/services/standalone/service.contextmenu';
 import { Entity } from './entity';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import EventsSessionService from '../../../../services/standalone/service.events.session';
+
+type TSelectedEntities = string[];
+
+const PROVIDERS_SCOPE_KEY: string = 'SEARCH_MANAGER_PROVIDERS_SCOPE_KEY';
+
 export class Providers {
 
     private readonly SENDER = Toolkit.guid();
     private readonly PROVIDERS_ORDER: EProviders[] = [EProviders.filters, EProviders.charts, EProviders.ranges, EProviders.disabled];
 
-    private _providers: Map<EProviders, Provider<any>> = new Map();
-    private _subscriptions: { [key: string]: Subscription } = {};
-    private _selsubs: { [key: string]: Subscription } = {};
-    private _keyboard: KeyboardListener = new KeyboardListener();
-    private _subjects: {
+    private readonly _providers: Map<EProviders, Provider<any>> = new Map();
+    private readonly _subscriptions: { [key: string]: Subscription } = {};
+    private readonly _selsubs: { [key: string]: Subscription } = {};
+    private readonly _keyboard: KeyboardListener = new KeyboardListener();
+    private readonly _subjects: {
         select: Subject<ISelectEvent | undefined>,
         context: Subject<IContextMenuEvent>,
         doubleclick: Subject<IDoubleclickEvent>,
@@ -26,6 +34,12 @@ export class Providers {
         doubleclick: new Subject(),
         change: new Subject(),
     };
+    private _session: Session | undefined;
+
+    constructor() {
+        this._session = TabsSessionsService.getActive();
+        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+    }
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
@@ -38,6 +52,7 @@ export class Providers {
             provider.destroy();
         });
         this._keyboard.destroy();
+        this._store().drop();
     }
 
     public getObservable(): {
@@ -64,6 +79,7 @@ export class Providers {
         this._selsubs[`context_${name}`] = provider.getObservable().context.subscribe(this._onContextMenuEvent.bind(this));
         this._selsubs[`doubleclick_${name}`] = provider.getObservable().doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
         this._selsubs[`change_${name}`] = provider.getObservable().change.subscribe(this._onChange.bind(this));
+        this._selsubs[`reload_${name}`] = provider.getObservable().reload.subscribe(this._onReload.bind(this));
         this._providers.set(name, provider);
     }
 
@@ -92,11 +108,14 @@ export class Providers {
         drop: () => void,
         first: () => void,
         last: () => void,
-        single: () => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined,
+        single: (session?: string) => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined,
         getEntities: () => Array<Entity<any>>,
         getProviders: () => Array<Provider<any>>,
     } {
-        const single: () => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined = () => {
+        const single: (session?: string) => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined = (session?: string) => {
+            if (session !== undefined && (this._session === undefined || (this._session !== undefined && this._session.getGuid() !== session))) {
+                return;
+            }
             if (this._providers.size === 0) {
                 return undefined;
             }
@@ -232,6 +251,57 @@ export class Providers {
         };
     }
 
+    private _store(): {
+        load(): TSelectedEntities,
+        save(entities: TSelectedEntities): void,
+        restore(provider: string): void,
+        drop(): void,
+    } {
+        const self = this;
+        return {
+            load: () => {
+                if (self._session === undefined) {
+                    return [];
+                }
+                const stored: TSelectedEntities | undefined = self._session.getScope().get<TSelectedEntities>(PROVIDERS_SCOPE_KEY);
+                return stored === undefined ? [] : stored.slice();
+            },
+            save: (entities: TSelectedEntities) => {
+                if (self._session === undefined) {
+                    return;
+                }
+                self._session.getScope().set<TSelectedEntities>(PROVIDERS_SCOPE_KEY, entities.slice());
+            },
+            restore: (provider: string) => {
+                const stored = self._store().load();
+                this._providers.forEach((target: Provider<any>) => {
+                    if (provider !== target.getGuid()) {
+                        return;
+                    }
+                    target.select().drop(self.SENDER);
+                    target.select().apply(self.SENDER, stored);
+                    if (stored.length === 1) {
+                        const entity = target.get().find(e => e.getGUID() === stored[0]);
+                        entity !== undefined && this._subjects.select.next({
+                            entity: entity,
+                            provider: target,
+                            guids: stored,
+                        });
+                    }
+                });
+                if (stored.length === 0) {
+                    this._subjects.select.next(undefined);
+                }
+            },
+            drop: () => {
+                if (self._session === undefined) {
+                    return;
+                }
+                self._session.getScope().delete(PROVIDERS_SCOPE_KEY);
+            }
+        };
+    }
+
     private _onSelectionEntity(event: ISelectEvent) {
         if (event.sender === this.SENDER) {
             // Ignore events triggered by holder
@@ -269,9 +339,10 @@ export class Providers {
         }
         this._providers.forEach((provider: Provider<any>) => {
             provider.setLastSelection(
-                guids.length > 0 ? { provider: event.provider, entity: event.entity } : undefined,
+                guids.length > 0 ? event.entity : undefined,
             );
         });
+        this._store().save(guids);
     }
 
     private _onContextMenuEvent(event: IContextMenuEvent) {
@@ -394,6 +465,14 @@ export class Providers {
 
     private _onChange() {
         this._subjects.change.next();
+    }
+
+    private _onReload(provider: string) {
+        this._store().restore(provider);
+    }
+
+    private _onSessionChange(session: Session | undefined) {
+        this._session = session;
     }
 
 }
