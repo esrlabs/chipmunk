@@ -270,19 +270,16 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         if (rowsCount === 0) {
             // Drop
             this.clearStream();
-            // Update bookmarks state
-            this._updateBookmarksData();
-        } else {
-            // Update count of rows
-            this._setTotalStreamCount(rowsCount);
-            // Update bookmarks state
-            this._updateBookmarksData();
-            // Trigger events
-            this._subjects.onStateUpdated.next({
-                isBookmarkInjection: false,
-                state: Object.assign({}, this._state),
-            });
         }
+        // Update count of rows
+        this._setTotalStreamCount(rowsCount);
+        // Update bookmarks state
+        this._updateBookmarksData();
+        // Trigger events
+        this._subjects.onStateUpdated.next({
+            isBookmarkInjection: false,
+            state: Object.assign({}, this._state),
+        });
     }
 
     public getRowsCount(): number {
