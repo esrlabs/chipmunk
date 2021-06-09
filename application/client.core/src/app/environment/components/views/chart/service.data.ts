@@ -41,7 +41,6 @@ export interface IChartsResults {
 }
 
 export class ServiceData {
-    private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _sessionController: Session | undefined;
     private _stream: IStreamState | undefined;
@@ -69,9 +68,6 @@ export class ServiceData {
     }
 
     public destroy() {
-        Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].unsubscribe();
-        });
         this._stream = undefined;
     }
 
@@ -368,6 +364,11 @@ export class ServiceData {
             .getFiltersAPI()
             .getObservable()
             .updated.subscribe(this._onRequestsUpdated.bind(this));
+        this._sessionSubscriptions.onSearchStateUpdated = controller
+            .getSessionSearch()
+            .getOutputStream()
+            .getObservable()
+            .onStateUpdated.subscribe(this._onSearchStateUpdated.bind(this));
         this._sessionSubscriptions.onRequestsUpdated = controller
             .getSessionSearch()
             .getFiltersAPI()
@@ -394,6 +395,10 @@ export class ServiceData {
     }
 
     private _onSearchMapStateUpdate(state: IMapState) {
+        this._subjects.onData.next();
+    }
+
+    private _onSearchStateUpdated(state) {
         this._subjects.onData.next();
     }
 

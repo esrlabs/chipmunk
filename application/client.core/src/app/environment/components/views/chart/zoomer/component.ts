@@ -101,7 +101,10 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
 
     private _updateCursor(): boolean {
         const prev: boolean = this._ng_isCursorVisible;
-        if (this._ng_width < this.serviceData.getStreamSize()) {
+        const streamSize: number | undefined = this.serviceData.getStreamSize();
+        if (streamSize === undefined || !this.serviceData.hasData()) {
+            this._ng_isCursorVisible = false;
+        } else if (this._ng_width < streamSize) {
             this._ng_isCursorVisible = true;
         } else {
             this._ng_isCursorVisible = false;
