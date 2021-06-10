@@ -406,7 +406,9 @@ export default class ControllerPluginsManager {
                     });
                     // Deinstall
                     const uninstall: Promise<any> = Promise.all(Array.from(this._queue.uninstall.values()).map((name: string) => {
-                        const plugin: InstalledPlugin | undefined = this._storage.getPluginByName(name);
+                        const installed: InstalledPlugin | undefined = this._storage.getPluginByName(name);
+                        const incompatible: InstalledPlugin | undefined = this._incompatibles.getPluginByName(name);
+                        const plugin: InstalledPlugin | undefined = installed !== undefined ? installed : incompatible;
                         if (plugin === undefined) {
                             this._logger.warn(`Fail to find a plugin "${name}" to uninstall it`);
                             return Promise.resolve();

@@ -24,6 +24,7 @@
                 <button *ngIf="_ng_plugin.state === 'upgrade'" mat-stroked-button color="primary" (click)="_ng_onUpgradePlugin()">Upgrade</button>             
                 <button *ngIf="_ng_plugin.state === 'notinstalled'" mat-stroked-button color="primary" (click)="_ng_onInstallPlugin()">Install</button>
                 <button *ngIf="_ng_plugin.state === 'notavailable'" [disabled]="true" mat-stroked-button color="accent">Error</button>
+                <button *ngIf="_ng_plugin.state === 'incompatible'" mat-stroked-button color="accent" (click)="_ng_onUninstallPlugin()">{{_ng_getUninstallLabel()}}</button>
             </div>
         </div>
         <mat-expansion-panel *ngIf="_ng_error !== undefined" [expanded]="false">

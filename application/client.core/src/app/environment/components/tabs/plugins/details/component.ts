@@ -118,7 +118,7 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
     }
 
     public _ng_onUninstallPlugin() {
-        if (this._ng_version === this._ng_plugin.version) {
+        if (this._ng_version === this._ng_plugin.version || this._ng_plugin.state === EPluginState.incompatible) {
             // Uninstall
             PluginsService.getManager().uninstall(this._ng_plugin.name).catch((error: Error) => {
                 this._logger.error(`Fail to request uninstall of plugin due error: ${error.message}`);
@@ -143,7 +143,7 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
     }
 
     public _ng_getUninstallLabel(): string {
-        if (this._ng_version === this._ng_plugin.version) {
+        if (this._ng_version === this._ng_plugin.version || this._ng_plugin.state === EPluginState.incompatible) {
             return 'Uninstall';
         } else {
             return 'Apply';
@@ -218,6 +218,9 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
                 break;
             case EPluginState.notavailable:
                 this._ng_error = `This plugin cannot be installed/updated becaues it isn't compatible to current version of chipmunk. You have two options: wait while developer of plugin will update plugin; update (or downgrade) your chipmunk version.`;
+                break;
+            case EPluginState.incompatible:
+                this._ng_error = `This plugin isn't compatible to your chipmunk version any more. Probably plugin isn't supported as soon as it doesn't have any suitable version in store. You can keep this plugin until update or remove it.`;
                 break;
         }
         this._ng_dependencies = getDependenciesStates(plugin.dependencies);
