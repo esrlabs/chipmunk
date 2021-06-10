@@ -325,8 +325,7 @@ impl RustSession {
                                                 match metadata_res {
                                                     Ok(Item(metadata)) => {
                                                         debug!("RUST: received search metadata");
-                                                        let line_count: u64 =
-                                                            metadata.line_count as u64;
+                                                        let line_count = metadata.line_count as u64;
                                                         let _ = search_metadata_tx
                                                             .send(Some((file_path, metadata)));
                                                         callback(CallbackEvent::SearchUpdated(
@@ -351,6 +350,7 @@ impl RustSession {
                                                                 message: Some(err_msg),
                                                             },
                                                         )));
+                                                    }
                                                 }
                                             }
                                             callback(as_callback_event(
@@ -358,7 +358,6 @@ impl RustSession {
                                                     found,
                                                     stats,
                                                 }, operation_id));
-                                            }
                                         }
                                         Err(e) => {
                                             callback(CallbackEvent::OperationError((operation_id, e)));
@@ -414,7 +413,6 @@ impl RustSession {
                                         })
                                     )
                                 );
-                                break;
                             }
                             Operation::End => {
                                 debug!("RUST: received End operation event");
@@ -492,7 +490,7 @@ impl RustSession {
             Some(SupportedFileType::Text) => {
                 type GrabberType = processor::grabber::Grabber<TextFileSource>;
                 let source = TextFileSource::new(&input_p, &source_id);
-                let grabber = GrabberType::new(source).map_err(|e| {
+                let grabber = GrabberType::lazy(source).map_err(|e| {
                     ComputationError::Process(format!("Could not create grabber: {}", e))
                 })?;
                 self.content_grabber = Some(Box::new(grabber));
@@ -501,7 +499,7 @@ impl RustSession {
             Some(SupportedFileType::Dlt) => {
                 type GrabberType = processor::grabber::Grabber<DltSource>;
                 let source = DltSource::new(&input_p, &source_id);
-                let grabber = GrabberType::new(source).map_err(|e| {
+                let grabber = GrabberType::lazy(source).map_err(|e| {
                     ComputationError::Process(format!("Could not create grabber: {}", e))
                 })?;
                 self.content_grabber = Some(Box::new(grabber));
