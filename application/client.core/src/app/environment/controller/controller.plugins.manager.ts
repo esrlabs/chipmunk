@@ -15,6 +15,7 @@ export enum EPluginState {
     upgrade = 'upgrade',
     notinstalled = 'notinstalled',
     notavailable = 'notavailable',
+    incompatible = 'incompatible',
     working = 'working',
     restart = 'restart',
     error = 'error',
@@ -516,7 +517,7 @@ export default class ControllerPluginsManager {
                     if (plugins.has(p.name)) {
                         return;
                     }
-                    p = this._setDefaults(p);
+                    p = this._setDefaults(p, EPluginState.incompatible);
                     plugins.set(p.name, p as IPlugin);
                 });
                 resolve(plugins);
@@ -527,10 +528,12 @@ export default class ControllerPluginsManager {
         });
     }
 
-    private _setDefaults(p: CommonInterfaces.Plugins.IPlugin): IPlugin {
+    private _setDefaults(p: CommonInterfaces.Plugins.IPlugin, state?: EPluginState): IPlugin {
         (p as IPlugin).update = [];
         (p as IPlugin).upgrade = [];
-        if ((p as IPlugin).installed) {
+        if (state !== undefined) {
+            (p as IPlugin).state = state;
+        } else if ((p as IPlugin).installed) {
             (p as IPlugin).state = EPluginState.installed;
         } else if (p.suitable instanceof Array && p.suitable.length > 0) {
             if (this.getVersionsToBeUpdated(p.name) !== undefined) {

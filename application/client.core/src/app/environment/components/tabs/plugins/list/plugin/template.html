@@ -13,6 +13,7 @@
             <mat-icon *ngIf="_ng_getState() === 'upgrade'">arrow_upward</mat-icon>
             <mat-icon *ngIf="_ng_getState() === 'installed'">done</mat-icon>
             <mat-icon *ngIf="_ng_getState() === 'notavailable'">block</mat-icon>
+            <mat-icon *ngIf="_ng_getState() === 'incompatible'">block</mat-icon>
             <mat-icon *ngIf="_ng_getState() === 'restart'">refresh</mat-icon>
             <mat-spinner *ngIf="_ng_getState() === 'working'" [diameter]="18" mode="indeterminate"></mat-spinner>
             <span>{{_ng_getStateLabel()}}</span>

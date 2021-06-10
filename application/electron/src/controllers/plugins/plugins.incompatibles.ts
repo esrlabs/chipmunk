@@ -19,6 +19,12 @@ export default class ControllerPluginsIncompatiblesStorage {
         });
     }
 
+    public getPluginByName(name: string): InstalledPlugin | undefined {
+        return Array.from(this._plugins.values()).find((plugin: InstalledPlugin) => {
+            return plugin.getName() === name;
+        });
+    }
+
     public get(): InstalledPlugin[] {
         return Array.from(this._plugins.values()).map((plugin: InstalledPlugin) => {
             return plugin;
