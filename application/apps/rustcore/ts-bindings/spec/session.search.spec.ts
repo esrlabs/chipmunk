@@ -292,6 +292,7 @@ describe('Search', function () {
         stream
             .assign(tmpobj.name, {})
             .then(() => {
+
                 search
                     .search([
                         {

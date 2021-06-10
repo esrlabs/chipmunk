@@ -190,7 +190,7 @@ export abstract class RustSessionNative {
 
     public abstract getSearchLen(): number;
 
-    public abstract search(
+    public abstract applySearchFilters(
         filters: Array<{
             value: string;
             is_regex: boolean;
@@ -357,7 +357,7 @@ export class RustSessionDebug extends RustSession {
 
     public search(filters: IFilter[]): string | NativeError {
         try {
-            return this._native.search(
+            return this._native.applySearchFilters(
                 filters.map((filter) => {
                     return {
                         value: filter.filter,
