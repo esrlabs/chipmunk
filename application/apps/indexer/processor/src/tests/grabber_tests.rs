@@ -21,7 +21,7 @@ mod tests {
         let mut line_length: Vec<u64> = vec![];
         let mut writer = BufWriter::new(file);
         for (i, line) in content.iter().enumerate() {
-            if i == content.len() - 1 {
+            if i == content.len() - 1 && !line.is_empty() {
                 // last
                 write!(writer, "{}", line)?;
             } else {
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn test_grab_all_entries_in_file_with_empty_lines() -> Result<()> {
         check_sample_entries(vec!["A", ""])?;
-        check_sample_entries(vec!["", "", ""])
+        check_sample_entries(vec!["a", "", ""])
     }
 
     #[test]
