@@ -1,26 +1,29 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
 
-struct FilterMatch(u8, u16);
+/// When looking at the search results of a file, we can say that
+/// we have n results in row m
+/// That allows us to depict the distribution of search matches over a file.
+/// Note that since we do not need to keep track of each individual row,
+/// we create regions of the file that span possible multiple rows.
+/// [0-12] []
+type ScaledDistribution = Vec<Vec<(u8, u16)>>;
 
-impl PartialOrd for FilterMatch {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+/// Lists all matching filters at an index
+pub struct FilterMatch {
+    pub index: u64,
+    pub filters: Vec<u8>,
+}
+
+impl FilterMatch {
+    pub fn new(index: u64, filters: Vec<u8>) -> Self {
+        Self { index, filters }
     }
 }
 
-impl Ord for FilterMatch {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
-    }
-}
-
-impl Eq for FilterMatch {}
-
-impl PartialEq for FilterMatch {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
+#[derive(Default)]
+pub struct NearestPosition {
+    pub index: u64,     // Position in search results
+    pub position: u64,  // Position in original stream/file
 }
 
 /// Holds search results map
@@ -32,15 +35,10 @@ impl PartialEq for FilterMatch {
 ///         )
 ///     >
 ///
+#[derive(Default)]
 pub struct SearchMap {
-    matches: Vec<(u64, Vec<u8>)>,
+    matches: Vec<FilterMatch>,
     stream_len: u64,
-}
-
-impl Default for SearchMap {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl SearchMap {
@@ -52,19 +50,15 @@ impl SearchMap {
     }
 
     /// Returns scaled search results map. As soon as we are limited with screen/frame size (dataset_len).
-    pub fn get(
-        &self,
-        dataset_len: u16,
-        range: Option<(u64, u64)>,
-    ) -> Vec<Vec<(u8, u16)>> {
-        let mut map: Vec<Vec<(u8, u16)>> = vec![];
+    pub fn scaled(&self, dataset_len: u16, range: Option<(u64, u64)>) -> ScaledDistribution {
+        let mut map: ScaledDistribution = vec![];
         if let Some((from, to)) = range {
             let range_len = to - from;
             let rate: f64 = (range_len as f64) / (dataset_len as f64);
             let mut cursor: usize = 0;
             if rate <= 1.0 {
                 loop {
-                    if self.matches[cursor].0 >= from {
+                    if self.matches[cursor].index >= from {
                         break;
                     } else {
                         cursor += 1;
@@ -72,10 +66,10 @@ impl SearchMap {
                 }
                 for n in 0..=range_len {
                     if cursor < self.matches.len() {
-                        if self.matches[cursor].0 == from + n {
+                        if self.matches[cursor].index == from + n {
                             map.push(
                                 self.matches[cursor]
-                                    .1
+                                    .filters
                                     .iter()
                                     .map(|filter| (*filter, 1))
                                     .collect(),
@@ -98,25 +92,22 @@ impl SearchMap {
                         let mut segment: HashMap<u8, u16> = HashMap::new();
                         loop {
                             if cursor >= self.matches.len()
-                                || self.matches[cursor].0 > last_pos_in_results
+                                || self.matches[cursor].index > last_pos_in_results
                             {
                                 break;
                             }
-                            if self.matches[cursor].0 < first_pos_in_results {
+                            if self.matches[cursor].index < first_pos_in_results {
                                 cursor += 1;
                                 continue;
                             }
-                            for filter_ref in &self.matches[cursor].1 {
+                            for filter_ref in &self.matches[cursor].filters {
                                 *segment.entry(*filter_ref).or_insert(0) += 1;
                             }
                             cursor += 1;
                         }
-                        let mut filter_matches: Vec<FilterMatch> = segment
-                            .into_iter()
-                            .map(|(pos, meets)| FilterMatch(pos, meets))
-                            .collect();
-                        filter_matches.sort();
-                        map.push(filter_matches.into_iter().map(|i| (i.0, i.1)).collect());
+                        let mut filter_matches: Vec<(u8, u16)> = segment.into_iter().collect();
+                        filter_matches.sort_by_key(|k| k.0);
+                        map.push(filter_matches.into_iter().collect());
                     } else {
                         map.push(vec![]);
                         cursor += 1;
@@ -129,10 +120,10 @@ impl SearchMap {
             if rate <= 1.0 {
                 for n in 1..=self.stream_len {
                     if cursor < self.matches.len() {
-                        if (self.matches[cursor]).0 == n {
+                        if (self.matches[cursor]).index == n {
                             map.push(
                                 self.matches[cursor]
-                                    .1
+                                    .filters
                                     .iter()
                                     .map(|filter| (*filter, 1))
                                     .collect(),
@@ -152,21 +143,18 @@ impl SearchMap {
                         let mut segment: HashMap<u8, u16> = HashMap::new();
                         loop {
                             if cursor >= self.matches.len()
-                                || self.matches[cursor].0 > last_pos_in_segment
+                                || self.matches[cursor].index > last_pos_in_segment
                             {
                                 break;
                             }
-                            for filter_ref in &self.matches[cursor].1 {
+                            for filter_ref in &self.matches[cursor].filters {
                                 *segment.entry(*filter_ref).or_insert(0) += 1;
                             }
                             cursor += 1;
                         }
-                        let mut filter_matches: Vec<FilterMatch> = segment
-                            .into_iter()
-                            .map(|(pos, meets)| FilterMatch(pos, meets))
-                            .collect();
-                        filter_matches.sort();
-                        map.push(filter_matches.into_iter().map(|i| (i.0, i.1)).collect());
+                        let mut filter_matches: Vec<(u8, u16)> = segment.into_iter().collect();
+                        filter_matches.sort_by_key(|k| k.0);
+                        map.push(filter_matches.into_iter().collect());
                     } else {
                         map.push(vec![]);
                         cursor += 1;
@@ -177,7 +165,36 @@ impl SearchMap {
         map
     }
 
-    pub fn set(&mut self, matches: Option<Vec<(u64, Vec<u8>)>>) {
+    /// Takes position of row in main stream/file and try to find
+    /// relevant nearest position in search results.
+    /// For example, search results are (indexes or rows):
+    /// [10, 200, 300, 350]
+    /// In that case nearest for 310 will be 300
+    /// Returns None if there are no search results
+    pub fn nearest_to(&self, position_in_stream: u64) -> Option<NearestPosition> {
+        if self.matches.is_empty() {
+            None
+        } else {
+            let mut distance: i64 = i64::MAX;
+            let mut index: u64 = 0;
+            let mut position: u64 = 0;
+            for (position_in_search, filter_match) in self.matches.iter().enumerate() {
+                let diff = (position_in_stream as i64 - filter_match.index as i64).abs();
+                if  diff < distance {
+                    distance = diff;
+                    position = filter_match.index;
+                    index = position_in_search as u64;
+                }
+            }
+            if distance == i64::MAX {
+                None
+            } else {
+                Some(NearestPosition { index, position })
+            }
+        }
+    }
+
+    pub fn set(&mut self, matches: Option<Vec<FilterMatch>>) {
         if let Some(matches) = matches {
             self.matches = matches;
         } else {
@@ -189,39 +206,39 @@ impl SearchMap {
         self.stream_len = len;
     }
 
-    pub fn append(&mut self, matches: &mut Vec<(u64, Vec<u8>)>) {
+    pub fn append(&mut self, matches: &mut Vec<FilterMatch>) {
         self.matches.append(matches);
     }
 }
 
 #[test]
-fn test() {
-    let mut map: SearchMap = SearchMap::new();
-    map.set(Some(vec![
-        (10, vec![0]),
-        (20, vec![1]),
-        (30, vec![0]),
-        (40, vec![1]),
-        (50, vec![0]),
-        (60, vec![1]),
-        (70, vec![0]),
-        (80, vec![1]),
-        (90, vec![0]),
-        (100, vec![1]),
-        (110, vec![0]),
-        (120, vec![1]),
-        (130, vec![0]),
-        (140, vec![1]),
-        (150, vec![0]),
-        (160, vec![1]),
-        (170, vec![0]),
-        (180, vec![1]),
-        (190, vec![0]),
-        (200, vec![1]),
+fn test_scaled_map() {
+    let mut example_map: SearchMap = SearchMap::new();
+    example_map.set(Some(vec![
+        FilterMatch::new(10, vec![0]),
+        FilterMatch::new(20, vec![1]),
+        FilterMatch::new(30, vec![0]),
+        FilterMatch::new(40, vec![1]),
+        FilterMatch::new(50, vec![0]),
+        FilterMatch::new(60, vec![1]),
+        FilterMatch::new(70, vec![0]),
+        FilterMatch::new(80, vec![1]),
+        FilterMatch::new(90, vec![0]),
+        FilterMatch::new(100, vec![1]),
+        FilterMatch::new(110, vec![0]),
+        FilterMatch::new(120, vec![1]),
+        FilterMatch::new(130, vec![0]),
+        FilterMatch::new(140, vec![1]),
+        FilterMatch::new(150, vec![0]),
+        FilterMatch::new(160, vec![1]),
+        FilterMatch::new(170, vec![0]),
+        FilterMatch::new(180, vec![1]),
+        FilterMatch::new(190, vec![0]),
+        FilterMatch::new(200, vec![1]),
     ]));
 
-    map.set_stream_len(200);
-    let scaled = map.get(10, None);
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(10, None);
     assert_eq!(scaled.len(), 10);
     for matches in scaled.iter() {
         assert_eq!(matches.len(), 2);
@@ -232,8 +249,8 @@ fn test() {
         }
     }
 
-    map.set_stream_len(200);
-    let scaled = map.get(5, None);
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(5, None);
     assert_eq!(scaled.len(), 5);
     for matches in scaled.iter() {
         assert_eq!(matches.len(), 2);
@@ -244,71 +261,71 @@ fn test() {
         }
     }
 
-    map.set_stream_len(1000);
-    let scaled = map.get(10, None);
+    example_map.set_stream_len(1000);
+    let scaled = example_map.scaled(10, None);
     assert_eq!(scaled.len(), 10);
-    for n in 0..10 {
+    for (n, item) in scaled.iter().enumerate() {
         if n < 2 {
-            assert_eq!(scaled[n][0], (0, 5));
-            assert_eq!(scaled[n][1], (1, 5));
+            assert_eq!(item[0], (0, 5));
+            assert_eq!(item[1], (1, 5));
         } else {
-            assert_eq!(scaled[n].is_empty(), true);
+            assert!(item.is_empty());
         }
     }
 
-    map.set_stream_len(200);
-    let scaled = map.get(200, None);
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(200, None);
     assert_eq!(scaled.len(), 200);
     for n in (1..=20).step_by(2) {
         assert_eq!(scaled[n * 10 - 1][0], (0, 1));
         assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
     }
 
-    map.set_stream_len(200);
-    let scaled = map.get(1000, None);
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(1000, None);
     assert_eq!(scaled.len(), 200);
     for n in (1..=20).step_by(2) {
         assert_eq!(scaled[n * 10 - 1][0], (0, 1));
         assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
     }
 
-    map.set_stream_len(1000);
-    let scaled = map.get(1000, None);
+    example_map.set_stream_len(1000);
+    let scaled = example_map.scaled(1000, None);
     assert_eq!(scaled.len(), 1000);
     for n in (1..=20).step_by(2) {
         assert_eq!(scaled[n * 10 - 1][0], (0, 1));
         assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
     }
     for n in 201..1000 {
-        assert_eq!(scaled[n].is_empty(), true);
+        assert!(scaled[n].is_empty());
     }
 
-    map.set_stream_len(200);
-    let scaled = map.get(20, Some((100, 150)));
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(20, Some((100, 150)));
     assert_eq!(scaled.len(), 20);
     assert_eq!(scaled[0][0], (1, 1));
-    assert_eq!(scaled[1].is_empty(), true);
-    assert_eq!(scaled[2].is_empty(), true);
+    assert!(scaled[1].is_empty());
+    assert!(scaled[2].is_empty());
     assert_eq!(scaled[3][0], (0, 1));
-    assert_eq!(scaled[4].is_empty(), true);
-    assert_eq!(scaled[5].is_empty(), true);
-    assert_eq!(scaled[6].is_empty(), true);
+    assert!(scaled[4].is_empty());
+    assert!(scaled[5].is_empty());
+    assert!(scaled[6].is_empty());
     assert_eq!(scaled[7][0], (1, 1));
-    assert_eq!(scaled[8].is_empty(), true);
-    assert_eq!(scaled[9].is_empty(), true);
-    assert_eq!(scaled[10].is_empty(), true);
+    assert!(scaled[8].is_empty());
+    assert!(scaled[9].is_empty());
+    assert!(scaled[10].is_empty());
     assert_eq!(scaled[11][0], (0, 1));
-    assert_eq!(scaled[12].is_empty(), true);
-    assert_eq!(scaled[13].is_empty(), true);
-    assert_eq!(scaled[14].is_empty(), true);
+    assert!(scaled[12].is_empty());
+    assert!(scaled[13].is_empty());
+    assert!(scaled[14].is_empty());
     assert_eq!(scaled[15][0], (1, 1));
-    assert_eq!(scaled[16].is_empty(), true);
-    assert_eq!(scaled[17].is_empty(), true);
-    assert_eq!(scaled[18].is_empty(), true);
+    assert!(scaled[16].is_empty());
+    assert!(scaled[17].is_empty());
+    assert!(scaled[18].is_empty());
     assert_eq!(scaled[19][0], (0, 1));
 
-    map.set_stream_len(200);
-    let scaled = map.get(10, Some((0, 200)));
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(10, Some((0, 200)));
     assert_eq!(scaled.len(), 10);
     for matches in scaled.iter() {
         assert_eq!(matches.len(), 2);
@@ -319,8 +336,8 @@ fn test() {
         }
     }
 
-    map.set_stream_len(200);
-    let scaled = map.get(400, Some((100, 150)));
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(400, Some((100, 150)));
     assert_eq!(scaled.len(), 51);
     assert_eq!(scaled[0][0], (1, 1));
     assert_eq!(scaled[10][0], (0, 1));
@@ -329,31 +346,36 @@ fn test() {
     assert_eq!(scaled[40][0], (1, 1));
     assert_eq!(scaled[50][0], (0, 1));
 
-    map.set(Some(vec![
-        (10, vec![0, 1, 2, 3]),
-        (20, vec![1]),
-        (30, vec![2]),
-        (40, vec![3]),
-        (50, vec![0, 1, 2, 3]),
-        (60, vec![1]),
-        (70, vec![2]),
-        (80, vec![3]),
-        (90, vec![0, 1, 2, 3]),
-        (100, vec![1]),
-        (110, vec![2]),
-        (120, vec![3]),
-        (130, vec![0, 1, 2, 3]),
-        (140, vec![1]),
-        (150, vec![2]),
-        (160, vec![3]),
-        (170, vec![0, 1, 2, 3]),
-        (180, vec![1]),
-        (190, vec![2]),
-        (200, vec![3]),
-    ]));
+    example_map.set(Some(
+        vec![
+            (10, vec![0, 1, 2, 3]),
+            (20, vec![1]),
+            (30, vec![2]),
+            (40, vec![3]),
+            (50, vec![0, 1, 2, 3]),
+            (60, vec![1]),
+            (70, vec![2]),
+            (80, vec![3]),
+            (90, vec![0, 1, 2, 3]),
+            (100, vec![1]),
+            (110, vec![2]),
+            (120, vec![3]),
+            (130, vec![0, 1, 2, 3]),
+            (140, vec![1]),
+            (150, vec![2]),
+            (160, vec![3]),
+            (170, vec![0, 1, 2, 3]),
+            (180, vec![1]),
+            (190, vec![2]),
+            (200, vec![3]),
+        ]
+        .into_iter()
+        .map(|(a, b)| FilterMatch::new(a, b))
+        .collect(),
+    ));
 
-    map.set_stream_len(200);
-    let scaled = map.get(10, None);
+    example_map.set_stream_len(200);
+    let scaled = example_map.scaled(10, None);
     assert_eq!(scaled.len(), 10);
     assert_eq!(scaled[0], vec![(0, 1), (1, 2), (2, 1), (3, 1)]);
     assert_eq!(scaled[1], vec![(2, 1), (3, 1)]);
