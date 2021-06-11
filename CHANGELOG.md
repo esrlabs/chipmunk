@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.18.3] - 06/11/2021
+### Fixes
+* Restore search manager state on session switching
+* Restore chart state on session switching
+* Possibility to remove a not capable plugin
+
 ## [2.18.2] - 06/04/2021
 ### Fixes
 * Fix updating of comment(s)
