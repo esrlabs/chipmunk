@@ -5,12 +5,7 @@ import ServiceElectron from '../../services/service.electron';
 import Logger from '../../tools/env.logger';
 
 import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
-import {
-    Session,
-    SessionSearch,
-    Events,
-    IEventMapUpdated,
-} from 'rustcore';
+import { Session, SessionSearch, Events, IEventMapUpdated } from 'rustcore';
 import { Postman } from '../../tools/postman';
 import { Dependency } from './controller.dependency';
 import { Channel } from './controller.channel';
@@ -108,7 +103,9 @@ export class Search extends Dependency {
                 self._subscriptions.session.search = events.SearchUpdated.subscribe(
                     self._events().handlers.search,
                 );
-                self._subscriptions.session.map = events.MapUpdated.subscribe(self._events().handlers.map);
+                self._subscriptions.session.map = events.MapUpdated.subscribe(
+                    self._events().handlers.map,
+                );
             },
             unsubscribe(): void {
                 Object.keys(self._subscriptions.session).forEach((key: string) => {
@@ -134,6 +131,10 @@ export class Search extends Dependency {
                 msg: IPC.SearchRequest,
                 response: (instance: IPC.SearchRequestResults) => any,
             ): void;
+            map(
+                msg: IPC.SearchResultMapRequest,
+                response: (instance: IPC.SearchResultMapResponse) => any,
+            ): void;
             chunk(msg: IPC.SearchChunk, response: (isntance: IPC.SearchChunk) => any): void;
         };
     } {
@@ -147,6 +148,22 @@ export class Search extends Dependency {
                     )
                         .then((subscription: Subscription) => {
                             self._subscriptions.ipc.search = subscription;
+                        })
+                        .catch((error: Error) => {
+                            return Promise.reject(
+                                new Error(
+                                    self._logger.warn(
+                                        `Fail to subscribe to render event "SearchRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`,
+                                    ),
+                                ),
+                            );
+                        }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.SearchResultMapRequest,
+                        self._ipc().handlers.map as any,
+                    )
+                        .then((subscription: Subscription) => {
+                            self._subscriptions.ipc.map = subscription;
                         })
                         .catch((error: Error) => {
                             return Promise.reject(
@@ -189,7 +206,9 @@ export class Search extends Dependency {
                 ): void {
                     const search = self._session.getSearch();
                     if (search instanceof Error) {
-                        self._logger.warn(`Fail get access to search controller due error: ${search.message}`);
+                        self._logger.warn(
+                            `Fail get access to search controller due error: ${search.message}`,
+                        );
                         return;
                     }
                     const filters: CommonInterfaces.API.IFilter[] = msg.requests.map((f) => {
@@ -202,25 +221,64 @@ export class Search extends Dependency {
                             },
                         };
                     });
-                    search.search(filters).then((result) => {
-                        self._filters = filters;
-                        self._channel.getEvents().afterFiltersListUpdated.emit(self._filters.map(f => Object.assign({}, f)));
-                        response(new IPC.SearchRequestResults({
-                            streamId: msg.session,
-                            requestId: msg.id,
-                            found: result.found,
-                            matches: result.matches,
-                            duration: 0,
+                    search
+                        .search(filters)
+                        .then((result) => {
+                            self._filters = filters;
+                            self._channel
+                                .getEvents()
+                                .afterFiltersListUpdated.emit(
+                                    self._filters.map((f) => Object.assign({}, f)),
+                                );
+                            response(
+                                new IPC.SearchRequestResults({
+                                    streamId: msg.session,
+                                    requestId: msg.id,
+                                    found: result.found,
+                                    stats: result.stats,
+                                    duration: 0,
+                                }),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            self._logger.warn(`Fail to search due error: ${err.message}`);
+                            response(
+                                new IPC.SearchRequestResults({
+                                    streamId: msg.session,
+                                    error: err.message,
+                                    requestId: msg.id,
+                                    found: 0,
+                                    stats: [],
+                                    duration: 0,
+                                }),
+                            );
+                        });
+                },
+                map(
+                    msg: IPC.SearchResultMapRequest,
+                    response: (instance: IPC.SearchResultMapResponse) => any,
+                ): void {
+                    const search = self._session.getSearch();
+                    if (search instanceof Error) {
+                        self._logger.warn(
+                            `Fail get access to search controller due error: ${search.message}`,
+                        );
+                        return;
+                    }
+                    search.getMap(
+                        msg.scale,
+                        msg.range !== undefined ? msg.range.begin : undefined,
+                        msg.range !== undefined ? msg.range.end : undefined,
+                    ).then((map: CommonInterfaces.API.ISearchMap) => {
+                        response(new IPC.SearchResultMapResponse({
+                            streamId: msg.streamId,
+                            map: map,
                         }));
                     }).catch((err: Error) => {
-                        self._logger.warn(`Fail to search due error: ${err.message}`);
-                        response(new IPC.SearchRequestResults({
-                            streamId: msg.session,
-                            error: err.message,
-                            requestId: msg.id,
-                            found: 0,
-                            matches: "",
-                            duration: 0,
+                        response(new IPC.SearchResultMapResponse({
+                            streamId: msg.streamId,
+                            map: [],
+                            error: self._logger.warn(`Fail get a search map. Error: ${err.message}`),
                         }));
                     });
                 },

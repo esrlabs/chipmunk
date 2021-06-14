@@ -163,11 +163,8 @@ export { IStreamPtyResizeResponse, StreamPtyResizeResponse };
 import { ISearchResultMapRequest, SearchResultMapRequest } from './search.results.map.request';
 export { ISearchResultMapRequest, SearchResultMapRequest };
 
-import { ISearchResultMapUpdated, SearchResultMapUpdated } from './search.results.map.updated';
-export { ISearchResultMapUpdated, SearchResultMapUpdated };
-
-import { ISearchResultMapResponse, SearchResultMapResponse, ISearchResultMapData } from './search.results.map.response';
-export { ISearchResultMapResponse, SearchResultMapResponse, ISearchResultMapData };
+import { ISearchResultMapResponse, SearchResultMapResponse } from './search.results.map.response';
+export { ISearchResultMapResponse, SearchResultMapResponse };
 
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
@@ -759,7 +756,6 @@ export type TMessage =  AppRestartRequest |
                         StreamPtyResizeResponse |
                         SearchResultMapRequest |
                         SearchResultMapResponse |
-                        SearchResultMapUpdated |
                         SearchRequest |
                         SearchRequestResults |
                         SearchResultMapState |
@@ -1001,7 +997,6 @@ export const Map = {
 
     [SearchResultMapRequest.signature           ]: SearchResultMapRequest,
     [SearchResultMapResponse.signature          ]: SearchResultMapResponse,
-    [SearchResultMapUpdated.signature           ]: SearchResultMapUpdated,
     [SearchRequest.signature                    ]: SearchRequest,
     [SearchRequestResults.signature             ]: SearchRequestResults,
     [SearchResultMapState.signature             ]: SearchResultMapState,

@@ -1,6 +1,6 @@
 import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ChangeDetectionStrategy, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabMap, IMapPoint, IMapState, IMap } from '../../../../controller/session/dependencies/map/controller.session.tab.map';
+import { ControllerSessionTabMap, IMapItem, IMapState, IMap } from '../../../../controller/session/dependencies/map/controller.session.tab.map';
 import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
@@ -36,7 +36,9 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     };
     private _map: IMap = {
         columns: 0,
-        points: [],
+        items: [],
+        filters: 0,
+        max: 0,
     };
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
@@ -90,11 +92,11 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._subscriptions.onPositionUpdateSubject = this.service.getObservable().onPositionUpdate.subscribe(this._onPositionUpdate.bind(this));
         this._subscriptions.onRepaintSubject = this.service.getObservable().onRepaint.subscribe(this._onRepaint.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onRepaint.bind(this, true));
-        this._subscriptions.onRestyleSubject = this.service.getObservable().onRestyle.subscribe(this._onRestyle.bind(this));
         this._setState(this.service.getState());
     }
 
     public ngAfterViewInit() {
+        this.service.update(this._ng_height, true);
         this._setHeight();
         this.service.requestMapCalculation(this._ng_height, true);
         this._draw();
@@ -119,10 +121,11 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         if (size.height <= 0) {
             return false;
         }
-        if (this._ng_height === size.height) {
+        const height = Math.ceil(size.height);
+        if (this._ng_height === height) {
             return false;
         }
-        this._ng_height = size.height;
+        this._ng_height = height;
         return true;
     }
 
@@ -141,7 +144,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         if (!this._setHeight() && resizing) {
             return;
         }
-        this.service.requestMapCalculation(this._ng_height, false);
+        this.service.update(this._ng_height, false);
         this._updateCursor();
         this._forceUpdate();
         this.service.repainted();
@@ -152,24 +155,12 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._draw();
     }
 
-    private _onRestyle(request: FilterRequest) {
-        const desc = request.asDesc();
-        this._map.points = this._map.points.map((point: IMapPoint) => {
-            if (point.reg !== desc.request) {
-                return point;
-            }
-            point.color = desc.background;
-            return point;
-        });
-        this._draw();
-    }
-
     private _draw() {
         const width = (columns: number) => {
             this._ng_width = this.service.getColumnWidth() * columns;
             this._forceUpdate();
         };
-        const draw = (points: IMapPoint[]) => {
+        const draw = (items: IMapItem[], filters: number) => {
             if (this._ng_canvas === undefined || this.service === undefined) {
                 return;
             }
@@ -181,14 +172,17 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
             let height: number = this._ng_height / this.service.getStreamLength();
             height = height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height;
             const done: {[key: string]: boolean} = {};
-            points.forEach((point: IMapPoint) => {
-                const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
-                const y: number = Math.ceil(point.position) * height - height;
+            items.forEach((item: IMapItem, index: number) => {
+                if (item.dominant === -1) {
+                    return;
+                }
+                const x: number = this._ng_width - this.service.getColumnWidth() * (1 + item.dominant);
+                const y: number = index;
                 const key: string = y + '-' + x;
                 if (done[key]) {
                     return;
                 }
-                context.fillStyle = point.color === '' ? 'rgb(255,0,0)' : point.color;
+                context.fillStyle = item.filters[item.dominant].color === '' ? 'rgb(255,0,0)' : item.filters[item.dominant].color;
                 done[key] = true;
                 context.fillRect(
                     x - 1,
@@ -199,7 +193,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
             });
         };
         width(this._map.columns);
-        draw(this._map.points);
+        draw(this._map.items, this._map.filters);
     }
 
     private _updateCursor() {
