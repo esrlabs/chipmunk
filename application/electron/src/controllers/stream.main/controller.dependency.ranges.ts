@@ -245,7 +245,7 @@ export class Ranges extends Dependency {
                         this._destroy();
                     }
                 });
-            this._tasks.set(uuid, task);
+            // this._tasks.set(uuid, task);
         });
     }
 

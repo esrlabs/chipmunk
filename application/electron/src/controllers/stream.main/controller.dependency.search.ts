@@ -202,15 +202,14 @@ export class Search extends Dependency {
                             },
                         };
                     });
-                    search.search(filters).then(() => {
+                    search.search(filters).then((result) => {
                         self._filters = filters;
                         self._channel.getEvents().afterFiltersListUpdated.emit(self._filters.map(f => Object.assign({}, f)));
                         response(new IPC.SearchRequestResults({
                             streamId: msg.session,
                             requestId: msg.id,
-                            results: {},
-                            found: search.len(),
-                            matches: [],
+                            found: result.found,
+                            matches: result.matches,
                             duration: 0,
                         }));
                     }).catch((err: Error) => {
@@ -219,9 +218,8 @@ export class Search extends Dependency {
                             streamId: msg.session,
                             error: err.message,
                             requestId: msg.id,
-                            results: {},
                             found: 0,
-                            matches: [],
+                            matches: "",
                             duration: 0,
                         }));
                     });
