@@ -11,7 +11,7 @@ import Logger from "../../tools/env.logger";
 import ServiceStorage, { IStorageScheme } from '../service.storage';
 import ServiceElectron, { IPCMessages } from "../service.electron";
 import ServiceOutputExport from "../output/service.output.export";
-import { CancelablePromise } from "indexer-neon";
+import { CancelablePromise } from "rustcore";
 
 import * as Tools from "../../tools/index";
 

@@ -106,8 +106,8 @@ function copyFolderExcept(srcFolder: string, destFolder: string, exceptions: str
 
 function taskCopying() {
     const dest = getNodeModulesPath();
-    const srcFolder = path.join(APPS_DIR, 'indexer-neon');
-    const destFolder = `${dest}/indexer-neon`;
+    const srcFolder = path.join(APPS_DIR, 'rustcore');
+    const destFolder = `${dest}/rustcore`;
     if (!fs.existsSync(destFolder)) {
         fs.mkdirSync(destFolder);
     }

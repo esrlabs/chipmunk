@@ -25,7 +25,7 @@ import {
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
     TFileOptions,
-} from 'indexer-neon';
+} from 'rustcore';
 
 export interface ISubjects {
     destroyed: Tools.Subject<string>;

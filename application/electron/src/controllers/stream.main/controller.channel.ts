@@ -3,7 +3,7 @@
 import * as Tools from '../../tools/index';
 
 import { CommonInterfaces } from '../../interfaces/interface.common';
-import { IProgressState } from 'indexer-neon';
+import { IProgressState } from 'rustcore';
 
 export { IProgressState };
 

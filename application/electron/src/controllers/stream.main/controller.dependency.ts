@@ -1,5 +1,5 @@
 // tslint:disable: callable-types
-import { Session } from 'indexer-neon';
+import { Session } from 'rustcore';
 import { Channel } from './controller.channel';
 
 export type DependencyConstructor<T> = new (session: Session, channel: Channel) => Dependency & T;
