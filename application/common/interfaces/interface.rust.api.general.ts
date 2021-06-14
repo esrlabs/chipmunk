@@ -54,11 +54,12 @@ export interface IResultSearchElement {
  */
  export interface ISearchResults {
 	found: number;
-	matches: string; // This is Array<Array<number>>
+	stats: Array<Array<number>>; // This is Array<Array<number>>
 					 // Each index in root array - position in search stream
 					 // Each sub index - index of filter, which has a match
 }
 
+export type ISearchMap = Array<Array<number>>;
 
 /**
  * Output for @extract method of session
