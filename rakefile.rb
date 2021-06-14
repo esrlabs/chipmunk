@@ -585,7 +585,7 @@ end
 desc 'build rustcore ts-bindnings'
 task :build_rustcore do
   cd "#{APPS_DIR}/rustcore" do
-    sh 'rake setup:ts'
+    sh 'rake install:all'
     sh 'rake build:all'
   end
 end
