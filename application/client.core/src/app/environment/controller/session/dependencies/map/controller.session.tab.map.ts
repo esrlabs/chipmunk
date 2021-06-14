@@ -196,26 +196,24 @@ export class ControllerSessionTabMap implements Dependency {
         return this._width;
     }
 
-    public getClosedMatchRow(row: number): { index: number, position: number } | undefined {
-        return undefined;
-        // const points: IMapPoint[] = this._cached.map.points;
-        // if (points.length === 0) {
-        //     return;
-        // }
-        // if (isNaN(row) || !isFinite(row)) {
-        //     this._logger.warn(`Value of target row is incorrect.`);
-        // }
-        // const target: { index: number, position: number } = { index: 0, position: points[0].position };
-        // let distance: number = Math.abs(row - target.position);
-        // points.forEach((point: IMapPoint, i: number) => {
-        //     const _distance: number = Math.abs(row - point.position);
-        //     if (_distance < distance) {
-        //         distance = _distance;
-        //         target.position = point.position;
-        //         target.index = i;
-        //     }
-        // });
-        // return target;
+    public getClosedMatchRow(positionInStream: number): Promise<{ index: number, position: number } | undefined> {
+        return new Promise((resolve, reject) => {
+            ServiceElectronIpc.request(new IPC.SearchResultNearestRequest({
+                streamId: this._guid,
+                positionInStream,
+            }), IPC.SearchResultNearestResponse).then((response: IPC.SearchResultNearestResponse) => {
+                if (typeof response.error === 'string') {
+                    return reject(new Error(response.error))
+                }
+                if (response.positionInSearch === -1 || response.positionInStream === -1) {
+                    return resolve(undefined);
+                }
+                resolve({
+                    index: response.positionInSearch,
+                    position: response.positionInStream,
+                });
+            });
+        });
     }
 
     public update(scale: number, force: boolean) {
