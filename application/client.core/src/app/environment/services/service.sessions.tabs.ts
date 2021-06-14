@@ -451,7 +451,7 @@ export class TabsSessionsService implements IService {
     }
 
     private _ipc_onSearchUpdated(message: IPCMessages.SearchUpdated) {
-        this._sessionsEventsHub.emit().onSearchUpdated({ session: message.guid, rows: message.rowsCount });
+        this._sessionsEventsHub.emit().onSearchUpdated({ session: message.guid, rows: message.rows });
     }
 
 }

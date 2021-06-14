@@ -384,15 +384,15 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
         if (frame.end === range.end) {
             return;
         }
-        this._output.preload(range).then((loaded: IRange | null) => {
-            if (loaded === null) {
-                // Already some request is in progress: do nothing
-                return;
-            }
-            this._ng_outputAPI.onScrollUntil.next(loaded.end);
-        }).catch((error: Error) => {
-            // Do nothing, no data available
-        });
+        // this._output.preload(range).then((loaded: IRange | null) => {
+        //     if (loaded === null) {
+        //         // Already some request is in progress: do nothing
+        //         return;
+        //     }
+        //     this._ng_outputAPI.onScrollUntil.next(loaded.end);
+        // }).catch((error: Error) => {
+        //     // Do nothing, no data available
+        // });
     }
 
     private _ctrl_inject() {

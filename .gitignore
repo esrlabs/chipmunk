@@ -22,7 +22,7 @@
 
 # Logs and databases #
 ######################
-*.log
+#*.log # application/apps/indexer/merging/test_samples includes logs for testing
 *.sql
 *.sqlite
 

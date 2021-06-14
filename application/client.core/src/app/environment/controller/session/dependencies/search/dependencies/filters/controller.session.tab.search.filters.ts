@@ -324,6 +324,6 @@ export class ControllerSessionTabSearchFilters
         if (this._guid !== message.guid) {
             return;
         }
-        this._accessor.search().getOutputStream().updateStreamState(message.rowsCount);
+        this._accessor.search().getOutputStream().updateStreamState(message.matches);
     }
 }

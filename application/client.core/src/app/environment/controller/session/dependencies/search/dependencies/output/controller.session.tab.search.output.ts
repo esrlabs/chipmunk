@@ -9,13 +9,16 @@ import { EKey, EParent } from '../../../../../../services/standalone/service.out
 import { IRow } from '../../../row/controller.row.api';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
 import { IHotkeyEvent } from '../../../../../../services/service.hotkeys';
+import { SearchDataProvider } from '../../../../../providers/provider.search';
+import { SearchDataAccessor, IData } from '../../../../../providers/accessor.search';
+import { CommonInterfaces } from '../../../../../../interfaces/interface.common';
 
 import OutputRedirectionsService from '../../../../../../services/standalone/service.output.redirections';
 import HotkeysService from '../../../../../../services/service.hotkeys';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
+export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.SearchChunk>;
 
 export interface IParameters {
     guid: string;
@@ -51,19 +54,20 @@ export interface ILoadedRange {
 }
 
 export const Settings = {
-    trigger         : 1000,     // Trigger to load addition chunk
-    maxRequestCount : 2000,     // chunk size in rows
+    trigger         : 200,      // Trigger to load addition chunk
+    maxRequestCount : 200,      // chunk size in rows
     maxStoredCount  : 2000,     // limit of rows to have it in RAM. All above should be removed
     requestDelay    : 0,        // ms, delay before to do request
 };
 
 export class ControllerSessionTabSearchOutput implements Dependency {
 
-    private _uuid: string;
-    private _logger: Toolkit.Logger;
+    private readonly _uuid: string;
+    private readonly _logger: Toolkit.Logger;
+    private readonly _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
+    private readonly _provider: SearchDataProvider;
+
     private _rows: IRow[] = [];
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
-    private _preloadTimestamp: number = -1;
     private _lastRequestedRows: IRow[] = [];
     private _state: IStreamState = {
         count: 0,
@@ -100,6 +104,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             search,
         };
         this._logger = new Toolkit.Logger(`ControllerSessionTabSearchOutput: ${this._uuid}`);
+        this._provider = new SearchDataProvider(uuid, new SearchDataAccessor(uuid));
     }
 
     public init(): Promise<void> {
@@ -108,6 +113,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             this._subscriptions.onAddedBookmark = this._accessor.session().getBookmarks().getObservable().onAdded.subscribe(this._onUpdateBookmarksState.bind(this));
             this._subscriptions.onRemovedBookmark = this._accessor.session().getBookmarks().getObservable().onRemoved.subscribe(this._onUpdateBookmarksState.bind(this));
             this._subscriptions.selectAllSearchResult = HotkeysService.getObservable().selectAllSearchResult.subscribe(this._onSelectAllSearchResult.bind(this));
+            this._subscriptions.onProviderChunk = this._provider.subjects().chunk.subscribe(this._onProviderChunk.bind(this));
             resolve();
         });
     }
@@ -203,15 +209,15 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
                 return reject(new Error(`Range has incorrect format. Start and end shound be finite and not NaN`));
             }
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
-                const packets: IRow[] = [];
-                this._parse(message.data, message.start, message.end, packets);
-                resolve(packets.filter((packet: IRow) => {
-                    return packet.position >= range.start && packet.position <= range.end;
-                }));
-            }).catch((error: Error) => {
-                reject(new Error(`Error during requesting data (rows from ${range.start} to ${range.end}): ${error.message}`));
-            });
+            // this._requestData(range.start, range.end).then((message: IPCMessages.SearchChunk) => {
+            //     const packets: IRow[] = [];
+            //     this._parse(message.data, message.start, message.end, packets);
+            //     resolve(packets.filter((packet: IRow) => {
+            //         return packet.position >= range.start && packet.position <= range.end;
+            //     }));
+            // }).catch((error: Error) => {
+            //     reject(new Error(`Error during requesting data (rows from ${range.start} to ${range.end}): ${error.message}`));
+            // });
         });
     }
 
@@ -266,13 +272,13 @@ export class ControllerSessionTabSearchOutput implements Dependency {
      * @param { number } rows - number or rows in stream
      * @returns { IRange | undefined } returns undefined if no need to load rows
      */
-    public updateStreamState(rowsCount: number): void {
-        if (rowsCount === 0) {
+    public updateStreamState(rows: number): void {
+        if (rows === 0) {
             // Drop
             this.clearStream();
         }
         // Update count of rows
-        this._setTotalStreamCount(rowsCount);
+        this._setTotalStreamCount(rows);
         // Update bookmarks state
         this._updateBookmarksData();
         // Trigger events
@@ -284,12 +290,6 @@ export class ControllerSessionTabSearchOutput implements Dependency {
 
     public getRowsCount(): number {
         return this._state.count;
-    }
-
-    public preload(range: IRange): Promise<IRange> {
-        // Normalize range (to exclude bookmarks)
-        range.end = range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
-        return this._preload(range);
     }
 
     public getRowByPosition(position: number): IRow | undefined {
@@ -475,74 +475,14 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         } else {
             request.end = (this._state.originalCount - 1);
         }
-        this._state.lastLoadingRequestId = setTimeout(() => {
-            this._state.lastLoadingRequestId = undefined;
-            this._requestData(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
-                // Check: response is empty
-                if (message.data === undefined) {
-                    // Response is empty. Looks like search was dropped.
-                    return;
-                }
-                // Check: do we already have other request
-                if (this._state.lastLoadingRequestId !== undefined) {
-                    // No need to parse - new request was created
-                    this._lastRequestedRows = [];
-                    this._parse(message.data, message.start, message.end, this._lastRequestedRows, frame);
-                    return;
-                }
-                // Update size of whole stream (real size - count of rows in stream file)
-                this._setTotalStreamCount(message.rows);
-                // Parse and accept rows
-                this._parse(message.data, message.start, message.end);
-                // Check again last requested frame
-                if (stored.start <= frame.start && stored.end >= frame.end) {
-                    // Update bookmarks state
-                    this._updateBookmarksData();
-                    // Send notification about update
-                    this._subjects.onRangeLoaded.next({
-                        range: { start: frame.start, end: frame.end },
-                        rows: this._getRowsSliced(frame.start, frame.end + 1)
-                    });
-                    return;
-                } else {
-                    this._logger.warn(`Requested frame isn't in scope of stored data. Request - rows from ${request.start} to ${request.end}.`);
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
-            });
-        }, Settings.requestDelay);
-        return true;
-    }
-
-    private _preload(range: IRange): Promise<IRange | null> {
-        return new Promise((resolve, reject) => {
-            const timestamp: number = Date.now();
-            if (this._preloadTimestamp !== -1 && timestamp - this._preloadTimestamp < 500) {
-                return resolve(null);
-            }
-            if (this._isRangeStored(range)) {
-                this._preloadTimestamp = -1;
-                return resolve(range);
-            }
-            this._preloadTimestamp = timestamp;
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
-                // Drop request ID
-                this._preloadTimestamp = -1;
-                // Update size of whole stream (real size - count of rows in stream file)
-                this._setTotalStreamCount(message.rows);
-                // Parse and accept rows
-                this._parse(message.data, message.start, message.end);
-                // Update bookmarks state
-                this._updateBookmarksData();
-                // Return actual preloaded range
-                resolve({ start: message.start, end: message.end});
-            }).catch((error: Error) => {
-                // Drop request ID
-                this._preloadTimestamp = -1;
-                // Reject
-                reject(new Error(this._logger.error(`Fail to preload data (rows from ${range.start} to ${range.end}) due error: ${error.message}`)));
-            });
+        const error: Error | undefined = this._provider.request({
+            from: request.start,
+            to: request.end,
         });
+        if (error instanceof Error) {
+            this._logger.error(`Fail request chunk of data. Error: ${error.message}`);
+        }
+        return true;
     }
 
     /**
@@ -553,12 +493,11 @@ export class ControllerSessionTabSearchOutput implements Dependency {
      * @param { number } count - total count of rows in whole stream (not in input, but in whole stream)
      * @returns void
      */
-    private _parse(input: string, from: number, to: number, dest?: IRow[], frame?: IRange): void {
-        const rows: string[] = input.split(/\n/gi);
+    private _parse(rows: CommonInterfaces.API.IGrabbedElement[], from: number, to: number, dest?: IRow[], frame?: IRange): void {
         let packets: IRow[] = [];
         // Conver rows to packets
         try {
-            rows.forEach((str: string, i: number) => {
+            rows.forEach((row: CommonInterfaces.API.IGrabbedElement, i: number) => {
                 if (frame !== undefined) {
                     // Frame is defined. We do not need to parse all, just range in frame
                     if (frame.end < from + i) {
@@ -568,13 +507,11 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                         return;
                     }
                 }
-                const position: number = extractRowPosition(str); // Get position
-                const pluginId: number = extractPluginId(str);    // Get plugin id
                 packets.push({
-                    str: clearRowStr(str),
-                    position: from + i,
-                    positionInStream: position,
-                    pluginId: pluginId,
+                    str: clearRowStr(row.content),
+                    position: row.row,
+                    positionInStream: row.position,
+                    pluginId: 1,
                     sessionId: this._uuid,
                     parent: EParent.search,
                     api: this._accessor.session().getRowAPI(),
@@ -590,7 +527,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             // Destination storage is defined: we don't need to store rows (accept it)
             dest.push(...packets);
         } else {
-            if (packets.length !== (to - from + 1)) {
+            if (packets.length !== (to - from)) {
                 throw new Error(`Count of gotten rows dismatch with defined range. Range: ${from}-${to}. Actual count: ${rows.length}; expected count: ${to - from}.`);
             }
             this._acceptPackets(packets);
@@ -666,6 +603,21 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         if (this._state.count === 0) {
             return this.clearStream();
         }
+    }
+
+    private _onProviderChunk(data: IData) {
+        // Update size of whole stream (real size - count of rows in stream file)
+        this._setTotalStreamCount(data.count);
+        // Parse and accept rows
+        this._parse(data.rows, data.from, data.to);
+        // Update bookmarks state
+        this._updateBookmarksData();
+        this._lastRequestedRows = this._getRowsSliced(data.from, data.to + 1);
+        // Send notification about update
+        this._subjects.onRangeLoaded.next({
+            range: { start: data.from, end: data.to },
+            rows: this._lastRequestedRows,
+        });
     }
 
     private _requestData(start: number, end: number): Promise<IPCMessages.SearchChunk> {
