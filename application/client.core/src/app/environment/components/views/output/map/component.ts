@@ -96,9 +96,8 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     }
 
     public ngAfterViewInit() {
-        this.service.update(this._ng_height, true);
         this._setHeight();
-        this.service.requestMapCalculation(this._ng_height, true);
+        this.service.update(this._ng_height, true);
         this._draw();
         this._forceUpdate();
     }

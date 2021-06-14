@@ -324,7 +324,8 @@ export class RustSessionDebug extends RustSession {
     }
 
     public getSocketPath(): string | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
+        // return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
+        return "";
     }
 
     public assign(filename: string, options: TFileOptions): string | NativeError {
