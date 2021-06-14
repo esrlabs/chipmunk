@@ -15,7 +15,7 @@ import {
     IResultSearchElement,
     IFilter,
     IExtractDTFormatResult,
-} from 'indexer-neon';
+} from 'rustcore';
 import { Dependency } from './controller.dependency';
 import { Channel } from './controller.channel';
 import { CommonInterfaces } from '../../interfaces/interface.common';
@@ -359,7 +359,7 @@ export class Ranges extends Dependency {
 
 // Original transformer of results
 /*
-import { CancelablePromise } from "indexer-neon";
+import { CancelablePromise } from "rustcore";
 import { CommonInterfaces } from '../../../interfaces/interface.common';
 import TimestampExtract from '../../features/timestamp/timestamp.extract';
 import Logger from '../../../tools/env.logger';

@@ -5,8 +5,8 @@ import Logger from '../../tools/env.logger';
 import ServiceElectron, { IPCMessages } from '../../services/service.electron';
 import ServiceOutputExport from "../../services/output/service.output.export";
 import ServiceStreams from "../../services/service.sessions";
-import indexer from "indexer-neon";
-import { CancelablePromise, Progress, Exporter } from "indexer-neon";
+import indexer from "rustcore";
+import { CancelablePromise, Progress, Exporter } from "rustcore";
 import ServiceFileRecent from '../../services/files/service.file.recent';
 
 import { CommonInterfaces } from '../../interfaces/interface.common';

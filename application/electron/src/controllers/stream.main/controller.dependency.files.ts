@@ -14,7 +14,7 @@ import {
     Events,
     IEventMatchesUpdated,
     IEventMapUpdated,
-} from 'indexer-neon';
+} from 'rustcore';
 import { Dependency } from './controller.dependency';
 import { Channel, IProgressState } from './controller.channel';
 import { getExtendFilesInfo, getExtendFileInfo } from '../../tools/fs';
