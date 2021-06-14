@@ -6,7 +6,7 @@ import Logger from '../../tools/env.logger';
 
 import { Postman } from '../../tools/postman';
 import { IPCMessages as IPC, Subscription } from '../../services/service.electron';
-import { Session, Events } from 'indexer-neon';
+import { Session, Events } from 'rustcore';
 import { Dependency } from './controller.dependency';
 import { Channel } from './controller.channel';
 import { CommonInterfaces } from '../../interfaces/interface.common';
