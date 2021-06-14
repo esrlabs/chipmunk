@@ -363,7 +363,7 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         }
         const distance = {
             toStart: frame.start,
-            toEnd: (this._state.count - 1) - frame.end
+            toEnd: this._state.count - frame.end
         };
         if (distance.toStart > (Settings.maxRequestCount / 2)) {
             request.start = distance.toStart - (Settings.maxRequestCount / 2);
@@ -373,7 +373,7 @@ export class ControllerSessionTabStreamOutput implements Dependency {
         if (distance.toEnd > (Settings.maxRequestCount / 2)) {
             request.end = frame.end + (Settings.maxRequestCount / 2);
         } else {
-            request.end = (this._state.count - 1);
+            request.end = this._state.count;
         }
         this._state.lastLoadingRequestId = setTimeout(() => {
             this._state.lastLoadingRequestId = undefined;

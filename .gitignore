@@ -47,6 +47,7 @@ Thumbs.db
 **/dist
 **/build
 application/apps/**/target/*
+application/apps/rustcore/ts-cli
 .vscode
 !webpack.config.js
 .idea
