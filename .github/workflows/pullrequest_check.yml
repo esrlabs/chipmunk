@@ -39,6 +39,8 @@ jobs:
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+      - name: cargo install nj-cli
+        run: cargo install nj-cli
       - name: build release
         run: rake full_pipeline --trace
         env:

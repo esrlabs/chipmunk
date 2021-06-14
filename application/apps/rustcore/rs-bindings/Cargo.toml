@@ -1,0 +1,31 @@
+[package]
+name = "node-bindings"
+version = "0.1.0"
+authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[build-dependencies]
+node-bindgen = {version = "4.1.0", features = ["build"] }
+
+[dependencies]
+anyhow = "1.0.34"
+crossbeam-channel = "0.5.0"
+dirs = "3.0.1"
+# dlt = { path = "../../indexer/dlt" }
+indexer_base = { path = "../../indexer/indexer_base" }
+log = "0.4"
+# log4rs = "1.0.0"
+# merging = { path = "../../indexer/merging" }
+node-bindgen = {version = "4.1.0", features = [] }
+processor = { path = "../../indexer/processor" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+strum_macros = "0.20.1"
+# tempfile = "3.2.0"
+thiserror = "1.0.22"
+tokio = { version = "1.1.0", features = ["full"] }
+# tokio-stream = "0.1.2"
+uuid = { version = "0.8.2", features = ["serde", "v4"] }
