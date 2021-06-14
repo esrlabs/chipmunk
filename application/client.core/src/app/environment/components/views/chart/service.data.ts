@@ -2,7 +2,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Session, IStreamState } from '../../../controller/session/session';
 import { ChartRequest } from '../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { FilterRequest } from '../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
-import { IMapState, IMapPoint } from '../../../controller/session/dependencies/map/controller.session.tab.map';
+import { IMapState, IMapItem } from '../../../controller/session/dependencies/map/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { AChart } from './charts/charts';
 import { IPCMessages } from '../../../services/service.electron.ipc';
@@ -131,41 +131,35 @@ export class ServiceData {
                     end: this._stream.count,
                 };
             }
-            this._sessionController.getStreamMap().getMatchesMap(width, range).then((map) => {
-                const dss: any = {};
-                const indexes: number[] = Object.keys(map).map(k => typeof k !== 'number' ? parseInt(k, 10) : k);
-                const count: number = indexes.length;
-                let max: number = -1;
-                indexes.forEach((key: number) => {
-                    const matches: { [key: string]: number } = map[key];
-                    Object.keys(matches).forEach((match: string) => {
-                        if (dss[match] === undefined) {
-                            dss[match] = new Array(Math.round(count)).fill(0);
+            this._sessionController.getStreamMap().getMap(width, range).then((map) => {
+                const dss: { [key: number]: number[] } = {};
+                const colors: { [key: number]: string } = {};
+                map.items.forEach((item) => {
+                    for (let filterIndex = 0; filterIndex < map.filters; filterIndex += 1) {
+                        if (dss[filterIndex] === undefined) {
+                            dss[filterIndex] = [];
                         }
-                        dss[match][key] = matches[match];
-                        if (matches[match] > max) {
-                            max = matches[match];
+                        if (item.filters[filterIndex] === undefined) {
+                            dss[filterIndex].push(0);
+                        } else {
+                            dss[filterIndex].push(item.filters[filterIndex].weight);
+                            colors[filterIndex] = item.filters[filterIndex].color;
                         }
-                    });
+                    }
                 });
                 const datasets = [];
-                Object.keys(dss).forEach((filter: string) => {
-                    const smth: FilterRequest | ChartRequest | undefined = this._getFilterOrChart(filter);
-                    let color: string = scheme_color_accent;
-                    if (smth !== undefined) {
-                        color = smth instanceof FilterRequest ? smth.getBackground() : smth.getColor();
-                    }
+                Object.keys(dss).forEach((filterIndex: string) => {
                     const dataset = {
                         barPercentage: 1,
                         categoryPercentage: 1,
-                        label: filter,
-                        backgroundColor: color,
+                        label: filterIndex,
+                        backgroundColor: colors[filterIndex] !== undefined ? colors[filterIndex] : scheme_color_accent,
                         showLine: false,
-                        data: dss[filter],
+                        data: dss[filterIndex],
                     };
                     datasets.push(dataset);
                 });
-                resolve({ dataset: datasets, max: max, min: undefined });
+                resolve({ dataset: datasets, max: map.max, min: undefined });
             }).catch((err: Error) => {
                 reject(new Error(this._logger.warn(`Fail to get dataset due error: ${err.message}`)));
             });
