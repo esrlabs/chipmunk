@@ -1,8 +1,7 @@
 export interface ISearchRequestResults {
     streamId: string;
     requestId: string;
-    results: { [regIndex: number]: number[] };
-    matches: number[];
+    matches: string;
     error?: string;
     found: number;
     duration: number;
@@ -13,8 +12,7 @@ export class SearchRequestResults {
     public signature: string = SearchRequestResults.signature;
     public streamId: string;
     public requestId: string;
-    public results: { [regIndex: number]: number[] };
-    public matches: number[];
+    public matches: string;
     public found: number;
     public duration: number;
     public error?: string;
@@ -29,14 +27,11 @@ export class SearchRequestResults {
         if (typeof params.requestId !== 'string' || params.requestId.trim() === '') {
             throw new Error(`Field "requestId" should be defined`);
         }
-        if (typeof params.results !== 'object' || params.results === null) {
-            throw new Error(`Field "results" should be { [regIndex: number]: number[] }`);
-        }
-        if (!(params.matches instanceof Array)) {
-            throw new Error(`Field "matches" should be number[]`);
+        if (typeof params.matches !== 'string' || params.matches.trim() === '') {
+            throw new Error(`Field "matches" should be defined`);
         }
         if (params.error !== undefined && typeof params.error !== 'string') {
-            throw new Error(`Field "requestId" should be defined`);
+            throw new Error(`Field "error" should be defined`);
         }
         if (typeof params.found !== 'number' || isNaN(params.found) || !isFinite(params.found)) {
             throw new Error(`Field "found" should be defined`);
@@ -46,7 +41,6 @@ export class SearchRequestResults {
         }
         this.streamId = params.streamId;
         this.requestId = params.requestId;
-        this.results = params.results;
         this.matches = params.matches;
         this.error = params.error;
         this.found = params.found;
