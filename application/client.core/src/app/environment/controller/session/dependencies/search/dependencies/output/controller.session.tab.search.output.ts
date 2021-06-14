@@ -527,7 +527,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             // Destination storage is defined: we don't need to store rows (accept it)
             dest.push(...packets);
         } else {
-            if (packets.length !== (to - from)) {
+            if (packets.length !== (to - from) + 1) {
                 throw new Error(`Count of gotten rows dismatch with defined range. Range: ${from}-${to}. Actual count: ${rows.length}; expected count: ${to - from}.`);
             }
             this._acceptPackets(packets);
