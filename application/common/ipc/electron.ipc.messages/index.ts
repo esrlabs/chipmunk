@@ -166,6 +166,12 @@ export { ISearchResultMapRequest, SearchResultMapRequest };
 import { ISearchResultMapResponse, SearchResultMapResponse } from './search.results.map.response';
 export { ISearchResultMapResponse, SearchResultMapResponse };
 
+import { ISearchResultNearestRequest, SearchResultNearestRequest } from './search.results.nearest.request';
+export { ISearchResultNearestRequest, SearchResultNearestRequest };
+
+import { ISearchResultNearestResponse, SearchResultNearestResponse } from './search.results.nearest.response';
+export { ISearchResultNearestResponse, SearchResultNearestResponse };
+
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
 
@@ -756,6 +762,8 @@ export type TMessage =  AppRestartRequest |
                         StreamPtyResizeResponse |
                         SearchResultMapRequest |
                         SearchResultMapResponse |
+                        SearchResultNearestRequest |
+                        SearchResultNearestResponse |
                         SearchRequest |
                         SearchRequestResults |
                         SearchResultMapState |
@@ -997,6 +1005,8 @@ export const Map = {
 
     [SearchResultMapRequest.signature           ]: SearchResultMapRequest,
     [SearchResultMapResponse.signature          ]: SearchResultMapResponse,
+    [SearchResultNearestRequest.signature       ]: SearchResultNearestRequest,
+    [SearchResultNearestResponse.signature      ]: SearchResultNearestResponse,
     [SearchRequest.signature                    ]: SearchRequest,
     [SearchRequestResults.signature             ]: SearchRequestResults,
     [SearchResultMapState.signature             ]: SearchResultMapState,

@@ -135,6 +135,10 @@ export class Search extends Dependency {
                 msg: IPC.SearchResultMapRequest,
                 response: (instance: IPC.SearchResultMapResponse) => any,
             ): void;
+            nearest(
+                msg: IPC.SearchResultNearestRequest,
+                response: (instance: IPC.SearchResultNearestResponse) => any,
+            ): void;
             chunk(msg: IPC.SearchChunk, response: (isntance: IPC.SearchChunk) => any): void;
         };
     } {
@@ -186,6 +190,22 @@ export class Search extends Dependency {
                                 new Error(
                                     self._logger.warn(
                                         `Fail to subscribe to render event "SearchChunk" due error: ${error.message}. This is not blocked error, loading will be continued.`,
+                                    ),
+                                ),
+                            );
+                        }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.SearchResultNearestRequest,
+                        self._ipc().handlers.nearest as any,
+                    )
+                        .then((subscription: Subscription) => {
+                            self._subscriptions.ipc.chunk = subscription;
+                        })
+                        .catch((error: Error) => {
+                            return Promise.reject(
+                                new Error(
+                                    self._logger.warn(
+                                        `Fail to subscribe to render event "SearchResultNearestRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`,
                                     ),
                                 ),
                             );
@@ -260,27 +280,77 @@ export class Search extends Dependency {
                 ): void {
                     const search = self._session.getSearch();
                     if (search instanceof Error) {
-                        self._logger.warn(
-                            `Fail get access to search controller due error: ${search.message}`,
+                        return response(
+                            new IPC.SearchResultMapResponse({
+                                streamId: msg.streamId,
+                                map: [],
+                                error: self._logger.warn(
+                                    `Fail get access to search controller due error: ${search.message}`,
+                                ),
+                            }),
                         );
-                        return;
                     }
-                    search.getMap(
-                        msg.scale,
-                        msg.range !== undefined ? msg.range.begin : undefined,
-                        msg.range !== undefined ? msg.range.end : undefined,
-                    ).then((map: CommonInterfaces.API.ISearchMap) => {
-                        response(new IPC.SearchResultMapResponse({
-                            streamId: msg.streamId,
-                            map: map,
-                        }));
-                    }).catch((err: Error) => {
-                        response(new IPC.SearchResultMapResponse({
-                            streamId: msg.streamId,
-                            map: [],
-                            error: self._logger.warn(`Fail get a search map. Error: ${err.message}`),
-                        }));
-                    });
+                    search
+                        .getMap(
+                            msg.scale,
+                            msg.range !== undefined ? msg.range.begin : undefined,
+                            msg.range !== undefined ? msg.range.end : undefined,
+                        )
+                        .then((map: CommonInterfaces.API.ISearchMap) => {
+                            response(
+                                new IPC.SearchResultMapResponse({
+                                    streamId: msg.streamId,
+                                    map: map,
+                                }),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            response(
+                                new IPC.SearchResultMapResponse({
+                                    streamId: msg.streamId,
+                                    map: [],
+                                    error: self._logger.warn(
+                                        `Fail get a search map. Error: ${err.message}`,
+                                    ),
+                                }),
+                            );
+                        });
+                },
+                nearest(
+                    msg: IPC.SearchResultNearestRequest,
+                    response: (instance: IPC.SearchResultNearestResponse) => any,
+                ): void {
+                    const search = self._session.getSearch();
+                    if (search instanceof Error) {
+                        return response(
+                            new IPC.SearchResultNearestResponse({
+                                streamId: msg.streamId,
+                                positionInSearch: -1,
+                                positionInStream: -1,
+                                error: self._logger.warn(
+                                    `Fail get access to search controller due error: ${search.message}`,
+                                ),
+                            }),
+                        );
+                    }
+                    const nearst = search.getNearest(msg.positionInStream);
+                    if (nearst === undefined) {
+                        response(
+                            new IPC.SearchResultNearestResponse({
+                                streamId: msg.streamId,
+                                positionInSearch: -1,
+                                positionInStream: -1,
+                            }),
+                        );
+                    } else {
+                        response(
+                            new IPC.SearchResultNearestResponse({
+                                streamId: msg.streamId,
+                                positionInSearch: nearst.index,
+                                positionInStream: nearst.position,
+                            }),
+                        );
+                    }
                 },
                 chunk(msg: IPC.SearchChunk, response: (isntance: IPC.SearchChunk) => any): void {
                     if (msg.guid !== self._session.getUUID()) {
