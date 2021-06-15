@@ -6,6 +6,7 @@ export interface IFilePickerFilter {
 export interface IFilePickerRequest {
     filter?: IFilePickerFilter[];
     multiple?: boolean;
+    defaultPath?: string;
 }
 
 export class FilePickerRequest {
@@ -14,6 +15,7 @@ export class FilePickerRequest {
     public signature: string = FilePickerRequest.signature;
     public filter: IFilePickerFilter[] | undefined;
     public multiple: boolean | undefined;
+    public defaultPath: string | undefined;
 
     constructor(params: IFilePickerRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -23,9 +25,13 @@ export class FilePickerRequest {
             throw new Error(`filter should be defined as IFilePickerFilter[].`);
         }
         if (params.multiple !== undefined && typeof params.multiple !== 'boolean') {
-            throw new Error(`multiple should be defined as string.`);
+            throw new Error(`multiple should be defined as boolean.`);
+        }
+        if (params.defaultPath !== undefined && typeof params.defaultPath !== 'string') {
+            throw new Error(`defaultPath should be defined as string.`);
         }
         this.filter = params.filter;
         this.multiple = params.multiple;
+        this.defaultPath = params.defaultPath;
     }
 }

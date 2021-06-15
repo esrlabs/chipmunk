@@ -193,6 +193,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         ElectronIpcService.request(new IPCMessages.FilePickerRequest({
             filter: [{ name: 'XML files', extensions: ['xml'] }],
             multiple: true,
+            defaultPath: this.fullFileName,
         }), IPCMessages.FilePickerResponse).then((responce: IPCMessages.FilePickerResponse) => {
             if (typeof responce.error === 'string') {
                 return this._notifications.add({
