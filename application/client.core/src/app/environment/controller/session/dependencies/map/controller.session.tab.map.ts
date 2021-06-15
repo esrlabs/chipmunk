@@ -203,7 +203,7 @@ export class ControllerSessionTabMap implements Dependency {
                 positionInStream,
             }), IPC.SearchResultNearestResponse).then((response: IPC.SearchResultNearestResponse) => {
                 if (typeof response.error === 'string') {
-                    return reject(new Error(response.error))
+                    return reject(new Error(response.error));
                 }
                 if (response.positionInSearch === -1 || response.positionInStream === -1) {
                     return resolve(undefined);

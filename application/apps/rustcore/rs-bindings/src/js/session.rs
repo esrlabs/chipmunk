@@ -318,11 +318,8 @@ impl RustSession {
                                 } else {
                                     let search_results = run_search(&target_file, filters.iter(), &state);
                                     match search_results {
-                                        Ok((file_path, found, stats, canceled)) => {
+                                        Ok((file_path, found, stats)) => {
                                             if found == 0 {
-                                                if canceled {
-                                                    println!("Search operation was canceled");
-                                                }
                                                 let _ = search_metadata_tx.send(None);
                                                 callback(CallbackEvent::SearchUpdated(0));
                                             } else {
