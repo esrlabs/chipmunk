@@ -58,6 +58,7 @@ class ServiceFilePicker implements IService {
         this._open(
             req.filter instanceof Array ? req.filter : [],
             typeof req.multiple === 'boolean' ? req.multiple : false,
+            typeof req.defaultPath === 'string' ? path.dirname(req.defaultPath) : '',
         ).then((files: string[]) => {
             if (files.length === 0) {
                 return response(new IPCMessages.FilePickerResponse({
@@ -84,7 +85,7 @@ class ServiceFilePicker implements IService {
         });
     }
 
-    private _open(filters: FileFilter[] = [], multiple: boolean = false): Promise<string[]> {
+    private _open(filters: FileFilter[] = [], multiple: boolean = false, defaultPath: string): Promise<string[]> {
         return new Promise((resolve, reject) => {
             const win = ServiceElectron.getBrowserWindow();
             if (win === undefined) {
@@ -97,6 +98,7 @@ class ServiceFilePicker implements IService {
             dialog.showOpenDialog(win, {
                 properties: options as any[],
                 filters: filters,
+                defaultPath: defaultPath,
             }).then((returnValue: OpenDialogReturnValue) => {
                 resolve(returnValue.filePaths);
             }).catch((error: Error) => {
