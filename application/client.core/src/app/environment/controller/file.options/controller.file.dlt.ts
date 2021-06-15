@@ -15,7 +15,7 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
                     closable: false,
                     width: 40,
                 },
-                caption: `Opening ${request.fileName}`,
+                caption: `Opening ${request.fileName} ${(request.size / 1024 / 1024).toFixed(2)}Mb`,
                 component: {
                     factory: DialogsFileOptionsDltComponent,
                     inputs: {

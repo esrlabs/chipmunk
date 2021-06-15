@@ -104,7 +104,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     @Input() public onDefaultCancelAction: () => void;
 
     public _ng_size: string = '';
-    public _ng_logLevelDefault: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public _ng_scanning: boolean = true;
     public _ng_sortByLogLevel: number = -1;
     public _ng_logLevels: Array<{ value: string; caption: string}> = [
@@ -122,8 +121,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_filterSubject: Subject<string> = new Subject<string>();
     public _ng_filterValue: string = '';
     public _ng_sortSubject: Subject<IForceSortData> = new Subject<IForceSortData>();
+    public _ng_logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
+    public _ng_filteringExpanded: boolean = false;
 
-    private _logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     private _stats: CommonInterfaces.DLT.StatisticInfo | undefined;
     private _destroyed: boolean = false;
     private _requestId: string | undefined;
@@ -132,7 +132,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
-        this._ng_onLogLevelChange = this._ng_onLogLevelChange.bind(this);
     }
 
     public ngAfterContentInit() {
@@ -165,17 +164,13 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         FocusOutputService.focus();
     }
 
-    public _ng_onLogLevelChange(value: EMTIN) {
-        this._logLevel = value;
-    }
-
     public _ng_onOpen() {
         const filters: CommonInterfaces.DLT.IDLTFilters = {};
         this._ng_sectionsRefs.map((section: DialogsFileOptionsDltStatsComponent) => {
             filters[section.getId()] = section.getSelected();
         });
         this.onDone({
-            logLevel: CLogLevel[this._logLevel],
+            logLevel: CLogLevel[this._ng_logLevel],
             filters: filters,
             stats: this._stats,
             fibex: { fibex_file_paths: this._ng_fibex.map((file) => {
@@ -269,6 +264,26 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         event.preventDefault();
     }
 
+    public _ng_getStatsSummary(): string {
+        let warning: number = 0;
+        let error: number = 0;
+        if (this._ng_filters !== undefined) {
+            this._ng_filters.app_ids.stats.forEach((stat: IStatRow) => {
+                error += stat.log_error;
+                warning += stat.log_warning;
+            });
+            this._ng_filters.context_ids.stats.forEach((stat: IStatRow) => {
+                error += stat.log_error;
+                warning += stat.log_warning;
+            });
+            this._ng_filters.ecu_ids.stats.forEach((stat: IStatRow) => {
+                error += stat.log_error;
+                warning += stat.log_warning;
+            });
+        }
+        return `Error(s): ${error}\t Warning(s): ${warning}`;
+    }
+
     private _initAsNewOpen() {
         const controller: Session = TabsSessionsService.getEmpty();
         if (!(controller instanceof Session)) {
@@ -316,8 +331,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     private _initAsReopen() {
         this._ng_scanning = false;
         this._stats = this.options.stats;
-        this._ng_logLevelDefault = this._getEMTINLogLevel(this.options.logLevel);
-        this._logLevel = this._ng_logLevelDefault;
+        this._ng_logLevel = this._getEMTINLogLevel(this.options.logLevel);
         this._setFilters();
         if (this.options.fibexFilesInfo instanceof Array) {
             this._ng_fibex = this.options.fibexFilesInfo;
