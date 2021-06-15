@@ -27,6 +27,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
+import { MatExpansionModule } from '@angular/material/expansion';
 
 import {
     FormsModule,
@@ -72,6 +73,7 @@ const CDialogs = [
         MatCheckboxModule,
         MatButtonModule,
         MatSelectModule,
+        MatExpansionModule,
         AppDirectiviesModule,
         DragDropModule
     ],
