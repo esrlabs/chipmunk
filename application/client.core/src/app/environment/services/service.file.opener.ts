@@ -7,6 +7,7 @@ import { FilesList } from '../controller/controller.file.storage';
 import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multiplefiles/component';
 import { CGuids } from '../states/state.default.sidebar.apps';
 import { Storage } from '../controller/helpers/virtualstorage';
+import { ENotificationType } from '../services.injectable/injectable.service.notifications';
 
 import LayoutStateService from './standalone/service.layout.state';
 import ServiceElectronIpc from './service.electron.ipc';
@@ -108,6 +109,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                             buttons: [
                                 { caption: 'Merge', handler: this.merge.bind(this, fileList), },
                                 { caption: 'Concat', handler: this.concat.bind(this, fileList), },
+                                { caption: 'Open each', handler: this.openEach.bind(this, fileList), },
                             ],
                         });
                         resolve();
@@ -160,6 +162,31 @@ export class FileOpenerService implements IService, IFileOpenerService {
             return;
         }
         this._open(checked, EActionType.concat, session);
+    }
+
+    public openEach(list: IPCMessages.IFile[] | FilesList) {
+        const checked: IPCMessages.IFile[] = list instanceof Array ? this._filterChecked(list) : this._filterChecked(list.getFiles());
+        if (checked.length <= 0) {
+            return;
+        }
+        const openFile = (index: number) => {
+            if (index >= checked.length) {
+                return;
+            }
+            this.openFileByName(checked[index].path).then(() => {
+                openFile(++index);
+            }).catch((error: Error) => {
+                TabsSessionsService.getPluginAPI(undefined).addNotification({
+                    caption: `Fail to open file`,
+                    message: `Fail to open file ${checked[index].path} due error ${error.message}`,
+                    options: {
+                        type: ENotificationType.error,
+                    },
+                });
+                openFile(++index);
+            });
+        };
+        openFile(0);
     }
 
     private _getDetailedFileList(paths: string[]): Promise<IPCMessages.IFile[]> {
