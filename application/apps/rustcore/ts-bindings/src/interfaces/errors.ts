@@ -16,6 +16,7 @@ export enum Source {
     Assign = 'Assign',
     Search = 'Search',
     GetMap = 'GetMap',
+    ExtractMatchesValues = 'ExtractMatchesValues',
     GrabStreamChunk = 'GrabStreamChunk',
     GrabSearchChunk = 'GrabSearchChunk',
     GetSocketPath = 'GetSocketPath',
