@@ -7,6 +7,7 @@
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { checkSessionDebugger } from './common';
+import { getLogger } from '../src/util/logging';
 
 const TEST_LOG_FILE: string | undefined = (() => {
     const envValue = (process.env as any)['TEXT_LOG_FILE_FOR_JASMIN'];
@@ -18,12 +19,13 @@ const TEST_LOG_FILE: string | undefined = (() => {
 })();
 
 if (TEST_LOG_FILE === undefined) {
-    console.log(`${'='.repeat(60)}`);
-    console.log(`WARNING!`);
-    console.log(`${'='.repeat(60)}`);
-    console.log(`Please define a path to some huge log file using`);
-    console.log(`export TEXT_LOG_FILE_FOR_JASMIN=path_to_file`);
-    console.log(`${'='.repeat(60)}`);
+    const logger = getLogger('Cancelations');
+    logger.error(`${'='.repeat(60)}`);
+    logger.error(`WARNING!`);
+    logger.error(`${'='.repeat(60)}`);
+    logger.error(`Please define a path to some huge log file using`);
+    logger.error(`export TEXT_LOG_FILE_FOR_JASMIN=path_to_file`);
+    logger.error(`${'='.repeat(60)}`);
     describe('Cancelations', function () {
         it('Assign file & cancel indexing', function (done) {
             fail(new Error(`Path to log file TEXT_LOG_FILE_FOR_JASMIN isn't defined`));
@@ -32,7 +34,8 @@ if (TEST_LOG_FILE === undefined) {
     });
 } else {
     describe('Cancelations', function () {
-        it('Assign file & cancel indexing', function (done) {
+        it('Test 1. Assign file & cancel indexing', function (done) {
+            const logger = getLogger('Cancelations. Test 1');
             const session = new Session();
             // Set provider into debug mode
             session.debug(true);
@@ -78,7 +81,8 @@ if (TEST_LOG_FILE === undefined) {
             }, 500);
         });
     
-        it('Assign file & cancel & assign again and grab', function (done) {
+        it('Test 2. Assign file & cancel & assign again and grab', function (done) {
+            const logger = getLogger('Cancelations. Test 2');
             const session = new Session();
             // Set provider into debug mode
             session.debug(true);
@@ -110,7 +114,7 @@ if (TEST_LOG_FILE === undefined) {
                                     fail(`Fail to grab data due error: ${result.message}`);
                                     return done();
                                 }
-                                console.log('result of grab was: ' + JSON.stringify(result));
+                                logger.debug('result of grab was: ' + JSON.stringify(result));
                                 expect(result.length).toEqual(5);
                                 checkSessionDebugger(session);
                                 done();
@@ -138,7 +142,8 @@ if (TEST_LOG_FILE === undefined) {
             }, 500);
         });
     
-        it('Assign file & cancel & assign again and search', function (done) {
+        it('Test 3. Assign file & cancel & assign again and search', function (done) {
+            const logger = getLogger('Cancelations. Test 3');
             const session = new Session();
             // Set provider into debug mode
             session.debug(true);
@@ -186,9 +191,9 @@ if (TEST_LOG_FILE === undefined) {
                                             session.destroy();
                                             return done();
                                         }
-                                        console.log(result);
+                                        logger.verbose(result);
                                         expect(result.length).toEqual(11);
-                                        console.log(
+                                        logger.debug(
                                             'result of grab was: ' +
                                                 result.map((x) => x.content).join('\n'),
                                         );
@@ -223,7 +228,8 @@ if (TEST_LOG_FILE === undefined) {
             }, 500);
         });
     
-        it('Assign file & search and cancel search', function (done) {
+        it('Test 4. Assign file & search and cancel search', function (done) {
+            const logger = getLogger('Cancelations. Test 4');
             const session = new Session();
             // Set provider into debug mode
             session.debug(true);
@@ -289,7 +295,8 @@ if (TEST_LOG_FILE === undefined) {
                 });
         });
     
-        it('Assign file; search and cancel search; search again', function (done) {
+        it('Test 5. Assign file; search and cancel search; search again', function (done) {
+            const logger = getLogger('Cancelations. Test 5');
             const session = new Session();
             // Set provider into debug mode
             session.debug(true);
@@ -354,9 +361,9 @@ if (TEST_LOG_FILE === undefined) {
                                         session.destroy();
                                         return done();
                                     }
-                                    console.log(result);
+                                    logger.verbose(result);
                                     expect(result.length).toEqual(11);
-                                    console.log(
+                                    logger.debug(
                                         'result of grab was: ' +
                                             result.map((x) => x.content).join('\n'),
                                     );

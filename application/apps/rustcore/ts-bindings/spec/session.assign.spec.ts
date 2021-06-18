@@ -10,17 +10,19 @@ import * as fs from 'fs';
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { checkSessionDebugger } from './common';
+import { getLogger } from '../src/util/logging';
 
 describe('Assign', function () {
-    it('Assign and grab content', function (done) {
+    it('Test 1. Assign and grab content', function (done) {
+        const logger = getLogger('Assign. Test 1');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(tmpobj.name, `some line data: ${i}\n`);
             }
             const stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -42,7 +44,7 @@ describe('Assign', function () {
                     fail(`Fail to grab data due error: ${result.message}`);
                     return done();
                 }
-                console.log('result of grab was: ' + JSON.stringify(result));
+                logger.debug('result of grab was: ' + JSON.stringify(result));
                 expect(result.map((i) => i.content)).toEqual([
                     'some line data: 500',
                     'some line data: 501',

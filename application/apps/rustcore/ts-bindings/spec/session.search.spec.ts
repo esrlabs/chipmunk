@@ -10,12 +10,14 @@ import * as fs from 'fs';
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { checkSessionDebugger } from './common';
+import { getLogger } from '../src/util/logging';
 
 describe('Search', function () {
-    it('Assign & single search', function (done) {
+    it('Test 1. Assign & single search', function (done) {
+        const logger = getLogger('Search. Test 1');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -25,7 +27,7 @@ describe('Search', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -61,14 +63,14 @@ describe('Search', function () {
                         search
                             .getMap(54)
                             .then((map) => {
-                                console.log(map);
+                                logger.verbose(map);
                                 let result: IGrabbedElement[] | Error = search.grab(0, 10);
                                 if (result instanceof Error) {
                                     fail(`Fail to grab data due error: ${result.message}`);
                                     session.destroy();
                                     return done();
                                 }
-                                console.log(result);
+                                logger.verbose(result);
                                 expect(result.map((i) => i.content)).toEqual([
                                     '[0]:: some match line data',
                                     '[1]:: some match line data',
@@ -98,7 +100,7 @@ describe('Search', function () {
                                     400, // 9
                                     500, // 10
                                 ]);
-                                console.log(
+                                logger.debug(
                                     'result of grab was: ' +
                                         result.map((x) => x.content).join('\n'),
                                 );
@@ -136,10 +138,11 @@ describe('Search', function () {
             });
     });
 
-    it('Assign & multiple search', function (done) {
+    it('Test 2. Assign & multiple search', function (done) {
+        const logger = getLogger('Search. Test 2');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -155,7 +158,7 @@ describe('Search', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -200,7 +203,7 @@ describe('Search', function () {
                             session.destroy();
                             return done();
                         }
-                        console.log(result);
+                        logger.verbose(result);
                         expect(result.map((i) => i.content)).toEqual([
                             '[0]:: some match A line data',
                             '[1]:: some match A line data',
@@ -230,7 +233,7 @@ describe('Search', function () {
                             150, // 9
                             200, // 10
                         ]);
-                        console.log(
+                        logger.debug(
                             'result of grab was: ' + result.map((x) => x.content).join('\n'),
                         );
                         [
@@ -262,15 +265,16 @@ describe('Search', function () {
             });
     });
 
-    it('Assign & zero search', function (done) {
+    it('Test 3. Assign & zero search', function (done) {
+        const logger = getLogger('Search. Test 3');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(tmpobj.name, `[${i}]:: some line data\n`);
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -308,8 +312,8 @@ describe('Search', function () {
                             session.destroy();
                             return done();
                         }
-                        console.log(result);
-                        console.log(
+                        logger.verbose(result);
+                        logger.debug(
                             'result of grab was: ' + result.map((x) => x.content).join('\n'),
                         );
                         checkSessionDebugger(session);
@@ -330,10 +334,11 @@ describe('Search', function () {
             });
     });
 
-    it('Assign & single not case sensitive search', function (done) {
+    it('Test 4. Assign & single not case sensitive search', function (done) {
+        const logger = getLogger('Search. Test 4');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -343,7 +348,7 @@ describe('Search', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -379,14 +384,14 @@ describe('Search', function () {
                         search
                             .getMap(54)
                             .then((map) => {
-                                console.log(map);
+                                logger.verbose(map);
                                 let result: IGrabbedElement[] | Error = search.grab(0, 10);
                                 if (result instanceof Error) {
                                     fail(`Fail to grab data due error: ${result.message}`);
                                     session.destroy();
                                     return done();
                                 }
-                                console.log(result);
+                                logger.verbose(result);
                                 expect(result.map((i) => i.content)).toEqual([
                                     '[0]:: some mAtCh line data',
                                     '[1]:: some mAtCh line data',
@@ -416,7 +421,7 @@ describe('Search', function () {
                                     400, // 9
                                     500, // 10
                                 ]);
-                                console.log(
+                                logger.debug(
                                     'result of grab was: ' +
                                         result.map((x) => x.content).join('\n'),
                                 );
@@ -454,10 +459,11 @@ describe('Search', function () {
             });
     });
 
-    it('Assign & single word search', function (done) {
+    it('Test 5. Assign & single word search', function (done) {
+        const logger = getLogger('Search. Test 5');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -469,7 +475,7 @@ describe('Search', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -505,14 +511,14 @@ describe('Search', function () {
                         search
                             .getMap(54)
                             .then((map) => {
-                                console.log(map);
+                                logger.verbose(map);
                                 let result: IGrabbedElement[] | Error = search.grab(0, 10);
                                 if (result instanceof Error) {
                                     fail(`Fail to grab data due error: ${result.message}`);
                                     session.destroy();
                                     return done();
                                 }
-                                console.log(result);
+                                logger.verbose(result);
                                 expect(result.map((i) => i.content)).toEqual([
                                     '[0]:: some match line data',
                                     '[1]:: some match line data',
@@ -542,7 +548,7 @@ describe('Search', function () {
                                     400, // 9
                                     500, // 10
                                 ]);
-                                console.log(
+                                logger.debug(
                                     'result of grab was: ' +
                                         result.map((x) => x.content).join('\n'),
                                 );

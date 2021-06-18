@@ -8,16 +8,15 @@ import * as tmp from 'tmp';
 import * as fs from 'fs';
 
 import { Session } from '../src/api/session';
-import { v4 as uuidv4 } from 'uuid';
-
-import { IGrabbedElement } from '../src/interfaces/index';
 import { checkSessionDebugger } from './common';
+import { getLogger } from '../src/util/logging';
 
 describe('Extract search matches', function () {
-    it('Assign & single extracting', function (done) {
+    it('Test 1. Assign & single extracting', function (done) {
+        const logger = getLogger('Extract. Test 1');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -27,7 +26,7 @@ describe('Extract search matches', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -88,10 +87,11 @@ describe('Extract search matches', function () {
             });
     });
 
-    it('Assign & multiple extracting', function (done) {
+    it('Test 2. Assign & multiple extracting', function (done) {
+        const logger = getLogger('Extract. Test 2');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -101,7 +101,7 @@ describe('Extract search matches', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -168,10 +168,11 @@ describe('Extract search matches', function () {
             });
     });
 
-    it('Assign & multiple extracting with subgroups extracting', function (done) {
+    it('Test 3. Assign & multiple extracting with subgroups extracting', function (done) {
+        const logger = getLogger('Extract. Test 3');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -181,7 +182,7 @@ describe('Extract search matches', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
