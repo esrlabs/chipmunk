@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.18.4] - 06/18/2021
+### Changed
+* DLT open dialog is upgraded
+
+
 ## [2.18.3] - 06/11/2021
 ### Fixes
 * Restore search manager state on session switching
