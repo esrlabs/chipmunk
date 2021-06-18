@@ -10,9 +10,11 @@ import * as fs from 'fs';
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { checkSessionDebugger } from './common';
+import { getLogger } from '../src/util/logging';
 
 describe('Errors', function () {
-    it('Error: Stream len before assign', function (done) {
+    it('Test 1. Error: Stream len before assign', function (done) {
+        const logger = getLogger('Errors. Test 1');
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -28,7 +30,8 @@ describe('Errors', function () {
         done();
     });
 
-    it('Error: Search len before assign', function (done) {
+    it('Test 2. Error: Search len before assign', function (done) {
+        const logger = getLogger('Errors. Test 2');
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -44,7 +47,8 @@ describe('Errors', function () {
         done();
     });
 
-    it('Error: search before assign', function (done) {
+    it('Test 3. Error: search before assign', function (done) {
+        const logger = getLogger('Errors. Test 3');
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -73,7 +77,8 @@ describe('Errors', function () {
             });
     });
 
-	it('Assign fake file', function (done) {
+	it('Test 4. Assign fake file', function (done) {
+        const logger = getLogger('Errors. Test 4');
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -97,15 +102,16 @@ describe('Errors', function () {
             });
     });
 
-    it('Assign and grab invalid range', function (done) {
+    it('Test 5. Assign and grab invalid range', function (done) {
+        const logger = getLogger('Errors. Test 5');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(tmpobj.name, `some line data: ${i}\n`);
             }
             const stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 
@@ -135,10 +141,11 @@ describe('Errors', function () {
             });
     });
 
-    it('Assign & single and grab invalid range', function (done) {
+    it('Test 6. Assign & single and grab invalid range', function (done) {
+        const logger = getLogger('Errors. Test 6');
         function createSampleFile(lines: number) {
             const tmpobj = tmp.fileSync();
-            console.log(`Create example grabber file`);
+            logger.verbose(`Create example grabber file`);
             for (let i = 0; i < lines; i++) {
                 fs.appendFileSync(
                     tmpobj.name,
@@ -148,7 +155,7 @@ describe('Errors', function () {
                 );
             }
             var stats = fs.statSync(tmpobj.name);
-            console.log(`file-size: ${stats.size}`);
+            logger.verbose(`file-size: ${stats.size}`);
             return tmpobj;
         }
 

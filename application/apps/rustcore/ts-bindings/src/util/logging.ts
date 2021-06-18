@@ -25,10 +25,22 @@ enum ELevel {
 let tm: number = Date.now();
 let init: number = Date.now();
 let gLevel: number = 5;
+let locker: string | undefined;
 
 export function setLogLevels(level: number) {
-    gLevel = level;
+    if (typeof locker === 'string' && locker.trim() !== '') {
+        getLogger('General').warn(`Fail to change log level as soon as it's locked by "${locker}"`);
+    } else {
+        gLevel = level;
+    }
 }
+
+export function lockChangingLogLevel(caller: string) {
+    if (typeof caller === 'string' && caller.trim() !== '') {
+        locker = caller;
+    }
+}
+
 
 export function getLogger(alias: string): Logger {
     if ((global as any).chipmunk !== undefined) {
