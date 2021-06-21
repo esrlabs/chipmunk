@@ -103,7 +103,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
             this._ng_options = [];
         } else {
             const desc = this._entity.getEntity().asDesc();
-            this._ng_request = desc.request;
+            this._ng_request = desc.filter;
             this._ng_color = desc.color;
             this._ng_type = desc.type;
             this._ng_options = this._getOptions();

@@ -1,4 +1,6 @@
-import { IPCMessages } from '../../../../services/service.electron.ipc';
+import { IChartData, IChartMatch } from '../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts';
+
+export { IChartMatch, IChartData };
 
 export enum EChartType {
     stepped = 'stepped',
@@ -62,7 +64,7 @@ export abstract class AChart {
 
     abstract getDataset(
         filter: string,
-        matches: IPCMessages.IChartMatch[],
+        matches: IChartMatch[],
         api: IChartDatasetAPI,
         width: number,
         range: IRange,

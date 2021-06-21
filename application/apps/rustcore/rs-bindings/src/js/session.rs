@@ -512,7 +512,7 @@ impl RustSession {
         source_id: String,
         operation_id: String,
     ) -> Result<(), ComputationError> {
-        println!("RUST: send assign event on channel");
+        debug!("RUST: send assign event on channel");
         let operation_id = get_operation_id(&operation_id)?;
         let input_p = PathBuf::from(&file_path);
         let source_type = match get_supported_file_type(&input_p) {
@@ -541,22 +541,20 @@ impl RustSession {
             }
         };
         let op_channel_tx = self.op_channel.0.clone();
-        async move {
-            match op_channel_tx.send(Operation::Assign {
-                file_path,
-                source_id,
-                operation_id,
-                source_type,
-            }) {
-                Ok(_) => Ok(()),
-                Err(e) => {
-                    Err(ComputationError::Process(format!(
-                        "Could not send operation on channel. Error: {}",
-                        e
-                    )))
-                }
+        match op_channel_tx.send(Operation::Assign {
+            file_path,
+            source_id,
+            operation_id,
+            source_type,
+        }) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                Err(ComputationError::Process(format!(
+                    "Could not send operation on channel. Error: {}",
+                    e
+                )))
             }
-        }.await
+        }
     }
 
     #[node_bindgen]
@@ -663,24 +661,22 @@ impl RustSession {
             operation_id, target_file, filters
         );
         let op_channel_tx = self.op_channel.0.clone();
-        async move {
-            match op_channel_tx.send(Operation::Search {
-                target_file,
-                operation_id,
-                filters,
-            })
-            .map_err(|_| {
-                ComputationError::Process("Could not send operation on channel".to_string())
-            }) {
-                Ok(_) => Ok(()),
-                Err(e) => {
-                    Err(ComputationError::Process(format!(
-                        "Could not send operation on channel. Error: {}",
-                        e
-                    )))
-                }
+        match op_channel_tx.send(Operation::Search {
+            target_file,
+            operation_id,
+            filters,
+        })
+        .map_err(|_| {
+            ComputationError::Process("Could not send operation on channel".to_string())
+        }) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                Err(ComputationError::Process(format!(
+                    "Could not send operation on channel. Error: {}",
+                    e
+                )))
             }
-        }.await
+        }
     }
 
     #[node_bindgen]
@@ -736,7 +732,7 @@ impl RustSession {
                     if from <= to {
                         range = Some((from as u64, to as u64));
                     } else {
-                        println!(
+                        warn!(
                             "Invalid range (operation: {}): from = {}; to = {}",
                             operation_id, from, to
                         );

@@ -12,7 +12,6 @@ use std::{
 };
 use regex::Regex;
 use thiserror::Error;
-use indexer_base::{progress::ComputationResult, utils};
 
 #[derive(Error, Debug)]
 pub enum SearchError {
@@ -53,7 +52,7 @@ impl ExtractedMatchValue {
                 if matches.len() <= 1 {
                     // warn here
                 } else {
-                    /// 0 always - whole match
+                    // 0 always - whole match
                     matches.remove(0);
                     values.push((filter_index, matches));
                 }
@@ -208,10 +207,9 @@ impl SearchHolder {
         };
         let mut matchers: Vec<Regex> = vec![];
         for filter in self.search_filters.iter() {
-            match Regex::from_str(&filter_as_regex(filter)) {
-                Ok(reg) => matchers.push(reg),
-                Err(err) => return Err(SearchError::Regex(format!("{}", err))),
-            }
+            matchers.push(
+                Regex::from_str(&filter_as_regex(filter)).map_err(|err| SearchError::Regex(format!("{}", err)))?
+            );
         }
         let out_file = File::create(&self.out_file_path)?;
         let mut matched_lines = 0u64;
@@ -285,10 +283,9 @@ impl MatchesExtractor {
         let mut values: Vec<ExtractedMatchValue> = vec![];
         let mut regexs: Vec<Regex> = vec![];
         for filter in self.filters.iter() {
-            match Regex::from_str(&filter_as_regex(filter)) {
-                Ok(reg) => regexs.push(reg),
-                Err(err) => return Err(SearchError::Regex(format!("{}", err))),
-            }
+            regexs.push(
+                Regex::from_str(&filter_as_regex(filter)).map_err(|err| SearchError::Regex(format!("{}", err)))?
+            );
         }
         let regex_matcher = match RegexMatcher::new(&combined_regex) {
             Ok(regex) => regex,

@@ -78,7 +78,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {
         switch (event.code) {
             case 'Escape':
-                this._ng_request = this.entity.getEntity().asDesc().request;
+                this._ng_request = this.entity.getEntity().asDesc().filter;
                 this.provider.edit().out();
                 this._forceUpdate();
                 break;
@@ -86,7 +86,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
                 if (ChartRequest.isValid(this._ng_request)) {
                     this.entity.getEntity().setRequest(this._ng_request);
                 } else {
-                    this._ng_request = this.entity.getEntity().asDesc().request;
+                    this._ng_request = this.entity.getEntity().asDesc().filter;
                 }
                 this.provider.edit().out();
                 this._forceUpdate();
@@ -95,7 +95,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
     }
 
     public _ng_onRequestInputBlur() {
-        this._ng_request = this.entity.getEntity().asDesc().request;
+        this._ng_request = this.entity.getEntity().asDesc().filter;
         this.provider.edit().out();
         this._forceUpdate();
     }
@@ -106,7 +106,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
 
     private _init() {
         const desc = this.entity.getEntity().asDesc();
-        this._ng_request = desc.request;
+        this._ng_request = desc.filter;
         this._ng_color = desc.color;
         this._ng_state = desc.active;
     }
