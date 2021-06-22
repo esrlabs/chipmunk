@@ -21,6 +21,7 @@
         <mat-panel-description *ngIf="!_ng_filteringExpanded">{{_ng_getStatsSummary()}}</mat-panel-description>
     </mat-expansion-panel-header>
     <div *ngIf="_ng_scanning" class="progress">
+        <p class="t-small sub-title">Loading...</p>
         <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </div>
     <div *ngIf="_ng_filters !== undefined" class="filter">

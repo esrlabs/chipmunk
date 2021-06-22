@@ -7,9 +7,11 @@ export class PopupsService {
     private _subjects: {
         onNew: Subject<Toolkit.IPopup>,
         onRemove: Subject<string>,
+        onAdjustWidth: Subject<void>,
     } = {
         onNew: new Subject<Toolkit.IPopup>(),
         onRemove: new Subject<string>(),
+        onAdjustWidth: new Subject<void>(),
     };
 
     private _opened: Map<string, boolean> = new Map();
@@ -22,10 +24,12 @@ export class PopupsService {
     public getObservable(): {
         onNew: Observable<Toolkit.IPopup>,
         onRemove: Observable<string>,
+        onAdjustWidth: Observable<void>,
     } {
         return {
             onNew: this._subjects.onNew.asObservable(),
             onRemove: this._subjects.onRemove.asObservable(),
+            onAdjustWidth: this._subjects.onAdjustWidth.asObservable(),
         };
     }
 
@@ -74,6 +78,10 @@ export class PopupsService {
 
     public close() {
         this.remove(this._opened.keys().next().value);
+    }
+
+    public adjustWidth() {
+        this._subjects.onAdjustWidth.next();
     }
 
     private _onKeyUp(event: KeyboardEvent) {

@@ -1,5 +1,5 @@
 <div class="wrapper" (contextmenu)="_ng_onContexMenu($event)">
-    <table mat-table [dataSource]="_ng_source" matSort class="mat-elevation-z8">
+    <table id="table" mat-table [dataSource]="_ng_source" matSort class="mat-elevation-z8">
         <ng-container matColumnDef="id">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>{{caption}}</th>
             <td mat-cell *matCellDef="let element" [attr.title]="element.id">

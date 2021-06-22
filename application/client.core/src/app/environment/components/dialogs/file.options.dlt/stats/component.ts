@@ -5,6 +5,7 @@ import { MatSort, Sort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { Subscription, Observable, Subject } from 'rxjs';
 import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
+import PopupsService from 'src/app/environment/services/standalone/service.popups';
 
 enum ELogLevel {
     non_log = 'non_log',
@@ -85,6 +86,7 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
         this._subscriptions.filter = this.filter.subscribe(this._onFilterChange.bind(this));
         this._subscriptions.sort = this.sort.asObservable().subscribe(this._onSortForce.bind(this));
         this._forceUpdate();
+        this._adjustWidth();
     }
 
     public ngOnDestroy() {
@@ -148,6 +150,13 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
 
     public getId(): string {
         return this.id;
+    }
+
+    private _adjustWidth() {
+        const tableElement: HTMLElement | null = document.getElementById('table');
+        if (tableElement !== null && tableElement.scrollWidth < tableElement.clientWidth) {
+            PopupsService.adjustWidth();
+        }
     }
 
     private _onSortForce(event: IForceSortData) {
