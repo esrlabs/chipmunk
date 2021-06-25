@@ -18,10 +18,13 @@
 <mat-expansion-panel [(expanded)]="_ng_filteringExpanded">
     <mat-expansion-panel-header>
         <mat-panel-title>Filtering</mat-panel-title>
-        <mat-panel-description *ngIf="!_ng_filteringExpanded">{{_ng_getStatsSummary()}}</mat-panel-description>
+        <mat-panel-description *ngIf="!_ng_filteringExpanded">
+            <span *ngIf="!_ng_scanning">{{_ng_getStatsSummary()}}</span>
+            <mat-progress-spinner *ngIf="_ng_scanning" class="description-loading-spinner" [diameter]="16" [mode]="'indeterminate'" ></mat-progress-spinner><span *ngIf="_ng_scanning" class="description-loading-spinner">Loading... </span>
+        </mat-panel-description>
     </mat-expansion-panel-header>
-    <div *ngIf="_ng_scanning" class="progress">
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <div class="progress" *ngIf="_ng_scanning">
+        <mat-progress-spinner [diameter]="32" [mode]="'indeterminate'" ></mat-progress-spinner>
     </div>
     <div *ngIf="_ng_filters !== undefined" class="filter">
         <input
