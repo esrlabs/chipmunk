@@ -12,7 +12,8 @@
         margin: 0;
         list-style: none;
         max-height: 10rem;
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
         & table{
             position: relative;
             border-collapse: collapse;
@@ -54,9 +55,9 @@
                 & th {
                     min-width: 1.75rem;
                     border-right: dotted 1px @scheme-color-4;
-                    padding: 0 0.25rem;
+                    padding-right:0.25rem;
                     box-sizing: border-box;
-                    padding-left: 11px;
+                    padding-left: 8px;
                     border-bottom: none;
                     & span.sorted{
                         position: absolute;
