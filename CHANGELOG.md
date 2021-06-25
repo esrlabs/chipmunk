@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.18.5] - 06/25/2021
+### Fix
+* Fix styles for DLT open dialog
+  
 ## [2.18.4] - 06/18/2021
 ### Changed
 * DLT open dialog is upgraded
