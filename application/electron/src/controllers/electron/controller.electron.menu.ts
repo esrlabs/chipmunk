@@ -4,6 +4,7 @@ import { IStorageScheme } from '../../services/service.storage';
 import { IExportAction } from '../../services/output/service.output.export';
 import { IPCMessages } from '../../services/service.electron';
 
+import ServiceFilters from '../../services/service.filters';
 import ServiceStorage from '../../services/service.storage';
 import ServiceStreams from '../../services/service.streams';
 import ServiceFileOpener from '../../services/files/service.file.opener';
@@ -128,7 +129,26 @@ export default class ControllerElectronMenu {
                     },
                 ],
             });
-
+            template[0].submenu.push({ type: 'separator' });
+            template[0].submenu.push({
+                label: 'Import Filters',
+                click: () => {
+                    ServiceFilters.openFilters();
+                },
+            });
+            template[0].submenu.push({
+                label: 'Import Recent',
+                submenu: [
+                    ...this._getRecentFilter(),
+                    { type: 'separator' },
+                    {
+                        label: 'Clear',
+                        click: () => {
+                            ServiceFilters.clear();
+                        },
+                    },
+                ],
+            });
         }
         const exportActions: IExportAction[] = ServiceOutputExport.getActions(ServiceStreams.getActiveStreamId());
         if (exportActions.length > 0) {
@@ -208,6 +228,21 @@ export default class ControllerElectronMenu {
             label: wrapper.getLabel(),
             click: wrapper.getHandler(),
         }];
+    }
+
+    private _getRecentFilter(): Array<{ label: string, click: () => any }> {
+        const home: string = os.homedir();
+        return ServiceStorage.get().get().recentFiltersFiles.slice(0, MAX_NUMBER_OF_RECENT_FILES).map((file: IStorageScheme.IRecentFilterFile) => {
+            app.addRecentDocument(file.file);
+            return {
+                label: `${file.file.replace(home, '~')}`,
+                click: () => {
+                    ServiceFileOpener.openAsNew(file.file).catch((error: Error) => {
+                        this._logger.warn(`Fail to open file "${file.file}" due error: ${error.message}`);
+                    });
+                },
+            };
+        });
     }
 
     private _getRecentFiles(): Array<{ label: string, click: () => any }> {

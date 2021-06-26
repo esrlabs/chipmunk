@@ -5,6 +5,8 @@ import { IService } from '../interfaces/interface.service';
 import ServiceElectron, { IPCMessages, Subscription } from './service.electron';
 import ServiceFileRecent from './files/service.file.recent';
 import ServiceFileWriter from './files/service.file.writer';
+import ServiceStorage from './service.storage';
+import { app } from 'electron';
 
 /**
  * @class ServiceFilters
@@ -44,6 +46,22 @@ class ServiceFilters implements IService {
 
     public getName(): string {
         return 'ServiceFilters';
+    }
+
+    public openFilters() {
+        ServiceElectron.IPC.send(new ServiceElectron.IPCMessages.FiltersOpen()).catch((error: Error) => {
+            this._logger.warn(`Fail to send IPC message "FiltersOpen" to render due: ${error.message}`);
+        });
+    }
+
+    public clear() {
+        ServiceStorage.get().set({
+            recentFiltersFiles: [],
+        }).catch((err: Error) => {
+            this._logger.error(err.message);
+        });
+        app.clearRecentDocuments();
+        ServiceElectron.updateMenu();
     }
 
     private _ipc_onFiltersLoadRequest(message: IPCMessages.TMessage, response: (message: IPCMessages.TMessage) => Promise<void>) {

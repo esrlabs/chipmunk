@@ -4,6 +4,7 @@ import { ControllerSessionTabSearchStore } from '../../../../controller/session/
 import { DialogsRecentFitlersActionComponent } from '../../../dialogs/recentfilter/component';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { Session } from '../../../../controller/session/session';
+import { IPCMessages } from '../../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -11,6 +12,7 @@ import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import HotkeysService from '../../../../services/service.hotkeys';
 import PopupsService from '../../../../services/standalone/service.popups';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
+import ServiceElectronIpc from '../../../../services/service.electron.ipc';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-controls',
@@ -20,7 +22,7 @@ import EventsSessionService from '../../../../services/standalone/service.events
 
 export class SidebarAppSearchManagerControlsComponent implements AfterContentInit, OnDestroy {
 
-    private _subscriptions: { [key: string]: Subscription } = {};
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchManagerControlsComponent');
     private _controller: ControllerSessionTabSearchStore;
@@ -34,6 +36,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     ngAfterContentInit() {
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._onSessionChange();
+        this._subscriptions.openFilters = ServiceElectronIpc.subscribe(IPCMessages.FiltersOpen, this._ipc_onFiltersOpen.bind(this));
     }
 
     ngOnDestroy() {
@@ -120,6 +123,10 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
             return;
         }
         this._controller.setCurrentFile(filename);
+    }
+
+    private _ipc_onFiltersOpen() {
+        this._ng_onLoad();
     }
 
 }

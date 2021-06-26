@@ -317,6 +317,9 @@ export { FiltersLoadRequest, IFiltersLoadRequest };
 import { IFiltersLoadResponse, FiltersLoadResponse } from './file.filters.load.response';
 export { IFiltersLoadResponse, FiltersLoadResponse };
 
+import { FiltersOpen } from './file.filters.open';
+export { FiltersOpen };
+
 import { IFiltersSaveRequest, FiltersSaveRequest } from './file.filters.save.request';
 export { IFiltersSaveRequest, FiltersSaveRequest };
 
@@ -801,6 +804,7 @@ export type TMessage =  AppRestartRequest |
                         MergeFilesDiscoverResponse |
                         MergeFilesFormatRequest |
                         MergeFilesFormatResponse |
+                        FiltersOpen |
                         FiltersLoadRequest |
                         FiltersLoadResponse |
                         FiltersSaveRequest |
@@ -1049,6 +1053,7 @@ export const Map = {
     [MergeFilesFormatRequest.signature          ]: MergeFilesFormatRequest,
     [MergeFilesFormatResponse.signature         ]: MergeFilesFormatResponse,
 
+    [FiltersOpen.signature                      ]: FiltersOpen,
     [FiltersLoadRequest.signature               ]: FiltersLoadRequest,
     [FiltersLoadResponse.signature              ]: FiltersLoadResponse,
     [FiltersSaveRequest.signature               ]: FiltersSaveRequest,
