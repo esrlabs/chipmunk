@@ -194,7 +194,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             if (this._ng_autoComRef === undefined) {
                 return;
             }
-            this._ng_inputCtrl.setValue(this._prevRequest);
             this._ng_autoComRef.closePanel();
             // And do this because Angular still didn't fix a bug: https://github.com/angular/components/issues/7066
             setTimeout(() => {
