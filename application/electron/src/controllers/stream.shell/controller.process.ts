@@ -77,6 +77,7 @@ export default class Process extends EventEmitter {
             cwd: this._command.settings.pwd,
             env: this._command.settings.env,
             shell: this._command.settings.shell,
+            stdio: 'pipe',
         });
         this._stat.created = Date.now();
         this._stat.pid = this._process.pid;
