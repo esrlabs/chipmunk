@@ -3,7 +3,7 @@ use crate::js::events::{
     OperationDone, SearchOperationResult, SyncChannel,
 };
 use crossbeam_channel as cc;
-use indexer_base::progress::{ComputationResult, ComputationResult::Item, Progress, Severity};
+use indexer_base::progress::{ComputationResult, Progress, Severity};
 use log::{debug, info, warn};
 use node_bindgen::{
     core::{
@@ -15,14 +15,16 @@ use node_bindgen::{
 };
 use processor::{
     dlt_source::DltSource,
-    grabber::{GrabError, GrabMetadata, GrabTrait, AsyncGrabTrait, GrabbedContent, LineRange, MetadataSource},
-    map::{NearestPosition, SearchMap},
-    search::{FilterStats, SearchFilter, SearchHolder, MatchesExtractor, ExtractedMatchValue},
+    grabber::{
+        AsyncGrabTrait, GrabError, GrabMetadata, GrabTrait, GrabbedContent, LineRange,
+        MetadataSource,
+    },
+    map::SearchMap,
+    search::{ExtractedMatchValue, FilterStats, MatchesExtractor, SearchFilter, SearchHolder},
     text_source::TextFileSource,
 };
 use serde::Serialize;
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
     thread,
@@ -87,7 +89,6 @@ pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
     }
 }
 
-
 #[derive(Debug)]
 pub struct RustSession {
     pub id: String,
@@ -95,14 +96,9 @@ pub struct RustSession {
     pub content_grabber: Option<Box<dyn AsyncGrabTrait>>,
     pub search_grabber: Option<Box<dyn AsyncGrabTrait>>,
     pub state: Arc<Mutex<SessionState>>,
-    // TODO: think about if we need to keep a callback around
-    // callback: Option<Box<dyn Fn(CallbackEvent) + Send + 'static>>,
     op_channel: AsyncBroadcastChannel<Operation>,
-    // channel to store the metadata of a file once available
-    // content_metadata_channel: SyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
     // channel to store the metadata of the search results once available
     search_metadata_channel: SyncChannel<Option<(PathBuf, GrabMetadata)>>,
-    // search_metadata_channel: AsyncChannel<Result<Option<GrabMetadata>, ComputationError>>,
 }
 
 impl RustSession {
@@ -118,21 +114,6 @@ impl RustSession {
                 "Need a grabber first to work with metadata".to_owned(),
             )),
         }?;
-        // let fresh_metadata_result = match self.content_metadata_channel.1.try_recv() {
-        //     Ok(new_metadata) => {
-        //         if let Ok(Some(md)) = &new_metadata {
-        //             debug!("RUST: new metadata arrived: {} lines", md.line_count);
-        //         }
-        //         Ok(Some(new_metadata))
-        //     }
-        //     Err(cc::TryRecvError::Empty) => {
-        //         debug!("RUST: no new metadata arrived");
-        //         Ok(None)
-        //     }
-        //     Err(cc::TryRecvError::Disconnected) => Err(ComputationError::Protocol(
-        //         "Metadata channel was disconnected".to_owned(),
-        //     )),
-        // };
         match self.state.lock() {
             Ok(mut state) => {
                 if let Some(md) = &state.metadata {
@@ -146,49 +127,15 @@ impl RustSession {
                 warn!("Could not access state");
             }
         }
-        let grabber = current_grabber;
-        // let grabber = match fresh_metadata_result {
-        //     Ok(Some(res)) => {
-        //         debug!("RUST: Trying to use new results");
-        //         match res {
-        //             Ok(Some(metadata)) => {
-        //                 debug!("RUST: setting new metadata into content_grabber");
-        //                 current_grabber
-        //                     .inject_metadata(metadata)
-        //                     .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
-        //                 Ok(current_grabber)
-        //             }
-        //             Ok(None) => Err(ComputationError::Process(
-        //                 "No metadata available".to_owned(),
-        //             )),
-        //             Err(e) => Err(ComputationError::Protocol(format!(
-        //                 "Problems during metadata generation: {}",
-        //                 e
-        //             ))),
-        //         }
-        //     }
-        //     Ok(None) => match current_grabber.get_metadata() {
-        //         Some(_) => {
-        //             debug!("RUST: reusing cached metadata");
-        //             Ok(current_grabber)
-        //         }
-        //         None => Err(ComputationError::Protocol(
-        //             "No metadata available for grabber".to_owned(),
-        //         )),
-        //     },
-        //     Err(e) => Err(e),
-        // }?;
-        Ok(grabber)
+        Ok(current_grabber)
     }
 
-    fn get_search_grabber(&mut self) -> Result<Option<&mut Box<dyn AsyncGrabTrait>>, ComputationError> {
+    fn get_search_grabber(
+        &mut self,
+    ) -> Result<Option<&mut Box<dyn AsyncGrabTrait>>, ComputationError> {
         if self.search_grabber.is_none() && !self.search_metadata_channel.1.is_empty() {
             // We are intrested only in last message in queue, all others messages can be just dropped.
-            let mut queue: Vec<Option<(PathBuf, GrabMetadata)>> =
-                self.search_metadata_channel.1.try_iter().collect();
-            let latest = queue.remove(queue.len() - 1);
-            // Drop rest messages in queue
-            drop(queue);
+            let latest = self.search_metadata_channel.1.try_iter().last().flatten();
             if let Some((file_path, metadata)) = latest {
                 type GrabberType = processor::grabber::Grabber<TextFileSource>;
                 let source = TextFileSource::new(&file_path, "search_results");
@@ -232,7 +179,7 @@ impl RustSession {
 impl RustSession {
     #[node_bindgen(constructor)]
     pub fn new(id: String) -> Self {
-        // init_logging();
+        // init_logging(); TODO
         Self {
             id,
             running: false,
@@ -245,7 +192,6 @@ impl RustSession {
             content_grabber: None,
             search_grabber: None,
             op_channel: broadcast::channel(10),
-            // content_metadata_channel: cc::bounded(1),
             search_metadata_channel: cc::unbounded(),
         }
     }
@@ -277,13 +223,11 @@ impl RustSession {
         &mut self,
         callback: F,
     ) -> Result<(), ComputationError> {
-        // self.callback = Some(Box::new(callback));
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {}", e))
         })?;
         let mut event_stream = self.op_channel.0.subscribe();
         self.running = true;
-        // let content_metadata_tx = self.content_metadata_channel.0.clone();
         let search_metadata_tx = self.search_metadata_channel.0.clone();
         let state = Arc::clone(&self.state);
         thread::spawn(move || {
@@ -300,7 +244,14 @@ impl RustSession {
                                 cancellation_token,
                             } => {
                                 debug!("RUST: received Assign operation event");
-                                let callback_event = handle_assign(operation_id, file_path, source_type, source_id, &state, cancellation_token);
+                                let callback_event = handle_assign(
+                                    operation_id,
+                                    file_path,
+                                    source_type,
+                                    source_id,
+                                    &state,
+                                    cancellation_token,
+                                );
                                 callback(callback_event);
                                 callback(CallbackEvent::OperationDone(OperationDone {
                                     uuid: operation_id,
@@ -312,70 +263,14 @@ impl RustSession {
                                 filters,
                                 operation_id,
                             } => {
-                                debug!("RUST: Search operation is requested");
-                                if filters.is_empty() {
-                                    debug!("RUST: Search will be dropped. Filters are empty");
-                                    // This is dropping of search
-                                    let _ = search_metadata_tx.send(None);
-                                    callback(CallbackEvent::SearchUpdated(0));
-                                    callback(as_callback_event(
-                                        &SearchOperationResult {
-                                            found: 0,
-                                            stats: FilterStats::new(vec![]),
-                                        }, operation_id));
-                                } else {
-                                    let search_results = run_search(&target_file, filters.iter(), &state);
-                                    match search_results {
-                                        Ok((file_path, found, stats)) => {
-                                            if found == 0 {
-                                                let _ = search_metadata_tx.send(None);
-                                                callback(CallbackEvent::SearchUpdated(0));
-                                            } else {
-                                                let source =
-                                                    TextFileSource::new(&file_path, "search_results");
-                                                let metadata_res = source.from_file(None);
-                                                match metadata_res {
-                                                    Ok(Item(metadata)) => {
-                                                        debug!("RUST: received search metadata");
-                                                        let line_count = metadata.line_count as u64;
-                                                        let _ = search_metadata_tx
-                                                            .send(Some((file_path, metadata)));
-                                                        callback(CallbackEvent::SearchUpdated(
-                                                            line_count,
-                                                        ));
-                                                    }
-                                                    Ok(_) => {
-                                                        debug!("RUST: search metadata calculation aborted");
-                                                        callback(CallbackEvent::Progress((
-                                                            operation_id,
-                                                            Progress::Stopped
-                                                        )));
-                                                    }
-                                                    Err(e) => {
-                                                        let err_msg = format!("RUST error computing search metadata: {:?}", e);
-                                                        callback(CallbackEvent::OperationError((
-                                                            operation_id,
-                                                            NativeError {
-                                                                severity: Severity::WARNING,
-                                                                kind:
-                                                                    NativeErrorKind::ComputationFailed,
-                                                                message: Some(err_msg),
-                                                            },
-                                                        )));
-                                                    }
-                                                }
-                                            }
-                                            callback(as_callback_event(
-                                                &SearchOperationResult {
-                                                    found,
-                                                    stats,
-                                                }, operation_id));
-                                        }
-                                        Err(e) => {
-                                            callback(CallbackEvent::OperationError((operation_id, e)));
-                                            continue;
-                                        }
-                                    }
+                                for e in handle_search(
+                                    target_file,
+                                    filters,
+                                    operation_id,
+                                    &search_metadata_tx,
+                                    &state,
+                                ) {
+                                    callback(e);
                                 }
                             }
                             Operation::Extract {
@@ -384,14 +279,11 @@ impl RustSession {
                                 operation_id,
                             } => {
                                 debug!("RUST: Extract values operation is requested");
-                                let matches = run_extract(&target_file, filters.iter());
-                                match matches {
-                                    Ok(matches) => callback(as_callback_event::<Vec<ExtractedMatchValue>>(
-                                        &matches,
-                                        operation_id),
-                                    ),
-                                    Err(e) => callback(CallbackEvent::OperationError((operation_id, e))),
-                                }
+                                callback(handle_extract(
+                                    &target_file,
+                                    filters.iter(),
+                                    operation_id,
+                                ));
                             }
                             Operation::Map {
                                 dataset_len,
@@ -401,8 +293,10 @@ impl RustSession {
                                 debug!("RUST: received Map operation event");
                                 match state.lock() {
                                     Ok(state) => {
-                                        callback(as_callback_event(
-                                            &(state.search_map.scaled(dataset_len, range)), operation_id));
+                                        callback(result_to_callback_event(
+                                            &(state.search_map.scaled(dataset_len, range)),
+                                            operation_id,
+                                        ));
                                     }
                                     Err(err) => {
                                         callback(CallbackEvent::OperationError((
@@ -416,30 +310,21 @@ impl RustSession {
                                                 )),
                                             },
                                         )));
-                                        continue;
                                     }
                                 };
-                                callback(CallbackEvent::OperationDone(OperationDone {
-                                    uuid: operation_id,
-                                    result: None,
-                                }));
                             }
-                            Operation::Cancel {
-                                operation_id
-                            } => {
+                            Operation::Cancel { operation_id } => {
                                 debug!("RUST: received cancel operation event");
-                                callback(
-                                    CallbackEvent::OperationError((
-                                        operation_id,
-                                        NativeError {
-                                            severity: Severity::WARNING,
-                                            kind: NativeErrorKind::NotYetImplemented,
-                                            message: Some(
-                                                "Cancel operation not implemented".to_string()
-                                            ),
-                                        })
-                                    )
-                                );
+                                callback(CallbackEvent::OperationError((
+                                    operation_id,
+                                    NativeError {
+                                        severity: Severity::WARNING,
+                                        kind: NativeErrorKind::NotYetImplemented,
+                                        message: Some(
+                                            "Cancel operation not implemented".to_string(),
+                                        ),
+                                    },
+                                )));
                             }
                             Operation::End => {
                                 debug!("RUST: received End operation event");
@@ -495,7 +380,7 @@ impl RustSession {
             .grab_content(&LineRange::from(
                 (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
             ))
-            .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+            .map_err(|e| ComputationError::Communication(format!("grab content failed: {}", e)))?;
         let serialized =
             serde_json::to_string(&grabbed_content).map_err(|_| ComputationError::InvalidData)?;
         Ok(serialized)
@@ -553,12 +438,10 @@ impl RustSession {
             cancellation_token,
         }) {
             Ok(_) => Ok(()),
-            Err(e) => {
-                Err(ComputationError::Process(format!(
-                    "Could not send operation on channel. Error: {}",
-                    e
-                )))
-            }
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not send operation on channel. Error: {}",
+                e
+            ))),
         }
     }
 
@@ -585,7 +468,9 @@ impl RustSession {
             .grab_content(&LineRange::from(
                 (start_line_index as u64)..=((start_line_index + number_of_lines) as u64),
             ))
-            .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+            .map_err(|e| {
+                ComputationError::Communication(format!("grab search content failed: {}", e))
+            })?;
         let mut results: GrabbedContent = GrabbedContent {
             grabbed_elements: vec![],
         };
@@ -618,7 +503,9 @@ impl RustSession {
             let mut original_content = self
                 .get_content_grabber()?
                 .grab_content(&LineRange::from(range.clone()))
-                .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+                .map_err(|e| {
+                    ComputationError::Communication(format!("grab matched content failed: {}", e))
+                })?;
             let start = *range.start() as usize;
             for (j, element) in original_content.grabbed_elements.iter_mut().enumerate() {
                 element.pos = Some(start + j);
@@ -666,21 +553,20 @@ impl RustSession {
             operation_id, target_file, filters
         );
         let op_channel_tx = self.op_channel.0.clone();
-        match op_channel_tx.send(Operation::Search {
-            target_file,
-            operation_id,
-            filters,
-        })
-        .map_err(|_| {
-            ComputationError::Process("Could not send operation on channel".to_string())
-        }) {
+        match op_channel_tx
+            .send(Operation::Search {
+                target_file,
+                operation_id,
+                filters,
+            })
+            .map_err(|_| {
+                ComputationError::Process("Could not send operation on channel".to_string())
+            }) {
             Ok(_) => Ok(()),
-            Err(e) => {
-                Err(ComputationError::Process(format!(
-                    "Could not send operation on channel. Error: {}",
-                    e
-                )))
-            }
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not send operation on channel. Error: {}",
+                e
+            ))),
         }
     }
 
@@ -703,23 +589,23 @@ impl RustSession {
         );
         let op_channel_tx = self.op_channel.0.clone();
         async move {
-            match op_channel_tx.send(Operation::Extract {
-                target_file,
-                operation_id,
-                filters,
-            })
-            .map_err(|_| {
-                ComputationError::Process("Could not send operation on channel".to_string())
-            }) {
+            match op_channel_tx
+                .send(Operation::Extract {
+                    target_file,
+                    operation_id,
+                    filters,
+                })
+                .map_err(|_| {
+                    ComputationError::Process("Could not send operation on channel".to_string())
+                }) {
                 Ok(_) => Ok(()),
-                Err(e) => {
-                    Err(ComputationError::Process(format!(
-                        "Could not send operation on channel. Error: {}",
-                        e
-                    )))
-                }
+                Err(e) => Err(ComputationError::Process(format!(
+                    "Could not send operation on channel. Error: {}",
+                    e
+                ))),
             }
-        }.await
+        }
+        .await
     }
 
     #[node_bindgen]
@@ -791,9 +677,7 @@ impl RustSession {
             ))),
         }
     }
-
 }
-
 
 // TODO:
 //         - allow break search operation
@@ -968,25 +852,31 @@ where
     }
 }
 
-fn run_extract<'a, I>(
-    target_file_path: &Path,
-    filters: I,
-) -> Result<Vec<ExtractedMatchValue>, NativeError>
+fn handle_extract<'a, I>(target_file_path: &Path, filters: I, operation_id: Uuid) -> CallbackEvent
 where
     I: Iterator<Item = &'a SearchFilter>,
 {
     let extractor = MatchesExtractor::new(target_file_path, filters);
-    match extractor.extract_matches() {
+
+    let matches = match extractor.extract_matches() {
         Ok(matches) => Ok(matches),
         Err(err) => Err(NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::OperationSearch,
-            message: Some(format!("Fail to execute extract search result operation. Error: {}", err)),
+            message: Some(format!(
+                "Fail to execute extract search result operation. Error: {}",
+                err
+            )),
         }),
+    };
+
+    match matches {
+        Ok(matches) => result_to_callback_event::<Vec<ExtractedMatchValue>>(&matches, operation_id),
+        Err(e) => CallbackEvent::OperationError((operation_id, e)),
     }
 }
 
-fn as_callback_event<T>(v: &T, operation_id: Uuid) -> CallbackEvent
+fn result_to_callback_event<T>(v: &T, operation_id: Uuid) -> CallbackEvent
 where
     T: Serialize,
 {
@@ -1015,10 +905,10 @@ fn handle_assign(
     cancellation_token: CancellationToken,
 ) -> CallbackEvent {
     match create_metadata_for_source(file_path, source_type, source_id) {
-        Some(Ok(Item(metadata))) => {
+        Some(Ok(ComputationResult::Item(metadata))) => {
+            println!("received metadata {:?}", metadata);
             debug!("RUST: received metadata");
             let line_count: u64 = metadata.line_count as u64;
-            // let _ = content_metadata_tx.send(Ok(Some(metadata)));
             match update_state(state, Some(line_count), Some(Some(metadata))) {
                 Some(()) => CallbackEvent::StreamUpdated(line_count),
                 None => CallbackEvent::OperationError((
@@ -1031,19 +921,14 @@ fn handle_assign(
                 )),
             }
         }
-        Some(Ok(_)) => {
+        Some(Ok(ComputationResult::Stopped)) => {
             debug!("RUST: metadata calculation aborted");
-            // let _ = content_metadata_tx.send(Ok(None));
             let _ = update_state(state, None, Some(None));
             CallbackEvent::Progress((operation_id, Progress::Stopped))
         }
         Some(Err(_e)) => {
             debug!("RUST error computing metadata");
             let _ = update_state(state, None, Some(None));
-            // let _ = content_metadata_tx.send(Err(ComputationError::Process(format!(
-            //     "Could not compute metadata: {}",
-            //     e
-            // ))));
             CallbackEvent::OperationError((
                 operation_id,
                 NativeError {
@@ -1090,5 +975,79 @@ fn get_operation_id(operation_id: &str) -> Result<Uuid, ComputationError> {
             "Fail to parse operation uuid from {}. Error: {}",
             operation_id, e
         ))),
+    }
+}
+
+fn handle_search(
+    target_file: PathBuf,
+    filters: Vec<SearchFilter>,
+    operation_id: Uuid,
+    search_metadata_tx: &cc::Sender<Option<(PathBuf, GrabMetadata)>>,
+    state: &Arc<Mutex<SessionState>>,
+) -> Vec<CallbackEvent> {
+    debug!("RUST: Search operation is requested");
+    if filters.is_empty() {
+        debug!("RUST: Search will be dropped. Filters are empty");
+        // This is dropping of search
+        let _ = search_metadata_tx.send(None);
+        vec![
+            CallbackEvent::SearchUpdated(0),
+            result_to_callback_event(
+                &SearchOperationResult {
+                    found: 0,
+                    stats: FilterStats::new(vec![]),
+                },
+                operation_id,
+            ),
+        ]
+    } else {
+        let search_results = run_search(&target_file, filters.iter(), state);
+        match search_results {
+            Ok((file_path, found, stats)) => {
+                if found == 0 {
+                    let _ = search_metadata_tx.send(None);
+                    vec![
+                        CallbackEvent::SearchUpdated(0),
+                        result_to_callback_event(
+                            &SearchOperationResult { found, stats },
+                            operation_id,
+                        ),
+                    ]
+                } else {
+                    let source = TextFileSource::new(&file_path, "search_results");
+                    let metadata_res = source.from_file(None);
+                    match metadata_res {
+                        Ok(ComputationResult::Item(metadata)) => {
+                            debug!("RUST: received search metadata");
+                            let line_count = metadata.line_count as u64;
+                            let _ = search_metadata_tx.send(Some((file_path, metadata)));
+                            vec![
+                                CallbackEvent::SearchUpdated(line_count),
+                                result_to_callback_event(
+                                    &SearchOperationResult { found, stats },
+                                    operation_id,
+                                ),
+                            ]
+                        }
+                        Ok(ComputationResult::Stopped) => {
+                            debug!("RUST: search metadata calculation aborted");
+                            vec![CallbackEvent::Progress((operation_id, Progress::Stopped))]
+                        }
+                        Err(e) => {
+                            let err_msg = format!("RUST error computing search metadata: {:?}", e);
+                            vec![CallbackEvent::OperationError((
+                                operation_id,
+                                NativeError {
+                                    severity: Severity::WARNING,
+                                    kind: NativeErrorKind::ComputationFailed,
+                                    message: Some(err_msg),
+                                },
+                            ))]
+                        }
+                    }
+                }
+            }
+            Err(e) => vec![CallbackEvent::OperationError((operation_id, e))],
+        }
     }
 }
