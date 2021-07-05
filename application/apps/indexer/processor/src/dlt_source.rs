@@ -124,12 +124,19 @@ impl MetadataSource for DltSource {
         line_range: &LineRange,
     ) -> Result<GrabbedContent, GrabError> {
         if line_range.range.is_empty() {
-            return Err(GrabError::InvalidRange(line_range.clone()));
+            return Err(GrabError::InvalidRange {
+                range: line_range.clone(),
+                context: "range was empty".to_string(),
+            });
         }
         use std::io::prelude::*;
 
-        let file_part = identify_byte_range(&metadata.slots, line_range)
-            .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
+        let file_part = identify_byte_range(&metadata.slots, line_range).ok_or_else(|| {
+            GrabError::InvalidRange {
+                range: line_range.clone(),
+                context: "Could not identify byte range".to_string(),
+            }
+        })?;
         // println!("file-part: {:?}", file_part);
 
         let mut read_buf = vec![0; file_part.length];

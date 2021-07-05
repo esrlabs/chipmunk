@@ -403,7 +403,7 @@ pub(crate) fn scan_lines(
 ) -> Result<(usize, Option<i64>, Option<i64>)> {
     let mut buf = vec![];
 
-    let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
+    let mut reader: BufReader<&std::fs::File> = BufReader::new(f);
     let mut scanned_cnt = 0usize;
     let mut min_timestamp: Option<i64> = None;
     let mut max_timestamp: Option<i64> = None;
@@ -429,7 +429,7 @@ pub(crate) fn scan_lines(
                         year,
                         offset: Some(0),
                     };
-                    match extract_posix_timestamp(trimmed, &regex, replacements) {
+                    match extract_posix_timestamp(trimmed, regex, replacements) {
                         // TODO work on fast parsers to replace regex parsing
                         // match parse_full_timestamp(trimmed, &regex) {
                         Ok((timestamp, _)) => {
@@ -470,7 +470,7 @@ pub(crate) fn timespan_in_file(
     year: Option<i32>,
 ) -> Result<TimestampFormatResult> {
     trace!("timespan_in_file for \"{}\"", format_expr);
-    let regex = lookup_regex_for_format_str(&format_expr)?;
+    let regex = lookup_regex_for_format_str(format_expr)?;
     trace!("regex for \"{}\" => {}", format_expr, regex.as_str());
     let f: fs::File = fs::File::open(&file_path)?;
     let file_size = f.metadata()?.len();
