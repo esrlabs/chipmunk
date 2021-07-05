@@ -195,7 +195,7 @@ pub fn merge_files_use_config(
     trace!("merge {} files", options.len());
     do_the_merge(
         append,
-        &out_path,
+        out_path,
         chunk_size,
         options,
         update_channel,
@@ -224,7 +224,7 @@ pub fn merge_files_use_config_file(
     trace!("with options...");
     do_the_merge(
         append,
-        &out_path,
+        out_path,
         chunk_size,
         options,
         update_channel,
@@ -424,7 +424,7 @@ impl IndexOutput {
             File::create(&out_path)?
         };
         let line_nr = if append {
-            utils::next_line_nr(&out_path)?
+            utils::next_line_nr(out_path)?
         } else {
             0
         };
@@ -448,14 +448,8 @@ impl IndexOutput {
         tag: &str,
         original_len: usize,
     ) -> Result<()> {
-        let additional_bytes = utils::write_tagged_line(
-            &tag,
-            &mut self.buf_writer,
-            &content,
-            self.line_nr,
-            true,
-            None,
-        )?;
+        let additional_bytes =
+            utils::write_tagged_line(tag, &mut self.buf_writer, content, self.line_nr, true, None)?;
         self.line_nr += 1;
         self.progress_reporter.make_progress(original_len);
         if let Some(chunk) = self.chunk_factory.add_bytes(

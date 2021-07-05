@@ -26,8 +26,8 @@ pub enum GrabError {
     Communication(String),
     #[error("IO error while grabbing: ({0:?})")]
     IoOperation(#[from] std::io::Error),
-    #[error("Invalid range: ({0:?})")]
-    InvalidRange(LineRange),
+    #[error("Invalid range: ({range:?}) ({context})")]
+    InvalidRange { range: LineRange, context: String },
     #[error("Grabber interrupted")]
     Interrupted,
     #[error("Metadata initialization not done")]
@@ -300,7 +300,10 @@ impl<T: MetadataSource> Grabber<T> {
             None => Err(GrabError::NotInitialize),
             Some(md) => {
                 if line_range.range.is_empty() {
-                    return Err(GrabError::InvalidRange(line_range.clone()));
+                    return Err(GrabError::InvalidRange {
+                        range: line_range.clone(),
+                        context: "Cannot get entries of empty range".to_string(),
+                    });
                 }
                 self.source.get_entries(md, line_range)
             }
@@ -348,18 +351,18 @@ pub struct FilePart {
 /// It will also return how many lines are in this byte-range and how many need to be skipped
 /// at the beginning and dropped the end to get only the desired content
 pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<FilePart> {
-    // println!("identify byte range for: {:?} (range {:?})", slots, lines);
+    println!("identify byte range for: {:?} (range {:?})", slots, lines);
     if lines.is_empty() {
         return None;
     }
     let start_line_index = lines.start();
     let last_line_index = lines.end();
-    let maybe_start_slot = identify_start_slot_simple(&slots, start_line_index);
-    let maybe_end_slot = identify_end_slot_simple(&slots, last_line_index);
-    // println!(
-    //     "(maybe_start_slot, maybe_end_slot): ({:?}, {:?})",
-    //     &maybe_start_slot, &maybe_end_slot
-    // );
+    let maybe_start_slot = identify_start_slot_simple(slots, start_line_index);
+    let maybe_end_slot = identify_end_slot_simple(slots, last_line_index);
+    println!(
+        "(maybe_start_slot, maybe_end_slot): ({:?}, {:?})",
+        &maybe_start_slot, &maybe_end_slot
+    );
     match (maybe_start_slot, maybe_end_slot) {
         (Some((start_slot, _)), Some((end_slot, _))) => {
             let lines_to_skip = start_line_index - start_slot.lines.start();

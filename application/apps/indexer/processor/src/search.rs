@@ -2,6 +2,7 @@ use crate::map::FilterMatch;
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher, Sink, SinkMatch};
 use itertools::Itertools;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -10,7 +11,6 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-use regex::Regex;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -36,7 +36,6 @@ pub struct ExtractedMatchValue {
 }
 
 impl ExtractedMatchValue {
-
     pub fn new(index: u64, input: &str, filters: &[Regex]) -> Self {
         Self {
             index,
@@ -48,7 +47,11 @@ impl ExtractedMatchValue {
         let mut values: Vec<(usize, Vec<String>)> = vec![];
         for (filter_index, filter) in filters.iter().enumerate() {
             for caps in filter.captures_iter(input) {
-                let mut matches: Vec<String> = caps.iter().flatten().map(|m| m.as_str().to_owned()).collect();
+                let mut matches: Vec<String> = caps
+                    .iter()
+                    .flatten()
+                    .map(|m| m.as_str().to_owned())
+                    .collect();
                 if matches.len() <= 1 {
                     // warn here
                 } else {
@@ -57,10 +60,9 @@ impl ExtractedMatchValue {
                     values.push((filter_index, matches));
                 }
             }
-    }
+        }
         values
     }
-
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -85,7 +87,6 @@ pub struct MatchesExtractor {
     pub file_path: PathBuf,
     filters: Vec<SearchFilter>,
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SearchFilter {
@@ -129,7 +130,6 @@ impl SearchFilter {
         self.is_word = word;
         self
     }
-
 }
 
 fn escape(value: &str) -> String {
@@ -198,7 +198,7 @@ impl SearchHolder {
             "({})",
             self.search_filters
                 .iter()
-                .map(|f: &SearchFilter| filter_as_regex(&f))
+                .map(|f: &SearchFilter| filter_as_regex(f))
                 .join("|")
         );
         let matcher = match RegexMatcher::new(&combined_regex) {
@@ -208,7 +208,8 @@ impl SearchHolder {
         let mut matchers: Vec<Regex> = vec![];
         for filter in self.search_filters.iter() {
             matchers.push(
-                Regex::from_str(&filter_as_regex(filter)).map_err(|err| SearchError::Regex(format!("{}", err)))?
+                Regex::from_str(&filter_as_regex(filter))
+                    .map_err(|err| SearchError::Regex(format!("{}", err)))?,
             );
         }
         let out_file = File::create(&self.out_file_path)?;
@@ -248,7 +249,6 @@ impl SearchHolder {
             ),
         ))
     }
-
 }
 
 impl MatchesExtractor {
@@ -277,14 +277,15 @@ impl MatchesExtractor {
             "({})",
             self.filters
                 .iter()
-                .map(|f: &SearchFilter| filter_as_regex(&f))
+                .map(|f: &SearchFilter| filter_as_regex(f))
                 .join("|")
         );
         let mut values: Vec<ExtractedMatchValue> = vec![];
         let mut regexs: Vec<Regex> = vec![];
         for filter in self.filters.iter() {
             regexs.push(
-                Regex::from_str(&filter_as_regex(filter)).map_err(|err| SearchError::Regex(format!("{}", err)))?
+                Regex::from_str(&filter_as_regex(filter))
+                    .map_err(|err| SearchError::Regex(format!("{}", err)))?,
             );
         }
         let regex_matcher = match RegexMatcher::new(&combined_regex) {
