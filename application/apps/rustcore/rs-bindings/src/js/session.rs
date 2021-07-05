@@ -380,7 +380,7 @@ impl RustSession {
             .grab_content(&LineRange::from(
                 (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
             ))
-            .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+            .map_err(|e| ComputationError::Communication(format!("grab content failed: {}", e)))?;
         let serialized =
             serde_json::to_string(&grabbed_content).map_err(|_| ComputationError::InvalidData)?;
         Ok(serialized)
@@ -468,7 +468,9 @@ impl RustSession {
             .grab_content(&LineRange::from(
                 (start_line_index as u64)..=((start_line_index + number_of_lines) as u64),
             ))
-            .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+            .map_err(|e| {
+                ComputationError::Communication(format!("grab search content failed: {}", e))
+            })?;
         let mut results: GrabbedContent = GrabbedContent {
             grabbed_elements: vec![],
         };
@@ -501,7 +503,9 @@ impl RustSession {
             let mut original_content = self
                 .get_content_grabber()?
                 .grab_content(&LineRange::from(range.clone()))
-                .map_err(|e| ComputationError::Communication(format!("{}", e)))?;
+                .map_err(|e| {
+                    ComputationError::Communication(format!("grab matched content failed: {}", e))
+                })?;
             let start = *range.start() as usize;
             for (j, element) in original_content.grabbed_elements.iter_mut().enumerate() {
                 element.pos = Some(start + j);
@@ -902,6 +906,7 @@ fn handle_assign(
 ) -> CallbackEvent {
     match create_metadata_for_source(file_path, source_type, source_id) {
         Some(Ok(ComputationResult::Item(metadata))) => {
+            println!("received metadata {:?}", metadata);
             debug!("RUST: received metadata");
             let line_count: u64 = metadata.line_count as u64;
             match update_state(state, Some(line_count), Some(Some(metadata))) {
