@@ -67,11 +67,15 @@ export function AsyncVoidExecutor<TOptions>(
                  * because we are listening event "destroyed" in the scope of operation's
                  * computation object
                  */
-                let error: NativeError | undefined = session.abort(opUuid);
+                let state: NativeError | boolean = session.abort(opUuid);
                 if (error instanceof NativeError) {
                     lifecircle.canceled = false;
                     self.stopCancelation();
                     reject(new Error(`Fail to cancel operation. Error: ${error.message}`));
+                } else if (!state) {
+                    logger.warn(`Operation canceler isn't found. Operation probably already done.`);
+                } else {
+                    logger.debug(`Cancel signal for operation ${opUuid} has been sent`);
                 }
             },
         };

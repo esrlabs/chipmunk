@@ -4,6 +4,7 @@ import { RustSession } from '../native/native.session';
 import { EventProvider, IErrorEvent, IOperationDoneEvent } from './session.provider';
 import { Subscription } from '../util/events.subscription';
 import { v4 as uuidv4 } from 'uuid';
+import { NativeError } from '../interfaces/errors';
 
 export type TOperationRunner<TOptions> = (session: RustSession, options: TOptions, operationUuid: string) => Promise<void>;
 
@@ -69,7 +70,16 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                  * because we are listening event "destroyed" in the scope of operation's
                  * computation object
                  */
-                session.abort(opUuid);
+                let state: NativeError | boolean = session.abort(opUuid);
+                if (error instanceof NativeError) {
+                    lifecircle.canceled = false;
+                    self.stopCancelation();
+                    reject(new Error(`Fail to cancel operation. Error: ${error.message}`));
+                } else if (!state) {
+                    logger.warn(`Operation canceler isn't found. Operation probably already done.`);
+                } else {
+                    logger.debug(`Cancel signal for operation ${opUuid} has been sent`);
+                }
             },
         };
         logger.debug('Assign operation is started');
