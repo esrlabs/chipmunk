@@ -142,7 +142,7 @@ export class ControllerSessionTabSearchRanges
                     id: range.getGUID(),
                     points: range.getPoints().map((filter: FilterRequest) => {
                         return {
-                            request: filter.asDesc().request,
+                            filter: filter.asDesc().filter,
                             flags: filter.asDesc().flags,
                         };
                     }),

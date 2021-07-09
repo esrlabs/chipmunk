@@ -1,30 +1,25 @@
-export interface IMatch {
-    row: number;
-    value: string[] | undefined;
-}
+import { TExtractedValues } from '../../interfaces/interface.rust.api.general';
 
-export type TResults = { [source: string]: IMatch[] };
-
-export interface IChartRequestResults {
+export interface ISearchResultExtractResponse {
     streamId: string;
     requestId: string;
-    results: TResults;
+    results: TExtractedValues;
     error?: string;
     duration: number;
 }
 
-export class ChartRequestResults {
-    public static signature: string = 'ChartRequestResults';
-    public signature: string = ChartRequestResults.signature;
+export class SearchResultExtractResponse {
+    public static signature: string = 'SearchResultExtractResponse';
+    public signature: string = SearchResultExtractResponse.signature;
     public streamId: string;
     public requestId: string;
-    public results: TResults;
+    public results: TExtractedValues;
     public duration: number;
     public error?: string;
 
-    constructor(params: IChartRequestResults) {
+    constructor(params: ISearchResultExtractResponse) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for ChartRequestResults message`);
+            throw new Error(`Incorrect parameters for SearchResultExtractResponse message`);
         }
         if (typeof params.streamId !== 'string' || params.streamId.trim() === '') {
             throw new Error(`Field "streamId" should be defined`);

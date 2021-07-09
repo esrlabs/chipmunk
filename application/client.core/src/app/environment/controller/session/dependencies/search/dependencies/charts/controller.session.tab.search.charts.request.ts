@@ -1,5 +1,5 @@
 import { Subject, Subscription } from 'rxjs';
-import { ISearchExpression, ISearchExpressionFlags } from '../../../../../../interfaces/interface.ipc';
+import { CommonInterfaces } from '../../../../../../interfaces/interface.common';
 import { getMarkerRegExp } from '../../../../../../../../../../common/functionlity/functions.search.requests';
 import { AChart, IOptionsObj, EChartType } from '../../../../../../components/views/chart/charts/charts';
 import { isObjSame } from '../../../../../helpers/obj';
@@ -12,20 +12,18 @@ import ChartControllers from '../../../../../../components/views/chart/charts/ch
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as ColorScheme from '../../../../../../theme/colors';
 
-export { ISearchExpressionFlags as IFlags };
-
 export interface IDesc {
-    request: string;
+    filter: string;
     color: string;
     active: boolean;
-    flags: ISearchExpressionFlags;
+    flags: CommonInterfaces.API.IFilterFlags;
     options: IOptionsObj;
     type: EChartType;
     guid: string;
 }
 
 export interface IDescOptional {
-    request: string;
+    filter: string;
     type: EChartType;
     options?: IOptionsObj;
     guid?: string;
@@ -34,8 +32,8 @@ export interface IDescOptional {
 }
 
 export interface IDescUpdating {
-    request?: string;
-    flags?: ISearchExpressionFlags;
+    filter?: string;
+    flags?: CommonInterfaces.API.IFilterFlags;
     color?: string;
     active?: boolean;
     options?: IOptionsObj;
@@ -45,7 +43,7 @@ export interface IDescUpdating {
 export interface IChartUpdateEvent {
     filter: ChartRequest;
     updated: {
-        request: boolean;
+        filter: boolean;
         state: boolean;
         options: boolean;
         type: boolean;
@@ -54,8 +52,8 @@ export interface IChartUpdateEvent {
 
 export class ChartRequest implements IDisabledEntitySupport {
 
-    private _flags: ISearchExpressionFlags;
-    private _request: string;
+    private _flags: CommonInterfaces.API.IFilterFlags;
+    private _filter: string;
     private _color: string;
     private _active: boolean;
     private _hash: string;
@@ -74,11 +72,11 @@ export class ChartRequest implements IDisabledEntitySupport {
         updated: new Subject<IChartUpdateEvent>(),
     };
 
-    static isValid(request: string): boolean {
-        if (!Toolkit.regTools.isRegStrValid(request)) {
+    static isValid(filter: string): boolean {
+        if (!Toolkit.regTools.isRegStrValid(filter)) {
             return false;
         }
-        if (request.search(/\([^\(]*\)/gi) === -1) {
+        if (filter.search(/\([^\(]*\)/gi) === -1) {
             return false;
         }
         return true;
@@ -86,19 +84,19 @@ export class ChartRequest implements IDisabledEntitySupport {
 
     constructor(desc: IDescOptional) {
         // Check regexp
-        if (!ChartRequest.isValid(desc.request)) {
-            throw new Error(`Not valid RegExp: ${desc.request}`);
+        if (!ChartRequest.isValid(desc.filter)) {
+            throw new Error(`Not valid RegExp: ${desc.filter}`);
         }
         // Check type of chart
         const controller: AChart | undefined = ChartControllers[desc.type];
         if (controller === undefined) {
             throw new Error(`Fail to find controller for chart type ${desc.type}`);
         }
-        this._request = desc.request;
+        this._filter = desc.filter;
         this._flags = {
-            regexp: true,
-            casesensitive: false,
-            wholeword: false,
+            reg: true,
+            cases: false,
+            word: false,
         };
         this._setRegExps();
         if (typeof desc.guid === 'string') {
@@ -149,6 +147,13 @@ export class ChartRequest implements IDisabledEntitySupport {
         return this._type;
     }
 
+    public asFilter(): CommonInterfaces.API.IFilter {
+        return {
+            filter: this._filter,
+            flags: Object.assign({}, this._flags),
+        };
+    }
+
     public getOptions(): IOptionsObj {
         return Object.assign({}, this._options);
     }
@@ -156,7 +161,7 @@ export class ChartRequest implements IDisabledEntitySupport {
     public asDesc(): IDesc {
         return {
             guid: this._guid,
-            request: this._request,
+            filter: this._filter,
             color: this._color,
             active: this._active,
             type: this._type,
@@ -165,9 +170,9 @@ export class ChartRequest implements IDisabledEntitySupport {
         };
     }
 
-    public asIPC(): ISearchExpression {
+    public asIPC(): CommonInterfaces.API.IFilter {
         return {
-            request: this._request,
+            filter: this._filter,
             flags: Object.assign({}, this._flags),
         };
     }
@@ -179,19 +184,19 @@ export class ChartRequest implements IDisabledEntitySupport {
     public update(desc: IDescUpdating): boolean {
         const event: IChartUpdateEvent = {
             updated: {
-                request: false,
+                filter: false,
                 type: false,
                 state: false,
                 options: false,
             },
             filter: this,
         };
-        if (typeof desc.request     === 'string'    && this.setRequest(desc.request, true)  ) { event.updated.request = true; }
-        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { event.updated.request = true; }
+        if (typeof desc.filter      === 'string'    && this.setRequest(desc.filter, true)   ) { event.updated.filter = true; }
+        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { event.updated.filter = true; }
         if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
         if (typeof desc.options     === 'object'    && this.setOptions(desc.options, true)  ) { event.updated.options = true; }
         if (typeof desc.color       === 'string'    && this.setColor(desc.color, true)      ) { event.updated.options = true; }
-        const hasToBeEmitted: boolean = event.updated.request || event.updated.state || event.updated.options;
+        const hasToBeEmitted: boolean = event.updated.filter || event.updated.state || event.updated.options;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
         }
@@ -206,7 +211,7 @@ export class ChartRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: false,
+                    filter: false,
                     options: true,
                     state: false,
                     type: false,
@@ -225,7 +230,7 @@ export class ChartRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: false,
+                    filter: false,
                     type: false,
                     state: false,
                     options: true,
@@ -249,7 +254,7 @@ export class ChartRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: false,
+                    filter: false,
                     type: true,
                     state: false,
                     options: false,
@@ -268,7 +273,7 @@ export class ChartRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: false,
+                    filter: false,
                     type: false,
                     state: true,
                     options: false,
@@ -279,7 +284,7 @@ export class ChartRequest implements IDisabledEntitySupport {
         return true;
     }
 
-    public setFlags(flags: ISearchExpressionFlags, silence: boolean = false): boolean {
+    public setFlags(flags: CommonInterfaces.API.IFilterFlags, silence: boolean = false): boolean {
         this._flags = Object.assign({}, flags);
         if (!this._setRegExps()) {
             return false;
@@ -287,7 +292,7 @@ export class ChartRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: true,
+                    filter: true,
                     type: false,
                     state: false,
                     options: false,
@@ -298,15 +303,15 @@ export class ChartRequest implements IDisabledEntitySupport {
         return true;
     }
 
-    public setRequest(request: string, silence: boolean = false): boolean {
-        this._request = request;
+    public setRequest(filter: string, silence: boolean = false): boolean {
+        this._filter = filter;
         if (!this._setRegExps()) {
             return false;
         }
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: true,
+                    filter: true,
                     type: false,
                     state: false,
                     options: false,
@@ -330,7 +335,7 @@ export class ChartRequest implements IDisabledEntitySupport {
     }
 
     public getDisplayName(): string {
-        return this._request;
+        return this._filter;
     }
 
     public getIcon(): string {
@@ -351,18 +356,18 @@ export class ChartRequest implements IDisabledEntitySupport {
 
     public matches(session: Session) {
         session.getSessionSearch().search(new FilterRequest({
-            request: this.asDesc().request,
+            filter: this.asDesc().filter,
             flags: {
-                casesensitive: false,
-                wholeword: false,
-                regexp: true,
+                cases: false,
+                word: false,
+                reg: true,
             }
         }));
     }
 
     private _setRegExps(): boolean {
         const prev: string = this._hash;
-        this._regexp = getMarkerRegExp(this._request, this._flags);
+        this._regexp = getMarkerRegExp(this._filter, this._flags);
         this._hash = this._regexp.source + this._regexp.flags;
         return prev !== this._hash;
     }

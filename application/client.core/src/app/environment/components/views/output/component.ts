@@ -474,8 +474,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     private _getFilterFromStr(str: string): FilterRequest | undefined {
         try {
             return new FilterRequest({
-                request: str,
-                flags: { casesensitive: true, wholeword: true, regexp: false },
+                filter: str,
+                flags: { cases: true, word: true, reg: false },
             });
         } catch (e) {
             return undefined;

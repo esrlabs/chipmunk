@@ -113,7 +113,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
         if (selection === undefined) {
             return '';
         }
-        return selection.getEntity().asDesc().request;
+        return selection.getEntity().asDesc().filter;
     }
 
     public getListComp(): IComponentDesc {
@@ -140,13 +140,13 @@ export class ProviderCharts extends Provider<ChartRequest> {
         }
         const entity: FilterRequest = selected[0].getEntity();
         const items: IMenuItem[] = [];
-        if (entity instanceof FilterRequest && ChartRequest.isValid(entity.asDesc().request)) {
+        if (entity instanceof FilterRequest && ChartRequest.isValid(entity.asDesc().filter)) {
             items.push({
                 caption: `Convert To Chart`,
                 handler: () => {
                     super.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(entity);
                     super.getSession().getSessionSearch().getChartsAPI().getStorage().add({
-                        request: entity.asDesc().request,
+                        filter: entity.asDesc().filter,
                         type: EChartType.smooth,
                     });
                 },
@@ -166,11 +166,11 @@ export class ProviderCharts extends Provider<ChartRequest> {
     public search(entity: Entity<ChartRequest>) {
         super.openSearchToolbarApp().then(() => {
             super.getSession().getSessionSearch().search(new FilterRequest({
-                request: (entity.getEntity() as ChartRequest).asDesc().request,
+                filter: (entity.getEntity() as ChartRequest).asDesc().filter,
                 flags: {
-                    casesensitive: false,
-                    wholeword: false,
-                    regexp: true,
+                    cases: false,
+                    word: false,
+                    reg: true,
                 }
             }));
         }).catch((error: Error) => {
@@ -240,7 +240,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
             } else if (request instanceof ChartRequest) {
                 return true;
             } else if (request instanceof FilterRequest) {
-                return ChartRequest.isValid((request as FilterRequest).asDesc().request);
+                return ChartRequest.isValid((request as FilterRequest).asDesc().filter);
             }
         }
         return false;
@@ -263,7 +263,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
                 if (outside !== undefined && typeof outside.getEntity === 'function' && outside.getEntity() instanceof FilterRequest) {
                     this.getSession().getSessionSearch().getFiltersAPI().getStorage().remove(outside.getEntity());
                     this.getSession().getSessionSearch().getChartsAPI().getStorage().add({
-                        request: outside.getEntity().asDesc().request,
+                        filter: outside.getEntity().asDesc().filter,
                         type: EChartType.smooth,
                     }, event.currentIndex);
                 }

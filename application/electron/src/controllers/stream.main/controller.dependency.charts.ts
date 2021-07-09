@@ -11,6 +11,7 @@ import {
     Events,
     IEventMatchesUpdated,
     IEventMapUpdated,
+    CancelablePromise,
 } from 'rustcore';
 import { Dependency } from './controller.dependency';
 import { Channel } from './controller.channel';
@@ -30,7 +31,44 @@ export class Charts extends Dependency {
     private readonly _session: Session;
     private readonly _search: SessionSearch;
     private readonly _sessionChannel: Channel;
-    private _charts: CommonInterfaces.API.IFilter[] = [];
+    private readonly _state: {
+        track(): void;
+        untrack(): void;
+        tracking(): boolean;
+    } = (() => {
+        let state: boolean = false;
+        return {
+            track(): void {
+                state = true;
+            },
+            untrack(): void {
+                state = false;
+            },
+            tracking(): boolean {
+                return state;
+            }
+        };
+    })();
+    private readonly _hash: {
+        setFrom(filters: IPC.IFilter[]): void;
+        isEqualTo(filters: IPC.IFilter[]): boolean;
+    } = (() => {
+        function getHash(filters: IPC.IFilter[]): string {
+            return filters
+                        .sort()
+                        .map(f => `${f.filter}${f.flags.cases ? 1 : 0}${f.flags.word ? 1 : 0}${f.flags.reg ? 1 : 0}`)
+                        .join('_');
+        }
+        let hash: string = '';
+        return {
+            setFrom(filters: IPC.IFilter[]): void {
+                hash = getHash(filters);
+            },
+            isEqualTo(filters: IPC.IFilter[]): boolean {
+                return getHash(filters) === hash;
+            },
+        };
+    })();
     private _filters: CommonInterfaces.API.IFilter[] = [];
 
     constructor(session: Session, channel: Channel) {
@@ -75,32 +113,59 @@ export class Charts extends Dependency {
         });
     }
 
-    public setCharts(filters: CommonInterfaces.API.IFilter[]): Error | undefined {
-        function getMixedFiltersList(
-            a: CommonInterfaces.API.IFilter[],
-            b: CommonInterfaces.API.IFilter[],
-        ): CommonInterfaces.API.IFilter[] {
-            const added: string[] = [];
-            const result: CommonInterfaces.API.IFilter[] = a.map((filter) => {
-                added.push(`${filter.filter}${JSON.stringify(filter.flags)}`);
-                return filter;
-            });
-            b.forEach((filter) => {
-                const hash: string = `${filter.filter}${JSON.stringify(filter.flags)}`;
-                if (!added.includes(hash)) {
-                    result.push(filter);
+    // public setCharts(filters: CommonInterfaces.API.IFilter[]): Error | undefined {
+    //     function getMixedFiltersList(
+    //         a: CommonInterfaces.API.IFilter[],
+    //         b: CommonInterfaces.API.IFilter[],
+    //     ): CommonInterfaces.API.IFilter[] {
+    //         const added: string[] = [];
+    //         const result: CommonInterfaces.API.IFilter[] = a.map((filter) => {
+    //             added.push(`${filter.filter}${JSON.stringify(filter.flags)}`);
+    //             return filter;
+    //         });
+    //         b.forEach((filter) => {
+    //             const hash: string = `${filter.filter}${JSON.stringify(filter.flags)}`;
+    //             if (!added.includes(hash)) {
+    //                 result.push(filter);
+    //             }
+    //         });
+    //         return result;
+    //     }
+    //     const error: Error | undefined = this._search.setMatches(getMixedFiltersList(this._charts, this._filters));
+    //     if (error instanceof Error) {
+    //         this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
+    //         return error;
+    //     } else {
+    //         this._charts = filters;
+    //         return undefined;
+    //     }
+    // }
+
+    private _extracting(): {
+        extract(): void,
+    } {
+        const self = this;
+        let inProgressTask: CancelablePromise<any> | undefined;
+        return {
+            extract(): void {
+                if (inProgressTask !== undefined) {
+                    inProgressTask.abort();
                 }
-            });
-            return result;
-        }
-        const error: Error | undefined = this._search.setMatches(getMixedFiltersList(this._charts, this._filters));
-        if (error instanceof Error) {
-            this._logger.warn(`Fail to set filters for search due error: ${error.message}`);
-            return error;
-        } else {
-            this._charts = filters;
-            return undefined;
-        }
+                // Filters has been updated
+                self._search.extract(self._filters).then((extracted) => {
+                    ServiceElectron.IPC.send(new IPC.ChartStateUpdated({
+                        streamId: self._session.getUUID(),
+                        state: extracted,
+                    })).catch((err: Error) => {
+                        self._logger.warn(`Fail send IPC.ChartStateUpdated. Error: ${err.message}`);
+                    });
+                }).catch((error: Error) => {
+                    self._logger.warn(`Fail extract values for ${self._filters.map(f => f.filter).join(', ')}. Error: ${error.message}`);
+                }).finally(() => {
+                    inProgressTask = undefined;
+                });
+            }
+        };
     }
 
     private _events(): {
@@ -147,9 +212,17 @@ export class Charts extends Dependency {
         subscribe(): Promise<void>;
         unsubscribe(): void;
         handlers: {
-            chart(
-                msg: IPC.ChartRequest,
-                response: (instance: IPC.ChartRequestResults) => any,
+            start(
+                msg: IPC.ChartTrackingStopRequest,
+                response: (instance: IPC.ChartTrackingStartResponse) => any,
+            ): void;
+            stop(
+                msg: IPC.ChartTrackingStopRequest,
+                response: (instance: IPC.ChartTrackingStopResponse) => any,
+            ): void;
+            assign(
+                msg: IPC.ChartTrackingAssignRequest,
+                response: (instance: IPC.ChartTrackingAssignResponse) => any,
             ): void;
         };
     } {
@@ -158,15 +231,39 @@ export class Charts extends Dependency {
             subscribe(): Promise<void> {
                 return Promise.all([
                     ServiceElectron.IPC.subscribe(
-                        IPC.ChartRequest,
-                        self._ipc().handlers.chart as any,
+                        IPC.ChartTrackingStartRequest,
+                        self._ipc().handlers.start as any,
                     )
                         .then((subscription: Subscription) => {
-                            self._subscriptions.ipc.chart = subscription;
+                            self._subscriptions.ipc.start = subscription;
                         })
                         .catch((error: Error) => {
                             self._logger.warn(
-                                `Fail to subscribe to render event "ChartRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`,
+                                `Fail to subscribe to render event "ChartTrackingStartRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`,
+                            );
+                        }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.ChartTrackingStopRequest,
+                        self._ipc().handlers.stop as any,
+                    )
+                        .then((subscription: Subscription) => {
+                            self._subscriptions.ipc.stop = subscription;
+                        })
+                        .catch((error: Error) => {
+                            self._logger.warn(
+                                `Fail to subscribe to render event "ChartTrackingStopRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`,
+                            );
+                        }),
+                    ServiceElectron.IPC.subscribe(
+                        IPC.ChartTrackingAssignRequest,
+                        self._ipc().handlers.assign as any,
+                    )
+                        .then((subscription: Subscription) => {
+                            self._subscriptions.ipc.assign = subscription;
+                        })
+                        .catch((error: Error) => {
+                            self._logger.warn(
+                                `Fail to subscribe to render event "ChartTrackingAssignRequest" due error: ${error.message}. This is not blocked error, loading will be continued.`,
                             );
                         }),
                 ]).then(() => {
@@ -179,12 +276,31 @@ export class Charts extends Dependency {
                 });
             },
             handlers: {
-                chart(
-                    msg: IPC.ChartRequest,
-                    response: (instance: IPC.ChartRequestResults) => any,
+                start(
+                    msg: IPC.ChartTrackingStopRequest,
+                    response: (instance: IPC.ChartTrackingStartResponse) => any,
                 ): void {
-                    //
+                    self._state.track();
+                    response(new IPC.ChartTrackingStartResponse({ session: msg.session }));
                 },
+                stop(
+                    msg: IPC.ChartTrackingStopRequest,
+                    response: (instance: IPC.ChartTrackingStopResponse) => any,
+                ): void {
+                    self._state.untrack();
+                    response(new IPC.ChartTrackingStopResponse({ session: msg.session }));
+                },
+                assign(
+                    msg: IPC.ChartTrackingAssignRequest,
+                    response: (instance: IPC.ChartTrackingAssignResponse) => any,
+                ): void {
+                    if (self._hash.isEqualTo(msg.filters)) {
+                        // Filters weren't changed
+                        return response(new IPC.ChartTrackingAssignResponse({ session: msg.session }));
+                    }
+                    self._filters = msg.filters.slice();
+                    self._extracting().extract();
+                }
             },
         };
     }

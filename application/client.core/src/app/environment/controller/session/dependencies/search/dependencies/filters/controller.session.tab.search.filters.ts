@@ -2,7 +2,6 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { Importable } from '../../../importer/controller.session.importer.interface';
 import {
     FilterRequest,
-    IFilterFlags,
     IFiltersStorageUpdated,
     IFilterUpdateEvent,
     FiltersStorage,
@@ -16,7 +15,7 @@ import OutputParsersService from '../../../../../../services/standalone/service.
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export { FilterRequest, IFilterFlags, FiltersStorage };
+export { FilterRequest, FiltersStorage };
 
 export interface ISearchOptions {
     requestId: string;
@@ -139,7 +138,7 @@ export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOpt
                         // Start search
                         ServiceElectronIpc.request(
                             new IPCMessages.SearchRequest({
-                                requests: _requests.map((reg) => reg.asIPC()),
+                                filters: _requests.map((reg) => reg.asIPC()),
                                 session: this._guid,
                                 id: requestId,
                             }),
@@ -197,7 +196,7 @@ export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOpt
                         // Start search
                         ServiceElectronIpc.request(
                             new IPCMessages.SearchRequest({
-                                requests: [],
+                                filters: [],
                                 session: this._guid,
                                 id: requestId,
                             }),
@@ -297,7 +296,7 @@ export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOpt
     }
 
     private _onStorageChanged(event: IFilterUpdateEvent) {
-        if (event.updated.state || event.updated.request) {
+        if (event.updated.state || event.updated.filter) {
             this._onStorageUpdated(undefined);
         } else {
             OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());

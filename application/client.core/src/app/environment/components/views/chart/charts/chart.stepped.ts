@@ -1,5 +1,4 @@
-import { AChart, IRange, IChartDatasetAPI, IOption, EOptionType, IOptionsObj } from './chart.interface';
-import { IPCMessages } from '../../../../services/service.electron.ipc';
+import { AChart, IRange, IChartDatasetAPI, IOption, EOptionType, IOptionsObj, IChartMatch } from './chart.interface';
 import * as ColorScheme from '../../../../theme/colors';
 
 interface IChartOptions {
@@ -11,7 +10,7 @@ export default class Chart extends AChart {
 
     public getDataset(
         filter: string,
-        matches: IPCMessages.IChartMatch[],
+        matches: IChartMatch[],
         api: IChartDatasetAPI,
         width: number,
         range: IRange,
@@ -21,7 +20,7 @@ export default class Chart extends AChart {
         let max: number = -1;
         let min: number = Infinity;
         const prev: { value: number, row: number } = { value: -1, row: -1 };
-        matches.forEach((point: IPCMessages.IChartMatch) => {
+        matches.forEach((point: IChartMatch) => {
             if (!(point.value instanceof Array) || point.value.length === 0) {
                 return;
             }

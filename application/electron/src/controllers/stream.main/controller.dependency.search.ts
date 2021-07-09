@@ -231,20 +231,10 @@ export class Search extends Dependency {
                         );
                         return;
                     }
-                    const filters: CommonInterfaces.API.IFilter[] = msg.requests.map((f) => {
-                        return {
-                            filter: f.request,
-                            flags: {
-                                word: f.flags.wholeword,
-                                cases: f.flags.casesensitive,
-                                reg: f.flags.regexp,
-                            },
-                        };
-                    });
                     search
-                        .search(filters)
+                        .search(msg.filters)
                         .then((result) => {
-                            self._filters = filters;
+                            self._filters = msg.filters.map(f => Object.assign({}, f));
                             self._channel
                                 .getEvents()
                                 .afterFiltersListUpdated.emit(

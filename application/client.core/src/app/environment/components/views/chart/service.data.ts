@@ -2,10 +2,10 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Session, IStreamState } from '../../../controller/session/session';
 import { ChartRequest } from '../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { FilterRequest } from '../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
+import { IChartMatch, IChartData } from '../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts';
 import { IMapState, IMapItem } from '../../../controller/session/dependencies/map/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { AChart } from './charts/charts';
-import { IPCMessages } from '../../../services/service.electron.ipc';
 import { scheme_color_accent } from '../../../theme/colors';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -44,7 +44,7 @@ export class ServiceData {
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _sessionController: Session | undefined;
     private _stream: IStreamState | undefined;
-    private _charts: IPCMessages.TChartResults = {};
+    private _charts: IChartData = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Charts ServiceData`);
     private _scale: IScaleState = {
         min: [],
@@ -55,25 +55,86 @@ export class ServiceData {
     };
     private _subjects: {
         onData: Subject<void>;
-        onCharts: Subject<IPCMessages.TChartResults>;
+        onCharts: Subject<IChartData>;
         onChartsScaleType: Subject<EScaleType>;
     } = {
         onData: new Subject<void>(),
-        onCharts: new Subject<IPCMessages.TChartResults>(),
+        onCharts: new Subject<IChartData>(),
         onChartsScaleType: new Subject<EScaleType>(),
     };
 
     constructor() {
-        this._init();
+        const controller = TabsSessionsService.getActive();
+        if (controller === undefined) {
+            return;
+        }
+        // Store controller
+        this._sessionController = controller;
+        // Unbound from events of prev session
+        Object.keys(this._sessionSubscriptions).forEach((key: string) => {
+            this._sessionSubscriptions[key].unsubscribe();
+        });
+        // Subscribe
+        this._sessionSubscriptions.onSearchMapStateUpdate = controller
+            .getStreamMap()
+            .getObservable()
+            .onStateUpdate.subscribe(this._onSearchMapStateUpdate.bind(this));
+        this._sessionSubscriptions.onStreamStateUpdated = controller
+            .getStreamOutput()
+            .getObservable()
+            .onStateUpdated.subscribe(this._onStreamStateUpdated.bind(this));
+        this._sessionSubscriptions.onRequestsUpdated = controller
+            .getSessionSearch()
+            .getFiltersAPI()
+            .getObservable()
+            .updated.subscribe(this._onRequestsUpdated.bind(this));
+        this._sessionSubscriptions.onSearchStateUpdated = controller
+            .getSessionSearch()
+            .getOutputStream()
+            .getObservable()
+            .onStateUpdated.subscribe(this._onSearchStateUpdated.bind(this));
+        this._sessionSubscriptions.onRequestsUpdated = controller
+            .getSessionSearch()
+            .getFiltersAPI()
+            .getStorage()
+            .getObservable()
+            .changed.subscribe(this._onRequestsUpdated.bind(this));
+        this._sessionSubscriptions.onChartsResultsUpdated = controller
+            .getSessionSearch()
+            .getChartsAPI()
+            .getObservable()
+            .onChartsResultsUpdated.subscribe(this._onChartsResultsUpdated.bind(this));
+        this._sessionSubscriptions.onChartsUpdated = controller
+            .getSessionSearch()
+            .getChartsAPI()
+            .getObservable()
+            .onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
+        // Get default data
+        this._stream = controller
+            .getStreamOutput()
+            .getState();
+        controller.getSessionSearch().getChartsAPI().tracking().start().then(() => {
+            this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
+            this._subjects.onData.next();
+            this._subjects.onCharts.next();
+        }).catch((error: Error) => {
+            this._logger.warn(`Fail to start tracking charts for session "${controller.getGuid()}". Error: ${error.message}`);
+        });
     }
 
     public destroy() {
+        const session = this._sessionController;
+        if (session !== undefined) {
+            session.getSessionSearch().getChartsAPI().tracking().stop().catch((error: Error) => {
+                this._logger.warn(`Fail to stop tracking charts for session "${session.getGuid()}". Error: ${error.message}`);
+            });
+        }
         this._stream = undefined;
     }
 
     public getObservable(): {
         onData: Observable<void>;
-        onCharts: Observable<IPCMessages.TChartResults>;
+        onCharts: Observable<IChartData>;
         onChartsScaleType: Observable<EScaleType>;
     } {
         return {
@@ -212,7 +273,7 @@ export class ServiceData {
                 this._logger.error(`[datasets] Fail to find a chart with source "${filter}"`);
                 return;
             }
-            const matches: IPCMessages.IChartMatch[] = this._charts[filter];
+            const matches: IChartMatch[] = this._charts[filter];
             const controller: AChart | undefined = ChartsControllers[chart.getType()];
             if (controller === undefined) {
                 this._logger.error(`Fail get controller for chart "${chart.getType()}"`);
@@ -328,66 +389,6 @@ export class ServiceData {
             .getBySource(source);
     }
 
-    private _getFilterOrChart(source: string): FilterRequest | ChartRequest | undefined {
-        const chart: ChartRequest | undefined = this._getChartBySource(source);
-        return chart === undefined ? this._getFilterBySource(source) : chart;
-    }
-
-    private _init(controller?: Session) {
-        controller = controller === undefined ? TabsSessionsService.getActive() : controller;
-        if (controller === undefined) {
-            return;
-        }
-        // Store controller
-        this._sessionController = controller;
-        // Unbound from events of prev session
-        Object.keys(this._sessionSubscriptions).forEach((key: string) => {
-            this._sessionSubscriptions[key].unsubscribe();
-        });
-        // Subscribe
-        this._sessionSubscriptions.onSearchMapStateUpdate = controller
-            .getStreamMap()
-            .getObservable()
-            .onStateUpdate.subscribe(this._onSearchMapStateUpdate.bind(this));
-        this._sessionSubscriptions.onStreamStateUpdated = controller
-            .getStreamOutput()
-            .getObservable()
-            .onStateUpdated.subscribe(this._onStreamStateUpdated.bind(this));
-        this._sessionSubscriptions.onRequestsUpdated = controller
-            .getSessionSearch()
-            .getFiltersAPI()
-            .getObservable()
-            .updated.subscribe(this._onRequestsUpdated.bind(this));
-        this._sessionSubscriptions.onSearchStateUpdated = controller
-            .getSessionSearch()
-            .getOutputStream()
-            .getObservable()
-            .onStateUpdated.subscribe(this._onSearchStateUpdated.bind(this));
-        this._sessionSubscriptions.onRequestsUpdated = controller
-            .getSessionSearch()
-            .getFiltersAPI()
-            .getStorage()
-            .getObservable()
-            .changed.subscribe(this._onRequestsUpdated.bind(this));
-        this._sessionSubscriptions.onChartsResultsUpdated = controller
-            .getSessionSearch()
-            .getChartsAPI()
-            .getObservable()
-            .onChartsResultsUpdated.subscribe(this._onChartsResultsUpdated.bind(this));
-        this._sessionSubscriptions.onChartsUpdated = controller
-            .getSessionSearch()
-            .getChartsAPI()
-            .getObservable()
-            .onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
-        // Get default data
-        this._stream = controller
-            .getStreamOutput()
-            .getState();
-        this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
-        this._subjects.onData.next();
-        this._subjects.onCharts.next();
-    }
-
     private _onSearchMapStateUpdate(state: IMapState) {
         this._subjects.onData.next();
     }
@@ -406,7 +407,7 @@ export class ServiceData {
         this._subjects.onData.next();
     }
 
-    private _onChartsResultsUpdated(charts: IPCMessages.TChartResults) {
+    private _onChartsResultsUpdated(charts: IChartData) {
         this._charts = charts;
         this._subjects.onCharts.next();
     }
@@ -417,13 +418,13 @@ export class ServiceData {
     }
 
     private _getLeftBorderChartDS(reg: string, begin: number): number | undefined {
-        const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
+        const matches: IChartMatch[] | undefined = this._charts[reg];
         if (matches === undefined) {
             return undefined;
         }
         try {
-            let prev: IPCMessages.IChartMatch | undefined;
-            matches.forEach((match: IPCMessages.IChartMatch) => {
+            let prev: IChartMatch | undefined;
+            matches.forEach((match: IChartMatch) => {
                 if (match.row === begin) {
                     throw match;
                 }
@@ -454,13 +455,13 @@ export class ServiceData {
         end: number,
         previous: boolean,
     ): number | undefined {
-        const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
+        const matches: IChartMatch[] | undefined = this._charts[reg];
         if (matches === undefined || matches.length === 0) {
             return undefined;
         }
         try {
-            let prev: IPCMessages.IChartMatch | undefined;
-            matches.forEach((match: IPCMessages.IChartMatch) => {
+            let prev: IChartMatch | undefined;
+            matches.forEach((match: IChartMatch) => {
                 if (match.row === end) {
                     throw match;
                 }
