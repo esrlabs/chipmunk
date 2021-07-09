@@ -74,7 +74,7 @@ use std::{fs, io::Read, path, time::Instant};
 use std::thread;
 
 fn init_logging() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("trace")).init();
     info!("logging initialized");
 }
 

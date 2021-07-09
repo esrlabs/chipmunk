@@ -183,14 +183,18 @@ where
         self.fibex_metadata.as_ref()
     }
 
-    fn produce_next_message(&mut self) -> (usize, Result<ParsedMessage, DltParseError>) {
+    // Produces the next message in a file or None if the EOF was reached
+    fn produce_next_message(&mut self) -> (usize, Result<Option<ParsedMessage>, DltParseError>) {
         #[allow(clippy::never_loop)]
-        let consume_and_parse_result = loop {
+        let consume_and_parse_result: (
+            usize,
+            Result<Option<ParsedMessage>, DltParseError>,
+        ) = loop {
             match self.reader.fill_buf() {
                 Ok(content) => {
                     if content.is_empty() {
-                        trace!("0, Ok(ParsedMessage::Invalid)");
-                        return (0, Ok(ParsedMessage::Invalid));
+                        trace!("0, Ok(None)");
+                        return (0, Ok(None));
                     }
                     let available = content.len();
 
@@ -201,10 +205,10 @@ where
                     );
 
                     match parse_result {
-                        Ok((rest, maybe_msg)) => {
+                        Ok((rest, parsed_msg)) => {
                             let consumed = available - rest.len();
                             self.stats.parsed += 1;
-                            break (consumed, Ok(maybe_msg));
+                            break (consumed, Ok(Some(parsed_msg)));
                         }
                         Err(DltParseError::IncompleteParse { needed }) => {
                             debug!("parse incomplete");
@@ -273,7 +277,7 @@ where
     type Item = ParsedMessage;
     fn next(&mut self) -> Option<ParsedMessage> {
         match self.produce_next_message() {
-            (_s, Ok(parsed_msg)) => Some(parsed_msg),
+            (_s, Ok(Some(parsed_msg))) => Some(parsed_msg),
             _ => None,
         }
     }
@@ -290,13 +294,14 @@ where
     ) -> core::task::Poll<Option<Self::Item>> {
         let (consumed, next) = self.produce_next_message();
         match next {
-            Ok(ParsedMessage::Item(msg)) => {
+            Ok(Some(ParsedMessage::Item(msg))) => {
                 core::task::Poll::Ready(Some(Ok((consumed, Some(msg)))))
             }
-            Ok(ParsedMessage::Invalid) => core::task::Poll::Ready(Some(Ok((consumed, None)))),
-            Ok(ParsedMessage::FilteredOut(_)) => {
+            Ok(Some(ParsedMessage::Invalid)) => core::task::Poll::Ready(Some(Ok((consumed, None)))),
+            Ok(Some(ParsedMessage::FilteredOut(_))) => {
                 core::task::Poll::Ready(Some(Ok((consumed, None))))
             }
+            Ok(None) => core::task::Poll::Ready(Some(Ok((consumed, None)))),
             Err(e) => core::task::Poll::Ready(Some(Err(e))),
         }
     }
@@ -385,7 +390,7 @@ pub fn index_dlt_content<R: Read + Seek + Unpin>(
             progress_reporter.make_progress(consumed);
         }
         match next {
-            Ok(ParsedMessage::Item(msg)) => {
+            Ok(Some(ParsedMessage::Item(msg))) => {
                 trace!("[line:{}] next was Ok(ParsedMessage::Item(msg))", line_nr);
                 let formattable_msg = FormattableMessage {
                     message: msg,
@@ -411,12 +416,16 @@ pub fn index_dlt_content<R: Read + Seek + Unpin>(
                     buf_writer.flush()?;
                 }
             }
-            Ok(ParsedMessage::Invalid) => {
+            Ok(Some(ParsedMessage::Invalid)) => {
                 trace!("next was Ok(ParsedMessage::Invalid)");
             }
-            Ok(ParsedMessage::FilteredOut(_)) => {
+            Ok(Some(ParsedMessage::FilteredOut(_))) => {
                 trace!("next was Ok(ParsedMessage::FilteredOut)");
                 skipped += 1;
+            }
+            Ok(None) => {
+                trace!("next was OK (EOF)");
+                break 'reading_messages;
             }
             Err(e) => match e {
                 DltParseError::ParsingHickup(reason) => {

@@ -351,7 +351,7 @@ pub struct FilePart {
 /// It will also return how many lines are in this byte-range and how many need to be skipped
 /// at the beginning and dropped the end to get only the desired content
 pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<FilePart> {
-    println!("identify byte range for: {:?} (range {:?})", slots, lines);
+    trace!("identify byte range for: {:?} (range {:?})", slots, lines);
     if lines.is_empty() {
         return None;
     }
@@ -359,9 +359,10 @@ pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<F
     let last_line_index = lines.end();
     let maybe_start_slot = identify_start_slot_simple(slots, start_line_index);
     let maybe_end_slot = identify_end_slot_simple(slots, last_line_index);
-    println!(
+    trace!(
         "(maybe_start_slot, maybe_end_slot): ({:?}, {:?})",
-        &maybe_start_slot, &maybe_end_slot
+        &maybe_start_slot,
+        &maybe_end_slot
     );
     match (maybe_start_slot, maybe_end_slot) {
         (Some((start_slot, _)), Some((end_slot, _))) => {
@@ -382,6 +383,7 @@ pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<F
 }
 
 pub(crate) fn identify_end_slot_simple(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
+    trace!("identify_end_slot_simple");
     match slots.len() {
         0 => None,
         slots_len => {
@@ -398,6 +400,7 @@ pub(crate) fn identify_end_slot_simple(slots: &[Slot], line_index: u64) -> Optio
 }
 
 pub(crate) fn identify_start_slot_simple(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
+    trace!("identify_start_slot_simple");
     for (i, slot) in slots.iter().enumerate() {
         if slot.lines.range.contains(&line_index) {
             return Some((slot.clone(), i));

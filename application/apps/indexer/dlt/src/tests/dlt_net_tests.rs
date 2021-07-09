@@ -53,7 +53,7 @@ mod tests {
             .await
             .expect("could not connect socket2");
         socket2
-            .send(&content)
+            .send(content)
             .await
             .expect("could not send on socket2");
         if let Some(Ok((DltEvent::Messages(msgs), _))) = message_stream.next().await {
