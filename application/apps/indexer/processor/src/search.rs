@@ -10,6 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use thiserror::Error;
+use indexer_base::{progress::ComputationResult, utils};
 
 #[derive(Error, Debug)]
 pub enum SearchError {
@@ -176,6 +177,7 @@ impl SearchHolder {
         let mut writer = BufWriter::new(out_file);
         let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats: HashMap<u8, u64> = HashMap::new();
+        let mut canceled: bool = false;
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
