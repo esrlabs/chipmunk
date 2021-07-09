@@ -166,6 +166,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract search(filters: IFilter[], operationUuid: string): Promise<void>;
 
+    public abstract extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void>;
+
     public abstract getMap(datasetLength: number, from?: number, to?: number): NativeError | string;
 
     public abstract getNearestTo(
@@ -196,6 +198,16 @@ export abstract class RustSessionNative {
     public abstract getSearchLen(): number;
 
     public abstract applySearchFilters(
+        filters: Array<{
+            value: string;
+            is_regex: boolean;
+            ignore_case: boolean;
+            is_word: boolean;
+        }>,
+        operationUuid: string,
+    ): Promise<void>;
+
+    public abstract extractMatches(
         filters: Array<{
             value: string;
             is_regex: boolean;
@@ -397,6 +409,35 @@ export class RustSessionDebug extends RustSession {
             }
         });
     }
+
+    public extractMatchesValues(
+        filters: IFilter[],
+        operationUuid: string,
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._native.extractMatches(
+                    filters.map((filter) => {
+                        return {
+                            value: filter.filter,
+                            is_regex: filter.flags.reg,
+                            ignore_case: !filter.flags.cases,
+                            is_word: filter.flags.word,
+                        };
+                    }),
+                    operationUuid,
+                ).then(resolve).catch((err: Error) => {
+                    reject(new NativeError(err, Type.Other, Source.ExtractMatchesValues));
+                });
+            } catch (err) {
+                return reject(new NativeError(err, Type.Other, Source.ExtractMatchesValues));
+            }
+        });
+    }
+    // public abstract extract_matches(
+    //     filter: string,
+    //     operationUuid: string,
+    // ): Promise<void>;
 
     public getMap(datasetLength: number, from?: number, to?: number): NativeError | string {
         try {

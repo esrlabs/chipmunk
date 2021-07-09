@@ -17,7 +17,7 @@ use processor::{
     dlt_source::DltSource,
     grabber::{GrabError, GrabMetadata, GrabTrait, AsyncGrabTrait, GrabbedContent, LineRange, MetadataSource},
     map::{NearestPosition, SearchMap},
-    search::{FilterStats, SearchFilter, SearchHolder},
+    search::{FilterStats, SearchFilter, SearchHolder, MatchesExtractor, ExtractedMatchValue},
     text_source::TextFileSource,
 };
 use serde::Serialize;
@@ -47,6 +47,11 @@ enum Operation {
         source_type: SupportedFileType,
     },
     Search {
+        target_file: PathBuf,
+        filters: Vec<SearchFilter>,
+        operation_id: Uuid,
+    },
+    Extract {
         target_file: PathBuf,
         filters: Vec<SearchFilter>,
         operation_id: Uuid,
@@ -370,6 +375,21 @@ impl RustSession {
                                     }
                                 }
                             }
+                            Operation::Extract {
+                                target_file,
+                                filters,
+                                operation_id,
+                            } => {
+                                debug!("RUST: Extract values operation is requested");
+                                let matches = run_extract(&target_file, filters.iter());
+                                match matches {
+                                    Ok(matches) => callback(as_callback_event::<Vec<ExtractedMatchValue>>(
+                                        &matches,
+                                        operation_id),
+                                    ),
+                                    Err(e) => callback(CallbackEvent::OperationError((operation_id, e))),
+                                }
+                            }
                             Operation::Map {
                                 dataset_len,
                                 range,
@@ -664,6 +684,44 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn extract_matches(
+        &mut self,
+        filters: Vec<WrappedSearchFilter>,
+        operation_id: String,
+    ) -> Result<(), ComputationError> {
+        let operation_id = get_operation_id(&operation_id)?;
+        let target_file = if let Some(content) = self.content_grabber.as_ref() {
+            content.as_ref().associated_file()
+        } else {
+            return Err(ComputationError::NoAssignedContent);
+        };
+        let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
+        info!(
+            "Extract (operation: {}) will be done in {:?} withing next filters: {:?}",
+            operation_id, target_file, filters
+        );
+        let op_channel_tx = self.op_channel.0.clone();
+        async move {
+            match op_channel_tx.send(Operation::Extract {
+                target_file,
+                operation_id,
+                filters,
+            })
+            .map_err(|_| {
+                ComputationError::Process("Could not send operation on channel".to_string())
+            }) {
+                Ok(_) => Ok(()),
+                Err(e) => {
+                    Err(ComputationError::Process(format!(
+                        "Could not send operation on channel. Error: {}",
+                        e
+                    )))
+                }
+            }
+        }.await
+    }
+
+    #[node_bindgen]
     fn get_map(
         &mut self,
         dataset_len: i32,
@@ -905,6 +963,24 @@ where
             severity: Severity::ERROR,
             kind: NativeErrorKind::OperationSearch,
             message: Some(format!("Fail to execute search. Error: {}", err)),
+        }),
+    }
+}
+
+fn run_extract<'a, I>(
+    target_file_path: &Path,
+    filters: I,
+) -> Result<Vec<ExtractedMatchValue>, NativeError>
+where
+    I: Iterator<Item = &'a SearchFilter>,
+{
+    let extractor = MatchesExtractor::new(target_file_path, filters);
+    match extractor.extract_matches() {
+        Ok(matches) => Ok(matches),
+        Err(err) => Err(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::OperationSearch,
+            message: Some(format!("Fail to execute extract search result operation. Error: {}", err)),
         }),
     }
 }

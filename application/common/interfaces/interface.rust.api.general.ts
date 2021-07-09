@@ -35,6 +35,26 @@ export interface IGrabbedElement {
 	row?: number,
 }
 
+export interface IExtractedValueSrc {
+	index: number, // row position in the stream
+	// [filter_index, [values]]
+	values: Array<Array<number | string[]>>
+}
+export type TExtractedValuesSrc = IExtractedValueSrc[];
+
+
+export interface IExtractedMatch {
+	filter: IFilter,
+	values: string[],
+}
+
+export interface IExtractedValue {
+	position: number, // row position in the stream
+	values: IExtractedMatch[]
+}
+
+export type TExtractedValues = IExtractedValue[];
+
 /**
  * TODO: it should be removed!
  * Output for @search method of session
