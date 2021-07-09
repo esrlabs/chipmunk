@@ -1,3 +1,11 @@
+export {
+    IFilter,
+    IFilterFlags,
+    TExtractedValues,
+    IExtractedValue,
+    IExtractedMatch,
+} from '../../interfaces/interface.rust.api.general';
+
 import { AppRestartRequest } from './app.restart.request';
 export { AppRestartRequest };
 
@@ -163,11 +171,14 @@ export { IStreamPtyResizeResponse, StreamPtyResizeResponse };
 import { ISearchResultMapRequest, SearchResultMapRequest } from './search.results.map.request';
 export { ISearchResultMapRequest, SearchResultMapRequest };
 
-import { ISearchResultMapUpdated, SearchResultMapUpdated } from './search.results.map.updated';
-export { ISearchResultMapUpdated, SearchResultMapUpdated };
+import { ISearchResultMapResponse, SearchResultMapResponse } from './search.results.map.response';
+export { ISearchResultMapResponse, SearchResultMapResponse };
 
-import { ISearchResultMapResponse, SearchResultMapResponse, ISearchResultMapData } from './search.results.map.response';
-export { ISearchResultMapResponse, SearchResultMapResponse, ISearchResultMapData };
+import { ISearchResultNearestRequest, SearchResultNearestRequest } from './search.results.nearest.request';
+export { ISearchResultNearestRequest, SearchResultNearestRequest };
+
+import { ISearchResultNearestResponse, SearchResultNearestResponse } from './search.results.nearest.response';
+export { ISearchResultNearestResponse, SearchResultNearestResponse };
 
 import { ISearchChunk, SearchChunk } from './search.chunk';
 export { ISearchChunk, SearchChunk };
@@ -175,8 +186,8 @@ export { ISearchChunk, SearchChunk };
 import { ISearchUpdated, SearchUpdated } from './search.updated';
 export { ISearchUpdated, SearchUpdated };
 
-import { ISearchRequest, SearchRequest, ISearchExpression, ISearchExpressionFlags } from './search.request';
-export { ISearchRequest, SearchRequest, ISearchExpression, ISearchExpressionFlags };
+import { ISearchRequest, SearchRequest } from './search.request';
+export { ISearchRequest, SearchRequest };
 
 import { ISearchRequestResults, SearchRequestResults } from './search.request.results';
 export { ISearchRequestResults, SearchRequestResults };
@@ -401,20 +412,32 @@ export { RenderSessionAddRequest };
 import { RenderSessionAddResponse, IRenderSessionAddResponse } from './render.session.add.response';
 export { RenderSessionAddResponse, IRenderSessionAddResponse };
 
-import { IChartRequest, IRegExpStr as IChartRegExpStr, ChartRequest } from './chart.request';
-export { IChartRequest, IChartRegExpStr, ChartRequest };
+import { ISearchResultExtractRequest, SearchResultExtractRequest } from './search.results.extract.request';
+export { ISearchResultExtractRequest, SearchResultExtractRequest };
 
-import { IChartRequestCancelRequest, ChartRequestCancelRequest } from './chart.request.cancel.request';
-export { IChartRequestCancelRequest, ChartRequestCancelRequest };
+import { ISearchResultExtractResponse, SearchResultExtractResponse } from './search.results.extract.response';
+export { ISearchResultExtractResponse, SearchResultExtractResponse };
 
-import { IChartRequestCancelResponse, ChartRequestCancelResponse } from './chart.request.cancel.response';
-export { IChartRequestCancelResponse, ChartRequestCancelResponse };
+import { IChartStateUpdated, ChartStateUpdated } from './chart.state.updated';
+export { IChartStateUpdated, ChartStateUpdated };
 
-import { IChartRequestResults, IMatch as IChartMatch, ChartRequestResults, TResults as TChartResults } from './chart.request.results';
-export { IChartRequestResults, IChartMatch, ChartRequestResults, TChartResults };
+import { IChartTrackingAssignRequest, ChartTrackingAssignRequest } from './chart.tracking.assign.request';
+export { IChartTrackingAssignRequest, ChartTrackingAssignRequest };
 
-import { IChartResultsUpdated, ChartResultsUpdated } from './chart.results.updated';
-export { IChartResultsUpdated, ChartResultsUpdated };
+import { IChartTrackingAssignResponse, ChartTrackingAssignResponse } from './chart.tracking.assign.response';
+export { IChartTrackingAssignResponse, ChartTrackingAssignResponse };
+
+import { IChartTrackingStartRequest, ChartTrackingStartRequest } from './chart.tracking.start.request';
+export { IChartTrackingStartRequest, ChartTrackingStartRequest };
+
+import { IChartTrackingStartResponse, ChartTrackingStartResponse } from './chart.tracking.start.response';
+export { IChartTrackingStartResponse, ChartTrackingStartResponse };
+
+import { IChartTrackingStopRequest, ChartTrackingStopRequest } from './chart.tracking.stop.request';
+export { IChartTrackingStopRequest, ChartTrackingStopRequest };
+
+import { IChartTrackingStopResponse, ChartTrackingStopResponse } from './chart.tracking.stop.response';
+export { IChartTrackingStopResponse, ChartTrackingStopResponse };
 
 import { IOutputExportFeaturesRequest, OutputExportFeaturesRequest, EOutputExportFeaturesSource } from './output.export.features.request';
 export { IOutputExportFeaturesRequest, OutputExportFeaturesRequest, EOutputExportFeaturesSource };
@@ -759,7 +782,8 @@ export type TMessage =  AppRestartRequest |
                         StreamPtyResizeResponse |
                         SearchResultMapRequest |
                         SearchResultMapResponse |
-                        SearchResultMapUpdated |
+                        SearchResultNearestRequest |
+                        SearchResultNearestResponse |
                         SearchRequest |
                         SearchRequestResults |
                         SearchResultMapState |
@@ -835,11 +859,15 @@ export type TMessage =  AppRestartRequest |
                         UpdateRequest |
                         RenderSessionAddRequest |
                         RenderSessionAddResponse |
-                        ChartRequest |
-                        ChartRequestCancelRequest |
-                        ChartRequestCancelResponse |
-                        ChartRequestResults |
-                        ChartResultsUpdated |
+                        SearchResultExtractRequest |
+                        SearchResultExtractResponse |
+                        ChartStateUpdated |
+                        ChartTrackingAssignRequest |
+                        ChartTrackingAssignResponse |
+                        ChartTrackingStartRequest |
+                        ChartTrackingStartResponse |
+                        ChartTrackingStopRequest |
+                        ChartTrackingStopResponse |
                         OutputExportFeaturesRequest |
                         OutputExportFeaturesResponse |
                         OutputExportFeatureCallRequest |
@@ -1001,7 +1029,8 @@ export const Map = {
 
     [SearchResultMapRequest.signature           ]: SearchResultMapRequest,
     [SearchResultMapResponse.signature          ]: SearchResultMapResponse,
-    [SearchResultMapUpdated.signature           ]: SearchResultMapUpdated,
+    [SearchResultNearestRequest.signature       ]: SearchResultNearestRequest,
+    [SearchResultNearestResponse.signature      ]: SearchResultNearestResponse,
     [SearchRequest.signature                    ]: SearchRequest,
     [SearchRequestResults.signature             ]: SearchRequestResults,
     [SearchResultMapState.signature             ]: SearchResultMapState,
@@ -1089,11 +1118,15 @@ export const Map = {
     [RenderSessionAddRequest.signature          ]: RenderSessionAddRequest,
     [RenderSessionAddResponse.signature         ]: RenderSessionAddResponse,
 
-    [ChartRequest.signature                     ]: ChartRequest,
-    [ChartRequestCancelRequest.signature        ]: ChartRequestCancelRequest,
-    [ChartRequestCancelResponse.signature       ]: ChartRequestCancelResponse,
-    [ChartRequestResults.signature              ]: ChartRequestResults,
-    [ChartResultsUpdated.signature              ]: ChartResultsUpdated,
+    [SearchResultExtractRequest.signature       ]: SearchResultExtractRequest,
+    [SearchResultExtractResponse.signature      ]: SearchResultExtractResponse,
+    [ChartStateUpdated.signature                ]: ChartStateUpdated,
+    [ChartTrackingAssignRequest.signature       ]: ChartTrackingAssignRequest,
+    [ChartTrackingAssignResponse.signature      ]: ChartTrackingAssignResponse,
+    [ChartTrackingStartRequest.signature        ]: ChartTrackingStartRequest,
+    [ChartTrackingStartResponse.signature       ]: ChartTrackingStartResponse,
+    [ChartTrackingStopRequest.signature         ]: ChartTrackingStopRequest,
+    [ChartTrackingStopResponse.signature        ]: ChartTrackingStopResponse,
 
     [OutputExportFeaturesRequest.signature          ]: OutputExportFeaturesRequest,
     [OutputExportFeaturesResponse.signature         ]: OutputExportFeaturesResponse,

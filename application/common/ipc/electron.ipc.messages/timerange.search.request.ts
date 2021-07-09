@@ -1,13 +1,13 @@
 
 
 import { DateTimeReplacements } from '../../interfaces/interface.detect';
-import { ISearchExpression, ISearchExpressionFlags } from './search.request';
+import { IFilter } from '../../interfaces/interface.rust.api.general';
 
 export interface ITimerangeSearchRequest {
     id: string;
     session: string;
     format: string;
-    points: ISearchExpression[];
+    points: IFilter[];
     strict: boolean;
     replacements: DateTimeReplacements;
 }
@@ -19,7 +19,7 @@ export class TimerangeSearchRequest {
     public id: string = '';
     public session: string = '';
     public format: string = '';
-    public points: ISearchExpression[];
+    public points: IFilter[];
     public strict: boolean;
     public replacements: DateTimeReplacements;
 
@@ -40,7 +40,7 @@ export class TimerangeSearchRequest {
             throw new Error(`strict should be defined.`);
         }
         if (!(params.points instanceof Array) || params.points.length < 2) {
-            throw new Error(`points should be defined as Array<ISearchExpression>. Shoud be defined at least 2 points.`);
+            throw new Error(`points should be defined as Array<IFilter>. Shoud be defined at least 2 points.`);
         }
         if (typeof params.replacements === 'object' && params.replacements !== null) {
             this.replacements = params.replacements;

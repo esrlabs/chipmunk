@@ -1,11 +1,12 @@
 import { IPCMessages } from '../../../services/service.electron';
 
 import ServiceElectron from '../../../services/service.electron';
-import ServiceStreams from '../../../services/service.streams';
+// import ServiceStreams from '../../../services/service.streams';
 import ServiceOutputExport from '../../../services/output/service.output.export';
 import Logger from '../../../tools/env.logger';
 
 export default function exportActionCall(actionId: string) {
+    /*
     const logger: Logger = new Logger(`exportActionCall`);
     const session: string = ServiceStreams.getActiveStreamId();
     if (session === '' || session === undefined) {
@@ -29,4 +30,5 @@ export default function exportActionCall(actionId: string) {
     }).catch((err: Error) => {
         logger.error(`Fail to request selection due error: ${err.message}`);
     });
+    */
 }

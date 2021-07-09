@@ -66,7 +66,8 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     private _filterChecked(fileList: IPCMessages.IFile[]): IPCMessages.IFile[] {
-        return fileList.filter((file: IPCMessages.IFile) => file.checked === true);
+        return fileList;
+        // return fileList.filter((file: IPCMessages.IFile) => file.checked === true);
     }
 
     public open(files: IPCMessages.IFile[]): Promise<void> {
@@ -83,7 +84,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                     if (list.length === 1) {
                         // Single file
                         ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
-                            file: list[0].path,
+                            file: list[0].filename,
                             session: session.getGuid(),
                         }), IPCMessages.FileOpenResponse).then((openResponse: IPCMessages.FileReadResponse) => {
                             if (openResponse.error !== undefined) {
@@ -193,6 +194,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         return new Promise((resolve, reject) => {
             ServiceElectronIpc.request(new IPCMessages.FileListRequest({
                 files: paths,
+                session: TabsSessionsService.getActive().getGuid(),
             }), IPCMessages.FileListResponse).then((response: IPCMessages.FileListResponse) => {
                 if (response.error !== undefined) {
                     return reject(new Error(this._logger.error(`Fail check paths due error: ${response.error}`)));
@@ -329,7 +331,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
             this._setSessionNewSession(true).then((session: Session) => {
                 TabsSessionsService.setActive(session.getGuid());
                 this.merge(list.map((file) => {
-                    file.checked = true;
+                    // file.checked = true;
                     return file;
                 }), session);
                 response(new IPCMessages.CLIActionMergeFilesResponse({ })).catch((resErr: Error) => {
@@ -358,7 +360,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
             this._setSessionNewSession(true).then((session: Session) => {
                 TabsSessionsService.setActive(session.getGuid());
                 this.concat(list.map((file) => {
-                    file.checked = true;
+                    // file.checked = true;
                     return file;
                 }), session);
                 response(new IPCMessages.CLIActionConcatFilesResponse({ })).catch((resErr: Error) => {

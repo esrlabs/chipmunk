@@ -2,7 +2,6 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { Importable } from '../../../importer/controller.session.importer.interface';
 import {
     FilterRequest,
-    IFilterFlags,
     IFiltersStorageUpdated,
     IFilterUpdateEvent,
     FiltersStorage,
@@ -16,7 +15,7 @@ import OutputParsersService from '../../../../../../services/standalone/service.
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export { FilterRequest, IFilterFlags, FiltersStorage };
+export { FilterRequest, FiltersStorage };
 
 export interface ISearchOptions {
     requestId: string;
@@ -33,9 +32,7 @@ export interface ISubjects {
     onExport: Subject<void>;
 }
 
-export class ControllerSessionTabSearchFilters
-    extends Importable<IFilterDescOptional[]>
-    implements Dependency {
+export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOptional[]> implements Dependency {
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _storage: FiltersStorage;
@@ -141,7 +138,7 @@ export class ControllerSessionTabSearchFilters
                         // Start search
                         ServiceElectronIpc.request(
                             new IPCMessages.SearchRequest({
-                                requests: _requests.map((reg) => reg.asIPC()),
+                                filters: _requests.map((reg) => reg.asIPC()),
                                 session: this._guid,
                                 id: requestId,
                             }),
@@ -199,7 +196,7 @@ export class ControllerSessionTabSearchFilters
                         // Start search
                         ServiceElectronIpc.request(
                             new IPCMessages.SearchRequest({
-                                requests: [],
+                                filters: [],
                                 session: this._guid,
                                 id: requestId,
                             }),
@@ -232,8 +229,7 @@ export class ControllerSessionTabSearchFilters
                             })
                             .catch((error: Error) => {
                                 fail(error);
-                            })
-                            .finally(() => {
+                            }).finally(() => {
                                 // Emit event
                                 this._accessor
                                     .session()
@@ -300,7 +296,7 @@ export class ControllerSessionTabSearchFilters
     }
 
     private _onStorageChanged(event: IFilterUpdateEvent) {
-        if (event.updated.state || event.updated.request) {
+        if (event.updated.state || event.updated.filter) {
             this._onStorageUpdated(undefined);
         } else {
             OutputParsersService.setHighlights(this.getGuid(), this.getStorage().get());
@@ -324,6 +320,6 @@ export class ControllerSessionTabSearchFilters
         if (this._guid !== message.guid) {
             return;
         }
-        this._accessor.search().getOutputStream().updateStreamState(message.rowsCount);
+        this._accessor.search().getOutputStream().updateStreamState(message.matches);
     }
 }

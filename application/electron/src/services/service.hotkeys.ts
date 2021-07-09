@@ -2,7 +2,7 @@ import Logger from '../tools/env.logger';
 import Subscription from '../tools/subscription';
 import Subject from '../tools/subject';
 import ServiceElectron from './service.electron';
-import ServiceStreams from './service.streams';
+import ServiceStreams from './service.sessions';
 import { IService } from '../interfaces/interface.service';
 import { app, globalShortcut, powerMonitor } from 'electron';
 import { IPCMessages } from './service.electron';
@@ -172,8 +172,12 @@ class ServiceHotkeys implements IService {
         if ((this._subjects as any)[action] !== undefined) {
             (this._subjects as any)[action].emit();
         }
+        const session: string | undefined = ServiceStreams.getActiveSessionUUID();
+        if (session === undefined) {
+            return;
+        }
         ServiceElectron.IPC.send(new IPCMessages.HotkeyCall({
-            session: ServiceStreams.getActiveStreamId(),
+            session: session,
             unixtime: Date.now(),
             action: action,
             shortcut: shortcut,

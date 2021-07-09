@@ -7,7 +7,7 @@ import { IDefaultView } from '../states/state.default';
 import { IAPI, IPopup, IComponentDesc, ISettingsAPI } from 'chipmunk.client.toolkit';
 import { copyTextToClipboard } from '../controller/helpers/clipboard';
 import { fullClearRowStr } from '../controller/helpers/row.helpers';
-import { ISearchSettings } from '../components/views/search/component';
+import { CommonInterfaces } from '../interfaces/interface.common';
 
 import EventsSessionService from './standalone/service.events.session';
 import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
@@ -53,7 +53,7 @@ export class TabsSessionsService implements IService {
     private _toolbarTabOpener: TToolbarTabOpener | undefined;
     private _notificationOpener: TNotificationOpener | undefined;
     private _defaultToolbarApps: Toolkit.IDefaultTabsGuids | undefined;
-    private _searchSettings: { [guid: string]: ISearchSettings } = {};
+    private _searchSettings: { [guid: string]: CommonInterfaces.API.IFilterFlags } = {};
 
     private _defaults: {
         views: IDefaultView[],
@@ -330,11 +330,11 @@ export class TabsSessionsService implements IService {
         };
     }
 
-    public setSearchSettings(guid: string, settings: ISearchSettings) {
+    public setSearchSettings(guid: string, settings: CommonInterfaces.API.IFilterFlags) {
         this._searchSettings[guid] = settings;
     }
 
-    public getSearchSettings(guid: string): ISearchSettings | undefined {
+    public getSearchSettings(guid: string): CommonInterfaces.API.IFilterFlags | undefined {
         return this._searchSettings[guid];
     }
 
@@ -358,9 +358,9 @@ export class TabsSessionsService implements IService {
         this.setActive(tab.guid);
         if (this.getSearchSettings(tab.guid) === undefined) {
             this.setSearchSettings(tab.guid, {
-                casesensitive: false,
-                wholeword: false,
-                regexp: true,
+                cases: false,
+                word: false,
+                reg: true,
             });
         }
     }
@@ -447,11 +447,11 @@ export class TabsSessionsService implements IService {
     }
 
     private _ipc_onStreamUpdated(message: IPCMessages.StreamUpdated) {
-        this._sessionsEventsHub.emit().onStreamUpdated({ session: message.guid, rows: message.rowsCount });
+        this._sessionsEventsHub.emit().onStreamUpdated({ session: message.guid, rows: message.rows });
     }
 
     private _ipc_onSearchUpdated(message: IPCMessages.SearchUpdated) {
-        this._sessionsEventsHub.emit().onSearchUpdated({ session: message.guid, rows: message.rowsCount });
+        this._sessionsEventsHub.emit().onSearchUpdated({ session: message.guid, rows: message.rows });
     }
 
 }

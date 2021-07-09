@@ -32,9 +32,9 @@
       </div>
     </div>
     <div class="request-mode-buttons">
-      <span tabindex="11" [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (_ng_flags.casesensitive ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'casesensitive')"></span>
-      <span tabindex="12" [attr.class]="'small-icon-button codicon codicon-whole-word ' + (_ng_flags.wholeword ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'wholeword')"></span>
-      <span tabindex="13" [attr.class]="'small-icon-button codicon codicon-regex ' + (_ng_flags.regexp ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'regexp')"></span>
+      <span tabindex="11" [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (_ng_flags.cases ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'cases')"></span>
+      <span tabindex="12" [attr.class]="'small-icon-button codicon codicon-whole-word ' + (_ng_flags.word ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'word')"></span>
+      <span tabindex="13" [attr.class]="'small-icon-button codicon codicon-regex ' + (_ng_flags.reg ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, 'reg')"></span>
     </div>
   </div>
   <p class="t-small color-scheme-2 summary" *ngIf="_ng_isSummaryVisible()">

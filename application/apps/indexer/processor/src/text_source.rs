@@ -13,6 +13,7 @@ use std::{
 const REDUX_READER_CAPACITY: usize = 1024 * 1024;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
+#[derive(Debug)]
 pub struct TextFileSource {
     source_id: String,
     path: PathBuf,
@@ -83,7 +84,7 @@ impl MetadataSource for TextFileSource {
                     }
 
                     // Get list of all inlets in chunk
-                    let (nl, offset_last_newline) = count_lines_up_to_last_newline(&content);
+                    let (nl, offset_last_newline) = count_lines_up_to_last_newline(content);
                     let (slot, consumed, processed_lines) = if nl == 0 {
                         let consumed = read_bytes as u64;
                         // we hit a very long line that exceeds our read buffer, best
@@ -118,7 +119,7 @@ impl MetadataSource for TextFileSource {
 
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
-            line_count: (line_index + 1) as usize,
+            line_count: line_index as usize,
         }))
     }
 
@@ -131,11 +132,18 @@ impl MetadataSource for TextFileSource {
         line_range: &LineRange,
     ) -> Result<GrabbedContent, GrabError> {
         if line_range.range.is_empty() {
-            return Err(GrabError::InvalidRange(line_range.clone()));
+            return Err(GrabError::InvalidRange {
+                range: line_range.clone(),
+                context: "Get entries of empty range is invalid".to_string(),
+            });
         }
         use std::io::prelude::*;
-        let file_part = identify_byte_range(&metadata.slots, line_range)
-            .ok_or_else(|| GrabError::InvalidRange(line_range.clone()))?;
+        let file_part = identify_byte_range(&metadata.slots, line_range).ok_or_else(|| {
+            GrabError::InvalidRange {
+                range: line_range.clone(),
+                context: format!("Error identifying byte range for range {:?}", line_range),
+            }
+        })?;
         // println!(
         //     "relevant file-part (starts at index {}): lines {}",
         //     file_part.offset_in_file,
@@ -157,6 +165,8 @@ impl MetadataSource for TextFileSource {
             .map(|s| GrabbedElement {
                 source_id: self.source_id.clone(),
                 content: s.to_owned(),
+                row: None,
+                pos: None,
             })
             .collect::<Vec<GrabbedElement>>();
 
@@ -166,7 +176,7 @@ impl MetadataSource for TextFileSource {
 
 fn count_lines_up_to_last_newline(buffer: &[u8]) -> (u64, usize) {
     if let Some(offset) = buffer.iter().rposition(|&v| v == b'\n') {
-        (bytecount::count(&buffer, b'\n') as u64, offset)
+        (bytecount::count(buffer, b'\n') as u64, offset)
     } else {
         (0, 0)
     }

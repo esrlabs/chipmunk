@@ -4,6 +4,7 @@ import { IComponentDesc } from 'chipmunk-client-material';
 import { IPlugin, IViewState } from '../../../controller/controller.plugins.manager';
 import { Storage } from '../../../controller/helpers/virtualstorage';
 import { ITabAPI } from '../../../services/service.sessions.tabs';
+import { CommonInterfaces } from '../../../interfaces/interface.common';
 
 import PluginsService from '../../../services/service.plugins';
 
@@ -27,14 +28,10 @@ export class TabPluginsComponent implements OnDestroy, AfterViewInit {
 
     public _ng_selected: Subject<IPlugin> = new Subject<IPlugin>();
     public _ng_recent: Observable<string[]>;
-    public _ng_flags: {
-        casesensitive: boolean,
-        wholeword: boolean,
-        regexp: boolean,
-    } = {
-        casesensitive: false,
-        wholeword: false,
-        regexp: true,
+    public _ng_flags: CommonInterfaces.API.IFilterFlags = {
+        cases: false,
+        word: false,
+        reg: true,
     };
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewSearchComponent');

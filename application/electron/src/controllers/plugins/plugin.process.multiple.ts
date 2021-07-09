@@ -14,7 +14,7 @@ import ServicePaths from '../../services/service.paths';
 
 interface IConnection {
     socket: Net.Socket;
-    file: string;
+    path: string;
 }
 
 interface IOpt {
@@ -174,10 +174,10 @@ export default class ControllerPluginProcessMultiple extends Emitter {
                 this._connection = connection;
                 if (process.platform === 'win32') {
                     // Passing sockets is not supported on Windows.
-                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`);
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.path}`);
                 } else {
                     // On all other platforms we can pass socket
-                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.file}`, connection.socket);
+                    this._process.send(`${CStdoutSocketAliases.bind}${guid};${connection.path}`, connection.socket);
                 }
                 resolve();
             }).catch(reject);

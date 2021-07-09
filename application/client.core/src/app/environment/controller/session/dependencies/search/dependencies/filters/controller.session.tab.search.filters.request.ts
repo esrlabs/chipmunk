@@ -1,5 +1,5 @@
 import { Observable, Subject, Subscription } from 'rxjs';
-import { ISearchExpression, ISearchExpressionFlags } from '../../../../../../interfaces/interface.ipc';
+import { CommonInterfaces } from '../../../../../../interfaces/interface.common';
 import { getMarkerRegExp, getSearchRegExp } from '../../../../../../../../../../common/functionlity/functions.search.requests';
 import { getContrastColor, scheme_color_accent } from '../../../../../../theme/colors';
 import { IDisabledEntitySupport, EEntityTypeRef } from '../disabled/controller.session.tab.search.disabled.support';
@@ -7,30 +7,28 @@ import { Session } from '../../../../session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export { ISearchExpressionFlags as IFlags };
-
 export interface IDesc {
-    request: string;
+    filter: string;
     color: string;
     background: string;
     active: boolean;
-    flags: ISearchExpressionFlags;
+    flags: CommonInterfaces.API.IFilterFlags;
     guid: string;
 }
 
 export interface IDescOptional {
-    request: string;
-    flags: ISearchExpressionFlags;
+    filter: string;
+    flags: CommonInterfaces.API.IFilterFlags;
     guid?: string;
     color?: string;
     background?: string;
     active?: boolean;
-    expression?: ISearchExpression;
+    expression?: CommonInterfaces.API.IFilter;
 }
 
 export interface IDescUpdating {
-    request?: string;
-    flags?: ISearchExpressionFlags;
+    filter?: string;
+    flags?: CommonInterfaces.API.IFilterFlags;
     color?: string;
     background?: string;
     active?: boolean;
@@ -39,7 +37,7 @@ export interface IDescUpdating {
 export interface IFilterUpdateEvent {
     filter: FilterRequest;
     updated: {
-        request: boolean;
+        filter: boolean;
         state: boolean;
         colors: boolean;
     };
@@ -47,8 +45,8 @@ export interface IFilterUpdateEvent {
 
 export class FilterRequest implements IDisabledEntitySupport {
 
-    private _flags: ISearchExpressionFlags;
-    private _request: string;
+    private _flags: CommonInterfaces.API.IFilterFlags;
+    private _filter: string;
     private _color: string;
     private _background: string;
     private _active: boolean;
@@ -66,8 +64,8 @@ export class FilterRequest implements IDisabledEntitySupport {
         updated: new Subject<IFilterUpdateEvent>(),
     };
 
-    static isValid(request: string): boolean {
-        if (!Toolkit.regTools.isRegStrValid(request)) {
+    static isValid(filter: string): boolean {
+        if (!Toolkit.regTools.isRegStrValid(filter)) {
             return false;
         }
         return true;
@@ -77,13 +75,13 @@ export class FilterRequest implements IDisabledEntitySupport {
         if (typeof desc.expression === 'object' && desc.flags === undefined) {
             desc.flags = desc.expression.flags;
         }
-        if (typeof desc.expression === 'object' && desc.request === undefined) {
-            desc.request = desc.expression.request;
+        if (typeof desc.expression === 'object' && desc.filter === undefined) {
+            desc.filter = desc.expression.filter;
         }
-        if (desc.flags.regexp && !Toolkit.regTools.isRegStrValid(desc.request)) {
-            throw new Error(`Not valid RegExp: ${desc.request}`);
+        if (desc.flags.reg && !Toolkit.regTools.isRegStrValid(desc.filter)) {
+            throw new Error(`Not valid RegExp: ${desc.filter}`);
         }
-        this._request = desc.request;
+        this._filter = desc.filter;
         this._flags = Object.assign({}, desc.flags);
         this._setRegExps();
         if (typeof desc.guid === 'string') {
@@ -134,7 +132,7 @@ export class FilterRequest implements IDisabledEntitySupport {
     public asDesc(): IDesc {
         return {
             guid: this._guid,
-            request: this._request,
+            filter: this._filter,
             color: this._color,
             background: this._background,
             active: this._active,
@@ -142,9 +140,9 @@ export class FilterRequest implements IDisabledEntitySupport {
         };
     }
 
-    public asIPC(): ISearchExpression {
+    public asIPC(): CommonInterfaces.API.IFilter {
         return {
-            request: this._request,
+            filter: this._filter,
             flags: Object.assign({}, this._flags),
         };
     }
@@ -156,18 +154,18 @@ export class FilterRequest implements IDisabledEntitySupport {
     public update(desc: IDescUpdating): boolean {
         const event: IFilterUpdateEvent = {
             updated: {
-                request: false,
+                filter: false,
                 colors: false,
                 state: false,
             },
             filter: this,
         };
-        if (typeof desc.request     === 'string'    && this.setRequest(desc.request, true)  ) { event.updated.request = true; }
-        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { event.updated.request = true; }
+        if (typeof desc.filter      === 'string'    && this.setRequest(desc.filter, true)   ) { event.updated.filter = true; }
+        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { event.updated.filter = true; }
         if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
         if (typeof desc.color       === 'string'    && this.setColor(desc.color)            ) { event.updated.colors = true;  }
         if (typeof desc.background  === 'string'    && this.setBackground(desc.background)  ) { event.updated.colors = true;  }
-        const hasToBeEmitted: boolean = event.updated.request || event.updated.state || event.updated.colors;
+        const hasToBeEmitted: boolean = event.updated.filter || event.updated.state || event.updated.colors;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
         }
@@ -182,7 +180,7 @@ export class FilterRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: false,
+                    filter: false,
                     colors: true,
                     state: false,
                 },
@@ -200,7 +198,7 @@ export class FilterRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: false,
+                    filter: false,
                     colors: true,
                     state: false,
                 },
@@ -218,7 +216,7 @@ export class FilterRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: false,
+                    filter: false,
                     colors: false,
                     state: true,
                 },
@@ -228,7 +226,7 @@ export class FilterRequest implements IDisabledEntitySupport {
         return true;
     }
 
-    public setFlags(flags: ISearchExpressionFlags, silence: boolean = false): boolean {
+    public setFlags(flags: CommonInterfaces.API.IFilterFlags, silence: boolean = false): boolean {
         this._flags = Object.assign({}, flags);
         if (!this._setRegExps()) {
             return false;
@@ -236,7 +234,7 @@ export class FilterRequest implements IDisabledEntitySupport {
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: true,
+                    filter: true,
                     colors: false,
                     state: false,
                 },
@@ -246,15 +244,15 @@ export class FilterRequest implements IDisabledEntitySupport {
         return true;
     }
 
-    public setRequest(request: string, silence: boolean = false): boolean {
-        this._request = request;
+    public setRequest(filter: string, silence: boolean = false): boolean {
+        this._filter = filter;
         if (!this._setRegExps()) {
             return false;
         }
         if (!silence) {
             this._subjects.updated.next({
                 updated: {
-                    request: true,
+                    filter: true,
                     colors: false,
                     state: false,
                 },
@@ -277,7 +275,7 @@ export class FilterRequest implements IDisabledEntitySupport {
     }
 
     public getDisplayName(): string {
-        return this._request;
+        return this._filter;
     }
 
     public getIcon(): string {
@@ -298,18 +296,18 @@ export class FilterRequest implements IDisabledEntitySupport {
 
     public matches(session: Session) {
         session.getSessionSearch().search(new FilterRequest({
-            request: this.asDesc().request,
+            filter: this.asDesc().filter,
             flags: {
-                casesensitive: false,
-                wholeword: false,
-                regexp: true,
+                cases: false,
+                word: false,
+                reg: true,
             }
         }));
     }
 
     private _setRegExps(): boolean {
         const prev: string = this._hash;
-        this._regexp = getMarkerRegExp(this._request, this._flags);
+        this._regexp = getMarkerRegExp(this._filter, this._flags);
         this._hash = this._regexp.source + this._regexp.flags;
         return prev !== this._hash;
     }

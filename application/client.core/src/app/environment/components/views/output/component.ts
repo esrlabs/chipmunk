@@ -474,8 +474,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
     private _getFilterFromStr(str: string): FilterRequest | undefined {
         try {
             return new FilterRequest({
-                request: str,
-                flags: { casesensitive: true, wholeword: true, regexp: false },
+                filter: str,
+                flags: { cases: true, word: true, reg: false },
             });
         } catch (e) {
             return undefined;
@@ -556,15 +556,6 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         if (frame.end === range.end) {
             return;
         }
-        this._output.preload(range).then((loaded: IRange | null) => {
-            if (loaded === null) {
-                // Already some request is in progress: do nothing
-                return;
-            }
-            this._ng_outputAPI.onScrollUntil.next(loaded.end);
-        }).catch((error: Error) => {
-            // Do nothing, no data available
-        });
     }
 
     private _ctrl_onScrollDown() {

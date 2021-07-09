@@ -4,7 +4,7 @@ use std::{
     fmt, fs,
     io::{Read, Write},
     ops::RangeInclusive,
-    path::Path,
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -12,7 +12,11 @@ pub trait GrabTrait {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
     fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
     fn get_metadata(&self) -> Option<&GrabMetadata>;
+    fn drop_metadata(&mut self);
+    fn associated_file(&self) -> PathBuf;
 }
+
+pub trait AsyncGrabTrait: GrabTrait + Sync + Send + std::fmt::Debug {}
 
 #[derive(Error, Debug)]
 pub enum GrabError {
@@ -22,8 +26,8 @@ pub enum GrabError {
     Communication(String),
     #[error("IO error while grabbing: ({0:?})")]
     IoOperation(#[from] std::io::Error),
-    #[error("Invalid range: ({0:?})")]
-    InvalidRange(LineRange),
+    #[error("Invalid range: ({range:?}) ({context})")]
+    InvalidRange { range: LineRange, context: String },
     #[error("Grabber interrupted")]
     Interrupted,
     #[error("Metadata initialization not done")]
@@ -36,6 +40,10 @@ pub struct GrabbedElement {
     pub source_id: String,
     #[serde(rename = "c")]
     pub content: String,
+    #[serde(rename = "r")]
+    pub row: Option<usize>,
+    #[serde(rename = "p")]
+    pub pos: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -190,9 +198,11 @@ pub struct Grabber<T: MetadataSource> {
     pub input_file_size: u64,
 }
 
+impl<T> AsyncGrabTrait for Grabber<T> where T: MetadataSource + Sync + Send + std::fmt::Debug {}
+
 impl<T> GrabTrait for Grabber<T>
 where
-    T: MetadataSource,
+    T: MetadataSource + Sync + Send + std::fmt::Debug,
 {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
         self.get_entries(line_range)
@@ -206,6 +216,14 @@ where
     fn get_metadata(&self) -> Option<&GrabMetadata> {
         self.metadata.as_ref()
     }
+
+    fn drop_metadata(&mut self) {
+        self.metadata = None;
+    }
+
+    fn associated_file(&self) -> PathBuf {
+        self.source.path().to_path_buf()
+    }
 }
 
 impl<T: MetadataSource> Grabber<T> {
@@ -218,7 +236,6 @@ impl<T: MetadataSource> Grabber<T> {
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
-
         Ok(Self {
             source,
             metadata: None,
@@ -283,7 +300,10 @@ impl<T: MetadataSource> Grabber<T> {
             None => Err(GrabError::NotInitialize),
             Some(md) => {
                 if line_range.range.is_empty() {
-                    return Err(GrabError::InvalidRange(line_range.clone()));
+                    return Err(GrabError::InvalidRange {
+                        range: line_range.clone(),
+                        context: "Cannot get entries of empty range".to_string(),
+                    });
                 }
                 self.source.get_entries(md, line_range)
             }
@@ -331,18 +351,19 @@ pub struct FilePart {
 /// It will also return how many lines are in this byte-range and how many need to be skipped
 /// at the beginning and dropped the end to get only the desired content
 pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<FilePart> {
-    // println!("identify byte range for: {:?} (range {:?})", slots, lines);
+    trace!("identify byte range for: {:?} (range {:?})", slots, lines);
     if lines.is_empty() {
         return None;
     }
     let start_line_index = lines.start();
     let last_line_index = lines.end();
-    let maybe_start_slot = identify_start_slot_simple(&slots, start_line_index);
-    let maybe_end_slot = identify_end_slot_simple(&slots, last_line_index);
-    // println!(
-    //     "(maybe_start_slot, maybe_end_slot): ({:?}, {:?})",
-    //     &maybe_start_slot, &maybe_end_slot
-    // );
+    let maybe_start_slot = identify_start_slot_simple(slots, start_line_index);
+    let maybe_end_slot = identify_end_slot_simple(slots, last_line_index);
+    trace!(
+        "(maybe_start_slot, maybe_end_slot): ({:?}, {:?})",
+        &maybe_start_slot,
+        &maybe_end_slot
+    );
     match (maybe_start_slot, maybe_end_slot) {
         (Some((start_slot, _)), Some((end_slot, _))) => {
             let lines_to_skip = start_line_index - start_slot.lines.start();
@@ -362,6 +383,7 @@ pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<F
 }
 
 pub(crate) fn identify_end_slot_simple(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
+    trace!("identify_end_slot_simple");
     match slots.len() {
         0 => None,
         slots_len => {
@@ -378,6 +400,7 @@ pub(crate) fn identify_end_slot_simple(slots: &[Slot], line_index: u64) -> Optio
 }
 
 pub(crate) fn identify_start_slot_simple(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
+    trace!("identify_start_slot_simple");
     for (i, slot) in slots.iter().enumerate() {
         if slot.lines.range.contains(&line_index) {
             return Some((slot.clone(), i));

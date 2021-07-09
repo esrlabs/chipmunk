@@ -18,6 +18,7 @@ import { IPCMessages } from '../../../services/service.electron.ipc';
 import { EChartType } from '../chart/charts/charts';
 import { sortPairs, IPair } from '../../../thirdparty/code/engine';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { CommonInterfaces } from '../../../interfaces/interface.common';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import HotkeysService from '../../../services/service.hotkeys';
@@ -28,12 +29,6 @@ import ContextMenuService from '../../../services/standalone/service.contextmenu
 import ElectronIpcService from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
-
-export interface ISearchSettings {
-    casesensitive: boolean;
-    wholeword: boolean;
-    regexp: boolean;
-}
 
 interface IViewState {
     searchRequestId: string | undefined;
@@ -80,10 +75,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_onSessionChanged: Subject<Session> = new Subject<Session>();
     public _ng_inputCtrl = new FormControl();
     public _ng_recent: Observable<IPair[]>;
-    public _ng_flags: ISearchSettings = {
-        casesensitive: false,
-        wholeword: false,
-        regexp: true,
+    public _ng_flags: CommonInterfaces.API.IFilterFlags = {
+        cases: false,
+        word: false,
+        reg: true,
     };
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewSearchComponent');
@@ -374,7 +369,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _getCurrentFilter(): FilterRequest | Error {
         try {
             return new FilterRequest({
-                request: this._ng_inputCtrl.value,
+                filter: this._ng_inputCtrl.value,
                 flags: Object.assign({}, this._ng_flags)
             });
         } catch (err) {
@@ -385,7 +380,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _getCurrentChart(): ChartRequest | Error {
         try {
             return new ChartRequest({
-                request: this._ng_inputCtrl.value,
+                filter: this._ng_inputCtrl.value,
                 type: EChartType.smooth,
             });
         } catch (err) {
@@ -443,8 +438,8 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         } else {
             try {
                 const request: FilterRequest = new FilterRequest({
-                    request: selection,
-                    flags: { casesensitive: true, wholeword: true, regexp: false },
+                    filter: selection,
+                    flags: { cases: true, word: true, reg: false },
                 });
                 document.getSelection().removeAllRanges();
                 this._onForceSearch(request);
@@ -505,7 +500,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_searchRequestId !== undefined) {
             return;
         }
-        this._ng_inputCtrl.setValue(request.asDesc().request);
+        this._ng_inputCtrl.setValue(request.asDesc().filter);
         this._ng_flags = request.asDesc().flags;
         this._addRecentFilter();
         this._search(false);
@@ -715,7 +710,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _validateRegExp() {
-        this._ng_isRequestValid = this._ng_flags.regexp ? Toolkit.regTools.isRegStrValid(this._ng_inputCtrl.value) : true;
+        this._ng_isRequestValid = this._ng_flags.reg ? Toolkit.regTools.isRegStrValid(this._ng_inputCtrl.value) : true;
     }
 
     private _forceUpdate() {

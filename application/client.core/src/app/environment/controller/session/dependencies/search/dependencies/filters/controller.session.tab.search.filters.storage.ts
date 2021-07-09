@@ -2,7 +2,6 @@ import { Observable, Subject } from 'rxjs';
 import {
     FilterRequest,
     IFilterUpdateEvent,
-    IFlags as IFilterFlags,
     IDesc as IFilterDesc,
     IDescOptional as IFilterDescOptional,
     IDescUpdating as IFilterDescUpdating,
@@ -27,7 +26,6 @@ export {
     FilterRequest,
     IUpdateEvent as IFiltersStorageUpdated,
     IFilterUpdateEvent,
-    IFilterFlags,
     IFilterDesc,
     IFilterDescOptional,
     IFilterDescUpdating
@@ -86,7 +84,7 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
                 const srchRqst: FilterRequest = desc instanceof FilterRequest ? new FilterRequest(desc.asDesc()) : new FilterRequest(desc);
                 // Check request
                 if (this.has(srchRqst)) {
-                    throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
+                    throw new Error(`Request "${srchRqst.asDesc().filter}" already exist`);
                 }
                 // Add request
                 if (typeof from === 'number' && from < this._stored.length) {

@@ -119,7 +119,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         if (selection === undefined) {
             return '';
         }
-        return selection.getEntity().asDesc().request;
+        return selection.getEntity().asDesc().filter;
     }
 
     public getListComp(): IComponentDesc {
@@ -146,17 +146,17 @@ export class ProviderFilters extends Provider<FilterRequest> {
         }
         const entity: ChartRequest = selected[0].getEntity();
         const items: IMenuItem[] = [];
-        if (entity instanceof ChartRequest && FilterRequest.isValid(entity.asDesc().request)) {
+        if (entity instanceof ChartRequest && FilterRequest.isValid(entity.asDesc().filter)) {
             items.push({
                 caption: `Convert To Filter`,
                 handler: () => {
                     super.getSession().getSessionSearch().getChartsAPI().getStorage().remove(entity);
                     super.getSession().getSessionSearch().getFiltersAPI().getStorage().add({
-                        request: entity.asDesc().request,
+                        filter: entity.asDesc().filter,
                         flags: {
-                            casesensitive: true,
-                            wholeword: true,
-                            regexp: true,
+                            cases: true,
+                            word: true,
+                            reg: true,
                         }
                     });
                 },
@@ -264,11 +264,11 @@ export class ProviderFilters extends Provider<FilterRequest> {
                 if (outside !== undefined && typeof outside.getEntity === 'function' && outside.getEntity() instanceof ChartRequest) {
                     this.getSession().getSessionSearch().getChartsAPI().getStorage().remove(outside.getEntity());
                     this.getSession().getSessionSearch().getFiltersAPI().getStorage().add({
-                        request: outside.getEntity().asDesc().request,
+                        filter: outside.getEntity().asDesc().filter,
                         flags: {
-                            casesensitive: true,
-                            wholeword: true,
-                            regexp: true,
+                            cases: true,
+                            word: true,
+                            reg: true,
                         }
                     }, event.currentIndex);
                 }

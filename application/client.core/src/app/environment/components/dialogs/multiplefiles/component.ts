@@ -50,13 +50,14 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
     }
 
     public _ng_onChange(event: any, fileName: IPCMessages.IFile) {
-        fileName.checked = event.checked;
+        // fileName.checked = event.checked;
     }
 
     private _onFilesDropped(files: IPCMessages.IFile[]) {
         if (files.length === 0) {
             return;
         }
+        /*
         ServiceElectronIpc.request(new IPCMessages.FileListRequest({
             files: files.map((file: IPCMessages.IFile) => file.path),
         }), IPCMessages.FileListResponse).then((checkResponse: IPCMessages.FileListResponse) => {
@@ -69,31 +70,38 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
         }).catch((error: Error) => {
             this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
         });
+        */
     }
 
     private _selectAll() {
         this.fileList.setFiles(this.fileList.getFiles().map((file: IPCMessages.IFile) => {
+            /*
             if (!file.disabled) {
                 file.checked = true;
             }
+            */
             return file;
         }));
     }
 
     private _deselectAll() {
         this.fileList.setFiles(this.fileList.getFiles().map((file: IPCMessages.IFile) => {
+            /*
             if (!file.disabled) {
                 file.checked = false;
             }
+            */
             return file;
         }));
     }
 
     private _reverseSelectAll() {
         this.fileList.setFiles(this.fileList.getFiles().map((file: IPCMessages.IFile) => {
+            /*
             if (!file.disabled) {
                 file.checked = !file.checked;
             }
+            */
             return file;
         }));
     }
