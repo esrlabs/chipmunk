@@ -16,6 +16,8 @@ pub trait GrabTrait {
     fn associated_file(&self) -> PathBuf;
 }
 
+pub trait AsyncGrabTrait: GrabTrait + Sync + Send + std::fmt::Debug {}
+
 #[derive(Error, Debug)]
 pub enum GrabError {
     #[error("Configuration error ({0})")]
@@ -196,9 +198,11 @@ pub struct Grabber<T: MetadataSource> {
     pub input_file_size: u64,
 }
 
+impl<T> AsyncGrabTrait for Grabber<T> where T: MetadataSource + Sync + Send + std::fmt::Debug {}
+
 impl<T> GrabTrait for Grabber<T>
 where
-    T: MetadataSource,
+    T: MetadataSource + Sync + Send + std::fmt::Debug,
 {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
         self.get_entries(line_range)
