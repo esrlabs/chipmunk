@@ -71,15 +71,34 @@ impl MetadataSource for DltSource {
         let mut logs_in_slot = 0u64;
         let mut msg_cnt: u64 = 0;
         loop {
+            debug!("loop over dlt source");
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
                 return Ok(ComputationResult::Stopped);
             }
             match reader.fill_buf() {
                 Ok(content) => {
+                    debug!("got content in dlt_source");
                     if content.is_empty() {
+                        trace!(
+                            "content of buffer now empty, we are done, {} bytes left",
+                            bytes_in_slot
+                        );
+                        if bytes_in_slot > 0_u64 {
+                            let slot = Slot {
+                                bytes: ByteRange::from(
+                                    (bytes_offset - bytes_in_slot)..=bytes_offset - 1,
+                                ),
+                                lines: LineRange::from(
+                                    log_entry_count - logs_in_slot..=log_entry_count,
+                                ),
+                            };
+                            slots.push(slot);
+                        }
                         break;
                     }
+                    debug!("content content is not empty");
                     if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
+                        debug!("dlt_consume_msg consumed {} bytes", consumed);
                         reader.consume(consumed as usize);
                         msg_cnt += 1;
                         logs_in_slot += 1;
@@ -89,7 +108,7 @@ impl MetadataSource for DltSource {
                         if bytes_in_slot >= DEFAULT_SLOT_SIZE as u64 {
                             let slot = Slot {
                                 bytes: ByteRange::from(
-                                    (bytes_offset - bytes_in_slot)..=bytes_offset,
+                                    (bytes_offset - bytes_in_slot)..=bytes_offset - 1,
                                 ),
                                 lines: LineRange::from(
                                     log_entry_count - logs_in_slot..=log_entry_count,
@@ -137,7 +156,7 @@ impl MetadataSource for DltSource {
                 context: "Could not identify byte range".to_string(),
             }
         })?;
-        // println!("file-part: {:?}", file_part);
+        trace!("get_entries, file-part: {:?}", file_part);
 
         let mut read_buf = vec![0; file_part.length];
         let mut read_from = fs::File::open(&self.path())?;
