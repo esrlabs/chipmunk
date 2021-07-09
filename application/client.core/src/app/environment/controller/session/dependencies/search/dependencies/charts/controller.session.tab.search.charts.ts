@@ -2,7 +2,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../output/controller.session.tab.stream.output';
 import { ControllerSessionScope } from '../../../scope/controller.session.tab.scope';
 import { Session } from '../../../../session';
-import { IPCMessages } from '../../../../../../services/service.electron.ipc';
+import { IPCMessages as IPC } from '../../../../../../services/service.electron.ipc';
 import { EChartType } from '../../../../../../components/views/chart/charts/charts';
 import { Importable } from '../../../importer/controller.session.importer.interface';
 import {
@@ -13,12 +13,15 @@ import {
     IChartDescOptional,
 } from './controller.session.tab.search.charts.storage';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
+import { ChartData, IChartData, IChartMatch } from './controller.session.tab.search.charts.data';
 
 import ServiceElectronIpc from '../../../../../../services/service.electron.ipc';
 import OutputParsersService from '../../../../../../services/standalone/service.output.parsers';
 import EventsSessionService from '../../../../../../services/standalone/service.events.session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+
+export { ChartData, IChartData, IChartMatch };
 
 export interface IControllerSessionStreamCharts {
     guid: string;
@@ -36,14 +39,14 @@ export interface IChartRequest {
 
 export interface IChartsOptions {
     requestId: string;
-    requests: IPCMessages.IChartRegExpStr[];
+    filters: IPC.IFilter[];
 }
 
 export interface ISubjects {
     onChartsUpdated: Subject<ChartRequest[]>;
     onExtractingStarted: Subject<void>;
     onExtractingFinished: Subject<void>;
-    onChartsResultsUpdated: Subject<IPCMessages.TChartResults>;
+    onChartsResultsUpdated: Subject<IChartData>;
     onChartSelected: Subject<ChartRequest | undefined>;
     onExport: Subject<void>;
 }
@@ -52,21 +55,20 @@ export class ControllerSessionTabSearchCharts
     extends Importable<IChartDescOptional[]>
     implements Dependency {
 
-    private _logger: Toolkit.Logger;
-    private _guid: string;
-    private _storage: ChartsStorage;
-    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
-    private _subjects: ISubjects = {
+    private readonly _logger: Toolkit.Logger;
+    private readonly _guid: string;
+    private readonly _storage: ChartsStorage;
+    private readonly _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
+    private readonly _subjects: ISubjects = {
         onChartsUpdated: new Subject<ChartRequest[]>(),
         onExtractingStarted: new Subject<void>(),
         onExtractingFinished: new Subject<void>(),
-        onChartsResultsUpdated: new Subject<IPCMessages.TChartResults>(),
+        onChartsResultsUpdated: new Subject<IChartData>(),
         onChartSelected: new Subject<ChartRequest | undefined>(),
         onExport: new Subject<void>(),
     };
-    private _data: IPCMessages.TChartResults = {};
+    private readonly _data: ChartData = new ChartData();
     private _selected: string | undefined;
-    private _tasks: Map<string, Promise<IPCMessages.TChartResults>> = new Map();
     private _accessor: {
         session: SessionGetter,
         search: SearchSessionGetter,
@@ -85,9 +87,9 @@ export class ControllerSessionTabSearchCharts
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._subscriptions.ChartResultsUpdated = ServiceElectronIpc.subscribe(
-                IPCMessages.ChartResultsUpdated,
-                this._ipc_ChartResultsUpdated.bind(this),
+            this._subscriptions.ChartStateUpdated = ServiceElectronIpc.subscribe(
+                IPC.ChartStateUpdated,
+                this._ipc_ChartStateUpdated.bind(this),
             );
             this._subscriptions.onStorageUpdated = this._storage
                 .getObservable()
@@ -108,13 +110,18 @@ export class ControllerSessionTabSearchCharts
                 this._subscriptions[prop].unsubscribe();
             });
             OutputParsersService.unsetChartsResults(this._guid);
-            this.cancel(undefined)
-                .catch((error: Error) => {
-                    this._logger.error(
-                        `Fail to cancel a task of chart data extracting due error: ${error.message}`,
-                    );
-                })
-                .finally(resolve);
+            this.tracking().stop().catch((error: Error) => {
+                this._logger.error(
+                    `Fail to cancel a task of chart data extracting due error: ${error.message}`,
+                );
+            }).finally(resolve);
+            // this.cancel(undefined)
+            //     .catch((error: Error) => {
+            //         this._logger.error(
+            //             `Fail to cancel a task of chart data extracting due error: ${error.message}`,
+            //         );
+            //     })
+            //     .finally(resolve);
         });
     }
 
@@ -130,7 +137,7 @@ export class ControllerSessionTabSearchCharts
         onChartsUpdated: Observable<ChartRequest[]>;
         onExtractingStarted: Observable<void>;
         onExtractingFinished: Observable<void>;
-        onChartsResultsUpdated: Observable<IPCMessages.TChartResults>;
+        onChartsResultsUpdated: Observable<IChartData>;
         onChartSelected: Observable<ChartRequest | undefined>;
     } {
         return {
@@ -155,100 +162,12 @@ export class ControllerSessionTabSearchCharts
         return this._storage.getBySource(this._selected);
     }
 
-    public extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
-        const task: Promise<IPCMessages.TChartResults> = new Promise((resolve, reject) => {
-            this.cancel(options.requestId)
-                .then(() => {
-                    if (options.requests.length === 0 || !this._tasks.has(options.requestId)) {
-                        this._tasks.delete(options.requestId);
-                        this._data = {};
-                        this._subjects.onChartsResultsUpdated.next({});
-                        resolve({});
-                        return;
-                    }
-                    this._extract(options)
-                        .then((res: IPCMessages.TChartResults) => {
-                            if (!this._tasks.has(options.requestId)) {
-                                this._data = {};
-                            } else {
-                                this._data = res;
-                            }
-                            resolve(res);
-                        })
-                        .catch((err: Error) => {
-                            this._logger.error(
-                                `Fail to extract charts data due error: ${err.message}. Results will be dropped.`,
-                            );
-                            this._data = {};
-                            reject(err);
-                        })
-                        .finally(() => {
-                            this._subjects.onChartsResultsUpdated.next(this._data);
-                        });
-                })
-                .catch((cancelErr: Error) => {
-                    this._logger.error(
-                        `Fail to cancel current chart's data extracting operation due error: ${cancelErr.message}. Results will be dropped.`,
-                    );
-                    reject(cancelErr);
-                });
-        });
-        this._tasks.set(options.requestId, task);
-        return task;
-    }
-
-    public cancel(exception: string | undefined): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const ids: string[] = Array.from(this._tasks.keys()).filter((id: string) => {
-                return id !== exception;
-            });
-            if (ids.length === 0) {
-                // Nothing to cancel
-                return resolve();
-            }
-            Promise.all(
-                ids.map((requestId: string) => {
-                    return ServiceElectronIpc.request(
-                        new IPCMessages.ChartRequestCancelRequest({
-                            streamId: this._guid,
-                            requestId: requestId,
-                        }),
-                        IPCMessages.ChartRequestCancelResponse,
-                    )
-                        .then((results: IPCMessages.ChartRequestCancelResponse) => {
-                            this._tasks.delete(requestId);
-                            if (results.error !== undefined) {
-                                this._logger.error(
-                                    `Chart data extractinng request id ${results.requestId} fail to cancel with error: ${results.error}`,
-                                );
-                                return reject(new Error(results.error));
-                            }
-                            resolve();
-                        })
-                        .catch((error: Error) => {
-                            this._tasks.delete(requestId);
-                            reject(error);
-                        });
-                }),
-            )
-                .then(() => {
-                    resolve();
-                })
-                .catch((remoteCancelErr: Error) => {
-                    this._logger.error(
-                        `Cancelation was failed due error: ${remoteCancelErr.message}`,
-                    );
-                    reject(remoteCancelErr);
-                });
-        });
-    }
-
     public getStorage(): ChartsStorage {
         return this._storage;
     }
 
-    public getChartsData(): IPCMessages.TChartResults {
-        return this._data;
+    public getChartsData(): IChartData {
+        return this._data.get();
     }
 
     public getSubjects(): ISubjects {
@@ -284,13 +203,69 @@ export class ControllerSessionTabSearchCharts
         });
     }
 
+    public tracking(): {
+        start(): Promise<void>,
+        stop(): Promise<void>,
+        assign(): Promise<void>,
+    } {
+        const self = this;
+        return {
+            start(): Promise<void> {
+                return new Promise((resolve, reject) => {
+                    ServiceElectronIpc.request(
+                        new IPC.ChartTrackingStartRequest({
+                            session: self._guid,
+                        }),
+                        IPC.ChartTrackingStartResponse,
+                    ).then((response: IPC.ChartTrackingStartResponse) => {
+                        if (typeof response.error === 'string' && response.error.trim().length > 0) {
+                            return reject(new Error(response.error));
+                        }
+                        resolve();
+                    }).catch(reject);
+                });
+            },
+            stop(): Promise<void> {
+                return new Promise((resolve, reject) => {
+                    ServiceElectronIpc.request(
+                        new IPC.ChartTrackingStopRequest({
+                            session: self._guid,
+                        }),
+                        IPC.ChartTrackingStopResponse,
+                    ).then((response: IPC.ChartTrackingStopResponse) => {
+                        if (typeof response.error === 'string' && response.error.trim().length > 0) {
+                            return reject(new Error(response.error));
+                        }
+                        resolve();
+                    }).catch(reject);
+                });
+            },
+            assign(): Promise<void> {
+                return new Promise((resolve, reject) => {
+                    ServiceElectronIpc.request(
+                        new IPC.ChartTrackingAssignRequest({
+                            session: self._guid,
+                            filters: self._storage.getActive().map((chart: ChartRequest) => chart.asFilter()),
+                        }),
+                        IPC.ChartTrackingAssignResponse,
+                    ).then((response: IPC.ChartTrackingAssignResponse) => {
+                        if (typeof response.error === 'string' && response.error.trim().length > 0) {
+                            return reject(new Error(response.error));
+                        }
+                        resolve();
+                    }).catch(reject);
+                });
+            }
+        };
+    }
+
     private _onStorageUpdated(event: IChartsStorageUpdated) {
-        this._refresh();
+        this.tracking().assign();
     }
 
     private _onStorageChanged(event: IChartUpdateEvent) {
-        if (event.updated.state || event.updated.request || event.updated.type) {
-            this._refresh();
+        if (event.updated.state || event.updated.filter || event.updated.type) {
+            this.tracking().assign();
         } else {
             this._updateRowsViews();
         }
@@ -316,84 +291,22 @@ export class ControllerSessionTabSearchCharts
         OutputParsersService.updateRowsView();
         this._subjects.onChartsUpdated.next(this._storage.getActive());
     }
+/*
+export interface IChartMatch {
+    row: number;
+    value: string[] | undefined;
+}
 
-    private _extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
-        return new Promise((resolve, reject) => {
-            if (!this._tasks.has(options.requestId)) {
-                // Task was removed
-                return resolve({});
-            }
-            // Trigger start of extracting
-            this._subjects.onExtractingStarted.next();
-            // Start search
-            ServiceElectronIpc.request(
-                new IPCMessages.ChartRequest({
-                    requests: options.requests,
-                    streamId: this._guid,
-                    requestId: options.requestId,
-                }),
-                IPCMessages.ChartRequestResults,
-            )
-                .then((results: IPCMessages.ChartRequestResults) => {
-                    if (!this._tasks.has(options.requestId)) {
-                        // Task was removed
-                        return resolve({});
-                    }
-                    this._logger.env(
-                        `Chart data extracting request ${results.requestId} was finished in ${(
-                            results.duration / 1000
-                        ).toFixed(2)}s.`,
-                    );
-                    if (results.error !== undefined) {
-                        // Some error during processing search request
-                        this._logger.error(
-                            `Chart request id ${results.requestId} was finished with error: ${results.error}`,
-                        );
-                        return reject(new Error(results.error));
-                    }
-                    resolve(results.results);
-                })
-                .catch((error: Error) => {
-                    this._logger.error(`Fail to extract chart data due error: ${error.message}`);
-                    reject(error);
-                })
-                .finally(() => {
-                    this._tasks.delete(options.requestId);
-                    this._subjects.onExtractingFinished.next();
-                });
-        });
-    }
+export interface IChartData {
+    [source: string]: IChartMatch[];
+}
 
-    private _refresh() {
-        this.extract({
-            requestId: Toolkit.guid(),
-            requests: this._storage.getActive().map((chart: ChartRequest) => {
-                return {
-                    source: chart.asRegExp().source,
-                    flags: chart.asRegExp().flags,
-                    groups: true,
-                };
-            }),
-        })
-            .finally(() => {
-                this._updateRowsViews();
-                this._subjects.onExport.next();
-            })
-            .catch((error: Error) => {
-                this._logger.error(`Fail to refresh charts data due error: ${error.message}`);
-            });
-    }
-
-    private _ipc_ChartResultsUpdated(message: IPCMessages.ChartResultsUpdated) {
+*/
+    private _ipc_ChartStateUpdated(message: IPC.ChartStateUpdated) {
         if (message.streamId !== this._guid) {
             return;
         }
-        Object.keys(message.results).forEach((chart: string) => {
-            if (this._data[chart] === undefined) {
-                this._data[chart] = [];
-            }
-            this._data[chart].push(...message.results[chart]);
-        });
-        this._subjects.onChartsResultsUpdated.next(this._data);
+        this._data.from(message.state);
+        this._subjects.onChartsResultsUpdated.next(this._data.get());
     }
 }

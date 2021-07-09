@@ -181,11 +181,11 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         super.openSearchToolbarApp().then(() => {
             if (cEntity instanceof ChartRequest) {
                 super.getSession().getSessionSearch().search(new FilterRequest({
-                    request: (cEntity as ChartRequest).asDesc().request,
+                    filter: (cEntity as ChartRequest).asDesc().filter,
                     flags: {
-                        casesensitive: false,
-                        wholeword: false,
-                        regexp: true,
+                        cases: false,
+                        word: false,
+                        reg: true,
                     }
                 }));
             } else if (cEntity instanceof FilterRequest) {

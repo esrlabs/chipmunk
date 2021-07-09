@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewChild, ChangeDetectionStrategy } from '@angular/core';
-import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
+import { FilterRequest, IFilterUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { MatCheckbox } from '@angular/material/checkbox';
@@ -9,6 +9,7 @@ import { ProviderFilters } from '../provider';
 import { Entity } from '../../providers/entity';
 import { MatDragDropResetFeatureDirective } from '../../../../../directives/material.dragdrop.directive';
 import { tryDetectChanges } from '../../../../../controller/helpers/angular.insides';
+import { CommonInterfaces } from '../../../../../interfaces/interface.common';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-filter',
@@ -28,7 +29,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     @Input() entity: Entity<FilterRequest>;
     @Input() provider: ProviderFilters | undefined;
 
-    public _ng_flags: IFlags;
+    public _ng_flags: CommonInterfaces.API.IFilterFlags;
     public _ng_request: string;
     public _ng_color: string;
     public _ng_background: string;
@@ -78,7 +79,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         this._ng_directive.ignoreMouseClick(event);
     }
 
-    public _ng_flagsToggle(event: MouseEvent, flag: 'casesensitive' | 'wholeword' | 'regexp') {
+    public _ng_flagsToggle(event: MouseEvent, flag: 'cases' | 'word' | 'reg') {
         this._ng_flags[flag] = !this._ng_flags[flag];
         this.entity.getEntity().setFlags(this._ng_flags);
         event.preventDefault();
@@ -91,7 +92,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         }
         switch (event.code) {
             case 'Escape':
-                this._ng_request = this.entity.getEntity().asDesc().request;
+                this._ng_request = this.entity.getEntity().asDesc().filter;
                 this.provider.edit().out();
                 this._forceUpdate();
                 break;
@@ -99,7 +100,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
                 if (FilterRequest.isValid(this._ng_request)) {
                     this.entity.getEntity().setRequest(this._ng_request);
                 } else {
-                    this._ng_request = this.entity.getEntity().asDesc().request;
+                    this._ng_request = this.entity.getEntity().asDesc().filter;
                 }
                 this.provider.edit().out();
                 this._forceUpdate();
@@ -111,7 +112,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
         if (this.provider === undefined) {
             return;
         }
-        this._ng_request = this.entity.getEntity().asDesc().request;
+        this._ng_request = this.entity.getEntity().asDesc().filter;
         this.provider.edit().out();
         this._forceUpdate();
     }
@@ -123,7 +124,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     private _init() {
         const desc = this.entity.getEntity().asDesc();
         this._ng_flags = desc.flags;
-        this._ng_request = desc.request;
+        this._ng_request = desc.filter;
         this._ng_color = desc.color;
         this._ng_background = desc.background;
         this._ng_state = desc.active;

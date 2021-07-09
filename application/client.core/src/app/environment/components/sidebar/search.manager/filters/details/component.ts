@@ -121,7 +121,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
             this._ng_currentColor = undefined;
         } else {
             const desc = this._entity.getEntity().asDesc();
-            this._ng_request = desc.request;
+            this._ng_request = desc.filter;
             this._ng_color = desc.color;
             this._ng_background = desc.background;
             this._ng_currentColor = desc.background;
@@ -135,7 +135,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
         if (this._entity === undefined) {
             return;
         }
-        this._ng_request = this._entity.getEntity().asDesc().request;
+        this._ng_request = this._entity.getEntity().asDesc().filter;
         this._forceUpdate();
     }
 

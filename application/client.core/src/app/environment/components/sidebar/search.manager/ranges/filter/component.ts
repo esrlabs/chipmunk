@@ -1,7 +1,8 @@
 import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, OnChanges, ChangeDetectionStrategy } from '@angular/core';
-import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
+import { FilterRequest } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { Subscription } from 'rxjs';
 import { Entity } from '../../providers/entity';
+import { CommonInterfaces } from '../../../../../interfaces/interface.common';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-filter-mini',
@@ -14,7 +15,7 @@ export class SidebarAppSearchManagerFilterMiniComponent implements OnDestroy, Af
 
     @Input() entity: Entity<FilterRequest>;
 
-    public _ng_flags: IFlags;
+    public _ng_flags: CommonInterfaces.API.IFilterFlags;
     public _ng_request: string;
     public _ng_color: string;
     public _ng_background: string;
@@ -45,7 +46,7 @@ export class SidebarAppSearchManagerFilterMiniComponent implements OnDestroy, Af
     private _init() {
         const desc = this.entity.getEntity().asDesc();
         this._ng_flags = desc.flags;
-        this._ng_request = desc.request;
+        this._ng_request = desc.filter;
         this._ng_color = desc.color;
         this._ng_background = desc.background;
         this._ng_state = desc.active;

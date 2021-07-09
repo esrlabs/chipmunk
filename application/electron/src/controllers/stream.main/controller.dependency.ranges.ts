@@ -152,7 +152,7 @@ export class Ranges extends Dependency {
                             }),
                         );
                     }
-                    const regs = msg.points.map((p) => getSearchRegExp(p.request, p.flags));
+                    const regs = msg.points.map((p) => getSearchRegExp(p.filter, p.flags));
                     const errors: Error[] = (regs as any[]).filter((p) => p instanceof Error);
                     if (errors.length !== 0) {
                         const error: Error = new Error(`${errors.map((_) => _.message)}`);

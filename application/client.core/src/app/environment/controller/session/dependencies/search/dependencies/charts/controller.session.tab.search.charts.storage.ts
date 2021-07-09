@@ -2,7 +2,6 @@ import { Observable, Subject } from 'rxjs';
 import {
     ChartRequest,
     IChartUpdateEvent,
-    IFlags as IChartFlags,
     IDesc as IChartDesc,
     IDescOptional as IChartDescOptional,
     IDescUpdating as IChartDescUpdating,
@@ -28,7 +27,6 @@ export {
     ChartRequest,
     IChartUpdateEvent,
     IUpdateEvent as IChartsStorageUpdated,
-    IChartFlags,
     IChartDesc,
     IChartDescOptional,
     IChartDescUpdating
@@ -89,7 +87,7 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
                 const srchRqst: ChartRequest = desc instanceof ChartRequest ? new ChartRequest(desc.asDesc()) : new ChartRequest(desc);
                 // Check request
                 if (this.has(srchRqst)) {
-                    throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
+                    throw new Error(`Request "${srchRqst.asDesc().filter}" already exist`);
                 }
                 // Add request
                 if (typeof from === 'number' && from < this._stored.length) {
