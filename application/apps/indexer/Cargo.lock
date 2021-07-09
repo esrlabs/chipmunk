@@ -461,9 +461,9 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.9.4"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e0834d6ca619d67e28b63d67549cfd1203b058b49181a28040a9eebacf927d2"
+checksum = "cf54754d61f0097a11b77a076582fc6f3eb9fbf5ff6ae2a5753834fa8f2a0a9e"
 dependencies = [
  "byteorder",
  "bytes",
