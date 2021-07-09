@@ -8,6 +8,7 @@ export enum Type {
     GrabbingContent = 'GrabbingContent',
     ParsingContentChunk = 'ParsingContentChunk',
     ParsingSearchChunk = 'ParsingSearchChunk',
+    CancelationError = 'CancelationError',
     Other = 'Other',
 }
 
@@ -27,6 +28,7 @@ export enum Source {
     Extract = 'Extract',
     Export = 'Export',
     Detect = 'Detect',
+    Abort = 'Abort',
     Other = 'Other',
 }
 
