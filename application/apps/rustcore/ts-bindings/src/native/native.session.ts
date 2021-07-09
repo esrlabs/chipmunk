@@ -131,7 +131,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract assign(filename: string, options: TFileOptions): string | NativeError;
+    public abstract assign(filename: string, options: TFileOptions, operationUuid?: string): string | NativeError;
 
     /**
      * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
@@ -164,7 +164,7 @@ export abstract class RustSession extends RustSessionRequiered {
      */
     public abstract extract(options: IExtractDTFormatOptions): IExtractDTFormatResult | NativeError;
 
-    public abstract search(filters: IFilter[]): string | NativeError;
+    public abstract search(filters: IFilter[], operationUuid?: string): string | NativeError;
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): NativeError | string;
 
@@ -172,7 +172,7 @@ export abstract class RustSession extends RustSessionRequiered {
         positionInStream: number,
     ): NativeError | { index: number; position: number } | undefined;
 
-    public abstract abort(uuid: string): undefined | NativeError;
+    public abstract abort(operationUuid: string): undefined | NativeError;
 }
 
 export abstract class RustSessionNative {
@@ -180,7 +180,7 @@ export abstract class RustSessionNative {
 
     public abstract start(callback: TEventEmitter): undefined;
 
-    public abstract assign(filename: string, options: TFileOptions): string;
+    public abstract assign(filename: string, options: TFileOptions, operationUuid?: string): string;
 
     public abstract getStreamLen(): number;
 
@@ -197,11 +197,15 @@ export abstract class RustSessionNative {
             ignore_case: boolean;
             is_word: boolean;
         }>,
+        operationUuid?: string,
     ): string;
 
     public abstract getMap(datasetLength: number, from?: number, to?: number): string;
 
     public abstract getNearestTo(positionInStream: number): number[] | null;
+
+    public abstract abort(operationUuid: string): void;
+
 }
 
 export class RustSessionDebug extends RustSession {
@@ -328,9 +332,9 @@ export class RustSessionDebug extends RustSession {
         return "";
     }
 
-    public assign(filename: string, options: TFileOptions): string | NativeError {
+    public assign(filename: string, options: TFileOptions, operationUuid?: string): string | NativeError {
         try {
-            return this._native.assign(filename, filename);
+            return this._native.assign(filename, filename, operationUuid);
         } catch (err) {
             return new NativeError(err, Type.Other, Source.Assign);
         }
@@ -356,7 +360,10 @@ export class RustSessionDebug extends RustSession {
         return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Extract);
     }
 
-    public search(filters: IFilter[]): string | NativeError {
+    public search(
+        filters: IFilter[],
+        operationUuid?: string,
+    ): string | NativeError {
         try {
             return this._native.applySearchFilters(
                 filters.map((filter) => {
@@ -367,6 +374,7 @@ export class RustSessionDebug extends RustSession {
                         is_word: filter.flags.word,
                     };
                 }),
+                operationUuid,
             );
         } catch (err) {
             return new NativeError(err, Type.Other, Source.Search);
@@ -411,8 +419,14 @@ export class RustSessionDebug extends RustSession {
         }
     }
 
-    public abort(uuid: string): undefined | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Export);
+    public abort(operationUuid: string): undefined | NativeError {
+        // return new NativeError(new Error('FAIL TEST'), Type.Other, Source.Abort);
+        try {
+            this._native.abort(operationUuid);
+            return undefined;
+        } catch (err) {
+            return new NativeError(err, Type.CancelationError, Source.Abort);
+        }
     }
 }
 

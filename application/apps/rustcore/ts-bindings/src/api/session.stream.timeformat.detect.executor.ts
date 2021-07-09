@@ -1,4 +1,4 @@
-import { TExecutor, Logger, CancelablePromise, withResultsExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, ResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
 
@@ -17,7 +17,7 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
     logger: Logger,
     options: IDetectOptions,
 ): CancelablePromise<IDetectDTFormatResult> => {
-    return withResultsExecutor<IDetectDTFormatResult, IDetectOptions>(
+    return ResultsExecutor<IDetectDTFormatResult, IDetectOptions>(
         session,
         provider,
         logger,

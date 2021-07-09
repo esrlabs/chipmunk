@@ -33,10 +33,7 @@ export interface ISubjects {
     onExport: Subject<void>;
 }
 
-export class ControllerSessionTabSearchFilters
-    extends Importable<IFilterDescOptional[]>
-    implements Dependency
-{
+export class ControllerSessionTabSearchFilters extends Importable<IFilterDescOptional[]> implements Dependency {
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _storage: FiltersStorage;
