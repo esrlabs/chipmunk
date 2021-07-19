@@ -75,7 +75,7 @@ pub fn concat_files_use_config_file(
         .collect();
     concat_files(
         inputs,
-        &out_path,
+        out_path,
         append,
         chunk_size,
         update_channel,

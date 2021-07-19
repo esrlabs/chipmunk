@@ -1,16 +1,15 @@
-// use grep::regex::{
-//     RegexMatcher as RustRegexMatcher, RegexMatcherBuilder as RustRegexMatcherBuilder,
-// };
-use grep_printer::{SummaryBuilder, SummaryKind};
-use grep_regex::RegexMatcherBuilder;
-use grep_searcher::{Sink, SinkMatch};
+use crate::map::FilterMatch;
+use grep_regex::RegexMatcher;
+use grep_searcher::{sinks::UTF8, Searcher, Sink, SinkMatch};
 use itertools::Itertools;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::File,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 use thiserror::Error;
 
@@ -23,16 +22,57 @@ pub enum SearchError {
     #[error("IO error while grabbing: ({0})")]
     IoOperation(#[from] std::io::Error),
     #[error("Regex-Error: ({0})")]
-    Regex(#[from] grep_regex::Error),
+    Regex(String),
+    //Regex(#[from] grep_regex::Error),
     #[error("Input-Error: ({0})")]
     Input(String),
 }
 
-use grep_regex::RegexMatcher;
-use grep_searcher::{
-    sinks::{Bytes, UTF8},
-    Searcher,
-};
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractedMatchValue {
+    pub index: u64,
+    /// (filter index, extracted value)
+    pub values: Vec<(usize, Vec<String>)>,
+}
+
+impl ExtractedMatchValue {
+    pub fn new(index: u64, input: &str, filters: &[Regex]) -> Self {
+        Self {
+            index,
+            values: ExtractedMatchValue::extract(input, filters),
+        }
+    }
+
+    pub fn extract(input: &str, filters: &[Regex]) -> Vec<(usize, Vec<String>)> {
+        let mut values: Vec<(usize, Vec<String>)> = vec![];
+        for (filter_index, filter) in filters.iter().enumerate() {
+            for caps in filter.captures_iter(input) {
+                let mut matches: Vec<String> = caps
+                    .iter()
+                    .flatten()
+                    .map(|m| m.as_str().to_owned())
+                    .collect();
+                if matches.len() <= 1 {
+                    // warn here
+                } else {
+                    // 0 always - whole match
+                    matches.remove(0);
+                    values.push((filter_index, matches));
+                }
+            }
+        }
+        values
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FilterStats(Vec<(u8, u64)>);
+
+impl FilterStats {
+    pub fn new(v: Vec<(u8, u64)>) -> Self {
+        Self(v)
+    }
+}
 
 pub struct SearchHolder {
     pub file_path: PathBuf,
@@ -43,12 +83,17 @@ pub struct SearchHolder {
     // pub event_channel: Channel<IndexingResults<()>>
 }
 
+pub struct MatchesExtractor {
+    pub file_path: PathBuf,
+    filters: Vec<SearchFilter>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SearchFilter {
-    value: String,
-    is_regex: bool,
-    ignore_case: bool,
-    is_word: bool,
+    pub value: String,
+    pub is_regex: bool,
+    pub ignore_case: bool,
+    pub is_word: bool,
 }
 
 use std::borrow::Cow;
@@ -134,44 +179,132 @@ impl SearchHolder {
 
     /// execute a search for the given input path and filters
     /// return the file that contains the search results along with the
-    /// number of found matches
-    pub fn execute_search(&self) -> Result<(PathBuf, u64), SearchError> {
+    /// map of found matches. Format of map is an array of matches:
+    /// [
+    ///     (index in stream, [index of matching filter]),
+    ///     ...
+    ///     (index in stream, [index of matching filter]),
+    /// ]
+    ///
+    /// stat information shows how many times a filter matched:
+    /// [(index_of_filter, count_of_matches), ...]
+    pub fn execute_search(&self) -> Result<(PathBuf, Vec<FilterMatch>, FilterStats), SearchError> {
         if self.search_filters.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
             ));
         }
-        let regex: String = format!(
+        let combined_regex: String = format!(
             "({})",
             self.search_filters
                 .iter()
-                .map(|f: &SearchFilter| filter_as_regex(&f))
+                .map(|f: &SearchFilter| filter_as_regex(f))
                 .join("|")
         );
-        let matcher = RegexMatcher::new(&regex)?;
+        let matcher = match RegexMatcher::new(&combined_regex) {
+            Ok(regex) => regex,
+            Err(err) => return Err(SearchError::Regex(format!("{}", err))),
+        };
+        let mut matchers: Vec<Regex> = vec![];
+        for filter in self.search_filters.iter() {
+            matchers.push(
+                Regex::from_str(&filter_as_regex(filter))
+                    .map_err(|err| SearchError::Regex(format!("{}", err)))?,
+            );
+        }
         let out_file = File::create(&self.out_file_path)?;
         let mut matched_lines = 0u64;
-
         let mut writer = BufWriter::new(out_file);
+        let mut indexes: Vec<FilterMatch> = vec![];
+        let mut stats: HashMap<u8, u64> = HashMap::new();
+        // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
+        // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
+        // lnum - 1
         Searcher::new().search_path(
             &matcher,
             &self.file_path,
             UTF8(|lnum, line| {
                 matched_lines += 1;
-                let line_match = SearchMatch {
-                    line: lnum,
-                    content: Cow::Borrowed(line.trim_end()),
-                };
-                if let Ok(content) = serde_json::to_string(&line_match) {
-                    writeln!(writer, "{}", content)?;
-                } else {
-                    log::error!("Could not serialize {:?}", line_match);
+                let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
+                for (index, re) in matchers.iter().enumerate() {
+                    if re.is_match(line) {
+                        line_indexes.filters.push(index as u8);
+                        *stats.entry(index as u8).or_insert(0) += 1;
+                    }
                 }
+                indexes.push(line_indexes);
+                writeln!(writer, "{}", lnum - 1)?;
                 Ok(true)
             }),
         )?;
 
-        Ok((self.out_file_path.clone(), matched_lines))
+        Ok((
+            self.out_file_path.clone(),
+            indexes,
+            FilterStats(
+                stats
+                    .into_iter()
+                    .map(|(filter_index, meets)| (filter_index, meets))
+                    .collect(),
+            ),
+        ))
+    }
+}
+
+impl MatchesExtractor {
+    pub fn new<'a, I>(path: &Path, filters: I) -> Self
+    where
+        I: Iterator<Item = &'a SearchFilter>,
+    {
+        let mut search_filters = vec![];
+        for filter in filters {
+            search_filters.push(filter.clone());
+        }
+        Self {
+            file_path: PathBuf::from(path),
+            filters: search_filters,
+        }
+    }
+
+    /// TODO: add description
+    pub fn extract_matches(&self) -> Result<Vec<ExtractedMatchValue>, SearchError> {
+        if self.filters.is_empty() {
+            return Err(SearchError::Input(
+                "Cannot search without filters".to_owned(),
+            ));
+        }
+        let combined_regex: String = format!(
+            "({})",
+            self.filters
+                .iter()
+                .map(|f: &SearchFilter| filter_as_regex(f))
+                .join("|")
+        );
+        let mut values: Vec<ExtractedMatchValue> = vec![];
+        let mut regexs: Vec<Regex> = vec![];
+        for filter in self.filters.iter() {
+            regexs.push(
+                Regex::from_str(&filter_as_regex(filter))
+                    .map_err(|err| SearchError::Regex(format!("{}", err)))?,
+            );
+        }
+        let regex_matcher = match RegexMatcher::new(&combined_regex) {
+            Ok(regex) => regex,
+            Err(err) => return Err(SearchError::Regex(format!("{}", err))),
+        };
+        // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
+        // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
+        // lnum - 1
+        Searcher::new().search_path(
+            &regex_matcher,
+            &self.file_path,
+            UTF8(|lnum, line| {
+                values.push(ExtractedMatchValue::new(lnum - 1, line, &regexs));
+                Ok(true)
+            }),
+        )?;
+
+        Ok(values)
     }
 }
 
@@ -191,97 +324,8 @@ impl Sink for MySink {
     }
 }
 
-pub fn execute_binary_search_of_slice(slice: &[u8], pattern: &str) -> Result<u64, SearchError> {
-    // let mut matched_lines = 0u64;
-
-    let mut builder = RegexMatcherBuilder::new();
-    builder
-        .case_smart(false)
-        .case_insensitive(false)
-        .multi_line(true)
-        .unicode(true)
-        .octal(false)
-        .word(false);
-    let matcher = builder.build(pattern)?;
-
-    let sink = MySink { matches: 0 };
-    // let matcher = RegexMatcher::new(pattern)?;
-    Searcher::new().search_slice(
-        &matcher,
-        slice,
-        sink
-        // UTF8(|lnum, line| {
-        //     matched_lines += 1;
-        //     let line_match = SearchMatch {
-        //         line: lnum,
-        //         content: Cow::Borrowed(line.trim_end()),
-        //     };
-        //     if let Ok(content) = serde_json::to_string(&line_match) {
-        //         writeln!(writer, "{}", content)?;
-        //     } else {
-        //         log::error!("Could not serialize {:?}", line_match);
-        //     }
-        //     Ok(true)
-        // }),
-    )?;
-
-    Ok(999)
-}
-
-pub fn count_pattern_in_binary(pattern: &str, input_file: &Path) -> Result<u64, std::io::Error> {
-    // execute_binary_search_of_slice(&DLT_LOGS, &pattern)
-    //     .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))
-    let _out_file_path = PathBuf::from(format!("{}.out", input_file.to_string_lossy()));
-    let mut matcher_builder = RegexMatcherBuilder::new();
-    matcher_builder.multi_line(true);
-    let matcher = matcher_builder.build(&pattern).unwrap();
-    // let out_file = File::create(&out_file_path)?;
-    let mut matched_lines = 0u64;
-
-    let mut builder = SummaryBuilder::new();
-    //         args.rs:835: === print_summary, stats: false
-    // TRACE|rg::args|crates/core/args.rs:836: === print_summary, max_count: None
-    // TRACE|rg::args|crates/core/args.rs:837: === print_summary, include-zero: false
-    // TRACE|rg::args|crates/core/args.rs:841: === print_summary, path_separator: None
-    // TRACE|rg::args|crates/core/args.rs:845: === print_summary, path_terminator: None
-    builder
-        .kind(SummaryKind::CountMatches)
-        .stats(false)
-        .exclude_zero(true)
-        .separator_path(None)
-        .path_terminator(None);
-    let wtr = termcolor::Buffer::no_color();
-    let mut summary = builder.build(wtr);
-    let _sink = summary.sink_with_path(&matcher, &input_file);
-
-    Searcher::new().search_path(
-        &matcher,
-        &input_file,
-        // sink,
-        Bytes(|lnum, line| {
-            println!("found match with lnum: {}: len = {}", lnum, line.len());
-            matched_lines += 1;
-            Ok(true)
-        }),
-    )?;
-    Ok(matched_lines)
-}
-
 #[cfg(test)]
 mod tests {
-    const DLT_LOGS: &[u8] = &[
-        0x44, 0x4C, 0x54, 0x01, 0x3D, 0xAB, 0x25, 0x5D, 0x28, 0x23, 0x00, 0x00, 0x4F, 0x54, 0x41,
-        0x46, 0x3D, 0x00, 0x00, 0x41, 0x4F, 0x54, 0x41, 0x46, 0x00, 0x00, 0x02, 0x67, 0x00, 0x05,
-        0xD8, 0xED, 0x41, 0x02, 0x50, 0x44, 0x52, 0x4D, 0x50, 0x44, 0x52, 0x4D, 0x23, 0x00, 0x00,
-        0x00, 0x67, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x19, 0x00, 0x4E, 0x61, 0x6D, 0x65,
-        0x3A, 0x20, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x4C, 0x69, 0x6E, 0x6B, 0x73, 0x6C,
-        0x65, 0x6E, 0x6B, 0x65, 0x6E, 0x00, 0x44, 0x4C, 0x54, 0x01, 0x3D, 0xAB, 0x25, 0x5D, 0x28,
-        0x23, 0x00, 0x00, 0x4F, 0x54, 0x41, 0x46, 0x3D, 0x00, 0x00, 0x3C, 0x4F, 0x54, 0x41, 0x46,
-        0x00, 0x00, 0x02, 0x67, 0x00, 0x05, 0xD8, 0xFF, 0x41, 0x02, 0x50, 0x44, 0x52, 0x4D, 0x50,
-        0x44, 0x52, 0x4D, 0x23, 0x00, 0x00, 0x00, 0x67, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,
-        0x14, 0x00, 0x4E, 0x61, 0x6D, 0x65, 0x3A, 0x20, 0x4D, 0x65, 0x74, 0x68, 0x6F, 0x64, 0x54,
-        0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x00,
-    ];
     const LOGS: &[&str] = &[
         "[Info](1.3): a",
         "[Warn](1.4): b",
@@ -293,20 +337,22 @@ mod tests {
     use super::*;
     // use grep_printer::SummaryBuilder;
     use std::io::{Error, ErrorKind};
-    fn as_matches(content: &str) -> Vec<SearchMatch> {
+    fn as_matches(content: &str) -> Vec<u64> {
         let lines: Vec<&str> = content.lines().collect();
+        println!("lines: {:?}", lines);
         lines
             .into_iter()
-            .map(|line| serde_json::from_str(line).unwrap())
+            .map(|line| line.parse::<u64>().unwrap())
             .collect()
     }
 
-    fn filtered(filters: &[SearchFilter]) -> Result<String, std::io::Error> {
+    // create tmp file with content, apply search
+    fn filtered(content: &str, filters: &[SearchFilter]) -> Result<String, std::io::Error> {
         let mut tmp_file = tempfile::NamedTempFile::new()?;
         let input_file = tmp_file.as_file_mut();
-        input_file.write_all(LOGS.join("\n").as_bytes())?;
+        input_file.write_all(content.as_bytes())?;
         let search_holder = SearchHolder::new(tmp_file.path(), filters.iter());
-        let (out_path, _found) = search_holder
+        let (out_path, _indexes, _stats) = search_holder
             .execute_search()
             .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
         std::fs::read_to_string(out_path)
@@ -325,28 +371,12 @@ mod tests {
                 .word(false),
         ];
 
-        let result_content = filtered(&filters)?;
+        let result_content = filtered(&LOGS.join("\n"), &filters)?;
+        println!("result_content: {:?}", result_content);
         let matches = as_matches(&result_content);
         assert_eq!(2, matches.len());
-        assert_eq!(2, matches[0].line);
-        assert_eq!("[Warn](1.4): b", matches[0].content);
-        assert_eq!(4, matches[1].line);
-        assert_eq!("[Err](1.6): d", matches[1].content);
-        Ok(())
-    }
-
-    #[test]
-    fn test_ripgrep_binary() -> Result<(), std::io::Error> {
-        let mut tmp_file = tempfile::NamedTempFile::new()?;
-        let file_path = PathBuf::from(tmp_file.path());
-        let input_file = tmp_file.as_file_mut();
-        input_file.write_all(DLT_LOGS)?;
-        let result_content = count_pattern_in_binary(r"\x44\x4C\x54\x01", &file_path)?;
-        assert_eq!(2, result_content);
-        // assert_eq!(2, matches[0].line);
-        // assert_eq!("[Warn](1.4): b", matches[0].content);
-        // assert_eq!(4, matches[1].line);
-        // assert_eq!("[Err](1.6): d", matches[1].content);
+        assert_eq!(1, matches[0]);
+        assert_eq!(3, matches[1]);
         Ok(())
     }
 
@@ -363,11 +393,11 @@ mod tests {
                 .word(false),
         ];
 
-        let result_content = filtered(&filters)?;
+        let result_content = filtered(&LOGS.join("\n"), &filters)?;
+        println!("result_content: {:?}", result_content);
         let matches = as_matches(&result_content);
         assert_eq!(1, matches.len());
-        assert_eq!(4, matches[0].line);
-        assert_eq!("[Err](1.6): d", matches[0].content);
+        assert_eq!(3, matches[0]);
         Ok(())
     }
 }

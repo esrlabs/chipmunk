@@ -149,7 +149,7 @@ impl Stream for PcapMessageProducer {
                     }
                 };
                 if let Some(payload) = data {
-                    match etherparse::SlicedPacket::from_ethernet(&payload) {
+                    match etherparse::SlicedPacket::from_ethernet(payload) {
                         Err(value) => core::task::Poll::Ready(Some((
                             consumed,
                             Err(DltParseError::ParsingHickup(format!(

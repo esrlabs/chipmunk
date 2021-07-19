@@ -46,7 +46,7 @@ pub fn restore_line(line: &str) -> &str {
     if let Some(cleaned) = line.split(PLUGIN_ID_SENTINAL).next() {
         cleaned
     } else {
-        &line
+        line
     }
 }
 
