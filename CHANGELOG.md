@@ -1,50 +1,58 @@
 # Changelog
 
+### [2.19.0] - 07/23/2021
+### Changed
+* Switch to newer version of dlt-core for formatting reasons
+
+### Fixed
+* Fix grabbing of small dlt files
+* Fix one-off error in text metadata handling
+
 ## [2.18.5] - 06/25/2021
-### Fix
+### Fixed
 * Fix styles for DLT open dialog
-  
+
 ## [2.18.4] - 06/18/2021
 ### Changed
 * DLT open dialog is upgraded
 
 
 ## [2.18.3] - 06/11/2021
-### Fixes
+### Fixed
 * Restore search manager state on session switching
 * Restore chart state on session switching
 * Possibility to remove a not capable plugin
 
 ## [2.18.2] - 06/04/2021
-### Fixes
+### Fixed
 * Fix updating of comment(s)
 * Fix rendering of comments list
 * Fix spinner on empty chart
 
 ## [2.18.1] - 06/01/2021
-### Fixes
+### Fixed
 * Fix an issue on actions with multiple filters/charts
 * Fix redirection issue from stream to search
 * Fix rendering of the scrollbar (matches)
 
 ## [2.18.0] - 05/28/2021
-### Add
+### Added
 * Show Y-axis on selected chart
-### Fixes
+### Fixed
 * Support scale for 0 > values on chart
 
 ## [2.17.0] - 05/07/2021
-### Changes
+### Changed
 * Using relevant version
 
 ## [2.16.6] - 05/07/2021
-### Changes
+### Changed
 * Lib chipmunk.client.components has been upgraded
 * Highlights on single search do not apply
-* Shell sidebar application improved 
+* Shell sidebar application improved
 
 ## [2.16.5] - 04/16/2021
-### Fixes
+### Fixed
 * Update menu "View"
 * Fix toolbar rendering on session switching
 * Fix columns render on row view
@@ -52,7 +60,7 @@
 * Ctrl + A (Cmd + A) to select all search matches
 
 ## [2.16.4] - 04/14/2021
-### Fixes
+### Fixed
 * Correct detecting of available profiles on windows
 * Fix pcap file parsing when we got stuck
 * Fix linux icon issue
@@ -63,7 +71,7 @@
 * Windows: add context menu to taskbar
 
 ## [2.16.3] - 04/09/2021
-### Fixes
+### Fixed
 * Add list of recent file into app menu
 * Open chart tab if charts are present
 * Validate root path before install CLI
@@ -154,7 +162,7 @@ Restore charts (between sessions) properly
 
 ## [2.14.0] - 02/19/2021
 ### Fixed
-* Terminate rg-process on session close 
+* Terminate rg-process on session close
 * Save search without extra flags
 * Resolve saving issue filters/charts
 * Move navigation along with focus
