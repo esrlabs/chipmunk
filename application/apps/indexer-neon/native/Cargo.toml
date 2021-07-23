@@ -23,7 +23,7 @@ anyhow = "1.0.40"
 crossbeam-channel = "0.5.1"
 dirs = "3.0.1"
 dlt = { path = "../../indexer/dlt" }
-dlt-core = "0.9"
+dlt-core = "0.10.1"
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "1.0.0"
