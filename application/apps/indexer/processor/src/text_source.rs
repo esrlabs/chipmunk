@@ -77,16 +77,14 @@ impl MetadataSource for TextFileSource {
             }
             match reader.fill_buf() {
                 Ok(content) => {
-                    let read_bytes = content.len();
-                    if read_bytes == 0 {
+                    if content.is_empty() {
                         // everything was processed
                         break;
                     }
 
-                    // Get list of all inlets in chunk
                     let (nl, offset_last_newline) = count_lines_up_to_last_newline(content);
                     let (slot, consumed, processed_lines) = if nl == 0 {
-                        let consumed = read_bytes as u64;
+                        let consumed = content.len() as u64;
                         // we hit a very long line that exceeds our read buffer, best
                         // to package everything we read into an entry and start a new one
                         let slot = Slot {

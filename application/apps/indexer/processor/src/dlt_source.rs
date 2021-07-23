@@ -77,8 +77,8 @@ impl MetadataSource for DltSource {
             }
             match reader.fill_buf() {
                 Ok(content) => {
-                    debug!("got content in dlt_source");
                     if content.is_empty() {
+                        // everything was processed
                         trace!(
                             "content of buffer now empty, we are done, {} bytes left",
                             bytes_in_slot
