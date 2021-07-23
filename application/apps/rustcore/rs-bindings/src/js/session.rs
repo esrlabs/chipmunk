@@ -28,6 +28,7 @@ use std::{
     thread,
 };
 use tokio::{runtime::Runtime, sync::broadcast};
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -45,6 +46,7 @@ enum Operation {
         source_id: String,
         operation_id: Uuid,
         source_type: SupportedFileType,
+        cancellation_token: CancellationToken,
     },
     Search {
         target_file: PathBuf,
@@ -295,9 +297,10 @@ impl RustSession {
                                 source_id,
                                 operation_id,
                                 source_type,
+                                cancellation_token,
                             } => {
                                 debug!("RUST: received Assign operation event");
-                                let callback_event = handle_assign(operation_id, file_path, source_type, source_id, &state);
+                                let callback_event = handle_assign(operation_id, file_path, source_type, source_id, &state, cancellation_token);
                                 callback(callback_event);
                                 callback(CallbackEvent::OperationDone(OperationDone {
                                     uuid: operation_id,
@@ -541,11 +544,13 @@ impl RustSession {
             }
         };
         let op_channel_tx = self.op_channel.0.clone();
+        let cancellation_token = CancellationToken::new();
         match op_channel_tx.send(Operation::Assign {
             file_path,
             source_id,
             operation_id,
             source_type,
+            cancellation_token,
         }) {
             Ok(_) => Ok(()),
             Err(e) => {
@@ -1007,6 +1012,7 @@ fn handle_assign(
     source_type: SupportedFileType,
     source_id: String,
     state: &Arc<Mutex<SessionState>>,
+    cancellation_token: CancellationToken,
 ) -> CallbackEvent {
     match create_metadata_for_source(file_path, source_type, source_id) {
         Some(Ok(Item(metadata))) => {
