@@ -74,7 +74,7 @@ use std::{fs, io::Read, path, time::Instant};
 use std::thread;
 
 fn init_logging() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("trace")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("warn")).init();
     info!("logging initialized");
 }
 
@@ -568,7 +568,7 @@ pub async fn main() -> Result<()> {
                         let metadata_path =
                             matches.value_of("metadata").expect("input must be present");
                         println!("grabber with metadata");
-                        processor::grabber::Grabber::<DltSource>::lazy(source)
+                        GrabberType::lazy(source)
                             .expect("Grabber could not be initialized lazily")
                             .load_metadata(path::PathBuf::from(metadata_path))
                             .expect("")

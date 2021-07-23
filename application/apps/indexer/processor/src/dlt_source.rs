@@ -58,18 +58,16 @@ impl MetadataSource for DltSource {
                 self.path.to_string_lossy()
             )));
         }
-        let mut slots = Vec::<Slot>::new();
-
         let f = fs::File::open(&self.path)?;
-
         let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
             .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
 
-        let mut bytes_in_slot = 0u64;
+        let mut slots = Vec::<Slot>::new();
         let mut bytes_offset = 0u64;
-        let mut log_entry_count = 0u64;
+        let mut log_msg_cnt: u64 = 0;
+
+        let mut bytes_in_slot = 0u64;
         let mut logs_in_slot = 0u64;
-        let mut msg_cnt: u64 = 0;
         loop {
             debug!("loop over dlt source");
             if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
@@ -88,9 +86,7 @@ impl MetadataSource for DltSource {
                                 bytes: ByteRange::from(
                                     (bytes_offset - bytes_in_slot)..=bytes_offset - 1,
                                 ),
-                                lines: LineRange::from(
-                                    log_entry_count - logs_in_slot..=log_entry_count,
-                                ),
+                                lines: LineRange::from(log_msg_cnt - logs_in_slot..=log_msg_cnt),
                             };
                             slots.push(slot);
                         }
@@ -100,19 +96,16 @@ impl MetadataSource for DltSource {
                     if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
                         debug!("dlt_consume_msg consumed {} bytes", consumed);
                         reader.consume(consumed as usize);
-                        msg_cnt += 1;
+                        log_msg_cnt += 1;
                         logs_in_slot += 1;
                         bytes_offset += consumed;
                         bytes_in_slot += consumed;
-                        log_entry_count += 1;
                         if bytes_in_slot >= DEFAULT_SLOT_SIZE as u64 {
                             let slot = Slot {
                                 bytes: ByteRange::from(
                                     (bytes_offset - bytes_in_slot)..=bytes_offset - 1,
                                 ),
-                                lines: LineRange::from(
-                                    log_entry_count - logs_in_slot..=log_entry_count,
-                                ),
+                                lines: LineRange::from(log_msg_cnt - logs_in_slot..=log_msg_cnt),
                             };
                             slots.push(slot);
                             bytes_in_slot = 0;
@@ -133,7 +126,7 @@ impl MetadataSource for DltSource {
         }
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
-            line_count: msg_cnt as usize,
+            line_count: log_msg_cnt as usize,
         }))
     }
 

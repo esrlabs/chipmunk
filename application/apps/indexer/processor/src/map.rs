@@ -23,8 +23,8 @@ impl FilterMatch {
 
 #[derive(Default)]
 pub struct NearestPosition {
-    pub index: u64,     // Position in search results
-    pub position: u64,  // Position in original stream/file
+    pub index: u64,    // Position in search results
+    pub position: u64, // Position in original stream/file
 }
 
 /// Holds search results map
@@ -181,7 +181,7 @@ impl SearchMap {
             let mut position: u64 = 0;
             for (position_in_search, filter_match) in self.matches.iter().enumerate() {
                 let diff = (position_in_stream as i64 - filter_match.index as i64).abs();
-                if  diff < distance {
+                if diff < distance {
                     distance = diff;
                     position = filter_match.index;
                     index = position_in_search as u64;

@@ -63,10 +63,16 @@ impl MetadataSource for TextFileSource {
         &self,
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
+        if !fs::metadata(&self.path)?.is_file() {
+            return Err(GrabError::Config(format!(
+                "File {} does not exist",
+                self.path.to_string_lossy()
+            )));
+        }
         let f = fs::File::open(&self.path)?;
         let mut slots = Vec::<Slot>::new();
-        let mut byte_index = 0u64;
-        let mut line_index = 0u64;
+        let mut byte_offset = 0u64;
+        let mut log_msg_cnt = 0u64;
 
         let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
             .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
@@ -88,22 +94,22 @@ impl MetadataSource for TextFileSource {
                         // we hit a very long line that exceeds our read buffer, best
                         // to package everything we read into an entry and start a new one
                         let slot = Slot {
-                            bytes: ByteRange::from(byte_index..=(byte_index + consumed) - 1),
-                            lines: LineRange::from(line_index..=line_index),
+                            bytes: ByteRange::from(byte_offset..=(byte_offset + consumed) - 1),
+                            lines: LineRange::from(log_msg_cnt..=log_msg_cnt),
                         };
                         (slot, consumed, 1)
                     } else {
                         let consumed = offset_last_newline as u64 + 1;
                         let slot = Slot {
-                            bytes: ByteRange::from(byte_index..=(byte_index + consumed - 1)),
-                            lines: LineRange::from(line_index..=(line_index + nl) - 1),
+                            bytes: ByteRange::from(byte_offset..=(byte_offset + consumed - 1)),
+                            lines: LineRange::from(log_msg_cnt..=(log_msg_cnt + nl) - 1),
                         };
                         (slot, consumed, nl)
                     };
                     reader.consume(consumed as usize);
                     slots.push(slot);
-                    byte_index += consumed;
-                    line_index += processed_lines;
+                    byte_offset += consumed;
+                    log_msg_cnt += processed_lines;
                 }
                 Err(e) => {
                     trace!("no more content");
@@ -117,7 +123,7 @@ impl MetadataSource for TextFileSource {
 
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
-            line_count: line_index as usize,
+            line_count: log_msg_cnt as usize,
         }))
     }
 
