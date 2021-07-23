@@ -143,27 +143,26 @@ fn update_package_path() -> Result<Option<PathBuf>> {
     for entry in downloads_path
         .read_dir()
         .expect("Fail read downloads folder")
+        .flatten()
     {
-        if let Ok(entry) = entry {
-            let path_buf = entry.path();
-            if let Some(ext) = path_buf.extension() {
-                if path_buf.is_file() && ext == "tgz" {
-                    let metadata = std::fs::metadata(&path_buf)?;
-                    if let Ok(time) = metadata.modified() {
-                        let unixts = time
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .map_err(|error| {
-                                anyhow::Error::new(error)
-                                    .context("could not get time diff for unix timestamp")
-                            })?
-                            .as_secs();
-                        if unixts > maxunixts {
-                            maxunixts = unixts;
-                            target = Some(path_buf);
-                        }
-                    } else {
-                        warn!("Not supported on this platform");
+        let path_buf = entry.path();
+        if let Some(ext) = path_buf.extension() {
+            if path_buf.is_file() && ext == "tgz" {
+                let metadata = std::fs::metadata(&path_buf)?;
+                if let Ok(time) = metadata.modified() {
+                    let unixts = time
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .map_err(|error| {
+                            anyhow::Error::new(error)
+                                .context("could not get time diff for unix timestamp")
+                        })?
+                        .as_secs();
+                    if unixts > maxunixts {
+                        maxunixts = unixts;
+                        target = Some(path_buf);
                     }
+                } else {
+                    warn!("Not supported on this platform");
                 }
             }
         }
@@ -195,8 +194,8 @@ fn update() -> Result<bool> {
             let child = spawn(
                 &updater_path,
                 &[
-                    &app.to_str().expect("Expecting app has to be valid path"),
-                    &update_package
+                    app.to_str().expect("Expecting app has to be valid path"),
+                    update_package
                         .to_str()
                         .expect("Expected update_package has to be valid path"),
                 ],

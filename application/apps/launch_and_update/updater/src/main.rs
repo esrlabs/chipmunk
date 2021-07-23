@@ -57,7 +57,7 @@ fn remove_old_application(app_folder: &Path) -> Result<PathBuf> {
         Ok(PathBuf::from(dest))
     } else {
         // Try to read release-file
-        match collect_release_files(&app_folder) {
+        match collect_release_files(app_folder) {
             None => {
                 // File ".release" doesn't exist (for example because it's version < 1.20.14)
                 // or there are some reading error. In any way continue with removing whole folder
@@ -212,10 +212,10 @@ fn main() {
 }
 
 fn do_rollback(backup: &Path, dest: &Path) -> Result<()> {
-    match remove_entity(&dest) {
-        Ok(()) => match unpack(&backup, &dest) {
+    match remove_entity(dest) {
+        Ok(()) => match unpack(backup, dest) {
             Ok(()) => {
-                if remove_entity(&backup).is_err() {
+                if remove_entity(backup).is_err() {
                     warn!(
                         "rollback was done but couldn't remove the backup file ({:?})",
                         backup
