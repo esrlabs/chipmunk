@@ -1,0 +1,21 @@
+@import '../../../../theme/variables.less';
+
+:host {
+    position: relative;
+    display: block;
+    & mat-panel-description {
+        color: @scheme-color-2!important;
+        display: flex;
+        flex: 0;
+        margin-right: 0px;
+    }
+    & .mat-expansion-panel-header.mat-expanded {
+        color: @scheme-color-0;
+    }
+    & .nowrap {
+        white-space: nowrap;
+    }
+    & mat-select.none {
+        font-style: italic;
+    }
+}

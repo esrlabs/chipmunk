@@ -21,7 +21,9 @@ import { SidebarAppNotificationsComponent       } from '../views/notifications/c
 import { SidebarAppCommentsModule               } from '../sidebar/comments/module';
 import { SidebarAppCommentsComponent            } from '../sidebar/comments/component';
 
-import { SidebarAppShellModule                } from './shell/module';
+import { SidebarAppShellModule                  } from './shell/module';
+
+import { SidebarAppAdbModule                    } from './adb/module';
 
 @NgModule({
     entryComponents : [ ],
@@ -38,6 +40,7 @@ import { SidebarAppShellModule                } from './shell/module';
         SidebarAppDLTConnectorModule,
         SidebarAppCommentsModule,
         SidebarAppShellModule,
+        SidebarAppAdbModule,
     ]
 })
 

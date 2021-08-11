@@ -72,7 +72,7 @@ export class TabsSessionsService implements IService {
     }
 
     public init(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this._subscriptions.onSessionTabChanged = this._tabsService.getObservable().active.subscribe(this._onSessionTabSwitched.bind(this));
             this._subscriptions.onSessionTabClosed = this._tabsService.getObservable().removed.subscribe(this._onSessionTabClosed.bind(this));
             this._subscriptions.onNewTab = HotkeysService.getObservable().newTab.subscribe(this._onNewTab.bind(this));
@@ -375,6 +375,7 @@ export class TabsSessionsService implements IService {
         if (controller === undefined) {
             return this._logger.warn(`Fail to destroy session "${session}" because cannot find this session.`);
         }
+        this._sessions.delete(session);
         if (controller instanceof Session) {
             controller.destroy().then(() => {
                 this._removeSession(session);
@@ -398,7 +399,6 @@ export class TabsSessionsService implements IService {
         if (this._subscriptions[`onSourceChanged:${guid}`] !== undefined) {
             this._subscriptions[`onSourceChanged:${guid}`].unsubscribe();
         }
-        this._sessions.delete(guid);
         if (this._sessions.size === 0) {
             EventsSessionService.getSubject().onSessionChange.next(undefined);
             this._sessionsEventsHub.emit().onSessionChange(undefined);
