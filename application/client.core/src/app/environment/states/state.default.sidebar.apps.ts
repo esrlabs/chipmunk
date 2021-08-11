@@ -4,6 +4,7 @@ import { SidebarAppConcatFilesComponent } from '../components/sidebar/concat/com
 import { SidebarAppDLTConnectorComponent } from '../components/sidebar/dlt.connector/component';
 import { SidebarAppCommentsComponent } from '../components/sidebar/comments/component';
 import { SidebarAppShellComponent } from '../components/sidebar/shell/component';
+import { SidebarAppAdbComponent } from '../components/sidebar/adb/component';
 import { ITab } from 'chipmunk-client-material';
 
 export { ITab };
@@ -15,6 +16,7 @@ export const CGuids = {
     dltdeamon: 'dltdeamon',
     comments: 'comments',
     shell: 'shell',
+    adb: 'adb',
 };
 
 export interface IDefaultSidebarApp {
@@ -106,6 +108,20 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             closable: true,
             active: true,
         }
+    },
+    {
+        addedAsDefault: false,
+        tab: {
+            guid: CGuids.adb,
+            name: 'Adb',
+            content: {
+                factory: SidebarAppAdbComponent,
+                resolved: false,
+                inputs: {},
+            },
+            closable: true,
+            active: true,
+        },
     }
 ];
 

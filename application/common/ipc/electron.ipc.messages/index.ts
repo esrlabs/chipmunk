@@ -705,6 +705,39 @@ export { IShellRecentCommandsRemove, ShellRecentCommandsRemove };
 import { IViewSwitchEvent, ViewSwitchEvent, AvailableViews } from './view.switch.event';
 export { IViewSwitchEvent, ViewSwitchEvent, AvailableViews };
 
+import { IAdbStartRequest, AdbStartRequest } from './adb.start.request';
+export { IAdbStartRequest, AdbStartRequest };
+
+import { IAdbStartResponse, AdbStartResponse } from './adb.start.response';
+export { IAdbStartResponse, AdbStartResponse };
+
+import { IAdbStopRequest, AdbStopRequest } from './adb.stop.request';
+export { IAdbStopRequest, AdbStopRequest }
+
+import { IAdbStopResponse, AdbStopResponse } from './adb.stop.response';
+export { IAdbStopResponse, AdbStopResponse };
+
+import { IAdbDevicesRequest, AdbDevicesRequest } from './adb.devices.request';
+export { IAdbDevicesRequest, AdbDevicesRequest };
+
+import { IAdbDevicesResponse, AdbDevicesResponse } from './adb.devices.response';
+export { IAdbDevicesResponse, AdbDevicesResponse };
+
+import { IAdbProcessesRequest, AdbProcessesRequest } from './adb.processes.request';
+export { IAdbProcessesRequest, AdbProcessesRequest };
+
+import { IAdbProcessesResponse, AdbProcessesResponse } from './adb.processes.response';
+export { IAdbProcessesResponse, AdbProcessesResponse };
+
+import { IAdbStreamUpdated, AdbStreamUpdated } from './adb.stream.updated';
+export { IAdbStreamUpdated, AdbStreamUpdated };
+
+import { IAdbLoadRequest, AdbLoadRequest } from './adb.load.request';
+export { IAdbLoadRequest, AdbLoadRequest };
+
+import { IAdbLoadResponse, AdbLoadResponse } from './adb.load.response';
+export { IAdbLoadResponse, AdbLoadResponse };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -937,7 +970,18 @@ export type TMessage =  AppRestartRequest |
                         ShellSaveRequest |
                         ShellSaveResponse |
                         ShellRecentCommandsRemove |
-                        ViewSwitchEvent;
+                        ViewSwitchEvent |
+                        AdbStartRequest |
+                        AdbStartResponse |
+                        AdbStopRequest |
+                        AdbStopResponse |
+                        AdbDevicesRequest |
+                        AdbDevicesResponse |
+                        AdbProcessesRequest |
+                        AdbProcessesResponse |
+                        AdbStreamUpdated |
+                        AdbLoadRequest |
+                        AdbLoadResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -1204,4 +1248,16 @@ export const Map = {
     [ShellSaveResponse.signature                    ]: ShellSaveResponse,
     [ShellRecentCommandsRemove.signature            ]: ShellRecentCommandsRemove,
     [ViewSwitchEvent.signature                      ]: ViewSwitchEvent,
+
+    [AdbStartRequest.signature                      ]: AdbStartRequest,
+    [AdbStartResponse.signature                     ]: AdbStartResponse,
+    [AdbStopRequest.signature                       ]: AdbStopRequest,
+    [AdbStopResponse.signature                      ]: AdbStopResponse,
+    [AdbDevicesRequest.signature                    ]: AdbDevicesRequest,
+    [AdbDevicesResponse.signature                   ]: AdbDevicesResponse,
+    [AdbProcessesRequest.signature                  ]: AdbProcessesRequest,
+    [AdbProcessesResponse.signature                 ]: AdbProcessesResponse,
+    [AdbStreamUpdated.signature                     ]: AdbStreamUpdated,
+    [AdbLoadRequest.signature                       ]: AdbLoadRequest,
+    [AdbLoadResponse.signature                      ]: AdbLoadResponse,
 };

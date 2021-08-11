@@ -1,0 +1,36 @@
+<mat-expansion-panel
+    [disabled]="true"
+    [expanded]="true"
+    [hideToggle]="true">
+    <mat-expansion-panel-header class="nowrap">
+        <mat-panel-title>Logcat</mat-panel-title>
+        <mat-panel-description *ngIf="_ng_device.name !== _ng_noDevice.name">{{_ng_amount}}</mat-panel-description>
+    </mat-expansion-panel-header>
+    <div *ngIf="service.status === 'init'">
+        <p class="t-small">Checking for adb</p>
+        <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
+    </div>
+    <div *ngIf="service.status === 'error'">
+        <p class="t-small">Adb either not installed yet or not added to environment variables</p>
+    </div>
+    <div *ngIf="service.status === 'ready'">
+        <mat-form-field appearence="fill">
+            <mat-label>Device</mat-label>
+            <mat-select [(value)]="_ng_device" [class]="this._ng_device.name === this._ng_noDevice.name ? 'none' : ''" (selectionChange)="_ng_onDeviceChange($event)">
+                <mat-option [value]="device" *ngFor="let device of _ng_devices">{{ device.name }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+        <mat-form-field appearence="fill">
+            <mat-label>Process</mat-label>
+            <mat-select [(value)]="_ng_process" [class]="this._ng_process.name === this._ng_noProcess.name ? 'none' : ''" (selectionChange)="_ng_onChange($event)">
+                <mat-option [value]="process" *ngFor="let process of _ng_processes">{{ process.name }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+        <mat-form-field appearence="fill">
+            <mat-label>Loglevel</mat-label>
+            <mat-select [(value)]="_ng_logLevel" (selectionChange)="_ng_onChange($event)">
+                <mat-option [value]="level.flag" *ngFor="let level of _ng_logLevels">{{ level.name }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+</mat-expansion-panel>

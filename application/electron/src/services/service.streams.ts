@@ -15,6 +15,7 @@ import ControllerStreamCharts from '../controllers/stream.charts/controller';
 import ControllerStreamRanges from '../controllers/stream.ranges/controller';
 import ControllerStreamProcessor from '../controllers/stream.main/controller';
 import ControllerStreamShell from '../controllers/stream.shell/controller';
+import ControllerStreamLogcat from '../controllers/stream.adb/controller';
 
 import { IPCMessages as IPCElectronMessages, Subscription } from './service.electron';
 import { EventsHub } from '../controllers/stream.common/events';
@@ -36,6 +37,7 @@ export interface IStreamInfo {
     charts: ControllerStreamCharts;
     ranges: ControllerStreamRanges;
     shell: ControllerStreamShell;
+    logcat: ControllerStreamLogcat;
     received: number;
 }
 
@@ -321,6 +323,7 @@ class ServiceStreams implements IService  {
                 const chartsController: ControllerStreamCharts      = new ControllerStreamCharts(guid, streamFile, searchFile, streamController, events);
                 const rangesController: ControllerStreamRanges      = new ControllerStreamRanges(guid, streamFile, streamController);
                 const shellController: ControllerStreamShell        = new ControllerStreamShell(guid);
+                const logcatController: ControllerStreamLogcat      = new ControllerStreamLogcat(guid);
                 // Create connection to trigger creation of server
                 const stream: IStreamInfo = {
                     guid: guid,
@@ -345,6 +348,7 @@ class ServiceStreams implements IService  {
                     charts: chartsController,
                     ranges: rangesController,
                     shell: shellController,
+                    logcat: logcatController,
                     received: 0,
                 };
                 // Bind server with file
@@ -399,6 +403,7 @@ class ServiceStreams implements IService  {
                     stream.search.destroy(),
                     stream.ranges.destroy(),
                     stream.shell.destroy(),
+                    stream.logcat.destroy(),
                 ]);
             };
             const unlinkFile = (file: string): Promise<void> => {
