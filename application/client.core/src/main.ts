@@ -9,8 +9,9 @@ import { setGlobalLogLevel, ELogLevels } from 'chipmunk.client.toolkit';
 setGlobalLogLevel(ELogLevels.WARNING);
 
 if (environment.production) {
-  enableProdMode();
+    enableProdMode();
 }
 
-platformBrowserDynamic().bootstrapModule(AppModule)
-  .catch(err => console.error(err));
+platformBrowserDynamic()
+    .bootstrapModule(AppModule)
+    .catch((err) => console.error(err));
