@@ -1,18 +1,12 @@
-import { BrowserModule                          } from '@angular/platform-browser';
-import { JitCompilerFactory                     } from '@angular/platform-browser-dynamic';
-import { AppComponent                           } from './app.component';
-import { EnvironmentModule                      } from './environment/module';
-import { BrowserAnimationsModule                } from '@angular/platform-browser/animations';
-import { MatNativeDateModule                    } from '@angular/material/core';
-import { HttpClientModule, HttpClient           } from '@angular/common/http';
-import {
-    FormsModule,
-    ReactiveFormsModule } from '@angular/forms';
-import {
-    COMPILER_OPTIONS,
-    CompilerFactory,
-    Compiler,
-    NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { JitCompilerFactory } from '@angular/platform-browser-dynamic';
+import { AppComponent } from './app.component';
+import { EnvironmentModule } from './environment/module';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatNativeDateModule } from '@angular/material/core';
+import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { COMPILER_OPTIONS, CompilerFactory, Compiler, NgModule } from '@angular/core';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatOptionModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,16 +15,12 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSliderModule } from '@angular/material/slider';
 import { MarkdownModule } from 'ngx-markdown';
 
-import * as globals from './environment/controller/helpers/globals';
-
 export function createCompiler(fn: CompilerFactory): Compiler {
     return fn.createCompiler();
 }
 
 @NgModule({
-    declarations: [
-        AppComponent,
-    ],
+    declarations: [AppComponent],
     imports: [
         BrowserModule,
         FormsModule,
@@ -51,20 +41,19 @@ export function createCompiler(fn: CompilerFactory): Compiler {
         {
             provide: COMPILER_OPTIONS,
             useValue: {},
-            multi: true
+            multi: true,
         },
         {
             provide: CompilerFactory,
             useClass: JitCompilerFactory,
-            deps: [COMPILER_OPTIONS]
+            deps: [COMPILER_OPTIONS],
         },
         {
             provide: Compiler,
             useFactory: createCompiler,
-            deps: [CompilerFactory]
-        }
+            deps: [CompilerFactory],
+        },
     ],
-    bootstrap: [AppComponent]
+    bootstrap: [AppComponent],
 })
-
-export class AppModule { }
+export class AppModule {}

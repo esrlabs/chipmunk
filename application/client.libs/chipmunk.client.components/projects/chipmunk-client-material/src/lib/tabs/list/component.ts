@@ -1,4 +1,15 @@
-import { Component, OnDestroy, Input, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef, ViewChildren, QueryList, OnChanges } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    Input,
+    AfterViewInit,
+    ChangeDetectorRef,
+    ViewChild,
+    ElementRef,
+    ViewChildren,
+    OnChanges,
+} from '@angular/core';
+import type { QueryList } from '@angular/core';
 import { ITabInternal, TabsService } from '../service';
 import { TabsOptions } from '../options';
 import { Subscription } from 'rxjs';
@@ -6,14 +17,12 @@ import { Subscription } from 'rxjs';
 @Component({
     selector: 'lib-complex-tabs-list',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
-
-    @ViewChild('holdernode', {static: false}) _ng_holderNode: ElementRef;
-    @ViewChild('tabsnode', {static: false}) _ng_tabsNode: ElementRef;
-    @ViewChild('injectionsnode', {static: false}) _ng_injectionsNode: ElementRef;
+    @ViewChild('holdernode', { static: false }) _ng_holderNode: ElementRef;
+    @ViewChild('tabsnode', { static: false }) _ng_tabsNode: ElementRef;
+    @ViewChild('injectionsnode', { static: false }) _ng_injectionsNode: ElementRef;
     @ViewChildren('tabnode', { read: ElementRef }) _ng_tabsElRegs: QueryList<ElementRef>;
 
     @Input() public service: TabsService = null;
@@ -22,13 +31,13 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
     public _ng_offset: number = 0;
     public tabs: ITabInternal[] = [];
 
-    private _subscriptions: { [key: string]: Subscription } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
     private _tabs: Map<string, ITabInternal> = new Map();
     private _sizes: {
-        space: number,
-        holder: number,
-        tabs: number[],
+        space: number;
+        holder: number;
+        tabs: number[];
         first: number;
     } = {
         space: 0,
@@ -122,11 +131,21 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     private _subscribe() {
         this._unsubscribe();
-        this._subscriptions.new = this.service.getObservable().new.subscribe(this.onNewTab.bind(this));
-        this._subscriptions.removed = this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this));
-        this._subscriptions.active = this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this));
-        this._subscriptions.options = this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this));
-        this._subscriptions.updated = this.service.getObservable().updated.subscribe(this._onTabUpdated.bind(this));
+        this._subscriptions.new = this.service
+            .getObservable()
+            .new.subscribe(this.onNewTab.bind(this));
+        this._subscriptions.removed = this.service
+            .getObservable()
+            .removed.subscribe(this.onRemoveTab.bind(this));
+        this._subscriptions.active = this.service
+            .getObservable()
+            .active.subscribe(this.onActiveTabChange.bind(this));
+        this._subscriptions.options = this.service
+            .getObservable()
+            .options.subscribe(this._onOptionsUpdated.bind(this));
+        this._subscriptions.updated = this.service
+            .getObservable()
+            .updated.subscribe(this._onTabUpdated.bind(this));
     }
 
     private _unsubscribe() {
@@ -212,11 +231,21 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         if (this._ng_tabsNode === undefined || this._ng_tabsNode === null) {
             return Infinity;
         }
-        const width: number = (this._ng_holderNode.nativeElement as HTMLElement).getBoundingClientRect().width;
-        const tabs: number = (this._ng_tabsNode.nativeElement as HTMLElement).getBoundingClientRect().width;
-        const injections: number = this._ng_injectionsNode !== undefined ? (this._ng_injectionsNode !== null ? (this._ng_injectionsNode.nativeElement as HTMLElement).getBoundingClientRect().width : 0) : 0;
+        const width: number = (
+            this._ng_holderNode.nativeElement as HTMLElement
+        ).getBoundingClientRect().width;
+        const tabs: number = (
+            this._ng_tabsNode.nativeElement as HTMLElement
+        ).getBoundingClientRect().width;
+        const injections: number =
+            this._ng_injectionsNode !== undefined
+                ? this._ng_injectionsNode !== null
+                    ? (this._ng_injectionsNode.nativeElement as HTMLElement).getBoundingClientRect()
+                          .width
+                    : 0
+                : 0;
         const space: number = Math.round(width - tabs - injections);
-        this._sizes.space = space === -0 ? 0 : space ;
+        this._sizes.space = space === -0 ? 0 : space;
         this._sizes.holder = width;
         this._sizes.tabs = [];
         this._ng_tabsElRegs.forEach((tab: ElementRef<HTMLElement>) => {
@@ -245,5 +274,4 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
             this._cdRef.detectChanges();
         }
     }
-
 }

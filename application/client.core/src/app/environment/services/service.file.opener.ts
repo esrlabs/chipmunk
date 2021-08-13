@@ -23,7 +23,6 @@ export enum EActionType {
     merging = 'merging',
 }
 
-
 export interface IFileOpenerService {
     merge: (files: IPCMessages.IFile[] | FilesList) => void;
     concat: (files: IPCMessages.IFile[] | FilesList) => void;
@@ -32,22 +31,34 @@ export interface IFileOpenerService {
 const CReopenContextMenuItemId = 'reopen_file_item';
 
 export class FileOpenerService implements IService, IFileOpenerService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('FileOpenerService');
     private _subscriptions: { [key: string]: Subscription } = {};
     private _used: boolean = false;
 
-    constructor() {
-
-    }
+    constructor() {}
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            this._subscriptions.FileOpenDoneEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenDoneEvent, this._onFileOpenDoneEvent.bind(this));
-            this._subscriptions.FileOpenInprogressEvent = ServiceElectronIpc.subscribe(IPCMessages.FileOpenInprogressEvent, this._onFileOpenInprogressEvent.bind(this));
-            this._subscriptions.CLIActionOpenFileRequest = ServiceElectronIpc.subscribe(IPCMessages.CLIActionOpenFileRequest, this._onCLIActionOpenFileRequest.bind(this));
-            this._subscriptions.CLIActionMergeFilesRequest = ServiceElectronIpc.subscribe(IPCMessages.CLIActionMergeFilesRequest, this._onCLIActionMergeFilesRequest.bind(this));
-            this._subscriptions.CLIActionConcatFilesRequest = ServiceElectronIpc.subscribe(IPCMessages.CLIActionConcatFilesRequest, this._onCLIActionConcatFilesRequest.bind(this));
+            this._subscriptions.FileOpenDoneEvent = ServiceElectronIpc.subscribe(
+                IPCMessages.FileOpenDoneEvent,
+                this._onFileOpenDoneEvent.bind(this),
+            );
+            this._subscriptions.FileOpenInprogressEvent = ServiceElectronIpc.subscribe(
+                IPCMessages.FileOpenInprogressEvent,
+                this._onFileOpenInprogressEvent.bind(this),
+            );
+            this._subscriptions.CLIActionOpenFileRequest = ServiceElectronIpc.subscribe(
+                IPCMessages.CLIActionOpenFileRequest,
+                this._onCLIActionOpenFileRequest.bind(this),
+            );
+            this._subscriptions.CLIActionMergeFilesRequest = ServiceElectronIpc.subscribe(
+                IPCMessages.CLIActionMergeFilesRequest,
+                this._onCLIActionMergeFilesRequest.bind(this),
+            );
+            this._subscriptions.CLIActionConcatFilesRequest = ServiceElectronIpc.subscribe(
+                IPCMessages.CLIActionConcatFilesRequest,
+                this._onCLIActionConcatFilesRequest.bind(this),
+            );
             resolve();
         });
     }
@@ -74,82 +85,140 @@ export class FileOpenerService implements IService, IFileOpenerService {
             if (files.length === 0) {
                 return resolve();
             }
-            this._getDetailedFileList(files.map((file: IPCMessages.IFile) => file.path)).then((list: IPCMessages.IFile[]) => {
-                this._setSessionNewSession().then((session: Session) => {
-                    TabsSessionsService.setActive(session.getGuid());
-                    if (list.length === 0) {
-                        return resolve();
-                    }
-                    if (list.length === 1) {
-                        // Single file
-                        ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
-                            file: list[0].path,
-                            session: session.getGuid(),
-                        }), IPCMessages.FileOpenResponse).then((openResponse: IPCMessages.FileReadResponse) => {
-                            if (openResponse.error !== undefined) {
-                                return reject(new Error(this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${openResponse.error}`)));
+            this._getDetailedFileList(files.map((file: IPCMessages.IFile) => file.path))
+                .then((list: IPCMessages.IFile[]) => {
+                    this._setSessionNewSession()
+                        .then((session: Session) => {
+                            TabsSessionsService.setActive(session.getGuid());
+                            if (list.length === 0) {
+                                return resolve();
                             }
-                            resolve();
-                        }).catch((error: Error) => {
-                            return reject(new Error(this._logger.error(`Fail open file/folder "${files[0].path}" due error: ${error.message}`)));
-                    });
-                    } else {
-                        // Multiple files
-                        // Select way: merge or concat
-                        const fileList: FilesList = new FilesList(list);
-                        const guid: string = PopupsService.add({
-                            id: 'opening-file-dialog',
-                            caption: `Opening files`,
-                            component: {
-                                factory: DialogsMultipleFilesActionComponent,
-                                inputs: {
-                                    fileList: fileList,
-                                }
-                            },
-                            buttons: [
-                                { caption: 'Merge', handler: this.merge.bind(this, fileList), },
-                                { caption: 'Concat', handler: this.concat.bind(this, fileList), },
-                                { caption: 'Open each', handler: this.openEach.bind(this, fileList), },
-                            ],
+                            if (list.length === 1) {
+                                // Single file
+                                ServiceElectronIpc.request(
+                                    new IPCMessages.FileOpenRequest({
+                                        file: list[0].path,
+                                        session: session.getGuid(),
+                                    }),
+                                    IPCMessages.FileOpenResponse,
+                                )
+                                    .then((openResponse: IPCMessages.FileReadResponse) => {
+                                        if (openResponse.error !== undefined) {
+                                            return reject(
+                                                new Error(
+                                                    this._logger.error(
+                                                        `Fail open file/folder "${files[0].path}" due error: ${openResponse.error}`,
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        resolve();
+                                    })
+                                    .catch((error: Error) => {
+                                        return reject(
+                                            new Error(
+                                                this._logger.error(
+                                                    `Fail open file/folder "${files[0].path}" due error: ${error.message}`,
+                                                ),
+                                            ),
+                                        );
+                                    });
+                            } else {
+                                // Multiple files
+                                // Select way: merge or concat
+                                const fileList: FilesList = new FilesList(list);
+                                const guid: string = PopupsService.add({
+                                    id: 'opening-file-dialog',
+                                    caption: `Opening files`,
+                                    component: {
+                                        factory: DialogsMultipleFilesActionComponent,
+                                        inputs: {
+                                            fileList: fileList,
+                                        },
+                                    },
+                                    buttons: [
+                                        {
+                                            caption: 'Merge',
+                                            handler: this.merge.bind(this, fileList),
+                                        },
+                                        {
+                                            caption: 'Concat',
+                                            handler: this.concat.bind(this, fileList),
+                                        },
+                                        {
+                                            caption: 'Open each',
+                                            handler: this.openEach.bind(this, fileList),
+                                        },
+                                    ],
+                                });
+                                resolve();
+                            }
+                        })
+                        .catch((error: Error) => {
+                            return reject(
+                                new Error(
+                                    this._logger.error(
+                                        `Fail open file "${files[0].path}" due error: ${error.message}`,
+                                    ),
+                                ),
+                            );
                         });
-                        resolve();
-                    }
-                }).catch((error: Error) => {
-                    return reject(new Error(this._logger.error(`Fail open file "${files[0].path}" due error: ${error.message}`)));
+                })
+                .catch((error: Error) => {
+                    return reject(
+                        new Error(
+                            this._logger.error(
+                                `Cannot continue with opening file, because fail to prepare session due error: ${error.message}`,
+                            ),
+                        ),
+                    );
                 });
-            }).catch((error: Error) => {
-                return reject(new Error(this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`)));
-            });
         });
     }
 
     public openFileByName(file: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._setSessionNewSession().then((session: Session) => {
-                TabsSessionsService.setActive(session.getGuid());
-                ServiceElectronIpc.request(new IPCMessages.FileOpenRequest({
-                    file: file,
-                    session: session.getGuid(),
-                }), IPCMessages.FileOpenResponse).then((response: IPCMessages.FileOpenResponse) => {
-                    if (response.error !== undefined) {
-                        this._logger.error(`Fail open file "${file}" due error: ${response.error}`);
-                        // TODO: add notification here
-                        return reject(new Error(response.error));
-                    }
-                    resolve();
-                }).catch((error: Error) => {
-                    this._logger.error(`Fail open file "${file}" due error: ${error.message}`);
-                    // TODO: add notification here
-                    reject(error);
+            this._setSessionNewSession()
+                .then((session: Session) => {
+                    TabsSessionsService.setActive(session.getGuid());
+                    ServiceElectronIpc.request(
+                        new IPCMessages.FileOpenRequest({
+                            file: file,
+                            session: session.getGuid(),
+                        }),
+                        IPCMessages.FileOpenResponse,
+                    )
+                        .then((response: IPCMessages.FileOpenResponse) => {
+                            if (response.error !== undefined) {
+                                this._logger.error(
+                                    `Fail open file "${file}" due error: ${response.error}`,
+                                );
+                                // TODO: add notification here
+                                return reject(new Error(response.error));
+                            }
+                            resolve();
+                        })
+                        .catch((error: Error) => {
+                            this._logger.error(
+                                `Fail open file "${file}" due error: ${error.message}`,
+                            );
+                            // TODO: add notification here
+                            reject(error);
+                        });
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Cannot continue with opening file, because fail to prepare session due error: ${error.message}`,
+                    );
                 });
-            }).catch((error: Error) => {
-                this._logger.error(`Cannot continue with opening file, because fail to prepare session due error: ${error.message}`);
-            });
         });
     }
 
     public merge(list: IPCMessages.IFile[] | FilesList, session?: Session) {
-        const checked = list instanceof Array ? this._filterChecked(list) : this._filterChecked(list.getFiles());
+        const checked =
+            list instanceof Array
+                ? this._filterChecked(list)
+                : this._filterChecked(list.getFiles());
         if (checked.length <= 0) {
             return;
         }
@@ -157,7 +226,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     public concat(list: IPCMessages.IFile[] | FilesList, session?: Session) {
-        const checked = list instanceof Array ? this._filterChecked(list) : this._filterChecked(list.getFiles());
+        const checked =
+            list instanceof Array
+                ? this._filterChecked(list)
+                : this._filterChecked(list.getFiles());
         if (checked.length <= 0) {
             return;
         }
@@ -165,7 +237,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
     }
 
     public openEach(list: IPCMessages.IFile[] | FilesList) {
-        const checked: IPCMessages.IFile[] = list instanceof Array ? this._filterChecked(list) : this._filterChecked(list.getFiles());
+        const checked: IPCMessages.IFile[] =
+            list instanceof Array
+                ? this._filterChecked(list)
+                : this._filterChecked(list.getFiles());
         if (checked.length <= 0) {
             return;
         }
@@ -173,34 +248,51 @@ export class FileOpenerService implements IService, IFileOpenerService {
             if (index >= checked.length) {
                 return;
             }
-            this.openFileByName(checked[index].path).then(() => {
-                openFile(++index);
-            }).catch((error: Error) => {
-                TabsSessionsService.getPluginAPI(undefined).addNotification({
-                    caption: `Fail to open file`,
-                    message: `Fail to open file ${checked[index].path} due error ${error.message}`,
-                    options: {
-                        type: ENotificationType.error,
-                    },
+            this.openFileByName(checked[index].path)
+                .then(() => {
+                    openFile(++index);
+                })
+                .catch((error: Error) => {
+                    TabsSessionsService.getPluginAPI(undefined).addNotification({
+                        caption: `Fail to open file`,
+                        message: `Fail to open file ${checked[index].path} due error ${error.message}`,
+                        options: {
+                            type: ENotificationType.error,
+                        },
+                    });
+                    openFile(++index);
                 });
-                openFile(++index);
-            });
         };
         openFile(0);
     }
 
     private _getDetailedFileList(paths: string[]): Promise<IPCMessages.IFile[]> {
         return new Promise((resolve, reject) => {
-            ServiceElectronIpc.request(new IPCMessages.FileListRequest({
-                files: paths,
-            }), IPCMessages.FileListResponse).then((response: IPCMessages.FileListResponse) => {
-                if (response.error !== undefined) {
-                    return reject(new Error(this._logger.error(`Fail check paths due error: ${response.error}`)));
-                }
-                resolve(response.files);
-            }).catch((error: Error) => {
-                return reject(new Error(this._logger.error(`Fail to send IPC message to chech paths: ${error.message}`)));
-            });
+            ServiceElectronIpc.request(
+                new IPCMessages.FileListRequest({
+                    files: paths,
+                }),
+                IPCMessages.FileListResponse,
+            )
+                .then((response: IPCMessages.FileListResponse) => {
+                    if (response.error !== undefined) {
+                        return reject(
+                            new Error(
+                                this._logger.error(`Fail check paths due error: ${response.error}`),
+                            ),
+                        );
+                    }
+                    resolve(response.files);
+                })
+                .catch((error: Error) => {
+                    return reject(
+                        new Error(
+                            this._logger.error(
+                                `Fail to send IPC message to chech paths: ${error.message}`,
+                            ),
+                        ),
+                    );
+                });
         });
     }
 
@@ -232,33 +324,47 @@ export class FileOpenerService implements IService, IFileOpenerService {
         session: Session,
         file: string,
         stream: IPCMessages.IStreamSourceNew | undefined,
-        options: any
+        options: any,
     ) {
         if (stream === undefined || !FileOptionsService.hasOptions(stream.meta)) {
-            session.getTabTitleContextMenuService().update({
-                id: CReopenContextMenuItemId,
-                caption: 'Reopen File',
-                disabled: true,
-                handler: () => {},
-            }, 'unshift');
+            session.getTabTitleContextMenuService().update(
+                {
+                    id: CReopenContextMenuItemId,
+                    caption: 'Reopen File',
+                    disabled: true,
+                    handler: () => {},
+                },
+                'unshift',
+            );
             return;
         }
         const storage: Storage<any> = new Storage<any>(options);
-        const opener = FileOptionsService.getReopenOptionsCallback<any>(session, stream.meta, file, storage);
+        const opener = FileOptionsService.getReopenOptionsCallback<any>(
+            session,
+            stream.meta,
+            file,
+            storage,
+        );
         if (opener !== undefined) {
-            session.getTabTitleContextMenuService().update({
-                id: CReopenContextMenuItemId,
-                caption: 'Reopen File',
-                disabled: false,
-                handler: opener,
-            }, 'unshift');
+            session.getTabTitleContextMenuService().update(
+                {
+                    id: CReopenContextMenuItemId,
+                    caption: 'Reopen File',
+                    disabled: false,
+                    handler: opener,
+                },
+                'unshift',
+            );
         } else {
-            session.getTabTitleContextMenuService().update({
-                id: CReopenContextMenuItemId,
-                caption: 'Reopen File',
-                disabled: true,
-                handler: () => {},
-            }, 'unshift');
+            session.getTabTitleContextMenuService().update(
+                {
+                    id: CReopenContextMenuItemId,
+                    caption: 'Reopen File',
+                    disabled: true,
+                    handler: () => {},
+                },
+                'unshift',
+            );
         }
     }
 
@@ -266,17 +372,23 @@ export class FileOpenerService implements IService, IFileOpenerService {
         return new Promise((resolve, reject) => {
             // Check active session before
             const active: Session = TabsSessionsService.getEmpty();
-            if (active !== undefined && active.getStreamOutput().getRowsCount() === 0 && (!cli || !this._used)) {
+            if (
+                active !== undefined &&
+                active.getStreamOutput().getRowsCount() === 0 &&
+                (!cli || !this._used)
+            ) {
                 // Active session is empty, we can use it
                 this._used = true;
                 return resolve(active);
             }
             // Active session has content, create new one
-            TabsSessionsService.add().then((session: Session) => {
-                resolve(session);
-            }).catch((addSessionErr: Error) => {
-                reject(addSessionErr);
-            });
+            TabsSessionsService.add()
+                .then((session: Session) => {
+                    resolve(session);
+                })
+                .catch((addSessionErr: Error) => {
+                    reject(addSessionErr);
+                });
         });
     }
 
@@ -302,81 +414,135 @@ export class FileOpenerService implements IService, IFileOpenerService {
             id: CReopenContextMenuItemId,
             caption: 'Reopen File (indexing...)',
             disabled: true,
-            handler: opener,
+            handler: () => {},
         });
     }
 
-    private _onCLIActionOpenFileRequest(msg: IPCMessages.CLIActionOpenFileRequest, response: (message: IPCMessages.TMessage) => Promise<void>) {
-        this.openFileByName(msg.file).then(() => {
-            response(new IPCMessages.CLIActionOpenFileResponse({})).catch((resErr: Error) => {
-                this._logger.warn(`Fail send response due error: ${resErr.message}`);
+    private _onCLIActionOpenFileRequest(
+        msg: IPCMessages.CLIActionOpenFileRequest,
+        response: (message: IPCMessages.TMessage) => Promise<void>,
+    ) {
+        this.openFileByName(msg.file)
+            .then(() => {
+                response(new IPCMessages.CLIActionOpenFileResponse({})).catch((resErr: Error) => {
+                    this._logger.warn(`Fail send response due error: ${resErr.message}`);
+                });
+            })
+            .catch((err: Error) => {
+                this._logger.warn(`Fail to open file "${msg.file}" due error: ${err.message}`);
+                response(new IPCMessages.CLIActionOpenFileResponse({ error: err.message })).catch(
+                    (resErr: Error) => {
+                        this._logger.warn(`Fail send response due error: ${resErr.message}`);
+                    },
+                );
             });
-        }).catch((err: Error) => {
-            this._logger.warn(`Fail to open file "${msg.file}" due error: ${err.message}`);
-            response(new IPCMessages.CLIActionOpenFileResponse({ error: err.message})).catch((resErr: Error) => {
-                this._logger.warn(`Fail send response due error: ${resErr.message}`);
-            });
-        });
     }
 
-    private _onCLIActionMergeFilesRequest(msg: IPCMessages.CLIActionMergeFilesRequest, response: (message: IPCMessages.TMessage) => Promise<void>) {
-        this._getDetailedFileList(msg.files).then((list: IPCMessages.IFile[]) => {
-            if (list.length === 0) {
-                return response(new IPCMessages.CLIActionMergeFilesResponse({ error: `File list is empty`})).catch((resErr: Error) => {
-                    this._logger.warn(`Fail send response due error: ${resErr.message}`);
-                });
-            }
-            this._setSessionNewSession(true).then((session: Session) => {
-                TabsSessionsService.setActive(session.getGuid());
-                this.merge(list.map((file) => {
-                    file.checked = true;
-                    return file;
-                }), session);
-                response(new IPCMessages.CLIActionMergeFilesResponse({ })).catch((resErr: Error) => {
-                    this._logger.warn(`Fail send response due error: ${resErr.message}`);
-                });
-            }).catch((err: Error) => {
-                return response(new IPCMessages.CLIActionMergeFilesResponse({ error: `Fail to create session: ${err.message}`})).catch((resErr: Error) => {
-                    this._logger.warn(`Fail to create session due error: ${err.message}`);
-                });
+    private _onCLIActionMergeFilesRequest(
+        msg: IPCMessages.CLIActionMergeFilesRequest,
+        response: (message: IPCMessages.TMessage) => Promise<void>,
+    ) {
+        this._getDetailedFileList(msg.files)
+            .then((list: IPCMessages.IFile[]) => {
+                if (list.length === 0) {
+                    return response(
+                        new IPCMessages.CLIActionMergeFilesResponse({
+                            error: `File list is empty`,
+                        }),
+                    ).catch((resErr: Error) => {
+                        this._logger.warn(`Fail send response due error: ${resErr.message}`);
+                    });
+                }
+                this._setSessionNewSession(true)
+                    .then((session: Session) => {
+                        TabsSessionsService.setActive(session.getGuid());
+                        this.merge(
+                            list.map((file) => {
+                                file.checked = true;
+                                return file;
+                            }),
+                            session,
+                        );
+                        response(new IPCMessages.CLIActionMergeFilesResponse({})).catch(
+                            (resErr: Error) => {
+                                this._logger.warn(
+                                    `Fail send response due error: ${resErr.message}`,
+                                );
+                            },
+                        );
+                    })
+                    .catch((err: Error) => {
+                        return response(
+                            new IPCMessages.CLIActionMergeFilesResponse({
+                                error: `Fail to create session: ${err.message}`,
+                            }),
+                        ).catch((resErr: Error) => {
+                            this._logger.warn(`Fail to create session due error: ${err.message}`);
+                        });
+                    });
+            })
+            .catch((err: Error) => {
+                this._logger.warn(`Fail to merge files due error: ${err.message}`);
+                response(new IPCMessages.CLIActionMergeFilesResponse({ error: err.message })).catch(
+                    (resErr: Error) => {
+                        this._logger.warn(`Fail send response due error: ${resErr.message}`);
+                    },
+                );
             });
-        }).catch((err: Error) => {
-            this._logger.warn(`Fail to merge files due error: ${err.message}`);
-            response(new IPCMessages.CLIActionMergeFilesResponse({ error: err.message})).catch((resErr: Error) => {
-                this._logger.warn(`Fail send response due error: ${resErr.message}`);
-            });
-        });
     }
 
-    private _onCLIActionConcatFilesRequest(msg: IPCMessages.CLIActionConcatFilesRequest, response: (message: IPCMessages.TMessage) => Promise<void>) {
-        this._getDetailedFileList(msg.files).then((list: IPCMessages.IFile[]) => {
-            if (list.length === 0) {
-                return response(new IPCMessages.CLIActionConcatFilesResponse({ error: `File list is empty`})).catch((resErr: Error) => {
+    private _onCLIActionConcatFilesRequest(
+        msg: IPCMessages.CLIActionConcatFilesRequest,
+        response: (message: IPCMessages.TMessage) => Promise<void>,
+    ) {
+        this._getDetailedFileList(msg.files)
+            .then((list: IPCMessages.IFile[]) => {
+                if (list.length === 0) {
+                    return response(
+                        new IPCMessages.CLIActionConcatFilesResponse({
+                            error: `File list is empty`,
+                        }),
+                    ).catch((resErr: Error) => {
+                        this._logger.warn(`Fail send response due error: ${resErr.message}`);
+                    });
+                }
+                this._setSessionNewSession(true)
+                    .then((session: Session) => {
+                        TabsSessionsService.setActive(session.getGuid());
+                        this.concat(
+                            list.map((file) => {
+                                file.checked = true;
+                                return file;
+                            }),
+                            session,
+                        );
+                        response(new IPCMessages.CLIActionConcatFilesResponse({})).catch(
+                            (resErr: Error) => {
+                                this._logger.warn(
+                                    `Fail send response due error: ${resErr.message}`,
+                                );
+                            },
+                        );
+                    })
+                    .catch((err: Error) => {
+                        return response(
+                            new IPCMessages.CLIActionConcatFilesResponse({
+                                error: `Fail to create session: ${err.message}`,
+                            }),
+                        ).catch((resErr: Error) => {
+                            this._logger.warn(`Fail to create session due error: ${err.message}`);
+                        });
+                    });
+            })
+            .catch((err: Error) => {
+                this._logger.warn(`Fail to merge files due error: ${err.message}`);
+                response(
+                    new IPCMessages.CLIActionConcatFilesResponse({ error: err.message }),
+                ).catch((resErr: Error) => {
                     this._logger.warn(`Fail send response due error: ${resErr.message}`);
                 });
-            }
-            this._setSessionNewSession(true).then((session: Session) => {
-                TabsSessionsService.setActive(session.getGuid());
-                this.concat(list.map((file) => {
-                    file.checked = true;
-                    return file;
-                }), session);
-                response(new IPCMessages.CLIActionConcatFilesResponse({ })).catch((resErr: Error) => {
-                    this._logger.warn(`Fail send response due error: ${resErr.message}`);
-                });
-            }).catch((err: Error) => {
-                return response(new IPCMessages.CLIActionConcatFilesResponse({ error: `Fail to create session: ${err.message}`})).catch((resErr: Error) => {
-                    this._logger.warn(`Fail to create session due error: ${err.message}`);
-                });
             });
-        }).catch((err: Error) => {
-            this._logger.warn(`Fail to merge files due error: ${err.message}`);
-            response(new IPCMessages.CLIActionConcatFilesResponse({ error: err.message})).catch((resErr: Error) => {
-                this._logger.warn(`Fail send response due error: ${resErr.message}`);
-            });
-        });
     }
-
 }
 
-export default (new FileOpenerService());
+export default new FileOpenerService();
