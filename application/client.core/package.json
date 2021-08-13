@@ -9,7 +9,6 @@
     "start": "./node_modules/.bin/ng serve",
     "build": "./node_modules/.bin/ng build",
     "test": "./node_modules/.bin/ng test",
-    "lint": "./node_modules/.bin/ng lint",
     "e2e": "./node_modules/.bin/ng e2e",
     "prod": "./node_modules/.bin/ng build --prod --aot --outputHashing=all"
   },
