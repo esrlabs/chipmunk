@@ -63,6 +63,20 @@
                   "maximumWarning": "100kb"
                 }
               ]
+            },
+            "development": {
+              "sourceMap": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "5mb",
+                  "maximumError": "10mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "100kb"
+                }
+              ]
             }
           }
         },

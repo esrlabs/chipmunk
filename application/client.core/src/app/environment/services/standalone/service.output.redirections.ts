@@ -1,7 +1,13 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 import { Subscription } from 'rxjs';
-import { Selection, ISelectionAccessor, IRange, IRowPosition, ESource } from '../../controller/helpers/selection';
+import {
+    Selection,
+    ISelectionAccessor,
+    IRange,
+    IRowPosition,
+    ESource,
+} from '../../controller/helpers/selection';
 import { Session } from '../../controller/session/session';
 import { IBookmark } from '../../controller/session/dependencies/bookmarks/controller.session.tab.stream.bookmarks';
 import { IPCMessages } from '../../services/service.electron.ipc';
@@ -47,7 +53,6 @@ export interface IRangeExtended extends IRange {
 }
 
 export class OutputRedirectionsService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputRedirectionsService');
     private _subscribers: Map<string, Map<string, THandler>> = new Map();
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -56,8 +61,14 @@ export class OutputRedirectionsService {
     private _keyHolded: EKey | undefined;
 
     public init(session: Session | undefined) {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onSessionClosed =
+            EventsSessionService.getObservable().onSessionClosed.subscribe(
+                this._onSessionClosed.bind(this),
+            );
         this._session = session;
         this._onGlobalKeyDown = this._onGlobalKeyDown.bind(this);
         this._onGlobalKeyUp = this._onGlobalKeyUp.bind(this);
@@ -68,7 +79,8 @@ export class OutputRedirectionsService {
 
     public select(sender: EParent, sessionId: string, row: IRowPosition, str?: string, key?: EKey) {
         let state: IState | undefined = this._state.get(sessionId);
-        const keyHolded = key === undefined ? this._keyHolded : (key === EKey.ignore ? undefined : key);
+        const keyHolded =
+            key === undefined ? this._keyHolded : key === EKey.ignore ? undefined : key;
         if (key !== undefined) {
             this._keyHolded = undefined;
         }
@@ -89,7 +101,10 @@ export class OutputRedirectionsService {
                         // Ignore, if we still have empty selection
                         break;
                     }
-                    state.selection.add(row.output < state.last.output ? row : state.last, row.output > state.last.output ? row : state.last);
+                    state.selection.add(
+                        row.output < state.last.output ? row : state.last,
+                        row.output > state.last.output ? row : state.last,
+                    );
                     break;
             }
         }
@@ -133,7 +148,11 @@ export class OutputRedirectionsService {
         }
         handlers.set(handlerId, handler);
         this._subscribers.set(sessionId, handlers);
-        return new Toolkit.Subscription('RowChanged', this._unsubscribe.bind(this, sessionId, handlerId), handlerId);
+        return new Toolkit.Subscription(
+            'RowChanged',
+            this._unsubscribe.bind(this, sessionId, handlerId),
+            handlerId,
+        );
     }
 
     public getSelectionAccessor(sessionId: string): ISelectionAccessor | undefined {
@@ -143,15 +162,17 @@ export class OutputRedirectionsService {
 
     public getSelectionRanges(sessionId: string): IRangeExtended[] {
         const state: IState | undefined = this._state.get(sessionId);
-        return state === undefined ? [] : state.selection.getSelections().map((range: IRange) => {
-            const sstr: string | undefined = state.cache.get(range.start.output);
-            const estr: string | undefined = state.cache.get(range.end.output);
-            if (sstr === undefined || estr === undefined) {
-                return range;
-            } else {
-                return Object.assign({ content: { start: sstr, end: estr }}, range);
-            }
-        });
+        return state === undefined
+            ? []
+            : state.selection.getSelections().map((range: IRange) => {
+                  const sstr: string | undefined = state.cache.get(range.start.output);
+                  const estr: string | undefined = state.cache.get(range.end.output);
+                  if (sstr === undefined || estr === undefined) {
+                      return range;
+                  } else {
+                      return Object.assign({ content: { start: sstr, end: estr } }, range);
+                  }
+              });
     }
 
     public getOutputSelectionRanges(sessionId: string): Promise<IRangeExtended[] | undefined> {
@@ -164,10 +185,12 @@ export class OutputRedirectionsService {
             return Promise.resolve(this.getSelectionRanges(sessionId));
         }
         return new Promise((resolve, reject) => {
-            let bookmarks: IBookmark[] = Array.from(this._session.getBookmarks().get().values()).filter((bookmark: IBookmark) => {
-                return state.selection.isSelected(bookmark.position, ESource.search);
-            }).sort((a, b) => a.position > b.position ? 1 : -1);
-            const arounds: { [key: number]: { after: number, before: number }} = {};
+            let bookmarks: IBookmark[] = Array.from(this._session.getBookmarks().get().values())
+                .filter((bookmark: IBookmark) => {
+                    return state.selection.isSelected(bookmark.position, ESource.search);
+                })
+                .sort((a, b) => (a.position > b.position ? 1 : -1));
+            const arounds: { [key: number]: { after: number; before: number } } = {};
             state.selection.getSelections().forEach((range: IRange) => {
                 if (range.start.search === -1) {
                     arounds[range.start.output] = { after: -1, before: -1 };
@@ -176,13 +199,19 @@ export class OutputRedirectionsService {
                     arounds[range.end.output] = { after: -1, before: -1 };
                 }
             });
-            Promise.all(Object.keys(arounds).map((position: number | string) => {
-                return this.getIndexAround(parseInt(position as string, 10)).then((result) => {
-                    arounds[position] = result;
-                }).catch((err: Error) => {
-                    this._logger.error(`Fail to request positions in search around ${position} in stream due error: ${err.message}.`);
-                });
-            })).then(() => {
+            Promise.all(
+                Object.keys(arounds).map((position: number | string) => {
+                    return this.getIndexAround(parseInt(position as string, 10))
+                        .then((result) => {
+                            arounds[position] = result;
+                        })
+                        .catch((err: Error) => {
+                            this._logger.error(
+                                `Fail to request positions in search around ${position} in stream due error: ${err.message}.`,
+                            );
+                        });
+                }),
+            ).then(() => {
                 const ranges: IRange[] = [];
                 state.selection.getSelections().forEach((range: IRange) => {
                     if (range.start.search === -1 && range.end.search === -1) {
@@ -204,7 +233,8 @@ export class OutputRedirectionsService {
                                 id: Toolkit.guid(),
                             });
                         }
-                    } if (range.end.search === -1) {
+                    }
+                    if (range.end.search === -1) {
                         const around = arounds[range.end.output];
                         if (around.before !== -1) {
                             return ranges.push({
@@ -217,45 +247,62 @@ export class OutputRedirectionsService {
                         ranges.push(range);
                     }
                 });
-                this._session.getSessionStream().getRowsSelection(ranges).then((rows) => {
-                    const merged = [];
-                    rows.forEach((row) => {
-                        bookmarks = bookmarks.filter((bookmark) => {
-                            if (bookmark.position < row.positionInStream) {
+                this._session
+                    .getSessionStream()
+                    .getRowsSelection(ranges)
+                    .then((rows) => {
+                        const merged = [];
+                        rows.forEach((row) => {
+                            bookmarks = bookmarks.filter((bookmark) => {
+                                if (bookmark.position < row.positionInStream) {
+                                    merged.push({
+                                        position: -1,
+                                        positionInStream: bookmark.position,
+                                        str: bookmark.str,
+                                    });
+                                    return false;
+                                } else {
+                                    return true;
+                                }
+                            });
+                            merged.push(row);
+                        });
+                        if (bookmarks.length !== 0) {
+                            bookmarks.forEach((bookmark) => {
                                 merged.push({
                                     position: -1,
                                     positionInStream: bookmark.position,
-                                    str: bookmark.str
+                                    str: bookmark.str,
                                 });
-                                return false;
-                            } else {
-                                return true;
-                            }
-                        });
-                        merged.push(row);
-                    });
-                    if (bookmarks.length !== 0) {
-                        bookmarks.forEach((bookmark) => {
-                            merged.push({
-                                position: -1,
-                                positionInStream: bookmark.position,
-                                str: bookmark.str
                             });
-                        });
-                    }
-                    const selection: Selection = new Selection(merged);
-                    resolve(selection.getSelections().map((range: IRange) => {
-                        const sstr: string | undefined = state.cache.get(range.start.output);
-                        const estr: string | undefined = state.cache.get(range.end.output);
-                        if (sstr === undefined || estr === undefined) {
-                            return range;
-                        } else {
-                            return Object.assign({ content: { start: sstr, end: estr }}, range);
                         }
-                    }));
-                }).catch((err: Error) => {
-                    reject(new Error(this._logger.error(`Fail get connect for ranges due error: ${err.message}`)));
-                });
+                        const selection: Selection = new Selection(merged);
+                        resolve(
+                            selection.getSelections().map((range: IRange) => {
+                                const sstr: string | undefined = state.cache.get(
+                                    range.start.output,
+                                );
+                                const estr: string | undefined = state.cache.get(range.end.output);
+                                if (sstr === undefined || estr === undefined) {
+                                    return range;
+                                } else {
+                                    return Object.assign(
+                                        { content: { start: sstr, end: estr } },
+                                        range,
+                                    );
+                                }
+                            }),
+                        );
+                    })
+                    .catch((err: Error) => {
+                        reject(
+                            new Error(
+                                this._logger.error(
+                                    `Fail get connect for ranges due error: ${err.message}`,
+                                ),
+                            ),
+                        );
+                    });
             });
         });
     }
@@ -269,11 +316,14 @@ export class OutputRedirectionsService {
             ElectronIpcService.request(
                 new IPCMessages.SearchIndexAroundRequest({
                     session: this._session.getGuid(),
-                    position: position
-                }), IPCMessages.SearchIndexAroundResponse)
-            .then((response: IPCMessages.SearchIndexAroundResponse) => {
-                resolve({ after: response.after, before: response.before });
-            }).catch(reject);
+                    position: position,
+                }),
+                IPCMessages.SearchIndexAroundResponse,
+            )
+                .then((response: IPCMessages.SearchIndexAroundResponse) => {
+                    resolve({ after: response.after, before: response.before });
+                })
+                .catch(reject);
         });
     }
 
@@ -306,7 +356,7 @@ export class OutputRedirectionsService {
     }
 
     private _onSessionClosed(guid: string) {
-        if (this._session.getGuid() === guid) {
+        if (this._session !== undefined && this._session.getGuid() === guid) {
             this._session = undefined;
         }
         this._state.delete(guid);
@@ -323,8 +373,6 @@ export class OutputRedirectionsService {
     private _onGlobalKeyUp(event: KeyboardEvent) {
         this._keyHolded = undefined;
     }
-
 }
 
-
-export default (new OutputRedirectionsService());
+export default new OutputRedirectionsService();
