@@ -22,9 +22,8 @@ export interface ICommand {
 }
 
 export default class Process extends EventEmitter {
-
     public static Events = {
-        destroy: 'destroy'
+        destroy: 'destroy',
     };
 
     public Events = Process.Events;
@@ -50,12 +49,30 @@ export default class Process extends EventEmitter {
         this._session = session;
         this._command = command;
         this._logger = new Logger(`Shell process "${command.guid}"`);
-        ServiceElectron.IPC.subscribe(IPC.ShellProcessDetailsRequest, (this._ipc_ShellProcessDetailsRequest.bind(this) as any)).then((subscription: Subscription) => {
-            this._subscriptions.ShellProcessDetailsRequest = subscription;
-        }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellProcessDetailsRequest due error: ${err.message}`));
-        ServiceElectron.IPC.subscribe(IPC.ShellProcessKillRequest, (this._ipc_ShellProcessKillRequest.bind(this) as any)).then((subscription: Subscription) => {
-            this._subscriptions.ShellProcessKillRequest = subscription;
-        }).catch((err: Error) =>  this._logger.error(`Fail to subscribe to ShellProcessKillRequest due error: ${err.message}`));
+        ServiceElectron.IPC.subscribe(
+            IPC.ShellProcessDetailsRequest,
+            this._ipc_ShellProcessDetailsRequest.bind(this) as any,
+        )
+            .then((subscription: Subscription) => {
+                this._subscriptions.ShellProcessDetailsRequest = subscription;
+            })
+            .catch((err: Error) =>
+                this._logger.error(
+                    `Fail to subscribe to ShellProcessDetailsRequest due error: ${err.message}`,
+                ),
+            );
+        ServiceElectron.IPC.subscribe(
+            IPC.ShellProcessKillRequest,
+            this._ipc_ShellProcessKillRequest.bind(this) as any,
+        )
+            .then((subscription: Subscription) => {
+                this._subscriptions.ShellProcessKillRequest = subscription;
+            })
+            .catch((err: Error) =>
+                this._logger.error(
+                    `Fail to subscribe to ShellProcessKillRequest due error: ${err.message}`,
+                ),
+            );
     }
 
     public execute() {
@@ -64,7 +81,9 @@ export default class Process extends EventEmitter {
         }
         const len: number | Error = ServiceStreams.getStreamLen(this._session);
         if (len instanceof Error) {
-            this._logger.error(`Fail to get length of session ${this._session} due error: ${len.message}`);
+            this._logger.error(
+                `Fail to get length of session ${this._session} due error: ${len.message}`,
+            );
             this._stat.row = -1;
         } else {
             this._stat.row = len;
@@ -79,7 +98,7 @@ export default class Process extends EventEmitter {
             shell: this._command.settings.shell,
         });
         this._stat.created = Date.now();
-        this._stat.pid = this._process.pid;
+        this._stat.pid = this._process.pid === undefined ? 0 : this._process.pid;
         this._stat.recieved = 0;
         this._process.stdout !== null && this._process.stdout.on('data', this._onData.bind(this));
         this._process.stderr !== null && this._process.stderr.on('data', this._onData.bind(this));
@@ -87,10 +106,14 @@ export default class Process extends EventEmitter {
         this._process.on('close', this._onDone.bind(this));
         this._process.on('disconnect', this._onDone.bind(this));
         this._process.on('error', this._onDone.bind(this));
-        ServiceElectron.IPC.send(new IPC.ShellProcessStartedEvent({
-            session: this._session,
-            guid: this._command.guid,
-        })).catch(err => this._logger.warn(`Fail to send ShellProcessStartedEvent due error ${err.message}`));
+        ServiceElectron.IPC.send(
+            new IPC.ShellProcessStartedEvent({
+                session: this._session,
+                guid: this._command.guid,
+            }),
+        ).catch((err) =>
+            this._logger.warn(`Fail to send ShellProcessStartedEvent due error ${err.message}`),
+        );
     }
 
     public getInfo(): IPC.IShellProcess {
@@ -103,7 +126,7 @@ export default class Process extends EventEmitter {
             pwd: this._command.settings.pwd,
         };
     }
-/*
+    /*
     public write(data: any): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._process === undefined) {
@@ -120,7 +143,11 @@ export default class Process extends EventEmitter {
 */
     public destroy(): Error | undefined {
         if (this._process === undefined) {
-            return new Error(this._logger.error(`Attempt to destroy child process, which isn't created or was destroyed.`));
+            return new Error(
+                this._logger.error(
+                    `Attempt to destroy child process, which isn't created or was destroyed.`,
+                ),
+            );
         }
         this._process.removeAllListeners();
         if (this._process.stdout !== null) {
@@ -149,9 +176,11 @@ export default class Process extends EventEmitter {
         } else if (chunk instanceof Buffer) {
             this._stat.recieved += chunk.byteLength;
         }
-        ServiceStreams.writeTo(chunk, this._meta.sourceId, undefined, this._session).catch((err: Error) => {
-            this._logger.error(`Fail to write a chunk into stream ${this._session}`);
-        });
+        ServiceStreams.writeTo(chunk, this._meta.sourceId, undefined, this._session).catch(
+            (err: Error) => {
+                this._logger.error(`Fail to write a chunk into stream ${this._session}`);
+            },
+        );
     }
 
     private _onDone(error?: Error) {
@@ -161,24 +190,32 @@ export default class Process extends EventEmitter {
         this.destroy();
     }
 
-    private _ipc_ShellProcessKillRequest(request: IPC.ShellProcessKillRequest, response: (response: IPC.ShellProcessKillResponse) => Promise<void>) {
+    private _ipc_ShellProcessKillRequest(
+        request: IPC.ShellProcessKillRequest,
+        response: (response: IPC.ShellProcessKillResponse) => Promise<void>,
+    ) {
         if (request.guid !== this._command.guid) {
             return;
         }
         const error: Error | undefined = this.destroy();
-        response(new IPC.ShellProcessKillResponse({
-            error: error !== undefined ? error.message : undefined,
-        }));
+        response(
+            new IPC.ShellProcessKillResponse({
+                error: error !== undefined ? error.message : undefined,
+            }),
+        );
     }
 
-    private _ipc_ShellProcessDetailsRequest(request: IPC.ShellProcessDetailsRequest, response: (response: IPC.ShellProcessDetailsResponse) => Promise<void>) {
+    private _ipc_ShellProcessDetailsRequest(
+        request: IPC.ShellProcessDetailsRequest,
+        response: (response: IPC.ShellProcessDetailsResponse) => Promise<void>,
+    ) {
         if (request.guid !== this._command.guid) {
             return;
         }
-        response(new IPC.ShellProcessDetailsResponse({
-            info: this.getInfo(),
-        }));
+        response(
+            new IPC.ShellProcessDetailsResponse({
+                info: this.getInfo(),
+            }),
+        );
     }
-
-
 }

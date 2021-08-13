@@ -1,7 +1,7 @@
 // tslint:disable-next-line: no-var-requires
-const fswin = require("fswin");
-import * as fs from "fs";
-import * as Path from "path";
+const fswin = require('fswin');
+import * as fs from 'fs';
+import * as Path from 'path';
 import * as os from './env.os';
 
 /**
@@ -18,9 +18,9 @@ export function isExist(path: string): boolean {
 }
 
 export enum EReadingFolderTarget {
-    all = "all",
-    files = "files",
-    folders = "folders",
+    all = 'all',
+    files = 'files',
+    folders = 'folders',
 }
 
 /**
@@ -32,7 +32,7 @@ export function exist(path: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
         fs.stat(path, (err: NodeJS.ErrnoException | null, stat: fs.Stats) => {
             if (err) {
-                if (err.code === "ENOENT") {
+                if (err.code === 'ENOENT') {
                     return resolve(false);
                 }
                 return reject(err);
@@ -128,21 +128,23 @@ export function getEntityInfo(entity: string): Promise<fs.Stats> {
  * @param {string} codding codding name (default: utf8)
  * @returns Promise<fs.Stats>
  */
-export function readTextFile(file: string, codding: string = "utf8"): Promise<string> {
+export function readTextFile(file: string): Promise<string> {
     return new Promise((resolve, reject) => {
-        exist(file).then((_exist: boolean) => {
-            if (!_exist) {
-                return reject(new Error(`File "${file}" doesn't exist.`));
-            }
-            fs.readFile(file, codding, (error: NodeJS.ErrnoException | null, data: string) => {
-                if (error) {
-                    return reject(error);
+        exist(file)
+            .then((_exist: boolean) => {
+                if (!_exist) {
+                    return reject(new Error(`File "${file}" doesn't exist.`));
                 }
-                resolve(data);
+                fs.readFile(file, (error: NodeJS.ErrnoException | null, buf: Buffer) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve(buf.toString('utf8'));
+                });
+            })
+            .catch((existErr: Error) => {
+                reject(existErr);
             });
-        }).catch((existErr: Error) => {
-            reject(existErr);
-        });
     });
 }
 
@@ -178,19 +180,21 @@ export function writeTextFile(
  */
 export function unlink(file: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        exist(file).then((_exist: boolean) => {
-            if (!_exist) {
-                return resolve();
-            }
-            fs.unlink(file, (error: NodeJS.ErrnoException | null) => {
-                if (error) {
-                    return reject(error);
+        exist(file)
+            .then((_exist: boolean) => {
+                if (!_exist) {
+                    return resolve();
                 }
-                resolve();
+                fs.unlink(file, (error: NodeJS.ErrnoException | null) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve();
+                });
+            })
+            .catch((existErr: Error) => {
+                reject(existErr);
             });
-        }).catch((existErr: Error) => {
-            reject(existErr);
-        });
     });
 }
 
@@ -240,7 +244,7 @@ export function rmdir(dir: string): Promise<void> {
                     ...files.map((nestedFile: string) => {
                         return unlink(Path.resolve(dir, nestedFile));
                     }),
-                    ...folders.map(nestedFolder => {
+                    ...folders.map((nestedFolder) => {
                         return rmdir(Path.resolve(dir, nestedFolder));
                     }),
                 ])
@@ -293,7 +297,7 @@ export function isHidden(path: string): Promise<boolean> {
                 }
             });
         } else {
-            return resolve((/(^|\/)\.[^\/\.]/g).test(path));
+            return resolve(/(^|\/)\.[^\/\.]/g.test(path));
         }
     });
 }
