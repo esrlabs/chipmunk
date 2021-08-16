@@ -317,6 +317,9 @@ export { FiltersLoadRequest, IFiltersLoadRequest };
 import { IFiltersLoadResponse, FiltersLoadResponse } from './file.filters.load.response';
 export { IFiltersLoadResponse, FiltersLoadResponse };
 
+import { FiltersOpen, IFiltersOpen } from './file.filters.open';
+export { FiltersOpen, IFiltersOpen };
+
 import { IFiltersSaveRequest, FiltersSaveRequest } from './file.filters.save.request';
 export { IFiltersSaveRequest, FiltersSaveRequest };
 
@@ -702,6 +705,9 @@ export { IShellRecentCommandsRemove, ShellRecentCommandsRemove };
 import { IViewSwitchEvent, ViewSwitchEvent, AvailableViews } from './view.switch.event';
 export { IViewSwitchEvent, ViewSwitchEvent, AvailableViews };
 
+import { ISessionChange, SessionChange } from './session.change';
+export { ISessionChange, SessionChange };
+
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -801,6 +807,7 @@ export type TMessage =  AppRestartRequest |
                         MergeFilesDiscoverResponse |
                         MergeFilesFormatRequest |
                         MergeFilesFormatResponse |
+                        FiltersOpen |
                         FiltersLoadRequest |
                         FiltersLoadResponse |
                         FiltersSaveRequest |
@@ -933,7 +940,8 @@ export type TMessage =  AppRestartRequest |
                         ShellSaveRequest |
                         ShellSaveResponse |
                         ShellRecentCommandsRemove |
-                        ViewSwitchEvent;
+                        ViewSwitchEvent |
+                        SessionChange;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -1049,6 +1057,7 @@ export const Map = {
     [MergeFilesFormatRequest.signature          ]: MergeFilesFormatRequest,
     [MergeFilesFormatResponse.signature         ]: MergeFilesFormatResponse,
 
+    [FiltersOpen.signature                      ]: FiltersOpen,
     [FiltersLoadRequest.signature               ]: FiltersLoadRequest,
     [FiltersLoadResponse.signature              ]: FiltersLoadResponse,
     [FiltersSaveRequest.signature               ]: FiltersSaveRequest,
@@ -1199,4 +1208,5 @@ export const Map = {
     [ShellSaveResponse.signature                    ]: ShellSaveResponse,
     [ShellRecentCommandsRemove.signature            ]: ShellRecentCommandsRemove,
     [ViewSwitchEvent.signature                      ]: ViewSwitchEvent,
+    [SessionChange.signature                        ]: SessionChange,
 };

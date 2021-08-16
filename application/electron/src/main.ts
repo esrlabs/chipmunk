@@ -50,6 +50,7 @@ import ServiceReleaseNotes from './services/service.release.notes';
 import ServiceCLI from './services/service.cli';
 import ServiceTimestampFormatRecent from './services/features/service.timestamp.recent';
 import ServiceImporter from './services/service.importer';
+import ServiceSessions from './services/service.sessions';
 
 import { IService } from './interfaces/interface.service';
 
@@ -106,7 +107,7 @@ const InitializeStages = [
         ServiceOutputExport, ServiceLogsExtractor,
         ServiceFileRecent, ServiceTimestamp,
         ServiceFileWriter, ServiceTimestampFormatRecent,
-        ServiceImporter,
+        ServiceImporter, ServiceSessions,
     ],
     // Stage #10. Init plugins and current release data
     [   ServicePlugins, ServiceReleaseNotes, ServiceCLI ],

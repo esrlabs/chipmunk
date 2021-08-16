@@ -5,6 +5,7 @@ import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
 import SourcesService from './service.sources';
 import FileOptionsService from './service.file.options';
+import FilterOpenerService from './service.filter.opener';
 import ToolbarSessionsService from './service.sessions.toolbar';
 import SidebarSessionsService from './service.sessions.sidebar';
 import TabsSessionsService from './service.sessions.tabs';
@@ -47,6 +48,7 @@ const InitializeStages = [
         ToolbarSessionsService,
         SidebarSessionsService,
         FileOptionsService,
+        FilterOpenerService,
         FileOpenerService,
         MergeFilesService,
         ConcatFilesService,
