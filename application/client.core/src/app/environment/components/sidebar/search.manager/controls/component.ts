@@ -11,6 +11,9 @@ import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import HotkeysService from '../../../../services/service.hotkeys';
 import PopupsService from '../../../../services/standalone/service.popups';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
+import FilterOpenerService from '../../../../services/service.filter.opener';
+import LayoutStateService from '../../../../services/standalone/service.layout.state';
+import SidebarSessionsService from '../../../../services/service.sessions.sidebar';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-controls',
@@ -28,10 +31,11 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
 
     constructor(private _cdRef: ChangeDetectorRef,
                 private _notifications: NotificationsService) {
-        HotkeysService.getObservable().recentFilters.subscribe(this._ng_onRecentOpen.bind(this));
+        this._subscriptions.onRecentOpen = HotkeysService.getObservable().recentFilters.subscribe(this._ng_onRecentOpen.bind(this));
     }
 
     ngAfterContentInit() {
+        this._subscriptions.onOpenFilters = FilterOpenerService.getObservable().openFilters.subscribe(this._ng_onLoad.bind(this));
         this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
         this._onSessionChange();
     }
@@ -73,6 +77,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         }
         this._controller.load(file).then((filename: string) => {
             this._setCurrentFile(filename);
+            this._openSidebar();
         }).catch((error: Error) => {
             this._notifications.add({
                 caption: 'Filters',
@@ -120,6 +125,15 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
             return;
         }
         this._controller.setCurrentFile(filename);
+    }
+
+    private _openSidebar() {
+        const session: Session | undefined = TabsSessionsService.getActive();
+        if (session === undefined) {
+            return;
+        }
+        LayoutStateService.sidebarMax();
+        SidebarSessionsService.setActive('search', session.getGuid());
     }
 
 }
