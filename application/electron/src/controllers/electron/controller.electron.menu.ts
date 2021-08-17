@@ -5,7 +5,6 @@ import { IExportAction } from '../../services/output/service.output.export';
 import { IPCMessages } from '../../services/service.electron';
 
 import ServiceFilters from '../../services/service.filters';
-import ServiceSessions from '../../services/service.sessions';
 import ServiceStorage from '../../services/service.storage';
 import ServiceStreams from '../../services/service.streams';
 import ServiceFileOpener from '../../services/files/service.file.opener';
@@ -134,7 +133,7 @@ export default class ControllerElectronMenu {
         template[0].submenu.push({ type: 'separator' });
         template[0].submenu.push({
             label: 'Import Filters',
-            enabled: ServiceSessions.isSession && ServiceStreams.isStreamExist(ServiceStreams.getActiveStreamId()),
+            enabled: ServiceStreams.isStreamExist(ServiceStreams.getActiveStreamId()),
             click: () => {
                 ServiceFilters.openFilters(ServiceStreams.getActiveStreamId());
             },
@@ -142,7 +141,7 @@ export default class ControllerElectronMenu {
         if (ServiceStorage.get().get().recentFiltersFiles.length > 0) {
             template[0].submenu.push({
                 label: 'Import Recent',
-                enabled: ServiceSessions.isSession && ServiceStreams.isStreamExist(ServiceStreams.getActiveStreamId()),
+                enabled: ServiceStreams.isStreamExist(ServiceStreams.getActiveStreamId()),
                 submenu: [
                     ...this._getRecentFilter(),
                     { type: 'separator' },

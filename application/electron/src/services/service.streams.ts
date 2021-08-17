@@ -549,10 +549,18 @@ class ServiceStreams implements IService  {
         if (this._activeStreamGuid === message.guid) {
             return;
         }
-        this._activeStreamGuid = message.guid;
-        this._subjects.onSessionChanged.emit(message.guid);
+        if (this._streams.has(message.guid)) {
+            // This is real session
+            this._activeStreamGuid = message.guid;
+            this._subjects.onSessionChanged.emit(this._activeStreamGuid);
+            this._logger.debug(`Active session is set to: ${this._activeStreamGuid}`);
+        } else {
+            // This is custom tab (like About, Plugins, Settings etc.)
+            this._activeStreamGuid = '';
+            this._subjects.onSessionChanged.emit(this._activeStreamGuid);
+            this._logger.debug(`Active session is not set to: ${message.guid} as it isn't a stream realated session`);
+        }
         ServiceElectron.updateMenu();
-        this._logger.debug(`Active session is set to: ${this._activeStreamGuid}`);
     }
 
     private _ipc_onStreamReset(message: IPCElectronMessages.TMessage, response: (message: IPCElectronMessages.TMessage) => void) {
