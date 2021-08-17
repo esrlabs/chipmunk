@@ -1,5 +1,8 @@
 require 'fileutils'
 
+# TODO:
+# notify user if npm install is required
+
 TS = "./ts-bindings"
 TS_BUILD = "./ts-bindings/dist/apps/rustcore/ts-bindings"
 TS_BUILD_CLI = "./ts-bindings-cli/dist/apps/rustcore/ts-bindings"
@@ -105,7 +108,7 @@ namespace :build do
   task :all => ['build:rs', 'build:ts', 'build:ts_cli', 'build:delivery']
 end
 
-test_runner = './ts-bindings/node_modules/.bin/jasmine-ts'
+test_runner = './ts-bindings/node_modules/.bin/electron ./ts-bindings/node_modules/jasmine-ts/lib/index.js'
 
 namespace :test do
   desc 'run search tests'
@@ -116,6 +119,11 @@ namespace :test do
   desc 'run search tests'
   task :assign do
     sh "#{test_runner} ts-bindings/spec/session.assign.spec.ts"
+  end
+
+  desc 'run errors tests'
+  task :errors do
+    sh "#{test_runner} ts-bindings/spec/session.errors.spec.ts"
   end
 
   desc 'run all test'
