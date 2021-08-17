@@ -13,17 +13,17 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jasmine": "^3.6.1",
-    "@types/node": "^14.14.7",
+    "@types/node": "^16.6.1",
     "@types/tmp": "^0.2.0",
     "@types/uuid": "^8.3.0",
     "custom.stdout": "^1.0.2",
     "electron-build-env": "0.2.0",
     "electron-rebuild": "2.2.0",
     "jasmine": "^3.6.3",
-    "jasmine-ts": "^0.3.0",
+    "jasmine-ts": "^0.4.0",
     "loglevel": "^1.6.6",
     "tmp": "0.2.1",
-    "ts-node": "^9.0.0",
+    "ts-node": "^10.2.0",
     "typescript": "^4.0.5"
   },
   "dependencies": {
