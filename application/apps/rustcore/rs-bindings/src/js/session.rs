@@ -263,14 +263,14 @@ impl RustSession {
                                 filters,
                                 operation_id,
                             } => {
-                                for e in handle_search(
+                                for event in handle_search(
                                     target_file,
                                     filters,
                                     operation_id,
                                     &search_metadata_tx,
                                     &state,
                                 ) {
-                                    callback(e);
+                                    callback(event);
                                 }
                             }
                             Operation::Extract {
@@ -398,10 +398,10 @@ impl RustSession {
         &mut self,
         file_path: String,
         source_id: String,
-        operation_id: String,
+        operation_id_string: String,
     ) -> Result<(), ComputationError> {
         debug!("RUST: send assign event on channel");
-        let operation_id = get_operation_id(&operation_id)?;
+        let operation_id = parse_operation_id(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
         let source_type = match get_supported_file_type(&input_p) {
             Some(SupportedFileType::Text) => {
@@ -529,9 +529,9 @@ impl RustSession {
     async fn apply_search_filters(
         &mut self,
         filters: Vec<WrappedSearchFilter>,
-        operation_id: String,
+        operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        let operation_id = get_operation_id(&operation_id)?;
+        let operation_id = parse_operation_id(&operation_id_string)?;
         self.search_grabber = None;
         match self.state.lock() {
             Ok(mut state) => state.search_map.set(None),
@@ -574,9 +574,9 @@ impl RustSession {
     async fn extract_matches(
         &mut self,
         filters: Vec<WrappedSearchFilter>,
-        operation_id: String,
+        operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        let operation_id = get_operation_id(&operation_id)?;
+        let operation_id = parse_operation_id(&operation_id_string)?;
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
@@ -719,72 +719,60 @@ impl JSValue<'_> for WrappedSearchFilter {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
             // let mut filter = ;
             let value: String = match js_obj.get_property("value") {
-                Ok(value) => {
-                    if let Some(value) = value {
-                        match value.as_value::<String>() {
-                            Ok(s) => s,
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    } else {
-                        return Err(NjError::Other("[value] property is not found".to_owned()));
+                Ok(Some(value)) => match value.as_value::<String>() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        return Err(e);
                     }
+                },
+                Ok(None) => {
+                    return Err(NjError::Other("[value] property is not found".to_owned()));
                 }
                 Err(e) => {
                     return Err(e);
                 }
             };
             let is_regex: bool = match js_obj.get_property("is_regex") {
-                Ok(value) => {
-                    if let Some(value) = value {
-                        match value.as_value::<bool>() {
-                            Ok(s) => s,
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    } else {
-                        return Err(NjError::Other(
-                            "[is_regex] property is not found".to_owned(),
-                        ));
+                Ok(Some(value)) => match value.as_value::<bool>() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        return Err(e);
                     }
+                },
+                Ok(None) => {
+                    return Err(NjError::Other(
+                        "[is_regex] property is not found".to_owned(),
+                    ));
                 }
                 Err(e) => {
                     return Err(e);
                 }
             };
             let is_word: bool = match js_obj.get_property("is_word") {
-                Ok(value) => {
-                    if let Some(value) = value {
-                        match value.as_value::<bool>() {
-                            Ok(s) => s,
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    } else {
-                        return Err(NjError::Other("[is_word] property is not found".to_owned()));
+                Ok(Some(value)) => match value.as_value::<bool>() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        return Err(e);
                     }
+                },
+                Ok(None) => {
+                    return Err(NjError::Other("[is_word] property is not found".to_owned()));
                 }
                 Err(e) => {
                     return Err(e);
                 }
             };
             let ignore_case: bool = match js_obj.get_property("ignore_case") {
-                Ok(value) => {
-                    if let Some(value) = value {
-                        match value.as_value::<bool>() {
-                            Ok(s) => s,
-                            Err(e) => {
-                                return Err(e);
-                            }
-                        }
-                    } else {
-                        return Err(NjError::Other(
-                            "[ignore_case] property is not found".to_owned(),
-                        ));
+                Ok(Some(value)) => match value.as_value::<bool>() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        return Err(e);
                     }
+                },
+                Ok(None) => {
+                    return Err(NjError::Other(
+                        "[ignore_case] property is not found".to_owned(),
+                    ));
                 }
                 Err(e) => {
                     return Err(e);
@@ -806,16 +794,16 @@ fn create_metadata_for_source(
     file_path: String,
     source_type: SupportedFileType,
     source_id: String,
-) -> Option<Result<ComputationResult<GrabMetadata>, GrabError>> {
+) -> Result<ComputationResult<GrabMetadata>, GrabError> {
     let file_path = Path::new(&file_path);
     match source_type {
         SupportedFileType::Dlt => {
             let source = DltSource::new(file_path, &source_id);
-            Some(source.from_file(None))
+            source.from_file(None)
         }
         SupportedFileType::Text => {
             let source = TextFileSource::new(file_path, &source_id);
-            Some(source.from_file(None))
+            source.from_file(None)
         }
     }
 }
@@ -905,7 +893,7 @@ fn handle_assign(
     cancellation_token: CancellationToken,
 ) -> CallbackEvent {
     match create_metadata_for_source(file_path, source_type, source_id) {
-        Some(Ok(ComputationResult::Item(metadata))) => {
+        Ok(ComputationResult::Item(metadata)) => {
             println!("received metadata {:?}", metadata);
             debug!("RUST: received metadata");
             let line_count: u64 = metadata.line_count as u64;
@@ -921,12 +909,12 @@ fn handle_assign(
                 )),
             }
         }
-        Some(Ok(ComputationResult::Stopped)) => {
+        Ok(ComputationResult::Stopped) => {
             debug!("RUST: metadata calculation aborted");
             let _ = update_state(state, None, Some(None));
             CallbackEvent::Progress((operation_id, Progress::Stopped))
         }
-        Some(Err(_e)) => {
+        Err(_e) => {
             debug!("RUST error computing metadata");
             let _ = update_state(state, None, Some(None));
             CallbackEvent::OperationError((
@@ -938,14 +926,6 @@ fn handle_assign(
                 },
             ))
         }
-        None => CallbackEvent::OperationError((
-            operation_id,
-            NativeError {
-                severity: Severity::WARNING,
-                kind: NativeErrorKind::UnsupportedFileType,
-                message: None,
-            },
-        )),
     }
 }
 
@@ -968,7 +948,7 @@ fn update_state(
     }
 }
 
-fn get_operation_id(operation_id: &str) -> Result<Uuid, ComputationError> {
+fn parse_operation_id(operation_id: &str) -> Result<Uuid, ComputationError> {
     match Uuid::parse_str(operation_id) {
         Ok(uuid) => Ok(uuid),
         Err(e) => Err(ComputationError::Process(format!(

@@ -44,7 +44,7 @@ export class NativeError extends Error {
         this.stack = error.stack;
         this._type = kind;
         this._source = source;
-        this.log();
+        // this.log();
     }
 
     public getType(): Type {
