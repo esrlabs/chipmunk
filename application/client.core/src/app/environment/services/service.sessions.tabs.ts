@@ -206,9 +206,6 @@ export class TabsSessionsService implements IService {
         if (session === undefined) {
             return this._logger.warn(`Cannot fild session ${guid}. Cannot make this session active.`);
         }
-        ServiceElectronIpc.send(new IPCMessages.SessionChange({ isSession: session instanceof Session })).catch((error: Error) => {
-            this._logger.warn(`Fail to send notification about active session due error: ${error.message}`);
-        });
         this._currentSessionGuid = guid;
         if (session instanceof Session) {
             LayoutStateService.unlock();
@@ -221,8 +218,12 @@ export class TabsSessionsService implements IService {
             });
         } else {
             LayoutStateService.lock();
-            EventsSessionService.getSubject().onSessionChange.next(undefined);
-            this._sessionsEventsHub.emit().onSessionChange(undefined);
+            ServiceElectronIpc.send(new IPCMessages.StreamSetActive({ guid: this._currentSessionGuid })).then(() => {
+                EventsSessionService.getSubject().onSessionChange.next(undefined);
+                this._sessionsEventsHub.emit().onSessionChange(undefined);
+            }).catch((error: Error) => {
+                this._logger.warn(`Fail to send notification about active session due error: ${error.message}`);
+            });
         }
         this._tabsService.setActive(this._currentSessionGuid);
     }

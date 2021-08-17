@@ -705,9 +705,6 @@ export { IShellRecentCommandsRemove, ShellRecentCommandsRemove };
 import { IViewSwitchEvent, ViewSwitchEvent, AvailableViews } from './view.switch.event';
 export { IViewSwitchEvent, ViewSwitchEvent, AvailableViews };
 
-import { ISessionChange, SessionChange } from './session.change';
-export { ISessionChange, SessionChange };
-
 // Common type for expected message implementation
 export type TMessage =  AppRestartRequest |
                         AppRestartResponse |
@@ -940,8 +937,7 @@ export type TMessage =  AppRestartRequest |
                         ShellSaveRequest |
                         ShellSaveResponse |
                         ShellRecentCommandsRemove |
-                        ViewSwitchEvent |
-                        SessionChange;
+                        ViewSwitchEvent;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Mapping of host/render events
@@ -1208,5 +1204,4 @@ export const Map = {
     [ShellSaveResponse.signature                    ]: ShellSaveResponse,
     [ShellRecentCommandsRemove.signature            ]: ShellRecentCommandsRemove,
     [ViewSwitchEvent.signature                      ]: ViewSwitchEvent,
-    [SessionChange.signature                        ]: SessionChange,
 };
