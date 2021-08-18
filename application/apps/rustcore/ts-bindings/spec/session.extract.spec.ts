@@ -8,28 +8,12 @@ import * as tmp from 'tmp';
 import * as fs from 'fs';
 
 import { Session } from '../src/api/session';
-import { checkSessionDebugger } from './common';
+import { checkSessionDebugger, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Extract search matches', function () {
     it('Test 1. Assign & single extracting', function (done) {
         const logger = getLogger('Extract. Test 1');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5 ? `some CPU=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -44,7 +28,10 @@ describe('Extract search matches', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) =>
+            `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some CPU=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
+            }`
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {
@@ -89,22 +76,6 @@ describe('Extract search matches', function () {
 
     it('Test 2. Assign & multiple extracting', function (done) {
         const logger = getLogger('Extract. Test 2');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5 ? `some CPU=${Math.round(Math.random() * 100)}% disk=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -119,7 +90,10 @@ describe('Extract search matches', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) =>
+            `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some CPU=${Math.round(Math.random() * 100)}% disk=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
+            }`
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {
@@ -170,22 +144,6 @@ describe('Extract search matches', function () {
 
     it('Test 3. Assign & multiple extracting with subgroups extracting', function (done) {
         const logger = getLogger('Extract. Test 3');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5 ? `some x:${Math.round(Math.random() * 100)},y:${Math.round(Math.random() * 100)} CPU=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -200,7 +158,10 @@ describe('Extract search matches', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger,
+            (i: number) => `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some x:${Math.round(Math.random() * 100)},y:${Math.round(Math.random() * 100)} CPU=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
+                }`
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {

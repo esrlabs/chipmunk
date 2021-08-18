@@ -9,7 +9,7 @@ import * as fs from 'fs';
 
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger } from './common';
+import { checkSessionDebugger, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Errors', function () {
@@ -104,16 +104,6 @@ describe('Errors', function () {
 
     it('Test 5. Assign and grab invalid range', function (done) {
         const logger = getLogger('Errors. Test 5');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(tmpobj.name, `some line data: ${i}\n`);
-            }
-            const stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
 
         const session = new Session();
         // Set provider into debug mode
@@ -123,7 +113,7 @@ describe('Errors', function () {
             fail(stream);
             return done();
         }
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) => `some line data: ${i}\n`);
         stream
             .assign(tmpobj.name, {})
             .then(() => {
@@ -143,22 +133,6 @@ describe('Errors', function () {
 
     it('Test 6. Assign & single and grab invalid range', function (done) {
         const logger = getLogger('Errors. Test 6');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5 ? `some match line data\n` : `some line data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -172,7 +146,9 @@ describe('Errors', function () {
             fail(search);
             return done();
         }
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger,
+            (i: number) => `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some match line data\n` : `some line data\n`
+                }`);
         stream
             .assign(tmpobj.name, {})
             .then(() => {

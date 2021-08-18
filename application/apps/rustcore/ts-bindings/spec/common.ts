@@ -5,7 +5,9 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
 import { Session } from '../src/api/session';
-import { setLogLevels, lockChangingLogLevel } from '../src/util/logging';
+import { setLogLevels, lockChangingLogLevel, Logger } from '../src/util/logging';
+import * as tmp from 'tmp';
+import * as fs from 'fs';
 
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
@@ -31,4 +33,16 @@ export function checkSessionDebugger(session: Session) {
 	}
 	setLogLevels(loglevel);
 	lockChangingLogLevel('Jasmin Tests');
-}());
+})();
+
+export function createSampleFile(lines: number, logger: Logger, creator: (i: number) => string) {
+	const tmpobj = tmp.fileSync();
+    var content = "";
+	for (let i = 0; i < lines; i++) {
+        content += creator(i);
+	}
+    fs.appendFileSync(tmpobj.name, content);
+	const stats = fs.statSync(tmpobj.name);
+	logger.debug(`Created example grabber file of size: ${stats.size}`);
+	return tmpobj;
+}

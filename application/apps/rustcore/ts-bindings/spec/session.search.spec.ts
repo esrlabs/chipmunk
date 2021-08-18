@@ -9,28 +9,12 @@ import * as fs from 'fs';
 
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger } from './common';
+import { checkSessionDebugger, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Search', function () {
     it('Test 1. Assign & single search', function (done) {
         const logger = getLogger('Search. Test 1');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5 ? `some match line data\n` : `some line data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -45,7 +29,10 @@ describe('Search', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) =>
+            `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some match line data\n` : `some line data\n`
+            }`
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {
@@ -140,28 +127,6 @@ describe('Search', function () {
 
     it('Test 2. Assign & multiple search', function (done) {
         const logger = getLogger('Search. Test 2');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5
-                            ? `some match A line data\n`
-                            : i % 50 === 0
-                            ? `some match B line data\n`
-                            : i === 9
-                            ? `some 666 line data\n`
-                            : `some line data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -176,7 +141,16 @@ describe('Search', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) =>
+            `[${i}]:: ${i % 100 === 0 || i <= 5
+                ? `some match A line data\n`
+                : i % 50 === 0
+                    ? `some match B line data\n`
+                    : i === 9
+                        ? `some 666 line data\n`
+                        : `some line data\n`
+            }`
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {
@@ -267,17 +241,6 @@ describe('Search', function () {
 
     it('Test 3. Assign & zero search', function (done) {
         const logger = getLogger('Search. Test 3');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(tmpobj.name, `[${i}]:: some line data\n`);
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -292,7 +255,9 @@ describe('Search', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) =>
+            `[${i}]:: some line data\n`
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {
@@ -336,22 +301,6 @@ describe('Search', function () {
 
     it('Test 4. Assign & single not case sensitive search', function (done) {
         const logger = getLogger('Search. Test 4');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5 ? `some mAtCh line data\n` : `some line data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -366,7 +315,10 @@ describe('Search', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) =>
+            `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some mAtCh line data\n` : `some line data\n`
+            }`,
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {
@@ -461,24 +413,6 @@ describe('Search', function () {
 
     it('Test 5. Assign & single word search', function (done) {
         const logger = getLogger('Search. Test 5');
-        function createSampleFile(lines: number) {
-            const tmpobj = tmp.fileSync();
-            logger.verbose(`Create example grabber file`);
-            for (let i = 0; i < lines; i++) {
-                fs.appendFileSync(
-                    tmpobj.name,
-                    `[${i}]:: ${
-                        i % 100 === 0 || i <= 5
-                            ? `some match line data\n`
-                            : `some line matchmatchmatch data\n`
-                    }`,
-                );
-            }
-            var stats = fs.statSync(tmpobj.name);
-            logger.verbose(`file-size: ${stats.size}`);
-            return tmpobj;
-        }
-
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
@@ -493,7 +427,12 @@ describe('Search', function () {
             return done();
         }
 
-        const tmpobj = createSampleFile(5000);
+        const tmpobj = createSampleFile(5000, logger, (i: number) =>
+            `[${i}]:: ${i % 100 === 0 || i <= 5
+                ? `some match line data\n`
+                : `some line matchmatchmatch data\n`
+            }`
+        );
         stream
             .assign(tmpobj.name, {})
             .then(() => {

@@ -112,7 +112,7 @@ test_runner = './ts-bindings/node_modules/.bin/electron ./ts-bindings/node_modul
 
 namespace :test do
   desc 'run search tests'
-  task :search => ['build:all'] do
+  task :search do
     sh "#{test_runner} ts-bindings/spec/session.search.spec.ts"
   end
 
@@ -126,7 +126,19 @@ namespace :test do
     sh "#{test_runner} ts-bindings/spec/session.errors.spec.ts"
   end
 
+  desc 'run extract tests'
+  task :extract do
+    sh "#{test_runner} ts-bindings/spec/session.extract.spec.ts"
+  end
+
+  desc 'run utils tests'
+  task :utils do
+    sh "#{test_runner} ts-bindings/spec/utils.spec.ts"
+  end
+
   desc 'run all test'
-  task :all => [:search, :assign]
+  task :all => %i[build:all] do
+    sh "#{test_runner} ts-bindings/spec/utils.spec.ts ts-bindings/spec/*.ts"
+  end
 end
 
