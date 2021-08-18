@@ -1,6 +1,9 @@
-use crate::js::events::{
-    AsyncBroadcastChannel, CallbackEvent, ComputationError, NativeError, NativeErrorKind,
-    OperationDone, SearchOperationResult, SyncChannel,
+use crate::{
+    js::events::{
+        AsyncBroadcastChannel, CallbackEvent, ComputationError, NativeError, NativeErrorKind,
+        OperationDone, SearchOperationResult, SyncChannel,
+    },
+    logging::init_logging,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::{ComputationResult, Progress, Severity};
@@ -179,7 +182,7 @@ impl RustSession {
 impl RustSession {
     #[node_bindgen(constructor)]
     pub fn new(id: String) -> Self {
-        // init_logging(); TODO
+        init_logging(); // TODO
         Self {
             id,
             running: false,
