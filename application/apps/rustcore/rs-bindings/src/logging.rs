@@ -1,4 +1,5 @@
 use anyhow::Result;
+use ctor::ctor;
 use log::{Level, LevelFilter, Metadata, Record};
 use log4rs::{
     append::file::FileAppender,
@@ -6,8 +7,6 @@ use log4rs::{
     encode::pattern::PatternEncoder,
 };
 use std::{
-    fs,
-    io::prelude::*,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -35,6 +34,13 @@ impl log::Log for SimpleLogger {
     }
 
     fn flush(&self) {}
+}
+
+#[ctor]
+fn init_module() {
+    if let Err(e) = init_logging() {
+        eprintln!("Problems setting up logging: {}", e);
+    }
 }
 
 pub fn init_logging() -> Result<()> {

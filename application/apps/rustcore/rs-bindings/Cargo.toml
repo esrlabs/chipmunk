@@ -13,6 +13,7 @@ node-bindgen = {git = "https://github.com/marcmo/node-bindgen.git",branch = "wit
 [dependencies]
 anyhow = "1.0"
 crossbeam-channel = "0.5"
+ctor = "0.1.6"
 dirs = "3.0"
 # dlt = { path = "../../indexer/dlt" }
 indexer_base = { path = "../../indexer/indexer_base" }

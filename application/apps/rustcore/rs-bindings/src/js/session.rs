@@ -1,13 +1,10 @@
-use crate::{
-    js::events::{
-        AsyncBroadcastChannel, CallbackEvent, ComputationError, NativeError, NativeErrorKind,
-        OperationDone, SearchOperationResult, SyncChannel,
-    },
-    logging::init_logging,
+use crate::js::events::{
+    AsyncBroadcastChannel, CallbackEvent, ComputationError, NativeError, NativeErrorKind,
+    OperationDone, SearchOperationResult, SyncChannel,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::{ComputationResult, Progress, Severity};
-use log::{debug, info, warn};
+use log::{debug, info, trace, warn};
 use node_bindgen::{
     core::{
         val::{JsEnv, JsObject},
@@ -23,7 +20,9 @@ use processor::{
         MetadataSource,
     },
     map::SearchMap,
-    search::{ExtractedMatchValue, FilterStats, MatchesExtractor, SearchFilter, SearchHolder},
+    search::{
+        ExtractedMatchValue, FilterStats, MatchesExtractor, SearchError, SearchFilter, SearchHolder,
+    },
     text_source::TextFileSource,
 };
 use serde::Serialize;
@@ -113,9 +112,11 @@ impl RustSession {
     fn get_content_grabber(&mut self) -> Result<&mut Box<dyn AsyncGrabTrait>, ComputationError> {
         let current_grabber = match &mut self.content_grabber {
             Some(c) => Ok(c),
-            None => Err(ComputationError::Protocol(
-                "Need a grabber first to work with metadata".to_owned(),
-            )),
+            None => {
+                let msg = "Need a grabber first to work with metadata".to_owned();
+                warn!("{}", msg);
+                Err(ComputationError::Protocol(msg))
+            }
         }?;
         match self.state.lock() {
             Ok(mut state) => {
@@ -145,17 +146,18 @@ impl RustSession {
                 let mut grabber = match GrabberType::new(source) {
                     Ok(grabber) => grabber,
                     Err(err) => {
-                        return Err(ComputationError::Protocol(format!(
-                            "Fail to create search grabber. Error: {}",
-                            err
-                        )));
+                        let msg = format!("Failed to create search grabber. Error: {}", err);
+                        warn!("{}", msg);
+                        return Err(ComputationError::Protocol(msg));
                     }
                 };
                 if let Err(err) = grabber.inject_metadata(metadata) {
-                    return Err(ComputationError::Protocol(format!(
-                        "Fail to inject metadata into search grabber. Error: {}",
+                    let msg = format!(
+                        "Failed to inject metadata into search grabber. Error: {}",
                         err
-                    )));
+                    );
+                    warn!("{}", msg);
+                    return Err(ComputationError::Protocol(msg));
                 }
                 self.search_grabber = Some(Box::new(grabber));
             } else {
@@ -171,9 +173,11 @@ impl RustSession {
                 debug!("RUST: reusing cached metadata");
                 Ok(Some(grabber))
             }
-            None => Err(ComputationError::Protocol(
-                "No metadata available for grabber".to_owned(),
-            )),
+            None => {
+                let msg = "No metadata available for search grabber".to_owned();
+                warn!("{}", msg);
+                Err(ComputationError::Protocol(msg))
+            }
         }
     }
 }
@@ -182,7 +186,6 @@ impl RustSession {
 impl RustSession {
     #[node_bindgen(constructor)]
     pub fn new(id: String) -> Self {
-        init_logging(); // TODO
         Self {
             id,
             running: false,
@@ -411,7 +414,9 @@ impl RustSession {
                 type GrabberType = processor::grabber::Grabber<TextFileSource>;
                 let source = TextFileSource::new(&input_p, &source_id);
                 let grabber = GrabberType::lazy(source).map_err(|e| {
-                    ComputationError::Process(format!("Could not create grabber: {}", e))
+                    let err_msg = format!("Could not create grabber: {}", e);
+                    warn!("{}", err_msg);
+                    ComputationError::Process(err_msg)
                 })?;
                 self.content_grabber = Some(Box::new(grabber));
                 SupportedFileType::Text
@@ -426,6 +431,7 @@ impl RustSession {
                 SupportedFileType::Dlt
             }
             None => {
+                warn!("Trying to assign unsupported file type: {}", file_path);
                 return Err(ComputationError::OperationNotSupported(
                     "Unsupported file type".to_string(),
                 ));
@@ -472,7 +478,8 @@ impl RustSession {
                 (start_line_index as u64)..=((start_line_index + number_of_lines) as u64),
             ))
             .map_err(|e| {
-                ComputationError::Communication(format!("grab search content failed: {}", e))
+                warn!("Grab search content failed: {}", e);
+                ComputationError::SearchError(SearchError::Grab(e))
             })?;
         let mut results: GrabbedContent = GrabbedContent {
             grabbed_elements: vec![],
@@ -548,6 +555,7 @@ impl RustSession {
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
+            warn!("Cannot search when no file has been assigned");
             return Err(ComputationError::NoAssignedContent);
         };
         let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
@@ -897,7 +905,7 @@ fn handle_assign(
 ) -> CallbackEvent {
     match create_metadata_for_source(file_path, source_type, source_id) {
         Ok(ComputationResult::Item(metadata)) => {
-            println!("received metadata {:?}", metadata);
+            trace!("received metadata {:?}", metadata);
             debug!("RUST: received metadata");
             let line_count: u64 = metadata.line_count as u64;
             match update_state(state, Some(line_count), Some(Some(metadata))) {
@@ -913,20 +921,21 @@ fn handle_assign(
             }
         }
         Ok(ComputationResult::Stopped) => {
-            debug!("RUST: metadata calculation aborted");
+            info!("RUST: metadata calculation aborted");
             let _ = update_state(state, None, Some(None));
             CallbackEvent::Progress((operation_id, Progress::Stopped))
         }
-        Err(_e) => {
-            debug!("RUST error computing metadata");
+        Err(e) => {
+            warn!("RUST error computing metadata: {}", e);
             let _ = update_state(state, None, Some(None));
             CallbackEvent::OperationError((
                 operation_id,
-                NativeError {
-                    severity: Severity::WARNING,
-                    kind: NativeErrorKind::ComputationFailed,
-                    message: None,
-                },
+                e.into(),
+                // NativeError {
+                //     severity: Severity::WARNING,
+                //     kind: NativeErrorKind::ComputationFailed,
+                //     message: None,
+                // },
             ))
         }
     }

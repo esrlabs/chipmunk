@@ -26,6 +26,8 @@ pub enum SearchError {
     //Regex(#[from] grep_regex::Error),
     #[error("Input-Error: ({0})")]
     Input(String),
+    #[error("GrabError error ({0})")]
+    Grab(#[from] GrabError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

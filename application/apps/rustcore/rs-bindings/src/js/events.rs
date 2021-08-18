@@ -1,6 +1,9 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity};
-use processor::search::{FilterStats, SearchError};
+use processor::{
+    grabber::GrabError,
+    search::{FilterStats, SearchError},
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -13,6 +16,8 @@ pub enum NativeErrorKind {
     /// The file type is not currently supported
     UnsupportedFileType,
     ComputationFailed,
+    Configuration,
+    Interrupted,
     OperationSearch,
     NotYetImplemented,
 }
@@ -22,6 +27,43 @@ pub struct NativeError {
     pub severity: Severity,
     pub kind: NativeErrorKind,
     pub message: Option<String>,
+}
+
+impl From<GrabError> for NativeError {
+    fn from(err: GrabError) -> Self {
+        match err {
+            GrabError::IoOperation(e) => NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ComputationFailed,
+                message: Some(format!("{}", e)),
+            },
+            GrabError::Config(msg) => NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Configuration,
+                message: Some(msg.to_string()),
+            },
+            GrabError::Interrupted => NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Interrupted,
+                message: None,
+            },
+            GrabError::InvalidRange { .. } => NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ComputationFailed,
+                message: Some("Invalid Range".to_string()),
+            },
+            GrabError::Communication(s) => NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ComputationFailed,
+                message: Some(s),
+            },
+            GrabError::NotInitialize => NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ComputationFailed,
+                message: Some("Grabbing failed, not initialized".to_owned()),
+            },
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
