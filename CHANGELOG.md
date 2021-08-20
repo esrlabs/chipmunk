@@ -1,4 +1,13 @@
 # Changelog
+### [2.20.0] - 08/20/2021
+
+### Added
+
+- Basic support of ADB (beta)
+
+### Changed
+
+-   Upgraed Angular to 12.2.1
 
 ### [2.19.1] - 07/23/2021
 
