@@ -1,5 +1,5 @@
 # Changelog
-### [2.20.0] - 08/20/2021
+### [2.20.1] - 08/22/2021
 
 ### Added
 
@@ -7,7 +7,9 @@
 
 ### Changed
 
--   Upgraed Angular to 12.2.1
+-   Upgraded Angular to 12.2.1
+-   Include Angular JIT compiler into client.core
+-   Limited Angular browser support
 
 ### [2.19.1] - 07/23/2021
 
