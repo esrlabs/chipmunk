@@ -6,7 +6,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatNativeDateModule } from '@angular/material/core';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { COMPILER_OPTIONS, CompilerFactory, Compiler, NgModule } from '@angular/core';
+import { COMPILER_OPTIONS, CompilerFactory, Compiler, NgModule, CompilerOptions } from '@angular/core';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatOptionModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,8 +15,12 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSliderModule } from '@angular/material/slider';
 import { MarkdownModule } from 'ngx-markdown';
 
-export function createCompiler(fn: CompilerFactory): Compiler {
-    return fn.createCompiler();
+const compilerOptions: CompilerOptions = {
+    useJit: true,
+};
+  
+export function createCompiler(compilerFactory: CompilerFactory) {
+    return compilerFactory.createCompiler([compilerOptions]);
 }
 
 @NgModule({

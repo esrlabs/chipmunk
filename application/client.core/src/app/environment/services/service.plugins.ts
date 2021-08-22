@@ -1,3 +1,4 @@
+declare var System: any;
 
 import * as AngularCore from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -9,7 +10,6 @@ import { IService } from '../interfaces/interface.service';
 import { ControllerPluginGate } from '../controller/controller.plugin.gate';
 import { IAPI } from 'chipmunk.client.toolkit';
 import { getAvailablePluginModules } from '../controller/controller.plugin.deps';
-
 import ElectronIpcService from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import LogsService from './service.logs';
@@ -58,6 +58,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
     private _factories: AngularCore.ComponentFactory<any>[] = [];
     private _getPluginAPIByID?: (pluginId: number) => IAPI;
     private _manager: ControllerPluginsManager;
+    private _jitCompiler: any;
 
     constructor() {
         super();
@@ -67,7 +68,14 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            resolve();
+            System.import('./compiler.umd.js').then((mod) => {
+                this._jitCompiler = mod;
+                this._logger.debug(`Angular JIT compiler is loaded`);
+                resolve();
+            }).catch((err: Error) => {
+                this._logger.warn(`Fail to load Angular JIT compiler. Angular based plugins would not be available. Error: ${err.message}`);
+                resolve();
+            });
         });
     }
 
@@ -210,6 +218,15 @@ export class PluginsService extends Toolkit.Emitter implements IService {
             );
             (window as any).chipmunk = gate;
             (window as any).logviewer = gate; // Back-compatibility
+            if ((window as any).global === undefined) {
+                (window as any).global = {};
+            }
+            if ((window as any).global.ng === undefined && this._jitCompiler !== undefined) {
+                (window as any).global.ng = {
+                    ɵcompilerFacade: this._jitCompiler.default.ɵcompilerFacade,
+                    compiler: this._jitCompiler.default.compiler,
+                };
+            }
             if (!LogsService.isProduction()) {
                 code = `console.log('Reference to code of plugin "${name.replace(/'/gi, '"')}"');\n${code}`;
             }

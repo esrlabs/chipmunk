@@ -10,7 +10,7 @@
     "build": "./node_modules/.bin/ng build --configuration development",
     "test": "./node_modules/.bin/ng test",
     "e2e": "./node_modules/.bin/ng e2e",
-    "prod": "./node_modules/.bin/ng build --configuration production --aot --outputHashing=all"
+    "prod": "./node_modules/.bin/ng build --configuration production"
   },
   "private": true,
   "dependencies": {
@@ -33,7 +33,7 @@
     "postcss": ">=8.2.10",
     "rxjs": "^6.5.3",
     "systemjs": "~6.2.6",
-    "tslib": "~2.1.0",
+    "tslib": "^2.1.0",
     "zone.js": "~0.11.3"
   },
   "peerDependencies": {
@@ -50,6 +50,9 @@
     "tslint": "~6.1.0",
     "typescript": "4.3.5"
   },
+  "browserslist": [
+    "last 2 Chrome versions"
+  ],
   "resolutions": {
     "websocket-extensions": ">=0.1.4",
     "serialize-javascript": ">=2.1.2",

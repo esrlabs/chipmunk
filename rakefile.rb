@@ -298,6 +298,8 @@ namespace :client do
       puts 'Building client.core'
       sh "#{NPM_RUN} prod"
     end
+    puts 'Deliver Angular JIT compiler'
+    cp("#{CLIENT_CORE_DIR}/node_modules/@angular/compiler/bundles/compiler.umd.js", "#{CLIENT_CORE_DIR}/dist/logviewer/compiler.umd.js", :verbose => true)
     puts 'Deliver client.core'
     rm_rf(dest_client_path)
     cp_r("#{CLIENT_CORE_DIR}/dist/logviewer", dest_client_path, verbose: true)
