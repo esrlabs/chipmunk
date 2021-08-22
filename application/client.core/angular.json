@@ -46,7 +46,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "aot": true,
               "extractLicenses": true,
@@ -66,6 +65,8 @@
             },
             "development": {
               "sourceMap": true,
+              "buildOptimizer": false,
+              "aot": false,
               "budgets": [
                 {
                   "type": "initial",
