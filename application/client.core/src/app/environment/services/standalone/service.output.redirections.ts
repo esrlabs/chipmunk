@@ -191,7 +191,47 @@ export class OutputRedirectionsService {
                 })
                 .sort((a, b) => (a.position > b.position ? 1 : -1));
             const arounds: { [key: number]: { after: number; before: number } } = {};
-            state.selection.getSelections().forEach((range: IRange) => {
+            let selection = state.selection.getSelections().filter((range) => {
+                return range.start.output !== range.end.output
+                    ? true
+                    : bookmarks.find((bookmark) => bookmark.position === range.start.output) ===
+                          undefined;
+            });
+            let changed = true;
+            while (changed) {
+                changed = false;
+                selection = selection
+                    .map((range) => {
+                        if (range.start.search === -1) {
+                            if (
+                                bookmarks.find(
+                                    (bookmark) => bookmark.position === range.start.output,
+                                ) !== undefined
+                            ) {
+                                range.start.output += 1;
+                                changed = true;
+                            }
+                        }
+
+                        if (range.end.search === -1) {
+                            if (
+                                bookmarks.find(
+                                    (bookmark) => bookmark.position === range.end.output,
+                                ) !== undefined
+                            ) {
+                                range.end.output -= 1;
+                                changed = true;
+                            }
+                        }
+                        return range;
+                    })
+                    .filter((range) => {
+                        return range.start.search !== -1
+                            ? true
+                            : range.start.output < range.end.output;
+                    });
+            }
+            selection.forEach((range: IRange) => {
                 if (range.start.search === -1) {
                     arounds[range.start.output] = { after: -1, before: -1 };
                 }
@@ -213,7 +253,7 @@ export class OutputRedirectionsService {
                 }),
             ).then(() => {
                 const ranges: IRange[] = [];
-                state.selection.getSelections().forEach((range: IRange) => {
+                selection.forEach((range: IRange) => {
                     if (range.start.search === -1 && range.end.search === -1) {
                         const start = arounds[range.start.output];
                         const end = arounds[range.end.output];
