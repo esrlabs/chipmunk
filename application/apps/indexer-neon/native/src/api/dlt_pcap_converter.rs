@@ -28,10 +28,8 @@ impl PcapDltConverterEventEmitter {
             use tokio::runtime::Runtime;
             // Create the runtime
             let rt = Runtime::new().expect("Could not create runtime");
-            println!(">>>>>>>>>>>>>>>>>>>> 0");
 
             rt.block_on(async {
-                println!(">>>>>>>>>>>>>>>>>>>> 1");
                 match dlt::dlt_pcap::pcap_to_dlt(
                     &pcap_file_path,
                     &out_file_path,
@@ -45,7 +43,6 @@ impl PcapDltConverterEventEmitter {
                     Ok(_) => info!("Conversion was ok"),
                     Err(e) => warn!("Conversion error: {}", e),
                 }
-                println!(">>>>>>>>>>>>>>>>>>>> 2");
                 debug!("Back after DLT pcap indexing finished!");
             });
         }));
