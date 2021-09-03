@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 
 import * as os from 'os';
 
@@ -6,17 +6,8 @@ import { detectAvailableProfiles as getProfiles, ITerminalProfile } from './prof
 
 export { getProfiles, ITerminalProfile };
 
-const cache: any = {};
-
-export function shell(
-    command: string,
-    ignoreCache: boolean = false,
-    defShell?: string,
-): Promise<string> {
+export function shell(command: string, defShell?: string): Promise<string> {
     return new Promise((resolve, reject) => {
-        if (cache[command] !== undefined && ignoreCache) {
-            return resolve(cache[command]);
-        }
         exec(
             command,
             { shell: defShell },
@@ -30,7 +21,6 @@ export function shell(
                 if (typeof stdout !== 'string' || stdout.replace(/[\n\r]/gi, '').trim() === '') {
                     stdout = '';
                 }
-                cache[command] = stdout;
                 resolve(stdout);
             },
         );
@@ -50,15 +40,20 @@ export enum EPlatforms {
 
 export type TEnvVars = { [key: string]: string };
 
-export function getEnvVars(ignoreCache: boolean = false): Promise<TEnvVars> {
+export function printenv(shellFullPath?: string): Promise<TEnvVars> {
+    if (os.platform() === EPlatforms.win32) {
+        return Promise.reject(new Error(`This command doesn't supported by windows.`));
+    }
     return new Promise((resolve, reject) => {
-        if (os.platform() !== EPlatforms.darwin) {
-            return resolve(Object.assign({}, process.env) as TEnvVars);
-        }
-        // GUI-Apps don't inherit all environment-variables on darwin
-        getDefShell()
+        (() => {
+            if (shellFullPath === undefined) {
+                return getDefShell();
+            } else {
+                return Promise.resolve(shellFullPath);
+            }
+        })()
             .then((defShell: string) => {
-                shell('printenv', ignoreCache, defShell)
+                shell('printenv', defShell)
                     .then((stdout: string) => {
                         const pairs: TEnvVars = {};
                         stdout.split(/[\n\r]/gi).forEach((row: string) => {
@@ -82,8 +77,71 @@ export function getEnvVars(ignoreCache: boolean = false): Promise<TEnvVars> {
             });
     });
 }
+export function getElectronAppShellEnvVars(
+    electronPath: string,
+    shellFullPath?: string,
+): Promise<TEnvVars> {
+    return new Promise((resolve, reject) => {
+        if (os.platform() !== EPlatforms.darwin) {
+            return resolve(Object.assign({}, process.env) as TEnvVars);
+        }
+        (() => {
+            if (shellFullPath === undefined) {
+                return getDefShell();
+            } else {
+                return Promise.resolve(shellFullPath);
+            }
+        })()
+            .then((targetShell: string) => {
+                const env = {
+                    ...process.env,
+                    ELECTRON_RUN_AS_NODE: '1',
+                    ELECTRON_NO_ATTACH_CONSOLE: '1',
+                };
+                const marker = '__chipmunk_marker__';
+                const child = spawn(
+                    targetShell,
+                    [
+                        ...['-ilc'],
+                        `'${electronPath}' -p 'JSON.stringify(Object.assign({ ${marker}: true }, process.env))'`,
+                    ],
+                    {
+                        detached: true,
+                        stdio: ['ignore', 'pipe', 'pipe'],
+                        env,
+                    },
+                );
+                child.on('error', (err) => {
+                    reject(err);
+                });
+                let stdout: string = '';
+                child.stdout.on('data', (out) => (stdout += out));
+                let stderr: string = '';
+                child.stderr.on('data', (out) => (stderr += out));
+                child.on('close', (code, signal) => {
+                    if (code !== 0) {
+                        return reject(
+                            new Error(
+                                `Process has been finished with code ${code}. Stderr: ${stderr}`,
+                            ),
+                        );
+                    }
+                    try {
+                        const envvars = JSON.parse(stdout);
+                        if (typeof envvars !== 'object' || envvars === null || !envvars[marker]) {
+                            return reject(new Error(`Invalid stdout`));
+                        }
+                        resolve(envvars);
+                    } catch (e) {}
+                });
+            })
+            .catch((defShellErr: Error) => {
+                reject(defShellErr);
+            });
+    });
+}
 
-export function getEnvVar(name: string, ignoreCache: boolean = false): Promise<string> {
+export function getEnvVar(name: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const possible: string | undefined = process.env[name];
         if (typeof possible === 'string' && possible.trim() !== '') {
@@ -107,13 +165,13 @@ export function getEnvVar(name: string, ignoreCache: boolean = false): Promise<s
                         break;
                 }
                 let output: string = '';
-                shell(cmd, ignoreCache, defShell)
+                shell(cmd, defShell)
                     .then((stdout: string) => {
                         output = stdout.replace(/[\n\r]/gi, '').trim();
                         if (os.platform() === EPlatforms.win32 && output === `%${name}%`) {
                             // Try unix way
                             cmd = `echo $${name}`;
-                            shell(cmd, ignoreCache)
+                            shell(cmd)
                                 .then((stdoutUnixWay: string) => {
                                     output = stdoutUnixWay.replace(/[\n\r]/gi, '').trim();
                                     if (
@@ -167,7 +225,7 @@ export function getDefShell(ignoreCache: boolean = false): Promise<string> {
         }
 
         // process didn't resolve shell, so we query it manually
-        shell(command, ignoreCache)
+        shell(command)
             .then((stdout: string) => {
                 resolve(stdout.trim());
             })
@@ -179,7 +237,7 @@ export function getDefShell(ignoreCache: boolean = false): Promise<string> {
     });
 }
 
-export function getShells(ignoreCache: boolean = false): Promise<string[]> {
+export function getShells(): Promise<string[]> {
     return new Promise((resolve, reject) => {
         getProfiles()
             .then((profiles: ITerminalProfile[]) => {
