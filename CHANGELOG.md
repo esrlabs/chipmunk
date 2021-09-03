@@ -1,9 +1,26 @@
 # Changelog
+
+### [2.20.2] - 09/03/2021
+
+### Added
+
+-   Basic support of ADB (beta)
+
+### Fixed
+
+-   Detection envvars on MacOS
+
+### Changed
+
+-   Upgraded Angular to 12.2.1
+-   Include Angular JIT compiler into client.core
+-   Limited Angular browser support
+
 ### [2.20.1] - 08/22/2021
 
 ### Added
 
-- Basic support of ADB (beta)
+-   Basic support of ADB (beta)
 
 ### Changed
 
