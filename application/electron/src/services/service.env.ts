@@ -1,5 +1,5 @@
 import Logger from '../tools/env.logger';
-import { getEnvVar, getEnvVars } from 'chipmunk.shell.env';
+import { getEnvVar, getElectronAppShellEnvVars } from 'chipmunk.shell.env';
 
 import { IService } from '../interfaces/interface.service';
 // TODO:
@@ -87,7 +87,10 @@ export interface IChipmunkEnvVars {
 
 const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
     [EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS]: (smth: any): boolean => {
-        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+        if (
+            typeof smth === 'string' &&
+            ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1
+        ) {
             return true;
         }
         if (typeof smth === 'number' && smth === 1) {
@@ -96,7 +99,10 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
         return false;
     },
     [EChipmunkEnvVars.CHIPMUNK_NO_RENDER_LOGS]: (smth: any): boolean => {
-        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+        if (
+            typeof smth === 'string' &&
+            ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1
+        ) {
             return true;
         }
         if (typeof smth === 'number' && smth === 1) {
@@ -105,7 +111,10 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
         return false;
     },
     [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS]: (smth: any): boolean => {
-        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+        if (
+            typeof smth === 'string' &&
+            ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1
+        ) {
             return true;
         }
         if (typeof smth === 'number' && smth === 1) {
@@ -114,7 +123,10 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
         return false;
     },
     [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES]: (smth: any): boolean => {
-        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+        if (
+            typeof smth === 'string' &&
+            ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1
+        ) {
             return true;
         }
         if (typeof smth === 'number' && smth === 1) {
@@ -123,7 +135,10 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
         return false;
     },
     [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPGRADE]: (smth: any): boolean => {
-        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+        if (
+            typeof smth === 'string' &&
+            ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1
+        ) {
             return true;
         }
         if (typeof smth === 'number' && smth === 1) {
@@ -132,7 +147,10 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
         return false;
     },
     [EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID]: (smth: any): boolean => {
-        if (typeof smth === 'string' && ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1) {
+        if (
+            typeof smth === 'string' &&
+            ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1
+        ) {
             return true;
         }
         if (typeof smth === 'number' && smth === 1) {
@@ -148,7 +166,6 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: any) => boolean } = {
  */
 
 class ServiceEnv implements IService {
-
     private _logger: Logger = new Logger('ServiceEnv');
     private _env: IChipmunkEnvVars = {
         CHIPMUNK_DEVELOPING_MODE: undefined,
@@ -179,37 +196,52 @@ class ServiceEnv implements IService {
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,
                 EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID,
             ];
-            Promise.all(list.map((env: string) => {
-                return getEnvVar(env).then((value: string) => {
-                    if (typeof value !== 'string' || value.trim() === '') {
+            Promise.all(
+                list.map((env: string) => {
+                    return getEnvVar(env)
+                        .then((value: string) => {
+                            if (typeof value !== 'string' || value.trim() === '') {
+                                (this._env as any)[env] = undefined;
+                            } else {
+                                if (CChipmunkEnvVarsParsers[env] !== undefined) {
+                                    (this._env as any)[env] = CChipmunkEnvVarsParsers[env](value);
+                                } else {
+                                    (this._env as any)[env] = value;
+                                }
+                            }
+                        })
+                        .catch((err: Error) => {
+                            this._logger.warn(
+                                `Cannot detect env "${env}" due error: ${err.message}`,
+                            );
+                            (this._env as any)[env] = undefined;
+                        });
+                }),
+            )
+                .catch((error: Error) => {
+                    // Drop all to default
+                    list.forEach((env: string) => {
                         (this._env as any)[env] = undefined;
-                    } else {
-                        if (CChipmunkEnvVarsParsers[env] !== undefined) {
-                            (this._env as any)[env] = CChipmunkEnvVarsParsers[env](value);
-                        } else {
-                            (this._env as any)[env] = value;
-                        }
-                    }
-                }).catch((err: Error) => {
-                    this._logger.warn(`Cannot detect env "${env}" due error: ${err.message}`);
-                    (this._env as any)[env] = undefined;
+                    });
+                    this._logger.error(`Fail to detect OS env due error: ${error.message}`);
+                })
+                .finally(() => {
+                    this._logger.debug(
+                        `Next env vars are detected:\n${list
+                            .map((env: string) => {
+                                return `\t${env}=${(this._env as any)[env]}`;
+                            })
+                            .join('\n')}`,
+                    );
+                    getElectronAppShellEnvVars(process.execPath)
+                        .then((vars) => {
+                            this._os = vars;
+                        })
+                        .catch((err: Error) => {
+                            this._logger.warn(`Fail get all envvars due error: ${err.message}`);
+                        })
+                        .finally(resolve);
                 });
-            })).catch((error: Error) => {
-                // Drop all to default
-                list.forEach((env: string) => {
-                    (this._env as any)[env] = undefined;
-                });
-                this._logger.error(`Fail to detect OS env due error: ${error.message}`);
-            }).finally(() => {
-                this._logger.debug(`Next env vars are detected:\n${list.map((env: string) => {
-                    return `\t${env}=${(this._env as any)[env]}`;
-                }).join('\n')}`);
-                getEnvVars().then((vars) => {
-                    this._os = vars;
-                }).catch((err: Error) => {
-                    this._logger.warn(`Fail get all envvars due error: ${err.message}`);
-                }).finally(resolve);
-            });
         });
     }
 
@@ -232,4 +264,4 @@ class ServiceEnv implements IService {
     }
 }
 
-export default (new ServiceEnv());
+export default new ServiceEnv();
