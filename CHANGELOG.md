@@ -9,6 +9,7 @@
 ### Fixed
 
 -   Detection envvars on MacOS
+-   Fix selection issue on copy
 
 ### Changed
 
