@@ -132,7 +132,9 @@ export function getElectronAppShellEnvVars(
                             return reject(new Error(`Invalid stdout`));
                         }
                         resolve(envvars);
-                    } catch (e) {}
+                    } catch (e) {
+                        reject(new Error(`Fail to parse: ${e.message}`));
+                    }
                 });
             })
             .catch((defShellErr: Error) => {

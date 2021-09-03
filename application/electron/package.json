@@ -76,7 +76,7 @@
         "@types/request": "^2.48.4",
         "@types/semver": "^7.1.0",
         "@types/tar": "^4.0.0",
-        "chipmunk.shell.env": "0.0.12",
+        "chipmunk.shell.env": "0.0.13",
         "dltreader": "latest",
         "file-type": "^12.2.0",
         "fswin": "^3.19.908",
