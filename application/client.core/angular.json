@@ -65,13 +65,15 @@
             },
             "development": {
               "sourceMap": true,
+              "optimization": false,
               "buildOptimizer": false,
+              "vendorChunk": false,
               "aot": false,
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "5mb",
-                  "maximumError": "10mb"
+                  "maximumWarning": "10mb",
+                  "maximumError": "15mb"
                 },
                 {
                   "type": "anyComponentStyle",
