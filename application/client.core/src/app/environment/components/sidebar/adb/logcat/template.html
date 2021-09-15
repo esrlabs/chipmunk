@@ -1,10 +1,9 @@
-<mat-expansion-panel
-    [disabled]="true"
-    [expanded]="true"
-    [hideToggle]="true">
+<mat-expansion-panel [disabled]="true" [expanded]="true" [hideToggle]="true">
     <mat-expansion-panel-header class="nowrap">
         <mat-panel-title>Logcat</mat-panel-title>
-        <mat-panel-description *ngIf="_ng_device.name !== _ng_noDevice.name">{{_ng_amount}}</mat-panel-description>
+        <mat-panel-description *ngIf="_ng_device.name !== _ng_noDevice.name"
+            >{{_ng_amount}}</mat-panel-description
+        >
     </mat-expansion-panel-header>
     <div *ngIf="service.status === 'init'">
         <p class="t-small">Checking for adb</p>
@@ -14,23 +13,101 @@
         <p class="t-small">Adb either not installed yet or not added to environment variables</p>
     </div>
     <div *ngIf="service.status === 'ready'">
-        <mat-form-field appearence="fill">
-            <mat-label>Device</mat-label>
-            <mat-select [(value)]="_ng_device" [class]="this._ng_device.name === this._ng_noDevice.name ? 'none' : ''" (selectionChange)="_ng_onDeviceChange($event)">
-                <mat-option [value]="device" *ngFor="let device of _ng_devices">{{ device.name }}</mat-option>
-            </mat-select>
-        </mat-form-field>
-        <mat-form-field appearence="fill">
-            <mat-label>Process</mat-label>
-            <mat-select [(value)]="_ng_process" [class]="this._ng_process.name === this._ng_noProcess.name ? 'none' : ''" (selectionChange)="_ng_onChange($event)">
-                <mat-option [value]="process" *ngFor="let process of _ng_processes">{{ process.name }}</mat-option>
-            </mat-select>
-        </mat-form-field>
-        <mat-form-field appearence="fill">
-            <mat-label>Loglevel</mat-label>
-            <mat-select [(value)]="_ng_logLevel" (selectionChange)="_ng_onChange($event)">
-                <mat-option [value]="level.flag" *ngFor="let level of _ng_logLevels">{{ level.name }}</mat-option>
-            </mat-select>
-        </mat-form-field>
+        <div class="dropdown-container">
+            <mat-form-field class="form-field" appearence="fill">
+                <mat-label>Device</mat-label>
+                <mat-select
+                    [(value)]="_ng_device"
+                    [class]="this._ng_device.name === this._ng_noDevice.name ? 'none' : ''"
+                    (selectionChange)="_ng_onDeviceChange($event)"
+                >
+                    <mat-option
+                        class="small t-console t-small"
+                        [value]="device"
+                        *ngFor="let device of _ng_devices"
+                        >{{ device.name }}</mat-option
+                    >
+                </mat-select>
+            </mat-form-field>
+            <div class="refresh">
+                <mat-icon
+                    *ngIf="!_ng_refreshDevices"
+                    class="refresh-icon"
+                    (click)="_ng_onRefreshDevices()"
+                    >refresh</mat-icon
+                >
+                <mat-spinner
+                    class="refresh-spinner"
+                    *ngIf="_ng_refreshDevices"
+                    [diameter]="20"
+                    mode="indeterminate"
+                ></mat-spinner>
+            </div>
+        </div>
+        <div class="dropdown-container">
+            <mat-form-field class="form-field" appearence="fill">
+                <mat-label>Process</mat-label>
+                <mat-select
+                    [(value)]="_ng_processSelected"
+                    [class]="this._ng_process.name === this._ng_noProcess.name ? 'none' : ''"
+                    (keyup)="_ng_onKeyup($event)"
+                    (selectionChange)="_ng_onChange($event)"
+                    (focus)="_ng_onFocus()"
+                    (blur)="_ng_onBlur()"
+                >
+                    <mat-option
+                        appScrollIntoView
+                        [trigger]="_ng_scrollIntoViewTrigger"
+                        [value]="_ng_noProcessPair"
+                        [attr.title]="_ng_noProcessPair.caption"
+                        class="process small t-console t-small"
+                    >
+                        <span class="noreset process-caption">{{_ng_noProcessPair.caption}}</span>
+                    </mat-option>
+                    <mat-option
+                        *ngFor="let processPair of _ng_processPairs | async"
+                        [value]="processPair"
+                        [attr.title]="processPair.caption"
+                        class="process small t-console t-small"
+                    >
+                        <span
+                            class="noreset process-caption"
+                            [innerHTML]="_ng_getSafeHTML(processPair.tcaption)"
+                        ></span>
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+            <div class="refresh">
+                <mat-icon
+                    *ngIf="!_ng_refreshProcesses"
+                    class="refresh-icon"
+                    (click)="_ng_onRefreshProcesses()"
+                    >refresh</mat-icon
+                >
+                <mat-spinner
+                    class="refresh-spinner"
+                    *ngIf="_ng_refreshProcesses"
+                    [diameter]="20"
+                    mode="indeterminate"
+                ></mat-spinner>
+            </div>
+        </div>
+        <div class="dropdown-container">
+            <mat-form-field class="form-field" appearence="fill">
+                <mat-label>Loglevel</mat-label>
+                <mat-select [(value)]="_ng_logLevel" (selectionChange)="_ng_onChange()">
+                    <mat-option
+                        class="small t-console t-small"
+                        [value]="level.flag"
+                        *ngFor="let level of _ng_logLevels"
+                        >{{ level.name }}</mat-option
+                    >
+                </mat-select>
+            </mat-form-field>
+        </div>
     </div>
 </mat-expansion-panel>
+<div *ngIf="_ng_processSearchTerm !== ''" class="process-search">
+    <span class="search-term">{{_ng_processSearchTerm}}</span>
+    <mat-icon class="search-close" (click)="_ng_onCloseSearch()">close</mat-icon>
+</div>
