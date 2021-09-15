@@ -23,11 +23,13 @@ export default class ControllerStreamShell {
     private _presetTitle: string = '';
     private _env: {
         env: { [key: string]: string };
+        def: { [key: string]: string };
         shell: string;
         shells: string[];
         pwd: string;
     } = {
         env: {},
+        def: {},
         shell: '',
         shells: [],
         pwd: path.normalize(`${os.homedir()}`),
@@ -41,8 +43,9 @@ export default class ControllerStreamShell {
         // should not throw an exception.
         Promise.all([
             getElectronAppShellEnvVars(process.execPath)
-                .then((_: TEnvVars) => {
-                    this._env.env = _;
+                .then((envs: TEnvVars) => {
+                    this._env.env = Object.assign({}, envs);
+                    this._env.def = Object.assign({}, envs);
                 })
                 .catch((e) => (error = e)),
             getShells()
@@ -63,8 +66,8 @@ export default class ControllerStreamShell {
                     );
                 }
                 this._logger.verbose(
-                    `Next envvars are detected:\n\t${Object.keys(this._env.env)
-                        .map((k) => k + ' = ' + this._env.env[k])
+                    `Next envvars are detected:\n\t${Object.keys(this._env.def)
+                        .map((k) => k + ' = ' + this._env.def[k])
                         .filter((v) => v.trim() !== '=')
                         .join('\n\t')}`,
                 );
@@ -328,15 +331,14 @@ export default class ControllerStreamShell {
             .then(() => {
                 this._env.pwd = request.pwd !== undefined ? request.pwd : this._env.pwd;
                 this._env.shell = request.shell !== undefined ? request.shell : this._env.shell;
-                this._env.env =
-                    request.env !== undefined
-                        ? Object.assign(
-                              {},
-                              ...request.env.map((item: IPC.IEnvironment) => ({
-                                  [item.variable]: item.value,
-                              })),
-                          )
-                        : this._env.env;
+                if (request.env !== undefined) {
+                    this._env.env = Object.assign({}, this._env.def);
+                    request.env.forEach((variable) => {
+                        if (this._env.def[variable.variable] === undefined) {
+                            this._env.env[variable.variable] = variable.value;
+                        }
+                    });
+                }
                 response(new IPC.ShellSetEnvResponse({}));
             })
             .catch((err: Error) => {
