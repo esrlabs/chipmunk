@@ -1,6 +1,13 @@
 # Changelog
 
-### [2.20.2] - 09/03/2021
+## [2.21.0] - 09/17/2021
+### Added
+- Filtering processes list on ADB
+
+### Fixed
+- Fixed MacOS issue for Shell Extention
+
+## [2.20.2] - 09/03/2021
 
 ### Added
 
@@ -17,7 +24,7 @@
 -   Include Angular JIT compiler into client.core
 -   Limited Angular browser support
 
-### [2.20.1] - 08/22/2021
+## [2.20.1] - 08/22/2021
 
 ### Added
 
