@@ -4,6 +4,8 @@ import {
     Input,
     OnDestroy,
     OnInit,
+    QueryList,
+    ViewChildren,
     ViewEncapsulation,
 } from '@angular/core';
 import { SidebarAppAdbService, IAmount, EAdbStatus } from '../services/service';
@@ -13,7 +15,7 @@ import {
     ENotificationType,
 } from '../../../../services.injectable/injectable.service.notifications';
 import { IAdbDevice, IAdbProcess } from '../../../../../../../../common/interfaces/interface.adb';
-import { MatSelectChange } from '@angular/material/select';
+import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { IPCMessages } from '../../../../services/service.electron.ipc';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { sortPairs, IPair } from '../../../../thirdparty/code/engine';
@@ -39,25 +41,14 @@ interface ILogLevel {
 export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     @Input() public service: SidebarAppAdbService;
 
+    @ViewChildren(MatSelect) _ng_matSelectList: QueryList<MatSelect>;
+
     public readonly _ng_noDevice: IAdbDevice = {
         name: '<No device selected>',
         type: '',
     };
     public _ng_devices: IAdbDevice[] = [this._ng_noDevice];
     public _ng_device: IAdbDevice = this._ng_noDevice;
-    public readonly _ng_noProcess: IAdbProcess = {
-        name: '<No process selected>',
-        addr: undefined,
-        pid: undefined,
-        ppid: undefined,
-        rss: undefined,
-        s: undefined,
-        user: undefined,
-        vsz: undefined,
-        wchan: undefined,
-    };
-    public _ng_processes: IAdbProcess[] = [this._ng_noProcess];
-    public _ng_process: IAdbProcess = this._ng_noProcess;
     public _ng_running: boolean = false;
     public _ng_amount: string = '0 bytes';
     public readonly _ng_logLevels: ILogLevel[] = [
@@ -78,8 +69,6 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     public _ng_processSearchTerm: string = '';
     public _ng_processSelected: IPair = this._ng_noProcessPair;
     public _ng_processPairs: Observable<IPair[]>;
-    public _ng_refreshDevices: boolean = false;
-    public _ng_refreshProcesses: boolean = false;
     public _ng_scrollIntoViewTrigger: Subject<void> = new Subject();
 
     private _session: string;
@@ -88,7 +77,6 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     private _subscriptions: { [key: string]: Subscription } = {};
     private _processPairs: IPair[] = [];
     private _processSearchTerm: Subject<string> = new Subject<string>();
-    private _prevProcessSelected: IPair = this._ng_processSelected;
 
     constructor(
         private _cdRef: ChangeDetectorRef,
@@ -124,64 +112,27 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         });
     }
 
-    public _ng_onDeviceChange(event: MatSelectChange) {
+    public _ng_onDeviceChange() {
         if (this._ng_device.name === this._ng_noDevice.name) {
             this._ng_processSelected = this._ng_noProcessPair;
-            this._ng_process = this._ng_noProcess;
-            this._ng_processes = [this._ng_noProcess];
             this._processPairs = [];
             this._stop();
             return;
         }
         this._start();
-        this._ng_onRefreshProcesses();
     }
 
-    public _ng_onRefreshDevices() {
-        this._ng_refreshDevices = true;
-        this.service
-            .getDevices({ session: this._session })
-            .then((response: IAdbDevice[]) => {
-                this._ng_devices = [this._ng_noDevice, ...response];
-                this._ng_refreshDevices = false;
-            })
-            .catch((error: Error) => {
-                this._logger.error(`Failed to detect devices due error: ${error.message}`);
-                this._ng_refreshDevices = false;
-            });
-    }
-
-    public _ng_onRefreshProcesses() {
-        this._ng_refreshProcesses = true;
-        this._detectProcesses()
-            .then(() => {
-                this._ng_refreshProcesses = false;
-            })
-            .catch((error: Error) => {
-                this._logger.error(error.message);
-                this._ng_refreshProcesses = false;
-            });
-    }
-
-    public _ng_onChange(event?: MatSelectChange) {
+    public _ng_onChange() {
         if (this._ng_device.name === this._ng_noDevice.name) {
             return;
         }
-        if (event !== undefined) {
-            const processes: IAdbProcess | undefined = this._ng_processes.find(
-                (process: IAdbProcess) => event.value.caption === process.name,
-            );
-            if (processes === undefined) {
-                return;
-            }
-            this._ng_process = processes;
-        }
+        const id = parseInt(this._ng_processSelected.id);
         this.service
             .change({
                 session: this._session,
                 device: this._ng_device.name,
                 level: this._ng_logLevel,
-                pid: this._ng_process.pid,
+                pid: id === -1 ? undefined : id,
             })
             .then(() => {
                 this._ng_running = true;
@@ -200,16 +151,29 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             });
     }
 
-    public _ng_onFocus() {
-        this._prevProcessSelected = this._ng_processSelected;
-        this._ng_processSearchTerm = '';
-        this._processSearchTerm.next(this._ng_processSearchTerm);
-    }
-
-    public _ng_onBlur() {
-        this._ng_processSelected = this._prevProcessSelected;
-        this._ng_processSearchTerm = '';
-        this._processSearchTerm.next(this._ng_processSearchTerm);
+    public _ng_onProcessSelectClick() {
+        const matSelectArray: Array<MatSelect> = this._ng_matSelectList.toArray();
+        if (matSelectArray[1] !== undefined) {
+            matSelectArray[1].close();
+            this._detectProcesses()
+                .then(() => {
+                    matSelectArray[1].open();
+                    this._ng_processSearchTerm = '';
+                    this._processSearchTerm.next(this._ng_processSearchTerm);
+                })
+                .catch((error: Error) => {
+                    this._notifications.add({
+                        caption: 'Fail to detect processes',
+                        message: `Failed to processes for device ${this._ng_device.name} due to error: ${error.message}`,
+                        options: {
+                            type: ENotificationType.error,
+                        },
+                    });
+                    this._logger.error(
+                        `Failed to processes for device ${this._ng_device.name} due to error: ${error.message}`,
+                    );
+                });
+        }
     }
 
     public _ng_onCloseSearch() {
@@ -249,12 +213,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     private _init() {
         this.service.status = EAdbStatus.init;
         this._ng_devices = [this._ng_noDevice];
-        this._ng_processes = [this._ng_noProcess];
         this._processPairs = [];
         this._ng_amount = this.service.bytesToString(0);
         this._ng_logLevel = this._ng_logLevels[0].flag;
         this._ng_device = this._ng_devices[0];
-        this._ng_process = this._ng_processes[0];
         let devicesNeeded: boolean = false;
         // Try to restore first
         this._restore()
@@ -262,11 +224,20 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                 devicesNeeded = !restored;
             })
             .catch((error: Error) => {
-                this._logger.error(`Failed to restore session; error: ${error.message}`);
+                this._notifications.add({
+                    caption: 'Fail to restore adb session',
+                    message: `Failed to restore session for adb due to error: ${error.message}`,
+                    options: {
+                        type: ENotificationType.error,
+                    },
+                });
+                this._logger.error(
+                    `Failed to restore session for adb due to error: ${error.message}`,
+                );
             })
             .finally(() => {
                 if (devicesNeeded) {
-                    this._ng_onRefreshDevices();
+                    this._detectDevices();
                 } else {
                     this.service.status = EAdbStatus.ready;
                 }
@@ -288,7 +259,6 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                     this._ng_amount = this.service.bytesToString(response.data.recieved);
                     this._ng_logLevel = response.data.logLevel;
                     this._ng_devices = [this._ng_noDevice, ...response.data.devices];
-                    this._ng_processes = [this._ng_noProcess, ...response.data.processes];
                     this._processPairs = [
                         ...response.data.processes.map((process: IAdbProcess) => {
                             return {
@@ -307,37 +277,28 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                         this._ng_device = this._ng_noDevice;
                     }
                     if (response.data.pid !== undefined) {
-                        const found: IAdbProcess | undefined = this._ng_processes.find(
-                            (process: IAdbProcess) => process.pid === response.data.pid,
+                        const found: IPair | undefined = this._processPairs.find(
+                            (process: IPair) => parseInt(process.id) === response.data.pid,
                         );
-                        this._ng_process = found === undefined ? this._ng_noProcess : found;
+                        this._ng_processSelected =
+                            found === undefined ? this._ng_noProcessPair : found;
                     } else {
-                        this._ng_process = this._ng_noProcess;
+                        this._ng_processSelected = this._ng_noProcessPair;
                     }
                     resolve(true);
                 })
-                .catch((error: Error) => {
-                    this._notifications.add({
-                        caption: 'Fail to restore adb session',
-                        message: `Failed to restore session for adb due to error: ${error.message}`,
-                        options: {
-                            type: ENotificationType.error,
-                        },
-                    });
-                    this._logger.error(
-                        `Failed to restore session for adb due to error: ${error.message}`,
-                    );
-                });
+                .catch(reject);
         });
     }
 
     private _start() {
+        const id = parseInt(this._ng_processSelected.id);
         this.service
             .start({
                 session: this._session,
                 device: this._ng_device.name,
                 level: this._ng_logLevel,
-                pid: this._ng_process.pid,
+                pid: id === -1 ? undefined : id,
             })
             .then(() => {
                 this._ng_running = true;
@@ -374,6 +335,22 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             });
     }
 
+    private _detectDevices() {
+        const prevDevice: IAdbDevice = this._ng_device;
+        this.service
+            .getDevices({ session: this._session })
+            .then((response: IAdbDevice[]) => {
+                this._ng_devices = [this._ng_noDevice, ...response];
+                const found: IAdbDevice | undefined = this._ng_devices.find(
+                    (device: IAdbDevice) => device.name === prevDevice.name,
+                );
+                this._ng_device = found === undefined ? this._ng_noDevice : found;
+            })
+            .catch((error: Error) => {
+                this._logger.error(`Failed to detect devices due error: ${error.message}`);
+            });
+    }
+
     private _detectProcesses(): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this._ng_device.name === this._ng_noDevice.name) {
@@ -383,21 +360,34 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             this.service
                 .getProcesses({ session: this._session, device: this._ng_device.name })
                 .then((response: IAdbProcess[]) => {
-                    this._ng_processes.push(...response);
-                    this._processPairs = [
-                        ...response.map((process: IAdbProcess) => {
-                            return {
+                    let index: number = -1;
+                    response.forEach((process: IAdbProcess) => {
+                        index = this._processPairs.findIndex((pair: IPair) => {
+                            return (
+                                parseInt(pair.id) === process.pid && pair.caption === process.name
+                            );
+                        });
+                        if (index === -1) {
+                            this._processPairs.push({
                                 caption: process.name,
                                 description: ' ',
                                 id: `${process.pid}`,
-                            };
-                        }),
-                    ];
+                            });
+                        }
+                    });
+                    this._processPairs.forEach((pair: IPair) => {
+                        index = response.findIndex((process: IAdbProcess) => {
+                            return (
+                                process.pid === parseInt(pair.id) && process.name === pair.caption
+                            );
+                        });
+                        if (index === -1) {
+                            this._processPairs.splice(this._processPairs.indexOf(pair), 1);
+                        }
+                    });
                     resolve();
                 })
-                .catch((error: Error) => {
-                    reject(new Error(`Failed to detect processes due error: ${error.message}`));
-                });
+                .catch(reject);
         });
     }
 
