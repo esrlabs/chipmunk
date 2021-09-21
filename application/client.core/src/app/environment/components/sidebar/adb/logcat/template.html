@@ -18,8 +18,8 @@
                 <mat-label>Device</mat-label>
                 <mat-select
                     [(value)]="_ng_device"
-                    [class]="this._ng_device.name === this._ng_noDevice.name ? 'none' : ''"
-                    (selectionChange)="_ng_onDeviceChange($event)"
+                    [class]="_ng_device.name === _ng_noDevice.name ? 'none' : ''"
+                    (selectionChange)="_ng_onDeviceChange()"
                 >
                     <mat-option
                         class="small t-console t-small"
@@ -29,31 +29,17 @@
                     >
                 </mat-select>
             </mat-form-field>
-            <div class="refresh">
-                <mat-icon
-                    *ngIf="!_ng_refreshDevices"
-                    class="refresh-icon"
-                    (click)="_ng_onRefreshDevices()"
-                    >refresh</mat-icon
-                >
-                <mat-spinner
-                    class="refresh-spinner"
-                    *ngIf="_ng_refreshDevices"
-                    [diameter]="20"
-                    mode="indeterminate"
-                ></mat-spinner>
-            </div>
         </div>
         <div class="dropdown-container">
             <mat-form-field class="form-field" appearence="fill">
                 <mat-label>Process</mat-label>
                 <mat-select
                     [(value)]="_ng_processSelected"
-                    [class]="this._ng_process.name === this._ng_noProcess.name ? 'none' : ''"
+                    [class]="_ng_processSelected.caption === _ng_noProcessPair.caption ? 'none' : ''"
                     (keyup)="_ng_onKeyup($event)"
-                    (selectionChange)="_ng_onChange($event)"
-                    (focus)="_ng_onFocus()"
-                    (blur)="_ng_onBlur()"
+                    (selectionChange)="_ng_onChange()"
+                    (click)="_ng_onProcessSelectClick()"
+                    (blur)="_ng_onCloseSearch()"
                 >
                     <mat-option
                         appScrollIntoView
@@ -77,20 +63,6 @@
                     </mat-option>
                 </mat-select>
             </mat-form-field>
-            <div class="refresh">
-                <mat-icon
-                    *ngIf="!_ng_refreshProcesses"
-                    class="refresh-icon"
-                    (click)="_ng_onRefreshProcesses()"
-                    >refresh</mat-icon
-                >
-                <mat-spinner
-                    class="refresh-spinner"
-                    *ngIf="_ng_refreshProcesses"
-                    [diameter]="20"
-                    mode="indeterminate"
-                ></mat-spinner>
-            </div>
         </div>
         <div class="dropdown-container">
             <mat-form-field class="form-field" appearence="fill">
