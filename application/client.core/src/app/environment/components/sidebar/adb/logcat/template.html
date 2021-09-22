@@ -1,7 +1,7 @@
 <mat-expansion-panel [disabled]="true" [expanded]="true" [hideToggle]="true">
     <mat-expansion-panel-header class="nowrap">
         <mat-panel-title>Logcat</mat-panel-title>
-        <mat-panel-description *ngIf="_ng_device.name !== _ng_noDevice.name"
+        <mat-panel-description *ngIf="_ng_deviceSelected.name !== _ng_noDevice.name"
             >{{_ng_amount}}</mat-panel-description
         >
     </mat-expansion-panel-header>
@@ -17,9 +17,10 @@
             <mat-form-field class="form-field" appearence="fill">
                 <mat-label>Device</mat-label>
                 <mat-select
-                    [(value)]="_ng_device"
-                    [class]="_ng_device.name === _ng_noDevice.name ? 'none' : ''"
+                    [(value)]="_ng_deviceSelected"
+                    [class]="_ng_deviceSelected.name === _ng_noDevice.name ? 'none' : ''"
                     (selectionChange)="_ng_onDeviceChange()"
+                    (click)="_ng_onDeviceSelectClick()"
                 >
                     <mat-option
                         class="small t-console t-small"
@@ -67,7 +68,7 @@
         <div class="dropdown-container">
             <mat-form-field class="form-field" appearence="fill">
                 <mat-label>Loglevel</mat-label>
-                <mat-select [(value)]="_ng_logLevel" (selectionChange)="_ng_onChange()">
+                <mat-select [(value)]="_ng_logLevelSelected" (selectionChange)="_ng_onChange()">
                     <mat-option
                         class="small t-console t-small"
                         [value]="level.flag"

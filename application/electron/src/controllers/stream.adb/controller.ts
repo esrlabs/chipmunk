@@ -115,6 +115,12 @@ export default class ControllerStreamAdb {
         this._process.on(Process.Events.destroy, () => {
             if (this._process !== undefined) {
                 this._process.removeAllListeners();
+                ServiceElectron.IPC.send(
+                    new IPC.AdbDeviceDisconnected({
+                        guid: this._guid,
+                        device: request.device,
+                    }),
+                );
             }
         });
         this._process.on(Process.Events.recieved, (recieved) => {
