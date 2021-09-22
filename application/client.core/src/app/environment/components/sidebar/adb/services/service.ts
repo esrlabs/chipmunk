@@ -6,7 +6,7 @@ import ElectronIpcService, { IPCMessages } from '../../../../services/service.el
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IAmount {
-    session: string;
+    guid: string;
     amount: string;
 }
 
@@ -21,14 +21,20 @@ export class SidebarAppAdbService {
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _subjects: {
         onAmount: Subject<IAmount>;
+        onDisconnect: Subject<IPCMessages.IAdbDeviceDisconnected>;
     } = {
         onAmount: new Subject<IAmount>(),
+        onDisconnect: new Subject<IPCMessages.IAdbDeviceDisconnected>(),
     };
 
     constructor() {
         this._subscriptions.AdbStreamUpdated = ElectronIpcService.subscribe(
             IPCMessages.AdbStreamUpdated,
             this._onAdbStreamUpdated.bind(this),
+        );
+        this._subscriptions.AdbDeviceDisconnected = ElectronIpcService.subscribe(
+            IPCMessages.AdbDeviceDisconnected,
+            this._onAdbDeviceDisconnected.bind(this),
         );
     }
 
@@ -40,9 +46,11 @@ export class SidebarAppAdbService {
 
     public getObservable(): {
         onAmount: Observable<IAmount>;
+        onDisconnect: Observable<IPCMessages.IAdbDeviceDisconnected>;
     } {
         return {
             onAmount: this._subjects.onAmount.asObservable(),
+            onDisconnect: this._subjects.onDisconnect.asObservable(),
         };
     }
 
@@ -167,8 +175,15 @@ export class SidebarAppAdbService {
 
     private _onAdbStreamUpdated(response: IPCMessages.AdbStreamUpdated) {
         this._subjects.onAmount.next({
-            session: response.guid,
+            guid: response.guid,
             amount: this.bytesToString(response.amount),
+        });
+    }
+
+    private _onAdbDeviceDisconnected(response: IPCMessages.AdbDeviceDisconnected) {
+        this._subjects.onDisconnect.next({
+            guid: response.guid,
+            device: response.device,
         });
     }
 }

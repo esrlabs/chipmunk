@@ -15,7 +15,7 @@ import {
     ENotificationType,
 } from '../../../../services.injectable/injectable.service.notifications';
 import { IAdbDevice, IAdbProcess } from '../../../../../../../../common/interfaces/interface.adb';
-import { MatSelect, MatSelectChange } from '@angular/material/select';
+import { MatSelect } from '@angular/material/select';
 import { IPCMessages } from '../../../../services/service.electron.ipc';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { sortPairs, IPair } from '../../../../thirdparty/code/engine';
@@ -48,7 +48,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         type: '',
     };
     public _ng_devices: IAdbDevice[] = [this._ng_noDevice];
-    public _ng_device: IAdbDevice = this._ng_noDevice;
+    public _ng_deviceSelected: IAdbDevice = this._ng_noDevice;
     public _ng_running: boolean = false;
     public _ng_amount: string = '0 bytes';
     public readonly _ng_logLevels: ILogLevel[] = [
@@ -65,7 +65,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         description: ' ',
         id: '-1',
     };
-    public _ng_logLevel: string = this._ng_logLevels[0].flag;
+    public _ng_logLevelSelected: string = this._ng_logLevels[0].flag;
     public _ng_processSearchTerm: string = '';
     public _ng_processSelected: IPair = this._ng_noProcessPair;
     public _ng_processPairs: Observable<IPair[]>;
@@ -98,6 +98,9 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         this._subscriptions.onAmount = this.service
             .getObservable()
             .onAmount.subscribe(this._onAmount.bind(this));
+        this._subscriptions.onDisconnect = this.service
+            .getObservable()
+            .onDisconnect.subscribe(this._onDisconnect.bind(this));
         this._init();
         this._ng_processPairs = this._processSearchTerm.pipe(
             startWith(''),
@@ -113,7 +116,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     public _ng_onDeviceChange() {
-        if (this._ng_device.name === this._ng_noDevice.name) {
+        if (this._ng_deviceSelected.name === this._ng_noDevice.name) {
             this._ng_processSelected = this._ng_noProcessPair;
             this._processPairs = [];
             this._stop();
@@ -123,15 +126,15 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     public _ng_onChange() {
-        if (this._ng_device.name === this._ng_noDevice.name) {
+        if (this._ng_deviceSelected.name === this._ng_noDevice.name) {
             return;
         }
-        const id = parseInt(this._ng_processSelected.id);
+        const id = parseInt(this._ng_processSelected.id, 10);
         this.service
             .change({
                 session: this._session,
-                device: this._ng_device.name,
-                level: this._ng_logLevel,
+                device: this._ng_deviceSelected.name,
+                level: this._ng_logLevelSelected,
                 pid: id === -1 ? undefined : id,
             })
             .then(() => {
@@ -140,15 +143,19 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             .catch((error: Error) => {
                 this._notifications.add({
                     caption: 'Fail to change loglevel',
-                    message: `Failed to change adb settings for device ${this._ng_device.name} due to error: ${error.message}`,
+                    message: `Failed to change adb settings for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
                     options: {
                         type: ENotificationType.error,
                     },
                 });
                 this._logger.error(
-                    `Failed to change adb settings for device ${this._ng_device.name} due to error: ${error.message}`,
+                    `Failed to change adb settings for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
                 );
             });
+    }
+
+    public _ng_onDeviceSelectClick() {
+        this._detectDevices();
     }
 
     public _ng_onProcessSelectClick() {
@@ -164,13 +171,13 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                 .catch((error: Error) => {
                     this._notifications.add({
                         caption: 'Fail to detect processes',
-                        message: `Failed to processes for device ${this._ng_device.name} due to error: ${error.message}`,
+                        message: `Failed to processes for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
                         options: {
                             type: ENotificationType.error,
                         },
                     });
                     this._logger.error(
-                        `Failed to processes for device ${this._ng_device.name} due to error: ${error.message}`,
+                        `Failed to processes for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
                     );
                 });
         }
@@ -215,8 +222,8 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         this._ng_devices = [this._ng_noDevice];
         this._processPairs = [];
         this._ng_amount = this.service.bytesToString(0);
-        this._ng_logLevel = this._ng_logLevels[0].flag;
-        this._ng_device = this._ng_devices[0];
+        this._ng_logLevelSelected = this._ng_logLevels[0].flag;
+        this._ng_deviceSelected = this._ng_devices[0];
         let devicesNeeded: boolean = false;
         // Try to restore first
         this._restore()
@@ -257,7 +264,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                         return resolve(false);
                     }
                     this._ng_amount = this.service.bytesToString(response.data.recieved);
-                    this._ng_logLevel = response.data.logLevel;
+                    this._ng_logLevelSelected = response.data.logLevel;
                     this._ng_devices = [this._ng_noDevice, ...response.data.devices];
                     this._processPairs = [
                         ...response.data.processes.map((process: IAdbProcess) => {
@@ -272,13 +279,13 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                         const found: IAdbDevice | undefined = this._ng_devices.find(
                             (device: IAdbDevice) => device.name === response.data.device,
                         );
-                        this._ng_device = found === undefined ? this._ng_noDevice : found;
+                        this._ng_deviceSelected = found === undefined ? this._ng_noDevice : found;
                     } else {
-                        this._ng_device = this._ng_noDevice;
+                        this._ng_deviceSelected = this._ng_noDevice;
                     }
                     if (response.data.pid !== undefined) {
                         const found: IPair | undefined = this._processPairs.find(
-                            (process: IPair) => parseInt(process.id) === response.data.pid,
+                            (process: IPair) => parseInt(process.id, 10) === response.data.pid,
                         );
                         this._ng_processSelected =
                             found === undefined ? this._ng_noProcessPair : found;
@@ -292,12 +299,12 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _start() {
-        const id = parseInt(this._ng_processSelected.id);
+        const id = parseInt(this._ng_processSelected.id, 10);
         this.service
             .start({
                 session: this._session,
-                device: this._ng_device.name,
-                level: this._ng_logLevel,
+                device: this._ng_deviceSelected.name,
+                level: this._ng_logLevelSelected,
                 pid: id === -1 ? undefined : id,
             })
             .then(() => {
@@ -306,13 +313,13 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             .catch((error: Error) => {
                 this._notifications.add({
                     caption: 'Fail to start adb',
-                    message: `Failed to start adb on device ${this._ng_device.name} due to error: ${error.message}`,
+                    message: `Failed to start adb on device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
                     options: {
                         type: ENotificationType.error,
                     },
                 });
                 this._logger.error(
-                    `Failed to start adb on device ${this._ng_device.name} due to error: ${error.message}`,
+                    `Failed to start adb on device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
                 );
             });
     }
@@ -336,15 +343,26 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _detectDevices() {
-        const prevDevice: IAdbDevice = this._ng_device;
         this.service
             .getDevices({ session: this._session })
             .then((response: IAdbDevice[]) => {
-                this._ng_devices = [this._ng_noDevice, ...response];
-                const found: IAdbDevice | undefined = this._ng_devices.find(
-                    (device: IAdbDevice) => device.name === prevDevice.name,
-                );
-                this._ng_device = found === undefined ? this._ng_noDevice : found;
+                let index: number = -1;
+                response.forEach((rDevice: IAdbDevice) => {
+                    index = this._ng_devices.findIndex((device: IAdbDevice) => {
+                        return device.name === rDevice.name;
+                    });
+                    if (index === -1) {
+                        this._ng_devices.push(rDevice);
+                    }
+                });
+                this._ng_devices.forEach((device: IAdbDevice) => {
+                    index = response.findIndex((rDevice: IAdbDevice) => {
+                        return device.name === rDevice.name;
+                    });
+                    if (index === -1 && device.name !== this._ng_noDevice.name) {
+                        this._ng_devices.splice(this._ng_devices.indexOf(device), 1);
+                    }
+                });
             })
             .catch((error: Error) => {
                 this._logger.error(`Failed to detect devices due error: ${error.message}`);
@@ -353,18 +371,19 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
 
     private _detectProcesses(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._ng_device.name === this._ng_noDevice.name) {
+            if (this._ng_deviceSelected.name === this._ng_noDevice.name) {
                 this._processPairs = [];
                 return resolve();
             }
             this.service
-                .getProcesses({ session: this._session, device: this._ng_device.name })
+                .getProcesses({ session: this._session, device: this._ng_deviceSelected.name })
                 .then((response: IAdbProcess[]) => {
                     let index: number = -1;
                     response.forEach((process: IAdbProcess) => {
                         index = this._processPairs.findIndex((pair: IPair) => {
                             return (
-                                parseInt(pair.id) === process.pid && pair.caption === process.name
+                                parseInt(pair.id, 10) === process.pid &&
+                                pair.caption === process.name
                             );
                         });
                         if (index === -1) {
@@ -378,7 +397,8 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                     this._processPairs.forEach((pair: IPair) => {
                         index = response.findIndex((process: IAdbProcess) => {
                             return (
-                                process.pid === parseInt(pair.id) && process.name === pair.caption
+                                process.pid === parseInt(pair.id, 10) &&
+                                process.name === pair.caption
                             );
                         });
                         if (index === -1) {
@@ -392,11 +412,19 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _onAmount(event: IAmount) {
-        if (this._session !== event.session) {
+        if (this._session !== event.guid) {
             return;
         }
         this._ng_amount = event.amount;
         this._forceUpdate();
+    }
+
+    private _onDisconnect(event: IPCMessages.IAdbDeviceDisconnected) {
+        if (this._session !== event.guid) {
+            return;
+        }
+        this._ng_deviceSelected = this._ng_noDevice;
+        this._ng_processSelected = this._ng_noProcessPair;
     }
 
     private _onSessionChange(session: Session | undefined) {
