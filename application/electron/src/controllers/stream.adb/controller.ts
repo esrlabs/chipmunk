@@ -82,6 +82,18 @@ export default class ControllerStreamAdb {
             .catch((err: Error) =>
                 this._logger.error(`Fail to subscribe to AdbStopRequest due error: ${err.message}`),
             );
+        ServiceElectron.IPC.subscribe(
+            IPC.AdbStartServerRequest,
+            this._ipc_AdbStartServerRequest.bind(this) as any,
+        )
+            .then((subscription: Subscription) => {
+                this._subscriptions.AdbStartServerRequest = subscription;
+            })
+            .catch((err: Error) =>
+                this._logger.error(
+                    `Fail to subscribe to AdbStartServerRequest due error: ${err.message}`,
+                ),
+            );
     }
 
     public destroy(): Promise<void> {
@@ -237,6 +249,30 @@ export default class ControllerStreamAdb {
                 session: this._guid,
                 data: this._session,
             }),
+        );
+    }
+
+    private _ipc_AdbStartServerRequest(
+        request: IPC.AdbStartServerRequest,
+        response: (response: IPC.AdbStartServerResponse) => Promise<void>,
+    ) {
+        if (request.guid !== this._guid) {
+            return;
+        }
+        exec(
+            'adb start-server',
+            this._getExecOpts(),
+            (error: ExecException | null, stdout: string, stderr: string) => {
+                if (error !== null) {
+                    return response(
+                        new IPC.AdbStartServerResponse({
+                            guid: this._guid,
+                            error: error.message,
+                        }),
+                    );
+                }
+                return response(new IPC.AdbStartServerResponse({ guid: this._guid }));
+            },
         );
     }
 

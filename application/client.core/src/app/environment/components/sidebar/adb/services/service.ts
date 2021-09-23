@@ -18,6 +18,7 @@ export enum EAdbStatus {
 
 export class SidebarAppAdbService {
     private _status: EAdbStatus = EAdbStatus.init;
+    private _errorMessage: string = '';
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _subjects: {
         onAmount: Subject<IAmount>;
@@ -62,6 +63,34 @@ export class SidebarAppAdbService {
         return this._status;
     }
 
+    public get errorMessage(): string {
+        return this._errorMessage;
+    }
+
+    public prepare(request: IPCMessages.IAdbStartServerRequest): Promise<void> {
+        this._status = EAdbStatus.init;
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request(
+                new IPCMessages.AdbStartServerRequest(request),
+                IPCMessages.AdbStartServerResponse,
+            )
+                .then((response: IPCMessages.AdbStartServerResponse) => {
+                    if (response.error !== undefined) {
+                        this._errorMessage = response.error;
+                        this._status = EAdbStatus.error;
+                        return reject(new Error(response.error));
+                    }
+                    this._status = EAdbStatus.ready;
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    this._errorMessage = error.message;
+                    this._status = EAdbStatus.error;
+                    reject(error);
+                });
+        });
+    }
+
     public getDevices(request: IPCMessages.IAdbDevicesRequest): Promise<IAdbDevice[]> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(
@@ -70,14 +99,11 @@ export class SidebarAppAdbService {
             )
                 .then((response: IPCMessages.AdbDevicesResponse) => {
                     if (response.error !== undefined) {
-                        this._status = EAdbStatus.error;
                         return reject(new Error(response.error));
                     }
-                    this._status = EAdbStatus.ready;
                     resolve(response.devices);
                 })
                 .catch((error: Error) => {
-                    this._status = EAdbStatus.error;
                     reject(error);
                 });
         });

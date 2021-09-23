@@ -218,17 +218,64 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _init() {
-        this.service.status = EAdbStatus.init;
-        this._ng_devices = [this._ng_noDevice];
-        this._processPairs = [];
-        this._ng_amount = this.service.bytesToString(0);
-        this._ng_logLevelSelected = this._ng_logLevels[0].flag;
-        this._ng_deviceSelected = this._ng_devices[0];
-        let devicesNeeded: boolean = false;
-        // Try to restore first
-        this._restore()
-            .then((restored: boolean) => {
-                devicesNeeded = !restored;
+        this.service
+            .prepare({ guid: this._session })
+            .then(() => {
+                this._ng_devices = [this._ng_noDevice];
+                this._processPairs = [];
+                this._ng_amount = this.service.bytesToString(0);
+                this._ng_logLevelSelected = this._ng_logLevels[0].flag;
+                this._ng_deviceSelected = this._ng_devices[0];
+                this._ng_processSelected = this._processPairs[0];
+                this._restore();
+            })
+            .catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Fail to prepare adb',
+                    message: `Failed to prepare adb due to error: ${error.message}`,
+                    options: {
+                        type: ENotificationType.error,
+                    },
+                });
+                this._logger.error(`Failed to prepare adb due to error: ${error.message}`);
+            });
+    }
+
+    private _restore() {
+        this.service
+            .restore({ session: this._session })
+            .then((response: IPCMessages.AdbLoadResponse) => {
+                if (this._session !== response.session) {
+                    return;
+                }
+                this._ng_amount = this.service.bytesToString(response.data.recieved);
+                this._ng_logLevelSelected = response.data.logLevel;
+                this._ng_devices = [this._ng_noDevice, ...response.data.devices];
+                this._processPairs = [
+                    ...response.data.processes.map((process: IAdbProcess) => {
+                        return {
+                            caption: process.name,
+                            description: ' ',
+                            id: `${process.pid}`,
+                        };
+                    }),
+                ];
+                if (response.data.device !== undefined) {
+                    const found: IAdbDevice | undefined = this._ng_devices.find(
+                        (device: IAdbDevice) => device.name === response.data.device,
+                    );
+                    this._ng_deviceSelected = found === undefined ? this._ng_noDevice : found;
+                } else {
+                    this._ng_deviceSelected = this._ng_noDevice;
+                }
+                if (response.data.pid !== undefined) {
+                    const found: IPair | undefined = this._processPairs.find(
+                        (process: IPair) => parseInt(process.id, 10) === response.data.pid,
+                    );
+                    this._ng_processSelected = found === undefined ? this._ng_noProcessPair : found;
+                } else {
+                    this._ng_processSelected = this._ng_noProcessPair;
+                }
             })
             .catch((error: Error) => {
                 this._notifications.add({
@@ -241,61 +288,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
                 this._logger.error(
                     `Failed to restore session for adb due to error: ${error.message}`,
                 );
-            })
-            .finally(() => {
-                if (devicesNeeded) {
-                    this._detectDevices();
-                } else {
-                    this.service.status = EAdbStatus.ready;
-                }
             });
-    }
-
-    private _restore(): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            this.service
-                .restore({ session: this._session })
-                .then((response: IPCMessages.AdbLoadResponse) => {
-                    if (this._session !== response.session) {
-                        return resolve(false);
-                    }
-                    if (response.data.devices.length === 0) {
-                        // This session wasn't stored. Probably new one
-                        return resolve(false);
-                    }
-                    this._ng_amount = this.service.bytesToString(response.data.recieved);
-                    this._ng_logLevelSelected = response.data.logLevel;
-                    this._ng_devices = [this._ng_noDevice, ...response.data.devices];
-                    this._processPairs = [
-                        ...response.data.processes.map((process: IAdbProcess) => {
-                            return {
-                                caption: process.name,
-                                description: ' ',
-                                id: `${process.pid}`,
-                            };
-                        }),
-                    ];
-                    if (response.data.device !== undefined) {
-                        const found: IAdbDevice | undefined = this._ng_devices.find(
-                            (device: IAdbDevice) => device.name === response.data.device,
-                        );
-                        this._ng_deviceSelected = found === undefined ? this._ng_noDevice : found;
-                    } else {
-                        this._ng_deviceSelected = this._ng_noDevice;
-                    }
-                    if (response.data.pid !== undefined) {
-                        const found: IPair | undefined = this._processPairs.find(
-                            (process: IPair) => parseInt(process.id, 10) === response.data.pid,
-                        );
-                        this._ng_processSelected =
-                            found === undefined ? this._ng_noProcessPair : found;
-                    } else {
-                        this._ng_processSelected = this._ng_noProcessPair;
-                    }
-                    resolve(true);
-                })
-                .catch(reject);
-        });
     }
 
     private _start() {

@@ -10,7 +10,7 @@
         <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
     </div>
     <div *ngIf="service.status === 'error'">
-        <p class="t-small">Adb either not installed yet or not added to environment variables</p>
+        <p class="t-small">{{service.errorMessage}}</p>
     </div>
     <div *ngIf="service.status === 'ready'">
         <div class="dropdown-container">

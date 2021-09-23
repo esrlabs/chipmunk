@@ -1021,6 +1021,12 @@ export { IAdbLoadResponse, AdbLoadResponse };
 import { IAdbDeviceDisconnected, AdbDeviceDisconnected } from './adb.device.disconnected';
 export { IAdbDeviceDisconnected, AdbDeviceDisconnected };
 
+import { IAdbStartServerRequest, AdbStartServerRequest } from './adb.start.server.request';
+export { IAdbStartServerRequest, AdbStartServerRequest };
+
+import { IAdbStartServerResponse, AdbStartServerResponse } from './adb.start.server.response';
+export { IAdbStartServerResponse, AdbStartServerResponse };
+
 // Common type for expected message implementation
 export type TMessage =
     | AppRestartRequest
@@ -1266,7 +1272,9 @@ export type TMessage =
     | AdbStreamUpdated
     | AdbLoadRequest
     | AdbLoadResponse
-    | AdbDeviceDisconnected;
+    | AdbDeviceDisconnected
+    | AdbStartServerRequest
+    | AdbStartServerResponse;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Mapping of host/render events
@@ -1545,4 +1553,6 @@ export const Map = {
     [AdbLoadRequest.signature]: AdbLoadRequest,
     [AdbLoadResponse.signature]: AdbLoadResponse,
     [AdbDeviceDisconnected.signature]: AdbDeviceDisconnected,
+    [AdbStartServerRequest.signature]: AdbStartServerRequest,
+    [AdbStartServerResponse.signature]: AdbStartServerResponse,
 };
