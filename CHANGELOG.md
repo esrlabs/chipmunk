@@ -1,11 +1,24 @@
 # Changelog
 
-## [2.21.0] - 09/17/2021
+## [2.21.1] - 09/24/2021
+
 ### Added
-- Filtering processes list on ADB
+
+-   Auto refreshing devices and processes lists
 
 ### Fixed
-- Fixed MacOS issue for Shell Extention
+
+-   Detection adb availability
+
+## [2.21.0] - 09/17/2021
+
+### Added
+
+-   Filtering processes list on ADB
+
+### Fixed
+
+-   Fixed MacOS issue for Shell Extention
 
 ## [2.20.2] - 09/03/2021
 
