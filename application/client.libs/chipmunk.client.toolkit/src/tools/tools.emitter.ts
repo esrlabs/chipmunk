@@ -2,7 +2,6 @@ type TEmitterHandlers = Array<(...args: any[]) => void>;
 type TEmitterSignature = symbol | string;
 
 export default class Emitter {
-
     private handlers: Map<TEmitterSignature, TEmitterHandlers> = new Map();
 
     public subscribe(signature: any, handler: (...args: any[]) => void): boolean {
@@ -25,9 +24,12 @@ export default class Emitter {
         if (!(handlers instanceof Array)) {
             return false;
         }
-        this.handlers.set(signature, handlers.filter((storedHandler) => {
-            return storedHandler !== handler;
-        }));
+        this.handlers.set(
+            signature,
+            handlers.filter((storedHandler) => {
+                return storedHandler !== handler;
+            }),
+        );
         return true;
     }
 
@@ -40,7 +42,7 @@ export default class Emitter {
         this.handlers.delete(signature);
     }
 
-    public emit(signature: any, ...args: any[]) {
+    public emit(signature: any, ...args: any[]): boolean {
         signature = this.__getSymbolSignature(signature);
         const handlers = this.handlers.get(signature);
         if (!(handlers instanceof Array)) {
@@ -49,6 +51,7 @@ export default class Emitter {
         handlers.forEach((handler: (...args: any[]) => void) => {
             handler(...args);
         });
+        return true;
     }
 
     public listeners(signature: any) {
@@ -72,5 +75,4 @@ export default class Emitter {
             throw new Error(`Emitter support type of signature: symbol or string only.`);
         }
     }
-
 }

@@ -9,7 +9,6 @@ import * as Tools from '../tools/index';
  * Backend part (host) - a plugin's part, which executes on back-end on nodejs level
  */
 export abstract class IPC {
-
     public readonly token: string;
     public readonly name: string;
 
@@ -71,9 +70,13 @@ export abstract class IPC {
         const signature: string = this.name;
         const subscriptionId: string = Tools.guid();
         this._handlers.set(subscriptionId, handler);
-        return new Tools.Subscription(signature, () => {
-            this._handlers.delete(subscriptionId);
-        }, subscriptionId);
+        return new Tools.Subscription(
+            signature,
+            () => {
+                this._handlers.delete(subscriptionId);
+            },
+            subscriptionId,
+        );
     }
 
     /**
@@ -87,11 +90,15 @@ export abstract class IPC {
             try {
                 handler(message);
             } catch (error) {
-                this._logger.error(`Error during emiting host event: ${error.message}. Message: `, message);
+                this._logger.error(
+                    `Error during emiting host event: ${
+                        error instanceof Error ? error.message : error
+                    }. Message: `,
+                    message,
+                );
             }
         });
     }
-
 }
 
 // Back compatibility (from 0.0.87)

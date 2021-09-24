@@ -2,11 +2,16 @@ export type TResolver<T> = (value: T) => void;
 export type TRejector = (error: Error) => void;
 export type TFinally = () => void;
 export type TCanceler<T> = (reason?: T) => void;
-export type TExecutor<T, C, EN, EH> = (resolve: TResolver<T>, reject: TRejector, cancel: TCanceler<C>, refCancelCB: (cb: TCanceler<C>) => void, self: CancelablePromise<T, C, EN, EH>) => void;
+export type TExecutor<T, C, EN, EH> = (
+    resolve: TResolver<T>,
+    reject: TRejector,
+    cancel: TCanceler<C>,
+    refCancelCB: (cb: TCanceler<C>) => void,
+    self: CancelablePromise<T, C, EN, EH>,
+) => void;
 export type TEventHandler = (...args: any[]) => any;
 
 export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandler> {
-
     private _resolvers: Array<TResolver<T>> = [];
     private _rejectors: TRejector[] = [];
     private _cancelers: Array<TCanceler<C>> = [];
@@ -19,18 +24,24 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
     private _finished: boolean = false;
     private _handlers: Map<EN, EH[]> = new Map();
 
-    constructor(
-        executor: TExecutor<T, C, EN, EH>,
-    ) {
+    constructor(executor: TExecutor<T, C, EN, EH>) {
         const self = this;
         // Create and execute native promise
         new Promise<T>((resolve: TResolver<T>, reject: TRejector) => {
-            executor(resolve, reject, this._doCancel.bind(this), this._refCancellationCallback.bind(this), self);
-        }).then((value: T) => {
-            this._doResolve(value);
-        }).catch((error: Error) => {
-            this._doReject(error);
-        });
+            executor(
+                resolve,
+                reject,
+                this._doCancel.bind(this),
+                this._refCancellationCallback.bind(this),
+                self,
+            );
+        })
+            .then((value: T) => {
+                this._doResolve(value);
+            })
+            .catch((error: Error) => {
+                this._doReject(error);
+            });
     }
 
     public then(callback: TResolver<T>): CancelablePromise<T, C, EN, EH> {
@@ -96,8 +107,14 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
             }
             try {
                 handler(...args);
-            } catch (e) {
-                this._doReject(new Error(`Promise is rejected, because handler of event "${event}" finished due error: ${e.message}`));
+            } catch (err) {
+                this._doReject(
+                    new Error(
+                        `Promise is rejected, because handler of event "${event}" finished due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
             }
         });
     }
@@ -152,6 +169,7 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
             cancler(reason);
         });
         this._doFinally();
+        return this;
     }
 
     private _doCancellation(reason?: C) {
@@ -165,6 +183,6 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         }
         this._canceling = true;
         this._cancellation(reason);
+        return this;
     }
-
 }
