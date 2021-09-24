@@ -1,7 +1,6 @@
 import Emitter from './tools.emitter';
 
 export default class Queue extends Emitter {
-
     public static Events = {
         next: 'next',
         done: 'done',
@@ -41,8 +40,12 @@ export default class Queue extends Emitter {
         setTimeout(() => {
             try {
                 task();
-            } catch (e) {
-                this._logger(`Task in queue was finished with error: ${e.message}`);
+            } catch (err) {
+                this._logger(
+                    `Task in queue was finished with error: ${
+                        err instanceof Error ? err.message : err
+                    }`,
+                );
             } finally {
                 this._done += 1;
             }

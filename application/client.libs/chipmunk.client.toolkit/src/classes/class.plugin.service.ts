@@ -18,8 +18,7 @@ const CSignature = 'PluginService';
  * @class PluginService
  */
 export abstract class PluginService {
-
-    private _apiGetter: () => IAPI | undefined;
+    private _apiGetter!: () => IAPI | undefined;
 
     /**
      * @property {Subject<boolean>} onAPIReady subject will be emitted on API is ready to use
@@ -69,7 +68,6 @@ export abstract class PluginService {
     public getAPI(): IAPI | undefined {
         return this._apiGetter === undefined ? undefined : this._apiGetter();
     }
-
 }
 
 // Back compatibility (from 0.0.87)

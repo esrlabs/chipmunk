@@ -7,7 +7,6 @@ export { ELogLevels };
  * Logger
  */
 export default class Logger {
-
     private _signature: string = '';
     private _parameters: LoggerParameters = new LoggerParameters({});
 
@@ -79,18 +78,21 @@ export default class Logger {
         const started = Date.now();
         this.env(`starting "${operation}"`);
         return () => {
-            const duration: number = (Date.now() - started);
-            this.env(`"${operation}" finished in: ${(duration / 1000).toFixed(2)} sec (${duration}ms)`);
+            const duration: number = Date.now() - started;
+            this.env(
+                `"${operation}" finished in: ${(duration / 1000).toFixed(2)} sec (${duration}ms)`,
+            );
         };
     }
 
-    private _console(message: string, level: ELogLevels) {
+    private _console(message: string, level: ELogLevels): boolean {
         if (!this._parameters.console) {
             return false;
         }
         /* tslint:disable */
         this._parameters.getAllowedConsole()[level] && console.log(message);
         /* tslint:enable */
+        return true;
     }
 
     private _output(message: string) {
@@ -98,8 +100,12 @@ export default class Logger {
     }
 
     private _callback(message: string, level: ELogLevels) {
-        if (typeof this._parameters.getCallback() === 'function' && this._parameters.getAllowedConsole()[level]) {
-            this._parameters.getCallback()(message, level);
+        if (
+            typeof this._parameters.getCallback() === 'function' &&
+            this._parameters.getAllowedConsole()[level]
+        ) {
+            const cb = this._parameters.getCallback();
+            cb !== undefined && cb(message, level);
         }
     }
 
@@ -108,11 +114,11 @@ export default class Logger {
         if (args instanceof Array) {
             args.forEach((smth: any, index: number) => {
                 if (typeof smth !== 'string') {
-                    message = `${message} (type: ${(typeof smth)})`;
+                    message = `${message} (type: ${typeof smth})`;
                 } else {
                     message = `${message}${smth}`;
                 }
-                index < (args.length - 1) && (message = `${message},\n `);
+                index < args.length - 1 && (message = `${message},\n `);
             });
         }
         return message;
@@ -130,5 +136,4 @@ export default class Logger {
         this._output(`[${this._getTime()}]${message}`);
         return original;
     }
-
 }

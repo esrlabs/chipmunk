@@ -1,16 +1,11 @@
-
 export enum EType {
-    above = 'above',            // 0 - Absolute priority
-    match = 'match',            // 1 - Major
-    breakable = 'breakable',    // 2 - Can be ignored. This is ASCI for example
-    advanced = 'advanced',      // 2.
+    above = 'above', // 0 - Absolute priority
+    match = 'match', // 1 - Major
+    breakable = 'breakable', // 2 - Can be ignored. This is ASCI for example
+    advanced = 'advanced', // 2.
 }
 
-export const Priorities = [
-    EType.above,
-    EType.match,
-    EType.breakable,
-];
+export const Priorities = [EType.above, EType.match, EType.breakable];
 
 export interface IRequest {
     reg: RegExp;
@@ -41,12 +36,11 @@ export interface IHTMLInjection {
 }
 
 export abstract class Modifier {
-
     public static Signature: string = 'modifier';
 
     public abstract getInjections(): IHTMLInjection[];
 
-    public abstract obey(ranges: Array<Required<IModifierRange>>);
+    public abstract obey(ranges: Array<Required<IModifierRange>>): void;
 
     public abstract getRanges(): Array<Required<IModifierRange>>;
 
@@ -65,6 +59,4 @@ export abstract class Modifier {
     public signature(): string {
         return Modifier.Signature;
     }
-
 }
-
