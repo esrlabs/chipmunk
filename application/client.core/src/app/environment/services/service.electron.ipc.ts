@@ -3,42 +3,43 @@ declare var window: any;
 import { guid, Subscription, THandler, Logger } from 'chipmunk.client.toolkit';
 import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
 import { IService } from '../interfaces/interface.service';
-import { IPCMessages } from '../interfaces/interface.ipc';
+import { IPCMessages as IPC } from '../interfaces/interface.ipc';
 import { CommonInterfaces } from '../interfaces/interface.common';
 
-export { IPCMessages, Subscription, THandler };
+export { IPC, Subscription, THandler };
 
-export type TResponseFunc = (message: IPCMessages.TMessage) => Promise<IPCMessages.TMessage | undefined>;
+export type TResponseFunc = (message: Required<IPC.Interface>) => Promise<Required<IPC.Interface>>;
 
-interface IPendingTask {
-    resolver: (message: IPCMessages.TMessage) => any;
+interface IPendingTask<T extends IPC.Interface> {
+    resolver: (message: T) => any;
     rejector: (error: Error) => void;
     signature: string;
     created: number;
 }
 
 class ElectronIpcService implements IService {
-
     static PENDING_ERR_DURATION: number = 600 * 1000; // 10 mins before report error about pending tasks.
     static PENDING_WARN_DURATION: number = 120 * 1000; // 2 mins before report warn about pending tasks.
     static QUEUE_CHECK_DELAY: number = 5 * 1000;
 
     private _logger: Logger = new Logger('ElectronIpcService');
     private _subscriptions: Map<string, Subscription> = new Map();
-    private _pending: Map<string, IPendingTask> = new Map();
+    private _pending: Map<string, IPendingTask<any>> = new Map();
     private _handlers: Map<string, Map<string, THandler>> = new Map();
     private _listeners: Map<string, boolean> = new Map();
     private _ipcRenderer: CommonInterfaces.Electron.IpcRenderer;
 
     constructor() {
         if ((window as any) === undefined || typeof (window as any).require !== 'function') {
-            this._logger.error(`"window" object isn't available or "require" function isn't found`);
-            return;
+            throw new Error(
+                this._logger.error(
+                    `"window" object isn't available or "require" function isn't found`,
+                ),
+            );
         }
         const mod = (window as any).require('electron');
         if (mod === undefined) {
-            this._logger.error(`Fail to get access to "electron" module.`);
-            return;
+            throw new Error(this._logger.error(`Fail to get access to "electron" module.`));
         }
         this._ipcRenderer = mod.ipcRenderer;
     }
@@ -53,82 +54,86 @@ class ElectronIpcService implements IService {
         return 'ElectronIpcService';
     }
 
-    public sendToPluginHost(message: any, token: string, stream?: string): Promise<any> {
-        return new Promise((resolve, reject) => {
-            const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
-                data: message,
-                token: token,
-                stream: stream
-            });
-            this._send({ message: pluginMessage }).then(() => {
-                resolve(undefined);
-            }).catch((sendingError: Error) => {
-                reject(sendingError);
-            });
+    public sendToPluginHost(message: any, token: string, stream?: string): void {
+        const pluginMessage: IPC.PluginInternalMessage = new IPC.PluginInternalMessage({
+            data: message,
+            token: token,
+            stream: stream,
         });
+        this._sendWithoutResponse(pluginMessage);
     }
 
     public requestToPluginHost(message: any, token: string, stream?: string): Promise<any> {
         return new Promise((resolve, reject) => {
-            const pluginMessage: IPCMessages.PluginInternalMessage = new IPCMessages.PluginInternalMessage({
+            const pluginMessage: IPC.PluginInternalMessage = new IPC.PluginInternalMessage({
                 data: message,
                 token: token,
-                stream: stream
+                stream: stream,
             });
-            this.request(pluginMessage, IPCMessages.PluginError).then((response: IPCMessages.TMessage | undefined) => {
-                if (!(response instanceof IPCMessages.PluginInternalMessage) && !(response instanceof IPCMessages.PluginError)) {
-                    return reject(new Error(`From plugin host was gotten incorrect responce: ${typeof response}/${response}`));
-                }
-                if (response instanceof IPCMessages.PluginError) {
-                    return reject(response);
-                }
-                resolve(response.data);
-            }).catch((sendingError: Error) => {
-                reject(sendingError);
-            });
+            this.request(pluginMessage, IPC.PluginError)
+                .then((response: IPC.TMessage | undefined) => {
+                    if (
+                        !(response instanceof IPC.PluginInternalMessage) &&
+                        !(response instanceof IPC.PluginError)
+                    ) {
+                        return reject(
+                            new Error(
+                                `From plugin host was gotten incorrect responce: ${typeof response}/${response}`,
+                            ),
+                        );
+                    }
+                    if (response instanceof IPC.PluginError) {
+                        return reject(response);
+                    }
+                    resolve(response.data);
+                })
+                .catch((sendingError: Error) => {
+                    reject(sendingError);
+                });
         });
     }
 
-    public send(message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+    public send(message: Required<IPC.Interface>): Promise<void> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send({ message: message }).then(() => {
-                resolve(undefined);
-            }).catch((sendingError: Error) => {
-                reject(sendingError);
-            });
+            this._sendWithoutResponse(message);
+            resolve(undefined);
         });
     }
 
-    public response(sequence: string, message: IPCMessages.TMessage): Promise<IPCMessages.TMessage | undefined> {
+    public response(
+        sequence: string,
+        message: Required<IPC.Interface>,
+    ): Promise<Required<IPC.Interface>> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._send({ message: message, sequence: sequence }).then(() => {
-                resolve(undefined);
-            }).catch((sendingError: Error) => {
-                reject(sendingError);
-            });
+            this._sendWithResponse({ message: message, sequence: sequence })
+                .then(resolve)
+                .catch(reject);
         });
     }
 
-    public request(message: IPCMessages.TMessage, expected?: any): Promise<IPCMessages.TMessage | undefined> {
+    public request<T extends IPC.Interface>(
+        message: Required<IPC.Interface>,
+        expected?: Required<IPC.Interface>,
+    ): Promise<T> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._subscribeIPCMessage(expected === undefined ? message.signature : expected.signature);
-            this._send({ message: message, expectResponse: true, sequence: guid() }).then((response: IPCMessages.TMessage | undefined) => {
-                resolve(response);
-            }).catch((sendingError: Error) => {
-                reject(sendingError);
-            });
+            this._subscribeIPCMessage(
+                expected === undefined ? message.signature : expected.signature,
+            );
+            this._sendWithResponse<T>({ message: message, sequence: guid() })
+                .then(resolve)
+                .catch(reject);
         });
     }
 
@@ -142,7 +147,7 @@ class ElectronIpcService implements IService {
 
     public subscribeOnPluginMessage(handler: THandler): Promise<Subscription> {
         return new Promise((resolve) => {
-            resolve(this._setSubscription(IPCMessages.PluginInternalMessage.signature, handler));
+            resolve(this._setSubscription(IPC.PluginInternalMessage.signature, handler));
         });
     }
 
@@ -162,15 +167,21 @@ class ElectronIpcService implements IService {
         }
         handlers.set(subscriptionId, handler);
         this._handlers.set(signature, handlers);
-        const subscription: Subscription = new Subscription(signature, () => {
-            this._unsubscribe(signature, subscriptionId);
-        }, subscriptionId);
+        const subscription: Subscription = new Subscription(
+            signature,
+            () => {
+                this._unsubscribe(signature, subscriptionId);
+            },
+            subscriptionId,
+        );
         this._subscriptions.set(subscriptionId, subscription);
         return subscription;
     }
 
     private _emitIncomePluginMessage(message: any) {
-        const handlers: Map<string, THandler> = this._handlers.get(IPCMessages.PluginInternalMessage.signature);
+        const handlers: Map<string, THandler> | undefined = this._handlers.get(
+            IPC.PluginInternalMessage.signature,
+        );
         if (handlers === undefined) {
             return;
         }
@@ -190,19 +201,24 @@ class ElectronIpcService implements IService {
 
     private _onIPCMessage(ipcEvent: Event, eventName: string, data: any) {
         const messagePackage: IPCMessagePackage = new IPCMessagePackage(data);
-        const pending: IPendingTask = this._pending.get(messagePackage.sequence);
+        const pending: IPendingTask<any> | undefined = this._pending.get(messagePackage.sequence);
         this._pending.delete(messagePackage.sequence);
         const refMessageClass = this._getRefToMessageClass(messagePackage.message);
         if (refMessageClass === undefined) {
-            return this._logger.warn(`Cannot find ref to class of message. Event: ${eventName}; data: ${data}.`);
+            return this._logger.warn(
+                `Cannot find ref to class of message. Event: ${eventName}; data: ${data}.`,
+            );
         }
-        const instance: IPCMessages.TMessage = new (refMessageClass as any)(messagePackage.message);
+        const instance: IPC.TMessage = new (refMessageClass as any)(messagePackage.message);
         if (pending !== undefined) {
             return pending.resolver(instance);
         }
-        if (instance instanceof IPCMessages.PluginInternalMessage || instance instanceof IPCMessages.PluginError) {
+        if (instance instanceof IPC.PluginInternalMessage || instance instanceof IPC.PluginError) {
             if (typeof instance.token !== 'string' || instance.token.trim() === '') {
-                return this._logger.warn(`Was gotten message "PluginInternalMessage", but message doesn't have token. Message will be ignored.`, instance);
+                return this._logger.warn(
+                    `Was gotten message "PluginInternalMessage", but message doesn't have token. Message will be ignored.`,
+                    instance,
+                );
             }
             // This is plugin message. Do not pass into common stream of messages
             this._emitIncomePluginMessage(instance);
@@ -218,43 +234,49 @@ class ElectronIpcService implements IService {
         });
     }
 
-    private _send(params: {
-        message: IPCMessages.TMessage,
-        expectResponse?: boolean,
-        sequence?: string
-    }): Promise<IPCMessages.TMessage | undefined> {
+    private _sendWithResponse<T extends IPC.Interface>(params: {
+        message: Required<IPC.Interface>;
+        sequence: string;
+    }): Promise<T> {
         return new Promise((resolve, reject) => {
             const messagePackage: IPCMessagePackage = new IPCMessagePackage({
                 message: params.message,
-                sequence: params.sequence
+                sequence: params.sequence,
             });
             const signature: string = params.message.signature;
-            if (params.expectResponse) {
-                this._pending.set(params.sequence, {
-                    resolver: resolve,
-                    rejector: reject,
-                    signature: signature,
-                    created: (new Date()).getTime(),
-                });
-            }
+            this._pending.set(params.sequence, {
+                resolver: resolve,
+                rejector: reject,
+                signature: signature,
+                created: new Date().getTime(),
+            });
             // Format:               | channel  |  event  | instance |
             this._ipcRenderer.send(signature, signature, messagePackage);
-            if (!params.expectResponse) {
-                return resolve(undefined);
-            }
         });
+    }
+
+    private _sendWithoutResponse(message: Required<IPC.Interface>): void {
+        const messagePackage: IPCMessagePackage = new IPCMessagePackage({
+            message: message,
+        });
+        const signature: string = message.signature;
+        // Format:               | channel  |  event  | instance |
+        this._ipcRenderer.send(signature, signature, messagePackage);
     }
 
     private _isValidMessageClassRef(messageRef: Function): boolean {
         let result: boolean = false;
-        if (typeof (messageRef as any).signature !== 'string' || (messageRef as any).signature.trim() === '') {
+        if (
+            typeof (messageRef as any).signature !== 'string' ||
+            (messageRef as any).signature.trim() === ''
+        ) {
             return false;
         }
-        Object.keys(IPCMessages.Map).forEach((alias: string) => {
+        Object.keys(IPC.Map).forEach((alias: string) => {
             if (result) {
                 return;
             }
-            if ((messageRef as any).signature === (IPCMessages.Map as any)[alias].signature) {
+            if ((messageRef as any).signature === (IPC.Map as any)[alias].signature) {
                 result = true;
             }
         });
@@ -263,12 +285,15 @@ class ElectronIpcService implements IService {
 
     private _getRefToMessageClass(message: any): Function | undefined {
         let ref: Function | undefined;
-        Object.keys(IPCMessages.Map).forEach((alias: string) => {
+        Object.keys(IPC.Map).forEach((alias: string) => {
             if (ref) {
                 return;
             }
-            if (message instanceof (IPCMessages.Map as any)[alias] || message.signature === (IPCMessages.Map as any)[alias].signature) {
-                ref = (IPCMessages.Map as any)[alias];
+            if (
+                message instanceof (IPC.Map as any)[alias] ||
+                message.signature === (IPC.Map as any)[alias].signature
+            ) {
+                ref = (IPC.Map as any)[alias];
             }
         });
         return ref;
@@ -291,22 +316,33 @@ class ElectronIpcService implements IService {
     }
 
     private _report() {
-        const current = (new Date()).getTime();
-        this._pending.forEach((task: IPendingTask) => {
+        const current = new Date().getTime();
+        this._pending.forEach((task: IPendingTask<any>) => {
             const duration = current - task.created;
             if (duration > ElectronIpcService.PENDING_ERR_DURATION) {
-                this._logger.error(`Pending task "${task.signature}" too long stay in queue: ${(duration / 1000).toFixed(2)}s.`);
+                this._logger.error(
+                    `Pending task "${task.signature}" too long stay in queue: ${(
+                        duration / 1000
+                    ).toFixed(2)}s.`,
+                );
             } else if (duration > ElectronIpcService.PENDING_WARN_DURATION) {
-                this._logger.warn(`Pending task "${task.signature}" is in a queue for ${(duration / 1000).toFixed(2)}s.`);
+                this._logger.warn(
+                    `Pending task "${task.signature}" is in a queue for ${(duration / 1000).toFixed(
+                        2,
+                    )}s.`,
+                );
             }
         });
         if (this._pending.size > 0) {
             this._logger.debug(`Pending task queue has ${this._pending.size} tasks.`);
-            this._logger.debug(`\n\t -${Array.from(this._pending.values()).map(t => `${t.signature}:: ${t.created}`).join(`\n\t -`)}`);
+            this._logger.debug(
+                `\n\t -${Array.from(this._pending.values())
+                    .map((t) => `${t.signature}:: ${t.created}`)
+                    .join(`\n\t -`)}`,
+            );
         }
         setTimeout(this._report.bind(this), ElectronIpcService.QUEUE_CHECK_DELAY);
     }
-
 }
 
-export default (new ElectronIpcService());
+export default new ElectronIpcService();

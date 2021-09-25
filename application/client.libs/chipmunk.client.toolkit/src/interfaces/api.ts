@@ -6,8 +6,23 @@ import { IPC } from '../classes/class.ipc';
 import { IPopup } from './client.popup';
 import { IComponentDesc } from './client.components.containers';
 import { INotification } from './client.notification';
-import { ESettingType, Entry, IEntry, Field, IField, IStorage, FieldBase } from '../../../../common/settings/field.store';
-import { EElementSignature, Element, ElementCheckboxRef, ElementInputNumberRef, ElementInputStringRef, ElementRefs } from '../../../../common/settings/field.render';
+import {
+    ESettingType,
+    Entry,
+    IEntry,
+    Field,
+    IField,
+    IStorage,
+    FieldBase,
+} from '../../../../common/settings/field.store';
+import {
+    EElementSignature,
+    Element,
+    ElementCheckboxRef,
+    ElementInputNumberRef,
+    ElementInputStringRef,
+    ElementRefs,
+} from '../../../../common/settings/field.render';
 
 export {
     ESettingType,
@@ -22,15 +37,13 @@ export {
     ElementCheckboxRef,
     ElementInputNumberRef,
     ElementInputStringRef,
-    ElementRefs
-}
+    ElementRefs,
+};
 
 export interface ISettingsAPI {
-
     register(entry: Entry | Field<any>): Promise<void>;
 
     get<T>(key: string, path: string): Promise<T>;
-
 }
 
 export interface IDefaultTabsGuids {
@@ -60,7 +73,7 @@ export interface IAPI {
     /**
      * @returns {string} ID of active stream (active tab)
      */
-    getActiveSessionId: () => string;
+    getActiveSessionId: () => string | undefined;
 
     /**
      * Allows adding injection into the main view. Injection should be an Angular component.
@@ -68,7 +81,10 @@ export interface IAPI {
      * @param {EViewsTypes} type - type of injection: location (main view, search view, sidebar) and position (top, bottom)
      * @returns {void}
      */
-    addOutputInjection: (injection: Components.IComponentInjection, type: Enums.EViewsTypes) => void;
+    addOutputInjection: (
+        injection: Components.IComponentInjection,
+        type: Enums.EViewsTypes,
+    ) => void;
 
     /**
      * Used for removing injection, defined with addOutputInjection
@@ -83,7 +99,7 @@ export interface IAPI {
      * Should be used to track state of viewport
      * @returns {ControllerViewportEvents} viewport events hub
      */
-    getViewportEventsHub: () => ControllerViewportEvents;
+    getViewportEventsHub: () => ControllerViewportEvents | undefined;
 
     /**
      * Returns hub of sessions events (open, close, changed and so on)
@@ -96,7 +112,7 @@ export interface IAPI {
      * Open popup
      * @param {IPopup} popup - description of popup
      */
-    addPopup: (popup: IPopup) => string;
+    addPopup: (popup: IPopup) => string | undefined;
 
     /**
      * Closes popup

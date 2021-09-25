@@ -2,8 +2,7 @@ export interface IElectronEnvPlatformResponse {
     platform: string;
 }
 
-export class ElectronEnvPlatformResponse{
-
+export class ElectronEnvPlatformResponse {
     public static signature: string = 'ElectronEnvPlatformResponse';
     public signature: string = ElectronEnvPlatformResponse.signature;
     public platform: string;

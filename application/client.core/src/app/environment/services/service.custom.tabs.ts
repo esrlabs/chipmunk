@@ -1,17 +1,15 @@
 import { IService } from '../interfaces/interface.service';
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { TabAboutComponent } from '../components/tabs/about/component';
 import { TabPluginsComponent } from '../components/tabs/plugins/component';
-import { TabPluginsCounterComponent } from '../components/tabs/plugins/counter/component';
 import { TabSettingsComponent } from '../components/tabs/settings/component';
 import { TabReleaseNotesComponent } from '../components/tabs/release.notes/component';
 
-import ElectronIpcService, { IPCMessages } from './service.electron.ipc';
+import ElectronIpcService, { IPC } from './service.electron.ipc';
 import TabsSessionsService from './service.sessions.tabs';
 import CustomTabsEventsService from './standalone/service.customtabs.events';
 import HotkeysService from './service.hotkeys';
 import ReleaseNotesService from './service.release.notes';
-
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -23,21 +21,36 @@ const GUIDs = {
 };
 
 export class TabsCustomService implements IService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabsCustomService');
-    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
 
-    constructor() {
-    }
+    constructor() {}
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._subscriptions.TabCustomAbout = ElectronIpcService.subscribe(IPCMessages.TabCustomAbout, this._onTabCustomAbout.bind(this));
-            this._subscriptions.TabCustomSettings = ElectronIpcService.subscribe(IPCMessages.TabCustomSettings, this._onTabCustomSettings.bind(this));
-            this._subscriptions.TabCustomPlugins = ElectronIpcService.subscribe(IPCMessages.TabCustomPlugins, this._onTabCustomPlugins.bind(this));
-            this._subscriptions.TabCustomRelease = ReleaseNotesService.getObservable().tab.subscribe(this._onTabCustomRelease.bind(this));
-            this._subscriptions.plugins = CustomTabsEventsService.getObservable().plugins.subscribe(this._onTabCustomPlugins.bind(this));
-            this._subscriptions.TabCustomSettingsHotKey = HotkeysService.getObservable().settings.subscribe(this._onTabCustomSettings.bind(this));
+            this._subscriptions.TabCustomAbout = ElectronIpcService.subscribe(
+                IPC.TabCustomAbout,
+                this._onTabCustomAbout.bind(this),
+            );
+            this._subscriptions.TabCustomSettings = ElectronIpcService.subscribe(
+                IPC.TabCustomSettings,
+                this._onTabCustomSettings.bind(this),
+            );
+            this._subscriptions.TabCustomPlugins = ElectronIpcService.subscribe(
+                IPC.TabCustomPlugins,
+                this._onTabCustomPlugins.bind(this),
+            );
+            this._subscriptions.TabCustomRelease =
+                ReleaseNotesService.getObservable().tab.subscribe(
+                    this._onTabCustomRelease.bind(this),
+                );
+            this._subscriptions.plugins = CustomTabsEventsService.getObservable().plugins.subscribe(
+                this._onTabCustomPlugins.bind(this),
+            );
+            this._subscriptions.TabCustomSettingsHotKey =
+                HotkeysService.getObservable().settings.subscribe(
+                    this._onTabCustomSettings.bind(this),
+                );
             resolve();
         });
     }
@@ -52,7 +65,7 @@ export class TabsCustomService implements IService {
         });
     }
 
-    public about(message: IPCMessages.TabCustomAbout) {
+    public about(message: IPC.TabCustomAbout) {
         this._onTabCustomAbout(message);
     }
 
@@ -60,7 +73,7 @@ export class TabsCustomService implements IService {
         this._onTabCustomPlugins();
     }
 
-    private _onTabCustomAbout(message: IPCMessages.TabCustomAbout) {
+    private _onTabCustomAbout(message: IPC.TabCustomAbout) {
         if (TabsSessionsService.isTabExist(GUIDs.about)) {
             TabsSessionsService.setActive(GUIDs.about);
         } else {
@@ -71,15 +84,15 @@ export class TabsCustomService implements IService {
                     factory: TabAboutComponent,
                     inputs: {
                         data: message,
-                    }
-                }
+                    },
+                },
             }).catch((error: Error) => {
                 this._logger.warn(`Fail add about tab due error: ${error.message}`);
             });
         }
     }
 
-    private _onTabCustomSettings(message: IPCMessages.TabCustomSettings) {
+    private _onTabCustomSettings() {
         if (TabsSessionsService.isTabExist(GUIDs.settings)) {
             TabsSessionsService.setActive(GUIDs.settings);
         } else {
@@ -88,8 +101,8 @@ export class TabsCustomService implements IService {
                 title: 'Settings',
                 component: {
                     factory: TabSettingsComponent,
-                    inputs: {}
-                }
+                    inputs: {},
+                },
             }).catch((error: Error) => {
                 this._logger.warn(`Fail add settings tab due error: ${error.message}`);
             });
@@ -105,7 +118,7 @@ export class TabsCustomService implements IService {
                 title: 'Plugins',
                 component: {
                     factory: TabPluginsComponent,
-                    inputs: { }
+                    inputs: {},
                 },
             }).catch((error: Error) => {
                 this._logger.warn(`Fail add plugins tab due error: ${error.message}`);
@@ -122,14 +135,13 @@ export class TabsCustomService implements IService {
                 title: 'Release Notes',
                 component: {
                     factory: TabReleaseNotesComponent,
-                    inputs: { }
+                    inputs: {},
                 },
             }).catch((error: Error) => {
                 this._logger.warn(`Fail add release info tab due error: ${error.message}`);
             });
         }
+    }
 }
 
-}
-
-export default (new TabsCustomService());
+export default new TabsCustomService();

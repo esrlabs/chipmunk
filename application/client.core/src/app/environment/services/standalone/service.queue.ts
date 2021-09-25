@@ -13,27 +13,26 @@ export interface IQueueController {
 }
 
 export class QueueService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('QueueService');
     private _subjects: { [key: string]: Subject<any> } = {
         next: new Subject<IQueueState>(),
-        done: new Subject<string>()
+        done: new Subject<string>(),
     };
 
     public getObservable(): {
-        next: Observable<IQueueState>,
-        done: Observable<string>
+        next: Observable<IQueueState>;
+        done: Observable<string>;
     } {
         return {
             next: this._subjects.next.asObservable(),
-            done: this._subjects.done.asObservable()
+            done: this._subjects.done.asObservable(),
         };
     }
 
     public create(title: string): IQueueController {
         return {
             next: this._next.bind(this, title),
-            done: this._done.bind(this, title)
+            done: this._done.bind(this, title),
         };
     }
 
@@ -48,8 +47,6 @@ export class QueueService {
             title: title,
         });
     }
-
-
 }
 
-export default (new QueueService());
+export default new QueueService();

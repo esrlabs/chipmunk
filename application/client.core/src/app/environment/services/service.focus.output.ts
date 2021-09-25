@@ -6,12 +6,11 @@ import HotkeysService from './service.hotkeys';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class FocusOutputService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('FocusOutputService');
     private _subscriptions: { [key: string]: Subscription } = {};
     private _scrollBoxComs: ComplexScrollBoxComponent[] = [];
     private _subjects: {
-        onFocus: Subject<void>,
+        onFocus: Subject<void>;
     } = {
         onFocus: new Subject<void>(),
     };
@@ -22,7 +21,7 @@ export class FocusOutputService {
     }
 
     public getObservable(): {
-        onFocus: Observable<void>,
+        onFocus: Observable<void>;
     } {
         return {
             onFocus: this._subjects.onFocus.asObservable(),
@@ -82,14 +81,16 @@ export class FocusOutputService {
 
     private _getActiveScrollBox(): Element | undefined {
         let element: Element | undefined;
-        Array.from(document.activeElement.children).forEach((child: HTMLElement) => {
+        if (document.activeElement === null) {
+            return undefined;
+        }
+        Array.from(document.activeElement.children).forEach((child: Element) => {
             if (child.tagName === 'UL') {
                 element = child;
             }
         });
         return element;
     }
-
 }
 
-export default (new FocusOutputService());
+export default new FocusOutputService();

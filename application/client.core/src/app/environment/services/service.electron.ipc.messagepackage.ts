@@ -5,15 +5,14 @@ export interface IMessagePackage {
     created?: number;
 }
 
-export const getSequence: () => string = (function() {
+export const getSequence: () => string = (function () {
     let sequence: number = Date.now();
-    return function() {
+    return function () {
         return `${Date.now()}:${sequence++}`;
     };
-}());
+})();
 
 export class IPCMessagePackage {
-
     public sequence: string = '';
     public message: any;
     public created: number;
@@ -32,5 +31,4 @@ export class IPCMessagePackage {
         this.message = params.message;
         this.created = params.created;
     }
-
 }

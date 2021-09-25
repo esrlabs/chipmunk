@@ -1,7 +1,7 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { Session } from '../controller/session/session';
-import { CommonInterfaces} from '../interfaces/interface.common';
-import { IPCMessages } from './service.electron.ipc';
+import { CommonInterfaces } from '../interfaces/interface.common';
+import { IPC } from './service.electron.ipc';
 import { ControllerFileMergeSession } from '../controller/controller.file.merge.session';
 import { IService } from '../interfaces/interface.service';
 import { CGuids } from '../states/state.default.sidebar.apps';
@@ -27,20 +27,25 @@ export interface IMergeFile {
 }
 
 export interface IMergeFilesService {
-    add(files: IPCMessages.IFile[], session: string): void;
+    add(files: IPC.IFile[], session: string): void;
     getController(session?: string): ControllerFileMergeSession | undefined;
     closeSidebarView(): void;
 }
 
 export class MergeFilesService implements IService, IMergeFilesService {
-
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('MergeFilesService');
     private _controllers: Map<string, ControllerFileMergeSession> = new Map();
 
     constructor() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onSessionClosed =
+            EventsSessionService.getObservable().onSessionClosed.subscribe(
+                this._onSessionClosed.bind(this),
+            );
     }
 
     public init(): Promise<void> {
@@ -53,16 +58,24 @@ export class MergeFilesService implements IService, IMergeFilesService {
         return 'MergeFilesService';
     }
 
-    public add(files: IPCMessages.IFile[], session: string) {
+    public add(files: IPC.IFile[], session: string) {
         const controller: ControllerFileMergeSession | undefined = this._controllers.get(session);
         if (controller === undefined) {
-            return this._logger.error(`Fail to find ControllerFileMergeSession for session: ${session}`);
+            return this._logger.error(
+                `Fail to find ControllerFileMergeSession for session: ${session}`,
+            );
         }
-        controller.add(files.map((file: IPCMessages.IFile) => {
-            return file.path;
-        })).catch((addErr: Error) => {
-            this._logger.error(`Fail add files to merge controller due error: ${addErr.message}`);
-        });
+        controller
+            .add(
+                files.map((file: IPC.IFile) => {
+                    return file.path;
+                }),
+            )
+            .catch((addErr: Error) => {
+                this._logger.error(
+                    `Fail add files to merge controller due error: ${addErr.message}`,
+                );
+            });
     }
 
     public getController(session?: string): ControllerFileMergeSession | undefined {
@@ -97,14 +110,18 @@ export class MergeFilesService implements IService, IMergeFilesService {
             return;
         }
         // Destroy
-        controller.destroy().catch((destroyErr: Error) => {
-            this._logger.error(`Fail to destroy controller for "${guid}" due errr: ${destroyErr.message}`);
-        }).finally(() => {
-            // Remove from storage
-            this._controllers.delete(guid);
-        });
+        controller
+            .destroy()
+            .catch((destroyErr: Error) => {
+                this._logger.error(
+                    `Fail to destroy controller for "${guid}" due errr: ${destroyErr.message}`,
+                );
+            })
+            .finally(() => {
+                // Remove from storage
+                this._controllers.delete(guid);
+            });
     }
-
 }
 
-export default (new MergeFilesService());
+export default new MergeFilesService();

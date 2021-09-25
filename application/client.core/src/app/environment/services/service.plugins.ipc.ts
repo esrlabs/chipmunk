@@ -1,4 +1,3 @@
-
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as IPCElectronMessages from '../../../../../common/ipc/electron.ipc.messages/index';
 import ControllerPluginIPC from '../controller/controller.plugin.ipc';
@@ -8,17 +7,20 @@ import { IService } from '../interfaces/interface.service';
 type TToken = string;
 
 export class PluginsIPCService implements IService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('PluginsIPCService');
     private _ipcs: Map<TToken, ControllerPluginIPC> = new Map();
     private _subscriptionPluginMessages: Toolkit.Subscription | undefined;
 
     constructor() {
-        ServiceElectronIpc.subscribeOnPluginMessage(this._onPluginMessage.bind(this)).then((subscription: Toolkit.Subscription) => {
-            this._subscriptionPluginMessages = subscription;
-        }).catch((subscribeError: Error) => {
-            this._logger.error(`Error to subscribe to income plugin messages due error: ${subscribeError.message}`);
-        });
+        ServiceElectronIpc.subscribeOnPluginMessage(this._onPluginMessage.bind(this))
+            .then((subscription: Toolkit.Subscription) => {
+                this._subscriptionPluginMessages = subscription;
+            })
+            .catch((subscribeError: Error) => {
+                this._logger.error(
+                    `Error to subscribe to income plugin messages due error: ${subscribeError.message}`,
+                );
+            });
     }
 
     public init(): Promise<void> {
@@ -51,10 +53,11 @@ export class PluginsIPCService implements IService {
         }
         controller.destroy();
         this._ipcs.delete(token);
+        return undefined;
     }
 
-    public sendToHost(message: any, token: string, streamId?: string): Promise<void> {
-        return ServiceElectronIpc.sendToPluginHost(message, token, streamId);
+    public sendToHost(message: any, token: string, streamId?: string): void {
+        ServiceElectronIpc.sendToPluginHost(message, token, streamId);
     }
 
     public requestFromHost(message: any, token: string, streamId?: string): Promise<void> {
@@ -68,8 +71,6 @@ export class PluginsIPCService implements IService {
             }
         });
     }
-
 }
 
-export default (new PluginsIPCService());
-
+export default new PluginsIPCService();

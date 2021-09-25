@@ -3,10 +3,9 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import PluginsService from '../service.plugins';
 
 export class PopupsService {
-
     private _subjects: {
-        onNew: Subject<Toolkit.IPopup>,
-        onRemove: Subject<string>,
+        onNew: Subject<Toolkit.IPopup>;
+        onRemove: Subject<string>;
     } = {
         onNew: new Subject<Toolkit.IPopup>(),
         onRemove: new Subject<string>(),
@@ -20,8 +19,8 @@ export class PopupsService {
     }
 
     public getObservable(): {
-        onNew: Observable<Toolkit.IPopup>,
-        onRemove: Observable<string>,
+        onNew: Observable<Toolkit.IPopup>;
+        onRemove: Observable<string>;
     } {
         return {
             onNew: this._subjects.onNew.asObservable(),
@@ -47,7 +46,7 @@ export class PopupsService {
                 popup.component.resolved = true;
             }
         }
-        if (popup.options !== undefined) {
+        if (popup.options !== undefined && popup.id !== undefined) {
             if (popup.options.once === true && this._opened.has(popup.id)) {
                 return;
             }
@@ -87,7 +86,6 @@ export class PopupsService {
             this.close();
         }
     }
-
 }
 
-export default (new PopupsService());
+export default new PopupsService();

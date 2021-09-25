@@ -4,7 +4,7 @@ import { IService } from '../interfaces/interface.service';
 import { DefaultViews, CDefaultTabsGuids } from '../states/state.default.toolbar.apps';
 import { Session } from '../controller/session/session';
 import { ControllerToolbarLifecircle } from '../controller/controller.toolbar.lifecircle';
-import { IPCMessages } from '../services/service.electron.ipc';
+import { IPC } from '../services/service.electron.ipc';
 import { IPluginData } from './service.plugins';
 
 import EventsSessionService from './standalone/service.events.session';
@@ -38,7 +38,6 @@ export interface ITabInfo {
 }
 
 export class ToolbarSessionsService implements IService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('ToolbarSessionsService');
     private _guid: string = Toolkit.guid();
     private _active: string | undefined;
@@ -47,8 +46,8 @@ export class ToolbarSessionsService implements IService {
     private _sessions: Map<string, TabsService> = new Map();
     private _lifecircle: Map<string, ControllerToolbarLifecircle> = new Map();
     private _subjects: {
-        change: Subject<IChangeEvent | undefined>,
-        update: Subject<IChangeEvent | undefined>,
+        change: Subject<IChangeEvent | undefined>;
+        update: Subject<IChangeEvent | undefined>;
     } = {
         change: new Subject<IChangeEvent | undefined>(),
         update: new Subject<IChangeEvent | undefined>(),
@@ -60,10 +59,22 @@ export class ToolbarSessionsService implements IService {
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            this._subscriptions.onFocusSearchInput = HotkeysService.getObservable().focusSearchInput.subscribe(this._onFocusSearchInputHotkey.bind(this));
-            this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-            this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-            this._subscriptions.ViewSwitchEvent = ElectronIpcService.subscribe(IPCMessages.ViewSwitchEvent, this._ipc_ViewSwitchEvent.bind(this));
+            this._subscriptions.onFocusSearchInput =
+                HotkeysService.getObservable().focusSearchInput.subscribe(
+                    this._onFocusSearchInputHotkey.bind(this),
+                );
+            this._subscriptions.onSessionClosed =
+                EventsSessionService.getObservable().onSessionClosed.subscribe(
+                    this._onSessionClosed.bind(this),
+                );
+            this._subscriptions.onSessionChange =
+                EventsSessionService.getObservable().onSessionChange.subscribe(
+                    this._onSessionChange.bind(this),
+                );
+            this._subscriptions.ViewSwitchEvent = ElectronIpcService.subscribe(
+                IPC.ViewSwitchEvent,
+                this._ipc_ViewSwitchEvent.bind(this),
+            );
             TabsSessionsService.setToolbarTabOpener(this.setActive.bind(this), CDefaultTabsGuids);
             resolve();
         });
@@ -84,8 +95,8 @@ export class ToolbarSessionsService implements IService {
     }
 
     public getObservable(): {
-        change: Observable<IChangeEvent | undefined>,
-        update: Observable<IChangeEvent | undefined>,
+        change: Observable<IChangeEvent | undefined>;
+        update: Observable<IChangeEvent | undefined>;
     } {
         return {
             change: this._subjects.change.asObservable(),
@@ -94,24 +105,33 @@ export class ToolbarSessionsService implements IService {
     }
 
     public getTabsService(): TabsService | undefined {
-        return this._sessions.get(this._active);
+        return this._active === undefined ? undefined : this._sessions.get(this._active);
     }
 
     public setCommonInputs(inputs: { [key: string]: any }) {
-        this._inputs = Object.assign({
-            setActiveTab: this.setActive.bind(this),
-            getDefaultsTabGuids: this.getDefaultsGuids.bind(this),
-        }, inputs);
+        this._inputs = Object.assign(
+            {
+                setActiveTab: this.setActive.bind(this),
+                getDefaultsTabGuids: this.getDefaultsGuids.bind(this),
+            },
+            inputs,
+        );
     }
 
     public add(name: string, content: IComponentDesc, guid?: string): string | undefined {
+        if (this._active === undefined) {
+            return undefined;
+        }
         const service: TabsService | undefined = this._sessions.get(this._active);
         if (service === undefined) {
             return undefined;
         }
         guid = typeof guid !== 'string' ? Toolkit.guid() : guid;
         if (!service.has(guid)) {
-            content.inputs = this._injectLifecircleController(guid, content.inputs === undefined ? {} : content.inputs);
+            content.inputs = this._injectLifecircleController(
+                guid,
+                content.inputs === undefined ? {} : content.inputs,
+            );
             service.add({
                 guid: guid,
                 name: name,
@@ -128,6 +148,9 @@ export class ToolbarSessionsService implements IService {
     }
 
     public addByGuid(guid: string): void {
+        if (this._active === undefined) {
+            return undefined;
+        }
         const tab: ITab | undefined = this._getTabByGuid(guid);
         const service: TabsService | undefined = this._sessions.get(this._active);
         if (service === undefined || tab === undefined) {
@@ -142,6 +165,9 @@ export class ToolbarSessionsService implements IService {
     }
 
     public remove(guid: string): void {
+        if (this._active === undefined) {
+            return undefined;
+        }
         const service: TabsService | undefined = this._sessions.get(this._active);
         if (service === undefined) {
             return undefined;
@@ -160,6 +186,9 @@ export class ToolbarSessionsService implements IService {
     }
 
     public has(guid: string): boolean {
+        if (this._active === undefined) {
+            return false;
+        }
         const service: TabsService | undefined = this._sessions.get(this._active);
         if (service === undefined) {
             return false;
@@ -167,29 +196,49 @@ export class ToolbarSessionsService implements IService {
         return service.has(guid);
     }
 
-    public setActive(guid: string, session: string | undefined, openTabOnly: boolean = false): Promise<void> {
+    public setActive(
+        guid: string,
+        session: string | undefined,
+        openTabOnly: boolean = false,
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
-            const service: TabsService | undefined = this._sessions.get(session !== undefined ? session : this._active);
+            session = session !== undefined ? session : this._active;
+            if (session === undefined) {
+                return reject(new Error(this._logger.warn(`Session guid isn't defined`)));
+            }
+            const service: TabsService | undefined = this._sessions.get(session);
             if (service === undefined) {
                 return reject(new Error(this._logger.warn(`Fail to find tab's service`)));
             }
-            const current: string = service.getActiveTab().guid;
+            const tab = service.getActiveTab();
             if (!service.has(guid)) {
                 const tab: ITab | undefined = this._getTabByGuid(guid);
                 if (tab === undefined) {
-                    return reject(new Error(this._logger.warn(`Fail to find tab "${guid}". Tab isn't added.`)));
+                    return reject(
+                        new Error(
+                            this._logger.warn(`Fail to find tab "${guid}". Tab isn't added.`),
+                        ),
+                    );
                 }
                 service.add(tab);
             }
             if (openTabOnly === true) {
-                service.setActive(current);
+                if (tab !== undefined) {
+                    service.setActive(tab.guid);
+                }
             } else {
                 service.setActive(guid);
             }
             const controller: ControllerToolbarLifecircle | undefined = this._lifecircle.get(guid);
             if (controller === undefined) {
                 // This situation isn't possible, but... At least log message
-                return reject(new Error(this._logger.error(`Attention, ControllerToolbarLifecircle isn't created for "${guid}"`)));
+                return reject(
+                    new Error(
+                        this._logger.error(
+                            `Attention, ControllerToolbarLifecircle isn't created for "${guid}"`,
+                        ),
+                    ),
+                );
             }
             controller.callOn().viewready(resolve);
         });
@@ -201,17 +250,22 @@ export class ToolbarSessionsService implements IService {
 
     public getInactiveTabs(session?: string): ITab[] | undefined {
         session = session === undefined ? this._active : session;
-        const service: TabsService | undefined = this._sessions.get(this._active);
+        if (session === undefined) {
+            return undefined;
+        }
+        const service: TabsService | undefined = this._sessions.get(session);
         if (service === undefined) {
             return undefined;
         }
         return this._getAvailableTabs().filter((tab: ITab) => {
-            return !service.has(tab.guid);
+            return tab.guid === undefined ? false : !service.has(tab.guid);
         });
-
     }
 
     private _onFocusSearchInputHotkey() {
+        if (this._active === undefined) {
+            return;
+        }
         const service: TabsService | undefined = this._sessions.get(this._active);
         if (service === undefined) {
             return;
@@ -242,10 +296,10 @@ export class ToolbarSessionsService implements IService {
         if (service === undefined) {
             service = new TabsService({ guid: `toolbar: ${controller.getGuid()}` });
             this._getAvailableTabs().map((tab: ITab) => {
-                if (!this._isTabVisibleByDefault(tab.guid)) {
+                if (tab.guid !== undefined && !this._isTabVisibleByDefault(tab.guid)) {
                     return;
                 }
-                service.unshift(tab);
+                service !== undefined && service.unshift(tab);
             });
             this._sessions.set(controller.getGuid(), service);
         }
@@ -264,17 +318,23 @@ export class ToolbarSessionsService implements IService {
                 guid: defaultView.guid,
                 name: defaultView.name,
                 active: i === DefaultViews.length - 1,
-                tabCaptionInjection: defaultView.tabCaptionInjection === undefined ? undefined : {
-                    factory: defaultView.tabCaptionInjection,
-                    inputs: Object.assign(defaultView.inputs, this._inputs),
-                    resolved: false
-                },
+                tabCaptionInjection:
+                    defaultView.tabCaptionInjection === undefined
+                        ? undefined
+                        : {
+                              factory: defaultView.tabCaptionInjection,
+                              inputs: Object.assign(defaultView.inputs, this._inputs),
+                              resolved: false,
+                          },
                 closable: defaultView.closable,
                 content: {
                     factory: defaultView.factory,
-                    inputs: this._injectLifecircleController(defaultView.guid, Object.assign(defaultView.inputs, this._inputs)),
-                    resolved: false
-                }
+                    inputs: this._injectLifecircleController(
+                        defaultView.guid,
+                        Object.assign(defaultView.inputs, this._inputs),
+                    ),
+                    resolved: false,
+                },
             });
         });
         // Add plugin's tabs
@@ -283,10 +343,13 @@ export class ToolbarSessionsService implements IService {
                 return;
             }
             const guid: string = Toolkit.guid();
-            const inputs = Object.assign({
-                api: TabsSessionsService.getPluginAPI(plugin.id),
-                session: this._guid
-            }, this._inputs);
+            const inputs = Object.assign(
+                {
+                    api: TabsSessionsService.getPluginAPI(plugin.id),
+                    session: this._guid,
+                },
+                this._inputs,
+            );
             tabs.push({
                 guid: guid,
                 name: plugin.displayName,
@@ -294,22 +357,28 @@ export class ToolbarSessionsService implements IService {
                 content: {
                     factory: plugin.factories[Toolkit.EViewsTypes.sidebarHorizontal],
                     inputs: this._injectLifecircleController(guid, inputs),
-                    resolved: true
-                }
+                    resolved: true,
+                },
             });
         });
         return tabs;
     }
 
-    private _injectLifecircleController(guid: string, inputs: { [key: string]: any }): { [key: string]: any } {
+    private _injectLifecircleController(
+        guid: string,
+        inputs: { [key: string]: any },
+    ): { [key: string]: any } {
         let controller: ControllerToolbarLifecircle | undefined = this._lifecircle.get(guid);
         if (controller === undefined) {
             controller = new ControllerToolbarLifecircle(guid);
             this._lifecircle.set(guid, controller);
         }
-        return Object.assign({
-            lifecircle: controller,
-        }, inputs);
+        return Object.assign(
+            {
+                lifecircle: controller,
+            },
+            inputs,
+        );
     }
 
     private _isTabVisibleByDefault(guid: string): boolean {
@@ -334,26 +403,26 @@ export class ToolbarSessionsService implements IService {
         });
     }
 
-    private _ipc_ViewSwitchEvent(event: IPCMessages.ViewSwitchEvent) {
+    private _ipc_ViewSwitchEvent(event: IPC.ViewSwitchEvent) {
         if (this._active === undefined || this._active !== event.session) {
             return;
         }
         LayoutStateService.toolbarMax();
         switch (event.target) {
-            case IPCMessages.AvailableViews.SearchResults:
+            case IPC.AvailableViews.SearchResults:
                 this.addByGuid(CDefaultTabsGuids.search);
                 break;
-            case IPCMessages.AvailableViews.Charts:
+            case IPC.AvailableViews.Charts:
                 this.addByGuid(CDefaultTabsGuids.charts);
                 break;
-            case IPCMessages.AvailableViews.TimeMeasurement:
+            case IPC.AvailableViews.TimeMeasurement:
                 this.addByGuid(CDefaultTabsGuids.timemeasurement);
                 break;
-            case IPCMessages.AvailableViews.Notifications:
+            case IPC.AvailableViews.Notifications:
                 this.addByGuid(CDefaultTabsGuids.notification);
                 break;
         }
     }
 }
 
-export default (new ToolbarSessionsService());
+export default new ToolbarSessionsService();

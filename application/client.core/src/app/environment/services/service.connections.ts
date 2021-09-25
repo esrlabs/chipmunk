@@ -1,5 +1,5 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import ElectronIpcService, { IPCMessages, Subscription } from './service.electron.ipc';
+import ElectronIpcService, { IPC, Subscription } from './service.electron.ipc';
 import { IService } from '../interfaces/interface.service';
 import { Subject, Observable } from 'rxjs';
 
@@ -21,23 +21,27 @@ export interface IDisconnectEvent {
     id: string;
 }
 
-
 export class ConnectionsService implements IService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('ConnectionsService');
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _connections: Map<TSessionId, Map<TConnectionId, IConnection>> = new Map();
     private _subjects: {
-        connected: Subject<IConnectEvent>,
-        disconnected: Subject<IDisconnectEvent>,
+        connected: Subject<IConnectEvent>;
+        disconnected: Subject<IDisconnectEvent>;
     } = {
         connected: new Subject<IConnectEvent>(),
         disconnected: new Subject<IDisconnectEvent>(),
     };
 
     constructor() {
-        this._subscriptions.DLTDeamonDisconnectEvent = ElectronIpcService.subscribe(IPCMessages.DLTDeamonDisconnectEvent, this._ipc_onDLTDeamonDisconnectEvent.bind(this));
-        this._subscriptions.DLTDeamonConnectEvent = ElectronIpcService.subscribe(IPCMessages.DLTDeamonConnectEvent, this._ipc_onDLTDeamonConnectEvent.bind(this));
+        this._subscriptions.DLTDeamonDisconnectEvent = ElectronIpcService.subscribe(
+            IPC.DLTDeamonDisconnectEvent,
+            this._ipc_onDLTDeamonDisconnectEvent.bind(this),
+        );
+        this._subscriptions.DLTDeamonConnectEvent = ElectronIpcService.subscribe(
+            IPC.DLTDeamonConnectEvent,
+            this._ipc_onDLTDeamonConnectEvent.bind(this),
+        );
     }
 
     public init(): Promise<void> {
@@ -58,8 +62,8 @@ export class ConnectionsService implements IService {
     }
 
     public getObservable(): {
-        connected: Observable<IConnectEvent>,
-        disconnected: Observable<IDisconnectEvent>,
+        connected: Observable<IConnectEvent>;
+        disconnected: Observable<IDisconnectEvent>;
     } {
         return {
             connected: this._subjects.connected.asObservable(),
@@ -79,8 +83,10 @@ export class ConnectionsService implements IService {
         return connections.has(id);
     }
 
-    private _ipc_onDLTDeamonDisconnectEvent(message: IPCMessages.DLTDeamonDisconnectEvent) {
-        const connections: Map<string, IConnection> | undefined = this._connections.get(message.session);
+    private _ipc_onDLTDeamonDisconnectEvent(message: IPC.DLTDeamonDisconnectEvent) {
+        const connections: Map<string, IConnection> | undefined = this._connections.get(
+            message.session,
+        );
         if (connections === undefined) {
             return this._subjects.disconnected.next({
                 id: message.id,
@@ -106,8 +112,10 @@ export class ConnectionsService implements IService {
         });
     }
 
-    private _ipc_onDLTDeamonConnectEvent(message: IPCMessages.DLTDeamonConnectEvent) {
-        let connections: Map<string, IConnection> | undefined = this._connections.get(message.session);
+    private _ipc_onDLTDeamonConnectEvent(message: IPC.DLTDeamonConnectEvent) {
+        let connections: Map<string, IConnection> | undefined = this._connections.get(
+            message.session,
+        );
         if (connections === undefined) {
             connections = new Map();
         }
@@ -126,8 +134,6 @@ export class ConnectionsService implements IService {
             session: message.session,
         });
     }
-
-
 }
 
-export default (new ConnectionsService());
+export default new ConnectionsService();

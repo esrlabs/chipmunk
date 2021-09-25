@@ -4,8 +4,12 @@ import { IService } from '../interfaces/interface.service';
 import { Session } from '../controller/session/session';
 import { IPluginData } from '../services/service.plugins';
 import { getSharedServices } from './shared.services.sidebar';
-import { DefaultSidebarApps, IDefaultSidebarApp, CGuids } from '../states/state.default.sidebar.apps';
-import { IPCMessages } from '../services/service.electron.ipc';
+import {
+    DefaultSidebarApps,
+    IDefaultSidebarApp,
+    CGuids,
+} from '../states/state.default.sidebar.apps';
+import { IPC } from '../services/service.electron.ipc';
 
 import EventsSessionService from './standalone/service.events.session';
 import TabsSessionsService from './service.sessions.tabs';
@@ -26,7 +30,6 @@ export interface ISidebarPluginInfo {
 }
 
 export class SidebarSessionsService implements IService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarSessionsService');
     private _services: Map<string, TabsService> = new Map();
     private _servicesSubs: Map<string, { [key: string]: Subscription }> = new Map();
@@ -36,20 +39,31 @@ export class SidebarSessionsService implements IService {
     private _injected: IComponentDesc | undefined;
     private _droppedInjected: string = '';
     private _subjects: {
-        injection: Subject<IComponentDesc | undefined>,
+        injection: Subject<IComponentDesc | undefined>;
     } = {
         injection: new Subject<IComponentDesc | undefined>(),
     };
 
-    constructor() {
-    }
+    constructor() {}
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-            this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
-            this._subscriptions.onSidebarTitleInjection = EventsSessionService.getObservable().onSidebarTitleInjection.subscribe(this._onSidebarTitleInjection.bind(this));
-            this._subscriptions.ViewSwitchEvent = ElectronIpcService.subscribe(IPCMessages.ViewSwitchEvent, this._ipc_ViewSwitchEvent.bind(this));
+            this._subscriptions.onSessionChange =
+                EventsSessionService.getObservable().onSessionChange.subscribe(
+                    this._onSessionChange.bind(this),
+                );
+            this._subscriptions.onSessionClosed =
+                EventsSessionService.getObservable().onSessionClosed.subscribe(
+                    this._onSessionClosed.bind(this),
+                );
+            this._subscriptions.onSidebarTitleInjection =
+                EventsSessionService.getObservable().onSidebarTitleInjection.subscribe(
+                    this._onSidebarTitleInjection.bind(this),
+                );
+            this._subscriptions.ViewSwitchEvent = ElectronIpcService.subscribe(
+                IPC.ViewSwitchEvent,
+                this._ipc_ViewSwitchEvent.bind(this),
+            );
             TabsSessionsService.setSidebarTabOpener(this.open.bind(this));
             resolve();
         });
@@ -78,23 +92,34 @@ export class SidebarSessionsService implements IService {
     }
 
     public add(tabs: ITab[] | ITab, session?: string) {
+        const verified_session = this._verifySessionGuid(session);
+        if (verified_session === undefined) {
+            return;
+        }
         tabs = tabs instanceof Array ? tabs : [tabs];
         // Add tabs
         tabs.forEach((tab: ITab) => {
-            this._add(tab, session);
+            this._add(tab, verified_session);
         });
     }
 
     public addByGuid(guid: string, session?: string) {
-        const tabs: Map<string, ITab> | Error = this._getSessionAvailableTabs(session);
+        const verified_session = this._verifySessionGuid(session);
+        if (verified_session === undefined) {
+            return;
+        }
+        const tabs: Map<string, ITab> | Error = this._getSessionAvailableTabs(verified_session);
         if (tabs instanceof Error) {
             return;
         }
-        if (!tabs.has(guid)) {
-            this._logger.warn(`Fail to find a tab "${guid}". Tab isn't available in session: ${session}`);
+        const tab = tabs.get(guid);
+        if (tab === undefined) {
+            this._logger.warn(
+                `Fail to find a tab "${guid}". Tab isn't available in session: ${verified_session}`,
+            );
             return;
         }
-        this._add(tabs.get(guid), session, true);
+        this._add(tab, verified_session, true);
     }
 
     public remove(tab: string, session?: string): Error | undefined {
@@ -106,9 +131,11 @@ export class SidebarSessionsService implements IService {
     }
 
     public has(tab: string, session?: string): boolean {
-        const service: TabsService | undefined = this._services.get(
-            session === undefined ? this._getActiveSessionGuid() : session
-        );
+        const verified_session = this._verifySessionGuid(session);
+        if (verified_session === undefined) {
+            return false;
+        }
+        const service: TabsService | undefined = this._services.get(verified_session);
         if (service === undefined) {
             return false;
         }
@@ -121,6 +148,7 @@ export class SidebarSessionsService implements IService {
             return service;
         }
         service.setActive(tab);
+        return undefined;
     }
 
     /**
@@ -130,12 +158,17 @@ export class SidebarSessionsService implements IService {
      * @param openTabOnly {bool} - true - tab would be added (if doesn't exist), but not active;
      *                             false - tab would be added (if doesn't exist) and set active.
      */
-    public open(guid: string, session: string | undefined, openTabOnly: boolean = false): Error | undefined {
+    public open(
+        guid: string,
+        session: string | undefined,
+        openTabOnly: boolean = false,
+    ): Error | undefined {
         const service: TabsService | Error = this._getSessionTabsService(session);
         if (service instanceof Error) {
             return service;
         }
-        const current: string = service.getActiveTab().guid;
+        const active_tab = service.getActiveTab();
+        const current: string | undefined = active_tab === undefined ? undefined : active_tab.guid;
         if (!service.has(guid)) {
             const available: ITab[] | undefined = this.getAvailableTabs();
             if (available === undefined) {
@@ -153,23 +186,28 @@ export class SidebarSessionsService implements IService {
         if (service.has(guid)) {
             if (openTabOnly === false) {
                 this.setActive(guid);
-            } else {
+            } else if (current !== undefined) {
                 this.setActive(current);
             }
         }
-        return service.has(guid) ? undefined : new Error(`Tab ${guid} wasn't found in a list of available tabs.`);
+        return service.has(guid)
+            ? undefined
+            : new Error(`Tab ${guid} wasn't found in a list of available tabs.`);
     }
 
     public getAvailableTabs(session?: string): ITab[] | undefined {
-        session = this._verifySessionGuid(session);
-        const tabs: Map<string, ITab> | undefined = this._tabs.get(session);
-        const service: TabsService | undefined = this._services.get(session);
+        const verified_session = this._verifySessionGuid(session);
+        if (verified_session === undefined) {
+            return undefined;
+        }
+        const tabs: Map<string, ITab> | undefined = this._tabs.get(verified_session);
+        const service: TabsService | undefined = this._services.get(verified_session);
         if (tabs === undefined || service === undefined) {
             return undefined;
         }
         const available: ITab[] = [];
         tabs.forEach((tab: ITab) => {
-            if (service.has(tab.guid)) {
+            if (tab.guid === undefined || service.has(tab.guid)) {
                 return;
             }
             available.push(tab);
@@ -178,10 +216,10 @@ export class SidebarSessionsService implements IService {
     }
 
     public getObservable(): {
-        injection: Observable<IComponentDesc | undefined>
+        injection: Observable<IComponentDesc | undefined>;
     } {
         return {
-            injection: this._subjects.injection.asObservable()
+            injection: this._subjects.injection.asObservable(),
         };
     }
 
@@ -189,15 +227,30 @@ export class SidebarSessionsService implements IService {
         if (comp === undefined && this._injected === undefined) {
             return;
         }
-        if (comp !== undefined && this._injected !== undefined && comp.factory !== undefined && this._injected.factory !== undefined) {
-            if (typeof comp.factory.name === 'string' && typeof this._injected.factory.name === 'string') {
-                if (comp.factory.name === this._injected.factory.name && Object.keys(comp.inputs).length === Object.keys(this._injected.inputs).length) {
+        if (
+            comp !== undefined &&
+            this._injected !== undefined &&
+            comp.factory !== undefined &&
+            this._injected.factory !== undefined
+        ) {
+            if (
+                typeof comp.factory.name === 'string' &&
+                typeof this._injected.factory.name === 'string'
+            ) {
+                if (
+                    comp.factory.name === this._injected.factory.name &&
+                    Object.keys(comp.inputs).length === Object.keys(this._injected.inputs).length
+                ) {
                     return;
                 }
             }
         }
         // Check before plugins factories
-        if (comp !== undefined && comp.factory !== undefined && typeof comp.factory.name === 'string') {
+        if (
+            comp !== undefined &&
+            comp.factory !== undefined &&
+            typeof comp.factory.name === 'string'
+        ) {
             // If it's plugin, we should have stored factory of component (it was created in stored in PluginsService
             // during intialization of plugin). If it is - we should put instead component reference, reference to factory
             // and set it is "resolved"
@@ -225,7 +278,9 @@ export class SidebarSessionsService implements IService {
         // Subscriptions storage
         const subscriptions: { [key: string]: Subscription } = {};
         // Subscribe on service events
-        subscriptions.active = service.getObservable().active.subscribe(this._dropTitleInjectedContent.bind(this, session));
+        subscriptions.active = service
+            .getObservable()
+            .active.subscribe(this._dropTitleInjectedContent.bind(this, session));
         // Store service
         this._services.set(session, service);
         // Store subscriptions
@@ -233,6 +288,14 @@ export class SidebarSessionsService implements IService {
         // Add default sidebar apps
         DefaultSidebarApps.forEach((description: IDefaultSidebarApp, index) => {
             const tab: ITab = Object.assign({}, description.tab);
+            if (tab.guid === undefined) {
+                this._logger.error(
+                    `Fail to add new tab (${JSON.stringify(
+                        description.tab,
+                    )}) because it doesn't have guid {string}`,
+                );
+                return;
+            }
             // Add to storage
             tabs.set(tab.guid, tab);
             if (description.addedAsDefault) {
@@ -257,8 +320,8 @@ export class SidebarSessionsService implements IService {
                         session: session,
                         api: TabsSessionsService.getPluginAPI(plugin.id),
                         sessions: plugin.controllers.sessions,
-                    }
-                }
+                    },
+                },
             });
         });
         this._tabs.set(session, tabs);
@@ -266,32 +329,38 @@ export class SidebarSessionsService implements IService {
 
     private _add(tab: ITab, session: string, active: boolean = false): Error | string {
         if (typeof tab !== 'object' || tab === null) {
-            return;
+            return new Error(`Tab object isn't defined`);
         }
         // Get storage of service
         const service: TabsService | Error = this._getSessionTabsService(session);
         if (service instanceof Error) {
             return service;
         }
-        if (service.has(tab.guid)) {
+        if (tab.guid !== undefined && service.has(tab.guid)) {
             this.setActive(tab.guid, session);
             return tab.guid;
         }
         // Get verified session guid
-        session = this._verifySessionGuid(session);
+        const verified_session = this._verifySessionGuid(session);
+        if (verified_session === undefined) {
+            return new Error(`Fail to get session guid`);
+        }
         // Add guid of tab if isn't defiend
         if (tab.guid === undefined) {
             tab.guid = Toolkit.guid();
+        }
+        if (tab.content === undefined) {
+            return new Error(`Tab doesn't have valid content property`);
         }
         // Add default inputs
         tab.content.inputs = this._addDefaultsInputs(tab.content.inputs, session, tab.guid);
         // Add tab
         service.add(tab);
         // Save service
-        this._services.set(session, service);
+        this._services.set(verified_session, service);
         // Set active if it's requested
         if (active) {
-            this.setActive(tab.guid, session);
+            this.setActive(tab.guid, verified_session);
         }
         return tab.guid;
     }
@@ -315,21 +384,29 @@ export class SidebarSessionsService implements IService {
     }
 
     private _getSessionTabsService(session?: string): Error | TabsService {
-        const service: TabsService | undefined = this._services.get(
-            this._verifySessionGuid(session)
-        );
+        const verified_session = this._verifySessionGuid(session);
+        if (verified_session === undefined) {
+            return new Error(`Fail to get session guid`);
+        }
+        const service: TabsService | undefined = this._services.get(verified_session);
         if (service === undefined) {
-            return new Error(this._logger.warn(`Fail to get tab's service for session "${session}"`));
+            return new Error(
+                this._logger.warn(`Fail to get tab's service for session "${session}"`),
+            );
         }
         return service;
     }
 
     private _getSessionAvailableTabs(session?: string): Error | Map<string, ITab> {
-        const tabs: Map<string, ITab> | undefined = this._tabs.get(
-            this._verifySessionGuid(session)
-        );
+        const verified_session = this._verifySessionGuid(session);
+        if (verified_session === undefined) {
+            return new Error(`Fail to get session guid`);
+        }
+        const tabs: Map<string, ITab> | undefined = this._tabs.get(verified_session);
         if (tabs === undefined) {
-            return new Error(this._logger.warn(`Fail to get available tabs for session "${session}"`));
+            return new Error(
+                this._logger.warn(`Fail to get available tabs for session "${session}"`),
+            );
         }
         return tabs;
     }
@@ -343,7 +420,8 @@ export class SidebarSessionsService implements IService {
     }
 
     private _onSessionClosed(session: string) {
-        const subscriptions: { [key: string]: Subscription } | undefined = this._servicesSubs.get(session);
+        const subscriptions: { [key: string]: Subscription } | undefined =
+            this._servicesSubs.get(session);
         if (subscriptions !== undefined) {
             Object.keys(subscriptions).forEach((key: string) => {
                 subscriptions[key].unsubscribe();
@@ -365,7 +443,11 @@ export class SidebarSessionsService implements IService {
         this.setTitleInjection(component);
     }
 
-    private _addDefaultsInputs(inputs: { [key: string]: any }, session: string, tab: string): { [key: string]: any } {
+    private _addDefaultsInputs(
+        inputs: { [key: string]: any },
+        session: string,
+        tab: string,
+    ): { [key: string]: any } {
         // Add preset inputs
         inputs = Object.assign(inputs, this._inputs);
         // Add session guid if missed
@@ -385,34 +467,33 @@ export class SidebarSessionsService implements IService {
         return inputs;
     }
 
-    private _ipc_ViewSwitchEvent(event: IPCMessages.ViewSwitchEvent) {
+    private _ipc_ViewSwitchEvent(event: IPC.ViewSwitchEvent) {
         const active = this._getActiveSessionGuid();
         if (active === undefined || active !== event.session) {
             return;
         }
         LayoutStateService.sidebarMax();
         switch (event.target) {
-            case IPCMessages.AvailableViews.SearchManager:
+            case IPC.AvailableViews.SearchManager:
                 this.open(CGuids.search, event.session);
                 break;
-            case IPCMessages.AvailableViews.CommentsManager:
+            case IPC.AvailableViews.CommentsManager:
                 this.open(CGuids.comments, event.session);
                 break;
-            case IPCMessages.AvailableViews.Shell:
+            case IPC.AvailableViews.Shell:
                 this.open(CGuids.shell, event.session);
                 break;
-            case IPCMessages.AvailableViews.DLTConnector:
+            case IPC.AvailableViews.DLTConnector:
                 this.open(CGuids.dltdeamon, event.session);
                 break;
-            case IPCMessages.AvailableViews.Concat:
+            case IPC.AvailableViews.Concat:
                 this.open(CGuids.concat, event.session);
                 break;
-            case IPCMessages.AvailableViews.Merge:
+            case IPC.AvailableViews.Merge:
                 this.open(CGuids.merging, event.session);
                 break;
         }
     }
-
 }
 
-export default (new SidebarSessionsService());
+export default new SidebarSessionsService();
