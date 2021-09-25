@@ -1027,6 +1027,9 @@ export { IAdbStartServerRequest, AdbStartServerRequest };
 import { IAdbStartServerResponse, AdbStartServerResponse } from './adb.start.server.response';
 export { IAdbStartServerResponse, AdbStartServerResponse };
 
+export interface Interface {
+    signature: string;
+}
 // Common type for expected message implementation
 export type TMessage =
     | AppRestartRequest

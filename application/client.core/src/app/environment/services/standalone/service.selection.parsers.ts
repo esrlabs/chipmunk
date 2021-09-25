@@ -15,33 +15,34 @@ export interface IStoredSelectionParser {
 export interface IUpdateEvent {
     caption: string;
     selection: string;
-    parsed: string;
+    parsed: string | undefined;
 }
 
 type TGuid = string;
 
 export class SelectionParsersService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('SelectionParsersService');
     private _parsers: Map<TGuid, IStoredSelectionParser> = new Map();
     private _contextRowNumber: number = -1;
     private _subjects: {
-        onUpdate: Subject<IUpdateEvent>,
+        onUpdate: Subject<IUpdateEvent>;
     } = {
         onUpdate: new Subject<IUpdateEvent>(),
     };
 
     public getObservable(): {
-        onUpdate: Observable<IUpdateEvent>,
+        onUpdate: Observable<IUpdateEvent>;
     } {
         return {
             onUpdate: this._subjects.onUpdate.asObservable(),
         };
     }
 
-    public setParsers(exports: Toolkit.IPluginExports, pluginId: number) {
+    public setParsers(exports: Toolkit.IPluginExports, pluginId: number): Error | undefined {
         if (typeof exports !== 'object' || exports === null) {
-            return new Error(this._logger.warn(`Fail to setup parser because exports isn't an object.`));
+            return new Error(
+                this._logger.warn(`Fail to setup parser because exports isn't an object.`),
+            );
         }
         Object.keys(exports).forEach((key: string) => {
             const entity: Toolkit.TPluginExportEntity = exports[key];
@@ -52,6 +53,7 @@ export class SelectionParsersService {
                 });
             }
         });
+        return undefined;
     }
 
     public getParsers(selection: string): ISelectionParser[] {
@@ -74,7 +76,10 @@ export class SelectionParsersService {
         const event: IUpdateEvent = {
             caption: caption,
             selection: selection,
-            parsed: parser.parser.parse(OutputParsersService.serialize(selection), Toolkit.EThemeType.dark),
+            parsed: parser.parser.parse(
+                OutputParsersService.serialize(selection),
+                Toolkit.EThemeType.dark,
+            ),
         };
         this._subjects.onUpdate.next(event);
     }
@@ -83,7 +88,7 @@ export class SelectionParsersService {
         const event: IUpdateEvent = {
             caption: caption,
             selection: content,
-            parsed: undefined
+            parsed: undefined,
         };
         this._subjects.onUpdate.next(event);
     }
@@ -95,7 +100,6 @@ export class SelectionParsersService {
     public getContextRowNumber(): number {
         return this._contextRowNumber;
     }
-
 }
 
-export default (new SelectionParsersService());
+export default new SelectionParsersService();

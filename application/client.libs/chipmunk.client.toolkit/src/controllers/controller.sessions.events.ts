@@ -22,7 +22,6 @@ export type TSubscriptionHandler<T> = (params: T) => any;
  * @class ControllerSessionsEvents
  */
 export class ControllerSessionsEvents {
-
     public static Events = {
         /**
          * Fired on user switch a tab (session)
@@ -71,18 +70,30 @@ export class ControllerSessionsEvents {
      * @returns {Event Emitter} - function event emitter
      */
     public emit(): {
-        onSessionChange: (sessionId: string) => void,
-        onSessionOpen: (sessionId: string) => void,
-        onSessionClose: (sessionId: string) => void,
-        onStreamUpdated: (event: IEventStreamUpdate) => void,
-        onSearchUpdated: (event: IEventSearchUpdate) => void,
+        onSessionChange: (sessionId: string | undefined) => void;
+        onSessionOpen: (sessionId: string) => void;
+        onSessionClose: (sessionId: string) => void;
+        onStreamUpdated: (event: IEventStreamUpdate) => void;
+        onSearchUpdated: (event: IEventSearchUpdate) => void;
     } {
         return {
-            onSessionChange: this._getEmit.bind(this, ControllerSessionsEvents.Events.onSessionChange),
+            onSessionChange: this._getEmit.bind(
+                this,
+                ControllerSessionsEvents.Events.onSessionChange,
+            ),
             onSessionOpen: this._getEmit.bind(this, ControllerSessionsEvents.Events.onSessionOpen),
-            onSessionClose: this._getEmit.bind(this, ControllerSessionsEvents.Events.onSessionClose),
-            onStreamUpdated: this._getEmit.bind(this, ControllerSessionsEvents.Events.onStreamUpdated),
-            onSearchUpdated: this._getEmit.bind(this, ControllerSessionsEvents.Events.onSearchUpdated),
+            onSessionClose: this._getEmit.bind(
+                this,
+                ControllerSessionsEvents.Events.onSessionClose,
+            ),
+            onStreamUpdated: this._getEmit.bind(
+                this,
+                ControllerSessionsEvents.Events.onStreamUpdated,
+            ),
+            onSearchUpdated: this._getEmit.bind(
+                this,
+                ControllerSessionsEvents.Events.onSearchUpdated,
+            ),
         };
     }
 
@@ -91,27 +102,42 @@ export class ControllerSessionsEvents {
      * @returns {Event Subscriber} - function-subscriber for each available event
      */
     public subscribe(): {
-        onSessionChange: (handler: TSubscriptionHandler<string>) => Subscription,
-        onSessionOpen: (handler: TSubscriptionHandler<string>) => Subscription,
-        onSessionClose: (handler: TSubscriptionHandler<string>) => Subscription,
-        onStreamUpdated: (handler: TSubscriptionHandler<IEventStreamUpdate>) => Subscription,
-        onSearchUpdated: (handler: TSubscriptionHandler<IEventSearchUpdate>) => Subscription,
+        onSessionChange: (handler: TSubscriptionHandler<string>) => Subscription;
+        onSessionOpen: (handler: TSubscriptionHandler<string>) => Subscription;
+        onSessionClose: (handler: TSubscriptionHandler<string>) => Subscription;
+        onStreamUpdated: (handler: TSubscriptionHandler<IEventStreamUpdate>) => Subscription;
+        onSearchUpdated: (handler: TSubscriptionHandler<IEventSearchUpdate>) => Subscription;
     } {
         return {
             onSessionChange: (handler: TSubscriptionHandler<string>) => {
-                return this._getSubscription<string>(ControllerSessionsEvents.Events.onSessionChange, handler);
+                return this._getSubscription<string>(
+                    ControllerSessionsEvents.Events.onSessionChange,
+                    handler,
+                );
             },
             onSessionOpen: (handler: TSubscriptionHandler<string>) => {
-                return this._getSubscription<string>(ControllerSessionsEvents.Events.onSessionOpen, handler);
+                return this._getSubscription<string>(
+                    ControllerSessionsEvents.Events.onSessionOpen,
+                    handler,
+                );
             },
             onSessionClose: (handler: TSubscriptionHandler<string>) => {
-                return this._getSubscription<string>(ControllerSessionsEvents.Events.onSessionClose, handler);
+                return this._getSubscription<string>(
+                    ControllerSessionsEvents.Events.onSessionClose,
+                    handler,
+                );
             },
             onStreamUpdated: (handler: TSubscriptionHandler<IEventStreamUpdate>) => {
-                return this._getSubscription<IEventStreamUpdate>(ControllerSessionsEvents.Events.onStreamUpdated, handler);
+                return this._getSubscription<IEventStreamUpdate>(
+                    ControllerSessionsEvents.Events.onStreamUpdated,
+                    handler,
+                );
             },
             onSearchUpdated: (handler: TSubscriptionHandler<IEventSearchUpdate>) => {
-                return this._getSubscription<IEventSearchUpdate>(ControllerSessionsEvents.Events.onSearchUpdated, handler);
+                return this._getSubscription<IEventSearchUpdate>(
+                    ControllerSessionsEvents.Events.onSearchUpdated,
+                    handler,
+                );
             },
         };
     }

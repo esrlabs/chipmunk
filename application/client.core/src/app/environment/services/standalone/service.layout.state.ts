@@ -3,7 +3,6 @@ import { Observable, Subject } from 'rxjs';
 type TStateGetter = () => boolean;
 
 export class LayoutStateService {
-
     private _locked: boolean = false;
     private _isToolbarMin: TStateGetter | undefined;
     private _isSidebarMin: TStateGetter | undefined;
@@ -15,10 +14,10 @@ export class LayoutStateService {
         sidebar: false,
     };
     private _subjects: {
-        onSidebarMin: Subject<void>,
-        onSidebarMax: Subject<void>,
-        onToolbarMin: Subject<void>,
-        onToolbarMax: Subject<void>,
+        onSidebarMin: Subject<void>;
+        onSidebarMax: Subject<void>;
+        onToolbarMin: Subject<void>;
+        onToolbarMax: Subject<void>;
     } = {
         onSidebarMin: new Subject<void>(),
         onSidebarMax: new Subject<void>(),
@@ -27,10 +26,10 @@ export class LayoutStateService {
     };
 
     public getObservable(): {
-        onSidebarMin: Observable<void>,
-        onSidebarMax: Observable<void>,
-        onToolbarMin: Observable<void>,
-        onToolbarMax: Observable<void>,
+        onSidebarMin: Observable<void>;
+        onSidebarMax: Observable<void>;
+        onToolbarMin: Observable<void>;
+        onToolbarMax: Observable<void>;
     } {
         return {
             onSidebarMin: this._subjects.onSidebarMin.asObservable(),
@@ -65,22 +64,30 @@ export class LayoutStateService {
     }
 
     public sidebarMin() {
-        if (this._locked) { return; }
+        if (this._locked) {
+            return;
+        }
         this._subjects.onSidebarMin.next();
     }
 
     public sidebarMax() {
-        if (this._locked) { return; }
+        if (this._locked) {
+            return;
+        }
         this._subjects.onSidebarMax.next();
     }
 
     public toolbarMin() {
-        if (this._locked) { return; }
+        if (this._locked) {
+            return;
+        }
         this._subjects.onToolbarMin.next();
     }
 
     public toolbarMax() {
-        if (this._locked) { return; }
+        if (this._locked) {
+            return;
+        }
         this._subjects.onToolbarMax.next();
     }
 
@@ -102,4 +109,4 @@ export class LayoutStateService {
     }
 }
 
-export default (new LayoutStateService());
+export default new LayoutStateService();

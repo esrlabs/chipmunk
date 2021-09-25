@@ -20,24 +20,23 @@ export interface IMenu {
 
 export enum EEventType {
     keydown = 'keydown',
-    mousedown = 'mousedown'
+    mousedown = 'mousedown',
 }
 
 type TEvent = MouseEvent | KeyboardEvent;
 
 export class ContextMenuService {
-
     private _subjects: {
-        onShow: Subject<IMenu>,
-        onRemove: Subject<void>,
+        onShow: Subject<IMenu>;
+        onRemove: Subject<void>;
     } = {
         onShow: new Subject<IMenu>(),
         onRemove: new Subject<void>(),
     };
 
     public getObservable(): {
-        onShow: Observable<IMenu>,
-        onRemove: Observable<void>,
+        onShow: Observable<IMenu>;
+        onRemove: Observable<void>;
     } {
         return {
             onShow: this._subjects.onShow.asObservable(),
@@ -64,7 +63,6 @@ export class ContextMenuService {
     public remove(): void {
         this._subjects.onRemove.next();
     }
-
 }
 
-export default (new ContextMenuService());
+export default new ContextMenuService();

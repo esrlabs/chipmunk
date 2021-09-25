@@ -7,11 +7,10 @@ export interface ISize {
 }
 
 export class ViewsEventsService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewsEventsService');
     private _subjects: {
-        onResize: Subject<ISize>,
-        onRowHover: Subject<number>,
+        onResize: Subject<ISize>;
+        onRowHover: Subject<number>;
     } = {
         onResize: new Subject<ISize>(),
         onRowHover: new Subject<number>(),
@@ -27,8 +26,8 @@ export class ViewsEventsService {
     }
 
     public getObservable(): {
-        onResize: Observable<ISize>,
-        onRowHover: Observable<number>,
+        onResize: Observable<ISize>;
+        onRowHover: Observable<number>;
     } {
         return {
             onResize: this._subjects.onResize.asObservable(),
@@ -37,42 +36,49 @@ export class ViewsEventsService {
     }
 
     public once(): {
-        onResize: (handler: (size: ISize) => void) => void,
-        onRowHover: (handler: (row: number) => void) => void,
+        onResize: (handler: (size: ISize) => void) => void;
+        onRowHover: (handler: (row: number) => void) => void;
     } {
         return {
             onResize: (handler: (size: ISize) => void) => {
-                const subscription = this._subjects.onResize.asObservable().subscribe((size: ISize) => {
-                    subscription.unsubscribe();
-                    handler(size);
-                });
+                const subscription = this._subjects.onResize
+                    .asObservable()
+                    .subscribe((size: ISize) => {
+                        subscription.unsubscribe();
+                        handler(size);
+                    });
             },
             onRowHover: (handler: (row: number) => void) => {
-                const subscription = this._subjects.onRowHover.asObservable().subscribe((row: number) => {
-                    subscription.unsubscribe();
-                    handler(row);
-                });
-            }
+                const subscription = this._subjects.onRowHover
+                    .asObservable()
+                    .subscribe((row: number) => {
+                        subscription.unsubscribe();
+                        handler(row);
+                    });
+            },
         };
     }
 
     public fire(): {
-        onResize: () => void,
-        onRowHover: (position: number) => void
+        onResize: () => void;
+        onRowHover: (position: number) => void;
     } {
         return {
-            onResize: () => { this._onWindowResize(); },
-            onRowHover: (position: number) => { this._subjects.onRowHover.next(position); }
+            onResize: () => {
+                this._onWindowResize();
+            },
+            onRowHover: (position: number) => {
+                this._subjects.onRowHover.next(position);
+            },
         };
     }
 
     private _onWindowResize() {
         this._subjects.onResize.next({
             height: window.innerHeight,
-            width: window.innerWidth
+            width: window.innerWidth,
         });
     }
-
 }
 
-export default (new ViewsEventsService());
+export default new ViewsEventsService();

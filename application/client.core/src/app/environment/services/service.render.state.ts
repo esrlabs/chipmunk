@@ -1,11 +1,9 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import ElectronIpcService, { IPCMessages, Subscription } from './service.electron.ipc';
+import ElectronIpcService, { IPC } from './service.electron.ipc';
 import { IService } from '../interfaces/interface.service';
 
 export class RenderStateService implements IService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('RenderStateService');
-    private _state: IPCMessages.ERenderState = IPCMessages.ERenderState.pending;
     private _journal: { [key: string]: boolean } = {};
 
     public init(): Promise<void> {
@@ -19,31 +17,35 @@ export class RenderStateService implements IService {
     }
 
     public state(): {
-        ready: () => void,
-        inited: () => void,
+        ready: () => void;
+        inited: () => void;
     } {
         const self = this;
         return {
             ready() {
-                self._set(IPCMessages.ERenderState.ready);
+                self._set(IPC.ERenderState.ready);
             },
             inited() {
-                self._set(IPCMessages.ERenderState.inited);
+                self._set(IPC.ERenderState.inited);
             },
         };
     }
 
-    private _set(state: IPCMessages.ERenderState) {
+    private _set(state: IPC.ERenderState) {
         if (this._journal[state]) {
-            return this._logger.warn(`Attempt to set ERenderState.${state} state more than once.`);
+            this._logger.warn(`Attempt to set ERenderState.${state} state more than once.`);
+            return;
         }
-        ElectronIpcService.send(new IPCMessages.RenderState({
-            state: state
-        })).catch((sendingError: Error) => {
-            this._logger.error(`Fail to send "IPCMessages.RenderState" message to host due error: ${sendingError.message}`);
+        ElectronIpcService.send(
+            new IPC.RenderState({
+                state: state,
+            }),
+        ).catch((sendingError: Error) => {
+            this._logger.error(
+                `Fail to send "IPC.RenderState" message to host due error: ${sendingError.message}`,
+            );
         });
     }
-
 }
 
-export default (new RenderStateService());
+export default new RenderStateService();

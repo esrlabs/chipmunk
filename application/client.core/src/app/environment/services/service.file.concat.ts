@@ -1,6 +1,6 @@
 import { Subscription, Subject, Observable } from 'rxjs';
 import { Session } from '../controller/session/session';
-import { IPCMessages } from './service.electron.ipc';
+import { IPC } from './service.electron.ipc';
 import { ControllerFileConcatSession } from '../controller/controller.file.concat.session';
 import { IService } from '../interfaces/interface.service';
 import { CGuids } from '../states/state.default.sidebar.apps';
@@ -12,20 +12,25 @@ import SidebarSessionsService from './service.sessions.sidebar';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IConcatFilesService {
-    add(files: IPCMessages.IFile[], session: string): void;
+    add(files: IPC.IFile[], session: string): void;
     getController(session?: string): ControllerFileConcatSession | undefined;
     closeSidebarView(): void;
 }
 
 export class ConcatFilesService implements IService, IConcatFilesService {
-
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('ConcatFilesService');
     private _controllers: Map<string, ControllerFileConcatSession> = new Map();
 
     constructor() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onSessionClosed =
+            EventsSessionService.getObservable().onSessionClosed.subscribe(
+                this._onSessionClosed.bind(this),
+            );
     }
 
     public init(): Promise<void> {
@@ -38,16 +43,24 @@ export class ConcatFilesService implements IService, IConcatFilesService {
         return 'ConcatFilesService';
     }
 
-    public add(files: IPCMessages.IFile[], session: string) {
+    public add(files: IPC.IFile[], session: string) {
         const controller: ControllerFileConcatSession | undefined = this._controllers.get(session);
         if (controller === undefined) {
-            return this._logger.error(`Fail to find ControllerFileConcatSession for session: ${session}`);
+            return this._logger.error(
+                `Fail to find ControllerFileConcatSession for session: ${session}`,
+            );
         }
-        controller.add(files.map((file: IPCMessages.IFile) => {
-            return file.path;
-        })).catch((addErr: Error) => {
-            this._logger.error(`Fail add files to merge controller due error: ${addErr.message}`);
-        });
+        controller
+            .add(
+                files.map((file: IPC.IFile) => {
+                    return file.path;
+                }),
+            )
+            .catch((addErr: Error) => {
+                this._logger.error(
+                    `Fail add files to merge controller due error: ${addErr.message}`,
+                );
+            });
     }
 
     public getController(session?: string): ControllerFileConcatSession | undefined {
@@ -73,7 +86,10 @@ export class ConcatFilesService implements IService, IConcatFilesService {
         if (this._controllers.has(session.getGuid())) {
             return;
         }
-        this._controllers.set(session.getGuid(), new ControllerFileConcatSession(session.getGuid()));
+        this._controllers.set(
+            session.getGuid(),
+            new ControllerFileConcatSession(session.getGuid()),
+        );
     }
 
     private _onSessionClosed(guid: string) {
@@ -82,14 +98,18 @@ export class ConcatFilesService implements IService, IConcatFilesService {
             return;
         }
         // Destroy
-        controller.destroy().catch((destroyErr: Error) => {
-            this._logger.error(`Fail to destroy controller for "${guid}" due errr: ${destroyErr.message}`);
-        }).finally(() => {
-            // Remove from storage
-            this._controllers.delete(guid);
-        });
+        controller
+            .destroy()
+            .catch((destroyErr: Error) => {
+                this._logger.error(
+                    `Fail to destroy controller for "${guid}" due errr: ${destroyErr.message}`,
+                );
+            })
+            .finally(() => {
+                // Remove from storage
+                this._controllers.delete(guid);
+            });
     }
-
 }
 
-export default (new ConcatFilesService());
+export default new ConcatFilesService();

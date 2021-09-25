@@ -1,6 +1,6 @@
 import { setSharedServices } from './shared.services.sidebar';
 
-import ServiceElectronIpc, { IPCMessages } from './service.electron.ipc';
+import ServiceElectronIpc, { IPC } from './service.electron.ipc';
 import PluginsIPCService from './service.plugins.ipc';
 import PluginsService from './service.plugins';
 import SourcesService from './service.sources';
@@ -28,22 +28,22 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 
 const InitializeStages = [
     // Stage #0
-    [   ServiceElectronIpc ],
+    [ServiceElectronIpc],
     // Stage #1
-    [   ElectronEnvService, ],
+    [ElectronEnvService],
     // Stage #2
-    [   LogsService ],
+    [LogsService],
     // Stage #3
-    [   SettingsService ],
+    [SettingsService],
     // Stage #4
-    [   SettingsDefaultsService ],
+    [SettingsDefaultsService],
     // Stage #5
-    [   PluginsService,
-        SourcesService ],
+    [PluginsService, SourcesService],
     // Stage #6
-    [   PluginsIPCService ],
+    [PluginsIPCService],
     // Stage #7
-    [   TabsSessionsService,
+    [
+        TabsSessionsService,
         TabsCustomService,
         ToolbarSessionsService,
         SidebarSessionsService,
@@ -54,18 +54,18 @@ const InitializeStages = [
         ConcatFilesService,
         HotkeysService,
         ConnectionsService,
-        RenderStateService ],
+        RenderStateService,
+    ],
     // Stage #8
-    [   TabSelectionParserService, ReleaseNotesService ]
+    [TabSelectionParserService, ReleaseNotesService],
 ];
 
 // TODO: Destroy method, even dummy
 
 export class LoaderService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('LoaderService');
-    private _subscription: Toolkit.Subscription | undefined;
-    private _resolver: () => any | undefined;
+    private _subscription!: Toolkit.Subscription;
+    private _resolver!: () => any | undefined;
     /**
      * Initialization of application
      * Will start application in case of success of initialization
@@ -80,16 +80,23 @@ export class LoaderService {
                 // Make post init operations
                 this._postInit().then(() => {
                     // Request state of host
-                    ServiceElectronIpc.request(new IPCMessages.HostState({})).then((response: IPCMessages.HostState) => {
-                        if (response.state === IPCMessages.EHostState.ready) {
-                            return resolve();
-                        }
-                        // Subscribe to state event
-                        this._subscription = ServiceElectronIpc.subscribe(IPCMessages.HostState, this._onHostStateChange.bind(this));
-                        this._resolver = resolve;
-                    }).catch((requestError: Error) => {
-                        this._logger.error(`Fail to request HostState due error: ${requestError.message}`);
-                    });
+                    ServiceElectronIpc.request<IPC.HostState>(new IPC.HostState({}))
+                        .then((response) => {
+                            if (response.state === IPC.EHostState.ready) {
+                                return resolve();
+                            }
+                            // Subscribe to state event
+                            this._subscription = ServiceElectronIpc.subscribe(
+                                IPC.HostState,
+                                this._onHostStateChange.bind(this),
+                            );
+                            this._resolver = resolve;
+                        })
+                        .catch((requestError: Error) => {
+                            this._logger.error(
+                                `Fail to request HostState due error: ${requestError.message}`,
+                            );
+                        });
                 });
             });
         });
@@ -110,20 +117,22 @@ export class LoaderService {
         if (tasks.length === 0) {
             return this._init(stage + 1, callback);
         }
-        Promise.all(tasks).then(() => {
-            this._logger.env(`Application initialization: stage #${stage + 1}: OK`);
-            this._init(stage + 1, callback);
-        }).catch((error: Error) => {
-            this._logger.env(`Fail to initialize application dure error: ${error.message}`);
-            callback(error);
-        });
+        Promise.all(tasks)
+            .then(() => {
+                this._logger.env(`Application initialization: stage #${stage + 1}: OK`);
+                this._init(stage + 1, callback);
+            })
+            .catch((error: Error) => {
+                this._logger.env(`Fail to initialize application dure error: ${error.message}`);
+                callback(error);
+            });
     }
 
-    private _onHostStateChange(message: IPCMessages.HostState) {
+    private _onHostStateChange(message: IPC.HostState) {
         if (this._resolver === undefined) {
             return;
         }
-        if (message.state === IPCMessages.EHostState.ready) {
+        if (message.state === IPC.EHostState.ready) {
             this._subscription.destroy();
             this._resolver();
         }
@@ -142,7 +151,6 @@ export class LoaderService {
             resolve();
         });
     }
-
 }
 
-export default (new LoaderService());
+export default new LoaderService();

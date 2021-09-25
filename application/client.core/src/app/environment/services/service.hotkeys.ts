@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 import { Observable, Subject } from 'rxjs';
 import { DialogsHotkeysMapComponent } from '../components/dialogs/hotkeys/component';
-import { IPCMessages } from './service.electron.ipc';
+import { IPC } from './service.electron.ipc';
 
 import ElectronIpcService from './service.electron.ipc';
 import PopupsService from './standalone/service.popups';
@@ -20,33 +20,37 @@ export enum EHotkeyCategory {
     Other = 'Other'
 }
 
-export const CKeysMap = {
-    [IPCMessages.EHotkeyActionRef.newTab]:                  { shortkeys: ['⌘ + T', 'Ctrl + T'],                         description: 'Open new tab',                    category: EHotkeyCategory.Tabs },
-    [IPCMessages.EHotkeyActionRef.closeTab]:                { shortkeys: ['⌘ + W', 'Ctrl + W'],                         description: 'Close active tab',                category: EHotkeyCategory.Tabs },
-    [IPCMessages.EHotkeyActionRef.nextTab]:                 { shortkeys: ['⌘ + Tab', 'Ctrl + Tab'],                     description: 'Next tab',                        category: EHotkeyCategory.Tabs },
-    [IPCMessages.EHotkeyActionRef.prevTab]:                 { shortkeys: ['Shift + ⌘ + Tab', 'Shift + Ctrl + Tab'],     description: 'Previous tab',                    category: EHotkeyCategory.Tabs },
-    [IPCMessages.EHotkeyActionRef.recentFiles]:             { shortkeys: ['⌘ + P', 'Ctrl + P'],                         description: 'Open recent files',               category: EHotkeyCategory.Files },
-    [IPCMessages.EHotkeyActionRef.recentFilters]:           { shortkeys: ['Shift + ⌘ + P', 'Shift + Ctrl + P'],         description: 'Open recent filters',             category: EHotkeyCategory.Files },
-    [IPCMessages.EHotkeyActionRef.openLocalFile]:           { shortkeys: ['⌘ + O', 'Ctrl + O'],                         description: 'Open local file',                 category: EHotkeyCategory.Files },
-    [IPCMessages.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'],         description: 'Show filters tab',                category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                         description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
-    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                         description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
-    [IPCMessages.EHotkeyActionRef.scrollToBegin]:           { shortkeys: ['gg'],                                        description: 'Scroll to beginning of main output', category: EHotkeyCategory.Movement},
-    [IPCMessages.EHotkeyActionRef.scrollToEnd]:             { shortkeys: ['G'],                                         description: 'Scroll to end of main output',    category: EHotkeyCategory.Movement},
-    [IPCMessages.EHotkeyActionRef.focusSearchInput]:        { shortkeys: ['⌘ + F', 'Ctrl + F', '/'],                    description: 'Focus on search input',           category: EHotkeyCategory.Focus },
-    [IPCMessages.EHotkeyActionRef.focusMainView]:           { shortkeys: ['⌘ + 1', 'Ctrl + 1'],                         description: 'Focus on main output',            category: EHotkeyCategory.Focus },
-    [IPCMessages.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
-    [IPCMessages.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                         description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                         description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
-    [IPCMessages.EHotkeyActionRef.settings]:                { shortkeys: ['⌘ + ,', 'Ctrl + ,'],                         description: 'Show settings',                   category: EHotkeyCategory.Other },
-    [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                         description: 'Show this dialog',                category: EHotkeyCategory.Other },
+export const CKeysMap: { [key: string]: {
+    shortkeys: string[],
+    description: string,
+    category: EHotkeyCategory,
+} } = {
+    [IPC.EHotkeyActionRef.newTab]:                  { shortkeys: ['⌘ + T', 'Ctrl + T'],                         description: 'Open new tab',                    category: EHotkeyCategory.Tabs },
+    [IPC.EHotkeyActionRef.closeTab]:                { shortkeys: ['⌘ + W', 'Ctrl + W'],                         description: 'Close active tab',                category: EHotkeyCategory.Tabs },
+    [IPC.EHotkeyActionRef.nextTab]:                 { shortkeys: ['⌘ + Tab', 'Ctrl + Tab'],                     description: 'Next tab',                        category: EHotkeyCategory.Tabs },
+    [IPC.EHotkeyActionRef.prevTab]:                 { shortkeys: ['Shift + ⌘ + Tab', 'Shift + Ctrl + Tab'],     description: 'Previous tab',                    category: EHotkeyCategory.Tabs },
+    [IPC.EHotkeyActionRef.recentFiles]:             { shortkeys: ['⌘ + P', 'Ctrl + P'],                         description: 'Open recent files',               category: EHotkeyCategory.Files },
+    [IPC.EHotkeyActionRef.recentFilters]:           { shortkeys: ['Shift + ⌘ + P', 'Shift + Ctrl + P'],         description: 'Open recent filters',             category: EHotkeyCategory.Files },
+    [IPC.EHotkeyActionRef.openLocalFile]:           { shortkeys: ['⌘ + O', 'Ctrl + O'],                         description: 'Open local file',                 category: EHotkeyCategory.Files },
+    [IPC.EHotkeyActionRef.openSearchFiltersTab]:    { shortkeys: ['Shift + ⌘ + F', 'Shift + Ctrl + F'],         description: 'Show filters tab',                category: EHotkeyCategory.Areas },
+    [IPC.EHotkeyActionRef.selectNextRow]:           { shortkeys: ['j'],                                         description: 'Select next bookmarked row',      category: EHotkeyCategory.Movement },
+    [IPC.EHotkeyActionRef.selectPrevRow]:           { shortkeys: ['k'],                                         description: 'Select previous bookmarked row',  category: EHotkeyCategory.Movement },
+    [IPC.EHotkeyActionRef.scrollToBegin]:           { shortkeys: ['gg'],                                        description: 'Scroll to beginning of main output', category: EHotkeyCategory.Movement},
+    [IPC.EHotkeyActionRef.scrollToEnd]:             { shortkeys: ['G'],                                         description: 'Scroll to end of main output',    category: EHotkeyCategory.Movement},
+    [IPC.EHotkeyActionRef.focusSearchInput]:        { shortkeys: ['⌘ + F', 'Ctrl + F', '/'],                    description: 'Focus on search input',           category: EHotkeyCategory.Focus },
+    [IPC.EHotkeyActionRef.focusMainView]:           { shortkeys: ['⌘ + 1', 'Ctrl + 1'],                         description: 'Focus on main output',            category: EHotkeyCategory.Focus },
+    [IPC.EHotkeyActionRef.focusSearchView]:         { shortkeys: ['⌘ + 2', 'Ctrl + 2'],                         description: 'Focus on search results output',  category: EHotkeyCategory.Focus },
+    [IPC.EHotkeyActionRef.sidebarToggle]:           { shortkeys: ['⌘ + B', 'Ctrl + B'],                         description: 'Toggle sidebar',                  category: EHotkeyCategory.Areas },
+    [IPC.EHotkeyActionRef.toolbarToggle]:           { shortkeys: ['⌘ + J', 'Ctrl + J'],                         description: 'Toggle toolbar',                  category: EHotkeyCategory.Areas },
+    [IPC.EHotkeyActionRef.settings]:                { shortkeys: ['⌘ + ,', 'Ctrl + ,'],                         description: 'Show settings',                   category: EHotkeyCategory.Other },
+    [IPC.EHotkeyActionRef.showHotkeysMapDialog]:    { shortkeys: ['?'],                                         description: 'Show this dialog',                category: EHotkeyCategory.Other },
 };
 
-const CLocalHotkeyMap = {
-    [IPCMessages.EHotkeyActionRef.focusSearchInput]:        '/',
-    [IPCMessages.EHotkeyActionRef.selectNextRow]:           'j',
-    [IPCMessages.EHotkeyActionRef.selectPrevRow]:           'k',
-    [IPCMessages.EHotkeyActionRef.showHotkeysMapDialog]:    '?',
+const CLocalHotkeyMap: { [key: string]: string } = {
+    [IPC.EHotkeyActionRef.focusSearchInput]:        '/',
+    [IPC.EHotkeyActionRef.selectNextRow]:           'j',
+    [IPC.EHotkeyActionRef.selectPrevRow]:           'k',
+    [IPC.EHotkeyActionRef.showHotkeysMapDialog]:    '?',
 };
 
 export interface IHotkeyEvent {
@@ -66,7 +70,7 @@ export class HotkeysService implements IService {
     private _localKeys: string[] = [];
     private _platform = '';
 
-    private _subjects = {
+    private _subjects: { [key: string]: Subject<any> } = {
         newTab: new Subject<IHotkeyEvent>(),
         closeTab: new Subject<IHotkeyEvent>(),
         openLocalFile: new Subject<IHotkeyEvent>(),
@@ -105,7 +109,7 @@ export class HotkeysService implements IService {
             }).catch((err: Error) => {
                 this._logger.warn(`Fail get platform information due error: ${err.message}`);
             }).finally(() => {
-                this._subscriptions.onHotkeyCall = ElectronIpcService.subscribe(IPCMessages.HotkeyCall, this._onHotkeyCall.bind(this));
+                this._subscriptions.onHotkeyCall = ElectronIpcService.subscribe(IPC.HotkeyCall, this._onHotkeyCall.bind(this));
                 this._subscriptions.onShowHotkeysMapDialog = this.getObservable().showHotkeysMapDialog.subscribe(this._onShowHotkeysMapDialog.bind(this));
                 this._keydownCombination = this._keydownCombination.bind(this);
                 this._checkFocusedElement = this._checkFocusedElement.bind(this);
@@ -182,25 +186,25 @@ export class HotkeysService implements IService {
     }
 
     public pause() {
-        ElectronIpcService.send(new IPCMessages.HotkeyPause()).then(() => {
+        ElectronIpcService.send(new IPC.HotkeyPause()).then(() => {
             this._paused = true;
         });
     }
 
     public resume() {
-        ElectronIpcService.send(new IPCMessages.HotkeyResume()).then(() => {
+        ElectronIpcService.send(new IPC.HotkeyResume()).then(() => {
             this._paused = false;
         });
     }
 
     public inputIn() {
-        ElectronIpcService.send(new IPCMessages.HotkeyInputIn()).then(() => {
+        ElectronIpcService.send(new IPC.HotkeyInputIn()).then(() => {
             this._input = true;
         });
     }
 
     public inputOut() {
-        ElectronIpcService.send(new IPCMessages.HotkeyInputOut()).then(() => {
+        ElectronIpcService.send(new IPC.HotkeyInputOut()).then(() => {
             this._input = false;
         });
     }
@@ -221,8 +225,8 @@ export class HotkeysService implements IService {
         });
     }
 
-    private _onHotkeyCall(message: IPCMessages.HotkeyCall) {
-        if (this._paused) {
+    private _onHotkeyCall(message: IPC.HotkeyCall) {
+        if (this._paused || message.shortcut === undefined) {
             return;
         }
         if (this._input && message.shortcut.length === 1) {
@@ -260,6 +264,9 @@ export class HotkeysService implements IService {
         // We have to use here litle delay, because some angular material components makes changes
         // asynch. To catch last state of components we have to let "them" update itselfs
         setTimeout(() => {
+            if (document.activeElement === null) {
+                return;
+            }
             const tag: string = document.activeElement.tagName.toLowerCase();
             if (['input', 'textarea'].indexOf(tag) !== -1) {
                 this.inputIn();
@@ -303,11 +310,11 @@ export class HotkeysService implements IService {
         }
     }
 
-    private _getRefByKey(key: string): IPCMessages.EHotkeyActionRef | undefined {
-        let result: IPCMessages.EHotkeyActionRef | undefined;
-        Object.keys(CLocalHotkeyMap).forEach((ref: IPCMessages.EHotkeyActionRef) => {
+    private _getRefByKey(key: string): IPC.EHotkeyActionRef | undefined {
+        let result: IPC.EHotkeyActionRef | undefined;
+        Object.keys(CLocalHotkeyMap).forEach((ref: string) => {
             if (key === CLocalHotkeyMap[ref]) {
-                result = ref;
+                result = ref as IPC.EHotkeyActionRef;
             }
         });
         return result;
@@ -317,11 +324,11 @@ export class HotkeysService implements IService {
         if (this._localKeys.indexOf(event.key) === -1 || event.shiftKey || event.ctrlKey || event.metaKey) {
             return;
         }
-        const ref: IPCMessages.EHotkeyActionRef | undefined = this._getRefByKey(event.key);
+        const ref: IPC.EHotkeyActionRef | undefined = this._getRefByKey(event.key);
         if (ref === undefined) {
             return;
         }
-        ElectronIpcService.send(new IPCMessages.HotkeyLocalCall({
+        ElectronIpcService.send(new IPC.HotkeyLocalCall({
             shortcut: event.key,
             action: ref,
             unixtime: Date.now(),

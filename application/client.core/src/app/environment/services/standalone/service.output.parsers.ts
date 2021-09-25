@@ -43,7 +43,6 @@ interface ICachedKey {
 export type TClickHandler = (str: string, position: number, key?: EKey) => void;
 
 export class OutputParsersService {
-
     readonly TOOLTIP_ATTR_NAME: string = 'data-row-tooltip';
     readonly CLICK_HANDLER_ATTR_NAME: string = 'data-row-click-handler';
     readonly PLACEHOLDER_OPEN = '\u000A';
@@ -51,12 +50,12 @@ export class OutputParsersService {
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('OutputParsersService');
     private _parsers: {
-        bound: Map<number, Toolkit.ARowBoundParser>,
-        common: Map<number, Toolkit.ARowCommonParser>,
-        typed: Map<number, Toolkit.ARowTypedParser>,
-        session: Map<string, Map<string, Toolkit.ARowCommonParser>>,
-        tooltips: Map<string, Map<string, ITooltip>>,
-        clicks: Map<string, Map<string, TClickHandler>>,
+        bound: Map<number, Toolkit.ARowBoundParser>;
+        common: Map<number, Toolkit.ARowCommonParser>;
+        typed: Map<number, Toolkit.ARowTypedParser>;
+        session: Map<string, Map<string, Toolkit.ARowCommonParser>>;
+        tooltips: Map<string, Map<string, ITooltip>>;
+        clicks: Map<string, Map<string, TClickHandler>>;
     } = {
         bound: new Map(),
         common: new Map(),
@@ -74,15 +73,15 @@ export class OutputParsersService {
     private _controller: Session | undefined;
     private _sequence: number = 0;
     private _typedRowRendersHistory: {
-        sources: string[],
-        aliases: Map<string, string>,
+        sources: string[];
+        aliases: Map<string, string>;
     } = {
         sources: [],
         aliases: new Map(),
     };
     private _subjects: {
-        onUpdatedSearch: Subject<void>,
-        onRepain: Subject<void>,
+        onUpdatedSearch: Subject<void>;
+        onRepain: Subject<void>;
     } = {
         onUpdatedSearch: new Subject<void>(),
         onRepain: new Subject<void>(),
@@ -90,12 +89,14 @@ export class OutputParsersService {
     private _cache: { [key: string]: ICachedKey } = {};
 
     constructor() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
-        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(
-            this._onSessionClosed.bind(this),
-        );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onSessionClosed =
+            EventsSessionService.getObservable().onSessionClosed.subscribe(
+                this._onSessionClosed.bind(this),
+            );
     }
 
     public destroy() {
@@ -105,8 +106,8 @@ export class OutputParsersService {
     }
 
     public getObservable(): {
-        onUpdatedSearch: Observable<void>,
-        onRepain: Observable<void>,
+        onUpdatedSearch: Observable<void>;
+        onRepain: Observable<void>;
     } {
         return {
             onUpdatedSearch: this._subjects.onUpdatedSearch.asObservable(),
@@ -114,9 +115,15 @@ export class OutputParsersService {
         };
     }
 
-    public setParsers(exports: Toolkit.IPluginExports, pluginId: number, mwcf?: ModuleWithComponentFactories<any>) {
+    public setParsers(
+        exports: Toolkit.IPluginExports,
+        pluginId: number,
+        mwcf?: ModuleWithComponentFactories<any>,
+    ): Error | undefined {
         if (typeof exports !== 'object' || exports === null) {
-            return new Error(this._logger.warn(`Fail to setup parser because module isn't an object.`));
+            return new Error(
+                this._logger.warn(`Fail to setup parser because module isn't an object.`),
+            );
         }
         // Check plugin's parsers
         this._setBoundParsers(exports, pluginId);
@@ -128,37 +135,50 @@ export class OutputParsersService {
         this._setTypedRowExternalComponent(exports, mwcf);
         // Check custom row renders
         this._setTypedCustomRowRender(exports);
+        return undefined;
     }
 
-    public setSearchResults(sessionId: string, requests: FilterRequest[] ) {
-        this._search.set(sessionId, requests.map((request: FilterRequest) => {
-            return {
-                reg: request.asRegExp(),
-                color: request.getColor(),
-                background: request.getBackground(),
-            };
-        }));
+    public setSearchResults(sessionId: string, requests: FilterRequest[]) {
+        this._search.set(
+            sessionId,
+            requests.map((request: FilterRequest) => {
+                return {
+                    reg: request.asRegExp(),
+                    color: request.getColor(),
+                    background: request.getBackground(),
+                };
+            }),
+        );
         this._subjects.onUpdatedSearch.next();
     }
 
     public setHighlights(sessionId: string, requests: FilterRequest[]) {
-        this._highlights.set(sessionId, requests.map((request: FilterRequest) => {
-            return {
-                reg: request.asRegExp(),
-                color: request.getColor(),
-                background: request.getBackground(),
-            };
-        }));
+        this._highlights.set(
+            sessionId,
+            requests.map((request: FilterRequest) => {
+                return {
+                    reg: request.asRegExp(),
+                    color: request.getColor(),
+                    background: request.getBackground(),
+                };
+            }),
+        );
     }
 
     public setCharts(sessionId: string, requests: IRequest[]) {
-        this._charts.set(sessionId, requests.map((request: IRequest) => {
-            return {
-                reg: new RegExp(this.serialize(request.reg.source), request.reg.flags),
-                color: request.color !== undefined ? getContrastColor(request.color, true) : undefined,
-                background: request.color,
-            };
-        }));
+        this._charts.set(
+            sessionId,
+            requests.map((request: IRequest) => {
+                return {
+                    reg: new RegExp(this.serialize(request.reg.source), request.reg.flags),
+                    color:
+                        request.color !== undefined
+                            ? getContrastColor(request.color, true)
+                            : undefined,
+                    background: request.color,
+                };
+            }),
+        );
     }
 
     public unsetSearchResults(sessionId: string) {
@@ -170,14 +190,23 @@ export class OutputParsersService {
         this._charts.delete(sessionId);
     }
 
-    public getTypedRowRender(sourceName: string, sourceMeta?: string): Toolkit.ATypedRowRender<any> | undefined {
+    public getTypedRowRender(
+        sourceName: string,
+        sourceMeta?: string,
+    ): Toolkit.ATypedRowRender<any> | undefined {
         return this._getTypedRowRenderBySource(sourceName, sourceMeta);
     }
 
     public row(row: IRow, target: EParent, sessionId?: string): string {
-        sessionId = sessionId !== undefined ? sessionId : (this._controller === undefined ? undefined : this._controller.getGuid());
+        sessionId =
+            sessionId !== undefined
+                ? sessionId
+                : this._controller === undefined
+                ? undefined
+                : this._controller.getGuid();
         if (sessionId === undefined) {
-            return this._logger.warn(`Session ID isn't defined.`);
+            this._logger.warn(`Session ID isn't defined.`);
+            return '';
         }
         const rowInfo: Toolkit.IRowInfo = {
             sourceName: row.source,
@@ -185,29 +214,39 @@ export class OutputParsersService {
             hasOwnStyles: row.hasOwnStyles,
         };
         if (this._controller === undefined) {
-            return;
+            this._logger.warn(`Fail to find controller.`);
+            return '';
+        }
+        if (row.position === undefined) {
+            this._logger.warn(`Unknown possition of row`);
+            return '';
         }
         const modifiers: Modifier[] = [
             ...this._controller.getSessionComments().getModifiers(row.position, row.str),
         ];
         // Apply bound parsers
-        const bound: Toolkit.ARowBoundParser | undefined = this._parsers.bound.get(row.pluginId);
+        const bound: Toolkit.ARowBoundParser | undefined =
+            row.pluginId === undefined ? undefined : this._parsers.bound.get(row.pluginId);
         if (bound !== undefined) {
             const parsed = bound.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
             if (typeof parsed === 'object') {
                 modifiers.push(parsed);
             } else if (parsed !== undefined) {
-                this._logger.warn(`Bound parsers: using of string parsers is depricated. Please create Modifier`);
+                this._logger.warn(
+                    `Bound parsers: using of string parsers is depricated. Please create Modifier`,
+                );
             }
         }
         // Apply typed parser
         this._parsers.typed.forEach((typed: Toolkit.ARowTypedParser) => {
-            if (typed.isTypeMatch(row.source)) {
+            if (row.source !== undefined && typed.isTypeMatch(row.source)) {
                 const parsed = typed.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
                 if (typeof parsed === 'object') {
                     modifiers.push(parsed);
                 } else if (parsed !== undefined) {
-                    this._logger.warn(`Typed parsers: using of string parsers is depricated. Please create Modifier`);
+                    this._logger.warn(
+                        `Typed parsers: using of string parsers is depricated. Please create Modifier`,
+                    );
                 }
             }
         });
@@ -217,30 +256,43 @@ export class OutputParsersService {
             if (typeof parsed === 'object') {
                 modifiers.push(parsed);
             } else if (parsed !== undefined) {
-                this._logger.warn(`Common parsers: using of string parsers is depricated. Please create Modifier`);
+                this._logger.warn(
+                    `Common parsers: using of string parsers is depricated. Please create Modifier`,
+                );
             }
         });
         // Apply session parsers
-        const parsers: Map<string, Toolkit.ARowCommonParser> | undefined = this._parsers.session.get(this._controller.getGuid());
+        const parsers: Map<string, Toolkit.ARowCommonParser> | undefined =
+            this._parsers.session.get(this._controller.getGuid());
         if (parsers !== undefined) {
             parsers.forEach((parser: Toolkit.ARowCommonParser) => {
                 const parsed = parser.parse(row.str, Toolkit.EThemeType.dark, rowInfo);
                 if (typeof parsed === 'object') {
                     modifiers.push(parsed);
                 } else if (parsed !== undefined) {
-                    this._logger.warn(`Common session parsers: using of string parsers is depricated. Please create Modifier`);
+                    this._logger.warn(
+                        `Common session parsers: using of string parsers is depricated. Please create Modifier`,
+                    );
                 }
             });
         }
         const requests: IRequest[] | undefined = this._search.get(sessionId);
         const highlights: IRequest[] | undefined = this._highlights.get(sessionId);
         const charts: IRequest[] | undefined = this._charts.get(sessionId);
-        modifiers.push(new HighlightsModifier([
-            ...(highlights === undefined ? [] : highlights),
-            ...(charts === undefined ? [] : charts)
-        ], row.str));
+        modifiers.push(
+            new HighlightsModifier(
+                [
+                    ...(highlights === undefined ? [] : highlights),
+                    ...(charts === undefined ? [] : charts),
+                ],
+                row.str,
+            ),
+        );
         modifiers.push(new FiltersModifier(requests instanceof Array ? requests : [], row.str));
-        const processor = new ModifierProcessor(modifiers, row.hasOwnStyles);
+        const processor = new ModifierProcessor(
+            modifiers,
+            row.hasOwnStyles === undefined ? false : row.hasOwnStyles,
+        );
         return processor.parse(row.str, target);
     }
 
@@ -257,13 +309,31 @@ export class OutputParsersService {
                 background: undefined,
             };
         }
-        const requests: IRequest[] = this._search.has(sessionId) ? this._search.get(sessionId) : [];
-        const highlights: IRequest[] = this._highlights.has(sessionId) ? this._highlights.get(sessionId) : [];
-        const charts: IRequest[] = this._charts.has(sessionId) ? this._charts.get(sessionId) : [];
-        const target: IRequest | undefined = ([].concat(highlights, charts, requests)).find(r => str.search(r.reg) !== -1);
+        const requests: IRequest[] = this._search.has(sessionId)
+            ? (this._search.get(sessionId) as IRequest[])
+            : [];
+        const highlights: IRequest[] = this._highlights.has(sessionId)
+            ? (this._highlights.get(sessionId) as IRequest[])
+            : [];
+        const charts: IRequest[] = this._charts.has(sessionId)
+            ? (this._charts.get(sessionId) as IRequest[])
+            : [];
+        const target: IRequest | undefined = ([] as IRequest[])
+            .concat(highlights, charts, requests)
+            .find((r) => str.search(r.reg) !== -1);
         return {
-            color: target === undefined ? undefined : (target.color === CColors[0] ? undefined : target.color),
-            background: target === undefined ? undefined : (target.background === CColors[0] ? undefined : target.background)
+            color:
+                target === undefined
+                    ? undefined
+                    : target.color === CColors[0]
+                    ? undefined
+                    : target.color,
+            background:
+                target === undefined
+                    ? undefined
+                    : target.background === CColors[0]
+                    ? undefined
+                    : target.background,
         };
     }
 
@@ -280,12 +350,23 @@ export class OutputParsersService {
         return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
     }
 
-    public setSessionParser(id: string, parser: Toolkit.RowCommonParser, session?: string, update: boolean = false) {
-        if (this._controller === undefined && session === undefined) {
+    public setSessionParser(
+        id: string,
+        parser: Toolkit.RowCommonParser,
+        session?: string,
+        update: boolean = false,
+    ) {
+        session =
+            session === undefined
+                ? this._controller === undefined
+                    ? undefined
+                    : this._controller.getGuid()
+                : session;
+        if (session === undefined) {
             return;
         }
-        session = session === undefined ? this._controller.getGuid() : session;
-        let parsers: Map<string, Toolkit.RowCommonParser> | undefined = this._parsers.session.get(session);
+        let parsers: Map<string, Toolkit.RowCommonParser> | undefined =
+            this._parsers.session.get(session);
         if (parsers === undefined) {
             parsers = new Map();
         }
@@ -297,11 +378,17 @@ export class OutputParsersService {
     }
 
     public removeSessionParser(id: string, session?: string, update: boolean = false) {
-        if (this._controller === undefined && session === undefined) {
+        session =
+            session === undefined
+                ? this._controller === undefined
+                    ? undefined
+                    : this._controller.getGuid()
+                : session;
+        if (session === undefined) {
             return;
         }
-        session = session === undefined ? this._controller.getGuid() : session;
-        const parsers: Map<string, Toolkit.RowCommonParser> | undefined = this._parsers.session.get(session);
+        const parsers: Map<string, Toolkit.RowCommonParser> | undefined =
+            this._parsers.session.get(session);
         if (parsers === undefined) {
             return;
         }
@@ -313,10 +400,15 @@ export class OutputParsersService {
     }
 
     public setSessionTooltip(tooltip: ITooltip, session?: string) {
-        if (this._controller === undefined && session === undefined) {
+        session =
+            session === undefined
+                ? this._controller === undefined
+                    ? undefined
+                    : this._controller.getGuid()
+                : session;
+        if (session === undefined) {
             return;
         }
-        session = session === undefined ? this._controller.getGuid() : session;
         let tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(session);
         if (tooltips === undefined) {
             tooltips = new Map();
@@ -329,9 +421,19 @@ export class OutputParsersService {
         return ` ${this.TOOLTIP_ATTR_NAME}="${id}" `;
     }
 
-    public getTooltipContent(target: HTMLElement, str: string, position: number): Promise<string | undefined> {
-        return new Promise((resolve) => {
-            const tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(this._controller.getGuid());
+    public getTooltipContent(
+        target: HTMLElement,
+        str: string,
+        position: number,
+    ): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
+            if (this._controller === undefined) {
+                reject(new Error(this._logger.error(`No active session controller availble`)));
+                return;
+            }
+            const tooltips: Map<string, ITooltip> | undefined = this._parsers.tooltips.get(
+                this._controller.getGuid(),
+            );
             if (tooltips === undefined) {
                 return resolve(undefined);
             }
@@ -346,19 +448,29 @@ export class OutputParsersService {
             if (tooltip === undefined) {
                 return resolve(undefined);
             }
-            tooltip.getContent(str, position, target.innerHTML).then((out: string) => {
-                resolve(out);
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail get tooltip value due error: ${err.message}`);
-            });
+            tooltip
+                .getContent(str, position, target.innerHTML)
+                .then(resolve)
+                .catch((err: Error) => {
+                    reject(
+                        new Error(
+                            this._logger.warn(`Fail get tooltip value due error: ${err.message}`),
+                        ),
+                    );
+                });
         });
     }
 
     public setSessionClickHandler(id: string, handler: TClickHandler, session?: string) {
-        if (this._controller === undefined && session === undefined) {
+        session =
+            session === undefined
+                ? this._controller === undefined
+                    ? undefined
+                    : this._controller.getGuid()
+                : session;
+        if (session === undefined) {
             return;
         }
-        session = session === undefined ? this._controller.getGuid() : session;
         let clicks: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(session);
         if (clicks === undefined) {
             clicks = new Map();
@@ -372,7 +484,13 @@ export class OutputParsersService {
     }
 
     public emitClickHandler(target: HTMLElement, str: string, position: number): boolean {
-        const handlers: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(this._controller.getGuid());
+        if (this._controller === undefined) {
+            this._logger.warn(`No active session controller available`);
+            return false;
+        }
+        const handlers: Map<string, TClickHandler> | undefined = this._parsers.clicks.get(
+            this._controller.getGuid(),
+        );
         if (handlers === undefined) {
             return false;
         }
@@ -389,8 +507,12 @@ export class OutputParsersService {
         }
         try {
             handler(str, position, OutputRedirectionsService.getHoldKey());
-        } catch (e) {
-            this._logger.warn(`Fail execute handler on row ${position} due error: ${e.message}`);
+        } catch (err) {
+            this._logger.warn(
+                `Fail execute handler on row ${position} due error: ${
+                    err instanceof Error ? err.message : err
+                }`,
+            );
         }
         return true;
     }
@@ -399,7 +521,10 @@ export class OutputParsersService {
         if (pluginId === undefined || this._parsers.bound.has(pluginId)) {
             return false;
         }
-        const parser: Toolkit.ARowBoundParser | undefined = this._findExportEntity(exports, Toolkit.ARowBoundParser);
+        const parser: Toolkit.ARowBoundParser | undefined = this._findExportEntity(
+            exports,
+            Toolkit.ARowBoundParser,
+        );
         if (parser === undefined) {
             return false;
         }
@@ -433,7 +558,10 @@ export class OutputParsersService {
         if (pluginId === undefined || this._parsers.common.has(pluginId)) {
             return false;
         }
-        const parser: Toolkit.ARowCommonParser | undefined = this._findExportEntity(exports, Toolkit.ARowCommonParser);
+        const parser: Toolkit.ARowCommonParser | undefined = this._findExportEntity(
+            exports,
+            Toolkit.ARowCommonParser,
+        );
         if (parser === undefined) {
             return false;
         }
@@ -445,7 +573,10 @@ export class OutputParsersService {
         if (pluginId === undefined || this._parsers.typed.has(pluginId)) {
             return false;
         }
-        const parser: Toolkit.ARowTypedParser | undefined = this._findExportEntity(exports, Toolkit.ARowTypedParser);
+        const parser: Toolkit.ARowTypedParser | undefined = this._findExportEntity(
+            exports,
+            Toolkit.ARowTypedParser,
+        );
         if (parser === undefined) {
             return false;
         }
@@ -460,18 +591,25 @@ export class OutputParsersService {
             if (result !== undefined) {
                 return;
             }
-            if ((typeof classDef.isInstance === 'function' && classDef.isInstance(entity)) || entity instanceof classDef) {
+            if (
+                (typeof classDef.isInstance === 'function' && classDef.isInstance(entity)) ||
+                entity instanceof classDef
+            ) {
                 result = entity;
             }
         });
         return result;
     }
 
-    private _setTypedRowExternalComponent(exports: Toolkit.IPluginExports, mwcf: ModuleWithComponentFactories<any>) {
+    private _setTypedRowExternalComponent(
+        exports: Toolkit.IPluginExports,
+        mwcf: ModuleWithComponentFactories<any> | undefined,
+    ) {
         if (mwcf === undefined) {
             return;
         }
-        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIExternal> = this._getTypedRowRender(exports);
+        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIExternal> | undefined =
+            this._getTypedRowRender(exports);
         if (render === undefined) {
             return;
         }
@@ -479,12 +617,16 @@ export class OutputParsersService {
             return;
         }
         if (!(render.getAPI() instanceof Toolkit.ATypedRowRenderAPIExternal)) {
-            this._logger.error(`Fail to set external render for row, because plugin doesn't have API<ATypedRowRenderAPIExternal> `);
+            this._logger.error(
+                `Fail to set external render for row, because plugin doesn't have API<ATypedRowRenderAPIExternal> `,
+            );
             return;
         }
         const selector: string = render.getAPI().getSelector();
         // Try to find component factory
-        const factory: ComponentFactory<any> | undefined = mwcf.componentFactories.find(e => e.selector === selector);
+        const factory: ComponentFactory<any> | undefined = mwcf.componentFactories.find(
+            (e) => e.selector === selector,
+        );
         if (factory === undefined) {
             this._logger.warn(`Fail to find factory by selector "${selector}"`);
             return;
@@ -494,7 +636,8 @@ export class OutputParsersService {
     }
 
     private _setTypedCustomRowRender(exports: Toolkit.IPluginExports) {
-        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIColumns> = this._getTypedRowRender(exports);
+        const render: Toolkit.ATypedRowRender<Toolkit.ATypedRowRenderAPIColumns> | undefined =
+            this._getTypedRowRender(exports);
         if (render === undefined) {
             return;
         }
@@ -504,18 +647,24 @@ export class OutputParsersService {
         const CTypedRowAPITable = {
             [Toolkit.ETypedRowRenders.columns]: Toolkit.ATypedRowRenderAPIColumns,
         };
-        if (CTypedRowAPITable[render.getType()] === undefined) {
+        if ((CTypedRowAPITable as any)[render.getType()] === undefined) {
             this._logger.error(`Fail to find expected class for typed row render.`);
             return;
         }
-        if (!(render.getAPI() instanceof CTypedRowAPITable[render.getType()])) {
-            this._logger.error(`Fail to set external render for row, because plugin doesn't have API<${CTypedRowAPITable[render.getType()].name}> `);
+        if (!(render.getAPI() instanceof (CTypedRowAPITable as any)[render.getType()])) {
+            this._logger.error(
+                `Fail to set external render for row, because plugin doesn't have API<${
+                    (CTypedRowAPITable as any)[render.getType()].name
+                }> `,
+            );
             return;
         }
         this._typedRowRenders.set(Toolkit.guid(), render);
     }
 
-    private _getTypedRowRender(exports: Toolkit.IPluginExports): Toolkit.ATypedRowRender<any> | undefined {
+    private _getTypedRowRender(
+        exports: Toolkit.IPluginExports,
+    ): Toolkit.ATypedRowRender<any> | undefined {
         let render: Toolkit.ATypedRowRender<any> | undefined;
         Object.keys(exports).forEach((key: string) => {
             if (exports[key] instanceof Toolkit.ATypedRowRender) {
@@ -525,7 +674,10 @@ export class OutputParsersService {
         return render;
     }
 
-    private _getTypedRowRenderBySource(sourceName: string, sourceMeta?: string): Toolkit.ATypedRowRender<any> | undefined {
+    private _getTypedRowRenderBySource(
+        sourceName: string,
+        sourceMeta?: string,
+    ): Toolkit.ATypedRowRender<any> | undefined {
         const hash: string = sourceName + (typeof sourceMeta === 'string' ? sourceMeta : '');
         if (this._typedRowRendersHistory.sources.indexOf(hash) !== -1) {
             const storedGuid: string | undefined = this._typedRowRendersHistory.aliases.get(hash);
@@ -550,7 +702,7 @@ export class OutputParsersService {
 
     private _getCachedKeyForValue(value: string): ICachedKey {
         if (this._cache[value] === undefined) {
-            const key: string = this.PLACEHOLDER_OPEN + (this._sequence++) + this.PLACEHOLDER_CLOSE;
+            const key: string = this.PLACEHOLDER_OPEN + this._sequence++ + this.PLACEHOLDER_CLOSE;
             this._cache[value] = {
                 key: key,
                 regExp: new RegExp(key, 'gi'),
@@ -558,7 +710,6 @@ export class OutputParsersService {
         }
         return this._cache[value];
     }
-
 }
 
-export default (new OutputParsersService());
+export default new OutputParsersService();

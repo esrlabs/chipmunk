@@ -10,7 +10,7 @@ import {
 } from '../../controller/helpers/selection';
 import { Session } from '../../controller/session/session';
 import { IBookmark } from '../../controller/session/dependencies/bookmarks/controller.session.tab.stream.bookmarks';
-import { IPCMessages } from '../../services/service.electron.ipc';
+import { IPC } from '../../services/service.electron.ipc';
 
 import ElectronIpcService from '../../services/service.electron.ipc';
 import EventsSessionService from './service.events.session';
@@ -118,7 +118,7 @@ export class OutputRedirectionsService {
             return;
         }
         handlers.forEach((handler: THandler) => {
-            handler(sender, state.selection, row.output);
+            state !== undefined && handler(sender, state.selection, row.output);
         });
     }
 
@@ -175,16 +175,19 @@ export class OutputRedirectionsService {
               });
     }
 
-    public getOutputSelectionRanges(sessionId: string): Promise<IRangeExtended[] | undefined> {
+    public getOutputSelectionRanges(sessionId: string): Promise<IRangeExtended[]> {
         const state: IState | undefined = this._state.get(sessionId);
         if (state === undefined) {
-            return Promise.resolve(undefined);
+            return Promise.resolve([]);
         }
         const source: ESource | undefined = state.selection.getSource();
         if (source === undefined || source === ESource.output) {
             return Promise.resolve(this.getSelectionRanges(sessionId));
         }
         return new Promise((resolve, reject) => {
+            if (this._session === undefined) {
+                return reject(new Error(this._logger.error(`No active session available`)));
+            }
             let bookmarks: IBookmark[] = Array.from(this._session.getBookmarks().get().values())
                 .filter((bookmark: IBookmark) => {
                     return state.selection.isSelected(bookmark.position, ESource.search);
@@ -243,7 +246,7 @@ export class OutputRedirectionsService {
                 Object.keys(arounds).map((position: number | string) => {
                     return this.getIndexAround(parseInt(position as string, 10))
                         .then((result) => {
-                            arounds[position] = result;
+                            (arounds as any)[position] = result;
                         })
                         .catch((err: Error) => {
                             this._logger.error(
@@ -258,40 +261,46 @@ export class OutputRedirectionsService {
                         const start = arounds[range.start.output];
                         const end = arounds[range.end.output];
                         if (start.after !== -1 && end.before !== -1) {
-                            return ranges.push({
+                            ranges.push({
                                 start: { output: range.start.output, search: start.after },
                                 end: { output: range.end.output, search: end.before },
                                 id: Toolkit.guid(),
                             });
+                            return;
                         }
                     } else if (range.start.search === -1) {
                         const around = arounds[range.start.output];
                         if (around.after !== -1) {
-                            return ranges.push({
+                            ranges.push({
                                 start: { output: range.start.output, search: around.after },
                                 end: { output: range.end.output, search: range.end.search },
                                 id: Toolkit.guid(),
                             });
+                            return;
                         }
                     }
                     if (range.end.search === -1) {
                         const around = arounds[range.end.output];
                         if (around.before !== -1) {
-                            return ranges.push({
+                            ranges.push({
                                 start: { output: range.start.output, search: range.start.search },
                                 end: { output: range.end.output, search: around.before },
                                 id: Toolkit.guid(),
                             });
+                            return;
                         }
                     } else {
                         ranges.push(range);
                     }
                 });
+                if (this._session === undefined) {
+                    return reject(new Error(this._logger.error(`No active session available`)));
+                }
                 this._session
                     .getSessionStream()
                     .getRowsSelection(ranges)
                     .then((rows) => {
-                        const merged = [];
+                        const merged: any[] = [];
                         rows.forEach((row) => {
                             bookmarks = bookmarks.filter((bookmark) => {
                                 if (bookmark.position < row.positionInStream) {
@@ -351,16 +360,19 @@ export class OutputRedirectionsService {
         return this._keyHolded;
     }
 
-    public getIndexAround(position: number): Promise<IPCMessages.ISearchIndexAroundResponse> {
+    public getIndexAround(position: number): Promise<IPC.ISearchIndexAroundResponse> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
-                new IPCMessages.SearchIndexAroundRequest({
+            if (this._session === undefined) {
+                return reject(new Error(this._logger.error(`No active session available`)));
+            }
+            ElectronIpcService.request<IPC.SearchIndexAroundResponse>(
+                new IPC.SearchIndexAroundRequest({
                     session: this._session.getGuid(),
                     position: position,
                 }),
-                IPCMessages.SearchIndexAroundResponse,
+                IPC.SearchIndexAroundResponse,
             )
-                .then((response: IPCMessages.SearchIndexAroundResponse) => {
+                .then((response) => {
                     resolve({ after: response.after, before: response.before });
                 })
                 .catch(reject);
@@ -380,7 +392,7 @@ export class OutputRedirectionsService {
         }
     }
 
-    private _onSessionChange(controller: Session) {
+    private _onSessionChange(controller: Session | undefined) {
         if (controller === undefined) {
             return;
         }
@@ -410,7 +422,7 @@ export class OutputRedirectionsService {
         }
     }
 
-    private _onGlobalKeyUp(event: KeyboardEvent) {
+    private _onGlobalKeyUp() {
         this._keyHolded = undefined;
     }
 }

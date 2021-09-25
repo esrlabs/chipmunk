@@ -1,21 +1,22 @@
 import { Observable, Subject } from 'rxjs';
 import { IService } from '../interfaces/interface.service';
 
-import ServiceElectronIpc, { IPCMessages, Subscription } from './service.electron.ipc';
+import ServiceElectronIpc, { IPC, Subscription } from './service.electron.ipc';
 
 export class FilterOpenerService implements IService {
-
     private _subscriptions: { [key: string]: Subscription } = {};
     private _subjects = {
         openFilters: new Subject<string | undefined>(),
     };
 
-    constructor() {
-    }
+    constructor() {}
 
     public init(): Promise<void> {
         return new Promise((resolve) => {
-            this._subscriptions.FiltersOpen = ServiceElectronIpc.subscribe(IPCMessages.FiltersOpen, this._onFiltersOpen.bind(this));
+            this._subscriptions.FiltersOpen = ServiceElectronIpc.subscribe(
+                IPC.FiltersOpen,
+                this._onFiltersOpen.bind(this),
+            );
             resolve();
         });
     }
@@ -34,16 +35,16 @@ export class FilterOpenerService implements IService {
     }
 
     public getObservable(): {
-        openFilters: Observable<string | undefined>
+        openFilters: Observable<string | undefined>;
     } {
         return {
             openFilters: this._subjects.openFilters.asObservable(),
         };
     }
 
-    private _onFiltersOpen(request: IPCMessages.IFiltersOpen) {
+    private _onFiltersOpen(request: IPC.IFiltersOpen) {
         this._subjects.openFilters.next(request.file);
     }
 }
 
-export default (new FilterOpenerService());
+export default new FilterOpenerService();

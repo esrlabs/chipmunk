@@ -6,19 +6,17 @@ export interface ISize {
     height: number;
 }
 export class CustomTabsEventsService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('CustomTabsEventsService');
     private _subjects: {
-        plugins: Subject<void>,
+        plugins: Subject<void>;
     } = {
-        plugins: new Subject<void>()
+        plugins: new Subject<void>(),
     };
 
-    constructor() {
-    }
+    constructor() {}
 
     public getObservable(): {
-        plugins: Observable<void>
+        plugins: Observable<void>;
     } {
         return {
             plugins: this._subjects.plugins.asObservable(),
@@ -26,13 +24,14 @@ export class CustomTabsEventsService {
     }
 
     public emit(): {
-        plugins: () => void
+        plugins: () => void;
     } {
         return {
-            plugins: () => { this._subjects.plugins.next(); }
+            plugins: () => {
+                this._subjects.plugins.next();
+            },
         };
     }
-
 }
 
-export default (new CustomTabsEventsService());
+export default new CustomTabsEventsService();

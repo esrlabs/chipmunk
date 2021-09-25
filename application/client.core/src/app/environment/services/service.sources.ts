@@ -1,5 +1,5 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
-import ElectronIpcService, { IPCMessages, Subscription } from './service.electron.ipc';
+import ElectronIpcService, { IPC, Subscription } from './service.electron.ipc';
 import PluginsService, { IPluginData } from './service.plugins';
 import { IService } from '../interfaces/interface.service';
 
@@ -15,15 +15,17 @@ export interface ISource {
 }
 
 export class SourcesService implements IService {
-
     private _logger: Toolkit.Logger = new Toolkit.Logger('SourcesService');
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _sources: Map<TSourceId, ISource> = new Map();
     private _counts: Map<string, number> = new Map();
 
     constructor() {
         this._ipc_onStreamSourceNew = this._ipc_onStreamSourceNew.bind(this);
-        this._subscriptions.StreamSourceNew = ElectronIpcService.subscribe(IPCMessages.StreamSourceNew, this._ipc_onStreamSourceNew);
+        this._subscriptions.StreamSourceNew = ElectronIpcService.subscribe(
+            IPC.StreamSourceNew,
+            this._ipc_onStreamSourceNew,
+        );
     }
 
     public init(): Promise<void> {
@@ -94,12 +96,12 @@ export class SourcesService implements IService {
             if (count === undefined) {
                 this._counts.set(source.session, 1);
             } else {
-                this._counts.set(source.session, this._counts.get(source.session) + 1);
+                this._counts.set(source.session, (this._counts.get(source.session) as number) + 1);
             }
         });
     }
 
-    private _ipc_onStreamSourceNew(message: IPCMessages.StreamSourceNew) {
+    private _ipc_onStreamSourceNew(message: IPC.StreamSourceNew) {
         if (this._sources.has(message.id)) {
             return;
         }
@@ -116,8 +118,6 @@ export class SourcesService implements IService {
         });
         this._setCountOfSource();
     }
-
-
 }
 
-export default (new SourcesService());
+export default new SourcesService();
