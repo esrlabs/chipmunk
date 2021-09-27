@@ -2,7 +2,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../output/controller.session.tab.stream.output';
 import { ControllerSessionScope } from '../../../scope/controller.session.tab.scope';
 import { Session } from '../../../../session';
-import { IPCMessages } from '../../../../../../services/service.electron.ipc';
+import { IPC } from '../../../../../../services/service.electron.ipc';
 import { EChartType } from '../../../../../../components/views/chart/charts/charts';
 import { Importable } from '../../../importer/controller.session.importer.interface';
 import {
@@ -36,22 +36,22 @@ export interface IChartRequest {
 
 export interface IChartsOptions {
     requestId: string;
-    requests: IPCMessages.IChartRegExpStr[];
+    requests: IPC.IChartRegExpStr[];
 }
 
 export interface ISubjects {
     onChartsUpdated: Subject<ChartRequest[]>;
     onExtractingStarted: Subject<void>;
     onExtractingFinished: Subject<void>;
-    onChartsResultsUpdated: Subject<IPCMessages.TChartResults>;
+    onChartsResultsUpdated: Subject<IPC.TChartResults>;
     onChartSelected: Subject<ChartRequest | undefined>;
     onExport: Subject<void>;
 }
 
 export class ControllerSessionTabSearchCharts
     extends Importable<IChartDescOptional[]>
-    implements Dependency {
-
+    implements Dependency
+{
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _storage: ChartsStorage;
@@ -60,16 +60,16 @@ export class ControllerSessionTabSearchCharts
         onChartsUpdated: new Subject<ChartRequest[]>(),
         onExtractingStarted: new Subject<void>(),
         onExtractingFinished: new Subject<void>(),
-        onChartsResultsUpdated: new Subject<IPCMessages.TChartResults>(),
+        onChartsResultsUpdated: new Subject<IPC.TChartResults>(),
         onChartSelected: new Subject<ChartRequest | undefined>(),
         onExport: new Subject<void>(),
     };
-    private _data: IPCMessages.TChartResults = {};
+    private _data: IPC.TChartResults = {};
     private _selected: string | undefined;
-    private _tasks: Map<string, Promise<IPCMessages.TChartResults>> = new Map();
+    private _tasks: Map<string, Promise<IPC.TChartResults>> = new Map();
     private _accessor: {
-        session: SessionGetter,
-        search: SearchSessionGetter,
+        session: SessionGetter;
+        search: SearchSessionGetter;
     };
 
     constructor(uuid: string, session: SessionGetter, search: SearchSessionGetter) {
@@ -86,7 +86,7 @@ export class ControllerSessionTabSearchCharts
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._subscriptions.ChartResultsUpdated = ServiceElectronIpc.subscribe(
-                IPCMessages.ChartResultsUpdated,
+                IPC.ChartResultsUpdated,
                 this._ipc_ChartResultsUpdated.bind(this),
             );
             this._subscriptions.onStorageUpdated = this._storage
@@ -95,9 +95,10 @@ export class ControllerSessionTabSearchCharts
             this._subscriptions.onStorageChanged = this._storage
                 .getObservable()
                 .changed.subscribe(this._onStorageChanged.bind(this));
-            this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-                this._onSessionChange.bind(this),
-            );
+            this._subscriptions.onSessionChange =
+                EventsSessionService.getObservable().onSessionChange.subscribe(
+                    this._onSessionChange.bind(this),
+                );
             resolve();
         });
     }
@@ -130,7 +131,7 @@ export class ControllerSessionTabSearchCharts
         onChartsUpdated: Observable<ChartRequest[]>;
         onExtractingStarted: Observable<void>;
         onExtractingFinished: Observable<void>;
-        onChartsResultsUpdated: Observable<IPCMessages.TChartResults>;
+        onChartsResultsUpdated: Observable<IPC.TChartResults>;
         onChartSelected: Observable<ChartRequest | undefined>;
     } {
         return {
@@ -152,11 +153,11 @@ export class ControllerSessionTabSearchCharts
     }
 
     public getSelectedChart(): ChartRequest | undefined {
-        return this._storage.getBySource(this._selected);
+        return this._selected === undefined ? undefined : this._storage.getBySource(this._selected);
     }
 
-    public extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
-        const task: Promise<IPCMessages.TChartResults> = new Promise((resolve, reject) => {
+    public extract(options: IChartsOptions): Promise<IPC.TChartResults> {
+        const task: Promise<IPC.TChartResults> = new Promise((resolve, reject) => {
             this.cancel(options.requestId)
                 .then(() => {
                     if (options.requests.length === 0 || !this._tasks.has(options.requestId)) {
@@ -167,7 +168,7 @@ export class ControllerSessionTabSearchCharts
                         return;
                     }
                     this._extract(options)
-                        .then((res: IPCMessages.TChartResults) => {
+                        .then((res: IPC.TChartResults) => {
                             if (!this._tasks.has(options.requestId)) {
                                 this._data = {};
                             } else {
@@ -208,14 +209,14 @@ export class ControllerSessionTabSearchCharts
             }
             Promise.all(
                 ids.map((requestId: string) => {
-                    return ServiceElectronIpc.request(
-                        new IPCMessages.ChartRequestCancelRequest({
+                    return ServiceElectronIpc.request<IPC.ChartRequestCancelResponse>(
+                        new IPC.ChartRequestCancelRequest({
                             streamId: this._guid,
                             requestId: requestId,
                         }),
-                        IPCMessages.ChartRequestCancelResponse,
+                        IPC.ChartRequestCancelResponse,
                     )
-                        .then((results: IPCMessages.ChartRequestCancelResponse) => {
+                        .then((results) => {
                             this._tasks.delete(requestId);
                             if (results.error !== undefined) {
                                 this._logger.error(
@@ -247,7 +248,7 @@ export class ControllerSessionTabSearchCharts
         return this._storage;
     }
 
-    public getChartsData(): IPCMessages.TChartResults {
+    public getChartsData(): IPC.TChartResults {
         return this._data;
     }
 
@@ -317,7 +318,7 @@ export class ControllerSessionTabSearchCharts
         this._subjects.onChartsUpdated.next(this._storage.getActive());
     }
 
-    private _extract(options: IChartsOptions): Promise<IPCMessages.TChartResults> {
+    private _extract(options: IChartsOptions): Promise<IPC.TChartResults> {
         return new Promise((resolve, reject) => {
             if (!this._tasks.has(options.requestId)) {
                 // Task was removed
@@ -326,15 +327,15 @@ export class ControllerSessionTabSearchCharts
             // Trigger start of extracting
             this._subjects.onExtractingStarted.next();
             // Start search
-            ServiceElectronIpc.request(
-                new IPCMessages.ChartRequest({
+            ServiceElectronIpc.request<IPC.ChartRequestResults>(
+                new IPC.ChartRequest({
                     requests: options.requests,
                     streamId: this._guid,
                     requestId: options.requestId,
                 }),
-                IPCMessages.ChartRequestResults,
+                IPC.ChartRequestResults,
             )
-                .then((results: IPCMessages.ChartRequestResults) => {
+                .then((results) => {
                     if (!this._tasks.has(options.requestId)) {
                         // Task was removed
                         return resolve({});
@@ -384,7 +385,7 @@ export class ControllerSessionTabSearchCharts
             });
     }
 
-    private _ipc_ChartResultsUpdated(message: IPCMessages.ChartResultsUpdated) {
+    private _ipc_ChartResultsUpdated(message: IPC.ChartResultsUpdated) {
         if (message.streamId !== this._guid) {
             return;
         }

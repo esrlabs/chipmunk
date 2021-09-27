@@ -2,37 +2,49 @@
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, ViewChild, AfterContentInit, AfterViewInit, OnChanges, SimpleChanges, ViewContainerRef } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    Input,
+    ViewChild,
+    AfterContentInit,
+    AfterViewInit,
+    OnChanges,
+    SimpleChanges,
+    ViewContainerRef,
+} from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ControllerFileMergeSession, IMergeFile, EViewMode } from '../../../../controller/controller.file.merge.session';
+import {
+    ControllerFileMergeSession,
+    IMergeFile,
+    EViewMode,
+} from '../../../../controller/controller.file.merge.session';
 
 @Component({
     selector: 'app-sidebar-app-files-list',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
-export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterContentInit, AfterViewInit, OnChanges {
-
-    @Input() public controller: ControllerFileMergeSession;
-    @Input() public select: Subject<IMergeFile>;
-    @Input() public viewMode: EViewMode;
-    @Input() public timeLineVisibility: boolean;
+export class SidebarAppMergeFilesListComponent
+    implements OnDestroy, AfterContentInit, AfterViewInit, OnChanges
+{
+    @Input() public controller!: ControllerFileMergeSession;
+    @Input() public select!: Subject<IMergeFile>;
+    @Input() public viewMode!: EViewMode;
+    @Input() public timeLineVisibility!: boolean;
 
     public _ng_files: IMergeFile[] = [];
     public _ng_width: number = 0;
 
     private _lastSelectedFilePath: string | undefined;
-    private _resizeObserver: ResizeObserver;
+    private _resizeObserver!: ResizeObserver;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _vcRef: ViewContainerRef,
-                private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _vcRef: ViewContainerRef, private _cdRef: ChangeDetectorRef) {}
 
-    public ngAfterContentInit() {
-    }
+    public ngAfterContentInit() {}
 
     public ngAfterViewInit() {
         this._subscribe(this.controller);
@@ -46,8 +58,13 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
         if (changes.controller !== undefined) {
             this._subscribe(changes.controller.currentValue);
         }
-        if ((changes.viewMode !== undefined && changes.viewMode.previousValue !== changes.viewMode.currentValue) ||
-            (changes.timeLineVisibility !== undefined && changes.timeLineVisibility.previousValue !== changes.timeLineVisibility.currentValue)) {
+        if (
+            (changes.viewMode !== undefined &&
+                changes.viewMode.previousValue !== changes.viewMode.currentValue) ||
+            (changes.timeLineVisibility !== undefined &&
+                changes.timeLineVisibility.previousValue !==
+                    changes.timeLineVisibility.currentValue)
+        ) {
             this._forceUpdate();
         }
     }
@@ -58,7 +75,7 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public _ng_onSelect(file: IMergeFile) {
         if (file.info === undefined || file.path === this._lastSelectedFilePath) {
@@ -74,7 +91,9 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
         if (this._vcRef === undefined || this._vcRef.element.nativeElement === undefined) {
             return;
         }
-        this._ng_width = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect().width;
+        this._ng_width = (
+            this._vcRef.element.nativeElement as HTMLElement
+        ).getBoundingClientRect().width;
         this._forceUpdate();
     }
 
@@ -85,8 +104,12 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
         if (controller === undefined) {
             return;
         }
-        this._subscriptions.FilesUpdated = controller.getObservable().FilesUpdated.subscribe(this._onFilesUpdated.bind(this));
-        this._subscriptions.FileUpdated = controller.getObservable().FileUpdated.subscribe(this._onFileUpdated.bind(this));
+        this._subscriptions.FilesUpdated = controller
+            .getObservable()
+            .FilesUpdated.subscribe(this._onFilesUpdated.bind(this));
+        this._subscriptions.FileUpdated = controller
+            .getObservable()
+            .FileUpdated.subscribe(this._onFileUpdated.bind(this));
     }
 
     private _onFilesUpdated(files: IMergeFile[]) {
@@ -110,5 +133,4 @@ export class SidebarAppMergeFilesListComponent implements OnDestroy, AfterConten
         }
         this._cdRef.detectChanges();
     }
-
 }

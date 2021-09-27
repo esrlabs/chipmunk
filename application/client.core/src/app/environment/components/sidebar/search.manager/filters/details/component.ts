@@ -1,9 +1,17 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    Input,
+    ViewChild,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { FilterRequest } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { MatSelectChange, MatSelect } from '@angular/material/select';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { CColors } from '../../../../../conts/colors';
 import { getContrastColor } from '../../../../../theme/colors';
 
@@ -20,42 +28,42 @@ interface IColorOption {
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-
 export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy, AfterContentInit {
+    @ViewChild(MatSelect) _refSelect!: MatSelect;
 
-    @ViewChild(MatSelect) _refSelect: MatSelect;
+    @Input() provider!: Provider<FilterRequest>;
 
-    @Input() provider: Provider<FilterRequest>;
-
-    public _ng_request: string;
-    public _ng_color: string;
-    public _ng_background: string;
+    public _ng_request: string | undefined;
+    public _ng_color: string | undefined;
+    public _ng_background: string | undefined;
     public _ng_colorOptions: IColorOption[] = [
         { title: 'Background', value: 'background' },
         { title: 'Foreground', value: 'color' },
     ];
     public _ng_colorType: TColorType = 'background';
-    public _ng_currentColor: string;
+    public _ng_currentColor: string | undefined;
     public _ng_colors: string[] = [];
 
     private _entity: Entity<FilterRequest> | undefined;
     private _destroyed: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
-        this._subscriptions.selection = this.provider.getObservable().selection.subscribe(this._init.bind(this));
-        this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onChange.bind(this));
+        this._subscriptions.selection = this.provider
+            .getObservable()
+            .selection.subscribe(this._init.bind(this));
+        this._subscriptions.change = this.provider
+            .getObservable()
+            .change.subscribe(this._onChange.bind(this));
         this._init();
     }
 
@@ -96,7 +104,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
 
     private _setColors() {
         this._ng_colors = CColors.slice();
-        let color: string;
+        let color: string | undefined;
         switch (this._ng_colorType) {
             case 'color':
                 color = this._ng_color;
@@ -105,7 +113,7 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
                 color = this._ng_background;
                 break;
         }
-        if (color === undefined || this._ng_colors.find((c => c === color)) !== undefined) {
+        if (color === undefined || this._ng_colors.find((c) => c === color) !== undefined) {
             return;
         }
         this._ng_colors.push(color);
@@ -145,5 +153,4 @@ export class SidebarAppSearchManagerFilterDetailsComponent implements OnDestroy,
         }
         this._cdRef.detectChanges();
     }
-
 }

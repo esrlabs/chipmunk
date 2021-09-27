@@ -16,7 +16,7 @@ import {
 } from '../../../../services.injectable/injectable.service.notifications';
 import { IAdbDevice, IAdbProcess } from '../../../../../../../../common/interfaces/interface.adb';
 import { MatSelect } from '@angular/material/select';
-import { IPCMessages } from '../../../../services/service.electron.ipc';
+import { IPC } from '../../../../services/service.electron.ipc';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { sortPairs, IPair } from '../../../../thirdparty/code/engine';
 import { Subscription, Observable, Subject } from 'rxjs';
@@ -39,9 +39,9 @@ interface ILogLevel {
     encapsulation: ViewEncapsulation.None,
 })
 export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
-    @Input() public service: SidebarAppAdbService;
+    @Input() public service!: SidebarAppAdbService;
 
-    @ViewChildren(MatSelect) _ng_matSelectList: QueryList<MatSelect>;
+    @ViewChildren(MatSelect) _ng_matSelectList!: QueryList<MatSelect>;
 
     public readonly _ng_noDevice: IAdbDevice = {
         name: '<No device selected>',
@@ -68,10 +68,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     public _ng_logLevelSelected: string = this._ng_logLevels[0].flag;
     public _ng_processSearchTerm: string = '';
     public _ng_processSelected: IPair = this._ng_noProcessPair;
-    public _ng_processPairs: Observable<IPair[]>;
+    public _ng_processPairs!: Observable<IPair[]>;
     public _ng_scrollIntoViewTrigger: Subject<void> = new Subject();
 
-    private _session: string;
+    private _session: string | undefined;
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppAdbLogcatComponent');
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -85,7 +85,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     ) {}
 
     public ngOnInit() {
-        const session: Session = TabsSessionsService.getActive();
+        const session: Session | undefined = TabsSessionsService.getActive();
         if (session !== undefined) {
             this._session = session.getGuid();
         } else {
@@ -244,7 +244,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     private _restore() {
         this.service
             .restore({ session: this._session })
-            .then((response: IPCMessages.AdbLoadResponse) => {
+            .then((response: IPC.AdbLoadResponse) => {
                 if (this._session !== response.session) {
                     return;
                 }
@@ -412,7 +412,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         this._forceUpdate();
     }
 
-    private _onDisconnect(event: IPCMessages.IAdbDeviceDisconnected) {
+    private _onDisconnect(event: IPC.IAdbDeviceDisconnected) {
         if (this._session !== event.guid) {
             return;
         }

@@ -22,7 +22,7 @@ export enum EProviders {
 
 export interface ISelectEvent {
     provider: Provider<any>;
-    entity: Entity<any>;
+    entity: Entity<any> | undefined;
     guids: string[];
     sender?: string;
 }
@@ -41,12 +41,12 @@ export interface IDoubleclickEvent {
 }
 
 export interface ISelection {
-    guid: string;       // GUID of entity
-    sender?: string;    // Name of provider/controller/etc who emits actions (we need it to prevent loop in event circle)
-    ignore?: boolean;   // true - drops state of ctrl and shift; false - ctrl and shift would be considering
-    toggle?: boolean;   // used only with single selection
-                        // true - if entity already selected, selection would be dropped
-                        // false - defined entity would be selected in anyway
+    guid: string; // GUID of entity
+    sender?: string; // Name of provider/controller/etc who emits actions (we need it to prevent loop in event circle)
+    ignore?: boolean; // true - drops state of ctrl and shift; false - ctrl and shift would be considering
+    toggle?: boolean; // used only with single selection
+    // true - if entity already selected, selection would be dropped
+    // false - defined entity would be selected in anyway
 }
 
 export enum EActions {
@@ -63,15 +63,16 @@ interface IStoredSelection {
     last: Entity<any> | undefined;
 }
 
-export abstract class Provider<T> {
+type ProvidersGetter = () => Provider<any>[];
 
+export abstract class Provider<T> {
     private _subjects: {
-        change: Subject<void>,
-        selection: Subject<ISelectEvent>,
-        edit: Subject<string | undefined>,
-        context: Subject<IContextMenuEvent>,
-        doubleclick: Subject<IDoubleclickEvent>,
-        reload: Subject<string>,
+        change: Subject<void>;
+        selection: Subject<ISelectEvent>;
+        edit: Subject<string | undefined>;
+        context: Subject<IContextMenuEvent>;
+        doubleclick: Subject<IDoubleclickEvent>;
+        reload: Subject<string>;
     } = {
         change: new Subject(),
         selection: new Subject(),
@@ -85,14 +86,17 @@ export abstract class Provider<T> {
         current: [],
         last: undefined,
     };
-    private _keyboard: KeyboardListener;
+    private _keyboard: KeyboardListener | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _guid: string = Toolkit.guid();
-    private _providers: () => Provider<any>[];
+    private _providers: ProvidersGetter | undefined;
 
     constructor() {
         this._session = TabsSessionsService.getActive();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
     }
 
     public destroy() {
@@ -119,49 +123,60 @@ export abstract class Provider<T> {
     }
 
     public openSearchToolbarApp(): Promise<void> {
-        return TabsSessionsService.bars().openToolbarApp(TabsSessionsService.bars().getDefsToolbarApps().search, false);
+        const def_toolbar_apps = TabsSessionsService.bars().getDefsToolbarApps();
+        return def_toolbar_apps !== undefined
+            ? TabsSessionsService.bars().openToolbarApp(def_toolbar_apps.search, false)
+            : Promise.reject(new Error(`Fail get default toolbar apps list`));
     }
 
     public select(): {
-        first: () => void,
-        last: () => void,
-        next: () => boolean,
-        prev: () => boolean,
-        drop: (sender?: string) => void,
-        apply: (sender: string, guids: string[]) => void,
-        get: () => string[],
-        getEntities: () => Array<Entity<T>>,
-        set: (selection: ISelection) => void,
-        single: () => Entity<T> | undefined,
-        context: (event: MouseEvent, entity: Entity<T>) => void,
-        doubleclick: (event: MouseEvent, entity: Entity<T>) => void,
+        first: () => void;
+        last: () => void;
+        next: () => boolean;
+        prev: () => boolean;
+        drop: (sender?: string) => void;
+        apply: (sender: string, guids: string[]) => void;
+        get: () => string[];
+        getEntities: () => Array<Entity<T>>;
+        set: (selection: ISelection) => void;
+        single: () => Entity<T> | undefined;
+        context: (event: MouseEvent, entity: Entity<T>) => void;
+        doubleclick: (event: MouseEvent, entity: Entity<T>) => void;
     } {
         const setSelection: (selection: ISelection) => void = (selection: ISelection) => {
             const index: number = this._selection.current.indexOf(selection.guid);
             let entity: Entity<T> | undefined;
-            if (selection.ignore) {
+            if (this._keyboard !== undefined && selection.ignore) {
                 this._keyboard.ignore_ctrl_shift();
             }
-            if (this._keyboard.ctrl()) {
+            if (this._keyboard !== undefined && this._keyboard.ctrl()) {
                 if (index === -1) {
                     this._selection.current.push(selection.guid);
-                    entity = this.get().find(e => e.getGUID() === selection.guid);
+                    entity = this.get().find((e) => e.getGUID() === selection.guid);
                 }
-            } else if (this._keyboard.shift() && this._selection.last !== undefined) {
-                let guids: string[] = [].concat.apply([], this._providers().map(p => p.get().map(e => e.getGUID())));
-                const from: number = guids.findIndex(g => g === this._selection.last.getGUID());
-                const to: number = guids.findIndex(g => g === selection.guid);
+            } else if (
+                this._keyboard !== undefined &&
+                this._providers !== undefined &&
+                this._keyboard.shift() &&
+                this._selection.last !== undefined
+            ) {
+                let guids: string[] = ([] as string[]).concat.apply(
+                    [],
+                    this._providers().map((p) => p.get().map((e) => e.getGUID())),
+                );
+                const from: number = guids.findIndex((g) => g === this._selection.last?.getGUID());
+                const to: number = guids.findIndex((g) => g === selection.guid);
                 if (from !== -1 && to !== -1) {
                     guids = guids.slice(Math.min(from, to), Math.max(from, to) + 1);
                     this._selection.current = this._selection.current.concat(
-                        guids.filter(g => this._selection.current.indexOf(g) === -1),
+                        guids.filter((g) => this._selection.current.indexOf(g) === -1),
                     );
                 }
                 entity = this._selection.last;
             } else {
                 if (index === -1) {
                     this._selection.current = [selection.guid];
-                    entity = this.get().find(e => e.getGUID() === selection.guid);
+                    entity = this.get().find((e) => e.getGUID() === selection.guid);
                 } else {
                     if (selection.toggle !== false) {
                         this._selection.current = [];
@@ -193,7 +208,7 @@ export abstract class Provider<T> {
                 }
                 setSelection({
                     guid: entities[entities.length - 1].getGUID(),
-                    sender: 'self.last'
+                    sender: 'self.last',
                 });
             },
             next: () => {
@@ -215,7 +230,7 @@ export abstract class Provider<T> {
                 }
                 setSelection({
                     guid: entities[index + 1].getGUID(),
-                    sender: 'self.next'
+                    sender: 'self.next',
                 });
                 return true;
             },
@@ -238,7 +253,7 @@ export abstract class Provider<T> {
                 }
                 setSelection({
                     guid: entities[index - 1].getGUID(),
-                    sender: 'self.next'
+                    sender: 'self.next',
                 });
                 return true;
             },
@@ -255,8 +270,8 @@ export abstract class Provider<T> {
                 });
             },
             apply: (sender: string, guids: string[]) => {
-                const own: string[] = this.get().map(e => e.getGUID());
-                this._selection.current = guids.filter(g => own.indexOf(g) !== -1);
+                const own: string[] = this.get().map((e) => e.getGUID());
+                this._selection.current = guids.filter((g) => own.indexOf(g) !== -1);
                 this._subjects.selection.next({
                     provider: this,
                     entity: undefined,
@@ -268,7 +283,7 @@ export abstract class Provider<T> {
                 return this._selection.current.slice();
             },
             getEntities: () => {
-                const entities = [];
+                const entities: Entity<any>[] = [];
                 this.get().forEach((entity: Entity<T>) => {
                     if (this._selection.current.indexOf(entity.getGUID()) === -1) {
                         return;
@@ -309,8 +324,8 @@ export abstract class Provider<T> {
     }
 
     public edit(): {
-        in: () => void,
-        out: () => void,
+        in: () => void;
+        out: () => void;
     } {
         return {
             in: () => {
@@ -338,12 +353,12 @@ export abstract class Provider<T> {
     }
 
     public getObservable(): {
-        change: Observable<void>,
-        selection: Observable<ISelectEvent>,
-        edit: Observable<string | undefined>,
-        context: Observable<IContextMenuEvent>,
-        doubleclick: Observable<IDoubleclickEvent>,
-        reload: Observable<string>,
+        change: Observable<void>;
+        selection: Observable<ISelectEvent>;
+        edit: Observable<string | undefined>;
+        context: Observable<IContextMenuEvent>;
+        doubleclick: Observable<IDoubleclickEvent>;
+        reload: Observable<string>;
     } {
         return {
             change: this._subjects.change.asObservable(),
@@ -367,26 +382,23 @@ export abstract class Provider<T> {
         return this.get().length === 0;
     }
 
-    public abstract unsubscribe();
+    public abstract unsubscribe(): void;
 
     public abstract get(): Entity<T>[];
 
-    public abstract reorder(params: {
-        prev: number,
-        curt: number,
-    }): void;
+    public abstract reorder(params: { prev: number; curt: number }): void;
 
     public abstract getPanelName(): string;
 
     public abstract getPanelDesc(): string;
 
-    public abstract getDetailsPanelName(): string;
+    public abstract getDetailsPanelName(): string | undefined;
 
-    public abstract getDetailsPanelDesc(): string;
+    public abstract getDetailsPanelDesc(): string | undefined;
 
     public abstract getListComp(): IComponentDesc;
 
-    public abstract getDetailsComp(): IComponentDesc;
+    public abstract getDetailsComp(): IComponentDesc | undefined;
 
     public abstract search(entity: Entity<T>): void;
 
@@ -400,20 +412,26 @@ export abstract class Provider<T> {
      * Should called in inherit class in constructor
      * @param session
      */
-    public abstract setSessionController(session: Session | undefined);
+    public abstract setSessionController(session: Session | undefined): void;
 
     /**
      * Should return undefined to hide panel in case of empty list
      */
     public abstract getContentIfEmpty(): string | IComponentDesc | undefined;
 
-    public abstract getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[];
+    public abstract getContextMenuItems(
+        target: Entity<any>,
+        selected: Array<Entity<any>>,
+    ): IMenuItem[];
 
-    public abstract actions(target: Entity<any> | undefined, selected: Array<Entity<any>>): {
-        activate?: () => void,
-        deactivate?: () => void,
-        remove?: () => void,
-        edit?: () => void,
+    public abstract actions(
+        target: Entity<any> | undefined,
+        selected: Array<Entity<any>>,
+    ): {
+        activate?: () => void;
+        deactivate?: () => void;
+        remove?: () => void;
+        edit?: () => void;
     };
 
     private _onSessionChange(session: Session | undefined) {
@@ -427,5 +445,4 @@ export abstract class Provider<T> {
         // Trigger event of reloading
         this._subjects.reload.next(this.getGuid());
     }
-
 }

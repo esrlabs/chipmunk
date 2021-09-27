@@ -37,7 +37,7 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             },
             closable: false,
             active: true,
-        }
+        },
     },
     {
         addedAsDefault: false,
@@ -65,7 +65,7 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             },
             closable: true,
             active: true,
-        }
+        },
     },
     {
         addedAsDefault: false,
@@ -79,7 +79,7 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             },
             closable: true,
             active: true,
-        }
+        },
     },
     {
         addedAsDefault: false,
@@ -93,7 +93,7 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             },
             closable: true,
             active: true,
-        }
+        },
     },
     {
         addedAsDefault: false,
@@ -107,7 +107,7 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             },
             closable: true,
             active: true,
-        }
+        },
     },
     {
         addedAsDefault: false,
@@ -122,7 +122,5 @@ export const DefaultSidebarApps: IDefaultSidebarApp[] = [
             closable: true,
             active: true,
         },
-    }
+    },
 ];
-
-

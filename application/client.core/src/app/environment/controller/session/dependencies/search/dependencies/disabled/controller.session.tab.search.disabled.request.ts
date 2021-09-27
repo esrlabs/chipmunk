@@ -10,7 +10,6 @@ export interface IDesc {
 }
 
 export class DisabledRequest {
-
     private _entity: IDisabledEntitySupport;
     private _guid: string;
 
@@ -28,8 +27,7 @@ export class DisabledRequest {
         this._guid = entity.getGUID();
     }
 
-    public destroy() {
-    }
+    public destroy() {}
 
     public getEntity(): IDisabledEntitySupport {
         return this._entity;
@@ -49,5 +47,4 @@ export class DisabledRequest {
     public remove(session: Session) {
         session.getSessionSearch().getDisabledAPI().getStorage().remove(this);
     }
-
 }

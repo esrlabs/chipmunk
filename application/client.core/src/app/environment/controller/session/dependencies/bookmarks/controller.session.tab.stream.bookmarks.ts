@@ -12,8 +12,10 @@ export interface IBookmark {
     pluginId: number;
 }
 
-export class ControllerSessionTabStreamBookmarks extends Importable<number[]> implements Dependency {
-
+export class ControllerSessionTabStreamBookmarks
+    extends Importable<number[]>
+    implements Dependency
+{
     private _logger: Toolkit.Logger;
     private _uuid: string;
     private _bookmarks: Map<number, IBookmark> = new Map();
@@ -21,11 +23,10 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
     private _current: number = -1;
 
     private _subjects: {
-        onAdded: Subject<IBookmark>,
-        onRemoved: Subject<number>,
-        onSelected: Subject<number>,
-        onExport: Subject<void>,
-
+        onAdded: Subject<IBookmark>;
+        onRemoved: Subject<number>;
+        onSelected: Subject<number>;
+        onExport: Subject<void>;
     } = {
         onAdded: new Subject<IBookmark>(),
         onRemoved: new Subject<number>(),
@@ -43,8 +44,14 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._subscriptions.selectNextRow = HotkeysService.getObservable().selectNextRow.subscribe(this._selectNextRow.bind(this));
-            this._subscriptions.selectPrevRow = HotkeysService.getObservable().selectPrevRow.subscribe(this._selectPrevRow.bind(this));
+            this._subscriptions.selectNextRow =
+                HotkeysService.getObservable().selectNextRow.subscribe(
+                    this._selectNextRow.bind(this),
+                );
+            this._subscriptions.selectPrevRow =
+                HotkeysService.getObservable().selectPrevRow.subscribe(
+                    this._selectPrevRow.bind(this),
+                );
             resolve();
         });
     }
@@ -81,14 +88,14 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
     }
 
     public getObservable(): {
-        onAdded: Observable<IBookmark>,
-        onRemoved: Observable<number>,
-        onSelected: Observable<number>,
+        onAdded: Observable<IBookmark>;
+        onRemoved: Observable<number>;
+        onSelected: Observable<number>;
     } {
         return {
             onAdded: this._subjects.onAdded.asObservable(),
             onRemoved: this._subjects.onRemoved.asObservable(),
-            onSelected: this._subjects.onSelected.asObservable()
+            onSelected: this._subjects.onSelected.asObservable(),
         };
     }
 
@@ -126,45 +133,61 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
             if (this._bookmarks.size === 0) {
                 return resolve(undefined);
             }
-            resolve(Array.from(this._bookmarks.values()).map(b => b.position));
+            resolve(Array.from(this._bookmarks.values()).map((b) => b.position));
         });
     }
 
     public import(positions: number[]): Promise<void> {
         return new Promise((resolve, reject) => {
             this._bookmarks.clear();
-            positions = positions.map((smth: any) => {
-                if (typeof smth === 'number' && isFinite(smth) && !isNaN(smth)) {
-                    return smth;
-                } if (typeof smth === 'object' && smth !== null && typeof smth.position === 'number' && isFinite(smth.position) && !isNaN(smth.position)) {
-                    return smth.position;
-                } else {
-                    return undefined;
-                }
-            }).filter(p => p !== undefined);
-            this._session().getSessionStream().getRowsSelection(positions.map((pos: number, i: number) => {
-                return {
-                    start: { output: pos },
-                    end: { output: pos },
-                    id: `${i}`,
-                };
-            })).then((rows: IRow[]) => {
-                rows.forEach((row: IRow) => {
-                    if (positions.indexOf(row.position) === -1) {
-                        return;
+            positions = positions
+                .map((smth: any) => {
+                    if (typeof smth === 'number' && isFinite(smth) && !isNaN(smth)) {
+                        return smth;
                     }
-                    const bookmark: IBookmark = {
-                        str: row.str,
-                        pluginId: row.pluginId,
-                        position: row.position,
-                    };
-                    this._bookmarks.set(bookmark.position, bookmark);
-                    this._subjects.onAdded.next(bookmark);
-                    this._subjects.onExport.next();
-                });
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail to restore bookmark due error: ${err.message}`);
-            }).finally(() => resolve(undefined));
+                    if (
+                        typeof smth === 'object' &&
+                        smth !== null &&
+                        typeof smth.position === 'number' &&
+                        isFinite(smth.position) &&
+                        !isNaN(smth.position)
+                    ) {
+                        return smth.position;
+                    } else {
+                        return undefined;
+                    }
+                })
+                .filter((p) => p !== undefined);
+            this._session()
+                .getSessionStream()
+                .getRowsSelection(
+                    positions.map((pos: number, i: number) => {
+                        return {
+                            start: { output: pos },
+                            end: { output: pos },
+                            id: `${i}`,
+                        };
+                    }),
+                )
+                .then((rows: IRow[]) => {
+                    rows.forEach((row: IRow) => {
+                        if (positions.indexOf(row.position) === -1) {
+                            return;
+                        }
+                        const bookmark: IBookmark = {
+                            str: row.str,
+                            pluginId: row.pluginId,
+                            position: row.position,
+                        };
+                        this._bookmarks.set(bookmark.position, bookmark);
+                        this._subjects.onAdded.next(bookmark);
+                        this._subjects.onExport.next();
+                    });
+                })
+                .catch((err: Error) => {
+                    this._logger.warn(`Fail to restore bookmark due error: ${err.message}`);
+                })
+                .finally(() => resolve(undefined));
         });
     }
 
@@ -180,7 +203,7 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
         if (event.session !== this._uuid) {
             return;
         }
-        const keys: number[] = Array.from(this._bookmarks.keys()).sort((a, b) => a > b ? 1 : -1);
+        const keys: number[] = Array.from(this._bookmarks.keys()).sort((a, b) => (a > b ? 1 : -1));
         if (keys.length === 0) {
             return;
         }
@@ -196,7 +219,7 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
         if (event.session !== this._uuid) {
             return;
         }
-        const keys: number[] = Array.from(this._bookmarks.keys()).sort((a, b) => a > b ? 1 : -1);
+        const keys: number[] = Array.from(this._bookmarks.keys()).sort((a, b) => (a > b ? 1 : -1));
         if (keys.length === 0) {
             return;
         }
@@ -207,6 +230,4 @@ export class ControllerSessionTabStreamBookmarks extends Importable<number[]> im
         const key: number = keys[this._current];
         this._goto(key);
     }
-
-
 }

@@ -1,6 +1,9 @@
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
-import { isValidIPv4, isValidIPv6 } from '../../../../../../../common/functionlity/functions.ipaddr';
+import {
+    isValidIPv4,
+    isValidIPv6,
+} from '../../../../../../../common/functionlity/functions.ipaddr';
 
 const U32 = [0, 4294967295];
 
@@ -29,9 +32,7 @@ export enum EDLTSettingsErrorCodes {
     INVALID = 'INVALID',
 }
 
-
 export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
-
     readonly _alias: EDLTSettingsFieldAlias;
     private _code: EDLTSettingsErrorCodes = EDLTSettingsErrorCodes.NO_ERRORS;
 
@@ -39,10 +40,16 @@ export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
         this._alias = alias;
     }
 
-    public isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    public isErrorState(
+        control: FormControl | null,
+        form: FormGroupDirective | NgForm | null,
+    ): boolean {
+        if (control === null) {
+            return false;
+        }
         if (this.isDLTSettingsFieldRequired(control.value)) {
             this._code = EDLTSettingsErrorCodes.REQUIRED;
-        } else  if (!this.isDLTSettingsFieldValid(control.value)) {
+        } else if (!this.isDLTSettingsFieldValid(control.value)) {
             this._code = EDLTSettingsErrorCodes.INVALID;
         } else {
             this._code = EDLTSettingsErrorCodes.NO_ERRORS;
@@ -67,7 +74,7 @@ export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
                     return false;
                 }
                 const bindingPort = parseInt(value.trim(), 10);
-                return isNaN(bindingPort) ? false : (!isFinite(bindingPort) ? false : true);
+                return isNaN(bindingPort) ? false : !isFinite(bindingPort) ? false : true;
         }
     }
 
@@ -92,5 +99,4 @@ export class DLTDeamonSettingsErrorStateMatcher implements ErrorStateMatcher {
     public isValid(): boolean {
         return this._code === EDLTSettingsErrorCodes.NO_ERRORS;
     }
-
 }

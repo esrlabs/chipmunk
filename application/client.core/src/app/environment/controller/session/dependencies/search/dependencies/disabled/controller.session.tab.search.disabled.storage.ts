@@ -1,10 +1,17 @@
 import { Observable, Subject } from 'rxjs';
-import { DisabledRequest, IDesc as IDisabledDesc } from './controller.session.tab.search.disabled.request';
+import {
+    DisabledRequest,
+    IDesc as IDisabledDesc,
+} from './controller.session.tab.search.disabled.request';
 import { EEntityTypeRef } from './controller.session.tab.search.disabled.support';
 import { FilterRequest } from '../filters/controller.session.tab.search.filters.request';
 import { ChartRequest } from '../charts/controller.session.tab.search.charts.request';
 import { RangeRequest } from '../timeranges/controller.session.tab.search.ranges.request';
-import { IStore, EStoreKeys, IStoreData } from '../../dependencies/store/controller.session.tab.search.store.support';
+import {
+    IStore,
+    EStoreKeys,
+    IStoreData,
+} from '../../dependencies/store/controller.session.tab.search.store.support';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -34,7 +41,7 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
     private _guid: string;
     private _stored: DisabledRequest[] = [];
     private _subjects: {
-        updated: Subject<IUpdateEvent>,
+        updated: Subject<IUpdateEvent>;
     } = {
         updated: new Subject<IUpdateEvent>(),
     };
@@ -52,7 +59,7 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
     }
 
     public getObservable(): {
-        updated: Observable<IUpdateEvent>,
+        updated: Observable<IUpdateEvent>;
     } {
         return {
             updated: this._subjects.updated.asObservable(),
@@ -60,12 +67,14 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
     }
 
     public has(request: DisabledRequest): boolean {
-        return this._stored.find((stored: DisabledRequest) => {
-            return request.getGUID() === stored.getGUID();
-        }) !== undefined;
+        return (
+            this._stored.find((stored: DisabledRequest) => {
+                return request.getGUID() === stored.getGUID();
+            }) !== undefined
+        );
     }
 
-    public add(descs: DisabledRequest | Array<DisabledRequest>, from?: number): Error {
+    public add(descs: DisabledRequest | Array<DisabledRequest>, from?: number): Error | undefined {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -82,12 +91,17 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
                 added.push(request);
             });
         } catch (err) {
-            return new Error(`Fail add request(s) due error: ${err.message}`);
+            return new Error(
+                `Fail add request(s) due error: ${err instanceof Error ? err.message : err}`,
+            );
         }
         if (this._stored.length === prevCount) {
-            return;
+            return undefined;
         }
-        this._subjects.updated.next({ requests: this._stored, added: added.length === 1 ? added[0] : added });
+        this._subjects.updated.next({
+            requests: this._stored,
+            added: added.length === 1 ? added[0] : added,
+        });
         return undefined;
     }
 
@@ -121,7 +135,7 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
     }
 
     public getAsDesc(): IDisabledDesc[] {
-        return this._stored.map(d => d.asDesc());
+        return this._stored.map((d) => d.asDesc());
     }
 
     public reorder(params: IReorderParams) {
@@ -134,10 +148,10 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
     }
 
     public store(): {
-        key(): EStoreKeys,
-        extract(): IStoreData,
-        upload(entities: IDisabledDesc[]): void,
-        getItemsCount(): number,
+        key(): EStoreKeys;
+        extract(): IStoreData;
+        upload(entities: IDisabledDesc[]): void;
+        getItemsCount(): number;
     } {
         const self = this;
         return {
@@ -151,20 +165,28 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
             },
             upload(entities: IDisabledDesc[]): void {
                 self._clear();
-                self.add(entities.map((entity: IDisabledDesc) => {
-                    const ref = self._refs[entity.type];
-                    if (ref === undefined) {
-                        return undefined;
-                    } else {
-                        try {
-                            const instance = new ref(entity.desc);
-                            return new DisabledRequest(instance);
-                        } catch (e) {
-                            this._logger.warn(`Fail create instance of entity due error: ${e.message}`);
-                            return undefined;
-                        }
-                    }
-                }).filter((smth) => smth !== undefined));
+                self.add(
+                    entities
+                        .map((entity: IDisabledDesc) => {
+                            const ref = (self._refs as any)[entity.type];
+                            if (ref === undefined) {
+                                return undefined;
+                            } else {
+                                try {
+                                    const instance = new ref(entity.desc);
+                                    return new DisabledRequest(instance);
+                                } catch (err) {
+                                    self._logger.warn(
+                                        `Fail create instance of entity due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    );
+                                    return undefined;
+                                }
+                            }
+                        })
+                        .filter((smth) => smth !== undefined) as DisabledRequest[],
+                );
             },
             getItemsCount(): number {
                 return self._stored.length;
@@ -180,5 +202,4 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
         // Remove from storage
         this._stored = [];
     }
-
 }

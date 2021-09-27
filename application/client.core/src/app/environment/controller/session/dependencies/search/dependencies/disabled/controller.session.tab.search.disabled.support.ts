@@ -7,7 +7,6 @@ export enum EEntityTypeRef {
 }
 
 export interface IDisabledEntitySupport {
-
     getDisplayName(): string;
     getTypeRef(): EEntityTypeRef;
     getIcon(): string;
@@ -16,5 +15,4 @@ export interface IDisabledEntitySupport {
     restore(session: Session): void;
     matches?(session: Session): void;
     asDesc(): any;
-
 }

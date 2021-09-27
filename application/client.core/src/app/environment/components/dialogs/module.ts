@@ -1,21 +1,20 @@
-import { NgModule                                   } from '@angular/core';
-import { CommonModule                               } from '@angular/common';
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
-import { DialogsFileOptionsDltComponent             } from './file.options.dlt/component';
-import { DialogsFileOptionsDltStatsComponent        } from './file.options.dlt/stats/component';
+import { DialogsFileOptionsDltComponent } from './file.options.dlt/component';
+import { DialogsFileOptionsDltStatsComponent } from './file.options.dlt/stats/component';
 
-import { DialogsHotkeysMapComponent                 } from './hotkeys/component';
-import { DialogsMultipleFilesActionComponent        } from './multiplefiles/component';
-import { DialogsRecentFilesActionComponent          } from './recentfile/component';
-import { DialogsRecentFitlersActionComponent        } from './recentfilter/component';
-import { DialogsMeasurementAddFormatComponent       } from './measurement.format.add/component';
-import { DialogsMeasurementFormatDefaultsComponent  } from './measurement.format.defaults/component';
-import { DialogsAddCommentOnRowComponent            } from './comment.row.add/component';
+import { DialogsHotkeysMapComponent } from './hotkeys/component';
+import { DialogsMultipleFilesActionComponent } from './multiplefiles/component';
+import { DialogsRecentFilesActionComponent } from './recentfile/component';
+import { DialogsRecentFitlersActionComponent } from './recentfilter/component';
+import { DialogsMeasurementAddFormatComponent } from './measurement.format.add/component';
+import { DialogsMeasurementFormatDefaultsComponent } from './measurement.format.defaults/component';
+import { DialogsAddCommentOnRowComponent } from './comment.row.add/component';
 
-
-import { PrimitiveModule, ContainersModule          } from 'chipmunk-client-material';
-import { AppDirectiviesModule                       } from '../../directives/module';
-import { DragDropModule                             } from '@angular/cdk/drag-drop';
+import { PrimitiveModule, ContainersModule } from 'chipmunk-client-material';
+import { AppDirectiviesModule } from '../../directives/module';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -30,19 +29,7 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatExpansionModule } from '@angular/material/expansion';
 
-import {
-    FormsModule,
-    ReactiveFormsModule } from '@angular/forms';
-
-const entryComponents = [
-    /*MatFormField,
-    MatAutocomplete,
-    MatTable,
-    MatProgressBar,
-    MatCheckbox,
-    MatButton,
-    MatSelect,*/
-];
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 const CDialogs = [
     DialogsFileOptionsDltComponent,
@@ -57,8 +44,8 @@ const CDialogs = [
 ];
 
 @NgModule({
-    entryComponents : [ ...CDialogs, ...entryComponents ],
-    imports         : [
+    entryComponents: [...CDialogs],
+    imports: [
         CommonModule,
         PrimitiveModule,
         ContainersModule,
@@ -77,13 +64,11 @@ const CDialogs = [
         MatSelectModule,
         MatExpansionModule,
         AppDirectiviesModule,
-        DragDropModule
+        DragDropModule,
     ],
-    declarations    : [ ...CDialogs ],
-    exports         : [ ...CDialogs ],
+    declarations: [...CDialogs],
+    exports: [...CDialogs],
 })
-
 export class EnvironmentDialogsModule {
-    constructor() {
-    }
+    constructor() {}
 }

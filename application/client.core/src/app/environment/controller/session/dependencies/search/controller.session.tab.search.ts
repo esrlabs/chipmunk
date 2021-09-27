@@ -1,4 +1,7 @@
-import { ControllerSessionTabSearchFilters, FilterRequest } from './dependencies/filters/controller.session.tab.search.filters';
+import {
+    ControllerSessionTabSearchFilters,
+    FilterRequest,
+} from './dependencies/filters/controller.session.tab.search.filters';
 import { ControllerSessionTabSearchCharts } from './dependencies/charts/controller.session.tab.search.charts';
 import { ControllerSessionTabSearchRanges } from './dependencies/timeranges/controller.session.tab.search.ranges';
 import { ControllerSessionTabSearchDisabled } from './dependencies/disabled/controller.session.tab.search.disabled';
@@ -13,22 +16,21 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { SearchDependencyConstructor } from './dependencies/search.dependency';
 
 export class ControllerSessionTabSearch implements Dependency {
-
     private _logger: Toolkit.Logger;
     private _subjects: {
-        search: Subject<FilterRequest>,
+        search: Subject<FilterRequest>;
     } = {
         search: new Subject<FilterRequest>(),
     };
     private _guid: string;
     private _dependencies: {
-        charts: ControllerSessionTabSearchCharts | undefined,
-        filters: ControllerSessionTabSearchFilters | undefined,
-        ranges: ControllerSessionTabSearchRanges | undefined,
-        disabled: ControllerSessionTabSearchDisabled | undefined,
-        output: ControllerSessionTabSearchOutput | undefined,
-        queue: ControllerSessionTabSearchQueue | undefined,
-        store: ControllerSessionTabSearchStore | undefined,
+        charts: ControllerSessionTabSearchCharts | undefined;
+        filters: ControllerSessionTabSearchFilters | undefined;
+        ranges: ControllerSessionTabSearchRanges | undefined;
+        disabled: ControllerSessionTabSearchDisabled | undefined;
+        output: ControllerSessionTabSearchOutput | undefined;
+        queue: ControllerSessionTabSearchQueue | undefined;
+        store: ControllerSessionTabSearchStore | undefined;
     } = {
         charts: undefined,
         filters: undefined,
@@ -48,14 +50,18 @@ export class ControllerSessionTabSearch implements Dependency {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            function factory<T>(self: ControllerSessionTabSearch, Dep: SearchDependencyConstructor<T>): Dependency & T {
+            function factory<T>(
+                self: ControllerSessionTabSearch,
+                Dep: SearchDependencyConstructor<T>,
+            ): Dependency & T {
                 return new Dep(self._guid, self._session, () => self);
             }
-            function init<T>(self: ControllerSessionTabSearch, dependency: Dependency & T): Promise<void> {
+            function init<T>(
+                self: ControllerSessionTabSearch,
+                dependency: Dependency & T,
+            ): Promise<void> {
                 return new Promise((res, rej) => {
-                    self._logger.debug(
-                        `Initing ${dependency.getName()} for session ${self._guid}`,
-                    );
+                    self._logger.debug(`Initing ${dependency.getName()} for session ${self._guid}`);
                     dependency
                         .init()
                         .then(() => {
@@ -105,12 +111,12 @@ export class ControllerSessionTabSearch implements Dependency {
             );
             Promise.all([
                 init<ControllerSessionTabSearchCharts>(this, this._dependencies.charts),
-                init<ControllerSessionTabSearchFilters>(this, this._dependencies.filters ),
-                init<ControllerSessionTabSearchRanges>(this, this._dependencies.ranges ),
-                init<ControllerSessionTabSearchDisabled>(this, this._dependencies.disabled ),
-                init<ControllerSessionTabSearchOutput>(this, this._dependencies.output ),
-                init<ControllerSessionTabSearchQueue>(this, this._dependencies.queue ),
-                init<ControllerSessionTabSearchStore>(this, this._dependencies.store ),
+                init<ControllerSessionTabSearchFilters>(this, this._dependencies.filters),
+                init<ControllerSessionTabSearchRanges>(this, this._dependencies.ranges),
+                init<ControllerSessionTabSearchDisabled>(this, this._dependencies.disabled),
+                init<ControllerSessionTabSearchOutput>(this, this._dependencies.output),
+                init<ControllerSessionTabSearchQueue>(this, this._dependencies.queue),
+                init<ControllerSessionTabSearchStore>(this, this._dependencies.store),
             ])
                 .then(() => {
                     this._logger.debug(`Session search"${this._guid}" is created`);
@@ -121,13 +127,23 @@ export class ControllerSessionTabSearch implements Dependency {
     }
 
     public destroy(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            Promise.all(Object.keys(this._dependencies).map((key: string) => {
-                const dep = this._dependencies[key];
-                return dep.destroy().catch((err: Error) => {
-                    this._logger.warn(`Fail normaly destroy dependency "${dep.getName()}" due error: ${err.message}`);
-                });
-            })).then(() => {
+        return new Promise((resolve) => {
+            Promise.all(
+                Object.keys(this._dependencies).map((key: string) => {
+                    const dep = (this._dependencies as any)[key];
+                    if (dep === undefined || typeof dep.destroy !== 'function') {
+                        this._logger.error(`Fail to find dependency with name: ${key}`);
+                        return Promise.resolve();
+                    }
+                    return dep.destroy().catch((err: Error) => {
+                        this._logger.warn(
+                            `Fail normaly destroy dependency "${dep.getName()}" due error: ${
+                                err.message
+                            }`,
+                        );
+                    });
+                }),
+            ).then(() => {
                 resolve();
             });
         });
@@ -142,7 +158,7 @@ export class ControllerSessionTabSearch implements Dependency {
     }
 
     public getObservable(): {
-        search: Observable<FilterRequest>,
+        search: Observable<FilterRequest>;
     } {
         return {
             search: this._subjects.search.asObservable(),
@@ -150,35 +166,69 @@ export class ControllerSessionTabSearch implements Dependency {
     }
 
     public getQueue(): ControllerSessionTabSearchQueue {
+        if (this._dependencies.queue === undefined) {
+            throw new Error(
+                this._logger.error(`Session search controller: dependency "queue" isn't inited`),
+            );
+        }
         return this._dependencies.queue;
     }
 
     public getOutputStream(): ControllerSessionTabSearchOutput {
+        if (this._dependencies.output === undefined) {
+            throw new Error(
+                this._logger.error(`Session search controller: dependency "output" isn't inited`),
+            );
+        }
         return this._dependencies.output;
     }
 
     public getFiltersAPI(): ControllerSessionTabSearchFilters {
+        if (this._dependencies.filters === undefined) {
+            throw new Error(
+                this._logger.error(`Session search controller: dependency "filters" isn't inited`),
+            );
+        }
         return this._dependencies.filters;
     }
 
     public getChartsAPI(): ControllerSessionTabSearchCharts {
+        if (this._dependencies.charts === undefined) {
+            throw new Error(
+                this._logger.error(`Session search controller: dependency "charts" isn't inited`),
+            );
+        }
         return this._dependencies.charts;
     }
 
     public getRangesAPI(): ControllerSessionTabSearchRanges {
+        if (this._dependencies.ranges === undefined) {
+            throw new Error(
+                this._logger.error(`Session search controller: dependency "ranges" isn't inited`),
+            );
+        }
         return this._dependencies.ranges;
     }
 
     public getDisabledAPI(): ControllerSessionTabSearchDisabled {
+        if (this._dependencies.disabled === undefined) {
+            throw new Error(
+                this._logger.error(`Session search controller: dependency "disabled" isn't inited`),
+            );
+        }
         return this._dependencies.disabled;
     }
 
     public getStoreAPI(): ControllerSessionTabSearchStore {
+        if (this._dependencies.store === undefined) {
+            throw new Error(
+                this._logger.error(`Session search controller: dependency "store" isn't inited`),
+            );
+        }
         return this._dependencies.store;
     }
 
     public search(request: FilterRequest) {
         this._subjects.search.next(request);
     }
-
 }

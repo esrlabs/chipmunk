@@ -1,4 +1,11 @@
-import { Provider, EProviders, ISelectEvent, IContextMenuEvent, EActions, IDoubleclickEvent } from './provider';
+import {
+    Provider,
+    EProviders,
+    ISelectEvent,
+    IContextMenuEvent,
+    EActions,
+    IDoubleclickEvent,
+} from './provider';
 import { Subject, Observable, Subscription } from 'rxjs';
 import { Session } from '../../../../controller/session/session';
 import { KeyboardListener } from './keyboard.listener';
@@ -15,19 +22,23 @@ type TSelectedEntities = string[];
 const PROVIDERS_SCOPE_KEY: string = 'SEARCH_MANAGER_PROVIDERS_SCOPE_KEY';
 
 export class Providers {
-
     private readonly SENDER = Toolkit.guid();
-    private readonly PROVIDERS_ORDER: EProviders[] = [EProviders.filters, EProviders.charts, EProviders.ranges, EProviders.disabled];
+    private readonly PROVIDERS_ORDER: EProviders[] = [
+        EProviders.filters,
+        EProviders.charts,
+        EProviders.ranges,
+        EProviders.disabled,
+    ];
 
     private readonly _providers: Map<EProviders, Provider<any>> = new Map();
     private readonly _subscriptions: { [key: string]: Subscription } = {};
     private readonly _selsubs: { [key: string]: Subscription } = {};
     private readonly _keyboard: KeyboardListener = new KeyboardListener();
     private readonly _subjects: {
-        select: Subject<ISelectEvent | undefined>,
-        context: Subject<IContextMenuEvent>,
-        doubleclick: Subject<IDoubleclickEvent>,
-        change: Subject<void>,
+        select: Subject<ISelectEvent | undefined>;
+        context: Subject<IContextMenuEvent>;
+        doubleclick: Subject<IDoubleclickEvent>;
+        change: Subject<void>;
     } = {
         select: new Subject(),
         context: new Subject(),
@@ -38,7 +49,10 @@ export class Providers {
 
     constructor() {
         this._session = TabsSessionsService.getActive();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
     }
 
     public destroy() {
@@ -56,10 +70,10 @@ export class Providers {
     }
 
     public getObservable(): {
-        select: Observable<ISelectEvent | undefined>,
-        context: Observable<IContextMenuEvent>,
-        doubleclick: Observable<IDoubleclickEvent>,
-        change: Observable<void>,
+        select: Observable<ISelectEvent | undefined>;
+        context: Observable<IContextMenuEvent>;
+        doubleclick: Observable<IDoubleclickEvent>;
+        change: Observable<void>;
     } {
         return {
             select: this._subjects.select.asObservable(),
@@ -75,12 +89,23 @@ export class Providers {
         }
         provider.setKeyboardListener(this._keyboard);
         provider.setProvidersGetter(this.list.bind(this));
-        this._selsubs[`selection_${name}`] = provider.getObservable().selection.subscribe(this._onSelectionEntity.bind(this));
-        this._selsubs[`context_${name}`] = provider.getObservable().context.subscribe(this._onContextMenuEvent.bind(this));
-        this._selsubs[`doubleclick_${name}`] = provider.getObservable().doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
-        this._selsubs[`change_${name}`] = provider.getObservable().change.subscribe(this._onChange.bind(this));
-        this._selsubs[`reload_${name}`] = provider.getObservable().reload.subscribe(this._onReload.bind(this));
+        this._selsubs[`selection_${name}`] = provider
+            .getObservable()
+            .selection.subscribe(this._onSelectionEntity.bind(this));
+        this._selsubs[`context_${name}`] = provider
+            .getObservable()
+            .context.subscribe(this._onContextMenuEvent.bind(this));
+        this._selsubs[`doubleclick_${name}`] = provider
+            .getObservable()
+            .doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
+        this._selsubs[`change_${name}`] = provider
+            .getObservable()
+            .change.subscribe(this._onChange.bind(this));
+        this._selsubs[`reload_${name}`] = provider
+            .getObservable()
+            .reload.subscribe(this._onReload.bind(this));
         this._providers.set(name, provider);
+        return true;
     }
 
     public all(): any[] {
@@ -103,44 +128,64 @@ export class Providers {
     }
 
     public select(): {
-        next: () => void,
-        prev: () => void,
-        drop: () => void,
-        first: () => void,
-        last: () => void,
-        single: (session?: string) => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined,
-        getEntities: () => Array<Entity<any>>,
-        getProviders: () => Array<Provider<any>>,
+        next: () => void;
+        prev: () => void;
+        drop: () => void;
+        first: () => void;
+        last: () => void;
+        single: (
+            session?: string,
+        ) =>
+            | { provider: Provider<any>; next?: Provider<any>; prev?: Provider<any>; guid: string }
+            | undefined;
+        getEntities: () => Array<Entity<any>>;
+        getProviders: () => Array<Provider<any>>;
     } {
-        const single: (session?: string) => { provider: Provider<any>, next?: Provider<any>, prev?: Provider<any>, guid: string } | undefined = (session?: string) => {
-            if (session !== undefined && (this._session === undefined || (this._session !== undefined && this._session.getGuid() !== session))) {
-                return;
+        const single: (
+            session?: string,
+        ) =>
+            | { provider: Provider<any>; next?: Provider<any>; prev?: Provider<any>; guid: string }
+            | undefined = (session?: string) => {
+            if (
+                session !== undefined &&
+                (this._session === undefined ||
+                    (this._session !== undefined && this._session.getGuid() !== session))
+            ) {
+                return undefined;
             }
             if (this._providers.size === 0) {
                 return undefined;
             }
-            const providers = [];
-            let next;
-            let prev;
-            Array.from(this._providers.values()).forEach((provider: Provider<any>, i: number, all: Array<Provider<any>>) => {
-                if (provider.select().single() !== undefined) {
-                    providers.push(provider);
-                    for (let k = i + 1; k <= all.length - 1; k += 1) {
-                        if (next === undefined && all[k].get().length > 0) {
-                            next = all[k];
+            const providers: Array<Provider<any>> = [];
+            let next: Provider<any> | undefined;
+            let prev: Provider<any> | undefined;
+            Array.from(this._providers.values()).forEach(
+                (provider: Provider<any>, i: number, all: Array<Provider<any>>) => {
+                    if (provider.select().single() !== undefined) {
+                        providers.push(provider);
+                        for (let k = i + 1; k <= all.length - 1; k += 1) {
+                            if (next === undefined && all[k].get().length > 0) {
+                                next = all[k];
+                            }
+                        }
+                        for (let k = i - 1; k >= 0; k -= 1) {
+                            if (prev === undefined && all[k].get().length > 0) {
+                                prev = all[k];
+                            }
                         }
                     }
-                    for (let k = i - 1; k >= 0; k -= 1) {
-                        if (prev === undefined && all[k].get().length > 0) {
-                            prev = all[k];
-                        }
-                    }
-                }
-            });
+                },
+            );
             if (providers.length !== 1) {
                 return undefined;
             }
-            return { provider: providers[0], next: next, prev: prev, guid: (providers[0] as Provider<any>).select().single().getGUID() };
+            const guid: string | undefined = (providers[0] as Provider<any>).select().single()?.getGUID();
+            return guid === undefined ? undefined : {
+                provider: providers[0],
+                next: next,
+                prev: prev,
+                guid: guid,
+            };
         };
         const drop: () => void = () => {
             this._providers.forEach((provider: Provider<any>) => {
@@ -198,14 +243,13 @@ export class Providers {
                         }
                     }
                 }
-
             },
             drop: drop,
             first: first,
             last: last,
             single: single,
             getEntities: () => {
-                let entities = [];
+                let entities: Entity<any>[] = [];
                 this._providers.forEach((provider: Provider<any>) => {
                     entities = entities.concat(provider.select().getEntities());
                 });
@@ -225,8 +269,8 @@ export class Providers {
     }
 
     public edit(): {
-        in: () => void,
-        out: () => void,
+        in: () => void;
+        out: () => void;
     } {
         return {
             in: () => {
@@ -252,10 +296,10 @@ export class Providers {
     }
 
     private _store(): {
-        load(): TSelectedEntities,
-        save(entities: TSelectedEntities): void,
-        restore(provider: string): void,
-        drop(): void,
+        load(): TSelectedEntities;
+        save(entities: TSelectedEntities): void;
+        restore(provider: string): void;
+        drop(): void;
     } {
         const self = this;
         return {
@@ -263,14 +307,18 @@ export class Providers {
                 if (self._session === undefined) {
                     return [];
                 }
-                const stored: TSelectedEntities | undefined = self._session.getScope().get<TSelectedEntities>(PROVIDERS_SCOPE_KEY);
+                const stored: TSelectedEntities | undefined = self._session
+                    .getScope()
+                    .get<TSelectedEntities>(PROVIDERS_SCOPE_KEY);
                 return stored === undefined ? [] : stored.slice();
             },
             save: (entities: TSelectedEntities) => {
                 if (self._session === undefined) {
                     return;
                 }
-                self._session.getScope().set<TSelectedEntities>(PROVIDERS_SCOPE_KEY, entities.slice());
+                self._session
+                    .getScope()
+                    .set<TSelectedEntities>(PROVIDERS_SCOPE_KEY, entities.slice());
             },
             restore: (provider: string) => {
                 const stored = self._store().load();
@@ -281,12 +329,13 @@ export class Providers {
                     target.select().drop(self.SENDER);
                     target.select().apply(self.SENDER, stored);
                     if (stored.length === 1) {
-                        const entity = target.get().find(e => e.getGUID() === stored[0]);
-                        entity !== undefined && this._subjects.select.next({
-                            entity: entity,
-                            provider: target,
-                            guids: stored,
-                        });
+                        const entity = target.get().find((e) => e.getGUID() === stored[0]);
+                        entity !== undefined &&
+                            this._subjects.select.next({
+                                entity: entity,
+                                provider: target,
+                                guids: stored,
+                            });
                     }
                 });
                 if (stored.length === 0) {
@@ -298,7 +347,7 @@ export class Providers {
                     return;
                 }
                 self._session.getScope().delete(PROVIDERS_SCOPE_KEY);
-            }
+            },
         };
     }
 
@@ -338,18 +387,16 @@ export class Providers {
             this._subjects.select.next(undefined);
         }
         this._providers.forEach((provider: Provider<any>) => {
-            provider.setLastSelection(
-                guids.length > 0 ? event.entity : undefined,
-            );
+            provider.setLastSelection(guids.length > 0 ? event.entity : undefined);
         });
         this._store().save(guids);
     }
 
     private _onContextMenuEvent(event: IContextMenuEvent) {
-        const isActionAvailable = (action: EActions, insel: Array<Provider<any>>, _entities) => {
+        const isActionAvailable = (action: EActions, insel: Array<Provider<any>>, _entities: Entity<any>[]) => {
             let count: number = 0;
             insel.forEach((provider: Provider<any>) => {
-                provider.actions(event.entity, _entities)[action] !== undefined && (count += 1);
+                (provider.actions(event.entity, _entities) as any)[action] !== undefined && (count += 1);
             });
             return count === insel.length;
         };
@@ -375,10 +422,10 @@ export class Providers {
         }
         const providers = this.select().getProviders();
         const actions: {
-            activate: boolean,
-            deactivate: boolean,
-            remove: boolean,
-            edit: boolean,
+            activate: boolean;
+            deactivate: boolean;
+            remove: boolean;
+            edit: boolean;
         } = {
             activate: isActionAvailable(EActions.activate, providers, entities),
             deactivate: isActionAvailable(EActions.deactivate, providers, entities),
@@ -390,69 +437,93 @@ export class Providers {
             event.items.push({
                 caption: 'Edit',
                 handler: () => {
-                    providers[0].actions(event.entity, entities).edit();
+                    const actions = providers[0].actions(event.entity, entities);
+                    actions.edit !== undefined && actions.edit();
                 },
-                shortcut: 'Enter'
+                shortcut: 'Enter',
             });
         }
 
-        event.items.length > 0 && event.items.push({ /* Delimiter */});
+        event.items.length > 0 &&
+            event.items.push({
+                /* Delimiter */
+            });
 
-        actions.activate && event.items.push({
-            caption: 'Activate',
-            handler: () => {
-                providers.forEach((provider: Provider<any>) => {
-                    provider.actions(event.entity, entities).activate();
-                });
-            },
-        });
-        actions.deactivate && event.items.push({
-            caption: 'Deactivate',
-            handler: () => {
-                providers.forEach((provider: Provider<any>) => {
-                    provider.actions(event.entity, entities).deactivate();
-                });
-            },
-        });
-        actions.remove && event.items.push({
-            caption: 'Remove',
-            handler: () => {
-                providers.forEach((provider: Provider<any>) => {
-                    provider.actions(event.entity, entities).remove();
-                });
-            },
-        });
+        actions.activate &&
+            event.items.push({
+                caption: 'Activate',
+                handler: () => {
+                    providers.forEach((provider: Provider<any>) => {
+                        const actions = provider.actions(event.entity, entities);
+                        actions.activate !== undefined && actions.activate();
+                    });
+                },
+            });
+        actions.deactivate &&
+            event.items.push({
+                caption: 'Deactivate',
+                handler: () => {
+                    providers.forEach((provider: Provider<any>) => {
+                        const actions = provider.actions(event.entity, entities);
+                        actions.deactivate !== undefined && actions.deactivate();
+                    });
+                },
+            });
+        actions.remove &&
+            event.items.push({
+                caption: 'Remove',
+                handler: () => {
+                    providers.forEach((provider: Provider<any>) => {
+                        const actions = provider.actions(event.entity, entities);
+                        actions.remove !== undefined && actions.remove();
+                    });
+                },
+            });
 
-        event.items.length > 0 && event.items.push({ /* Delimiter */});
+        event.items.length > 0 &&
+            event.items.push({
+                /* Delimiter */
+            });
 
-        actions.activate && event.items.push({
-            caption: 'Activate All',
-            handler: () => {
-                providers.forEach((provider: Provider<any>) => {
-                    provider.actions(event.entity, provider.get()).activate();
-                });
-            },
-        });
-        actions.deactivate && event.items.push({
-            caption: 'Deactivate All',
-            handler: () => {
-                providers.forEach((provider: Provider<any>) => {
-                    provider.actions(event.entity, provider.get()).deactivate();
-                });
-            },
-        });
-        actions.remove && event.items.push({
-            caption: 'Remove All',
-            handler: () => {
-                providers.forEach((provider: Provider<any>) => {
-                    provider.actions(event.entity, provider.get()).remove();
-                });
-            },
-        });
+        actions.activate &&
+            event.items.push({
+                caption: 'Activate All',
+                handler: () => {
+                    providers.forEach((provider: Provider<any>) => {
+                        const actions = provider.actions(event.entity, provider.get());
+                        actions.activate !== undefined && actions.activate();
+                    });
+                },
+            });
+        actions.deactivate &&
+            event.items.push({
+                caption: 'Deactivate All',
+                handler: () => {
+                    providers.forEach((provider: Provider<any>) => {
+                        const actions = provider.actions(event.entity, provider.get());
+                        actions.deactivate !== undefined && actions.deactivate();
+                    });
+                },
+            });
+        actions.remove &&
+            event.items.push({
+                caption: 'Remove All',
+                handler: () => {
+                    providers.forEach((provider: Provider<any>) => {
+                        const actions = provider.actions(event.entity, provider.get());
+                        actions.remove !== undefined && actions.remove();
+                    });
+                },
+            });
         this._providers.forEach((provider: Provider<any>) => {
-            const custom: IMenuItem[] = provider.getContextMenuItems(event.entity, this.select().getEntities());
-            if (custom.length > 0) {
-                event.items.push({ /* Delimiter */});
+            const custom: IMenuItem[] = provider.getContextMenuItems(
+                event.entity,
+                this.select().getEntities(),
+            );
+            if (custom.length > 0 && event.items !== undefined) {
+                event.items.push({
+                    /* Delimiter */
+                });
                 event.items = event.items.concat(custom);
             }
         });
@@ -474,5 +545,4 @@ export class Providers {
     private _onSessionChange(session: Session | undefined) {
         this._session = session;
     }
-
 }

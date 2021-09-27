@@ -7,29 +7,30 @@ import { Modifier } from 'chipmunk.client.toolkit';
 import { CommentSelectionModifier } from './session.dependency.comments.modifier';
 import { IComment, IActualSelectionData, ECommentState } from './session.dependency.comments.types';
 import { DialogsAddCommentOnRowComponent } from '../../../../components/dialogs/comment.row.add/component';
-import { IAPI } from 'chipmunk.client.toolkit';
 import { CShortColors } from '../../../../conts/colors';
-import { Importable, IImportedData } from '../importer/controller.session.importer.interface';
+import { Importable } from '../importer/controller.session.importer.interface';
 import { Dependency, SessionGetter } from '../session.dependency';
 
 import LayoutStateService from '../../../../services/standalone/service.layout.state';
 import PopupsService from '../../../../services/standalone/service.popups';
 import OutputParsersService from '../../../../services/standalone/service.output.parsers';
 
-export class ControllerSessionTabStreamComments extends Importable<IComment[]> implements Dependency {
-
+export class ControllerSessionTabStreamComments
+    extends Importable<IComment[]>
+    implements Dependency
+{
     private _logger: Toolkit.Logger;
     private _sessionId: string;
     private _comments: Map<string, IComment> = new Map();
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
 
     private _subjects: {
-        onAdded: Subject<IComment>,
-        onUpdated: Subject<IComment>,
-        onPending: Subject<IComment>,
-        onRemoved: Subject<string>,
-        onSelected: Subject<string>,
-        onExport: Subject<void>,
+        onAdded: Subject<IComment>;
+        onUpdated: Subject<IComment>;
+        onPending: Subject<IComment>;
+        onRemoved: Subject<string>;
+        onSelected: Subject<string>;
+        onExport: Subject<void>;
     } = {
         onAdded: new Subject<IComment>(),
         onUpdated: new Subject<IComment>(),
@@ -64,13 +65,21 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         return 'ControllerSessionTabStreamComments';
     }
 
-    public create(selection: IScrollBoxSelection, startRowStr: string, endRowStr: string): Error | undefined {
-        function remember(): { anchorNode: Node, anchorOffset: number, focusNode: Node, focusOffset: number } | undefined {
+    public create(
+        selection: IScrollBoxSelection,
+        startRowStr: string,
+        endRowStr: string,
+    ): Error | undefined {
+        function remember():
+            | { anchorNode: Node; anchorOffset: number; focusNode: Node; focusOffset: number }
+            | undefined {
             const winSel = window.getSelection();
-            if (winSel === undefined) {
+            if (winSel === undefined || winSel === null || winSel.anchorNode === null || winSel.focusNode === null) {
                 return undefined;
             }
-            const reversed: boolean = winSel.anchorNode.compareDocumentPosition(winSel.focusNode) === Node.DOCUMENT_POSITION_PRECEDING;
+            const reversed: boolean =
+                winSel.anchorNode.compareDocumentPosition(winSel.focusNode) ===
+                Node.DOCUMENT_POSITION_PRECEDING;
             return {
                 anchorNode: reversed ? winSel.focusNode : winSel.anchorNode,
                 anchorOffset: reversed ? winSel.focusOffset : winSel.anchorOffset,
@@ -78,9 +87,14 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                 focusOffset: reversed ? winSel.anchorOffset : winSel.focusOffset,
             };
         }
-        function restore(stored: { anchorNode: Node, anchorOffset: number, focusNode: Node, focusOffset: number }) {
+        function restore(stored: {
+            anchorNode: Node;
+            anchorOffset: number;
+            focusNode: Node;
+            focusOffset: number;
+        }) {
             const winSel = window.getSelection();
-            if (winSel === undefined) {
+            if (winSel === undefined || winSel === null) {
                 return;
             }
             const range: Range = document.createRange();
@@ -92,7 +106,11 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         const guid: string = Toolkit.guid();
         const comment: IComment | Error = (() => {
             if (selection.anchor === selection.focus) {
-                const sel: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, selection.original, false);
+                const sel: IActualSelectionData | Error = this._getActualSelectionData(
+                    startRowStr,
+                    selection.original,
+                    false,
+                );
                 if (sel instanceof Error) {
                     return sel;
                 }
@@ -127,9 +145,17 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                 if (rows.length < 2) {
                     return new Error(`Fail split rows correctly`);
                 }
-                const selStart: IActualSelectionData | Error = this._getActualSelectionData(startRowStr, rows[0], false);
+                const selStart: IActualSelectionData | Error = this._getActualSelectionData(
+                    startRowStr,
+                    rows[0],
+                    false,
+                );
                 restore(stored);
-                const selEnd: IActualSelectionData | Error = this._getActualSelectionData(endRowStr, rows[rows.length - 1], true);
+                const selEnd: IActualSelectionData | Error = this._getActualSelectionData(
+                    endRowStr,
+                    rows[rows.length - 1],
+                    true,
+                );
                 if (selStart instanceof Error) {
                     return selStart;
                 }
@@ -165,38 +191,62 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         }
         const crossing: IComment[] = [];
         this._comments.forEach((com: IComment) => {
-            if (com.selection.start.position === com.selection.end.position &&
+            if (
+                com.selection.start.position === com.selection.end.position &&
                 com.selection.start.position === comment.selection.start.position &&
-                com.selection.end.position === comment.selection.end.position) {
-                if (comment.selection.start.offset >= com.selection.start.offset && comment.selection.start.offset <= com.selection.end.offset) {
+                com.selection.end.position === comment.selection.end.position
+            ) {
+                if (
+                    comment.selection.start.offset >= com.selection.start.offset &&
+                    comment.selection.start.offset <= com.selection.end.offset
+                ) {
                     crossing.push(com);
-                } else if (comment.selection.end.offset >= com.selection.start.offset && comment.selection.end.offset <= com.selection.end.offset) {
+                } else if (
+                    comment.selection.end.offset >= com.selection.start.offset &&
+                    comment.selection.end.offset <= com.selection.end.offset
+                ) {
                     crossing.push(com);
-                } else if (comment.selection.start.offset <= com.selection.start.offset && comment.selection.end.offset >= com.selection.end.offset) {
+                } else if (
+                    comment.selection.start.offset <= com.selection.start.offset &&
+                    comment.selection.end.offset >= com.selection.end.offset
+                ) {
                     crossing.push(com);
                 }
-            } else if (comment.selection.start.position >= com.selection.start.position && comment.selection.start.position <= com.selection.end.position) {
+            } else if (
+                comment.selection.start.position >= com.selection.start.position &&
+                comment.selection.start.position <= com.selection.end.position
+            ) {
                 crossing.push(com);
-            } else if (comment.selection.end.position >= com.selection.start.position && comment.selection.end.position <= com.selection.end.position) {
+            } else if (
+                comment.selection.end.position >= com.selection.start.position &&
+                comment.selection.end.position <= com.selection.end.position
+            ) {
                 crossing.push(com);
-            } else if (comment.selection.start.position <= com.selection.start.position && comment.selection.end.position >= com.selection.end.position) {
+            } else if (
+                comment.selection.start.position <= com.selection.start.position &&
+                comment.selection.end.position >= com.selection.end.position
+            ) {
                 crossing.push(com);
             }
         });
-        const toBeStored: { comment: IComment, recover?: IComment } | undefined = (() => {
+        const toBeStored: { comment: IComment; recover?: IComment } | undefined = (() => {
             if (crossing.length > 1) {
                 // Here should be notification
                 return;
             } else if (crossing.length === 1) {
                 const recover = Toolkit.copy(crossing[0]);
-                if (crossing[0].selection.start.position > comment.selection.start.position ||
-                   (crossing[0].selection.start.position >= comment.selection.start.position &&
-                    crossing[0].selection.start.offset > comment.selection.start.offset)) {
+                if (
+                    crossing[0].selection.start.position > comment.selection.start.position ||
+                    (crossing[0].selection.start.position >= comment.selection.start.position &&
+                        crossing[0].selection.start.offset > comment.selection.start.offset)
+                ) {
                     crossing[0].selection.start = Toolkit.copy(comment.selection.start);
                 }
-                if (crossing[0].selection.end.position < comment.selection.end.position ||
-                   (crossing[0].selection.end.position <= comment.selection.end.position &&
-                    crossing[0].selection.end.offset < comment.selection.end.offset)) {
+                if (
+                    crossing[0].selection.end.position < comment.selection.end.position ||
+                    (crossing[0].selection.end.position <= comment.selection.end.position &&
+                        crossing[0].selection.end.offset < comment.selection.end.offset)
+                ) {
                     crossing[0].selection.end = Toolkit.copy(comment.selection.end);
                 }
                 crossing[0].state = ECommentState.pending;
@@ -212,6 +262,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         this._subjects.onPending.next(toBeStored.comment);
         this.edit(toBeStored.comment, toBeStored.recover);
         OutputParsersService.updateRowsView();
+        return undefined;
     }
 
     public edit(comment: IComment, recover?: IComment) {
@@ -228,7 +279,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         };
         let anyActionCalled: boolean = false;
         comment.state = ECommentState.pending;
-        const guid: string = PopupsService.add({
+        const guid: string | undefined = PopupsService.add({
             id: 'commend-add-on-row-dialog',
             options: {
                 closable: false,
@@ -239,7 +290,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                 if (anyActionCalled) {
                     return;
                 }
-                cancel(guid);
+                guid !== undefined && cancel(guid);
             },
             component: {
                 factory: DialogsAddCommentOnRowComponent,
@@ -247,7 +298,7 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                     comment: comment,
                     accept: (text: string) => {
                         anyActionCalled = true;
-                        PopupsService.remove(guid);
+                        guid !== undefined && PopupsService.remove(guid);
                         comment.comment = text;
                         comment.state = ECommentState.done;
                         comment.modified = Date.now();
@@ -264,15 +315,15 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
                     },
                     remove: () => {
                         anyActionCalled = true;
-                        PopupsService.remove(guid);
+                        guid !== undefined && PopupsService.remove(guid);
                         this.remove(comment.guid);
                     },
                     cancel: () => {
                         anyActionCalled = true;
-                        cancel(guid);
-                    }
-                }
-            }
+                        guid !== undefined && cancel(guid);
+                    },
+                },
+            },
         });
     }
 
@@ -304,11 +355,11 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
     }
 
     public getObservable(): {
-        onAdded: Observable<IComment>,
-        onUpdated: Observable<IComment>,
-        onPending: Observable<IComment>,
-        onRemoved: Observable<string>,
-        onSelected: Observable<string>,
+        onAdded: Observable<IComment>;
+        onUpdated: Observable<IComment>;
+        onPending: Observable<IComment>;
+        onRemoved: Observable<string>;
+        onSelected: Observable<string>;
     } {
         return {
             onAdded: this._subjects.onAdded.asObservable(),
@@ -392,7 +443,11 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         return comments;
     }
 
-    private _getActualSelectionData(original: string, selected: string, readFromEnd: boolean): IActualSelectionData | Error {
+    private _getActualSelectionData(
+        original: string,
+        selected: string,
+        readFromEnd: boolean,
+    ): IActualSelectionData | Error {
         function getHolder(node: HTMLElement): HTMLElement | Error {
             if (node.nodeName.toLowerCase().search('app-views-output-row-') !== -1) {
                 return node;
@@ -405,7 +460,9 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         function getRegExpWithASCI(str: string): RegExp {
             let regStr: string = '';
             for (let i = 0; i < str.length; i += 1) {
-                regStr += `[\\u0000-\\u001f]?(\\u001b\\[[\\d;]*[HfABCDsuJKmhIp])?${Toolkit.regTools.serializeRegStr(str[i])}`;
+                regStr += `[\\u0000-\\u001f]?(\\u001b\\[[\\d;]*[HfABCDsuJKmhIp])?${Toolkit.regTools.serializeRegStr(
+                    str[i],
+                )}`;
                 //         all notprintalbe | possible ASCII codes               | single char, which we are looking for
                 //         symbols          |                                    |
             }
@@ -413,17 +470,20 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         }
         // Collapse selection to start. We need it because anchor and focus nodes can be in any order (depends
         // on how user did selection
-        if (!readFromEnd) {
-            window.getSelection().collapseToStart();
-        } else {
-            window.getSelection().collapseToEnd();
-        }
         const selection = window.getSelection();
-        if (selection === undefined) {
+        if (selection === undefined || selection === null) {
             return new Error(`No active selection`);
+        }
+        if (!readFromEnd) {
+            selection.collapseToStart();
+        } else {
+            selection.collapseToEnd();
         }
         const anchorNode = selection.anchorNode;
         const anchorOffset = selection.anchorOffset;
+        if (anchorNode === undefined || anchorNode === null) {
+            return new Error(`No anchorNode in active selection`);
+        }
         // Looking for root row node
         const holder: HTMLElement | Error = getHolder(anchorNode as HTMLElement);
         if (holder instanceof Error) {
@@ -443,7 +503,11 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
         if (before.length !== 0) {
             const regBefore = getRegExpWithASCI(before);
             const matchBefore = original.match(regBefore);
-            if (matchBefore === null || matchBefore.length === 0 || original.search(regBefore) === -1) {
+            if (
+                matchBefore === null ||
+                matchBefore.length === 0 ||
+                original.search(regBefore) === -1
+            ) {
                 return new Error(`Fail to catch begining of selection`);
             }
             selStartOffset = matchBefore[0].length;
@@ -469,5 +533,4 @@ export class ControllerSessionTabStreamComments extends Importable<IComment[]> i
             };
         }
     }
-
 }

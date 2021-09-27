@@ -1,14 +1,30 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, Input,  ChangeDetectorRef, HostListener, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    Input,
+    ChangeDetectorRef,
+    HostListener,
+    AfterContentInit,
+    AfterViewInit,
+    ViewContainerRef,
+} from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { Session } from '../../../controller/session/session';
-import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
+import {
+    NotificationsService,
+    ENotificationType,
+} from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
-import { ControllerFileMergeSession, IMergeFile, EViewMode } from '../../../controller/controller.file.merge.session';
+import {
+    ControllerFileMergeSession,
+    IMergeFile,
+    EViewMode,
+} from '../../../controller/controller.file.merge.session';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPC } from '../../../services/service.electron.ipc';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
@@ -25,19 +41,17 @@ enum EState {
 @Component({
     selector: 'app-sidebar-app-files',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
     public static StateKey = 'side-bar-merge-view';
 
-    @Input() public services: IServices;
-    @Input() public onBeforeTabRemove: Subject<void>;
-    @Input() public close: () => void;
+    @Input() public services!: IServices;
+    @Input() public onBeforeTabRemove!: Subject<void>;
+    @Input() public close!: () => void;
 
     public _ng_controller: ControllerFileMergeSession | undefined;
-    public _ng_select: Subject<IMergeFile | undefined> = new Subject<IMergeFile>();
+    public _ng_select: Subject<IMergeFile | undefined> = new Subject<IMergeFile | undefined>();
     public _ng_selected: IMergeFile | undefined;
     public _ng_state: EState = EState.ready;
     public _ng_viewMode: EViewMode = EViewMode.max;
@@ -46,13 +60,17 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
         const items: IMenuItem[] = [
             {
-                caption: this._ng_viewMode === EViewMode.max ? 'Show Time Range' : 'Show Time Format',
+                caption:
+                    this._ng_viewMode === EViewMode.max ? 'Show Time Range' : 'Show Time Format',
                 handler: () => {
-                    this._ng_viewMode = this._ng_viewMode === EViewMode.max ? EViewMode.min : EViewMode.max;
+                    this._ng_viewMode =
+                        this._ng_viewMode === EViewMode.max ? EViewMode.min : EViewMode.max;
                     this._forceUpdate();
                 },
             },
-            { /* delimiter */ },
+            {
+                /* delimiter */
+            },
             {
                 caption: this._ng_timeLineVisibility ? 'Hide Timeline' : 'Show Timeline',
                 handler: () => {
@@ -75,25 +93,35 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppMergeFilesComponent');
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef,
-                private _notifications: NotificationsService) {
-    }
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _vcRef: ViewContainerRef,
+        private _notifications: NotificationsService,
+    ) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onBeforeTabRemove = this.onBeforeTabRemove.asObservable().subscribe(this._onBeforeTabRemove.bind(this));
-        this._subscriptions.selected = this._ng_select.asObservable().subscribe(this._onSelected.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onBeforeTabRemove = this.onBeforeTabRemove
+            .asObservable()
+            .subscribe(this._onBeforeTabRemove.bind(this));
+        this._subscriptions.selected = this._ng_select
+            .asObservable()
+            .subscribe(this._onSelected.bind(this));
         this._ng_controller = this.services.MergeFilesService.getController();
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
-        this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
+        this._subscriptions.onFiles = this._dragdrop
+            .getObservable()
+            .onFiles.subscribe(this._onFilesDropped.bind(this));
     }
 
     public ngAfterViewInit() {
@@ -104,29 +132,36 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         if (this._ng_controller === undefined) {
             return;
         }
-        ElectronEnvService.get().showOpenDialog({
-            properties: ['openFile', 'showHiddenFiles', 'multiSelections']
-        }).then((result: { filePaths: string[] }) => {
-            if (!(result.filePaths instanceof Array)) {
-                return;
-            }
-            this._ng_state = EState.discover;
-            this._ng_controller.add(result.filePaths).catch((error: Error) => {
-                this._notifications.add({
-                    caption: 'Merge',
-                    message: `Fail to add files due error: ${error.message}`,
-                    options: {
-                        type: ENotificationType.error
-                    }
-                });
-            }).finally(() => {
-                this._ng_state = EState.ready;
+        ElectronEnvService.get()
+            .showOpenDialog({
+                properties: ['openFile', 'showHiddenFiles', 'multiSelections'],
+            })
+            .then((result: { filePaths: string[] }) => {
+                if (!(result.filePaths instanceof Array)) {
+                    return;
+                }
+                this._ng_state = EState.discover;
+                this._ng_controller !== undefined &&
+                    this._ng_controller
+                        .add(result.filePaths)
+                        .catch((error: Error) => {
+                            this._notifications.add({
+                                caption: 'Merge',
+                                message: `Fail to add files due error: ${error.message}`,
+                                options: {
+                                    type: ENotificationType.error,
+                                },
+                            });
+                        })
+                        .finally(() => {
+                            this._ng_state = EState.ready;
+                            this._forceUpdate();
+                        });
                 this._forceUpdate();
+            })
+            .catch((openErr: Error) => {
+                this._logger.error(`Fail add file to be merged due error: ${openErr.message}`);
             });
-            this._forceUpdate();
-        }).catch((openErr: Error) => {
-            this._logger.error(`Fail add file to be merged due error: ${openErr.message}`);
-        });
     }
 
     public _ng_onMerge() {
@@ -134,20 +169,24 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
             return;
         }
         this._ng_state = EState.merge;
-        this._ng_controller.merge().then(() => {
-            this.services.MergeFilesService.closeSidebarView();
-        }).catch((error: Error) => {
-            this._notifications.add({
-                caption: 'Merge',
-                message: `Fail to merge files due error: ${error.message}`,
-                options: {
-                    type: ENotificationType.error
-                }
+        this._ng_controller
+            .merge()
+            .then(() => {
+                this.services.MergeFilesService.closeSidebarView();
+            })
+            .catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Merge',
+                    message: `Fail to merge files due error: ${error.message}`,
+                    options: {
+                        type: ENotificationType.error,
+                    },
+                });
+            })
+            .finally(() => {
+                this._ng_state = EState.ready;
+                this._forceUpdate();
             });
-        }).finally(() => {
-            this._ng_state = EState.ready;
-            this._forceUpdate();
-        });
         this._forceUpdate();
     }
 
@@ -160,11 +199,11 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         this._forceUpdate();
     }
 
-    private _onFilesDropped(files: IPCMessages.IFile[]) {
+    private _onFilesDropped(files: IPC.IFile[]) {
         if (this._ng_controller === undefined) {
             return;
         }
-        this._ng_controller.add(files.map((file: IPCMessages.IFile) => file.path));
+        this._ng_controller.add(files.map((file: IPC.IFile) => file.path));
     }
 
     private _onSessionChange(session: Session | undefined) {
@@ -189,5 +228,4 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         }
         this._cdRef.detectChanges();
     }
-
 }

@@ -4,19 +4,20 @@ import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
-import { NotificationsService, ENotificationType } from '../../../../../services.injectable/injectable.service.notifications';
+import {
+    NotificationsService,
+    ENotificationType,
+} from '../../../../../services.injectable/injectable.service.notifications';
 import { EntityData } from '../../providers/entity.data';
 import SearchManagerService, { TRequest } from '../../service/service';
 
 @Component({
     selector: 'app-sidebar-app-searchmanager-timerangehooks',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, AfterContentInit {
-
-    @Input() provider: Provider<RangeRequest>;
+    @Input() provider!: Provider<RangeRequest>;
 
     public _ng_entries: Array<Entity<RangeRequest>> = [];
     public _ng_progress: boolean = false;
@@ -24,19 +25,20 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
-        this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
+        this._subscriptions.change = this.provider
+            .getObservable()
+            .change.subscribe(this._onDataUpdate.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
@@ -52,13 +54,15 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
     }
 
     public _ng_onApply() {
-        if (this._ng_progress) {
+        const session = this.provider.getSession();
+        if (this._ng_progress || session === undefined) {
             return;
         }
-        if (!this.provider.getSession().getTimestamp().isDetected()) {
+        if (!session.getTimestamp().isDetected()) {
             return this._notifications.add({
                 caption: 'No formats are found',
-                message: 'At least one datetime format should be defined to use time ranges. Do you want to try to detect format automatically?',
+                message:
+                    'At least one datetime format should be defined to use time ranges. Do you want to try to detect format automatically?',
                 options: {
                     type: ENotificationType.accent,
                 },
@@ -66,27 +70,34 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
                     {
                         caption: 'Detect',
                         handler: () => {
-                            this.provider.getSession().getAPI().openToolbarApp(
-                                this.provider.getSession().getAPI().getDefaultToolbarAppsIds().timemeasurement,
-                                false,
-                            );
+                            session
+                                .getAPI()
+                                .openToolbarApp(
+                                    session.getAPI().getDefaultToolbarAppsIds().timemeasurement,
+                                    false,
+                                );
                         },
                     },
-                ]
+                ],
             });
         } else {
             this._ng_progress = true;
             // Note: we can import ProviderRanges (and get rid of "any" here), but it will give us circle-dependency
-            (this.provider as any).apply().catch((err: Error) => this._notifications.add({
-                caption: 'Error',
-                message: err.message,
-                options: {
-                    type: ENotificationType.warning,
-                }
-            })).finally(() => {
-                this._ng_progress = false;
-                this._forceUpdate();
-            });
+            (this.provider as any)
+                .apply()
+                .catch((err: Error) =>
+                    this._notifications.add({
+                        caption: 'Error',
+                        message: err.message,
+                        options: {
+                            type: ENotificationType.warning,
+                        },
+                    }),
+                )
+                .finally(() => {
+                    this._ng_progress = false;
+                    this._forceUpdate();
+                });
             this._forceUpdate();
         }
     }
@@ -110,5 +121,4 @@ export class SidebarAppSearchManagerTimeRangesComponent implements OnDestroy, Af
         }
         this._cdRef.detectChanges();
     }
-
 }

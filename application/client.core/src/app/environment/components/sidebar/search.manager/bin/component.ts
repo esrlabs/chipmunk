@@ -10,36 +10,43 @@ import SearchManagerService, { EListID } from '../service/service';
     styleUrls: ['./styles.less'],
     animations: [
         trigger('inOut', [
-            state('in', style({
-                opacity: '1',
-            })),
-            state('out', style({
-                opacity: '0.0000001',
-            })),
-            transition('in => out', [
-                animate('0.2s')
-            ]),
-            transition('out => in', [
-                animate('0.2s')
-            ]),
+            state(
+                'in',
+                style({
+                    opacity: '1',
+                }),
+            ),
+            state(
+                'out',
+                style({
+                    opacity: '0.0000001',
+                }),
+            ),
+            transition('in => out', [animate('0.2s')]),
+            transition('out => in', [animate('0.2s')]),
         ]),
     ],
 })
-
 export class SidebarAppSearchManagerBinComponent implements OnDestroy {
-
     public _ng_dragging: boolean = false;
     public _ng_listID: EListID = EListID.binList;
 
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _droppedListID: EListID;
+    private _droppedListID: EListID | undefined;
     private _droppedOut: boolean = false;
-    private _ignore: boolean;
+    private _ignore: boolean | undefined;
 
     constructor() {
-        this._subscriptions.drag = SearchManagerService.observable.drag.subscribe(this._onDragStart.bind(this));
-        this._subscriptions.mouseOver = SearchManagerService.observable.mouseOver.subscribe(this._onMouseOver.bind(this));
-        this._subscriptions.mouseOverGlobal = SearchManagerService.observable.mouseOverGlobal.subscribe(this._onMouseOverGlobal.bind(this));
+        this._subscriptions.drag = SearchManagerService.observable.drag.subscribe(
+            this._onDragStart.bind(this),
+        );
+        this._subscriptions.mouseOver = SearchManagerService.observable.mouseOver.subscribe(
+            this._onMouseOver.bind(this),
+        );
+        this._subscriptions.mouseOverGlobal =
+            SearchManagerService.observable.mouseOverGlobal.subscribe(
+                this._onMouseOverGlobal.bind(this),
+            );
     }
 
     public ngOnDestroy() {
@@ -79,5 +86,4 @@ export class SidebarAppSearchManagerBinComponent implements OnDestroy {
             this._ignore = false;
         }
     }
-
 }

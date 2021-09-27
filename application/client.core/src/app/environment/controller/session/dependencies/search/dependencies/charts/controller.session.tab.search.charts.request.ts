@@ -1,9 +1,19 @@
 import { Subject, Subscription } from 'rxjs';
-import { ISearchExpression, ISearchExpressionFlags } from '../../../../../../interfaces/interface.ipc';
+import {
+    ISearchExpression,
+    ISearchExpressionFlags,
+} from '../../../../../../interfaces/interface.ipc';
 import { getMarkerRegExp } from '../../../../../../../../../../common/functionlity/functions.search.requests';
-import { AChart, IOptionsObj, EChartType } from '../../../../../../components/views/chart/charts/charts';
+import {
+    AChart,
+    IOptionsObj,
+    EChartType,
+} from '../../../../../../components/views/chart/charts/charts';
 import { isObjSame } from '../../../../../helpers/obj';
-import { IDisabledEntitySupport, EEntityTypeRef } from '../disabled/controller.session.tab.search.disabled.support';
+import {
+    IDisabledEntitySupport,
+    EEntityTypeRef,
+} from '../disabled/controller.session.tab.search.disabled.support';
 import { FilterRequest } from '../filters/controller.session.tab.search.filters.request';
 import { Session } from '../../../../session';
 
@@ -53,23 +63,22 @@ export interface IChartUpdateEvent {
 }
 
 export class ChartRequest implements IDisabledEntitySupport {
-
     private _flags: ISearchExpressionFlags;
     private _request: string;
     private _color: string;
     private _active: boolean;
-    private _hash: string;
+    private _hash!: string;
     private _guid: string;
     private _options: IOptionsObj;
     private _type: EChartType;
-    private _regexp: RegExp;
+    private _regexp!: RegExp;
     private _subscriptions: {
-        updated: Subscription[],
+        [key: string]: Subscription[];
     } = {
         updated: [],
     };
     private _subjects: {
-        updated: Subject<IChartUpdateEvent>,
+        updated: Subject<IChartUpdateEvent>;
     } = {
         updated: new Subject<IChartUpdateEvent>(),
     };
@@ -119,7 +128,7 @@ export class ChartRequest implements IDisabledEntitySupport {
         if (typeof desc.options === 'object') {
             this._options = desc.options;
         } else {
-            this._options = { };
+            this._options = {};
         }
         if (typeof desc.type === 'string') {
             this._type = desc.type;
@@ -129,7 +138,6 @@ export class ChartRequest implements IDisabledEntitySupport {
     }
 
     public destroy() {
-        this._regexp = undefined;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].forEach((subscription: Subscription) => {
                 subscription.unsubscribe();
@@ -138,7 +146,7 @@ export class ChartRequest implements IDisabledEntitySupport {
     }
 
     public onUpdated(handler: (event: IChartUpdateEvent) => void): void {
-       this._subscriptions.updated.push(this._subjects.updated.asObservable().subscribe(handler));
+        this._subscriptions.updated.push(this._subjects.updated.asObservable().subscribe(handler));
     }
 
     public getColor(): string {
@@ -186,12 +194,23 @@ export class ChartRequest implements IDisabledEntitySupport {
             },
             filter: this,
         };
-        if (typeof desc.request     === 'string'    && this.setRequest(desc.request, true)  ) { event.updated.request = true; }
-        if (typeof desc.flags       === 'string'    && this.setFlags(desc.flags, true)      ) { event.updated.request = true; }
-        if (typeof desc.active      === 'boolean'   && this.setState(desc.active, true)     ) { event.updated.state = true; }
-        if (typeof desc.options     === 'object'    && this.setOptions(desc.options, true)  ) { event.updated.options = true; }
-        if (typeof desc.color       === 'string'    && this.setColor(desc.color, true)      ) { event.updated.options = true; }
-        const hasToBeEmitted: boolean = event.updated.request || event.updated.state || event.updated.options;
+        if (typeof desc.request === 'string' && this.setRequest(desc.request, true)) {
+            event.updated.request = true;
+        }
+        if (typeof desc.flags === 'string' && this.setFlags(desc.flags, true)) {
+            event.updated.request = true;
+        }
+        if (typeof desc.active === 'boolean' && this.setState(desc.active, true)) {
+            event.updated.state = true;
+        }
+        if (typeof desc.options === 'object' && this.setOptions(desc.options, true)) {
+            event.updated.options = true;
+        }
+        if (typeof desc.color === 'string' && this.setColor(desc.color, true)) {
+            event.updated.options = true;
+        }
+        const hasToBeEmitted: boolean =
+            event.updated.request || event.updated.state || event.updated.options;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
         }
@@ -350,14 +369,16 @@ export class ChartRequest implements IDisabledEntitySupport {
     }
 
     public matches(session: Session) {
-        session.getSessionSearch().search(new FilterRequest({
-            request: this.asDesc().request,
-            flags: {
-                casesensitive: false,
-                wholeword: false,
-                regexp: true,
-            }
-        }));
+        session.getSessionSearch().search(
+            new FilterRequest({
+                request: this.asDesc().request,
+                flags: {
+                    casesensitive: false,
+                    wholeword: false,
+                    regexp: true,
+                },
+            }),
+        );
     }
 
     private _setRegExps(): boolean {
@@ -366,5 +387,4 @@ export class ChartRequest implements IDisabledEntitySupport {
         this._hash = this._regexp.source + this._regexp.flags;
         return prev !== this._hash;
     }
-
 }

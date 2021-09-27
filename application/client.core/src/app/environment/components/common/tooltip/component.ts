@@ -13,8 +13,8 @@ import {
     styleUrls: ['./styles.less'],
 })
 export class ComTooltipComponent implements OnDestroy, AfterViewInit {
-    @Input() public appTooltipText: string;
-    @Input() public appTooltipContent: TemplateRef<any>;
+    @Input() public appTooltipText!: string;
+    @Input() public appTooltipContent!: TemplateRef<any>;
     @Input() public appTooltipRefreshRate: number | undefined;
 
     private _refreshTimer: any;

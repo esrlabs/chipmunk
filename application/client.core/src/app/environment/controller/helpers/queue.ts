@@ -1,5 +1,4 @@
 export class Queue {
-
     private _tasks: Array<() => void> = [];
     private _locked: boolean = true;
 

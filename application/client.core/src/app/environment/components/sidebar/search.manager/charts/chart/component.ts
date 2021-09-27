@@ -1,5 +1,17 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewChild, ChangeDetectionStrategy } from '@angular/core';
-import { ChartRequest, IChartUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
+import {
+    Component,
+    Input,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    HostBinding,
+    ViewChild,
+    ChangeDetectionStrategy,
+} from '@angular/core';
+import {
+    ChartRequest,
+    IChartUpdateEvent,
+} from '../../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
@@ -16,22 +28,20 @@ import { tryDetectChanges } from '../../../../../controller/helpers/angular.insi
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-
 export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterContentInit {
-
     @HostBinding('class.notvalid') get cssClassNotValid() {
         return !ChartRequest.isValid(this._ng_request);
     }
 
-    @ViewChild(MatInput) _inputRefCom: MatInput;
-    @ViewChild(MatCheckbox) _stateRefCom: MatCheckbox;
+    @ViewChild(MatInput) _inputRefCom!: MatInput;
+    @ViewChild(MatCheckbox) _stateRefCom!: MatCheckbox;
 
-    @Input() entity: Entity<ChartRequest>;
-    @Input() provider: ProviderCharts;
+    @Input() entity!: Entity<ChartRequest>;
+    @Input() provider!: ProviderCharts;
 
-    public _ng_request: string;
-    public _ng_color: string;
-    public _ng_state: boolean;
+    public _ng_request!: string;
+    public _ng_color!: string;
+    public _ng_state!: boolean;
     public _ng_directive: SidebarAppSearchManagerItemDirective;
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -40,7 +50,8 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
     constructor(
         private _cdRef: ChangeDetectorRef,
         private _directive: SidebarAppSearchManagerItemDirective,
-        private _accessor: MatDragDropResetFeatureDirective) {
+        private _accessor: MatDragDropResetFeatureDirective,
+    ) {
         this._ng_directive = _directive;
         this._ng_directive.setResetFeatureAccessorRef(_accessor);
     }
@@ -50,17 +61,19 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
-        this._subscriptions.edit = this.provider.getObservable().edit.subscribe((guid: string | undefined) => {
-            if (this.entity.getGUID() === guid) {
-                this._forceUpdate();
-                if (this._inputRefCom !== undefined) {
-                    this._inputRefCom.focus();
+        this._subscriptions.edit = this.provider
+            .getObservable()
+            .edit.subscribe((guid: string | undefined) => {
+                if (this.entity.getGUID() === guid) {
+                    this._forceUpdate();
+                    if (this._inputRefCom !== undefined) {
+                        this._inputRefCom.focus();
+                    }
                 }
-            }
-        });
+            });
         this._init();
         this.entity.getEntity().onUpdated(this._onRequestUpdated.bind(this));
     }
@@ -124,5 +137,4 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
         tryDetectChanges(this._stateRefCom);
         this._cdRef.detectChanges();
     }
-
 }

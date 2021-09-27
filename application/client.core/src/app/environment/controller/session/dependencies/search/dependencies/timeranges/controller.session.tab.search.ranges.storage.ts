@@ -6,7 +6,11 @@ import {
     IDescOptional as IRangeDescOptional,
     IDescUpdating as IRangeDescUpdating,
 } from './controller.session.tab.search.ranges.request';
-import { IStore, EStoreKeys, IStoreData } from '../../dependencies/store/controller.session.tab.search.store.support';
+import {
+    IStore,
+    EStoreKeys,
+    IStoreData,
+} from '../../dependencies/store/controller.session.tab.search.store.support';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -28,17 +32,16 @@ export {
     IRangeUpdateEvent,
     IRangeDesc,
     IRangeDescOptional,
-    IRangeDescUpdating
+    IRangeDescUpdating,
 };
 
 export class RangesStorage implements IStore<IRangeDesc[]> {
-
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _stored: RangeRequest[] = [];
     private _subjects: {
-        updated: Subject<IUpdateEvent>,
-        changed: Subject<IRangeUpdateEvent>
+        updated: Subject<IUpdateEvent>;
+        changed: Subject<IRangeUpdateEvent>;
     } = {
         updated: new Subject<IUpdateEvent>(),
         changed: new Subject<IRangeUpdateEvent>(),
@@ -57,8 +60,8 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
     }
 
     public getObservable(): {
-        updated: Observable<IUpdateEvent>,
-        changed: Observable<IRangeUpdateEvent>,
+        updated: Observable<IUpdateEvent>;
+        changed: Observable<IRangeUpdateEvent>;
     } {
         return {
             updated: this._subjects.updated.asObservable(),
@@ -67,12 +70,17 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
     }
 
     public has(request: RangeRequest): boolean {
-        return this._stored.find((stored: RangeRequest) => {
-            return request.getGUID() === stored.getGUID();
-        }) !== undefined;
+        return (
+            this._stored.find((stored: RangeRequest) => {
+                return request.getGUID() === stored.getGUID();
+            }) !== undefined
+        );
     }
 
-    public add(descs: IRangeDescOptional | RangeRequest | Array<IRangeDescOptional | RangeRequest>, from?: number): Error {
+    public add(
+        descs: IRangeDescOptional | RangeRequest | Array<IRangeDescOptional | RangeRequest>,
+        from?: number,
+    ): Error | undefined {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -81,7 +89,8 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
         try {
             descs.forEach((desc: IRangeDescOptional | RangeRequest) => {
                 // Create search request
-                const range: RangeRequest = desc instanceof RangeRequest ? desc : new RangeRequest(desc);
+                const range: RangeRequest =
+                    desc instanceof RangeRequest ? desc : new RangeRequest(desc);
                 // Check request
                 if (this.has(range)) {
                     throw new Error(`Range already exist`);
@@ -97,12 +106,17 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
                 range.onUpdated(this._onRequestUpdated.bind(this));
             });
         } catch (err) {
-            return new Error(`Fail add request(s) due error: ${err.message}`);
+            return new Error(
+                `Fail add request(s) due error: ${err instanceof Error ? err.message : err}`,
+            );
         }
         if (this._stored.length === prevCount) {
-            return;
+            return undefined;
         }
-        this._subjects.updated.next({ ranges: this._stored, added: added.length === 1 ? added[0] : added });
+        this._subjects.updated.next({
+            ranges: this._stored,
+            added: added.length === 1 ? added[0] : added,
+        });
         return undefined;
     }
 
@@ -136,7 +150,7 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
     }
 
     public getAsDesc(): IRangeDescOptional[] {
-        return this._stored.map(r => r.asDesc());
+        return this._stored.map((r) => r.asDesc());
     }
 
     public reorder(params: IReorderParams) {
@@ -149,10 +163,10 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
     }
 
     public store(): {
-        key(): EStoreKeys,
-        extract(): IStoreData,
-        upload(ranges: IRangeDesc[]): void,
-        getItemsCount(): number,
+        key(): EStoreKeys;
+        extract(): IStoreData;
+        upload(ranges: IRangeDesc[]): void;
+        getItemsCount(): number;
     } {
         const self = this;
         return {
@@ -170,7 +184,7 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
             },
             getItemsCount(): number {
                 return self._stored.length;
-            }
+            },
         };
     }
 
@@ -186,5 +200,4 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
         // Remove from storage
         this._stored = [];
     }
-
 }

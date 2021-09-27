@@ -1,30 +1,31 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, Output, EventEmitter } from '@angular/core';
+import {
+    Component,
+    Input,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    Output,
+    EventEmitter,
+} from '@angular/core';
 
 @Component({
     selector: 'app-com-color-selector',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class ComColorSelectorComponent implements OnDestroy, AfterContentInit {
-
-    @Input() public color: string;
-    @Input() public colors: string[];
+    @Input() public color!: string;
+    @Input() public colors!: string[];
 
     @Output() public change = new EventEmitter();
 
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
-    }
+    public ngOnDestroy() {}
 
-    public ngOnDestroy() {
-    }
-
-    public ngAfterContentInit() {
-
-    }
+    public ngAfterContentInit() {}
 
     public _ng_onColorSelect(color: string) {
         this.color = color;

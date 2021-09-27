@@ -1,4 +1,3 @@
-
 import { CommonInterfaces } from '../../interfaces/interface.common';
 
 export interface IDependencyVersion {
@@ -13,8 +12,15 @@ export interface IDependencyState {
     description: string;
 }
 
-export const CDependencies = {
-    'electron': { name: 'Electron', description: 'Electron framework' },
+interface IDependency {
+    name: string;
+    description: string;
+}
+interface IDependenciesList {
+    [key: string]: string;
+}
+export const CDependencies: { [key: string]: IDependency } = {
+    electron: { name: 'Electron', description: 'Electron framework' },
     'electron-rebuild': { name: 'Electron Rebuild', description: 'Electron rebuild library' },
     'chipmunk.client.toolkit': { name: 'ToolKit', description: 'Rendering library' },
     'chipmunk.plugin.ipc': { name: 'IPC', description: 'Chipmunk IPC  communication library' },
@@ -23,7 +29,7 @@ export const CDependencies = {
     'angular-material': { name: 'Angular Material', description: 'Angular Material Library' },
 };
 
-export function getDependenciesVersions(versions: { [key: string]: string } | CommonInterfaces.Versions.IVersions): IDependencyVersion[] {
+export function getDependenciesVersions(versions: IDependenciesList): IDependencyVersion[] {
     const dependencies: IDependencyVersion[] = [];
     Object.keys(CDependencies).forEach((key: string) => {
         if (versions[key] === undefined) {
@@ -38,16 +44,18 @@ export function getDependenciesVersions(versions: { [key: string]: string } | Co
     return dependencies;
 }
 
-export function getDependenciesStates(dependencies: { [key: string]: string } | CommonInterfaces.Versions.IDependencies): IDependencyState[] {
+export function getDependenciesStates(
+    dependencies: CommonInterfaces.Versions.IDependencies,
+): IDependencyState[] {
     const states: IDependencyState[] = [];
     Object.keys(CDependencies).forEach((key: string) => {
-        if (dependencies[key] === undefined) {
+        if ((dependencies as any)[key] === undefined) {
             return;
         }
         states.push({
             name: CDependencies[key].name,
             description: CDependencies[key].description,
-            depended: dependencies[key],
+            depended: (dependencies as any)[key],
         });
     });
     return states;

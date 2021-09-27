@@ -1,7 +1,10 @@
 import { Subject, Observable, Subscription } from 'rxjs';
-import { IPCMessages as IPC, Subscription as IPCSubscription } from '../../../../services/service.electron.ipc';
+import { IPC, Subscription as IPCSubscription } from '../../../../services/service.electron.ipc';
 import { ControllerSessionTabSearch } from '../search/controller.session.tab.search';
-import { FilterRequest, IFilterUpdateEvent } from '../search/dependencies/filters/controller.session.tab.search.filters.storage';
+import {
+    FilterRequest,
+    IFilterUpdateEvent,
+} from '../search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { ControllerSessionTabStream } from '../stream/controller.session.tab.stream';
 import { IPositionData } from '../output/controller.session.tab.stream.output';
 import { Lock } from '../../../helpers/lock';
@@ -51,7 +54,6 @@ const CSettings = {
 };
 
 export class ControllerSessionTabMap implements Dependency {
-
     public static SearchResultMapRequestDelay: number = 250;
 
     private _guid: string;
@@ -65,7 +67,7 @@ export class ControllerSessionTabMap implements Dependency {
     private _expanded: boolean = false;
     private _width: number = CSettings.columnNarroweWidth;
     private _cached: {
-        src: IPC.ISearchResultMapData | undefined,
+        src: IPC.ISearchResultMapData | undefined;
         map: IMap;
         pending: {
             scale: number;
@@ -87,12 +89,12 @@ export class ControllerSessionTabMap implements Dependency {
     };
     private _lock: Lock = new Lock();
     private _subjects: {
-        onStateUpdate: Subject<IMapState>,
-        onPositionUpdate: Subject<IMapState>,
-        onRepaint: Subject<void>,
-        onRepainted: Subject<void>,
-        onRestyle: Subject<FilterRequest>,
-        onMapRecalculated: Subject<IMap>,
+        onStateUpdate: Subject<IMapState>;
+        onPositionUpdate: Subject<IMapState>;
+        onRepaint: Subject<void>;
+        onRepainted: Subject<void>;
+        onRestyle: Subject<FilterRequest>;
+        onMapRecalculated: Subject<IMap>;
     } = {
         onStateUpdate: new Subject(),
         onPositionUpdate: new Subject(),
@@ -111,12 +113,34 @@ export class ControllerSessionTabMap implements Dependency {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._subscriptions.SearchResultMapUpdated = ServiceElectronIpc.subscribe(IPC.SearchResultMapUpdated, this._ipc_SearchResultMapUpdated.bind(this));
-            this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(IPC.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
-            this._subscriptions.onSearchDropped = this._session().getSessionSearch().getFiltersAPI().getObservable().dropped.subscribe(this._onSearchDropped.bind(this));
-            this._subscriptions.onSearchStarted = this._session().getSessionSearch().getFiltersAPI().getObservable().searching.subscribe(this._onSearchStarted.bind(this));
-            this._subscriptions.onPositionChanged = this._session().getStreamOutput().getObservable().onPositionChanged.subscribe(this._onPositionChanged.bind(this));
-            this._subscriptions.onFiltersStyleUpdate = this._session().getSessionSearch().getFiltersAPI().getStorage().getObservable().changed.subscribe(this._onFiltersStyleUpdate.bind(this));
+            this._subscriptions.SearchResultMapUpdated = ServiceElectronIpc.subscribe(
+                IPC.SearchResultMapUpdated,
+                this._ipc_SearchResultMapUpdated.bind(this),
+            );
+            this._subscriptions.StreamUpdated = ServiceElectronIpc.subscribe(
+                IPC.StreamUpdated,
+                this._ipc_onStreamUpdated.bind(this),
+            );
+            this._subscriptions.onSearchDropped = this._session()
+                .getSessionSearch()
+                .getFiltersAPI()
+                .getObservable()
+                .dropped.subscribe(this._onSearchDropped.bind(this));
+            this._subscriptions.onSearchStarted = this._session()
+                .getSessionSearch()
+                .getFiltersAPI()
+                .getObservable()
+                .searching.subscribe(this._onSearchStarted.bind(this));
+            this._subscriptions.onPositionChanged = this._session()
+                .getStreamOutput()
+                .getObservable()
+                .onPositionChanged.subscribe(this._onPositionChanged.bind(this));
+            this._subscriptions.onFiltersStyleUpdate = this._session()
+                .getSessionSearch()
+                .getFiltersAPI()
+                .getStorage()
+                .getObservable()
+                .changed.subscribe(this._onFiltersStyleUpdate.bind(this));
             resolve();
         });
     }
@@ -148,12 +172,12 @@ export class ControllerSessionTabMap implements Dependency {
     }
 
     public getObservable(): {
-        onStateUpdate: Observable<IMapState>,
-        onPositionUpdate: Observable<IMapState>,
-        onRepaint: Observable<void>,
-        onRepainted: Observable<void>,
-        onRestyle: Observable<FilterRequest>,
-        onMapRecalculated: Observable<IMap>,
+        onStateUpdate: Observable<IMapState>;
+        onPositionUpdate: Observable<IMapState>;
+        onRepaint: Observable<void>;
+        onRepainted: Observable<void>;
+        onRestyle: Observable<FilterRequest>;
+        onMapRecalculated: Observable<IMap>;
     } {
         return {
             onStateUpdate: this._subjects.onStateUpdate.asObservable(),
@@ -166,7 +190,9 @@ export class ControllerSessionTabMap implements Dependency {
     }
 
     public toggleColumnWidth() {
-        this._width = this.isColumnsWide() ? CSettings.columnNarroweWidth : CSettings.columnWideWidth;
+        this._width = this.isColumnsWide()
+            ? CSettings.columnNarroweWidth
+            : CSettings.columnWideWidth;
     }
 
     public repainted() {
@@ -179,13 +205,15 @@ export class ControllerSessionTabMap implements Dependency {
 
     public expanding() {
         this._expanded = !this._expanded;
-        this._cached.map = this._extractMap(this._expanded, this._cached.src.map);
+        if (this._cached.src !== undefined) {
+            this._cached.map = this._extractMap(this._expanded, this._cached.src.map);
+        }
     }
 
     public getSettings(): {
-        columnWideWidth: number,
-        columnNarroweWidth: number,
-        minMarkerHeight: number,
+        columnWideWidth: number;
+        columnNarroweWidth: number;
+        minMarkerHeight: number;
     } {
         return CSettings;
     }
@@ -202,25 +230,30 @@ export class ControllerSessionTabMap implements Dependency {
         const request = () => {
             this._cached.pending.progress = true;
             const expandedReq = this._cached.pending.expanded;
-            ServiceElectronIpc.request(new IPC.SearchResultMapRequest({
-                streamId: this._guid,
-                scale: this._cached.pending.scale,
-                details: expandedReq,
-            }), IPC.SearchResultMapResponse).then((response: IPC.SearchResultMapResponse) => {
-                this._cached.src = response.getData();
-                this._cached.map = this._extractMap(expandedReq, this._cached.src.map);
-                this._subjects.onMapRecalculated.next({
-                    points: this._cached.map.points,
-                    columns: this._cached.map.columns,
+            ServiceElectronIpc.request<IPC.SearchResultMapResponse>(
+                new IPC.SearchResultMapRequest({
+                    streamId: this._guid,
+                    scale: this._cached.pending.scale,
+                    details: expandedReq,
+                }),
+                IPC.SearchResultMapResponse,
+            )
+                .then((response) => {
+                    this._cached.src = response.getData();
+                    this._cached.map = this._extractMap(expandedReq, this._cached.src.map);
+                    this._subjects.onMapRecalculated.next({
+                        points: this._cached.map.points,
+                        columns: this._cached.map.columns,
+                    });
+                    this._cached.pending.progress = false;
+                    if (this._cached.pending.scale !== -1) {
+                        // While IPC message was in progress we get new request.
+                        this.requestMapCalculation(this._cached.pending.scale, false);
+                    }
+                })
+                .catch((err: Error) => {
+                    this._logger.warn(`Fail delivery search result map due error: ${err.message}`);
                 });
-                this._cached.pending.progress = false;
-                if (this._cached.pending.scale !== -1) {
-                    // While IPC message was in progress we get new request.
-                    this.requestMapCalculation(this._cached.pending.scale, false);
-                }
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail delivery search result map due error: ${err.message}`);
-            });
             this._cached.pending.requested = -1;
             this._cached.pending.scale = -1;
         };
@@ -243,26 +276,43 @@ export class ControllerSessionTabMap implements Dependency {
         }
     }
 
-    public getMatchesMap(scale: number, range: { begin: number, end: number }): Promise<{
+    public getMatchesMap(
+        scale: number,
+        range: { begin: number; end: number },
+    ): Promise<{
         [key: number]: {
             [key: string]: number;
         };
     }> {
         return new Promise((resolve, reject) => {
-            ServiceElectronIpc.request(new IPC.SearchResultMapRequest({
-                streamId: this._guid,
-                scale: scale,
-                range: range,
-                details: true
-            }), IPC.SearchResultMapResponse).then((response: IPC.SearchResultMapResponse) => {
-                resolve(response.getData().map);
-            }).catch((err: Error) => {
-                reject(new Error(this._logger.warn(`Fail delivery search result map due error: ${err.message}`)));
-            });
+            ServiceElectronIpc.request<IPC.SearchResultMapResponse>(
+                new IPC.SearchResultMapRequest({
+                    streamId: this._guid,
+                    scale: scale,
+                    range: range,
+                    details: true,
+                }),
+                IPC.SearchResultMapResponse,
+            )
+                .then((response) => {
+                    resolve(response.getData().map);
+                })
+                .catch((err: Error) => {
+                    reject(
+                        new Error(
+                            this._logger.warn(
+                                `Fail delivery search result map due error: ${err.message}`,
+                            ),
+                        ),
+                    );
+                });
         });
     }
 
-    private _extractMap(expanded: boolean, scaled: { [key: number]: { [key: string ]: number } }): IMap {
+    private _extractMap(
+        expanded: boolean,
+        scaled: { [key: number]: { [key: string]: number } },
+    ): IMap {
         function max(matches: { [match: string]: number }): string {
             let v: number = 0;
             let n: string = '';
@@ -279,15 +329,20 @@ export class ControllerSessionTabMap implements Dependency {
             columns: 0,
         };
         const map: { [key: string]: FilterRequest } = {};
-        this._session().getSessionSearch().getFiltersAPI().getStorage().get().forEach((request: FilterRequest) => {
-            map[request.asDesc().request] = request;
-        });
+        this._session()
+            .getSessionSearch()
+            .getFiltersAPI()
+            .getStorage()
+            .get()
+            .forEach((request: FilterRequest) => {
+                map[request.asDesc().request] = request;
+            });
         let column: number = 0;
         if (expanded) {
             // Expanded
             const columns: { [key: string]: number } = {};
             Object.keys(scaled).forEach((position: number | string) => {
-                const matches: { [match: string]: number } = scaled[position];
+                const matches: { [match: string]: number } = (scaled as any)[position];
                 Object.keys(matches).forEach((match: string) => {
                     if (columns[match] === undefined) {
                         columns[match] = column;
@@ -295,7 +350,12 @@ export class ControllerSessionTabMap implements Dependency {
                     }
                     const point: IMapPoint = {
                         position: typeof position === 'number' ? position : parseInt(position, 10),
-                        color: map[match] === undefined ? '' : (map[match].getBackground() !== '' ? map[match].getBackground() : map[match].getColor()),
+                        color:
+                            map[match] === undefined
+                                ? ''
+                                : map[match].getBackground() !== ''
+                                ? map[match].getBackground()
+                                : map[match].getColor(),
                         column: columns[match],
                         description: match,
                         reg: match,
@@ -308,13 +368,18 @@ export class ControllerSessionTabMap implements Dependency {
         } else {
             // Single
             Object.keys(scaled).forEach((position: number | string) => {
-                const matches: { [match: string]: number } = scaled[position];
+                const matches: { [match: string]: number } = (scaled as any)[position];
                 const hotest: string = max(matches);
                 if (hotest !== '') {
                     const all: string[] = Object.keys(matches);
                     const point: IMapPoint = {
                         position: typeof position === 'number' ? position : parseInt(position, 10),
-                        color: map[hotest] === undefined ? '' : (map[hotest].getBackground() !== '' ? map[hotest].getBackground() : map[hotest].getColor()),
+                        color:
+                            map[hotest] === undefined
+                                ? ''
+                                : map[hotest].getBackground() !== ''
+                                ? map[hotest].getBackground()
+                                : map[hotest].getColor(),
                         column: 0,
                         description: all.join(', '),
                         reg: hotest,

@@ -1,30 +1,41 @@
 import { Observable, Subject, Subscription } from 'rxjs';
-import { FiltersStorage, FilterRequest } from '../filters/controller.session.tab.search.filters.storage';
-import { ChartsStorage, ChartRequest } from '../charts/controller.session.tab.search.charts.storage';
-import { RangesStorage, RangeRequest } from '../timeranges/controller.session.tab.search.ranges.storage';
-import { DisabledRequest, DisabledStorage } from '../disabled/controller.session.tab.search.disabled.storage';
+import {
+    FiltersStorage,
+    FilterRequest,
+} from '../filters/controller.session.tab.search.filters.storage';
+import {
+    ChartsStorage,
+    ChartRequest,
+} from '../charts/controller.session.tab.search.charts.storage';
+import {
+    RangesStorage,
+    RangeRequest,
+} from '../timeranges/controller.session.tab.search.ranges.storage';
+import {
+    DisabledRequest,
+    DisabledStorage,
+} from '../disabled/controller.session.tab.search.disabled.storage';
 import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.store.support';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
 
-import ElectronIpcService, { IPCMessages } from '../../../../../../services/service.electron.ipc';
+import ElectronIpcService, { IPC } from '../../../../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class ControllerSessionTabSearchStore implements Dependency {
-
     private _logger: Toolkit.Logger;
     private _uuid: string;
-    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = { };
+    private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _subjects: {
-        filename: Subject<string>,
+        filename: Subject<string>;
     } = {
         filename: new Subject<string>(),
     };
     private _filename: string = '';
-    private _filters: FiltersStorage;
-    private _charts: ChartsStorage;
-    private _ranges: RangesStorage;
-    private _disabled: DisabledStorage;
+    private _filters!: FiltersStorage;
+    private _charts!: ChartsStorage;
+    private _ranges!: RangesStorage;
+    private _disabled!: DisabledStorage;
     private _loading: boolean = false;
     private _accessor: {
         session: SessionGetter;
@@ -46,14 +57,23 @@ export class ControllerSessionTabSearchStore implements Dependency {
             this._charts = this._accessor.search().getChartsAPI().getStorage();
             this._ranges = this._accessor.search().getRangesAPI().getStorage();
             this._disabled = this._accessor.search().getDisabledAPI().getStorage();
-            [this._filters, this._charts, this._ranges, this._disabled].forEach((storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage, i: number) => {
-                if ((storage.getObservable() as any).updated !== undefined) {
-                    this._subscriptions[Toolkit.guid()] = (storage.getObservable() as any).updated.subscribe(this._onChanges.bind(this));
-                }
-                if ((storage.getObservable() as any).changed !== undefined) {
-                    this._subscriptions[Toolkit.guid()] = (storage.getObservable() as any).changed.subscribe(this._onChanges.bind(this));
-                }
-            });
+            [this._filters, this._charts, this._ranges, this._disabled].forEach(
+                (
+                    storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage,
+                    i: number,
+                ) => {
+                    if ((storage.getObservable() as any).updated !== undefined) {
+                        this._subscriptions[Toolkit.guid()] = (
+                            storage.getObservable() as any
+                        ).updated.subscribe(this._onChanges.bind(this));
+                    }
+                    if ((storage.getObservable() as any).changed !== undefined) {
+                        this._subscriptions[Toolkit.guid()] = (
+                            storage.getObservable() as any
+                        ).changed.subscribe(this._onChanges.bind(this));
+                    }
+                },
+            );
             resolve();
         });
     }
@@ -72,7 +92,7 @@ export class ControllerSessionTabSearchStore implements Dependency {
     }
 
     public getObservable(): {
-        filename: Observable<string>,
+        filename: Observable<string>;
     } {
         return {
             filename: this._subjects.filename.asObservable(),
@@ -86,73 +106,108 @@ export class ControllerSessionTabSearchStore implements Dependency {
     public load(file?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             this._loading = true;
-            ElectronIpcService.request(new IPCMessages.FiltersLoadRequest({
-                file: file,
-            }), IPCMessages.FiltersLoadResponse).then((response: IPCMessages.FiltersLoadResponse) => {
-                if (response.error !== undefined) {
-                    return reject(new Error(response.error));
-                }
-                let store: IStoreData = {};
-                try {
-                    store = JSON.parse(response.store);
-                } catch (e) {
-                    this._logger.error(`Fail parse filters due error: ${e.message}`);
-                    return;
-                }
-                [this._filters, this._charts, this._ranges, this._disabled].forEach((storage: IStore<any>) => {
-                    if (typeof store[storage.store().key()] !== 'object' || store[storage.store().key()] === null) {
+            ElectronIpcService.request<IPC.FiltersLoadResponse>(
+                new IPC.FiltersLoadRequest({
+                    file: file,
+                }),
+                IPC.FiltersLoadResponse,
+            )
+                .then((response) => {
+                    if (response.error !== undefined) {
+                        return reject(new Error(response.error));
+                    }
+                    if (response.store === undefined) {
+                        return reject(
+                            new Error(
+                                this._logger.error(`FiltersLoadResponse returns invalid results`),
+                            ),
+                        );
+                    }
+                    let store: IStoreData = {};
+                    try {
+                        store = JSON.parse(response.store);
+                    } catch (err) {
+                        this._logger.error(
+                            `Fail parse filters due error: ${
+                                err instanceof Error ? err.message : err
+                            }`,
+                        );
                         return;
                     }
-                    storage.store().upload(store[storage.store().key()]);
+                    [this._filters, this._charts, this._ranges, this._disabled].forEach(
+                        (storage: IStore<any>) => {
+                            if (
+                                typeof store[storage.store().key()] !== 'object' ||
+                                store[storage.store().key()] === null
+                            ) {
+                                return;
+                            }
+                            storage.store().upload(store[storage.store().key()]);
+                        },
+                    );
+                    this.setCurrentFile(response.file);
+                    this._loading = false;
+                    resolve(response.file);
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail to load filters due error: ${error.message}`);
+                    this._loading = false;
+                    reject(error);
                 });
-                this.setCurrentFile(response.file);
-                this._loading = false;
-                resolve(response.file);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to load filters due error: ${error.message}`);
-                this._loading = false;
-                reject(error);
-            });
         });
     }
 
-    public save(filename: string): Promise<string> {
+    public save(filename: string | undefined): Promise<string> {
         return new Promise((resolve, reject) => {
             const store: IStoreData = {};
             let count: number = 0;
-            [this._filters, this._charts, this._ranges, this._disabled].forEach((storage: IStore<any>) => {
-                store[storage.store().key()] = storage.store().extract();
-                count += storage.store().getItemsCount();
-            });
-            ElectronIpcService.request(new IPCMessages.FiltersSaveRequest({
-                store: JSON.stringify(store),
-                count: count,
-                file: typeof filename === 'string' ? filename : undefined,
-            }), IPCMessages.FiltersSaveResponse).then((response: IPCMessages.FiltersSaveResponse) => {
-                if (response.error !== undefined) {
-                    return new Error(response.error);
-                }
-                this.setCurrentFile(response.filename);
-                resolve(response.filename);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to save filters due error: ${error.message}`);
-                reject(error);
-            });
+            [this._filters, this._charts, this._ranges, this._disabled].forEach(
+                (storage: IStore<any>) => {
+                    store[storage.store().key()] = storage.store().extract();
+                    count += storage.store().getItemsCount();
+                },
+            );
+            ElectronIpcService.request<IPC.FiltersSaveResponse>(
+                new IPC.FiltersSaveRequest({
+                    store: JSON.stringify(store),
+                    count: count,
+                    file: typeof filename === 'string' ? filename : undefined,
+                }),
+                IPC.FiltersSaveResponse,
+            )
+                .then((response) => {
+                    if (response.error !== undefined) {
+                        return reject(new Error(response.error));
+                    }
+                    this.setCurrentFile(response.filename);
+                    resolve(response.filename);
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail to save filters due error: ${error.message}`);
+                    reject(error);
+                });
         });
     }
 
     public clear(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.FiltersFilesRecentResetRequest(), IPCMessages.FiltersFilesRecentResetResponse).then((message: IPCMessages.FiltersFilesRecentResetResponse) => {
-                if (message.error) {
-                    this._logger.error(`Fail to reset recent files due error: ${message.error}`);
-                    return reject(new Error(message.error));
-                }
-                resolve();
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to reset recent files due error: ${error.message}`);
-                reject(error);
-            });
+            ElectronIpcService.request<IPC.FiltersFilesRecentResetResponse>(
+                new IPC.FiltersFilesRecentResetRequest(),
+                IPC.FiltersFilesRecentResetResponse,
+            )
+                .then((message) => {
+                    if (message.error) {
+                        this._logger.error(
+                            `Fail to reset recent files due error: ${message.error}`,
+                        );
+                        return reject(new Error(message.error));
+                    }
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail to reset recent files due error: ${error.message}`);
+                    reject(error);
+                });
         });
     }
 
@@ -169,13 +224,14 @@ export class ControllerSessionTabSearchStore implements Dependency {
             return;
         }
         let count: number = 0;
-        [this._filters, this._charts, this._ranges, this._disabled].forEach((storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage) => {
-            count += storage.get().length;
-        });
+        [this._filters, this._charts, this._ranges, this._disabled].forEach(
+            (storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage) => {
+                count += storage.get().length;
+            },
+        );
         if (count === 0) {
             return;
         }
         this.save(this.getCurrentFile());
     }
-
 }

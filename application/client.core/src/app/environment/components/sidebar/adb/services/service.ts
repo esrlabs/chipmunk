@@ -1,7 +1,7 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import { IAdbDevice, IAdbProcess } from '../../../../../../../../common/interfaces/interface.adb';
 
-import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
+import ElectronIpcService, { IPC } from '../../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -22,19 +22,19 @@ export class SidebarAppAdbService {
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _subjects: {
         onAmount: Subject<IAmount>;
-        onDisconnect: Subject<IPCMessages.IAdbDeviceDisconnected>;
+        onDisconnect: Subject<IPC.IAdbDeviceDisconnected>;
     } = {
         onAmount: new Subject<IAmount>(),
-        onDisconnect: new Subject<IPCMessages.IAdbDeviceDisconnected>(),
+        onDisconnect: new Subject<IPC.IAdbDeviceDisconnected>(),
     };
 
     constructor() {
         this._subscriptions.AdbStreamUpdated = ElectronIpcService.subscribe(
-            IPCMessages.AdbStreamUpdated,
+            IPC.AdbStreamUpdated,
             this._onAdbStreamUpdated.bind(this),
         );
         this._subscriptions.AdbDeviceDisconnected = ElectronIpcService.subscribe(
-            IPCMessages.AdbDeviceDisconnected,
+            IPC.AdbDeviceDisconnected,
             this._onAdbDeviceDisconnected.bind(this),
         );
     }
@@ -47,7 +47,7 @@ export class SidebarAppAdbService {
 
     public getObservable(): {
         onAmount: Observable<IAmount>;
-        onDisconnect: Observable<IPCMessages.IAdbDeviceDisconnected>;
+        onDisconnect: Observable<IPC.IAdbDeviceDisconnected>;
     } {
         return {
             onAmount: this._subjects.onAmount.asObservable(),
@@ -67,14 +67,14 @@ export class SidebarAppAdbService {
         return this._errorMessage;
     }
 
-    public prepare(request: IPCMessages.IAdbStartServerRequest): Promise<void> {
+    public prepare(request: IPC.IAdbStartServerRequest): Promise<void> {
         this._status = EAdbStatus.init;
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(
-                new IPCMessages.AdbStartServerRequest(request),
-                IPCMessages.AdbStartServerResponse,
+                new IPC.AdbStartServerRequest(request),
+                IPC.AdbStartServerResponse,
             )
-                .then((response: IPCMessages.AdbStartServerResponse) => {
+                .then((response: IPC.AdbStartServerResponse) => {
                     if (response.error !== undefined) {
                         this._errorMessage = response.error;
                         this._status = EAdbStatus.error;
@@ -91,13 +91,10 @@ export class SidebarAppAdbService {
         });
     }
 
-    public getDevices(request: IPCMessages.IAdbDevicesRequest): Promise<IAdbDevice[]> {
+    public getDevices(request: IPC.IAdbDevicesRequest): Promise<IAdbDevice[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
-                new IPCMessages.AdbDevicesRequest(request),
-                IPCMessages.AdbDevicesResponse,
-            )
-                .then((response: IPCMessages.AdbDevicesResponse) => {
+            ElectronIpcService.request(new IPC.AdbDevicesRequest(request), IPC.AdbDevicesResponse)
+                .then((response: IPC.AdbDevicesResponse) => {
                     if (response.error !== undefined) {
                         return reject(new Error(response.error));
                     }
@@ -109,13 +106,13 @@ export class SidebarAppAdbService {
         });
     }
 
-    public getProcesses(request: IPCMessages.IAdbProcessesRequest): Promise<IAdbProcess[]> {
+    public getProcesses(request: IPC.IAdbProcessesRequest): Promise<IAdbProcess[]> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request(
-                new IPCMessages.AdbProcessesRequest(request),
-                IPCMessages.AdbProcessesResponse,
+                new IPC.AdbProcessesRequest(request),
+                IPC.AdbProcessesResponse,
             )
-                .then((response: IPCMessages.AdbProcessesResponse) => {
+                .then((response: IPC.AdbProcessesResponse) => {
                     if (response.error !== undefined) {
                         return reject(new Error(response.error));
                     }
@@ -127,13 +124,10 @@ export class SidebarAppAdbService {
         });
     }
 
-    public start(request: IPCMessages.IAdbStartRequest): Promise<void> {
+    public start(request: IPC.IAdbStartRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
-                new IPCMessages.AdbStartRequest(request),
-                IPCMessages.AdbStartResponse,
-            )
-                .then((response: IPCMessages.AdbStartResponse) => {
+            ElectronIpcService.request(new IPC.AdbStartRequest(request), IPC.AdbStartResponse)
+                .then((response: IPC.AdbStartResponse) => {
                     resolve();
                 })
                 .catch((error: Error) => {
@@ -142,13 +136,10 @@ export class SidebarAppAdbService {
         });
     }
 
-    public stop(request: IPCMessages.IAdbStopRequest): Promise<void> {
+    public stop(request: IPC.IAdbStopRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
-                new IPCMessages.AdbStopRequest(request),
-                IPCMessages.AdbStopResponse,
-            )
-                .then((response: IPCMessages.AdbStopResponse) => {
+            ElectronIpcService.request(new IPC.AdbStopRequest(request), IPC.AdbStopResponse)
+                .then((response: IPC.AdbStopResponse) => {
                     if (response.error !== undefined) {
                         return reject(new Error(response.error));
                     }
@@ -160,7 +151,7 @@ export class SidebarAppAdbService {
         });
     }
 
-    public change(request: IPCMessages.IAdbStartRequest): Promise<void> {
+    public change(request: IPC.IAdbStartRequest): Promise<void> {
         return new Promise((resolve, reject) => {
             this.start(request)
                 .then(() => {
@@ -172,13 +163,10 @@ export class SidebarAppAdbService {
         });
     }
 
-    public restore(request: IPCMessages.IAdbLoadRequest): Promise<IPCMessages.AdbLoadResponse> {
+    public restore(request: IPC.IAdbLoadRequest): Promise<IPC.AdbLoadResponse> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
-                new IPCMessages.AdbLoadRequest(request),
-                IPCMessages.AdbLoadResponse,
-            )
-                .then((response: IPCMessages.AdbLoadResponse) => {
+            ElectronIpcService.request(new IPC.AdbLoadRequest(request), IPC.AdbLoadResponse)
+                .then((response: IPC.AdbLoadResponse) => {
                     resolve(response);
                 })
                 .catch((error: Error) => {
@@ -199,14 +187,14 @@ export class SidebarAppAdbService {
         }
     }
 
-    private _onAdbStreamUpdated(response: IPCMessages.AdbStreamUpdated) {
+    private _onAdbStreamUpdated(response: IPC.AdbStreamUpdated) {
         this._subjects.onAmount.next({
             guid: response.guid,
             amount: this.bytesToString(response.amount),
         });
     }
 
-    private _onAdbDeviceDisconnected(response: IPCMessages.AdbDeviceDisconnected) {
+    private _onAdbDeviceDisconnected(response: IPC.AdbDeviceDisconnected) {
         this._subjects.onDisconnect.next({
             guid: response.guid,
             device: response.device,

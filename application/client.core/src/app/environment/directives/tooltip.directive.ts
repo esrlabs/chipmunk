@@ -5,7 +5,7 @@ import {
     TemplateRef,
     ElementRef,
     ComponentRef,
-    OnDestroy
+    OnDestroy,
 } from '@angular/core';
 import { Overlay, OverlayPositionBuilder, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
@@ -15,11 +15,11 @@ import { ComTooltipComponent } from '../components/common/tooltip/component';
     selector: '[appTooltip]',
 })
 export class ToolTipDirective implements OnDestroy {
-    @Input() public appTooltipText: string;
-    @Input() public appTooltipContent: TemplateRef<any>;
+    @Input() public appTooltipText!: string;
+    @Input() public appTooltipContent!: TemplateRef<any>;
     @Input() public appTooltipRefreshRate: number | undefined;
 
-    private _overlayRef: OverlayRef;
+    private _overlayRef!: OverlayRef;
 
     constructor(
         private _overlay: Overlay,
@@ -30,17 +30,17 @@ export class ToolTipDirective implements OnDestroy {
     @HostListener('mouseenter') show() {
         if (this._overlayRef === undefined) {
             const positionStrategy = this._overlayPositionBuilder
-            .flexibleConnectedTo(this._elementRef)
-            .withPositions([
-                {
-                    originX: 'center',
-                    originY: 'bottom',
-                    overlayX: 'center',
-                    overlayY: 'top',
-                    offsetY: 5,
-                    offsetX: 5,
-                },
-            ]);
+                .flexibleConnectedTo(this._elementRef)
+                .withPositions([
+                    {
+                        originX: 'center',
+                        originY: 'bottom',
+                        overlayX: 'center',
+                        overlayY: 'top',
+                        offsetY: 5,
+                        offsetX: 5,
+                    },
+                ]);
             this._overlayRef = this._overlay.create({ positionStrategy });
         }
         if (!this._overlayRef.hasAttached()) {

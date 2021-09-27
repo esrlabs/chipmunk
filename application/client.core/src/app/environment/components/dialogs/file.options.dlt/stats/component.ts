@@ -1,4 +1,12 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, NgZone } from '@angular/core';
+import {
+    Component,
+    Input,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterViewInit,
+    ViewChild,
+    NgZone,
+} from '@angular/core';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as ThemeColors from '../../../../theme/colors';
 import { MatSort, Sort } from '@angular/material/sort';
@@ -17,7 +25,7 @@ enum ELogLevel {
     log_invalid = 'log_invalid',
 }
 
-const CLevelsColors = {
+const CLevelsColors: { [key: string]: string } = {
     [ELogLevel.non_log]: ThemeColors.scheme_color_3,
     [ELogLevel.log_fatal]: ThemeColors.scheme_color_error,
     [ELogLevel.log_error]: ThemeColors.scheme_color_error,
@@ -50,30 +58,27 @@ export interface IForceSortData {
 @Component({
     selector: 'app-views-dialogs-file-options-dlt-stats',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterViewInit {
+    @Input() public id!: string;
+    @Input() public caption!: string;
+    @Input() public stats!: IStatRow[];
+    @Input() public display!: ELogLevel[];
+    @Input() public filter!: Observable<string>;
+    @Input() public sort!: Subject<IForceSortData>;
 
-    @Input() public id: string;
-    @Input() public caption: string;
-    @Input() public stats: IStatRow[];
-    @Input() public display: ELogLevel[];
-    @Input() public filter: Observable<string>;
-    @Input() public sort: Subject<IForceSortData>;
+    @ViewChild(MatSort, { static: true }) _ng_sortDirRef!: MatSort;
 
-    @ViewChild(MatSort, { static: true }) _ng_sortDirRef: MatSort;
-
-    public _ng_source: MatTableDataSource<IStatRow> = new MatTableDataSource([]);
+    public _ng_source: MatTableDataSource<IStatRow> = new MatTableDataSource<IStatRow>([]);
 
     private _logger: Toolkit.Logger = new Toolkit.Logger(`DialogsFileOptionsDltStatsComponent`);
     private _guid: string = Toolkit.guid();
     private _destroyed: boolean = false;
-    private _subscriptions: { [key: string]: Subscription } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _event: IForceSortData | undefined;
 
-    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {}
 
     public ngAfterViewInit() {
         this._ng_source = new MatTableDataSource<IStatRow>(this.stats);
@@ -81,7 +86,9 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
             return stat.id.trim().toLowerCase().includes(filter);
         };
         this._ng_source.sort = this._ng_sortDirRef;
-        this._subscriptions.sortChange = this._ng_sortDirRef.sortChange.subscribe(this._onSortChange.bind(this));
+        this._subscriptions.sortChange = this._ng_sortDirRef.sortChange.subscribe(
+            this._onSortChange.bind(this),
+        );
         this._subscriptions.filter = this.filter.subscribe(this._onFilterChange.bind(this));
         this._subscriptions.sort = this.sort.asObservable().subscribe(this._onSortForce.bind(this));
         this._forceUpdate();
@@ -111,11 +118,13 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
                 caption: `Deselect All`,
                 handler: this._setStateTo.bind(this, false),
             },
-            { /* delimiter */ },
+            {
+                /* delimiter */
+            },
             {
                 caption: `Reverse Selection`,
                 handler: this._reverseState.bind(this, true),
-            }
+            },
         ];
         ContextMenuService.show({
             items: items,
@@ -126,24 +135,28 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
         event.preventDefault();
     }
 
-    public _ng_onStateChange(event) {
+    public _ng_onStateChange() {
         this._forceUpdate();
     }
 
     public getSelected(): string[] {
-        return this.stats.filter((stat: IStatRow) => {
-            return stat.state;
-        }).map((stat: IStatRow) => {
-            return stat.id;
-        });
+        return this.stats
+            .filter((stat: IStatRow) => {
+                return stat.state;
+            })
+            .map((stat: IStatRow) => {
+                return stat.id;
+            });
     }
 
     public getUnselected(): string[] {
-        return this.stats.filter((stat: IStatRow) => {
-            return !stat.state;
-        }).map((stat: IStatRow) => {
-            return stat.id;
-        });
+        return this.stats
+            .filter((stat: IStatRow) => {
+                return !stat.state;
+            })
+            .map((stat: IStatRow) => {
+                return stat.id;
+            });
     }
 
     public getId(): string {
@@ -156,13 +169,13 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
         }
         if (event.direction === 'asc' || event.direction === 'desc') {
             this._event = event;
-            this._ng_source.sort.sort({
-                disableClear: true,
-                id: event.column,
-                start: event.direction,
-            });
+            this._ng_source.sort !== null &&
+                this._ng_source.sort.sort({
+                    disableClear: true,
+                    id: event.column,
+                    start: event.direction,
+                });
         } else {
-
         }
         this._forceUpdate();
     }
@@ -191,7 +204,11 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
     }
 
     private _onSortChange(event: Sort) {
-        if (this._event !== undefined && this._event.column === event.active && this._event.direction === event.direction) {
+        if (
+            this._event !== undefined &&
+            this._event.column === event.active &&
+            this._event.direction === event.direction
+        ) {
             this._event = undefined;
             return;
         }
@@ -209,5 +226,4 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
         }
         this._cdRef.detectChanges();
     }
-
 }

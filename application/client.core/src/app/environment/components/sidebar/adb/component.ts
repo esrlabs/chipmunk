@@ -4,12 +4,10 @@ import { SidebarAppAdbService } from './services/service';
 @Component({
     selector: 'app-sidebar-app-adb',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppAdbComponent implements OnInit, OnDestroy {
-
-    public _ng_service: SidebarAppAdbService;
+    public _ng_service!: SidebarAppAdbService;
 
     constructor() {}
 
@@ -20,5 +18,4 @@ export class SidebarAppAdbComponent implements OnInit, OnDestroy {
     public ngOnDestroy() {
         this._ng_service.destroy();
     }
-
 }

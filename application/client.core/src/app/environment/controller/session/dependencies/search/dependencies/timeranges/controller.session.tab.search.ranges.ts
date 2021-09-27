@@ -14,7 +14,7 @@ import {
 } from './controller.session.tab.search.ranges.storage';
 import { FilterRequest } from '../filters/controller.session.tab.search.filters.request';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
-import { IPCMessages } from '../../../../../../services/service.electron.ipc';
+import { IPC } from '../../../../../../services/service.electron.ipc';
 import { getColorHolder } from '../../../../../../theme/colors';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
 
@@ -38,10 +38,11 @@ export interface ISubjects {
 
 export class ControllerSessionTabSearchRanges
     extends Importable<IRangeDescOptional[]>
-    implements Dependency {
+    implements Dependency
+{
     private _logger: Toolkit.Logger;
     private _guid: string;
-    private _storage: RangesStorage;
+    private _storage!: RangesStorage;
     private _subjects: ISubjects = {
         updated: new Subject<RangesStorage>(),
         searching: new Subject<string>(),
@@ -49,13 +50,11 @@ export class ControllerSessionTabSearchRanges
         onExport: new Subject<void>(),
     };
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
-    private _tasks: Map<
-        string,
-        CancelablePromise<CommonInterfaces.TimeRanges.IRange[]>
-    > = new Map();
+    private _tasks: Map<string, CancelablePromise<CommonInterfaces.TimeRanges.IRange[]>> =
+        new Map();
     private _accessor: {
-        session: SessionGetter,
-        search: SearchSessionGetter,
+        session: SessionGetter;
+        search: SearchSessionGetter;
     };
 
     constructor(uuid: string, session: SessionGetter, search: SearchSessionGetter) {
@@ -136,8 +135,8 @@ export class ControllerSessionTabSearchRanges
             CommonInterfaces.TimeRanges.IRange[]
         >((resolve, reject) => {
             this._subjects.searching.next(range.getGUID());
-            ServiceElectronIpc.request(
-                new IPCMessages.TimerangeSearchRequest({
+            ServiceElectronIpc.request<IPC.TimerangeSearchResponse>(
+                new IPC.TimerangeSearchRequest({
                     session: this._guid,
                     id: range.getGUID(),
                     points: range.getPoints().map((filter: FilterRequest) => {
@@ -150,9 +149,9 @@ export class ControllerSessionTabSearchRanges
                     format: format,
                     replacements: {},
                 }),
-                IPCMessages.TimerangeSearchResponse,
+                IPC.TimerangeSearchResponse,
             )
-                .then((response: IPCMessages.TimerangeSearchResponse) => {
+                .then((response) => {
                     const getColor: (index: number) => string = getColorHolder(range.getColor());
                     if (response.error !== undefined) {
                         return reject(
@@ -166,10 +165,10 @@ export class ControllerSessionTabSearchRanges
                         );
                     }
                     const ranges: IAddRange[] = [];
-                    response.ranges.forEach((item) => {
+                    response.ranges.forEach((item: IPC.IRange) => {
                         const group = this._accessor.session().getTimestamp().getNextGroup();
                         const alias = range.getGUID();
-                        item.points.forEach((point, index) => {
+                        item.points.forEach((point: IPC.IRow, index: number) => {
                             if (item.points[index + 1] === undefined) {
                                 return;
                             }

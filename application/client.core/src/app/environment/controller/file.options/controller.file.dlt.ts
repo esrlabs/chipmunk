@@ -1,15 +1,16 @@
 import { AControllerFileOptions } from '../../interfaces/interface.controller.file.options';
-import { IPCMessages } from '../../services/service.electron.ipc';
+import { IPC } from '../../services/service.electron.ipc';
 import { DialogsFileOptionsDltComponent } from '../../components/dialogs/file.options.dlt/component';
 import PopupsService from '../../services/standalone/service.popups';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class ControllerDltFileOptions extends AControllerFileOptions {
-
-    public getOptions(request: IPCMessages.FileGetOptionsRequest): Promise<CommonInterfaces.DLT.IDLTOptions> {
+    public getOptions(
+        request: IPC.FileGetOptionsRequest,
+    ): Promise<CommonInterfaces.DLT.IDLTOptions> {
         return new Promise((resolve, reject) => {
-            const guid: string = PopupsService.add({
+            const guid: string | undefined = PopupsService.add({
                 id: 'dlt-options-dialog',
                 options: {
                     closable: false,
@@ -23,22 +24,25 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
                         fullFileName: request.fullFileName,
                         size: request.size,
                         onDone: (options: CommonInterfaces.DLT.IDLTOptions) => {
-                            PopupsService.remove(guid);
+                            guid !== undefined && PopupsService.remove(guid);
                             resolve(options);
                         },
                         onDefaultCancelAction: () => {
-                            PopupsService.remove(guid);
+                            guid !== undefined && PopupsService.remove(guid);
                             reject(new Error(`Cancel opening file`));
                         },
-                    }
-                }
+                    },
+                },
             });
         });
     }
 
-    public reopen(file: string, options: CommonInterfaces.DLT.IDLTOptions): Promise<CommonInterfaces.DLT.IDLTOptions> {
+    public reopen(
+        file: string,
+        options: CommonInterfaces.DLT.IDLTOptions,
+    ): Promise<CommonInterfaces.DLT.IDLTOptions> {
         return new Promise((resolve, reject) => {
-            const guid: string = PopupsService.add({
+            const guid: string | undefined = PopupsService.add({
                 id: 'dlt-options-dialog-reopen',
                 options: {
                     closable: false,
@@ -52,17 +56,16 @@ export class ControllerDltFileOptions extends AControllerFileOptions {
                         fullFileName: file,
                         options: options,
                         onDone: (opts: CommonInterfaces.DLT.IDLTOptions) => {
-                            PopupsService.remove(guid);
+                            guid !== undefined && PopupsService.remove(guid);
                             resolve(opts);
                         },
                         onDefaultCancelAction: () => {
-                            PopupsService.remove(guid);
+                            guid !== undefined && PopupsService.remove(guid);
                             reject(new Error(`Cancel reopening file`));
                         },
-                    }
-                }
+                    },
+                },
             });
         });
     }
-
 }

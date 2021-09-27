@@ -1,16 +1,32 @@
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit, ViewContainerRef, ViewChild, ViewEncapsulation } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    Input,
+    AfterContentInit,
+    AfterViewInit,
+    ViewContainerRef,
+    ViewChild,
+    ViewEncapsulation,
+} from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Subscription, Subject } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import { Session } from '../../../controller/session/session';
-import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
+import {
+    NotificationsService,
+    ENotificationType,
+} from '../../../services.injectable/injectable.service.notifications';
 import { IServices } from '../../../services/shared.services.sidebar';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
-import { ControllerFileConcatSession, IConcatFile } from '../../../controller/controller.file.concat.session';
-import { IPCMessages } from '../../../services/service.electron.ipc';
+import {
+    ControllerFileConcatSession,
+    IConcatFile,
+} from '../../../controller/controller.file.concat.session';
+import { IPC } from '../../../services/service.electron.ipc';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -20,10 +36,15 @@ import ElectronEnvService from '../../../services/service.electron.env';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class SearchErrorStateMatcher implements ErrorStateMatcher {
-
     private _valid: boolean = true;
 
-    public isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    public isErrorState(
+        control: FormControl | null,
+        form: FormGroupDirective | NgForm | null,
+    ): boolean {
+        if (control === null) {
+            return false;
+        }
         this._valid = Toolkit.regTools.isRegStrValid(control.value);
         return !this._valid;
     }
@@ -31,7 +52,6 @@ export class SearchErrorStateMatcher implements ErrorStateMatcher {
     public isValid(): boolean {
         return this._valid;
     }
-
 }
 
 enum EState {
@@ -45,36 +65,40 @@ enum EState {
     selector: 'app-sidebar-app-concat-files',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
 })
-
 export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
     public static StateKey = 'side-bar-concat-view';
 
-    @Input() public services: IServices;
-    @Input() public onBeforeTabRemove: Subject<void>;
-    @Input() public close: () => void;
+    @Input() public services!: IServices;
+    @Input() public onBeforeTabRemove!: Subject<void>;
+    @Input() public close!: () => void;
 
     public _ng_search: string = '';
-    public _ng_files: MatTableDataSource<IConcatFile> = new MatTableDataSource([]);
+    public _ng_files: MatTableDataSource<IConcatFile> = new MatTableDataSource<IConcatFile>([]);
     public _ng_search_error: SearchErrorStateMatcher = new SearchErrorStateMatcher();
     public _ng_state: EState = EState.ready;
 
-    @ViewChild(MatSort, { static: true }) _ng_sortDirRef: MatSort;
+    @ViewChild(MatSort, { static: true }) _ng_sortDirRef!: MatSort;
 
     private _controller: ControllerFileConcatSession | undefined;
     private _dragdrop: ControllerComponentsDragDropFiles | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _subscriptionsSession: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppConcatFilesComponent');
-    private _keyboard: { ctrl: boolean, cmd: boolean, shift: boolean } = { ctrl: false, cmd: false, shift: false };
+    private _keyboard: { ctrl: boolean; cmd: boolean; shift: boolean } = {
+        ctrl: false,
+        cmd: false,
+        shift: false,
+    };
     private _lastSelectedIndex: number = -1;
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef,
-                private _notifications: NotificationsService) {
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _vcRef: ViewContainerRef,
+        private _notifications: NotificationsService,
+    ) {
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
         window.addEventListener('keydown', this._onKeyDown, true);
@@ -91,12 +115,15 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         });
         window.removeEventListener('keydown', this._onKeyDown);
         window.removeEventListener('keyup', this._onKeyUp);
-    }
+    }
 
     public ngAfterContentInit() {
         this._controller = this.services.ConcatFilesService.getController();
         this._subscribe();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         if (this._controller !== undefined) {
             this._ng_search = this._controller.getRegExpStr();
         }
@@ -105,8 +132,12 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
     public ngAfterViewInit() {
         this._initTableSources();
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
-        this._subscriptions.onFiles = this._dragdrop.getObservable().onFiles.subscribe(this._onFilesDropped.bind(this));
-        this._subscriptions.onBeforeTabRemove = this.onBeforeTabRemove.asObservable().subscribe(this._onBeforeTabRemove.bind(this));
+        this._subscriptions.onFiles = this._dragdrop
+            .getObservable()
+            .onFiles.subscribe(this._onFilesDropped.bind(this));
+        this._subscriptions.onBeforeTabRemove = this.onBeforeTabRemove
+            .asObservable()
+            .subscribe(this._onBeforeTabRemove.bind(this));
     }
 
     public _ng_onRemove(file: IConcatFile) {
@@ -121,57 +152,70 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
             return;
         }
         this._ng_state = EState.concat;
-        this._controller.concat().then(() => {
-            this.services.ConcatFilesService.closeSidebarView();
-        }).catch((error: Error) => {
-            this._notifications.add({
-                caption: 'Concat',
-                message: `Fail to concat files due error: ${error.message}`,
-                options: {
-                    type: ENotificationType.error
-                }
+        this._controller
+            .concat()
+            .then(() => {
+                this.services.ConcatFilesService.closeSidebarView();
+            })
+            .catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Concat',
+                    message: `Fail to concat files due error: ${error.message}`,
+                    options: {
+                        type: ENotificationType.error,
+                    },
+                });
+            })
+            .finally(() => {
+                this._ng_state = EState.ready;
+                this._forceUpdate();
             });
-        }).finally(() => {
-            this._ng_state = EState.ready;
-            this._forceUpdate();
-        });
         this._forceUpdate();
     }
 
     public _ng_onAddFile() {
-        ElectronEnvService.get().showOpenDialog({
-            properties: ['openFile', 'showHiddenFiles', 'multiSelections']
-        }).then((result: { filePaths: string[] }) => {
-            if (!(result.filePaths instanceof Array)) {
-                return;
-            }
-            if (this._controller === undefined) {
-                return;
-            }
-            this._ng_state = EState.add;
-            this._controller.add(result.filePaths).catch((error: Error) => {
-                this._notifications.add({
-                    caption: 'Concat',
-                    message: `Fail add file due error: ${error.message}`,
-                    options: {
-                        type: ENotificationType.error
-                    }
-                });
-            }).finally(() => {
-                this._ng_state = EState.ready;
+        ElectronEnvService.get()
+            .showOpenDialog({
+                properties: ['openFile', 'showHiddenFiles', 'multiSelections'],
+            })
+            .then((result: { filePaths: string[] }) => {
+                if (!(result.filePaths instanceof Array)) {
+                    return;
+                }
+                if (this._controller === undefined) {
+                    return;
+                }
+                this._ng_state = EState.add;
+                this._controller
+                    .add(result.filePaths)
+                    .catch((error: Error) => {
+                        this._notifications.add({
+                            caption: 'Concat',
+                            message: `Fail add file due error: ${error.message}`,
+                            options: {
+                                type: ENotificationType.error,
+                            },
+                        });
+                    })
+                    .finally(() => {
+                        this._ng_state = EState.ready;
+                        this._forceUpdate();
+                    });
                 this._forceUpdate();
+            })
+            .catch((openErr: Error) => {
+                this._logger.error(`Fail add file to be concat due error: ${openErr.message}`);
             });
-            this._forceUpdate();
-        }).catch((openErr: Error) => {
-            this._logger.error(`Fail add file to be concat due error: ${openErr.message}`);
-        });
     }
 
     public _ng_onResorted(event: CdkDragDrop<string[]>) {
         if (this._controller === undefined) {
             return;
         }
-        const files: IConcatFile[] = this._ng_files.sortData(this._ng_files.filteredData, this._ng_files.sort);
+        const files: IConcatFile[] =
+            this._ng_files.sort !== null
+                ? this._ng_files.sortData(this._ng_files.filteredData, this._ng_files.sort)
+                : [];
         moveItemInArray(files, event.previousIndex, event.currentIndex);
         this._ng_sortDirRef.active = '';
         this._ng_sortDirRef.direction = '';
@@ -188,22 +232,24 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
             return file.path === clicked.path;
         });
         if (this._keyboard.shift && this._lastSelectedIndex !== -1) {
-            this._controller.set(files.map((file: IConcatFile, i: number) => {
-                if (clickedIndex < this._lastSelectedIndex) {
-                    if (i >= clickedIndex && i < this._lastSelectedIndex) {
-                        file.selected = !file.selected;
+            this._controller.set(
+                files.map((file: IConcatFile, i: number) => {
+                    if (clickedIndex < this._lastSelectedIndex) {
+                        if (i >= clickedIndex && i < this._lastSelectedIndex) {
+                            file.selected = !file.selected;
+                        }
+                    } else if (clickedIndex > this._lastSelectedIndex) {
+                        if (i > this._lastSelectedIndex && i <= clickedIndex) {
+                            file.selected = !file.selected;
+                        }
+                    } else if (clickedIndex === this._lastSelectedIndex) {
+                        if (i === clickedIndex) {
+                            file.selected = !file.selected;
+                        }
                     }
-                } else if (clickedIndex > this._lastSelectedIndex) {
-                    if (i > this._lastSelectedIndex && i <= clickedIndex) {
-                        file.selected = !file.selected;
-                    }
-                } else if (clickedIndex === this._lastSelectedIndex) {
-                    if (i === clickedIndex) {
-                        file.selected = !file.selected;
-                    }
-                }
-                return file;
-            }));
+                    return file;
+                }),
+            );
         } else {
             clicked.selected = !clicked.selected;
             this._controller.update(clicked.path, clicked);
@@ -228,7 +274,9 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
                 handler: this._changeSelectionToAll.bind(this, false),
                 disabled: files.length > 0 ? false : true,
             },
-            { /* delimiter */ },
+            {
+                /* delimiter */
+            },
             {
                 caption: `Add File`,
                 handler: this._ng_onAddFile.bind(this),
@@ -246,44 +294,62 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
             },
         ];
         if (this._hasMatches()) {
-            items.unshift(...[
-                {
-                    caption: `Select with matches`,
-                    handler: this._selectOnlyMatches.bind(this),
-                },
-                {
-                    caption: `Select without matches`,
-                    handler: this._selectOnlyNotMatches.bind(this),
-                },
-                { /* delimiter */ },
-            ]);
+            items.unshift(
+                ...[
+                    {
+                        caption: `Select with matches`,
+                        handler: this._selectOnlyMatches.bind(this),
+                    },
+                    {
+                        caption: `Select without matches`,
+                        handler: this._selectOnlyNotMatches.bind(this),
+                    },
+                    {
+                        /* delimiter */
+                    },
+                ],
+            );
         }
         const selected: number = this._getSelectedCount();
         if (file === undefined) {
             if (selected > 0) {
-                items.unshift(...[
+                items.unshift(
+                    ...[
+                        {
+                            caption: `Remove ${selected} item(s)`,
+                            handler: () => {
+                                this._removeSelected();
+                            },
+                        },
+                        {
+                            /* delimiter */
+                        },
+                    ],
+                );
+            }
+        } else {
+            items.unshift(
+                ...[
                     {
-                        caption: `Remove ${selected} item(s)`,
+                        caption: `Remove ${
+                            selected > 0
+                                ? `${selected} item(s)`
+                                : file.name.length > 50
+                                ? `${file.name.substr(0, 50)}...`
+                                : file.name
+                        }`,
                         handler: () => {
+                            if (selected === 0) {
+                                this._ng_onSelect(file);
+                            }
                             this._removeSelected();
                         },
                     },
-                    { /* delimiter */ }
-                ]);
-            }
-        } else {
-            items.unshift(...[
-                {
-                    caption: `Remove ${selected > 0 ? `${selected} item(s)` : file.name.length > 50 ? `${file.name.substr(0, 50)}...` : file.name}`,
-                    handler: () => {
-                        if (selected === 0) {
-                            this._ng_onSelect(file);
-                        }
-                        this._removeSelected();
+                    {
+                        /* delimiter */
                     },
-                },
-                { /* delimiter */ }
-            ]);
+                ],
+            );
         }
         ContextMenuService.show({
             items: items,
@@ -302,18 +368,21 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
             return;
         }
         this._ng_state = EState.search;
-        this._controller.search(this._ng_search).catch((error: Error) => {
-            this._notifications.add({
-                caption: 'Concat',
-                message: `Fail to search files due error: ${error.message}`,
-                options: {
-                    type: ENotificationType.error
-                }
+        this._controller
+            .search(this._ng_search)
+            .catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Concat',
+                    message: `Fail to search files due error: ${error.message}`,
+                    options: {
+                        type: ENotificationType.error,
+                    },
+                });
+            })
+            .finally(() => {
+                this._ng_state = EState.ready;
+                this._forceUpdate();
             });
-        }).finally(() => {
-            this._ng_state = EState.ready;
-            this._forceUpdate();
-        });
         this._forceUpdate();
     }
 
@@ -321,7 +390,10 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         if (this._controller === undefined) {
             return;
         }
-        this._controller.set(this._ng_files.sortData(this._ng_files.filteredData, this._ng_files.sort));
+        this._ng_files.sort !== null &&
+            this._controller.set(
+                this._ng_files.sortData(this._ng_files.filteredData, this._ng_files.sort),
+            );
     }
 
     private _initTableSources() {
@@ -368,22 +440,26 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
 
     private _selectOnlyMatches() {
         if (this._controller === undefined) {
-            return false;
+            return;
         }
-        this._controller.set(this._controller.getFiles().map((file: IConcatFile) => {
-            file.selected = file.matches > 0;
-            return file;
-        }));
+        this._controller.set(
+            this._controller.getFiles().map((file: IConcatFile) => {
+                file.selected = file.matches > 0;
+                return file;
+            }),
+        );
     }
 
     private _selectOnlyNotMatches() {
         if (this._controller === undefined) {
-            return false;
+            return;
         }
-        this._controller.set(this._controller.getFiles().map((file: IConcatFile) => {
-            file.selected = !(file.matches > 0);
-            return file;
-        }));
+        this._controller.set(
+            this._controller.getFiles().map((file: IConcatFile) => {
+                file.selected = !(file.matches > 0);
+                return file;
+            }),
+        );
     }
 
     private _onKeyDown(event: KeyboardEvent) {
@@ -404,19 +480,21 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
 
     private _removeSelected() {
         if (this._controller === undefined) {
-            return false;
+            return;
         }
-        this._controller.set(this._controller.getFiles().filter(f => !f.selected));
+        this._controller.set(this._controller.getFiles().filter((f) => !f.selected));
     }
 
     private _changeSelectionToAll(selected: boolean) {
         if (this._controller === undefined) {
-            return false;
+            return;
         }
-        this._controller.set(this._controller.getFiles().map((file: IConcatFile) => {
-            file.selected = selected;
-            return file;
-        }));
+        this._controller.set(
+            this._controller.getFiles().map((file: IConcatFile) => {
+                file.selected = selected;
+                return file;
+            }),
+        );
     }
 
     private _getSelectedCount(): number {
@@ -425,19 +503,19 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         }
         let count: number = 0;
         this._controller.getFiles().forEach((file: IConcatFile) => {
-            count += (file.selected ? 1 : 0);
+            count += file.selected ? 1 : 0;
         });
         return count;
     }
 
     private _onBeforeTabRemove() {
         if (this._controller === undefined) {
-            return false;
+            return;
         }
         this._controller.drop();
     }
 
-    private _onFilesDropped(files: IPCMessages.IFile[]) {
+    private _onFilesDropped(files: IPC.IFile[]) {
         this.services.FileOpenerService.concat(files);
     }
 
@@ -448,8 +526,12 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         if (this._controller === undefined) {
             return;
         }
-        this._subscriptionsSession.FilesUpdated = this._controller.getObservable().FilesUpdated.subscribe(this._onFilesUpdated.bind(this));
-        this._subscriptionsSession.FileUpdated = this._controller.getObservable().FileUpdated.subscribe(this._onFileUpdated.bind(this));
+        this._subscriptionsSession.FilesUpdated = this._controller
+            .getObservable()
+            .FilesUpdated.subscribe(this._onFilesUpdated.bind(this));
+        this._subscriptionsSession.FileUpdated = this._controller
+            .getObservable()
+            .FileUpdated.subscribe(this._onFileUpdated.bind(this));
     }
 
     private _onFilesUpdated(files: IConcatFile[]) {
@@ -467,5 +549,4 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         }
         this._cdRef.detectChanges();
     }
-
 }

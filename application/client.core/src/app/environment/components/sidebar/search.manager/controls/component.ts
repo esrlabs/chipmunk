@@ -18,25 +18,30 @@ import SidebarSessionsService from '../../../../services/service.sessions.sideba
 @Component({
     selector: 'app-sidebar-app-searchmanager-controls',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppSearchManagerControlsComponent implements AfterContentInit, OnDestroy {
-
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
-    private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppSearchManagerControlsComponent');
-    private _controller: ControllerSessionTabSearchStore;
+    private _logger: Toolkit.Logger = new Toolkit.Logger(
+        'SidebarAppSearchManagerControlsComponent',
+    );
+    private _controller: ControllerSessionTabSearchStore | undefined;
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notifications: NotificationsService) {
-        this._subscriptions.onRecentOpen = HotkeysService.getObservable().recentFilters.subscribe(this._ng_onRecentOpen.bind(this));
+    constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {
+        this._subscriptions.onRecentOpen = HotkeysService.getObservable().recentFilters.subscribe(
+            this._ng_onRecentOpen.bind(this),
+        );
     }
 
     ngAfterContentInit() {
-        this._subscriptions.onOpenFilters = FilterOpenerService.getObservable().openFilters.subscribe(this._ng_onLoad.bind(this));
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onOpenFilters =
+            FilterOpenerService.getObservable().openFilters.subscribe(this._ng_onLoad.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         this._onSessionChange();
     }
 
@@ -51,7 +56,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
     }
 
     public _ng_onRecentOpen() {
-        const popupId: string = PopupsService.add({
+        const popupId: string | undefined = PopupsService.add({
             id: 'recent-filters-dialog',
             caption: `Open Recent Filters`,
             component: {
@@ -59,15 +64,15 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                 inputs: {
                     open: this._ng_onLoad.bind(this),
                     close: () => {
-                        PopupsService.remove(popupId);
-                    }
-                }
+                        popupId !== undefined && PopupsService.remove(popupId);
+                    },
+                },
             },
-            buttons: [ ],
+            buttons: [],
             options: {
                 width: 40,
                 minimalistic: true,
-            }
+            },
         });
     }
 
@@ -75,30 +80,36 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (this._controller === undefined) {
             return;
         }
-        this._controller.load(file).then((filename: string) => {
-            this._setCurrentFile(filename);
-            this._openSidebar();
-        }).catch((error: Error) => {
-            this._notifications.add({
-                caption: 'Filters',
-                message: `Fail to load filters due error: ${error.message}`
+        this._controller
+            .load(file)
+            .then((filename: string) => {
+                this._setCurrentFile(filename);
+                this._openSidebar();
+            })
+            .catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Filters',
+                    message: `Fail to load filters due error: ${error.message}`,
+                });
             });
-        });
     }
 
     public _ng_onSave(file?: string) {
         if (this._controller === undefined) {
             return;
         }
-        this._controller.save(file).then((filename: string) => {
-            this._setCurrentFile(filename);
-        }).catch((error: Error) => {
-            this._setCurrentFile('');
-            this._notifications.add({
-                caption: 'Filters',
-                message: `Fail to save filters due error: ${error.message}`
+        this._controller
+            .save(file)
+            .then((filename: string) => {
+                this._setCurrentFile(filename);
+            })
+            .catch((error: Error) => {
+                this._setCurrentFile('');
+                this._notifications.add({
+                    caption: 'Filters',
+                    message: `Fail to save filters due error: ${error.message}`,
+                });
             });
-        });
     }
 
     public _ng_getSaveButtonLabel(): string {
@@ -135,5 +146,4 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         LayoutStateService.sidebarMax();
         SidebarSessionsService.setActive('search', session.getGuid());
     }
-
 }

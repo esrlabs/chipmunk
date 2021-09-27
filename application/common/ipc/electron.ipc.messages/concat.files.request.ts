@@ -1,6 +1,6 @@
 export interface IFile {
     file: string;
-    parser: string;
+    parser: string | undefined;
 }
 
 export interface IConcatFilesRequest {
@@ -10,7 +10,6 @@ export interface IConcatFilesRequest {
 }
 
 export class ConcatFilesRequest {
-
     public static signature: string = 'ConcatFilesRequest';
     public signature: string = ConcatFilesRequest.signature;
     public id: string = '';

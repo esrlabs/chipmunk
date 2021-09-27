@@ -9,7 +9,10 @@ export function isObjSame(a: any, b: any): boolean {
         return false;
     }
     let result: boolean = true;
-    [[a, b], [b, a]].forEach((targets: any[]) => {
+    [
+        [a, b],
+        [b, a],
+    ].forEach((targets: any[]) => {
         const _a = targets[0];
         const _b = targets[1];
         Object.keys(_a).forEach((prop: string) => {
@@ -19,7 +22,10 @@ export function isObjSame(a: any, b: any): boolean {
             if (typeof _a[prop] !== typeof _b[prop]) {
                 result = false;
             }
-            if (['string', 'number', 'boolean'].indexOf(typeof _a[prop]) !== -1 && _a[prop] !== _b[prop]) {
+            if (
+                ['string', 'number', 'boolean'].indexOf(typeof _a[prop]) !== -1 &&
+                _a[prop] !== _b[prop]
+            ) {
                 result = false;
             }
         });
@@ -47,5 +53,5 @@ export function getPropByPath<T>(obj: any, path: string): T | Error {
             pass.push(step);
         }
     });
-    return error === undefined ? value as T : error;
+    return error === undefined ? (value as T) : error;
 }

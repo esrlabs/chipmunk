@@ -1,4 +1,12 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, Provider } from '@angular/core';
+import {
+    Component,
+    Input,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    ViewChild,
+    Provider,
+} from '@angular/core';
 import { DisabledRequest } from '../../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
@@ -11,18 +19,16 @@ import { MatDragDropResetFeatureDirective } from '../../../../../directives/mate
 @Component({
     selector: 'app-sidebar-app-searchmanager-disabled',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, AfterContentInit {
+    @ViewChild(MatInput) _inputRefCom!: MatInput;
 
-    @ViewChild(MatInput) _inputRefCom: MatInput;
+    @Input() entity!: Entity<DisabledRequest>;
+    @Input() provider!: ProviderDisabled | undefined;
 
-    @Input() entity: Entity<DisabledRequest>;
-    @Input() provider: ProviderDisabled | undefined;
-
-    public _ng_display_name: string;
-    public _ng_icon: string;
+    public _ng_display_name: string | undefined;
+    public _ng_icon: string | undefined;
     public _ng_directive: SidebarAppSearchManagerItemDirective;
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -31,7 +37,8 @@ export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, Afte
     constructor(
         private _cdRef: ChangeDetectorRef,
         private _directive: SidebarAppSearchManagerItemDirective,
-        private _accessor: MatDragDropResetFeatureDirective) {
+        private _accessor: MatDragDropResetFeatureDirective,
+    ) {
         this._ng_directive = _directive;
         this._ng_directive.setResetFeatureAccessorRef(_accessor);
     }
@@ -41,18 +48,20 @@ export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, Afte
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
         if (this.provider !== undefined) {
-            this._subscriptions.edit = this.provider.getObservable().edit.subscribe((guid: string | undefined) => {
-                if (this.entity.getGUID() === guid) {
-                    this._forceUpdate();
-                    if (this._inputRefCom !== undefined) {
-                        this._inputRefCom.focus();
+            this._subscriptions.edit = this.provider
+                .getObservable()
+                .edit.subscribe((guid: string | undefined) => {
+                    if (this.entity.getGUID() === guid) {
+                        this._forceUpdate();
+                        if (this._inputRefCom !== undefined) {
+                            this._inputRefCom.focus();
+                        }
                     }
-                }
-            });
+                });
         }
         this._init();
     }
@@ -69,5 +78,4 @@ export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, Afte
         }
         this._cdRef.detectChanges();
     }
-
 }

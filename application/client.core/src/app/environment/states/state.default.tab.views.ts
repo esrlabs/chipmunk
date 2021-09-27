@@ -5,7 +5,7 @@ export const DefaultViews: IDefaultView[] = [
         guid: 'output',
         name: 'Output',
         component: ViewOutputComponent,
-    }
+    },
 ];
 
 export interface IDefaultView {

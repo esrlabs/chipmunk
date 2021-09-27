@@ -6,7 +6,6 @@ export interface IImportedData {
 }
 
 export abstract class Importable<T> {
-
     public abstract export(): Promise<T | undefined>;
 
     public abstract import(data: T): Promise<void>;
@@ -14,5 +13,4 @@ export abstract class Importable<T> {
     public abstract getImporterUUID(): string;
 
     public abstract getExportObservable(): Observable<void>;
-
 }

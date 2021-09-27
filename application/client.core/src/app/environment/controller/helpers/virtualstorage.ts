@@ -1,5 +1,4 @@
 export class Storage<T> {
-
     private _storage: T;
 
     constructor(defaults: T) {

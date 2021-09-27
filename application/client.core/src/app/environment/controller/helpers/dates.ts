@@ -5,5 +5,7 @@ export function getDateTimeStr(datetime: Date | number): string {
     if (typeof datetime === 'number') {
         datetime = new Date(datetime);
     }
-    return `${fill(datetime.getDate())}.${fill(datetime.getMonth() + 1)} ${fill(datetime.getHours())}:${fill(datetime.getMinutes())}`;
+    return `${fill(datetime.getDate())}.${fill(datetime.getMonth() + 1)} ${fill(
+        datetime.getHours(),
+    )}:${fill(datetime.getMinutes())}`;
 }

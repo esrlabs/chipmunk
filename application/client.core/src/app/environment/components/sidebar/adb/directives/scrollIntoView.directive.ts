@@ -5,7 +5,7 @@ import { Subscription, Subject } from 'rxjs';
     selector: '[appScrollIntoView]',
 })
 export class ScrollIntoViewDirective implements AfterContentInit, OnDestroy {
-    @Input() public trigger: Subject<void>;
+    @Input() public trigger!: Subject<void>;
 
     private _subscription: Subscription | undefined;
 

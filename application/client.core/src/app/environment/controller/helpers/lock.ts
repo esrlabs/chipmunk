@@ -1,5 +1,4 @@
 export class Lock {
-
     private _locked: boolean = false;
 
     constructor(locked: boolean = false) {
@@ -17,5 +16,4 @@ export class Lock {
     public isLocked(): boolean {
         return this._locked;
     }
-
 }

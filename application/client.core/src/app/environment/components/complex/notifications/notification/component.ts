@@ -13,14 +13,15 @@ const CLengthLimit = 255;
 @Component({
     selector: 'app-notification',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class NotificationComponent {
-
-    constructor(@Inject(MAT_SNACK_BAR_DATA) public data: INotificationData) { }
+    constructor(@Inject(MAT_SNACK_BAR_DATA) public data: INotificationData) {}
 
     public _ng_getMessage() {
+        if (this.data.notification.message === undefined) {
+            return '';
+        }
         if (this.data.notification.message.length > CLengthLimit) {
             return this.data.notification.message.substr(0, CLengthLimit) + '...';
         } else {

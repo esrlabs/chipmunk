@@ -1,4 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, HostBinding, HostListener, ElementRef } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterViewInit,
+    HostBinding,
+    HostListener,
+    ElementRef,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Session } from '../../../controller/session/session';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
@@ -22,9 +30,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewInit {
-
     public _ng_filename: string = '';
     public _ng_providers: Provider<any>[] = [];
     public _ng_selected: Provider<any> | undefined;
@@ -36,7 +42,9 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     private _subs: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    @HostBinding('attr.tabindex') get tabindex() { return 0; }
+    @HostBinding('attr.tabindex') get tabindex() {
+        return 0;
+    }
     @HostListener('focus', ['$event.target']) onFocus() {
         this._focused = true;
     }
@@ -48,12 +56,17 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             {
                 caption: `Clear recent history`,
                 handler: () => {
-                    this._session.getSessionSearch().getStoreAPI().clear().catch((error: Error) => {
-                        this._notifications.add({
-                            caption: 'Error',
-                            message: `Fail to drop recent filters history due error: ${error.message}`
-                        });
-                    });
+                    this._session !== undefined &&
+                        this._session
+                            .getSessionSearch()
+                            .getStoreAPI()
+                            .clear()
+                            .catch((error: Error) => {
+                                this._notifications.add({
+                                    caption: 'Error',
+                                    message: `Fail to drop recent filters history due error: ${error.message}`,
+                                });
+                            });
                 },
             },
         ];
@@ -87,7 +100,7 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         if (this._session !== undefined) {
             this._session.getSessionSearch().getChartsAPI().selectBySource(undefined);
         }
-    }
+    }
 
     public ngAfterViewInit() {
         this._providers.add(EProviders.filters, new ProviderFilters());
@@ -95,10 +108,19 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._providers.add(EProviders.ranges, new ProviderRanges());
         this._providers.add(EProviders.disabled, new ProviderDisabled());
         this._ng_providers = this._providers.list();
-        this._subscriptions.select = this._providers.getObservable().select.subscribe(this._onSingleSelection.bind(this));
-        this._subscriptions.context = this._providers.getObservable().context.subscribe(this._onContextMenu.bind(this));
-        this._subscriptions.change = this._providers.getObservable().change.subscribe(this._onChange.bind(this));
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.select = this._providers
+            .getObservable()
+            .select.subscribe(this._onSingleSelection.bind(this));
+        this._subscriptions.context = this._providers
+            .getObservable()
+            .context.subscribe(this._onContextMenu.bind(this));
+        this._subscriptions.change = this._providers
+            .getObservable()
+            .change.subscribe(this._onChange.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         window.addEventListener('keyup', this._onGlobalKeyUp);
         this._onSessionChange(undefined);
     }
@@ -155,7 +177,11 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             this._session = session;
             const single = this._providers.select().single(this._session.getGuid());
             this._ng_selected = single === undefined ? undefined : single.provider;
-            this._subs.filename = session.getSessionSearch().getStoreAPI().getObservable().filename.subscribe(this._onFilenameChanged.bind(this));
+            this._subs.filename = session
+                .getSessionSearch()
+                .getStoreAPI()
+                .getObservable()
+                .filename.subscribe(this._onFilenameChanged.bind(this));
         }
     }
 
@@ -186,5 +212,4 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         }
         this._cdRef.detectChanges();
     }
-
 }
