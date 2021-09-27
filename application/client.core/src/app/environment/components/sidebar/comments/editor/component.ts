@@ -3,16 +3,19 @@ import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
 import { ICommentResponse } from '../../../../controller/session/dependencies/comments/session.dependency.comments.types';
 
-import * as Toolkit from 'chipmunk.client.toolkit';
-
 export class InputErrorStateMatcher implements ErrorStateMatcher {
     private _valid: boolean = true;
     private _error: string = '';
 
-    constructor() {
-    }
+    constructor() {}
 
-    public isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    public isErrorState(
+        control: FormControl | null,
+        form: FormGroupDirective | NgForm | null,
+    ): boolean {
+        if (control === null) {
+            return false;
+        }
         this._valid = true;
         this._error = '';
         if (control.value === null || control.value.trim() === '') {
@@ -33,7 +36,6 @@ export class InputErrorStateMatcher implements ErrorStateMatcher {
     public getError(): string | undefined {
         return this._error;
     }
-
 }
 
 @Component({
@@ -41,13 +43,11 @@ export class InputErrorStateMatcher implements ErrorStateMatcher {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppCommentsEditorComponent implements OnDestroy, AfterContentInit {
-
-    @Input() response: ICommentResponse;
-    @Input() save: (comment: string) => void;
-    @Input() remove: () => void;
-    @Input() cancel: () => void;
+    @Input() response!: ICommentResponse;
+    @Input() save!: (comment: string) => void;
+    @Input() remove!: () => void;
+    @Input() cancel!: () => void;
 
     public _ng_input_error: InputErrorStateMatcher = new InputErrorStateMatcher();
     public _ng_response: string = '';
@@ -55,8 +55,7 @@ export class SidebarAppCommentsEditorComponent implements OnDestroy, AfterConten
 
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngAfterContentInit() {
         if (this.response.guid !== '') {
@@ -67,7 +66,7 @@ export class SidebarAppCommentsEditorComponent implements OnDestroy, AfterConten
 
     public ngOnDestroy() {
         this._destroyed = true;
-    }
+    }
 
     public _ng_onKeyDown(event: KeyboardEvent) {
         if (event.code === 'Enter') {
@@ -86,5 +85,4 @@ export class SidebarAppCommentsEditorComponent implements OnDestroy, AfterConten
     public _ng_onCancel() {
         this.cancel();
     }
-
 }

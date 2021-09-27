@@ -11,7 +11,5 @@ export interface IOutputRenderInputs {
 }
 
 export abstract class AOutputRenderComponent {
-
     abstract update(inputs: IOutputRenderInputs): void;
-
 }

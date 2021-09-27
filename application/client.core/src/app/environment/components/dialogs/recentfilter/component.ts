@@ -1,4 +1,12 @@
-import { Component, ChangeDetectorRef, Input, OnDestroy, OnInit, AfterViewInit, ViewChild } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    Input,
+    OnDestroy,
+    OnInit,
+    AfterViewInit,
+    ViewChild,
+} from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { map, startWith } from 'rxjs/operators';
@@ -10,20 +18,18 @@ import { sortFiles, ISortedFile } from '../../../thirdparty/code/engine';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import ElectronIpcService, { IPC } from '../../../services/service.electron.ipc';
 
 @Component({
     selector: 'app-views-dialogs-recentfilters-map',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewInit, OnDestroy {
+    @ViewChild(MatInput) _inputComRef!: MatInput;
+    @ViewChild(MatAutocompleteTrigger) _autoComRef!: MatAutocompleteTrigger;
 
-    @ViewChild(MatInput) _inputComRef: MatInput;
-    @ViewChild(MatAutocompleteTrigger) _autoComRef: MatAutocompleteTrigger;
-
-    public _ng_files: Observable<ISortedFile[]>;
+    public _ng_files!: Observable<ISortedFile[]>;
     public _files: Array<ISortedFile> = [];
     public _ng_inputCtrl = new FormControl();
     private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFitlersActionComponent');
@@ -32,9 +38,11 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
     @Input() close: () => void = () => {};
     @Input() open: (file: string) => void = () => {};
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notificationsService: NotificationsService,
-                private _sanitizer: DomSanitizer) {
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _notificationsService: NotificationsService,
+        private _sanitizer: DomSanitizer,
+    ) {
         this._ng_displayWith = this._ng_displayWith.bind(this);
     }
 
@@ -43,41 +51,46 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
     }
 
     public ngOnInit() {
-        ElectronIpcService.request(new IPCMessages.FiltersFilesRecentRequest(), IPCMessages.FiltersFilesRecentResponse).then((response: IPCMessages.FiltersFilesRecentResponse) => {
-            if (response.error) {
-                this._files = [];
+        ElectronIpcService.request(
+            new IPC.FiltersFilesRecentRequest(),
+            IPC.FiltersFilesRecentResponse,
+        )
+            .then((response: IPC.FiltersFilesRecentResponse) => {
+                if (response.error) {
+                    this._files = [];
+                    this._notificationsService.add({
+                        caption: 'Fail load recent filters',
+                        message: `Fail to load recent filters due error: ${response.error}`,
+                    });
+                    this._logger.warn(`Fail to load recent files due error: ${response.error}`);
+                } else {
+                    this._files = response.files.map((file: IPC.IRecentFilterFileInfo) => {
+                        return {
+                            file: file.file,
+                            basename: Toolkit.basename(file.file),
+                            dirname: Toolkit.dirname(file.file),
+                            tbasename: Toolkit.basename(file.file),
+                            tdirname: Toolkit.dirname(file.file),
+                            filters: file.count,
+                            timestamp: file.timestamp,
+                        };
+                    });
+                }
+                this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
+                    startWith(''),
+                    map((value) => this._filter(value)),
+                );
+                this._ng_files.subscribe(() => {
+                    this._focus();
+                });
+            })
+            .catch((error: Error) => {
+                this._logger.warn(`Fail to load recent files due error: ${error.message}`);
                 this._notificationsService.add({
                     caption: 'Fail load recent filters',
-                    message: `Fail to load recent filters due error: ${response.error}`
+                    message: `Fail to load recent files due error: ${error.message}`,
                 });
-                this._logger.warn(`Fail to load recent files due error: ${response.error}`);
-            } else {
-                this._files = response.files.map((file: IPCMessages.IRecentFilterFileInfo) => {
-                    return {
-                        file: file.file,
-                        basename: Toolkit.basename(file.file),
-                        dirname: Toolkit.dirname(file.file),
-                        tbasename: Toolkit.basename(file.file),
-                        tdirname: Toolkit.dirname(file.file),
-                        filters: file.count,
-                        timestamp: file.timestamp,
-                    };
-                });
-            }
-            this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
-                startWith(''),
-                map(value => this._filter(value))
-            );
-            this._ng_files.subscribe(() => {
-                this._focus();
             });
-        }).catch((error: Error) => {
-            this._logger.warn(`Fail to load recent files due error: ${error.message}`);
-            this._notificationsService.add({
-                caption: 'Fail load recent filters',
-                message: `Fail to load recent files due error: ${error.message}`
-            });
-        });
     }
 
     public ngAfterViewInit() {
@@ -88,12 +101,12 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
         this.close();
     }
 
-    public _ng_onFileSelected(file: IPCMessages.IRecentFilterFileInfo) {
+    public _ng_onFileSelected(file: IPC.IRecentFilterFileInfo) {
         this.open(file.file);
         this.close();
     }
 
-    public _ng_displayWith(file: IPCMessages.IRecentFilterFileInfo): string {
+    public _ng_displayWith(file: IPC.IRecentFilterFileInfo): string {
         if (file === null || file === undefined) {
             return '';
         }
@@ -115,7 +128,7 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
 
     private _filter(value: string): ISortedFile[] {
         if (typeof value !== 'string') {
-            return;
+            return [];
         }
         const scored = sortFiles(this._files, value, value !== '', 'span');
         this._focus();
@@ -128,5 +141,4 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
         }
         this._cdRef.detectChanges();
     }
-
 }

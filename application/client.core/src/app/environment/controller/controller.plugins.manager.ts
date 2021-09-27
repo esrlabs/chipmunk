@@ -1,8 +1,8 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import { Subject, Observable  } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 import { CommonInterfaces } from '../interfaces/interface.common';
-import { IPCMessages } from '../services/service.electron.ipc';
+import { IPC } from '../services/service.electron.ipc';
 import { Queue } from '../controller/helpers/queue';
 import { Storage } from '../controller/helpers/virtualstorage';
 
@@ -56,17 +56,16 @@ export interface IViewState {
 }
 
 export default class ControllerPluginsManager {
-
     private _plugins: Map<string, IPlugin> = new Map();
     private _logger: Toolkit.Logger = new Toolkit.Logger('ControllerPluginsManager');
-    private _subscriptions: { [key: string ]: Toolkit.Subscription } = { };
+    private _subscriptions: { [key: string]: Toolkit.Subscription } = {};
     private _subjects: {
-        ready: Subject<void>,
-        update: Subject<IUpdateUpgradeEvent>,
-        upgrade: Subject<IUpdateUpgradeEvent>,
-        state: Subject<IStateChangeEvent>,
-        updater: Subject<EUpdateState>,
-        custom: Subject<EUpdateState>,
+        ready: Subject<void>;
+        update: Subject<IUpdateUpgradeEvent>;
+        upgrade: Subject<IUpdateUpgradeEvent>;
+        state: Subject<IStateChangeEvent>;
+        updater: Subject<EUpdateState>;
+        custom: Subject<EUpdateState>;
     } = {
         ready: new Subject<void>(),
         update: new Subject<IUpdateUpgradeEvent>(),
@@ -76,9 +75,9 @@ export default class ControllerPluginsManager {
         custom: new Subject<EUpdateState>(),
     };
     private _states: {
-        manager: EManagerState,
-        updater: EUpdateState,
-        custom: EUpdateState,
+        manager: EManagerState;
+        updater: EUpdateState;
+        custom: EUpdateState;
     } = {
         manager: EManagerState.pending,
         updater: EUpdateState.pending,
@@ -91,9 +90,18 @@ export default class ControllerPluginsManager {
     });
 
     constructor() {
-        this._subscriptions.PluginsDataReady = ElectronIpcService.subscribe(IPCMessages.PluginsDataReady, this._ipc_PluginsDataReady.bind(this));
-        this._subscriptions.PluginsNotificationUpdate = ElectronIpcService.subscribe(IPCMessages.PluginsNotificationUpdate, this._ipc_PluginsNotificationUpdate.bind(this));
-        this._subscriptions.PluginsNotificationUpgrade = ElectronIpcService.subscribe(IPCMessages.PluginsNotificationUpgrade, this._ipc_PluginsNotificationUpgrade.bind(this));
+        this._subscriptions.PluginsDataReady = ElectronIpcService.subscribe(
+            IPC.PluginsDataReady,
+            this._ipc_PluginsDataReady.bind(this),
+        );
+        this._subscriptions.PluginsNotificationUpdate = ElectronIpcService.subscribe(
+            IPC.PluginsNotificationUpdate,
+            this._ipc_PluginsNotificationUpdate.bind(this),
+        );
+        this._subscriptions.PluginsNotificationUpgrade = ElectronIpcService.subscribe(
+            IPC.PluginsNotificationUpgrade,
+            this._ipc_PluginsNotificationUpgrade.bind(this),
+        );
     }
 
     public destroy() {
@@ -103,12 +111,12 @@ export default class ControllerPluginsManager {
     }
 
     public getObservable(): {
-        ready: Observable<void>,
-        update: Observable<IUpdateUpgradeEvent>,
-        upgrade: Observable<IUpdateUpgradeEvent>,
-        state: Observable<IStateChangeEvent>,
-        updater: Observable<EUpdateState>,
-        custom: Observable<EUpdateState>,
+        ready: Observable<void>;
+        update: Observable<IUpdateUpgradeEvent>;
+        upgrade: Observable<IUpdateUpgradeEvent>;
+        state: Observable<IStateChangeEvent>;
+        updater: Observable<EUpdateState>;
+        custom: Observable<EUpdateState>;
     } {
         return {
             ready: this._subjects.ready.asObservable(),
@@ -149,175 +157,230 @@ export default class ControllerPluginsManager {
     public install(name: string, version: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.setPluginState(name, EPluginState.working);
-            ElectronIpcService.request(new IPCMessages.PluginsInstallRequest({
-                name: name,
-                version: version,
-            }), IPCMessages.PluginsInstallResponse).then((response: IPCMessages.PluginsInstallResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to install plugin due error: ${response.error}`);
+            ElectronIpcService.request(
+                new IPC.PluginsInstallRequest({
+                    name: name,
+                    version: version,
+                }),
+                IPC.PluginsInstallResponse,
+            )
+                .then((response: IPC.PluginsInstallResponse) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(`Fail to install plugin due error: ${response.error}`);
+                        this.setPluginState(name, EPluginState.error);
+                        reject(new Error(response.error));
+                    } else {
+                        this.setPluginState(name, EPluginState.restart);
+                        resolve();
+                    }
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request install of plugin due error: ${error.message}`,
+                    );
                     this.setPluginState(name, EPluginState.error);
-                    reject(new Error(response.error));
-                } else {
-                    this.setPluginState(name, EPluginState.restart);
-                    resolve();
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request install of plugin due error: ${error.message}`);
-                this.setPluginState(name, EPluginState.error);
-                reject(error);
-            });
+                    reject(error);
+                });
         });
     }
 
     public updateAndUpgradeAll(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.setUpdaterState(EUpdateState.working);
-            Promise.all(Array.from(this._plugins.values()).filter((plugin: IPlugin) => {
-                return (plugin.state === EPluginState.update && plugin.update.length > 0) ||
-                       (plugin.state === EPluginState.upgrade && plugin.upgrade.length > 0);
-            }).map((plugin: IPlugin) => {
-                switch (plugin.state) {
-                    case EPluginState.update:
-                        return this.update(plugin.name, plugin.update[0]);
-                    case EPluginState.upgrade:
-                        return this.upgrade(plugin.name, plugin.upgrade[0]);
-                }
-            })).then(() => {
-                this.setUpdaterState(EUpdateState.restart);
-                resolve();
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to update and upgrade all due error: ${error.message}`);
-                this.setUpdaterState(EUpdateState.error);
-                reject(error);
-            });
+            Promise.all(
+                Array.from(this._plugins.values())
+                    .filter((plugin: IPlugin) => {
+                        return (
+                            (plugin.state === EPluginState.update && plugin.update.length > 0) ||
+                            (plugin.state === EPluginState.upgrade && plugin.upgrade.length > 0)
+                        );
+                    })
+                    .map((plugin: IPlugin) => {
+                        switch (plugin.state) {
+                            case EPluginState.update:
+                                return this.update(plugin.name, plugin.update[0]);
+                            case EPluginState.upgrade:
+                                return this.upgrade(plugin.name, plugin.upgrade[0]);
+                            default:
+                                return Promise.reject(new Error(this._logger.error(`Unexpected type of plugin (${plugin.state}) for plugin: ${plugin.name}`)));
+                        }
+                    }),
+            )
+                .then(() => {
+                    this.setUpdaterState(EUpdateState.restart);
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    this._logger.warn(`Fail to update and upgrade all due error: ${error.message}`);
+                    this.setUpdaterState(EUpdateState.error);
+                    reject(error);
+                });
         });
     }
 
     public update(name: string, version: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.setPluginState(name, EPluginState.working);
-            ElectronIpcService.request(new IPCMessages.PluginsUpdateRequest({
-                name: name,
-                version: version,
-            }), IPCMessages.PluginsUpdateResponse).then((response: IPCMessages.PluginsUpdateResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to update plugin due error: ${response.error}`);
+            ElectronIpcService.request(
+                new IPC.PluginsUpdateRequest({
+                    name: name,
+                    version: version,
+                }),
+                IPC.PluginsUpdateResponse,
+            )
+                .then((response: IPC.PluginsUpdateResponse) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(`Fail to update plugin due error: ${response.error}`);
+                        this.setPluginState(name, EPluginState.error);
+                        reject(new Error(response.error));
+                    } else {
+                        this.setPluginState(name, EPluginState.restart);
+                        resolve();
+                    }
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request update of plugin due error: ${error.message}`,
+                    );
                     this.setPluginState(name, EPluginState.error);
-                    reject(new Error(response.error));
-                } else {
-                    this.setPluginState(name, EPluginState.restart);
-                    resolve();
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request update of plugin due error: ${error.message}`);
-                this.setPluginState(name, EPluginState.error);
-                reject(error);
-            });
+                    reject(error);
+                });
         });
     }
 
     public upgrade(name: string, version: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.setPluginState(name, EPluginState.working);
-            ElectronIpcService.request(new IPCMessages.PluginsUpgradeRequest({
-                name: name,
-                version: version,
-            }), IPCMessages.PluginsUpgradeResponse).then((response: IPCMessages.PluginsUpgradeResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to upgrade plugin due error: ${response.error}`);
+            ElectronIpcService.request(
+                new IPC.PluginsUpgradeRequest({
+                    name: name,
+                    version: version,
+                }),
+                IPC.PluginsUpgradeResponse,
+            )
+                .then((response: IPC.PluginsUpgradeResponse) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(`Fail to upgrade plugin due error: ${response.error}`);
+                        this.setPluginState(name, EPluginState.error);
+                        reject(new Error(response.error));
+                    } else {
+                        this.setPluginState(name, EPluginState.restart);
+                        resolve();
+                    }
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request upgrade of plugin due error: ${error.message}`,
+                    );
                     this.setPluginState(name, EPluginState.error);
-                    reject(new Error(response.error));
-                } else {
-                    this.setPluginState(name, EPluginState.restart);
-                    resolve();
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request upgrade of plugin due error: ${error.message}`);
-                this.setPluginState(name, EPluginState.error);
-                reject(error);
-            });
+                    reject(error);
+                });
         });
     }
 
     public uninstall(name: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.setPluginState(name, EPluginState.working);
-            ElectronIpcService.request(new IPCMessages.PluginsUninstallRequest({
-                name: name
-            }), IPCMessages.PluginsUninstallResponse).then((response: IPCMessages.PluginsUninstallResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to uninstall plugin due error: ${response.error}`);
+            ElectronIpcService.request(
+                new IPC.PluginsUninstallRequest({
+                    name: name,
+                }),
+                IPC.PluginsUninstallResponse,
+            )
+                .then((response: IPC.PluginsUninstallResponse) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(`Fail to uninstall plugin due error: ${response.error}`);
+                        this.setPluginState(name, EPluginState.error);
+                        reject(new Error(response.error));
+                    } else {
+                        this.setPluginState(name, EPluginState.restart);
+                        resolve();
+                    }
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request uninstall of plugin due error: ${error.message}`,
+                    );
                     this.setPluginState(name, EPluginState.error);
-                    reject(new Error(response.error));
-                } else {
-                    this.setPluginState(name, EPluginState.restart);
-                    resolve();
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request uninstall of plugin due error: ${error.message}`);
-                this.setPluginState(name, EPluginState.error);
-                reject(error);
-            });
+                    reject(error);
+                });
         });
     }
 
     public custom(): Promise<string | undefined> {
         return new Promise((resolve, reject) => {
             this.setCustomState(EUpdateState.working);
-            ElectronIpcService.request(new IPCMessages.PluginAddRequest(), IPCMessages.PluginAddResponse).then((response: IPCMessages.PluginAddResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to install custom plugin due error: ${response.error}`);
-                    this.setCustomState(EUpdateState.error);
-                    reject(new Error(response.error));
-                } else {
-                    if (typeof response.name === 'string' && response.name.trim() !== '') {
-                        this.setCustomState(EUpdateState.restart);
+            ElectronIpcService.request(new IPC.PluginAddRequest(), IPC.PluginAddResponse)
+                .then((response: IPC.PluginAddResponse) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(
+                            `Fail to install custom plugin due error: ${response.error}`,
+                        );
+                        this.setCustomState(EUpdateState.error);
+                        reject(new Error(response.error));
                     } else {
-                        this.setCustomState(EUpdateState.pending);
+                        if (typeof response.name === 'string' && response.name.trim() !== '') {
+                            this.setCustomState(EUpdateState.restart);
+                        } else {
+                            this.setCustomState(EUpdateState.pending);
+                        }
+                        resolve(response.name);
                     }
-                    resolve(response.name);
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request installation of custom plugin due error: ${error.message}`);
-                this.setCustomState(EUpdateState.error);
-                reject(error);
-            });
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request installation of custom plugin due error: ${error.message}`,
+                    );
+                    this.setCustomState(EUpdateState.error);
+                    reject(error);
+                });
         });
     }
 
     public getLogs(name: string): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.PluginsLogsRequest({
-                name: name
-            }), IPCMessages.PluginsLogsResponse).then((response: IPCMessages.PluginsLogsResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to get plugin's logs due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                if (response.logs.trim() === '') {
-                    resolve([]);
-                } else {
-                    resolve(response.logs.split(/[\n\r]/gi));
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request logs of plugin due error: ${error.message}`);
-                reject(error);
-            });
+            ElectronIpcService.request<IPC.PluginsLogsResponse>(
+                new IPC.PluginsLogsRequest({
+                    name: name,
+                }),
+                IPC.PluginsLogsResponse,
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(
+                            `Fail to get plugin's logs due error: ${response.error}`,
+                        );
+                        return reject(new Error(response.error));
+                    }
+                    if (response.logs.trim() === '') {
+                        resolve([]);
+                    } else {
+                        resolve(response.logs.split(/[\n\r]/gi));
+                    }
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request logs of plugin due error: ${error.message}`,
+                    );
+                    reject(error);
+                });
         });
     }
 
     public restart(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.AppRestartRequest(), IPCMessages.AppRestartResponse).then((response: IPCMessages.AppRestartResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to restart due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                resolve();
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to restart due error: ${error.message}`);
-                reject(error);
-            });
+            ElectronIpcService.request(new IPC.AppRestartRequest(), IPC.AppRestartResponse)
+                .then((response: IPC.AppRestartResponse) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(`Fail to restart due error: ${response.error}`);
+                        return reject(new Error(response.error));
+                    }
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail to restart due error: ${error.message}`);
+                    reject(error);
+                });
         });
     }
 
@@ -388,64 +451,93 @@ export default class ControllerPluginsManager {
 
     private _getInstalledPluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.PluginsInstalledRequest(), IPCMessages.PluginsInstalledResponse).then((message: IPCMessages.PluginsInstalledResponse) => {
-                resolve(message.plugins instanceof Array ? message.plugins : []);
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail request list of installed plugins due error: ${error.message}`);
-                reject(error);
-            });
+            ElectronIpcService.request<IPC.PluginsInstalledResponse>(
+                new IPC.PluginsInstalledRequest(),
+                IPC.PluginsInstalledResponse,
+            )
+                .then((message) => {
+                    resolve(message.plugins instanceof Array ? message.plugins : []);
+                })
+                .catch((error: Error) => {
+                    this._logger.warn(
+                        `Fail request list of installed plugins due error: ${error.message}`,
+                    );
+                    reject(error);
+                });
         });
     }
 
     private _getIncompatiblesPluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.PluginsIncompatiblesRequest(), IPCMessages.PluginsIncompatiblesResponse).then((message: IPCMessages.PluginsIncompatiblesResponse) => {
-                resolve(message.plugins instanceof Array ? message.plugins : []);
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail request list of incompatible plugins due error: ${error.message}`);
-                reject(error);
-            });
+            ElectronIpcService.request<IPC.PluginsIncompatiblesResponse>(
+                new IPC.PluginsIncompatiblesRequest(),
+                IPC.PluginsIncompatiblesResponse,
+            )
+                .then((message) => {
+                    resolve(message.plugins instanceof Array ? message.plugins : []);
+                })
+                .catch((error: Error) => {
+                    this._logger.warn(
+                        `Fail request list of incompatible plugins due error: ${error.message}`,
+                    );
+                    reject(error);
+                });
         });
     }
 
     private _getAvailablePluginsInfo(): Promise<CommonInterfaces.Plugins.IPlugin[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.PluginsStoreAvailableRequest(), IPCMessages.PluginsStoreAvailableResponse).then((message: IPCMessages.PluginsStoreAvailableResponse) => {
-                resolve(message.plugins instanceof Array ? message.plugins : []);
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail request list of installed plugins due error: ${error.message}`);
-                reject(error);
-            });
+            ElectronIpcService.request<IPC.PluginsStoreAvailableResponse>(
+                new IPC.PluginsStoreAvailableRequest(),
+                IPC.PluginsStoreAvailableResponse,
+            )
+                .then((message) => {
+                    resolve(message.plugins instanceof Array ? message.plugins : []);
+                })
+                .catch((error: Error) => {
+                    this._logger.warn(
+                        `Fail request list of installed plugins due error: ${error.message}`,
+                    );
+                    reject(error);
+                });
         });
     }
 
     private _ipc_PluginsDataReady() {
-        this._getPlugins().then((plugins: Map<string, IPlugin>) => {
-            this._plugins = plugins;
-            this._states.manager = EManagerState.ready;
-            this._subjects.ready.next();
-            this._queue.unlock();
-            if (this.getCountToBeUpgradedUpdated() > 0) {
-                CustomTabsEventsService.emit().plugins();
-            }
-        }).catch((error: Error) => {
-            this._logger.error(`Fail to request plugins data due error: ${error.message}`);
-            this._plugins = new Map();
-        });
+        this._getPlugins()
+            .then((plugins: Map<string, IPlugin>) => {
+                this._plugins = plugins;
+                this._states.manager = EManagerState.ready;
+                this._subjects.ready.next();
+                this._queue.unlock();
+                if (this.getCountToBeUpgradedUpdated() > 0) {
+                    CustomTabsEventsService.emit().plugins();
+                }
+            })
+            .catch((error: Error) => {
+                this._logger.error(`Fail to request plugins data due error: ${error.message}`);
+                this._plugins = new Map();
+            });
     }
 
-    private _ipc_PluginsNotificationUpdate(msg: IPCMessages.PluginsNotificationUpdate) {
+    private _ipc_PluginsNotificationUpdate(msg: IPC.PluginsNotificationUpdate) {
         this._queue.do(() => {
             const plugin: IPlugin | undefined = this._plugins.get(msg.name);
             if (plugin === undefined) {
-                return this._logger.warn(`Cannot find a plugin "${msg.name}"`);
+                this._logger.warn(`Cannot find a plugin "${msg.name}"`);
+                return;
             }
             if (plugin.update.length > 0) {
-                return this._logger.warn(`Plugin "${plugin.name}" has beed already informed about updates`);
+                this._logger.warn(
+                    `Plugin "${plugin.name}" has beed already informed about updates`,
+                );
+                return;
             }
-            const versions: string[] = msg.versions.map(r => r.version);
+            const versions: string[] = msg.versions.map((r) => r.version);
             if (versions.length === 0) {
-                this._logger.warn(`Have gotten message about update plugin "${plugin.name}", but no versions list.`);
+                this._logger.warn(
+                    `Have gotten message about update plugin "${plugin.name}", but no versions list.`,
+                );
                 return;
             }
             plugin.update = versions;
@@ -454,18 +546,24 @@ export default class ControllerPluginsManager {
         });
     }
 
-    private _ipc_PluginsNotificationUpgrade(msg: IPCMessages.PluginsNotificationUpgrade) {
+    private _ipc_PluginsNotificationUpgrade(msg: IPC.PluginsNotificationUpgrade) {
         this._queue.do(() => {
             const plugin: IPlugin | undefined = this._plugins.get(msg.name);
             if (plugin === undefined) {
-                return this._logger.warn(`Cannot find a plugin "${msg.name}"`);
+                this._logger.warn(`Cannot find a plugin "${msg.name}"`);
+                return;
             }
             if (plugin.upgrade.length > 0) {
-                return this._logger.warn(`Plugin "${plugin.name}" has beed already informed about upgrade`);
+                this._logger.warn(
+                    `Plugin "${plugin.name}" has beed already informed about upgrade`,
+                );
+                return;
             }
-            const versions: string[] = msg.versions.map(r => r.version);
+            const versions: string[] = msg.versions.map((r) => r.version);
             if (versions.length === 0) {
-                this._logger.warn(`Have gotten message about upgrade plugin "${plugin.name}", but no versions list.`);
+                this._logger.warn(
+                    `Have gotten message about upgrade plugin "${plugin.name}", but no versions list.`,
+                );
                 return;
             }
             plugin.upgrade = versions;
@@ -478,53 +576,61 @@ export default class ControllerPluginsManager {
         return new Promise((resolve) => {
             Promise.all([
                 this._getInstalledPluginsInfo().catch((error: Error) => {
-                    this._logger.warn(`Fail get list of installed plugins due error: ${error.message}`);
+                    this._logger.warn(
+                        `Fail get list of installed plugins due error: ${error.message}`,
+                    );
                     return Promise.resolve([]);
                 }),
                 this._getAvailablePluginsInfo().catch((error: Error) => {
-                    this._logger.warn(`Fail get list of available plugins due error: ${error.message}`);
+                    this._logger.warn(
+                        `Fail get list of available plugins due error: ${error.message}`,
+                    );
                     return Promise.resolve([]);
                 }),
                 this._getIncompatiblesPluginsInfo().catch((error: Error) => {
-                    this._logger.warn(`Fail get list of incompatible plugins due error: ${error.message}`);
+                    this._logger.warn(
+                        `Fail get list of incompatible plugins due error: ${error.message}`,
+                    );
                     return Promise.resolve([]);
                 }),
-            ]).then((results: Array<CommonInterfaces.Plugins.IPlugin[]>) => {
-                const installed: CommonInterfaces.Plugins.IPlugin[] = results[0];
-                const available: CommonInterfaces.Plugins.IPlugin[] = results[1];
-                const incompatible: CommonInterfaces.Plugins.IPlugin[] = results[2];
-                const plugins: Map<string, IPlugin> = new Map();
-                available.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
-                    (p as IPlugin).installed = false;
-                    installed.forEach((plugin: CommonInterfaces.Plugins.IPlugin) => {
-                        if (p.name === plugin.name) {
-                            p = plugin;
-                            (p as IPlugin).installed = true;
-                        }
+            ])
+                .then((results: Array<CommonInterfaces.Plugins.IPlugin[]>) => {
+                    const installed: CommonInterfaces.Plugins.IPlugin[] = results[0];
+                    const available: CommonInterfaces.Plugins.IPlugin[] = results[1];
+                    const incompatible: CommonInterfaces.Plugins.IPlugin[] = results[2];
+                    const plugins: Map<string, IPlugin> = new Map();
+                    available.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
+                        (p as IPlugin).installed = false;
+                        installed.forEach((plugin: CommonInterfaces.Plugins.IPlugin) => {
+                            if (p.name === plugin.name) {
+                                p = plugin;
+                                (p as IPlugin).installed = true;
+                            }
+                        });
+                        p = this._setDefaults(p);
+                        plugins.set(p.name, p as IPlugin);
                     });
-                    p = this._setDefaults(p);
-                    plugins.set(p.name, p as IPlugin);
+                    installed.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
+                        if (plugins.has(p.name)) {
+                            return;
+                        }
+                        (p as IPlugin).installed = true;
+                        p = this._setDefaults(p);
+                        plugins.set(p.name, p as IPlugin);
+                    });
+                    incompatible.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
+                        if (plugins.has(p.name)) {
+                            return;
+                        }
+                        p = this._setDefaults(p, EPluginState.incompatible);
+                        plugins.set(p.name, p as IPlugin);
+                    });
+                    resolve(plugins);
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail to fetch plugins data due error: ${error.message}`);
+                    resolve(new Map());
                 });
-                installed.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
-                    if (plugins.has(p.name)) {
-                        return;
-                    }
-                    (p as IPlugin).installed = true;
-                    p = this._setDefaults(p);
-                    plugins.set(p.name, p as IPlugin);
-                });
-                incompatible.forEach((p: CommonInterfaces.Plugins.IPlugin) => {
-                    if (plugins.has(p.name)) {
-                        return;
-                    }
-                    p = this._setDefaults(p, EPluginState.incompatible);
-                    plugins.set(p.name, p as IPlugin);
-                });
-                resolve(plugins);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to fetch plugins data due error: ${error.message}`);
-                resolve(new Map());
-            });
         });
     }
 
@@ -546,6 +652,6 @@ export default class ControllerPluginsManager {
         } else if (!(p.suitable instanceof Array) || p.suitable.length === 0) {
             (p as IPlugin).state = EPluginState.notavailable;
         }
-        return (p as IPlugin);
+        return p as IPlugin;
     }
 }

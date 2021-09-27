@@ -8,6 +8,15 @@ export interface IStreamChunk {
     error?: string;
 }
 
+export interface IValidStreamChunk {
+    guid: string;
+    data: string;
+    start: number;
+    end: number;
+    length: number;
+    rows: number;
+}
+
 export class StreamChunk {
     public static signature: string = 'StreamChunk';
     public signature: string = StreamChunk.signature;
@@ -38,10 +47,16 @@ export class StreamChunk {
         if (typeof params.end !== 'number' || isNaN(params.end) || !isFinite(params.end)) {
             throw new Error(`Field "end" should be defined as number (not NaN and finited)`);
         }
-        if (params.length !== undefined && (typeof params.length !== 'number' || isNaN(params.length) || !isFinite(params.length))) {
+        if (
+            params.length !== undefined &&
+            (typeof params.length !== 'number' || isNaN(params.length) || !isFinite(params.length))
+        ) {
             throw new Error(`Field "length" should be defined as number (not NaN and finited)`);
         }
-        if (params.rows !== undefined && (typeof params.rows !== 'number' || isNaN(params.rows) || !isFinite(params.rows))) {
+        if (
+            params.rows !== undefined &&
+            (typeof params.rows !== 'number' || isNaN(params.rows) || !isFinite(params.rows))
+        ) {
             throw new Error(`Field "rows" should be defined as number (not NaN and finited)`);
         }
         this.guid = params.guid;

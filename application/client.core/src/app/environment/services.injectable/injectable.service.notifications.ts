@@ -1,8 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { Session } from '../controller/session/session';
-import { INotification, ENotificationType, INotificationButton as IButton } from 'chipmunk.client.toolkit';
-import { IPCMessages, Subscription } from '../services/service.electron.ipc';
+import {
+    INotification,
+    ENotificationType,
+    INotificationButton as IButton,
+} from 'chipmunk.client.toolkit';
+import { IPC, Subscription } from '../services/service.electron.ipc';
 
 import ServiceElectronIpc from '../services/service.electron.ipc';
 
@@ -22,12 +26,10 @@ const CCloseDelay = {
 type TSession = string;
 
 @Injectable({ providedIn: 'root' })
-
 export class NotificationsService {
-
     private subjects: {
-        new: Subject<INotification>,
-        updated: Subject<string>,
+        new: Subject<INotification>;
+        updated: Subject<string>;
     } = {
         new: new Subject<INotification>(),
         updated: new Subject<string>(),
@@ -39,7 +41,10 @@ export class NotificationsService {
     private _logger: Toolkit.Logger = new Toolkit.Logger('NotificationsService');
 
     constructor() {
-        this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(IPCMessages.Notification, this._onProcessNotification.bind(this));
+        this._subscriptions.onProcessNotification = ServiceElectronIpc.subscribe(
+            IPC.Notification,
+            this._onProcessNotification.bind(this),
+        );
         // Share notifications methods
         TabsSessionsService.setNotificationOpener(this.add.bind(this));
     }
@@ -53,7 +58,8 @@ export class NotificationsService {
     public add(notification: INotification) {
         const notific: INotification | Error = this._validate(notification);
         if (notific instanceof Error) {
-            return this._logger.warn(`Fail to add notification due error: ${notific.message}`);
+            this._logger.warn(`Fail to add notification due error: ${notific.message}`);
+            return;
         }
         this._store(notific);
         if (this._isIgnored(notific)) {
@@ -68,8 +74,8 @@ export class NotificationsService {
     }
 
     public getObservable(): {
-        new: Observable<INotification>,
-        updated: Observable<string>
+        new: Observable<INotification>;
+        updated: Observable<string>;
     } {
         return {
             new: this.subjects.new.asObservable(),
@@ -79,7 +85,9 @@ export class NotificationsService {
 
     public get(session: TSession): INotification[] {
         const storage: INotification[] | undefined = this._storage.get(session);
-        return storage === undefined ? [].concat(this._common, []) : [].concat(this._common, storage);
+        return storage === undefined
+            ? ([] as INotification[]).concat(this._common, [])
+            : ([] as INotification[]).concat(this._common, storage);
     }
 
     public getNotReadCount(session: TSession): number {
@@ -87,11 +95,11 @@ export class NotificationsService {
         const storage: INotification[] | undefined = this._storage.get(session);
         if (storage !== undefined) {
             storage.forEach((notification: INotification) => {
-                count += (notification.read !== true ? 1 : 0);
+                count += notification.read !== true ? 1 : 0;
             });
         }
         this._common.forEach((notification: INotification) => {
-            count += (notification.read !== true ? 1 : 0);
+            count += notification.read !== true ? 1 : 0;
         });
         return count;
     }
@@ -105,30 +113,51 @@ export class NotificationsService {
             return notification;
         });
         if (storage !== undefined) {
-            this._storage.set(session, storage.map((notification: INotification) => {
-                if (notification.id === id) {
-                    notification.read = true;
-                }
-                return notification;
-            }));
+            this._storage.set(
+                session,
+                storage.map((notification: INotification) => {
+                    if (notification.id === id) {
+                        notification.read = true;
+                    }
+                    return notification;
+                }),
+            );
         }
         this.subjects.updated.next(session);
     }
 
-    private _onProcessNotification(message: IPCMessages.Notification) {
-        const row: number | undefined = typeof message.row === 'string' ? parseInt(message.row, 10) : (typeof message.row === 'number' ? message.row : undefined);
+    private _onProcessNotification(message: IPC.Notification) {
+        const row: number | undefined =
+            typeof message.row === 'string'
+                ? parseInt(message.row, 10)
+                : typeof message.row === 'number'
+                ? message.row
+                : undefined;
         const notification: INotification = {
             id: Toolkit.guid(),
             session: message.session !== '*' ? message.session : undefined,
-            caption: message.caption.length > 150 ? `${message.caption.substr(0, 150)}...` : message.caption,
-            message: message.message.length > 1500 ? `${message.message.substr(0, 1500)}...` : message.message,
-            row: isNaN(row) ? undefined : (!isFinite(row) ? undefined : row),
+            caption:
+                message.caption.length > 150
+                    ? `${message.caption.substr(0, 150)}...`
+                    : message.caption,
+            message:
+                message.message.length > 1500
+                    ? `${message.message.substr(0, 1500)}...`
+                    : message.message,
+            row:
+                row === undefined
+                    ? undefined
+                    : isNaN(row)
+                    ? undefined
+                    : !isFinite(row)
+                    ? undefined
+                    : row,
             file: message.file,
             read: false,
             options: {
                 type: message.type,
                 closable: true,
-            }
+            },
         };
         if (message.actions instanceof Array) {
             notification.buttons = this._actionsToButtons(message.actions);
@@ -141,11 +170,19 @@ export class NotificationsService {
         if (notification.session !== undefined && active === undefined) {
             return new Error(`No any session.`);
         }
-        notification.session = notification.session === undefined ? (active === undefined ? undefined : active.getGuid()) : notification.session;
+        notification.session =
+            notification.session === undefined
+                ? active === undefined
+                    ? undefined
+                    : active.getGuid()
+                : notification.session;
         if (notification.options === undefined) {
             notification.options = {};
         }
-        if (CCloseDelay[notification.options.type] === undefined) {
+        if (
+            notification.options.type === undefined ||
+            (CCloseDelay as any)[notification.options.type] === undefined
+        ) {
             notification.options.type = ENotificationType.info;
         }
         notification.options.closeDelay = CCloseDelay[notification.options.type];
@@ -188,30 +225,31 @@ export class NotificationsService {
         }
     }
 
-    private _actionsToButtons(actions: IPCMessages.INotificationAction[]): IButton[] {
-        return actions.map((action: IPCMessages.INotificationAction) => {
-            switch (action.type) {
-                case IPCMessages.ENotificationActionType.ipc:
-                    return {
-                        caption: action.caption,
-                        handler: this._sendActionIPCMessage.bind(this, action.value),
-                    };
-                case IPCMessages.ENotificationActionType.close:
-                    return {
-                        caption: action.caption,
-                        handler: () => { },
-                    };
-                default:
-                    return undefined;
-            }
-        }).filter( b => b !== undefined);
+    private _actionsToButtons(actions: IPC.INotificationAction[]): IButton[] {
+        return actions
+            .map((action: IPC.INotificationAction) => {
+                switch (action.type) {
+                    case IPC.ENotificationActionType.ipc:
+                        return {
+                            caption: action.caption,
+                            handler: this._sendActionIPCMessage.bind(this, action.value),
+                        };
+                    case IPC.ENotificationActionType.close:
+                        return {
+                            caption: action.caption,
+                            handler: () => {},
+                        };
+                    default:
+                        return undefined;
+                }
+            })
+            .filter((b) => b !== undefined) as IButton[];
     }
 
     private _sendActionIPCMessage(classname: string) {
-        if (IPCMessages[classname] === undefined) {
+        if ((IPC as any)[classname] === undefined) {
             return;
         }
-        ServiceElectronIpc.send(new IPCMessages[classname]());
+        ServiceElectronIpc.send(new (IPC as any)[classname]());
     }
-
 }

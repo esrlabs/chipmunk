@@ -1,7 +1,13 @@
 import { Subject, Subscription } from 'rxjs';
 import { getContrastColor, scheme_color_accent } from '../../../../../../theme/colors';
-import { FilterRequest, IDesc as IFilterDesc } from '../filters/controller.session.tab.search.filters.request';
-import { IDisabledEntitySupport, EEntityTypeRef } from '../disabled/controller.session.tab.search.disabled.support';
+import {
+    FilterRequest,
+    IDesc as IFilterDesc,
+} from '../filters/controller.session.tab.search.filters.request';
+import {
+    IDisabledEntitySupport,
+    EEntityTypeRef,
+} from '../disabled/controller.session.tab.search.disabled.support';
 import { Session } from '../../../../session';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -40,19 +46,18 @@ export interface IRangeUpdateEvent {
 }
 
 export class RangeRequest implements IDisabledEntitySupport {
-
     private _points: FilterRequest[];
     private _color: string;
     private _alias: string;
     private _strict: boolean;
     private _guid: string;
     private _subscriptions: {
-        updated: Subscription[],
+        [key: string]: Subscription[];
     } = {
         updated: [],
     };
     private _subjects: {
-        updated: Subject<IRangeUpdateEvent>,
+        updated: Subject<IRangeUpdateEvent>;
     } = {
         updated: new Subject<IRangeUpdateEvent>(),
     };
@@ -66,7 +71,9 @@ export class RangeRequest implements IDisabledEntitySupport {
 
     constructor(desc: IDescOptional) {
         if (!(desc.points instanceof Array) || desc.points.length < 2) {
-            throw new Error(`To create range should be defined at least 2 FilterRequest as start and end of range`);
+            throw new Error(
+                `To create range should be defined at least 2 FilterRequest as start and end of range`,
+            );
         }
         this._points = desc.points.map((filter: FilterRequest | IFilterDesc) => {
             return filter instanceof FilterRequest ? filter : new FilterRequest(filter);
@@ -74,7 +81,7 @@ export class RangeRequest implements IDisabledEntitySupport {
         if (typeof desc.guid === 'string') {
             this._guid = desc.guid;
         } else {
-            this._guid = Toolkit.hash(this._points.map(_ => _.getHash()).join(''));
+            this._guid = Toolkit.hash(this._points.map((_) => _.getHash()).join(''));
         }
         if (typeof desc.color === 'string') {
             this._color = desc.color;
@@ -95,14 +102,14 @@ export class RangeRequest implements IDisabledEntitySupport {
 
     public destroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
-            this._subscriptions[key].forEach((subscription: Subscription) => {
+            (this._subscriptions[key] as Subscription[]).forEach((subscription: Subscription) => {
                 subscription.unsubscribe();
             });
         });
     }
 
     public onUpdated(handler: (event: IRangeUpdateEvent) => void): void {
-       this._subscriptions.updated.push(this._subjects.updated.asObservable().subscribe(handler));
+        this._subscriptions.updated.push(this._subjects.updated.asObservable().subscribe(handler));
     }
 
     public getColor(): string {
@@ -139,11 +146,20 @@ export class RangeRequest implements IDisabledEntitySupport {
             },
             range: this,
         };
-        if (desc.points instanceof Array && desc.points.length >= 2                             ) { event.updated.points = true; }
-        if (typeof desc.strict      === 'boolean'   && this.setStrictState(desc.strict, true)   ) { event.updated.strict = true; }
-        if (typeof desc.color       === 'string'    && this.setColor(desc.color)                ) { event.updated.color = true;  }
-        if (typeof desc.alias       === 'string'    && this.setAlias(desc.alias)                ) { event.updated.alias = true;  }
-        const hasToBeEmitted: boolean = event.updated.points || event.updated.color || event.updated.strict;
+        if (desc.points instanceof Array && desc.points.length >= 2) {
+            event.updated.points = true;
+        }
+        if (typeof desc.strict === 'boolean' && this.setStrictState(desc.strict, true)) {
+            event.updated.strict = true;
+        }
+        if (typeof desc.color === 'string' && this.setColor(desc.color)) {
+            event.updated.color = true;
+        }
+        if (typeof desc.alias === 'string' && this.setAlias(desc.alias)) {
+            event.updated.alias = true;
+        }
+        const hasToBeEmitted: boolean =
+            event.updated.points || event.updated.color || event.updated.strict;
         if (hasToBeEmitted) {
             this._subjects.updated.next(event);
         }
@@ -207,7 +223,6 @@ export class RangeRequest implements IDisabledEntitySupport {
         return true;
     }
 
-
     public getPoints(): FilterRequest[] {
         return this._points;
     }
@@ -254,5 +269,4 @@ export class RangeRequest implements IDisabledEntitySupport {
     public restore(session: Session) {
         session.getSessionSearch().getRangesAPI().getStorage().add(this);
     }
-
 }

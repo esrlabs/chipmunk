@@ -6,7 +6,6 @@ export interface IState {
 }
 
 export class ControllerSessionTabStates implements Dependency {
-
     private _logger: Toolkit.Logger;
     private _uuid: string;
     private _states: Map<string, IState> = new Map();

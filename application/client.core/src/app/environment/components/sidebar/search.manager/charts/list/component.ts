@@ -10,31 +10,30 @@ import SearchManagerService, { TRequest } from '../../service/service';
 @Component({
     selector: 'app-sidebar-app-searchmanager-charts',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterContentInit {
-
-    @Input() provider: Provider<ChartRequest>;
+    @Input() provider!: Provider<ChartRequest>;
 
     public _ng_entries: Array<Entity<ChartRequest>> = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
-        this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
+        this._subscriptions.change = this.provider
+            .getObservable()
+            .change.subscribe(this._onDataUpdate.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
@@ -68,5 +67,4 @@ export class SidebarAppSearchManagerChartsComponent implements OnDestroy, AfterC
         }
         this._cdRef.detectChanges();
     }
-
 }

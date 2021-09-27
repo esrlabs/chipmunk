@@ -1,5 +1,5 @@
-import { Subscription, Subject, Observable } from 'rxjs';
-import { IPCMessages } from '../services/service.electron.ipc';
+import { Subject, Observable } from 'rxjs';
+import { IPC } from '../services/service.electron.ipc';
 import { Session } from './session/session';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 
@@ -12,7 +12,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 export interface IFileInfo {
     path: string;
     name: string;
-    parser: string;
+    parser: string | undefined;
     preview: string;
     size: number;
 }
@@ -50,7 +50,6 @@ export enum EViewMode {
 }
 
 export class ControllerFileMergeSession {
-
     private _logger: Toolkit.Logger;
     private _session: string;
     private _tasks: Map<string, CancelablePromise<any, any, any, any>> = new Map();
@@ -62,9 +61,9 @@ export class ControllerFileMergeSession {
         sMin: 0,
     };
     private _subjects: {
-        FileUpdated: Subject<IMergeFile>,
-        FilesUpdated: Subject<IMergeFile[]>,
-        ScaleUpdated: Subject<ITimeScale>,
+        FileUpdated: Subject<IMergeFile>;
+        FilesUpdated: Subject<IMergeFile[]>;
+        ScaleUpdated: Subject<ITimeScale>;
     } = {
         FileUpdated: new Subject<IMergeFile>(),
         FilesUpdated: new Subject<IMergeFile[]>(),
@@ -82,18 +81,24 @@ export class ControllerFileMergeSession {
                 this._logger.debug(`No active tasks; no need to abort any.`);
                 return resolve();
             }
-            Promise.all(Array.from(this._tasks.values()).map((task: CancelablePromise<any, any, any, any>) => {
-                return new Promise((resolveTask) => {
-                    task.canceled(resolveTask);
-                    task.abort('Controller is going to be destroyed');
+            Promise.all(
+                Array.from(this._tasks.values()).map(
+                    (task: CancelablePromise<any, any, any, any>) => {
+                        return new Promise((resolveTask) => {
+                            task.canceled(resolveTask);
+                            task.abort('Controller is going to be destroyed');
+                        });
+                    },
+                ),
+            )
+                .then(() => {
+                    resolve();
+                    this._logger.debug(`All tasks are aborted; controller is destroyed.`);
+                })
+                .catch((err: Error) => {
+                    this._logger.error(`Unexpected error during destroying: ${err.message}`);
+                    reject(err);
                 });
-            })).then(() => {
-                resolve();
-                this._logger.debug(`All tasks are aborted; controller is destroyed.`);
-            }).catch((err: Error) => {
-                this._logger.error(`Unexpected error during destroying: ${err.message}`);
-                reject(err);
-            });
         });
     }
 
@@ -106,9 +111,9 @@ export class ControllerFileMergeSession {
     }
 
     public getObservable(): {
-        FileUpdated: Observable<IMergeFile>,
-        FilesUpdated: Observable<IMergeFile[]>,
-        ScaleUpdated: Observable<ITimeScale>,
+        FileUpdated: Observable<IMergeFile>;
+        FilesUpdated: Observable<IMergeFile[]>;
+        ScaleUpdated: Observable<ITimeScale>;
     } {
         return {
             FileUpdated: this._subjects.FileUpdated.asObservable(),
@@ -131,45 +136,64 @@ export class ControllerFileMergeSession {
                 });
             });
             this._subjects.FilesUpdated.next(Array.from(this._files.values()));
-            this._discover(files).then((discoveredFiles: IPCMessages.IMergeFilesDiscoverResult[]) => {
-                Promise.all(discoveredFiles.map((discoveredFile: IPCMessages.IMergeFilesDiscoverResult) => {
-                    return new Promise((next) => {
-                        this._getFileInfo(discoveredFile.path).then((info: IFileInfo) => {
-                            // TODO: discoveredFile.format could be NULL or UNDEFINED
-                            this._files.set(discoveredFile.path, {
-                                format: discoveredFile.format === undefined ? undefined : {
-                                    format: discoveredFile.format.format,
-                                    flags: discoveredFile.format.flags,
-                                    regex: discoveredFile.format.regex,
-                                },
-                                error: discoveredFile.error,
-                                scale: this._getTimeScale(discoveredFile),
-                                info: info,
-                                path: discoveredFile.path,
-                                options: {
-                                    offset: undefined,
-                                    year: undefined,
-                                },
+            this._discover(files)
+                .then((discoveredFiles: IPC.IMergeFilesDiscoverResult[]) => {
+                    Promise.all(
+                        discoveredFiles.map((discoveredFile: IPC.IMergeFilesDiscoverResult) => {
+                            return new Promise((next) => {
+                                this._getFileInfo(discoveredFile.path)
+                                    .then((info: IFileInfo) => {
+                                        // TODO: discoveredFile.format could be NULL or UNDEFINED
+                                        this._files.set(discoveredFile.path, {
+                                            format:
+                                                discoveredFile.format === undefined
+                                                    ? undefined
+                                                    : {
+                                                          format: discoveredFile.format.format,
+                                                          flags: discoveredFile.format.flags,
+                                                          regex: discoveredFile.format.regex,
+                                                      },
+                                            error: discoveredFile.error,
+                                            scale: this._getTimeScale(discoveredFile),
+                                            info: info,
+                                            path: discoveredFile.path,
+                                            options: {
+                                                offset: undefined,
+                                                year: undefined,
+                                            },
+                                        });
+                                        this._subjects.FileUpdated.next(
+                                            this._files.get(discoveredFile.path),
+                                        );
+                                        this._subjects.FilesUpdated.next(
+                                            Array.from(this._files.values()),
+                                        );
+                                        next(undefined);
+                                    })
+                                    .catch((infoErr: Error) => {
+                                        this._logger.warn(
+                                            `Fail get file information for "${discoveredFile.path}" due error: ${infoErr.message}`,
+                                        );
+                                        next(undefined);
+                                    });
                             });
-                            this._subjects.FileUpdated.next(this._files.get(discoveredFile.path));
-                            this._subjects.FilesUpdated.next(Array.from(this._files.values()));
-                            next(undefined);
-                        }).catch((infoErr: Error) => {
-                            this._logger.warn(`Fail get file information for "${discoveredFile.path}" due error: ${infoErr.message}`);
-                            next(undefined);
+                        }),
+                    )
+                        .then(() => {
+                            this._updateTimeScale();
+                            resolve();
+                        })
+                        .catch((queueErr: Error) => {
+                            this._logger.warn(
+                                `Fail to discover some of files due error: ${queueErr.message}`,
+                            );
+                            reject(queueErr);
                         });
-                    });
-                })).then(() => {
-                    this._updateTimeScale();
-                    resolve();
-                }).catch((queueErr: Error) => {
-                    this._logger.warn(`Fail to discover some of files due error: ${queueErr.message}`);
-                    reject(queueErr);
+                })
+                .catch((discoverErr: Error) => {
+                    this._logger.warn(`Fail to discover files due error: ${discoverErr.message}`);
+                    reject(discoverErr);
                 });
-            }).catch((discoverErr: Error) => {
-                this._logger.warn(`Fail to discover files due error: ${discoverErr.message}`);
-                reject(discoverErr);
-            });
         });
     }
 
@@ -209,31 +233,40 @@ export class ControllerFileMergeSession {
     public merge(): CancelablePromise<void> {
         const id: string = Toolkit.guid();
         const task: CancelablePromise<void> = new CancelablePromise<void>((resolve, reject) => {
-            const files: IPCMessages.IMergeFilesRequestFile[] = Array.from(this._files.values()).map((file: IMergeFile) => {
-                return {
-                    file: file.path,
-                    format: file.format !== undefined ? file.format.format : '',
-                    year: file.options.year,
-                    parser: '',
-                    offset: file.options.offset === undefined ? 0 : file.options.offset,
-                    zone: '',
-                };
-            });
+            const files: IPC.IMergeFilesRequestFile[] = Array.from(this._files.values()).map(
+                (file: IMergeFile) => {
+                    return {
+                        file: file.path,
+                        format: file.format !== undefined ? file.format.format : '',
+                        year: file.options.year,
+                        parser: '',
+                        offset: file.options.offset === undefined ? 0 : file.options.offset,
+                        zone: '',
+                    };
+                },
+            );
             EventsHubService.getSubject().onKeepScrollPrevent.next();
-            ElectronIpcService.request(new IPCMessages.MergeFilesRequest({
-                files: files,
-                id: Toolkit.guid(),
-                session: this._session,
-            }), IPCMessages.MergeFilesResponse).then((response: IPCMessages.MergeFilesResponse) => {
-                if (typeof response.error === 'string' && response.error.trim() !== '') {
-                    this._logger.error(`Merge operation was failed due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                resolve();
-            }).catch((mergeErr: Error) => {
-                this._logger.error(`Fail to do merge due error: ${mergeErr.message}`);
-                reject(mergeErr);
-            });
+            ElectronIpcService.request<IPC.MergeFilesResponse>(
+                new IPC.MergeFilesRequest({
+                    files: files,
+                    id: Toolkit.guid(),
+                    session: this._session,
+                }),
+                IPC.MergeFilesResponse,
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string' && response.error.trim() !== '') {
+                        this._logger.error(
+                            `Merge operation was failed due error: ${response.error}`,
+                        );
+                        return reject(new Error(response.error));
+                    }
+                    resolve();
+                })
+                .catch((mergeErr: Error) => {
+                    this._logger.error(`Fail to do merge due error: ${mergeErr.message}`);
+                    reject(mergeErr);
+                });
         }).finally(() => {
             this._tasks.delete(id);
         });
@@ -241,27 +274,36 @@ export class ControllerFileMergeSession {
         return task;
     }
 
-    public test(file: string, format: string): CancelablePromise<IPCMessages.IMergeFilesTestResponse> {
+    public test(file: string, format: string): CancelablePromise<IPC.IMergeFilesTestResponse> {
         const id: string = Toolkit.guid();
-        const task: CancelablePromise<IPCMessages.IMergeFilesTestResponse> = new CancelablePromise<IPCMessages.IMergeFilesTestResponse>(
-            (resolve, reject, cancel, refCancelCB, self) => {
-            ElectronIpcService.request(new IPCMessages.MergeFilesTestRequest({
-                file: file,
-                format: format,
-                id: id,
-            }), IPCMessages.MergeFilesTestResponse).then((response: IPCMessages.MergeFilesTestResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to test files due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                resolve(response);
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to test files due error: ${disErr.message}`);
-                return reject(disErr);
+        const task: CancelablePromise<IPC.IMergeFilesTestResponse> =
+            new CancelablePromise<IPC.IMergeFilesTestResponse>(
+                (resolve, reject, cancel, refCancelCB, self) => {
+                    ElectronIpcService.request<IPC.MergeFilesTestResponse>(
+                        new IPC.MergeFilesTestRequest({
+                            file: file,
+                            format: format,
+                            id: id,
+                        }),
+                        IPC.MergeFilesTestResponse,
+                    )
+                        .then((response) => {
+                            if (typeof response.error === 'string') {
+                                this._logger.error(
+                                    `Fail to test files due error: ${response.error}`,
+                                );
+                                return reject(new Error(response.error));
+                            }
+                            resolve(response);
+                        })
+                        .catch((disErr: Error) => {
+                            this._logger.error(`Fail to test files due error: ${disErr.message}`);
+                            return reject(disErr);
+                        });
+                },
+            ).finally(() => {
+                this._tasks.delete(id);
             });
-        }).finally(() => {
-            this._tasks.delete(id);
-        });
         this._tasks.set(id, task);
         return task;
     }
@@ -274,21 +316,57 @@ export class ControllerFileMergeSession {
         return this._timescale.max !== '' && this._timescale.min !== '';
     }
 
-    public validate(format): CancelablePromise<void> {
+    public validate(format: string): CancelablePromise<void> {
         const id: string = Toolkit.guid();
         const task: CancelablePromise<void> = new CancelablePromise<void>(
             (resolve, reject, cancel, refCancelCB, self) => {
-            ElectronIpcService.request(new IPCMessages.MergeFilesFormatRequest({
-                format: format,
-            }), IPCMessages.MergeFilesFormatResponse).then((response: IPCMessages.MergeFilesFormatResponse) => {
-                if (typeof response.error === 'string') {
-                    return reject(new Error(response.error));
-                }
-                resolve();
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to test format due error: ${disErr.message}`);
-                return reject(disErr);
-            });
+                ElectronIpcService.request(
+                    new IPC.MergeFilesFormatRequest({
+                        format: format,
+                    }),
+                    IPC.MergeFilesFormatResponse,
+                )
+                    .then((response: IPC.MergeFilesFormatResponse) => {
+                        if (typeof response.error === 'string') {
+                            return reject(new Error(response.error));
+                        }
+                        resolve();
+                    })
+                    .catch((disErr: Error) => {
+                        this._logger.error(`Fail to test format due error: ${disErr.message}`);
+                        return reject(disErr);
+                    });
+            },
+        ).finally(() => {
+            this._tasks.delete(id);
+        });
+        this._tasks.set(id, task);
+        return task;
+    }
+
+    private _discover(files: string[]): CancelablePromise<IPC.IMergeFilesDiscoverResult[]> {
+        const id: string = Toolkit.guid();
+        const task: CancelablePromise<IPC.IMergeFilesDiscoverResult[]> = new CancelablePromise<
+            IPC.IMergeFilesDiscoverResult[]
+        >((resolve, reject, cancel, refCancelCB, self) => {
+            ElectronIpcService.request<IPC.MergeFilesDiscoverResponse>(
+                new IPC.MergeFilesDiscoverRequest({
+                    files: files,
+                    id: id,
+                }),
+                IPC.MergeFilesDiscoverResponse,
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(`Fail to discover files due error: ${response.error}`);
+                        return reject(new Error(response.error));
+                    }
+                    resolve(response.files);
+                })
+                .catch((disErr: Error) => {
+                    this._logger.error(`Fail to discover files due error: ${disErr.message}`);
+                    return reject(disErr);
+                });
         }).finally(() => {
             this._tasks.delete(id);
         });
@@ -296,102 +374,105 @@ export class ControllerFileMergeSession {
         return task;
     }
 
-    private _discover(files: string[]): CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]> {
+    private _getFileStats(file: string): CancelablePromise<IPC.FileInfoResponse> {
         const id: string = Toolkit.guid();
-        const task: CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]> = new CancelablePromise<IPCMessages.IMergeFilesDiscoverResult[]>(
-            (resolve, reject, cancel, refCancelCB, self) => {
-            ElectronIpcService.request(new IPCMessages.MergeFilesDiscoverRequest({
-                files: files,
-                id: id,
-            }), IPCMessages.MergeFilesDiscoverResponse).then((response: IPCMessages.MergeFilesDiscoverResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to discover files due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                resolve(response.files);
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to discover files due error: ${disErr.message}`);
-                return reject(disErr);
+        const task: CancelablePromise<IPC.FileInfoResponse> =
+            new CancelablePromise<IPC.FileInfoResponse>((resolve, reject) => {
+                ElectronIpcService.request<IPC.FileInfoResponse>(
+                    new IPC.FileInfoRequest({
+                        file: file,
+                    }),
+                    IPC.FileInfoResponse,
+                )
+                    .then((stats) => {
+                        if (stats.parser === undefined) {
+                            return reject(new Error('Fail to find parser for selected file.'));
+                        }
+                        resolve(stats);
+                    })
+                    .catch((error: Error) => {
+                        reject(error);
+                    });
+            }).finally(() => {
+                this._tasks.delete(id);
             });
-        }).finally(() => {
-            this._tasks.delete(id);
-        });
         this._tasks.set(id, task);
         return task;
     }
 
-    private _getFileStats(file: string): CancelablePromise<IPCMessages.FileInfoResponse> {
+    private _getFileContent(
+        file: string,
+        length: number = 25000,
+    ): CancelablePromise<IPC.FileReadResponse> {
         const id: string = Toolkit.guid();
-        const task: CancelablePromise<IPCMessages.FileInfoResponse> = new CancelablePromise<IPCMessages.FileInfoResponse>((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.FileInfoRequest({
-                file: file,
-            }), IPCMessages.FileInfoResponse).then((stats: IPCMessages.FileInfoResponse) => {
-                if (stats.parser === undefined) {
-                    return reject(new Error('Fail to find parser for selected file.'));
+        const task: CancelablePromise<IPC.FileReadResponse> =
+            new CancelablePromise<IPC.FileReadResponse>((resolve, reject) => {
+                const session: Session | undefined = SessionsService.getActive();
+                if (session === undefined) {
+                    return reject(new Error(`No active session found`));
                 }
-                resolve(stats);
-            }).catch((error: Error) => {
-                reject(error);
+                ElectronIpcService.request<IPC.FileReadResponse>(
+                    new IPC.FileReadRequest({
+                        file: file,
+                        bytes: length,
+                        session: session.getGuid(),
+                    }),
+                    IPC.FileReadResponse,
+                )
+                    .then((response) => {
+                        if (response.error !== undefined) {
+                            return reject(new Error(response.error));
+                        }
+                        resolve(response);
+                    })
+                    .catch((error: Error) => {
+                        reject(error);
+                    });
+            }).finally(() => {
+                this._tasks.delete(id);
             });
-        }).finally(() => {
-            this._tasks.delete(id);
-        });
-        this._tasks.set(id, task);
-        return task;
-    }
-
-    private _getFileContent(file: string, length: number = 25000): CancelablePromise<IPCMessages.FileReadResponse> {
-        const id: string = Toolkit.guid();
-        const task: CancelablePromise<IPCMessages.FileReadResponse> = new CancelablePromise<IPCMessages.FileReadResponse>((resolve, reject) => {
-            const session: Session | undefined = SessionsService.getActive();
-            if (session === undefined) {
-                return reject(new Error(`No active session found`));
-            }
-            ElectronIpcService.request(new IPCMessages.FileReadRequest({
-                file: file,
-                bytes: length,
-                session: session.getGuid(),
-            }), IPCMessages.FileReadResponse).then((response: IPCMessages.FileReadResponse) => {
-                if (response.error !== undefined) {
-                    return reject(new Error(response.error));
-                }
-                resolve(response);
-            }).catch((error: Error) => {
-                reject(error);
-            });
-        }).finally(() => {
-            this._tasks.delete(id);
-        });
         this._tasks.set(id, task);
         return task;
     }
 
     private _getFileInfo(path: string): CancelablePromise<IFileInfo> {
         const id: string = Toolkit.guid();
-        const task: CancelablePromise<IFileInfo> = new CancelablePromise<IFileInfo>((resolve, reject) => {
-            this._getFileStats(path).then((stats: IPCMessages.FileInfoResponse) => {
-                this._getFileContent(path).then((preview: IPCMessages.FileReadResponse) => {
-                    resolve({
-                        path: stats.path,
-                        name: stats.name,
-                        parser: stats.parser,
-                        size: stats.size,
-                        preview: preview.content,
+        const task: CancelablePromise<IFileInfo> = new CancelablePromise<IFileInfo>(
+            (resolve, reject) => {
+                this._getFileStats(path)
+                    .then((stats: IPC.FileInfoResponse) => {
+                        this._getFileContent(path)
+                            .then((preview: IPC.FileReadResponse) => {
+                                resolve({
+                                    path: stats.path,
+                                    name: stats.name,
+                                    parser: stats.parser,
+                                    size: stats.size,
+                                    preview: preview.content,
+                                });
+                            })
+                            .catch((previewError: Error) => {
+                                reject(
+                                    new Error(
+                                        `Fail read preview of file due error: ${previewError.message}`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((parserError: Error) => {
+                        reject(
+                            new Error(`Fail detect file parser due error: ${parserError.message}`),
+                        );
                     });
-                }).catch((previewError: Error) => {
-                    reject(new Error(`Fail read preview of file due error: ${previewError.message}`));
-                });
-            }).catch((parserError: Error) => {
-                reject(new Error(`Fail detect file parser due error: ${parserError.message}`));
-            });
-        }).finally(() => {
+            },
+        ).finally(() => {
             this._tasks.delete(id);
         });
         this._tasks.set(id, task);
         return task;
     }
 
-    private _getTimeScale(file: IPCMessages.IMergeFilesDiscoverResult): ITimeScale | undefined {
+    private _getTimeScale(file: IPC.IMergeFilesDiscoverResult): ITimeScale | undefined {
         function getUnixTime(smth: number | string): number | undefined {
             if (typeof smth === 'string') {
                 smth = parseInt(smth, 10);
@@ -415,15 +496,15 @@ export class ControllerFileMergeSession {
             return undefined;
         }
         return {
-            max: (new Date(sMax)).toISOString(),
-            min: (new Date(sMin)).toISOString(),
+            max: new Date(sMax).toISOString(),
+            min: new Date(sMin).toISOString(),
             sMax: sMax,
             sMin: sMin,
         };
     }
 
     private _updateTimeScale() {
-        this._timescale = { max: '', min: '', sMax: 0, sMin: Infinity, };
+        this._timescale = { max: '', min: '', sMax: 0, sMin: Infinity };
         this._files.forEach((file: IMergeFile) => {
             if (file.scale === undefined) {
                 return;
@@ -439,5 +520,4 @@ export class ControllerFileMergeSession {
         });
         this._subjects.ScaleUpdated.next(this._timescale);
     }
-
 }

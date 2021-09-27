@@ -1,6 +1,9 @@
-import { IPCMessages, Subscription as IPCSubscription } from '../../../../services/service.electron.ipc';
+import { IPC, Subscription as IPCSubscription } from '../../../../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
-import { ControllerSessionTabStreamOutput, IStreamState } from '../output/controller.session.tab.stream.output';
+import {
+    ControllerSessionTabStreamOutput,
+    IStreamState,
+} from '../output/controller.session.tab.stream.output';
 import { ControllerSessionScope } from '../scope/controller.session.tab.scope';
 import { ControllerSessionTabTimestamp } from '../timestamps/session.dependency.timestamps';
 import { IQueueController } from '../../../../services/standalone/service.queue';
@@ -22,15 +25,14 @@ export interface IControllerSessionStream {
 }
 
 export class ControllerSessionTabStream implements Dependency {
-
     private _logger: Toolkit.Logger;
-    private _queue: Toolkit.Queue;
+    private _queue!: Toolkit.Queue;
     private _queueController: IQueueController | undefined;
     private _guid: string;
     private _subjects = {
         onSourceChanged: new Subject<number>(),
     };
-    private _subscriptions: { [key: string]: Subscription | IPCSubscription } = { };
+    private _subscriptions: { [key: string]: Subscription | IPCSubscription } = {};
     private _session: SessionGetter;
 
     constructor(uuid: string, getter: SessionGetter) {
@@ -48,7 +50,10 @@ export class ControllerSessionTabStream implements Dependency {
             this._queue.subscribe(Toolkit.Queue.Events.done, this._queue_onDone);
             this._queue.subscribe(Toolkit.Queue.Events.next, this._queue_onNext);
             // Subscribe to streams data
-            this._subscriptions.onStreamUpdated = ServiceElectronIpc.subscribe(IPCMessages.StreamUpdated, this._ipc_onStreamUpdated.bind(this));
+            this._subscriptions.onStreamUpdated = ServiceElectronIpc.subscribe(
+                IPC.StreamUpdated,
+                this._ipc_onStreamUpdated.bind(this),
+            );
             resolve();
         });
     }
@@ -72,7 +77,7 @@ export class ControllerSessionTabStream implements Dependency {
     }
 
     public getObservable(): {
-        onSourceChanged: Observable<number>,
+        onSourceChanged: Observable<number>;
     } {
         return {
             onSourceChanged: this._session().getStreamOutput().getObservable().onSourceChanged,
@@ -85,27 +90,42 @@ export class ControllerSessionTabStream implements Dependency {
                 return resolve([]);
             }
             let packets: IRow[] = [];
-            Toolkit.sequences(ranges.map((range: IRange) => {
-                return () => {
-                    return range.start.search === undefined ? this._session().getStreamOutput().loadRange({
-                        start: range.start.output,
-                        end: range.end.output,
-                    }).then((packet: IRow[]) => {
-                        packets = packets.concat(packet);
-                    }) : this._session().getSessionSearch().getOutputStream().loadRange({
-                        start: range.start.search,
-                        end: range.end.search,
-                    }).then((packet: IRow[]) => {
-                        packets = packets.concat(packet);
-                    });
-                };
-            })).then(() => {
-                resolve(packets);
-            }).catch(reject);
+            Toolkit.sequences(
+                ranges.map((range: IRange) => {
+                    return () => {
+                        if (range.start.search !== undefined && range.end.search !== undefined) {
+                            return this._session()
+                                .getSessionSearch()
+                                .getOutputStream()
+                                .loadRange({
+                                    start: range.start.search,
+                                    end: range.end.search,
+                                })
+                                .then((packet: IRow[]) => {
+                                    packets = packets.concat(packet);
+                                });
+                        } else {
+                            return this._session()
+                                .getStreamOutput()
+                                .loadRange({
+                                    start: range.start.output,
+                                    end: range.end.output,
+                                })
+                                .then((packet: IRow[]) => {
+                                    packets = packets.concat(packet);
+                                });
+                        }
+                    };
+                }),
+            )
+                .then(() => {
+                    resolve(packets);
+                })
+                .catch(reject);
         });
     }
 
-    private _ipc_onStreamUpdated(message: IPCMessages.StreamUpdated) {
+    private _ipc_onStreamUpdated(message: IPC.StreamUpdated) {
         if (this._guid !== message.guid) {
             return;
         }
@@ -126,5 +146,4 @@ export class ControllerSessionTabStream implements Dependency {
         this._queueController.done();
         this._queueController = undefined;
     }
-
 }

@@ -7,7 +7,11 @@ import {
     IDescOptional as IChartDescOptional,
     IDescUpdating as IChartDescUpdating,
 } from './controller.session.tab.search.charts.request';
-import { IStore, EStoreKeys, IStoreData } from '../../dependencies/store/controller.session.tab.search.store.support';
+import {
+    IStore,
+    EStoreKeys,
+    IStoreData,
+} from '../../dependencies/store/controller.session.tab.search.store.support';
 import { SessionGetter } from '../search.dependency';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -31,16 +35,15 @@ export {
     IChartFlags,
     IChartDesc,
     IChartDescOptional,
-    IChartDescUpdating
+    IChartDescUpdating,
 };
 
 export class ChartsStorage implements IStore<IChartDesc[]> {
-
     private readonly _logger: Toolkit.Logger;
     private readonly _guid: string;
     private readonly _subjects: {
-        updated: Subject<IUpdateEvent>,
-        changed: Subject<IChartUpdateEvent>,
+        updated: Subject<IUpdateEvent>;
+        changed: Subject<IChartUpdateEvent>;
     } = {
         updated: new Subject<IUpdateEvent>(),
         changed: new Subject<IChartUpdateEvent>(),
@@ -62,8 +65,8 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
     }
 
     public getObservable(): {
-        updated: Observable<IUpdateEvent>,
-        changed: Observable<IChartUpdateEvent>,
+        updated: Observable<IUpdateEvent>;
+        changed: Observable<IChartUpdateEvent>;
     } {
         return {
             updated: this._subjects.updated.asObservable(),
@@ -72,12 +75,17 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
     }
 
     public has(request: ChartRequest): boolean {
-        return this._stored.find((stored: ChartRequest) => {
-            return request.getHash() === stored.getHash();
-        }) !== undefined;
+        return (
+            this._stored.find((stored: ChartRequest) => {
+                return request.getHash() === stored.getHash();
+            }) !== undefined
+        );
     }
 
-    public add(descs: IChartDescOptional | ChartRequest | Array<IChartDescOptional | ChartRequest>, from?: number): Error | undefined {
+    public add(
+        descs: IChartDescOptional | ChartRequest | Array<IChartDescOptional | ChartRequest>,
+        from?: number,
+    ): Error | undefined {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -86,7 +94,10 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
         try {
             descs.forEach((desc: IChartDescOptional | ChartRequest) => {
                 // Create search request
-                const srchRqst: ChartRequest = desc instanceof ChartRequest ? new ChartRequest(desc.asDesc()) : new ChartRequest(desc);
+                const srchRqst: ChartRequest =
+                    desc instanceof ChartRequest
+                        ? new ChartRequest(desc.asDesc())
+                        : new ChartRequest(desc);
                 // Check request
                 if (this.has(srchRqst)) {
                     throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
@@ -98,16 +109,21 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
                     this._stored.push(srchRqst);
                 }
                 added.push(srchRqst),
-                // Subscribe on update event
-                srchRqst.onUpdated(this._onRequestUpdated.bind(this));
+                    // Subscribe on update event
+                    srchRqst.onUpdated(this._onRequestUpdated.bind(this));
             });
         } catch (err) {
-            return new Error(`Fail add request(s) due error: ${err.message}`);
+            return new Error(
+                `Fail add request(s) due error: ${err instanceof Error ? err.message : err}`,
+            );
         }
         if (this._stored.length === prevCount) {
             return;
         }
-        this._subjects.updated.next({ requests: this._stored, added: added.length === 1 ? added[0] : added });
+        this._subjects.updated.next({
+            requests: this._stored,
+            added: added.length === 1 ? added[0] : added,
+        });
         if (this._stored.length > 0) {
             const api = this._session().getAPI();
             api.openToolbarApp(api.getDefaultToolbarAppsIds().charts, true);
@@ -145,7 +161,7 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
     }
 
     public getAsDesc(): IChartDescOptional[] {
-        return this._stored.map(c => c.asDesc());
+        return this._stored.map((c) => c.asDesc());
     }
 
     public getActive(): ChartRequest[] {
@@ -168,10 +184,10 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
     }
 
     public store(): {
-        key(): EStoreKeys,
-        extract(): IStoreData,
-        upload(charts: IChartDesc[]): void,
-        getItemsCount(): number,
+        key(): EStoreKeys;
+        extract(): IStoreData;
+        upload(charts: IChartDesc[]): void;
+        getItemsCount(): number;
     } {
         const self = this;
         return {
@@ -205,5 +221,4 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
         // Remove from storage
         this._stored = [];
     }
-
 }

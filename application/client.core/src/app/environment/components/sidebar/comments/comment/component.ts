@@ -1,9 +1,22 @@
 // tslint:disable: member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, OnChanges, SimpleChanges, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    Input,
+    AfterContentInit,
+    OnChanges,
+    SimpleChanges,
+    ViewEncapsulation,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
 import { Session } from '../../../../controller/session/session';
-import { IComment, ICommentResponse } from '../../../../controller/session/dependencies/comments/session.dependency.comments.types';
+import {
+    IComment,
+    ICommentResponse,
+} from '../../../../controller/session/dependencies/comments/session.dependency.comments.types';
 import { CShortColors } from '../../../../conts/colors';
 import { shadeColor } from '../../../../theme/colors';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
@@ -19,12 +32,10 @@ import OutputRedirectionsService from '../../../../services/standalone/service.o
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-
 export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentInit, OnChanges {
-
-    @Input() comment: IComment;
-    @Input() controller: Session;
-    @Input() broadcastEditorUsage: Subject<string>;
+    @Input() comment!: IComment;
+    @Input() controller!: Session;
+    @Input() broadcastEditorUsage!: Subject<string>;
 
     public _ng_colors: string[] = CShortColors.slice();
     public _ng_response: ICommentResponse | undefined;
@@ -40,12 +51,14 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.broadcastEditorUsage = this.broadcastEditorUsage.asObservable().subscribe((guid: string) => {
-            if (guid === this._guid) {
-                return;
-            }
-            this._ng_response = undefined;
-        });
+        this._subscriptions.broadcastEditorUsage = this.broadcastEditorUsage
+            .asObservable()
+            .subscribe((guid: string) => {
+                if (guid === this._guid) {
+                    return;
+                }
+                this._ng_response = undefined;
+            });
     }
 
     public ngOnDestroy() {
@@ -53,14 +66,16 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngOnEdit() {
         this.controller.getSessionComments().edit(this.comment);
     }
 
     public ngOnShow() {
-        OutputRedirectionsService.select(EParent.comment, this.controller.getGuid(), { output: this.comment.selection.start.position });
+        OutputRedirectionsService.select(EParent.comment, this.controller.getGuid(), {
+            output: this.comment.selection.start.position,
+        });
     }
 
     public ngOnRemove() {
@@ -95,19 +110,24 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
     }
 
     public ngOnResponseSave(comment: string) {
+        if (this._ng_response === undefined) {
+            return;
+        }
         if (comment !== '') {
             if (this._ng_response.guid === '') {
                 this._ng_response.guid = Toolkit.guid();
                 this._ng_response.comment = comment;
                 this.comment.responses.push(this._ng_response);
             } else {
-                this.comment.responses = this.comment.responses.map((response: ICommentResponse) => {
-                    if (response.guid === this._ng_response.guid) {
-                        response.modified = Date.now();
-                        response.comment = comment;
-                    }
-                    return response;
-                });
+                this.comment.responses = this.comment.responses.map(
+                    (response: ICommentResponse) => {
+                        if (response.guid === this._ng_response?.guid) {
+                            response.modified = Date.now();
+                            response.comment = comment;
+                        }
+                        return response;
+                    },
+                );
             }
             this.controller.getSessionComments().update(this.comment);
         }
@@ -123,7 +143,9 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
         if (this._ng_response === undefined) {
             return;
         }
-        this.comment.responses = this.comment.responses.filter(r => r.guid !== this._ng_response.guid);
+        this.comment.responses = this.comment.responses.filter(
+            (r) => r.guid !== this._ng_response?.guid,
+        );
         this.controller.getSessionComments().update(this.comment);
         this.ngOnResponseCancel();
     }
@@ -138,7 +160,7 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
 
     public ngGetResponseRemoveCallback(guid: string) {
         return () => {
-            this.comment.responses = this.comment.responses.filter(r => r.guid !== guid);
+            this.comment.responses = this.comment.responses.filter((r) => r.guid !== guid);
             this.controller.getSessionComments().update(this.comment);
         };
     }
@@ -153,5 +175,4 @@ export class SidebarAppCommentsItemComponent implements OnDestroy, AfterContentI
         }
         this._cdRef.detectChanges();
     }
-
 }

@@ -1,8 +1,8 @@
-import * as IPCMessages from '../../../../../common/ipc/electron.ipc.messages/index';
+import * as IPC from '../../../../../common/ipc/electron.ipc.messages/index';
 
 export {
     ISearchExpressionFlags,
-    ISearchExpression
+    ISearchExpression,
 } from '../../../../../common/ipc/electron.ipc.messages/search.request';
 
-export { IPCMessages };
+export { IPC };

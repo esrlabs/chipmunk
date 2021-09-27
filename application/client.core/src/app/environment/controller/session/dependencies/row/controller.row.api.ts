@@ -31,7 +31,6 @@ export interface IRowAPI {
 }
 
 export class ControllerRowAPI implements Dependency {
-
     private readonly _logger: Toolkit.Logger;
     private readonly _uuid: string;
     private readonly _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
@@ -78,14 +77,45 @@ export class ControllerRowAPI implements Dependency {
     }
 
     private _subscribe() {
-        this._subscriptions.onUpdatedSearch = OutputParsersService.getObservable().onUpdatedSearch.subscribe(this._onRepain.bind(this));
-        this._subscriptions.onRepain = OutputParsersService.getObservable().onRepain.subscribe(this._onRepain.bind(this));
-        this._subscriptions.onRowHover = ViewsEventsService.getObservable().onRowHover.subscribe(this._onRowHover.bind(this));
-        this._subscriptions.onRowWasSelected = OutputRedirectionsService.subscribe(this._uuid, this._onRefresh.bind(this));
-        this._subscriptions.onRankChanged = this._session().getStreamOutput().getObservable().onRankChanged.subscribe(this._onRankChanged.bind(this));
-        this._subscriptions.onAddedBookmark = this._session().getBookmarks().getObservable().onAdded.subscribe(this._onAddedBookmark.bind(this));
-        this._subscriptions.onRemovedBookmark = this._session().getBookmarks().getObservable().onRemoved.subscribe(this._onRemovedBookmark.bind(this));
-        this._subscriptions.onSizeRequested = this._session().getScope().get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth).onSizeRequested.asObservable().subscribe(this._onSizeRequested.bind(this));
+        this._subscriptions.onUpdatedSearch =
+            OutputParsersService.getObservable().onUpdatedSearch.subscribe(
+                this._onRepain.bind(this),
+            );
+        this._subscriptions.onRepain = OutputParsersService.getObservable().onRepain.subscribe(
+            this._onRepain.bind(this),
+        );
+        this._subscriptions.onRowHover = ViewsEventsService.getObservable().onRowHover.subscribe(
+            this._onRowHover.bind(this),
+        );
+        this._subscriptions.onRowWasSelected = OutputRedirectionsService.subscribe(
+            this._uuid,
+            this._onRefresh.bind(this),
+        );
+        this._subscriptions.onRankChanged = this._session()
+            .getStreamOutput()
+            .getObservable()
+            .onRankChanged.subscribe(this._onRankChanged.bind(this));
+        this._subscriptions.onAddedBookmark = this._session()
+            .getBookmarks()
+            .getObservable()
+            .onAdded.subscribe(this._onAddedBookmark.bind(this));
+        this._subscriptions.onRemovedBookmark = this._session()
+            .getBookmarks()
+            .getObservable()
+            .onRemoved.subscribe(this._onRemovedBookmark.bind(this));
+        const scope = this._session()
+            .getScope()
+            .get<IRowNumberWidthData>(ControllerSessionScope.Keys.CRowNumberWidth);
+        if (scope === undefined) {
+            throw new Error(
+                this._logger.error(
+                    `Fail get requested scope: ${ControllerSessionScope.Keys.CRowNumberWidth}`,
+                ),
+            );
+        }
+        this._subscriptions.onSizeRequested = scope.onSizeRequested
+            .asObservable()
+            .subscribe(this._onSizeRequested.bind(this));
     }
 
     public getTimestamp() {
@@ -152,6 +182,4 @@ export class ControllerRowAPI implements Dependency {
             row.setRank(rank);
         });
     }
-
-
 }

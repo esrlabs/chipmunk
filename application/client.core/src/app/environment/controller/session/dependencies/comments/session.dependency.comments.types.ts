@@ -38,4 +38,3 @@ export interface IActualSelectionData {
     start: number;
     end: number;
 }
-

@@ -1,17 +1,16 @@
 type TResolver = () => void;
 
 export class ControllerToolbarLifecircle {
-
     private readonly TIMEOUT: number = 250;
 
     private _guid: string;
     private _timeouts: {
-        viewready: any,
+        viewready: any;
     } = {
         viewready: -1,
     };
     private _pendings: {
-        viewready: TResolver[],
+        viewready: TResolver[];
     } = {
         viewready: [],
     };
@@ -22,12 +21,12 @@ export class ControllerToolbarLifecircle {
 
     public destroy() {
         Object.keys(this._timeouts).forEach((key: string) => {
-            clearTimeout(this._timeouts[key]);
+            clearTimeout((this._timeouts as any)[key]);
         });
     }
 
     public callOn(): {
-        viewready: (resolver: TResolver) => void,
+        viewready: (resolver: TResolver) => void;
     } {
         const self = this;
         return {
@@ -41,7 +40,7 @@ export class ControllerToolbarLifecircle {
     }
 
     public emit(): {
-        viewready: () => void,
+        viewready: () => void;
     } {
         const self = this;
         return {
@@ -53,5 +52,4 @@ export class ControllerToolbarLifecircle {
             },
         };
     }
-
 }

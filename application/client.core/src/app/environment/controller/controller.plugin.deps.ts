@@ -86,10 +86,10 @@ export function getAvailablePluginModules(): { [key: string]: any } {
         '@angular/material/tooltip': AngularMaterialTooltip,
         '@angular/material/tree': AngularMaterialTree,
         '@angular/cdk': AngularCDK,
-        'rxjs': RXJS,
+        rxjs: RXJS,
         'chipmunk-client-material': LogviewerClientMaterial,
         'chipmunk.client.toolkit': Toolkit,
         'chart.js': ChartJS,
-        'hammerjs': hammerjs,
+        hammerjs: hammerjs,
     };
 }

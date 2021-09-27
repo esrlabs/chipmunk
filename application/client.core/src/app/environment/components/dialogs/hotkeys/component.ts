@@ -1,5 +1,4 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
-import * as Toolkit from 'chipmunk.client.toolkit';
 
 interface IKey {
     shortkeys: string[];
@@ -14,25 +13,22 @@ interface IGroup {
 @Component({
     selector: 'app-views-dialogs-hotkeys-map',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class DialogsHotkeysMapComponent implements AfterContentInit {
-
     @Input() keys: any;
 
     public _ng_groups: IGroup[] = [];
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     ngAfterContentInit() {
-        const groups = {};
+        const groups: any = {};
         Object.keys(this.keys).forEach((key: string) => {
             if (groups[this.keys[key].category] === undefined) {
                 groups[this.keys[key].category] = {
                     name: this.keys[key].category,
-                    keys: []
+                    keys: [],
                 };
             }
             groups[this.keys[key].category].keys.push({
@@ -45,5 +41,4 @@ export class DialogsHotkeysMapComponent implements AfterContentInit {
         });
         this._cdRef.detectChanges();
     }
-
 }

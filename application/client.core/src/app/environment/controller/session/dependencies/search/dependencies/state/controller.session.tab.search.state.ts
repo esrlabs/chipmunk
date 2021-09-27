@@ -7,7 +7,6 @@ export interface ITask {
 }
 
 export class ControllerSessionTabSearchQueue implements Dependency {
-
     private _logger: Toolkit.Logger;
     private _uuid: string;
     private _progress: string | undefined;
@@ -78,14 +77,25 @@ export class ControllerSessionTabSearchQueue implements Dependency {
         const task = this._tasks.splice(0, 1)[0];
         this._progress = task.id;
         const started = Date.now();
-        task.task().then(() => {
-            this._logger.env(`Search "${this._progress}" done in: ${((Date.now() - started) / 1000).toFixed(2)}s`);
-        }).catch((err: Error) => {
-            this._logger.warn(`Search "${this._progress}" is finished in: ${((Date.now() - started) / 1000).toFixed(2)}s) with error: ${err.message}`);
-        }).finally(() => {
-            this._progress = undefined;
-            this._next();
-        });
+        task.task()
+            .then(() => {
+                this._logger.env(
+                    `Search "${this._progress}" done in: ${((Date.now() - started) / 1000).toFixed(
+                        2,
+                    )}s`,
+                );
+            })
+            .catch((err: Error) => {
+                this._logger.warn(
+                    `Search "${this._progress}" is finished in: ${(
+                        (Date.now() - started) /
+                        1000
+                    ).toFixed(2)}s) with error: ${err.message}`,
+                );
+            })
+            .finally(() => {
+                this._progress = undefined;
+                this._next();
+            });
     }
-
 }

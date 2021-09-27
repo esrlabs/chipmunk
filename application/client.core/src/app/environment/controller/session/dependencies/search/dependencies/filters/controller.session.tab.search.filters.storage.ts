@@ -7,7 +7,11 @@ import {
     IDescOptional as IFilterDescOptional,
     IDescUpdating as IFilterDescUpdating,
 } from './controller.session.tab.search.filters.request';
-import { IStore, EStoreKeys, IStoreData } from '../../dependencies/store/controller.session.tab.search.store.support';
+import {
+    IStore,
+    EStoreKeys,
+    IStoreData,
+} from '../../dependencies/store/controller.session.tab.search.store.support';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -30,17 +34,16 @@ export {
     IFilterFlags,
     IFilterDesc,
     IFilterDescOptional,
-    IFilterDescUpdating
+    IFilterDescUpdating,
 };
 
 export class FiltersStorage implements IStore<IFilterDesc[]> {
-
     private _logger: Toolkit.Logger;
     private _guid: string;
     private _stored: FilterRequest[] = [];
     private _subjects: {
-        updated: Subject<IUpdateEvent>,
-        changed: Subject<IFilterUpdateEvent>
+        updated: Subject<IUpdateEvent>;
+        changed: Subject<IFilterUpdateEvent>;
     } = {
         updated: new Subject<IUpdateEvent>(),
         changed: new Subject<IFilterUpdateEvent>(),
@@ -59,8 +62,8 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
     }
 
     public getObservable(): {
-        updated: Observable<IUpdateEvent>,
-        changed: Observable<IFilterUpdateEvent>,
+        updated: Observable<IUpdateEvent>;
+        changed: Observable<IFilterUpdateEvent>;
     } {
         return {
             updated: this._subjects.updated.asObservable(),
@@ -69,12 +72,17 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
     }
 
     public has(request: FilterRequest): boolean {
-        return this._stored.find((stored: FilterRequest) => {
-            return request.getHash() === stored.getHash();
-        }) !== undefined;
+        return (
+            this._stored.find((stored: FilterRequest) => {
+                return request.getHash() === stored.getHash();
+            }) !== undefined
+        );
     }
 
-    public add(descs: IFilterDescOptional | FilterRequest | Array<IFilterDescOptional | FilterRequest>, from?: number): Error {
+    public add(
+        descs: IFilterDescOptional | FilterRequest | Array<IFilterDescOptional | FilterRequest>,
+        from?: number,
+    ): Error | undefined {
         if (!(descs instanceof Array)) {
             descs = [descs];
         }
@@ -83,7 +91,10 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
         try {
             descs.forEach((desc: IFilterDescOptional | FilterRequest) => {
                 // Create search request
-                const srchRqst: FilterRequest = desc instanceof FilterRequest ? new FilterRequest(desc.asDesc()) : new FilterRequest(desc);
+                const srchRqst: FilterRequest =
+                    desc instanceof FilterRequest
+                        ? new FilterRequest(desc.asDesc())
+                        : new FilterRequest(desc);
                 // Check request
                 if (this.has(srchRqst)) {
                     throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
@@ -99,12 +110,17 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
                 srchRqst.onUpdated(this._onRequestUpdated.bind(this));
             });
         } catch (err) {
-            return new Error(`Fail add request(s) due error: ${err.message}`);
+            return new Error(
+                `Fail add request(s) due error: ${err instanceof Error ? err.message : err}`,
+            );
         }
         if (this._stored.length === prevCount) {
-            return;
+            return undefined;
         }
-        this._subjects.updated.next({ requests: this._stored, added: added.length === 1 ? added[0] : added });
+        this._subjects.updated.next({
+            requests: this._stored,
+            added: added.length === 1 ? added[0] : added,
+        });
         return undefined;
     }
 
@@ -163,10 +179,10 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
     }
 
     public store(): {
-        key(): EStoreKeys,
-        extract(): IStoreData,
-        upload(filters: IFilterDesc[]): void,
-        getItemsCount(): number,
+        key(): EStoreKeys;
+        extract(): IStoreData;
+        upload(filters: IFilterDesc[]): void;
+        getItemsCount(): number;
     } {
         const self = this;
         return {
@@ -184,7 +200,7 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
             },
             getItemsCount(): number {
                 return self._stored.length;
-            }
+            },
         };
     }
 
@@ -200,5 +216,4 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
         // Remove from storage
         this._stored = [];
     }
-
 }

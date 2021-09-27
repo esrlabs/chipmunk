@@ -11,10 +11,8 @@ import { EntityData } from '../../providers/entity.data';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppSearchManagerFiltersPlaceholderComponent implements OnDestroy {
-
-    @Input() provider: Provider<FilterRequest>;
+    @Input() provider!: Provider<FilterRequest>;
 
     public _ng_empty = 'No filters are stored';
 
@@ -33,5 +31,4 @@ export class SidebarAppSearchManagerFiltersPlaceholderComponent implements OnDes
         }
         this.provider.itemDragged(event);
     }
-
 }

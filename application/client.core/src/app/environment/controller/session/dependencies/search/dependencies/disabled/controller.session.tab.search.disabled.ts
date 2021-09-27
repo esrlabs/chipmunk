@@ -18,11 +18,11 @@ export interface IControllerSessionStreamDisabled {
 
 export class ControllerSessionTabSearchDisabled
     extends Importable<IDisabledDesc[]>
-    implements Dependency {
-
+    implements Dependency
+{
     private _logger: Toolkit.Logger;
     private _guid: string;
-    private _storage: DisabledStorage;
+    private _storage!: DisabledStorage;
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
     private _subjects: {
         onExport: Subject<void>;
@@ -30,8 +30,8 @@ export class ControllerSessionTabSearchDisabled
         onExport: new Subject<void>(),
     };
     private _accessor: {
-        session: SessionGetter,
-        search: SearchSessionGetter,
+        session: SessionGetter;
+        search: SearchSessionGetter;
     };
 
     constructor(uuid: string, session: SessionGetter, search: SearchSessionGetter) {

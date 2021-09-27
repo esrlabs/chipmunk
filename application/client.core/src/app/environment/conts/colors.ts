@@ -39,14 +39,7 @@ export const CColors = [
     '#303952',
 ];
 
-export const CShortColors = [
-    '#fbe961',
-    '#a1eefd',
-    '#a2fa91',
-    '#f4b5b4',
-    '#9fb6f8',
-    '#dadada',
-];
+export const CShortColors = ['#fbe961', '#a1eefd', '#a2fa91', '#f4b5b4', '#9fb6f8', '#dadada'];
 
 export function getBasicColors(): string[] {
     return CColors.slice(3, CColors.length);

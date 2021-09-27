@@ -1,5 +1,16 @@
-import { Component, Input, OnDestroy, ChangeDetectorRef, AfterContentInit, OnChanges, ChangeDetectionStrategy } from '@angular/core';
-import { FilterRequest, IFlags, IFilterUpdateEvent } from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
+import {
+    Component,
+    Input,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    OnChanges,
+    ChangeDetectionStrategy,
+} from '@angular/core';
+import {
+    FilterRequest,
+    IFlags,
+} from '../../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
 import { Subscription } from 'rxjs';
 import { Entity } from '../../providers/entity';
 
@@ -9,29 +20,28 @@ import { Entity } from '../../providers/entity';
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
+export class SidebarAppSearchManagerFilterMiniComponent
+    implements OnDestroy, AfterContentInit, OnChanges
+{
+    @Input() entity!: Entity<FilterRequest>;
 
-export class SidebarAppSearchManagerFilterMiniComponent implements OnDestroy, AfterContentInit, OnChanges {
-
-    @Input() entity: Entity<FilterRequest>;
-
-    public _ng_flags: IFlags;
-    public _ng_request: string;
-    public _ng_color: string;
-    public _ng_background: string;
-    public _ng_state: boolean;
+    public _ng_flags: IFlags | undefined;
+    public _ng_request: string | undefined;
+    public _ng_color: string | undefined;
+    public _ng_background: string | undefined;
+    public _ng_state: boolean | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
         this._init();
@@ -57,5 +67,4 @@ export class SidebarAppSearchManagerFilterMiniComponent implements OnDestroy, Af
         }
         this._cdRef.detectChanges();
     }
-
 }

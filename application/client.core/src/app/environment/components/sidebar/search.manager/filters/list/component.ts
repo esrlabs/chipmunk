@@ -12,29 +12,28 @@ import SearchManagerService, { TRequest } from '../../service/service';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, AfterContentInit {
-
-    @Input() provider: Provider<FilterRequest>;
+    @Input() provider!: Provider<FilterRequest>;
 
     public _ng_entries: Array<Entity<FilterRequest>> = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
         this._ng_entries = this.provider.get();
-        this._subscriptions.change = this.provider.getObservable().change.subscribe(this._onDataUpdate.bind(this));
+        this._subscriptions.change = this.provider
+            .getObservable()
+            .change.subscribe(this._onDataUpdate.bind(this));
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
@@ -68,5 +67,4 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
         }
         this._cdRef.detectChanges();
     }
-
 }

@@ -138,8 +138,8 @@ import {
 } from './stream.progress.state';
 export { IStreamProgressState, StreamProgressState, IStreamProgressTrack };
 
-import { IStreamChunk, StreamChunk } from './stream.chunk';
-export { IStreamChunk, StreamChunk };
+import { IStreamChunk, IValidStreamChunk, StreamChunk } from './stream.chunk';
+export { IStreamChunk, IValidStreamChunk, StreamChunk };
 
 import { IStreamSourceNew, StreamSourceNew } from './stream.source.new';
 export { IStreamSourceNew, StreamSourceNew };
@@ -199,8 +199,8 @@ import {
 } from './search.results.map.response';
 export { ISearchResultMapResponse, SearchResultMapResponse, ISearchResultMapData };
 
-import { ISearchChunk, SearchChunk } from './search.chunk';
-export { ISearchChunk, SearchChunk };
+import { ISearchChunk, IValidSearchChunk, SearchChunk } from './search.chunk';
+export { ISearchChunk, IValidSearchChunk, SearchChunk };
 
 import { ISearchUpdated, SearchUpdated } from './search.updated';
 export { ISearchUpdated, SearchUpdated };

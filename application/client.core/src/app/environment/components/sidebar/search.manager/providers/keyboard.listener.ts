@@ -1,5 +1,4 @@
 export class KeyboardListener {
-
     private _ctrl: boolean = false;
     private _shift: boolean = false;
 
@@ -46,5 +45,4 @@ export class KeyboardListener {
             this._ctrl = event.ctrlKey;
         }
     }
-
 }

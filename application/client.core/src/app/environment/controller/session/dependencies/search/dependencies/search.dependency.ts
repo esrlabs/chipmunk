@@ -1,5 +1,4 @@
 import { Session } from '../../../session';
-import { Channel } from '../../../session.channel';
 import { ControllerSessionTabSearch } from '../controller.session.tab.search';
 import { Dependency } from '../../session.dependency';
 

@@ -1,7 +1,17 @@
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
-import { Subscription, Subject, Observable } from 'rxjs';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    Input,
+    AfterContentInit,
+    AfterViewInit,
+} from '@angular/core';
+import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { IUpdateEvent, ISelectionParser } from '../../../services/standalone/service.selection.parsers';
+import {
+    IUpdateEvent,
+    ISelectionParser,
+} from '../../../services/standalone/service.selection.parsers';
 import { EParent } from '../../../services/standalone/service.output.redirections';
 
 import SelectionParsersService from '../../../services/standalone/service.selection.parsers';
@@ -13,15 +23,13 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-sidebar-app-parsing',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
     @Input() public selection: string | undefined;
     @Input() public caption: string | undefined;
     @Input() public parsed: string | undefined;
-    @Input() public getLastSelection: () => IUpdateEvent | undefined;
+    @Input() public getLastSelection!: () => IUpdateEvent | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppParsingComponent');
@@ -30,16 +38,17 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
     public _ng_caption: string | undefined;
     public _ng_parsed: SafeHtml | undefined;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _sanitizer: DomSanitizer) {
-        this._subscriptions.onUpdate = SelectionParsersService.getObservable().onUpdate.subscribe(this._onUpdate.bind(this));
+    constructor(private _cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
+        this._subscriptions.onUpdate = SelectionParsersService.getObservable().onUpdate.subscribe(
+            this._onUpdate.bind(this),
+        );
     }
 
     public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
         const event: IUpdateEvent | undefined = this.getLastSelection();
@@ -48,18 +57,20 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
             this.parsed = event.parsed;
             this.selection = event.selection;
         }
+        if (this.selection === undefined) {
+            return;
+        }
         this._ng_caption = this.caption;
         this._ng_parsed = this.parsed === undefined ? undefined : this._getParsed(this.parsed);
         this._ng_selection = this._getSelection(this.selection);
         this._cdRef.detectChanges();
     }
 
-    public ngAfterViewInit() {
-
-    }
+    public ngAfterViewInit() {}
 
     public _ng_onContexMenu(event: MouseEvent) {
-        const selection: string = document.getSelection().toString();
+        const sel = document.getSelection();
+        const selection: string = sel !== null ? sel.toString() : '';
         if (selection === '') {
             return;
         }
@@ -73,7 +84,7 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
                     caption: parser.name,
                     handler: () => {
                         SelectionParsersService.parse(selection, parser.guid, parser.name);
-                    }
+                    },
                 };
             }),
             x: event.pageX,
@@ -102,8 +113,10 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
         // Serialize
         str = OutputParsersService.serialize(str);
         // Apply plugin parser
-        str = OutputParsersService.row({ str: str, source: 'details', hasOwnStyles: false }, EParent.parsing);
+        str = OutputParsersService.row(
+            { str: str, source: 'details', hasOwnStyles: false },
+            EParent.parsing,
+        );
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }
-
 }

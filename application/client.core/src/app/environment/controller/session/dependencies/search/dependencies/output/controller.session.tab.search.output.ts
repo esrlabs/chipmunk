@@ -1,11 +1,19 @@
-import ServiceElectronIpc, { IPCMessages } from '../../../../../../services/service.electron.ipc';
+import ServiceElectronIpc, { IPC } from '../../../../../../services/service.electron.ipc';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { ControllerSessionTabStreamOutput } from '../../../output/controller.session.tab.stream.output';
 import { IBookmark } from '../../../bookmarks/controller.session.tab.stream.bookmarks';
 import { ControllerSessionTabTimestamp } from '../../../timestamps/session.dependency.timestamps';
 import { ControllerSessionScope } from '../../../scope/controller.session.tab.scope';
-import { extractPluginId, extractRowPosition, clearRowStr } from '../../../../../helpers/row.helpers';
-import { EKey, EParent } from '../../../../../../services/standalone/service.output.redirections';
+import {
+    extractPluginId,
+    extractRowPosition,
+    clearRowStr,
+} from '../../../../../helpers/row.helpers';
+import {
+    EKey,
+    EParent,
+    ISelectionAccessor,
+} from '../../../../../../services/standalone/service.output.redirections';
 import { IRow } from '../../../row/controller.row.api';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
 import { IHotkeyEvent } from '../../../../../../services/service.hotkeys';
@@ -15,7 +23,7 @@ import HotkeysService from '../../../../../../services/service.hotkeys';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-export type TRequestDataHandler = (start: number, end: number) => Promise<IPCMessages.StreamChunk>;
+export type TRequestDataHandler = (start: number, end: number) => Promise<IPC.StreamChunk>;
 
 export interface IParameters {
     guid: string;
@@ -51,14 +59,13 @@ export interface ILoadedRange {
 }
 
 export const Settings = {
-    trigger         : 1000,     // Trigger to load addition chunk
-    maxRequestCount : 2000,     // chunk size in rows
-    maxStoredCount  : 2000,     // limit of rows to have it in RAM. All above should be removed
-    requestDelay    : 0,        // ms, delay before to do request
+    trigger: 1000, // Trigger to load addition chunk
+    maxRequestCount: 2000, // chunk size in rows
+    maxStoredCount: 2000, // limit of rows to have it in RAM. All above should be removed
+    requestDelay: 0, // ms, delay before to do request
 };
 
 export class ControllerSessionTabSearchOutput implements Dependency {
-
     private _uuid: string;
     private _logger: Toolkit.Logger;
     private _rows: IRow[] = [];
@@ -75,7 +82,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         },
         frame: {
             start: -1,
-            end: -1
+            end: -1,
         },
         lastLoadingRequestId: undefined,
         bufferLoadingRequestId: undefined,
@@ -104,10 +111,24 @@ export class ControllerSessionTabSearchOutput implements Dependency {
 
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(this._uuid, this._onRowSelected.bind(this));
-            this._subscriptions.onAddedBookmark = this._accessor.session().getBookmarks().getObservable().onAdded.subscribe(this._onUpdateBookmarksState.bind(this));
-            this._subscriptions.onRemovedBookmark = this._accessor.session().getBookmarks().getObservable().onRemoved.subscribe(this._onUpdateBookmarksState.bind(this));
-            this._subscriptions.selectAllSearchResult = HotkeysService.getObservable().selectAllSearchResult.subscribe(this._onSelectAllSearchResult.bind(this));
+            this._subscriptions.onRowSelected = OutputRedirectionsService.subscribe(
+                this._uuid,
+                this._onRowSelected.bind(this),
+            );
+            this._subscriptions.onAddedBookmark = this._accessor
+                .session()
+                .getBookmarks()
+                .getObservable()
+                .onAdded.subscribe(this._onAddedBookmarksState.bind(this));
+            this._subscriptions.onRemovedBookmark = this._accessor
+                .session()
+                .getBookmarks()
+                .getObservable()
+                .onRemoved.subscribe(this._onRemovedBookmarksState.bind(this));
+            this._subscriptions.selectAllSearchResult =
+                HotkeysService.getObservable().selectAllSearchResult.subscribe(
+                    this._onSelectAllSearchResult.bind(this),
+                );
             resolve();
         });
     }
@@ -129,16 +150,16 @@ export class ControllerSessionTabSearchOutput implements Dependency {
      * API of controller
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-     /**
+    /**
      * List of available observables.
      * @returns { onStateUpdated: Observable<IStreamStateEvent>, onRangeLoaded: Observable<ILoadedRange>, }
      */
     public getObservable(): {
-        onStateUpdated: Observable<IStreamStateEvent>,
-        onRangeLoaded: Observable<ILoadedRange>,
-        onBookmarksChanged: Observable<void>,
-        onReset: Observable<void>,
-        onScrollTo: Observable<number>,
+        onStateUpdated: Observable<IStreamStateEvent>;
+        onRangeLoaded: Observable<ILoadedRange>;
+        onBookmarksChanged: Observable<void>;
+        onReset: Observable<void>;
+        onScrollTo: Observable<number>;
     } {
         return {
             onStateUpdated: this._subjects.onStateUpdated.asObservable(),
@@ -158,8 +179,15 @@ export class ControllerSessionTabSearchOutput implements Dependency {
 
     public getRange(range: IRange): IRow[] | Error {
         let rows: IRow[] = [];
-        if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
-            return new Error(`Range has incorrect format. Start and end shound be finite and not NaN`);
+        if (
+            isNaN(range.start) ||
+            isNaN(range.end) ||
+            !isFinite(range.start) ||
+            !isFinite(range.end)
+        ) {
+            return new Error(
+                `Range has incorrect format. Start and end shound be finite and not NaN`,
+            );
         }
         if (range.start < 0 || range.end < 0) {
             return [];
@@ -177,22 +205,42 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             rows = this._getPendingPackets(range.start, range.end + 1);
         } else if (indexes.start < 0 && indexes.end < 0) {
             rows = this._getPendingPackets(range.start, range.end + 1);
-        } else if (indexes.start >= 0 && indexes.start <= this._rows.length - 1 && indexes.end <= this._rows.length - 1) {
+        } else if (
+            indexes.start >= 0 &&
+            indexes.start <= this._rows.length - 1 &&
+            indexes.end <= this._rows.length - 1
+        ) {
             rows = this._rows.slice(indexes.start, indexes.end + 1);
-        } else if (indexes.start >= 0 && indexes.start <= this._rows.length - 1 && indexes.end > this._rows.length - 1) {
+        } else if (
+            indexes.start >= 0 &&
+            indexes.start <= this._rows.length - 1 &&
+            indexes.end > this._rows.length - 1
+        ) {
             rows = this._rows.slice(indexes.start, this._rows.length);
             rows.push(...this._getPendingPackets(this._rows.length, indexes.end + 1));
-        } else if (indexes.start < 0 && indexes.end >= 0  && indexes.end <= this._rows.length - 1) {
+        } else if (indexes.start < 0 && indexes.end >= 0 && indexes.end <= this._rows.length - 1) {
             rows = this._rows.slice(0, indexes.end + 1);
             rows.unshift(...this._getPendingPackets(0, Math.abs(indexes.start)));
         }
         // Check if state is still same
         if (stored.start !== this._state.stored.start || stored.end !== this._state.stored.end) {
-            return new Error(this._logger.warn(`State was changed. Was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
+            return new Error(
+                this._logger.warn(
+                    `State was changed. Was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`,
+                ),
+            );
         }
         // Confirm: range is fount correctly
         if (rows.length !== range.end - range.start + 1) {
-            return new Error(this._logger.error(`Calculation error: gotten ${rows.length} rows; should be: ${range.end - range.start + 1}. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${this._state.stored.start}, end: ${this._state.stored.end}}.`));
+            return new Error(
+                this._logger.error(
+                    `Calculation error: gotten ${rows.length} rows; should be: ${
+                        range.end - range.start + 1
+                    }. State was { start: ${stored.start}, end: ${stored.end}}, became { start: ${
+                        this._state.stored.start
+                    }, end: ${this._state.stored.end}}.`,
+                ),
+            );
         }
         this.setFrame(range);
         return rows;
@@ -200,28 +248,48 @@ export class ControllerSessionTabSearchOutput implements Dependency {
 
     public loadRange(range: IRange): Promise<IRow[]> {
         return new Promise((resolve, reject) => {
-            if (isNaN(range.start) || isNaN(range.end) || !isFinite(range.start) || !isFinite(range.end)) {
-                return reject(new Error(`Range has incorrect format. Start and end shound be finite and not NaN`));
+            if (
+                isNaN(range.start) ||
+                isNaN(range.end) ||
+                !isFinite(range.start) ||
+                !isFinite(range.end)
+            ) {
+                return reject(
+                    new Error(
+                        `Range has incorrect format. Start and end shound be finite and not NaN`,
+                    ),
+                );
             }
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
-                const packets: IRow[] = [];
-                this._parse(message.data, message.start, message.end, packets);
-                resolve(packets.filter((packet: IRow) => {
-                    return packet.position >= range.start && packet.position <= range.end;
-                }));
-            }).catch((error: Error) => {
-                reject(new Error(`Error during requesting data (rows from ${range.start} to ${range.end}): ${error.message}`));
-            });
+            this._requestData(range.start, range.end)
+                .then((message: IPC.IValidSearchChunk) => {
+                    if (message.data === undefined) {
+                        return resolve([]);
+                    }
+                    const packets: IRow[] = [];
+                    this._parse(message.data, message.start, message.end, packets);
+                    resolve(
+                        packets.filter((packet: IRow) => {
+                            return packet.position >= range.start && packet.position <= range.end;
+                        }),
+                    );
+                })
+                .catch((error: Error) => {
+                    reject(
+                        new Error(
+                            `Error during requesting data (rows from ${range.start} to ${range.end}): ${error.message}`,
+                        ),
+                    );
+                });
         });
     }
-
 
     public setFrame(range: IRange) {
         if (this._state.originalCount === 0 || this._state.count === 0) {
             return;
         }
         // Normalize range (to exclude bookmarks)
-        range.end = range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
+        range.end =
+            range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
         this._state.frame = Object.assign({}, range);
         if (!this._load()) {
             // No need to make request, but check buffer
@@ -253,7 +321,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             },
             frame: {
                 start: -1,
-                end: -1
+                end: -1,
             },
             lastLoadingRequestId: undefined,
             bufferLoadingRequestId: undefined,
@@ -286,9 +354,10 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         return this._state.count;
     }
 
-    public preload(range: IRange): Promise<IRange> {
+    public preload(range: IRange): Promise<IRange | null> {
         // Normalize range (to exclude bookmarks)
-        range.end = range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
+        range.end =
+            range.end > this._state.originalCount - 1 ? this._state.originalCount - 1 : range.end;
         return this._preload(range);
     }
 
@@ -321,7 +390,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         return this._rows.slice(from - offset, to - offset);
     }
 
-    private _onRowSelected(sender: EParent, selection: number[], clicked: number) {
+    private _onRowSelected(sender: string, selection: ISelectionAccessor, clicked: number) {
         if (sender === EParent.search) {
             return;
         }
@@ -331,8 +400,12 @@ export class ControllerSessionTabSearchOutput implements Dependency {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Bookmarks
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    private _onUpdateBookmarksState(bookmark: IBookmark) {
+    private _onAddedBookmarksState(bookmark: IBookmark) {
         this._updateBookmarksData(bookmark);
+    }
+
+    private _onRemovedBookmarksState(index: number) {
+        this._updateBookmarksData(undefined);
     }
 
     private _updateBookmarksData(bookmark?: IBookmark) {
@@ -369,7 +442,13 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                 if (index === from || index === to) {
                     return;
                 }
-                const inserted: IBookmark = bookmarks.get(index);
+                const inserted: IBookmark | undefined = bookmarks.get(index);
+                if (inserted === undefined) {
+                    this._logger.warn(
+                        `Fail to add bookmark with index ${index}. Bookmark isn't found`,
+                    );
+                    return;
+                }
                 target.push({
                     str: inserted.str,
                     positionInStream: inserted.position,
@@ -393,10 +472,10 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             return updated;
         }
         rows.forEach((row: IRow, i: number) => {
-            if (i ===  rows.length - 1 && row.position !== this._state.originalCount - 1) {
+            if (i === rows.length - 1 && row.position !== this._state.originalCount - 1) {
                 updated.push(row);
                 return;
-            } else if (i ===  rows.length - 1 && row.position === this._state.originalCount - 1) {
+            } else if (i === rows.length - 1 && row.position === this._state.originalCount - 1) {
                 if (i === 0 && row.position === 0) {
                     add(updated, -1, row.positionInStream);
                 }
@@ -419,7 +498,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         });
     }
 
-    private _getFirstPosNotBookmarkedRow(): { position: number, index: number } {
+    private _getFirstPosNotBookmarkedRow(): { position: number; index: number } {
         for (let i = 0, max = this._rows.length - 1; i <= max; i += 1) {
             if (this._rows[i].position !== -1) {
                 return { position: this._rows[i].position, index: i };
@@ -428,7 +507,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         return { position: -1, index: -1 };
     }
 
-    private _getLastPosNotBookmarkedRow(): { position: number, index: number } {
+    private _getLastPosNotBookmarkedRow(): { position: number; index: number } {
         for (let i = this._rows.length - 1; i >= 0; i -= 1) {
             if (this._rows[i].position !== -1) {
                 return { position: this._rows[i].position, index: i };
@@ -443,7 +522,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         });
     }
 
-     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
      * Internal methods / helpers
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     private _load(): boolean {
@@ -463,53 +542,65 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         }
         const distance = {
             toStart: frame.start,
-            toEnd: (this._state.originalCount - 1) - frame.end
+            toEnd: this._state.originalCount - 1 - frame.end,
         };
-        if (distance.toStart > (Settings.maxRequestCount / 2)) {
-            request.start = distance.toStart - (Settings.maxRequestCount / 2);
+        if (distance.toStart > Settings.maxRequestCount / 2) {
+            request.start = distance.toStart - Settings.maxRequestCount / 2;
         } else {
             request.start = 0;
         }
-        if (distance.toEnd > (Settings.maxRequestCount / 2)) {
-            request.end = frame.end + (Settings.maxRequestCount / 2);
+        if (distance.toEnd > Settings.maxRequestCount / 2) {
+            request.end = frame.end + Settings.maxRequestCount / 2;
         } else {
-            request.end = (this._state.originalCount - 1);
+            request.end = this._state.originalCount - 1;
         }
         this._state.lastLoadingRequestId = setTimeout(() => {
             this._state.lastLoadingRequestId = undefined;
-            this._requestData(request.start, request.end).then((message: IPCMessages.StreamChunk) => {
-                // Check: response is empty
-                if (message.data === undefined) {
-                    // Response is empty. Looks like search was dropped.
-                    return;
-                }
-                // Check: do we already have other request
-                if (this._state.lastLoadingRequestId !== undefined) {
-                    // No need to parse - new request was created
-                    this._lastRequestedRows = [];
-                    this._parse(message.data, message.start, message.end, this._lastRequestedRows, frame);
-                    return;
-                }
-                // Update size of whole stream (real size - count of rows in stream file)
-                this._setTotalStreamCount(message.rows);
-                // Parse and accept rows
-                this._parse(message.data, message.start, message.end);
-                // Check again last requested frame
-                if (stored.start <= frame.start && stored.end >= frame.end) {
-                    // Update bookmarks state
-                    this._updateBookmarksData();
-                    // Send notification about update
-                    this._subjects.onRangeLoaded.next({
-                        range: { start: frame.start, end: frame.end },
-                        rows: this._getRowsSliced(frame.start, frame.end + 1)
-                    });
-                    return;
-                } else {
-                    this._logger.warn(`Requested frame isn't in scope of stored data. Request - rows from ${request.start} to ${request.end}.`);
-                }
-            }).catch((error: Error) => {
-                this._logger.error(`Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`);
-            });
+            this._requestData(request.start, request.end)
+                .then((message: IPC.IValidSearchChunk) => {
+                    // Check: response is empty
+                    if (message.data === undefined) {
+                        // Response is empty. Looks like search was dropped.
+                        return;
+                    }
+                    // Check: do we already have other request
+                    if (this._state.lastLoadingRequestId !== undefined) {
+                        // No need to parse - new request was created
+                        this._lastRequestedRows = [];
+                        this._parse(
+                            message.data,
+                            message.start,
+                            message.end,
+                            this._lastRequestedRows,
+                            frame,
+                        );
+                        return;
+                    }
+                    // Update size of whole stream (real size - count of rows in stream file)
+                    this._setTotalStreamCount(message.rows);
+                    // Parse and accept rows
+                    this._parse(message.data, message.start, message.end);
+                    // Check again last requested frame
+                    if (stored.start <= frame.start && stored.end >= frame.end) {
+                        // Update bookmarks state
+                        this._updateBookmarksData();
+                        // Send notification about update
+                        this._subjects.onRangeLoaded.next({
+                            range: { start: frame.start, end: frame.end },
+                            rows: this._getRowsSliced(frame.start, frame.end + 1),
+                        });
+                        return;
+                    } else {
+                        this._logger.warn(
+                            `Requested frame isn't in scope of stored data. Request - rows from ${request.start} to ${request.end}.`,
+                        );
+                    }
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Error during requesting data (rows from ${request.start} to ${request.end}): ${error.message}`,
+                    );
+                });
         }, Settings.requestDelay);
         return true;
     }
@@ -525,23 +616,31 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                 return resolve(range);
             }
             this._preloadTimestamp = timestamp;
-            this._requestData(range.start, range.end).then((message: IPCMessages.StreamChunk) => {
-                // Drop request ID
-                this._preloadTimestamp = -1;
-                // Update size of whole stream (real size - count of rows in stream file)
-                this._setTotalStreamCount(message.rows);
-                // Parse and accept rows
-                this._parse(message.data, message.start, message.end);
-                // Update bookmarks state
-                this._updateBookmarksData();
-                // Return actual preloaded range
-                resolve({ start: message.start, end: message.end});
-            }).catch((error: Error) => {
-                // Drop request ID
-                this._preloadTimestamp = -1;
-                // Reject
-                reject(new Error(this._logger.error(`Fail to preload data (rows from ${range.start} to ${range.end}) due error: ${error.message}`)));
-            });
+            this._requestData(range.start, range.end)
+                .then((message: IPC.IValidSearchChunk) => {
+                    // Drop request ID
+                    this._preloadTimestamp = -1;
+                    // Update size of whole stream (real size - count of rows in stream file)
+                    this._setTotalStreamCount(message.rows);
+                    // Parse and accept rows
+                    this._parse(message.data, message.start, message.end);
+                    // Update bookmarks state
+                    this._updateBookmarksData();
+                    // Return actual preloaded range
+                    resolve({ start: message.start, end: message.end });
+                })
+                .catch((error: Error) => {
+                    // Drop request ID
+                    this._preloadTimestamp = -1;
+                    // Reject
+                    reject(
+                        new Error(
+                            this._logger.error(
+                                `Fail to preload data (rows from ${range.start} to ${range.end}) due error: ${error.message}`,
+                            ),
+                        ),
+                    );
+                });
         });
     }
 
@@ -569,7 +668,7 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                     }
                 }
                 const position: number = extractRowPosition(str); // Get position
-                const pluginId: number = extractPluginId(str);    // Get plugin id
+                const pluginId: number = extractPluginId(str); // Get plugin id
                 packets.push({
                     str: clearRowStr(str),
                     position: from + i,
@@ -584,26 +683,36 @@ export class ControllerSessionTabSearchOutput implements Dependency {
             // do nothing
         }
         packets = packets.filter((packet: IRow) => {
-            return (packet.positionInStream !== -1);
+            return packet.positionInStream !== -1;
         });
         if (dest !== undefined) {
             // Destination storage is defined: we don't need to store rows (accept it)
             dest.push(...packets);
         } else {
-            if (packets.length !== (to - from + 1)) {
-                throw new Error(`Count of gotten rows dismatch with defined range. Range: ${from}-${to}. Actual count: ${rows.length}; expected count: ${to - from}.`);
+            if (packets.length !== to - from + 1) {
+                throw new Error(
+                    `Count of gotten rows dismatch with defined range. Range: ${from}-${to}. Actual count: ${
+                        rows.length
+                    }; expected count: ${to - from}.`,
+                );
             }
             this._acceptPackets(packets);
         }
     }
 
     private _getPendingPackets(first: number, last: number): IRow[] {
-        const rows: IRow[] = Array.from({ length: last - first}).map((_, i) => {
+        const rows: IRow[] = Array.from({ length: last - first }).map((_, i) => {
             return {
                 position: first + i,
                 positionInStream: first + i,
-                str: this._lastRequestedRows[i] === undefined ? undefined : this._lastRequestedRows[i].str,
-                pluginId: this._lastRequestedRows[i] === undefined ? -1 : this._lastRequestedRows[i].pluginId,
+                str:
+                    this._lastRequestedRows[i] === undefined
+                        ? undefined
+                        : this._lastRequestedRows[i].str,
+                pluginId:
+                    this._lastRequestedRows[i] === undefined
+                        ? -1
+                        : this._lastRequestedRows[i].pluginId,
                 rank: this._accessor.session().getStreamOutput().getRank(),
                 sessionId: this._uuid,
                 parent: EParent.search,
@@ -623,7 +732,10 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         if (packets.length === 0) {
             return;
         }
-        const packet: IRange = { start: packets[0].position, end: packets[packets.length - 1].position};
+        const packet: IRange = {
+            start: packets[0].position,
+            end: packets[packets.length - 1].position,
+        };
         if (this._rows.length === 0) {
             this._rows.push(...packets);
         } else if (packet.start > this._state.stored.end) {
@@ -668,17 +780,17 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         }
     }
 
-    private _requestData(start: number, end: number): Promise<IPCMessages.SearchChunk> {
+    private _requestData(start: number, end: number): Promise<IPC.IValidSearchChunk> {
         return new Promise((resolve, reject) => {
             const s = Date.now();
-            ServiceElectronIpc.request(
-                new IPCMessages.SearchChunk({
+            ServiceElectronIpc.request<IPC.SearchChunk>(
+                new IPC.SearchChunk({
                     guid: this._uuid,
                     start: start,
                     end: end,
                 }),
-                IPCMessages.SearchChunk,
-            ).then((response: IPCMessages.SearchChunk) => {
+                IPC.SearchChunk,
+            ).then((response) => {
                 this._logger.env(
                     `Chunk [${start} - ${end}] is read in: ${((Date.now() - s) / 1000).toFixed(
                         2,
@@ -693,7 +805,28 @@ export class ControllerSessionTabSearchOutput implements Dependency {
                         ),
                     );
                 }
-                resolve(response);
+                if (
+                    response.guid === undefined ||
+                    response.data === undefined ||
+                    response.length === undefined ||
+                    response.rows === undefined
+                ) {
+                    return reject(
+                        new Error(
+                            this._logger.warn(
+                                `SearchChunk returns invalid data ${JSON.stringify(response)}`,
+                            ),
+                        ),
+                    );
+                }
+                resolve({
+                    guid: response.guid,
+                    data: response.data,
+                    start: response.start,
+                    end: response.end,
+                    length: response.length,
+                    rows: response.rows,
+                });
             });
         });
     }
@@ -703,14 +836,22 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         if (active !== event.session) {
             return;
         }
-        const bookmarks: IBookmark[] = Array.from(this._accessor.session().getBookmarks().get().values());
-        bookmarks.sort((a, b) => a.position > b.position ? 1 : -1);
+        const bookmarks: IBookmark[] = Array.from(
+            this._accessor.session().getBookmarks().get().values(),
+        );
+        bookmarks.sort((a, b) => (a.position > b.position ? 1 : -1));
         const count = this._state.originalCount;
         if (count === 0) {
             if (bookmarks.length > 0) {
                 OutputRedirectionsService.clear(active);
                 bookmarks.forEach((bookmark: IBookmark) => {
-                    OutputRedirectionsService.select(EParent.search, active, { output: bookmark.position, search: -1 }, undefined, EKey.ctrl);
+                    OutputRedirectionsService.select(
+                        EParent.search,
+                        active,
+                        { output: bookmark.position, search: -1 },
+                        undefined,
+                        EKey.ctrl,
+                    );
                 });
             }
             return;
@@ -724,40 +865,54 @@ export class ControllerSessionTabSearchOutput implements Dependency {
         };
         OutputRedirectionsService.clear(active);
         Promise.all([
-            this.loadRange({ start: 0, end: 0}).then((rows: IRow[]) => {
+            this.loadRange({ start: 0, end: 0 }).then((rows: IRow[]) => {
                 if (rows.length !== 1) {
                     return;
                 }
                 coors.begin = rows[0];
             }),
-            this.loadRange({ start: count - 1, end: count - 1}).then((rows: IRow[]) => {
+            this.loadRange({ start: count - 1, end: count - 1 }).then((rows: IRow[]) => {
                 if (rows.length !== 1) {
                     return;
                 }
                 coors.end = rows[0];
             }),
-        ]).then(() => {
-            if (coors.begin === undefined || coors.end === undefined) {
-                return this._logger.warn(`Some ranges weren't found`);
-            }
-            // Check first and last bookmarks
-            if (bookmarks.length !== 0) {
-                const first = bookmarks[0];
-                const last = bookmarks[bookmarks.length - 1];
-                if (first.position < coors.begin.positionInStream) {
-                    coors.begin.positionInStream = first.position;
-                    coors.begin.position = -1;
+        ])
+            .then(() => {
+                if (coors.begin === undefined || coors.end === undefined) {
+                    this._logger.warn(`Some ranges weren't found`);
+                    return;
                 }
-                if (last.position < coors.begin.positionInStream) {
-                    coors.begin.positionInStream = last.position;
-                    coors.begin.position = -1;
+                // Check first and last bookmarks
+                if (bookmarks.length !== 0) {
+                    const first = bookmarks[0];
+                    const last = bookmarks[bookmarks.length - 1];
+                    if (first.position < coors.begin.positionInStream) {
+                        coors.begin.positionInStream = first.position;
+                        coors.begin.position = -1;
+                    }
+                    if (last.position < coors.begin.positionInStream) {
+                        coors.begin.positionInStream = last.position;
+                        coors.begin.position = -1;
+                    }
                 }
-            }
-            OutputRedirectionsService.select(EParent.search, active, { output: coors.begin.positionInStream, search: coors.begin.position }, undefined, EKey.ignore);
-            OutputRedirectionsService.select(EParent.search, active, { output: coors.end.positionInStream, search: coors.end.position }, undefined, EKey.shift);
-        }).catch((err: Error) => {
-            this._logger.warn(`Fail request ranges due error: ${err.message}`);
-        });
+                OutputRedirectionsService.select(
+                    EParent.search,
+                    active,
+                    { output: coors.begin.positionInStream, search: coors.begin.position },
+                    undefined,
+                    EKey.ignore,
+                );
+                OutputRedirectionsService.select(
+                    EParent.search,
+                    active,
+                    { output: coors.end.positionInStream, search: coors.end.position },
+                    undefined,
+                    EKey.shift,
+                );
+            })
+            .catch((err: Error) => {
+                this._logger.warn(`Fail request ranges due error: ${err.message}`);
+            });
     }
-
 }

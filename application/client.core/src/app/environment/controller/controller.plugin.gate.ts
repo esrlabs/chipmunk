@@ -4,13 +4,11 @@ export type TPluginExportsCallback = (exports: Toolkit.IPluginExports) => void;
 export type TPluginServiceCallback = (service: Toolkit.APluginService) => void;
 
 export class ControllerPluginGate extends Toolkit.APluginServiceGate {
-
     private _modules: Toolkit.ICoreModules;
     private _require: Toolkit.TRequire;
     private _exports: Toolkit.IPluginExports | undefined;
 
-    constructor(modules: Toolkit.ICoreModules,
-                require: Toolkit.TRequire) {
+    constructor(modules: Toolkit.ICoreModules, require: Toolkit.TRequire) {
         super();
         this._modules = modules;
         this._require = require;
@@ -31,5 +29,4 @@ export class ControllerPluginGate extends Toolkit.APluginServiceGate {
     public getPluginExports(): Toolkit.IPluginExports | undefined {
         return this._exports;
     }
-
 }

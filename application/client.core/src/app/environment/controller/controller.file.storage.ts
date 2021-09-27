@@ -1,19 +1,17 @@
-import { IPCMessages } from '../services/service.electron.ipc';
+import { IPC } from '../services/service.electron.ipc';
 
 export class FilesList {
+    private _files: IPC.IFile[] = [];
 
-    private _files: IPCMessages.IFile[] = [];
-
-    constructor(files: IPCMessages.IFile[]) {
+    constructor(files: IPC.IFile[]) {
         this._files = files;
     }
 
-    public getFiles(): IPCMessages.IFile[] {
+    public getFiles(): IPC.IFile[] {
         return this._files;
     }
 
-    public setFiles(files: IPCMessages.IFile[]) {
+    public setFiles(files: IPC.IFile[]) {
         this._files = files;
     }
-
 }

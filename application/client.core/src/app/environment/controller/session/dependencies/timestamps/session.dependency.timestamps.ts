@@ -1,5 +1,5 @@
 import { Subject, Observable } from 'rxjs';
-import { IPCMessages } from '../../../../services/service.electron.ipc';
+import { IPC } from '../../../../services/service.electron.ipc';
 import { CancelablePromise } from 'chipmunk.client.toolkit';
 import { getUniqueColorTo, getColorHolder } from '../../../../theme/colors';
 import { EKey } from '../../../../services/standalone/service.output.redirections';
@@ -52,8 +52,8 @@ export interface ITimemeasureSession {
     defaults: DefaultDateParts;
     mode: EChartMode;
     sequences: {
-        range: number,
-        group: number,
+        range: number;
+        group: number;
     };
 }
 
@@ -78,10 +78,13 @@ export interface IAddRange {
 
 export enum EChartMode {
     aligned = 'aligned',
-    scaled = 'scaled'
+    scaled = 'scaled',
 }
 
-export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSession> implements Dependency {
+export class ControllerSessionTabTimestamp
+    extends Importable<ITimemeasureSession>
+    implements Dependency
+{
     readonly ROW_PARSER_ID: string = 'timestamps-row-parser';
     readonly ROW_TOOLTIP_ID: string = 'timestamps-row-tooltip';
     readonly ROW_HANDLER_ID: string = 'timestamps-row-handler';
@@ -94,8 +97,8 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
     private _open: IRow | undefined;
     private _state: IState = { min: Infinity, max: -1, duration: 0 };
     private _sequences: {
-        range: number,
-        group: number,
+        range: number;
+        group: number;
     } = {
         range: 0,
         group: 0,
@@ -109,13 +112,13 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         year: undefined,
     };
     private _subjects: {
-        update: Subject<IRange[]>,
-        formats: Subject<void>,
-        defaults: Subject<DefaultDateParts>,
-        mode: Subject<EChartMode>,
-        zoom: Subject<void>,
-        optimization: Subject<boolean>,
-        onExport: Subject<void>,
+        update: Subject<IRange[]>;
+        formats: Subject<void>;
+        defaults: Subject<DefaultDateParts>;
+        mode: Subject<EChartMode>;
+        zoom: Subject<void>;
+        optimization: Subject<boolean>;
+        onExport: Subject<void>;
     } = {
         update: new Subject(),
         formats: new Subject(),
@@ -126,8 +129,8 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         onExport: new Subject(),
     };
     private _cursor: {
-        left: number,
-        right: number,
+        left: number;
+        right: number;
     } = {
         left: 0,
         right: 0,
@@ -142,8 +145,15 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         this._logger = new Toolkit.Logger(`ControllerSessionTabTimestamp: ${uuid}`);
         this._parser = new TimestampRowParser(this._injectHighlightFormat.bind(this));
         OutputParsersService.setSessionParser(this.ROW_PARSER_ID, this._parser, this._guid);
-        OutputParsersService.setSessionTooltip({ id: this.ROW_TOOLTIP_ID, getContent: this._getTooltipContent.bind(this)}, this._guid);
-        OutputParsersService.setSessionClickHandler(this.ROW_HANDLER_ID, this._handleRowClick.bind(this), this._guid);
+        OutputParsersService.setSessionTooltip(
+            { id: this.ROW_TOOLTIP_ID, getContent: this._getTooltipContent.bind(this) },
+            this._guid,
+        );
+        OutputParsersService.setSessionClickHandler(
+            this.ROW_HANDLER_ID,
+            this._handleRowClick.bind(this),
+            this._guid,
+        );
     }
 
     public init(): Promise<void> {
@@ -158,18 +168,24 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
                 this._logger.debug(`No active tasks; no need to abort any.`);
                 return resolve();
             }
-            Promise.all(Array.from(this._tasks.values()).map((task: CancelablePromise<any, any, any, any>) => {
-                return new Promise((resolveTask) => {
-                    task.canceled(resolveTask);
-                    task.abort('Controller is going to be destroyed');
+            Promise.all(
+                Array.from(this._tasks.values()).map(
+                    (task: CancelablePromise<any, any, any, any>) => {
+                        return new Promise((resolveTask) => {
+                            task.canceled(resolveTask);
+                            task.abort('Controller is going to be destroyed');
+                        });
+                    },
+                ),
+            )
+                .then(() => {
+                    resolve();
+                    this._logger.debug(`All tasks are aborted; controller is destroyed.`);
+                })
+                .catch((err: Error) => {
+                    this._logger.error(`Unexpected error during destroying: ${err.message}`);
+                    reject(err);
                 });
-            })).then(() => {
-                resolve();
-                this._logger.debug(`All tasks are aborted; controller is destroyed.`);
-            }).catch((err: Error) => {
-                this._logger.error(`Unexpected error during destroying: ${err.message}`);
-                reject(err);
-            });
         });
     }
 
@@ -178,12 +194,12 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
     }
 
     public getObservable(): {
-        update: Observable<IRange[]>,
-        formats: Observable<void>,
-        defaults: Observable<DefaultDateParts>,
-        mode: Observable<EChartMode>,
-        zoom: Observable<void>,
-        optimization: Observable<boolean>,
+        update: Observable<IRange[]>;
+        formats: Observable<void>;
+        defaults: Observable<DefaultDateParts>;
+        mode: Observable<EChartMode>;
+        zoom: Observable<void>;
+        optimization: Observable<boolean>;
     } {
         return {
             update: this._subjects.update.asObservable(),
@@ -210,60 +226,76 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
             // Range already opened
             return;
         }
-        this.getTimestamp(row.str).then((tm: number | undefined) => {
-            if (tm === undefined) {
-                return;
-            }
-            // Store timestamp
-            row.timestamp = tm;
-            // Detect matches
-            row.match = this.getMatch(row.str);
-            // Store opened point
-            this._open = row;
-            // Update group
-            if (!join) {
-                this._sequences.group += 1;
-            }
-            // Redraw rows (to show matches)
-            OutputParsersService.updateRowsView();
-        }).catch((err: Error) => {
-            this._logger.error(`open:: Fail get timestamp due error: ${err.message}`);
-        });
+        this.getTimestamp(row.str)
+            .then((tm: number | undefined) => {
+                if (tm === undefined) {
+                    return;
+                }
+                // Store timestamp
+                row.timestamp = tm;
+                // Detect matches
+                row.match = this.getMatch(row.str);
+                // Store opened point
+                this._open = row;
+                // Update group
+                if (!join) {
+                    this._sequences.group += 1;
+                }
+                // Redraw rows (to show matches)
+                OutputParsersService.updateRowsView();
+            })
+            .catch((err: Error) => {
+                this._logger.error(`open:: Fail get timestamp due error: ${err.message}`);
+            });
     }
 
     public close(row: IRow): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this._open === undefined) {
                 return resolve();
             }
-            this.getTimestamp(row.str).then((tm: number) => {
-                row.timestamp = tm;
-                if (row.timestamp === undefined) {
+            this.getTimestamp(row.str)
+                .then((tm: number | undefined) => {
+                    if (this._open === undefined || this._open.timestamp === undefined) {
+                        return reject(
+                            new Error(
+                                this._logger.warn(`Attempt to close timerange without open point`),
+                            ),
+                        );
+                    }
+                    if (tm === undefined) {
+                        return resolve();
+                    }
+                    row.timestamp = tm;
+                    row.match = this.getMatch(row.str);
+                    if (
+                        this._open.timestamp > row.timestamp ||
+                        this._open.position > row.position
+                    ) {
+                        const backup = this._open;
+                        this._open = row;
+                        row = backup;
+                    }
+                    this._ranges.push({
+                        id: ++this._sequences.range,
+                        start: this._open,
+                        end: row,
+                        duration: Math.abs(
+                            (row.timestamp as number) - (this._open.timestamp as number),
+                        ),
+                        color: this.getColor(),
+                        group: this._sequences.group,
+                    });
+                    this._open = undefined;
+                    this._subjects.update.next(this.getRanges());
+                    this._setState();
+                    OutputParsersService.updateRowsView();
                     return resolve();
-                }
-                row.match = this.getMatch(row.str);
-                if (this._open.timestamp > row.timestamp || this._open.position > row.position) {
-                    const backup = this._open;
-                    this._open = row;
-                    row = backup;
-                }
-                this._ranges.push({
-                    id: ++this._sequences.range,
-                    start: this._open,
-                    end: row,
-                    duration: Math.abs(row.timestamp - this._open.timestamp),
-                    color: this.getColor(),
-                    group: this._sequences.group,
+                })
+                .catch((err: Error) => {
+                    this._logger.error(`addRange:: Fail get timestamp due error: ${err.message}`);
+                    return resolve();
                 });
-                this._open = undefined;
-                this._subjects.update.next(this.getRanges());
-                this._setState();
-                OutputParsersService.updateRowsView();
-                return resolve();
-            }).catch((err: Error) => {
-                this._logger.error(`addRange:: Fail get timestamp due error: ${err.message}`);
-                return resolve();
-            });
         });
     }
 
@@ -272,9 +304,9 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         if (ranges.length === 0) {
             return;
         }
-        const cache_tm: {[key: string]: number } = {};
-        const cache_match: {[key: string]: string } = {};
-        ranges.forEach((r: {from: IRow, to: IRow}) => {
+        const cache_tm: { [key: string]: number } = {};
+        const cache_match: { [key: string]: string } = {};
+        ranges.forEach((r: { from: IRow; to: IRow }) => {
             if (cache_tm[r.from.str] === undefined && r.from.timestamp === undefined) {
                 cache_tm[r.from.str] = -1;
             }
@@ -282,51 +314,85 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
                 cache_tm[r.to.str] = -1;
             }
         });
-        Promise.all(Object.keys(cache_tm).map((str: string) => {
-            return this.getTimestamp(str).then((tm: number) => {
-                cache_tm[str] = tm;
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
-            });
-        })).then(() => {
-            ranges = ranges.map((r: IAddRange) => {
-                if (r.from.timestamp === undefined) {
-                    r.from.timestamp = cache_tm[r.from.str];
-                }
-                if (r.to.timestamp === undefined) {
-                    r.to.timestamp = cache_tm[r.from.str];
-                }
-                [r.from.str, r.to.str].forEach((str: string) => {
-                    if (cache_match[str] === undefined) {
-                        cache_match[str] = this.getMatch(str);
+        Promise.all(
+            Object.keys(cache_tm).map((str: string) => {
+                return this.getTimestamp(str)
+                    .then((tm: number | undefined) => {
+                        if (tm !== undefined) {
+                            cache_tm[str] = tm;
+                        } else {
+                            delete cache_tm[str];
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this._logger.warn(`Fail to detect timestamp due error: ${err.message}`);
+                    });
+            }),
+        )
+            .then(() => {
+                ranges = ranges.map((r: IAddRange) => {
+                    if (r.from.timestamp === undefined) {
+                        r.from.timestamp = cache_tm[r.from.str];
                     }
+                    if (r.to.timestamp === undefined) {
+                        r.to.timestamp = cache_tm[r.from.str];
+                    }
+                    [r.from.str, r.to.str].forEach((str: string) => {
+                        if (cache_match[str] === undefined) {
+                            const match = this.getMatch(str);
+                            if (match !== undefined) {
+                                cache_match[str] = match;
+                            } else {
+                                delete cache_match[str];
+                            }
+                        }
+                    });
+                    r.from.match = cache_match[r.from.str];
+                    r.to.match = cache_match[r.to.str];
+                    if (r.from.timestamp > r.to.timestamp) {
+                        const backup = r.from;
+                        r.from = r.to;
+                        r.to = backup;
+                    }
+                    return r;
                 });
-                r.from.match = cache_match[r.from.str];
-                r.to.match = cache_match[r.to.str];
-                if (r.from.timestamp > r.to.timestamp) {
-                    const backup = r.from;
-                    r.from = r.to;
-                    r.to = backup;
-                }
-                return r;
+                this._ranges = this._ranges.concat(
+                    ranges
+                        .map((r: IAddRange) => {
+                            if (r.to === undefined || r.to.timestamp === undefined) {
+                                return null;
+                            }
+                            if (r.from === undefined || r.from.timestamp === undefined) {
+                                return null;
+                            }
+                            return {
+                                id:
+                                    r.options.id === undefined
+                                        ? ++this._sequences.range
+                                        : r.options.id,
+                                start: r.from,
+                                end: r.to,
+                                alias: r.options.alias === undefined ? undefined : r.options.alias,
+                                duration: Math.abs(r.to.timestamp - r.from.timestamp),
+                                color:
+                                    r.options.color === undefined
+                                        ? this.getColor()
+                                        : r.options.color,
+                                group:
+                                    r.options.group === undefined
+                                        ? ++this._sequences.group
+                                        : r.options.group,
+                            };
+                        })
+                        .filter((r) => r !== null) as IRange[],
+                );
+                this._subjects.update.next(this.getRanges());
+                this._setState();
+                OutputParsersService.updateRowsView();
+            })
+            .catch((err: Error) => {
+                this._logger.warn(`Fail to detect time range due error: ${err.message}`);
             });
-            this._ranges = this._ranges.concat(ranges.map((r: IAddRange) => {
-                return {
-                    id: r.options.id === undefined ? (++this._sequences.range) : r.options.id,
-                    start: r.from,
-                    end: r.to,
-                    alias: r.options.alias === undefined ? undefined : r.options.alias,
-                    duration: Math.abs(r.to.timestamp - r.from.timestamp),
-                    color: r.options.color === undefined ? this.getColor() : r.options.color,
-                    group: r.options.group === undefined ? ++this._sequences.group : r.options.group,
-                };
-            }));
-            this._subjects.update.next(this.getRanges());
-            this._setState();
-            OutputParsersService.updateRowsView();
-        }).catch((err: Error) => {
-            this._logger.warn(`Fail to detect time range due error: ${err.message}`);
-        });
     }
 
     public removeRange(smth: number | string) {
@@ -413,7 +479,7 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
             let formatStr: string | undefined;
             this._format.forEach((format: IFormat) => {
                 if (inputStr !== undefined) {
-                    return;
+                    return undefined;
                 }
                 const match: RegExpMatchArray | null = str.match(format.regexp);
                 if (match === null || match.length === 0) {
@@ -421,13 +487,21 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
                 }
                 inputStr = match[0];
                 formatStr = format.format;
+                return undefined;
             });
             if (inputStr === undefined) {
                 return resolve(undefined);
             }
-            this.extract(inputStr, formatStr).then((timestamp: number) => {
-                resolve(timestamp);
-            }).catch(reject);
+            if (formatStr === undefined) {
+                return reject(
+                    new Error(this._logger.warn(`To get timestamp format should be defined`)),
+                );
+            }
+            this.extract(inputStr, formatStr)
+                .then((timestamp: number) => {
+                    resolve(timestamp);
+                })
+                .catch(reject);
         });
     }
 
@@ -439,7 +513,7 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
             }
             const matches: RegExpMatchArray | null = str.match(format.regexp);
             if (matches === null || matches.length === 0) {
-                return undefined;
+                return;
             }
             match = matches[0];
         });
@@ -450,38 +524,51 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         const id: string = Toolkit.guid();
         const task: CancelablePromise<void> = new CancelablePromise<void>(
             (resolve, reject, cancel, refCancelCB, self) => {
-            if (this._format.length > 0 && !update) {
-                return resolve();
-            }
-            this._format = [];
-            ElectronIpcService.request(new IPCMessages.TimestampDiscoverRequest({
-                session: this._guid,
-                id: id,
-            }), IPCMessages.TimestampDiscoverResponse).then((response: IPCMessages.TimestampDiscoverResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to discover files due error: ${response.error}`);
-                    return reject(new Error(response.error));
+                if (this._format.length > 0 && !update) {
+                    return resolve();
                 }
-                if (response.format === undefined) {
-                    return reject(new Error(`Format isn't detected.`));
-                }
-                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(response.format.regex, response.format.flags.join(''));
-                if (regexp instanceof Error) {
-                    this._logger.warn(`Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`);
-                    return reject(regexp);
-                }
-                this._format.push({
-                    format: response.format.format,
-                    regexp: regexp,
-                });
-                this._subjects.formats.next();
-                OutputParsersService.updateRowsView();
-                resolve();
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to discover files due error: ${disErr.message}`);
-                return reject(disErr);
-            });
-        }).finally(() => {
+                this._format = [];
+                ElectronIpcService.request<IPC.TimestampDiscoverResponse>(
+                    new IPC.TimestampDiscoverRequest({
+                        session: this._guid,
+                        id: id,
+                    }),
+                    IPC.TimestampDiscoverResponse,
+                )
+                    .then((response) => {
+                        if (typeof response.error === 'string') {
+                            this._logger.error(
+                                `Fail to discover files due error: ${response.error}`,
+                            );
+                            return reject(new Error(response.error));
+                        }
+                        if (response.format === undefined) {
+                            return reject(new Error(`Format isn't detected.`));
+                        }
+                        const regexp: RegExp | Error = Toolkit.regTools.createFromStr(
+                            response.format.regex,
+                            response.format.flags.join(''),
+                        );
+                        if (regexp instanceof Error) {
+                            this._logger.warn(
+                                `Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`,
+                            );
+                            return reject(regexp);
+                        }
+                        this._format.push({
+                            format: response.format.format,
+                            regexp: regexp,
+                        });
+                        this._subjects.formats.next();
+                        OutputParsersService.updateRowsView();
+                        resolve();
+                    })
+                    .catch((disErr: Error) => {
+                        this._logger.error(`Fail to discover files due error: ${disErr.message}`);
+                        return reject(disErr);
+                    });
+            },
+        ).finally(() => {
             this._tasks.delete(id);
         });
         this._tasks.set(id, task);
@@ -492,27 +579,52 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         const id: string = Toolkit.guid();
         const task: CancelablePromise<RegExp> = new CancelablePromise<RegExp>(
             (resolve, reject, cancel, refCancelCB, self) => {
-            ElectronIpcService.request(new IPCMessages.TimestampTestRequest({
-                session: this._guid,
-                format: format,
-                id: id,
-                flags: { miss_year: true, miss_month: true, miss_day: true }
-            }), IPCMessages.TimestampTestResponse).then((response: IPCMessages.TimestampTestResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to test files due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(response.format.regex, response.format.flags.join(''));
-                if (regexp instanceof Error) {
-                    this._logger.warn(`Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`);
-                    return reject(regexp);
-                }
-                resolve(regexp);
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to test files due error: ${disErr.message}`);
-                return reject(disErr);
-            });
-        }).finally(() => {
+                ElectronIpcService.request<IPC.TimestampTestResponse>(
+                    new IPC.TimestampTestRequest({
+                        session: this._guid,
+                        format: format,
+                        id: id,
+                        flags: { miss_year: true, miss_month: true, miss_day: true },
+                    }),
+                    IPC.TimestampTestResponse,
+                )
+                    .then((response) => {
+                        if (typeof response.error === 'string') {
+                            return reject(
+                                new Error(
+                                    this._logger.error(
+                                        `Fail to test files due error: ${response.error}`,
+                                    ),
+                                ),
+                            );
+                        }
+                        if (response.format === undefined) {
+                            return reject(
+                                new Error(
+                                    this._logger.error(
+                                        `Has been gotten invalid response with TimestampTestResponse. No format in`,
+                                    ),
+                                ),
+                            );
+                        }
+                        const regexp: RegExp | Error = Toolkit.regTools.createFromStr(
+                            response.format.regex,
+                            response.format.flags.join(''),
+                        );
+                        if (regexp instanceof Error) {
+                            this._logger.warn(
+                                `Fail convert "${response.format.regex}" to RegExp due error: ${regexp.message}`,
+                            );
+                            return reject(regexp);
+                        }
+                        resolve(regexp);
+                    })
+                    .catch((disErr: Error) => {
+                        this._logger.error(`Fail to test files due error: ${disErr.message}`);
+                        return reject(disErr);
+                    });
+            },
+        ).finally(() => {
             this._tasks.delete(id);
         });
         this._tasks.set(id, task);
@@ -523,27 +635,44 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         const id: string = Toolkit.guid();
         const task: CancelablePromise<number> = new CancelablePromise<number>(
             (resolve, reject, cancel, refCancelCB, self) => {
-            ElectronIpcService.request(new IPCMessages.TimestampExtractRequest({
-                session: this._guid,
-                str: str,
-                format: format,
-                id: id,
-                replacements: {
-                    year: this.getDefaults().year,
-                    month: this.getDefaults().month,
-                    day: this.getDefaults().day,
-                },
-            }), IPCMessages.TimestampExtractResponse).then((response: IPCMessages.TimestampExtractResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to extract timestamp due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                resolve(response.timestamp);
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to test files due error: ${disErr.message}`);
-                return reject(disErr);
-            });
-        }).finally(() => {
+                ElectronIpcService.request<IPC.TimestampExtractResponse>(
+                    new IPC.TimestampExtractRequest({
+                        session: this._guid,
+                        str: str,
+                        format: format,
+                        id: id,
+                        replacements: {
+                            year: this.getDefaults().year,
+                            month: this.getDefaults().month,
+                            day: this.getDefaults().day,
+                        },
+                    }),
+                    IPC.TimestampExtractResponse,
+                )
+                    .then((response) => {
+                        if (typeof response.error === 'string') {
+                            this._logger.error(
+                                `Fail to extract timestamp due error: ${response.error}`,
+                            );
+                            return reject(new Error(response.error));
+                        }
+                        if (response.timestamp === undefined) {
+                            return reject(
+                                new Error(
+                                    this._logger.error(
+                                        `Has been gotten invalid response with TimestampExtractResponse. No timestamp in`,
+                                    ),
+                                ),
+                            );
+                        }
+                        resolve(response.timestamp);
+                    })
+                    .catch((disErr: Error) => {
+                        this._logger.error(`Fail to test files due error: ${disErr.message}`);
+                        return reject(disErr);
+                    });
+            },
+        ).finally(() => {
             this._tasks.delete(id);
         });
         this._tasks.set(id, task);
@@ -552,16 +681,25 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
 
     public getRecent(): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.TimestampFormatRecentRequest(), IPCMessages.TimestampFormatRecentResponse).then((response: IPCMessages.TimestampFormatRecentResponse) => {
-                if (typeof response.error === 'string') {
-                    this._logger.error(`Fail to get recent time formats due error: ${response.error}`);
-                    return reject(new Error(response.error));
-                }
-                resolve(response.formats);
-            }).catch((disErr: Error) => {
-                this._logger.error(`Fail to request recent filters due error: ${disErr.message}`);
-                return reject(disErr);
-            });
+            ElectronIpcService.request<IPC.TimestampFormatRecentResponse>(
+                new IPC.TimestampFormatRecentRequest(),
+                IPC.TimestampFormatRecentResponse,
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string') {
+                        this._logger.error(
+                            `Fail to get recent time formats due error: ${response.error}`,
+                        );
+                        return reject(new Error(response.error));
+                    }
+                    resolve(response.formats);
+                })
+                .catch((disErr: Error) => {
+                    this._logger.error(
+                        `Fail to request recent filters due error: ${disErr.message}`,
+                    );
+                    return reject(disErr);
+                });
         });
     }
 
@@ -593,14 +731,34 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         return range === undefined ? undefined : range.color;
     }
 
-    public getStatePositionInRange(position: number): 'begin' | 'middle' | 'end' | 'end nested' | 'open' | undefined {
+    public getStatePositionInRange(
+        position: number,
+    ): 'begin' | 'middle' | 'end' | 'end nested' | 'open' | undefined {
         if (this._open !== undefined && this._open.position === position) {
             return 'open';
         }
         const range: IRange | undefined = this._getRangeByPosition(position);
-        const start: number | undefined = range === undefined ? undefined : (range.start.position < range.end.position ? range.start.position : range.end.position);
-        const end: number | undefined = range === undefined ? undefined : (range.start.position > range.end.position ? range.start.position : range.end.position);
-        const after: IRange | undefined = start === undefined ? undefined : this._getRangeByPosition(end, range.id);
+        if (range === undefined || range.end === undefined) {
+            return undefined;
+        }
+        const start: number | undefined =
+            range === undefined
+                ? undefined
+                : range.start.position < range.end.position
+                ? range.start.position
+                : range.end.position;
+        const end: number | undefined =
+            range === undefined
+                ? undefined
+                : range.start.position > range.end.position
+                ? range.start.position
+                : range.end.position;
+        const after: IRange | undefined =
+            start === undefined
+                ? undefined
+                : end === undefined
+                ? undefined
+                : this._getRangeByPosition(end, range.id);
         if (range === undefined) {
             return undefined;
         }
@@ -618,21 +776,23 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
     }
 
     public removeFormatDef(format: string) {
-        this._format = this._format.filter(f => f.format !== format);
+        this._format = this._format.filter((f) => f.format !== format);
         this._subjects.formats.next();
         OutputParsersService.updateRowsView();
     }
 
     public addFormat(format: IFormat) {
-        if (this._format.find(f => f.format === format.format) !== undefined) {
+        if (this._format.find((f) => f.format === format.format) !== undefined) {
             return;
         }
         this._format.push(format);
         this._subjects.formats.next();
         OutputParsersService.updateRowsView();
-        ElectronIpcService.send(new IPCMessages.TimestampFormatRecentAdd({
-            format: format.format,
-        })).catch((err: Error) => {
+        ElectronIpcService.send(
+            new IPC.TimestampFormatRecentAdd({
+                format: format.format,
+            }),
+        ).catch((err: Error) => {
             this._logger.warn(`Fail to save recent format due: ${err.message}`);
         });
     }
@@ -666,15 +826,19 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
     }
 
     public getMinTimestamp(): number {
-        return Math.min(...this._ranges.map((range: IRange) => {
-            return range.end === undefined ? range.start.timestamp : Math.min(range.start.timestamp, range.end.timestamp);
-        }));
+        return Math.min(
+            ...this._ranges.map((range: IRange) => {
+                return this._mapRangeMin(range);
+            }),
+        );
     }
 
     public getMaxTimestamp(): number {
-        return Math.max(...this._ranges.map((range: IRange) => {
-            return range.end === undefined ? range.start.timestamp : Math.max(range.start.timestamp, range.end.timestamp);
-        }));
+        return Math.max(
+            ...this._ranges.map((range: IRange) => {
+                return this._mapRangeMax(range);
+            }),
+        );
     }
 
     public setZoomOffsets(left: number, right: number) {
@@ -684,8 +848,8 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
     }
 
     public getCursorState(): {
-        left: number,
-        right: number,
+        left: number;
+        right: number;
     } {
         return {
             left: this._cursor.left,
@@ -729,21 +893,25 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
                 sequences: {
                     group: this._sequences.group,
                     range: this._sequences.range,
-                }
+                },
             });
         });
     }
 
     public import(session: ITimemeasureSession): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._format = session.formats.map((format: IFormatDesc) => {
-                const regexp: RegExp | Error = Toolkit.regTools.createFromStr(format.regexp);
-                if (regexp instanceof Error) {
-                    this._logger.warn(`Fail restore regexp "${format.regexp}" due error: ${regexp.message}`);
-                    return null;
-                }
-                return { format: format.format, regexp: regexp };
-            }).filter(f => f !== null);
+        return new Promise((resolve) => {
+            this._format = session.formats
+                .map((format: IFormatDesc) => {
+                    const regexp: RegExp | Error = Toolkit.regTools.createFromStr(format.regexp);
+                    if (regexp instanceof Error) {
+                        this._logger.warn(
+                            `Fail restore regexp "${format.regexp}" due error: ${regexp.message}`,
+                        );
+                        return null;
+                    }
+                    return { format: format.format, regexp: regexp };
+                })
+                .filter((f) => f !== null) as Array<{ format: string; regexp: RegExp }>;
             this._sequences = session.sequences;
             this._ranges = session.ranges;
             this._defaults = session.defaults;
@@ -754,9 +922,50 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
             this._subjects.formats.next();
             this._subjects.mode.next(session.mode);
             this._subjects.defaults.next(session.defaults);
-            this._session().getAPI().openToolbarApp(this._session().getAPI().getDefaultToolbarAppsIds().timemeasurement, true);
+            this._session()
+                .getAPI()
+                .openToolbarApp(
+                    this._session().getAPI().getDefaultToolbarAppsIds().timemeasurement,
+                    true,
+                );
             resolve();
         });
+    }
+
+    private _mapRangeMinMax(range: IRange, min: boolean): number {
+        if (range.end === undefined) {
+            if (range.start === undefined || range.start.timestamp === undefined) {
+                this._logger.error(
+                    `Fail to do getMinTimestamp as soon as range.start is undefined.`,
+                );
+                return 0;
+            }
+            return range.start.timestamp;
+        } else {
+            if (range.start === undefined || range.start.timestamp === undefined) {
+                this._logger.error(
+                    `Fail to do getMinTimestamp as soon as range.start is undefined.`,
+                );
+                return 0;
+            }
+            if (range.end === undefined || range.end.timestamp === undefined) {
+                this._logger.error(
+                    `Fail to do getMinTimestamp as soon as range.end.timestamp is undefined.`,
+                );
+                return 0;
+            }
+            return min
+                ? Math.min(range.start.timestamp, range.end.timestamp)
+                : Math.max(range.start.timestamp, range.end.timestamp);
+        }
+    }
+
+    private _mapRangeMin(range: IRange): number {
+        return this._mapRangeMinMax(range, true);
+    }
+
+    private _mapRangeMax(range: IRange): number {
+        return this._mapRangeMinMax(range, false);
     }
 
     private _getRangeByPosition(position: number, exception?: number): IRange | undefined {
@@ -770,9 +979,19 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
             }
             if (r.start.position === position) {
                 range = r;
-            } else if (r.end !== undefined && r.start.position < r.end.position && r.start.position <= position && r.end.position >= position) {
+            } else if (
+                r.end !== undefined &&
+                r.start.position < r.end.position &&
+                r.start.position <= position &&
+                r.end.position >= position
+            ) {
                 range = r;
-            } else if (r.end !== undefined && r.start.position > r.end.position && r.start.position >= position && r.end.position <= position) {
+            } else if (
+                r.end !== undefined &&
+                r.start.position > r.end.position &&
+                r.start.position >= position &&
+                r.end.position <= position
+            ) {
                 range = r;
             }
         });
@@ -787,41 +1006,61 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
             str: str,
             position: position,
         };
-        this.close(row).then(() => {
-            if (hold === EKey.ctrl) {
-                return;
-            }
-            this.open(row, true);
-        }).catch((closeErr: Error) => {
-            this._logger.warn(`Fail close range due error: ${closeErr.message}`);
-        });
+        this.close(row)
+            .then(() => {
+                if (hold === EKey.ctrl) {
+                    return;
+                }
+                this.open(row, true);
+            })
+            .catch((closeErr: Error) => {
+                this._logger.warn(`Fail close range due error: ${closeErr.message}`);
+            });
         return true;
     }
 
-    private _getTooltipContent(row: string, position: number, selection: string): Promise<string | undefined> {
-        return new Promise((resolve) => {
+    private _getTooltipContent(
+        row: string,
+        position: number,
+        selection: string,
+    ): Promise<string | undefined> {
+        return new Promise((resolve, reject) => {
             if (this._open === undefined) {
                 return resolve(selection);
             }
-            this.getTimestamp(selection).then((tm: number | undefined) => {
-                resolve(`${Math.abs(this._open.timestamp - tm)}ms`);
-            }).catch((err: Error) => {
-                this._logger.error(`injectHighlight:: Fail get timestamp due error: ${err.message}`);
-                resolve(undefined);
-            });
+            this.getTimestamp(selection)
+                .then((tm: number | undefined) => {
+                    if (
+                        this._open === undefined ||
+                        this._open.timestamp === undefined ||
+                        tm === undefined
+                    ) {
+                        reject(new Error(`No open point for timerange`));
+                    } else {
+                        resolve(`${Math.abs(this._open.timestamp - tm)}ms`);
+                    }
+                })
+                .catch((err: Error) => {
+                    this._logger.error(
+                        `injectHighlight:: Fail get timestamp due error: ${err.message}`,
+                    );
+                    resolve(undefined);
+                });
         });
     }
 
     private _injectHighlightFormat(str: string): string | Toolkit.Modifier {
         const tags = {
-            open: `<span class="tooltip timestampmatch" ${OutputParsersService.getTooltipHook(this.ROW_TOOLTIP_ID)} ${OutputParsersService.getClickHandlerHook(this.ROW_HANDLER_ID)}>`,
+            open: `<span class="tooltip timestampmatch" ${OutputParsersService.getTooltipHook(
+                this.ROW_TOOLTIP_ID,
+            )} ${OutputParsersService.getClickHandlerHook(this.ROW_HANDLER_ID)}>`,
             close: `</span>`,
         };
         if (this._open === undefined) {
             return new TimestampModifier([], str, tags);
         } else {
             return new TimestampModifier(
-                this._format.map(f => f.regexp),
+                this._format.map((f) => f.regexp),
                 str,
                 tags,
             );
@@ -831,12 +1070,16 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
     private _setState(noexport: boolean = false) {
         const duration: number = this._state.duration;
         this._state = {
-            min: Math.min(...this._ranges.map((r) => {
-                return r.end === undefined ? r.start.timestamp : Math.min(r.start.timestamp, r.end.timestamp);
-            })),
-            max: Math.max(...this._ranges.map((r) => {
-                return r.end === undefined ? r.start.timestamp : Math.max(r.start.timestamp, r.end.timestamp);
-            })),
+            min: Math.min(
+                ...this._ranges.map((r) => {
+                    return this._mapRangeMin(r);
+                }),
+            ),
+            max: Math.max(
+                ...this._ranges.map((r) => {
+                    return this._mapRangeMax(r);
+                }),
+            ),
             duration: 0,
         };
         this._state.duration = Math.abs(this._state.min - this._state.max);
@@ -846,8 +1089,10 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
         if (this._cursor.right !== 0) {
             this._cursor.right = (this._cursor.right / duration) * this._state.duration;
         }
-        if (((this._state.max - this._cursor.right) - (this._state.min + this._cursor.left) < 0) ||
-            (this._ranges.length === 0 && (this._cursor.left + this._cursor.right) !== 0)) {
+        if (
+            this._state.max - this._cursor.right - (this._state.min + this._cursor.left) < 0 ||
+            (this._ranges.length === 0 && this._cursor.left + this._cursor.right !== 0)
+        ) {
             this._cursor.left = 0;
             this._cursor.right = 0;
         }
@@ -858,5 +1103,4 @@ export class ControllerSessionTabTimestamp extends Importable<ITimemeasureSessio
             this._subjects.onExport.next();
         }
     }
-
 }

@@ -3,14 +3,17 @@ import LayoutStateService from '../../services/standalone/service.layout.state';
 
 import PluginsService, { IPluginData } from '../../services/service.plugins';
 import ServiceElectronIpc, {
-    IPCMessages,
+    IPC,
     Subscription as IPCSubscription,
 } from '../../services/service.electron.ipc';
 
 import { ITabAPI } from 'chipmunk-client-material';
 import { IAPI } from 'chipmunk.client.toolkit';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { ControllerSessionTabStream, IStreamState } from './dependencies/stream/controller.session.tab.stream';
+import {
+    ControllerSessionTabStream,
+    IStreamState,
+} from './dependencies/stream/controller.session.tab.stream';
 import { ControllerSessionTabSearch } from './dependencies/search/controller.session.tab.search';
 import { ControllerSessionTabStates } from './dependencies/states/controller.session.tab.states';
 import { ControllerSessionTabMap } from './dependencies/map/controller.session.tab.map';
@@ -22,7 +25,6 @@ import { ControllerSessionTabTimestamp } from './dependencies/timestamps/session
 import { ControllerSessionTabStreamComments } from './dependencies/comments/session.dependency.comments';
 import { ControllerRowAPI } from './dependencies/row/controller.row.api';
 import { ControllerSessionTabStreamOutput } from './dependencies/output/controller.session.tab.stream.output';
-
 
 import { ControllerSessionImporter } from './dependencies/importer/controller.session.importer';
 import { Importable } from './dependencies/importer/controller.session.importer.interface';
@@ -99,9 +101,10 @@ export class Session {
         this._viewportEventsHub = new Toolkit.ControllerViewportEvents();
         this.addOutputInjection = this.addOutputInjection.bind(this);
         this.removeOutputInjection = this.removeOutputInjection.bind(this);
-        this._subscriptions.onOpenSearchFiltersTab = HotkeysService.getObservable().openSearchFiltersTab.subscribe(
-            this._onOpenSearchFiltersTab.bind(this),
-        );
+        this._subscriptions.onOpenSearchFiltersTab =
+            HotkeysService.getObservable().openSearchFiltersTab.subscribe(
+                this._onOpenSearchFiltersTab.bind(this),
+            );
         PluginsService.fire().onSessionOpen(this._sessionId);
     }
 
@@ -166,10 +169,7 @@ export class Session {
                 this,
                 ControllerSessionImporter,
             );
-            this._dependencies.rowapi = factory<ControllerRowAPI>(
-                this,
-                ControllerRowAPI,
-            );
+            this._dependencies.rowapi = factory<ControllerRowAPI>(this, ControllerRowAPI);
             this._dependencies.output = factory<ControllerSessionTabStreamOutput>(
                 this,
                 ControllerSessionTabStreamOutput,
@@ -204,11 +204,11 @@ export class Session {
             Object.keys(this._subscriptions).forEach((key: string) => {
                 this._subscriptions[key].unsubscribe();
             });
-            ServiceElectronIpc.request(
-                new IPCMessages.StreamRemoveRequest({ guid: this.getGuid() }),
-                IPCMessages.StreamRemoveResponse,
+            ServiceElectronIpc.request<IPC.StreamRemoveResponse>(
+                new IPC.StreamRemoveRequest({ guid: this.getGuid() }),
+                IPC.StreamRemoveResponse,
             )
-                .then((response: IPCMessages.StreamRemoveResponse) => {
+                .then((response) => {
                     if (response.error) {
                         return reject(
                             new Error(
@@ -222,12 +222,24 @@ export class Session {
                     }
                     PluginsService.fire().onSessionClose(this._sessionId);
                     this._viewportEventsHub.destroy();
-                    Promise.all(Object.keys(this._dependencies).map((key: string) => {
-                        const dep = this._dependencies[key];
-                        return dep.destroy().catch((err: Error) => {
-                            this._logger.warn(`Fail correctly destroy dependency "${dep.getName()}" due error: ${err.message}`);
-                        });
-                    })).then(() => {
+                    Promise.all(
+                        Object.keys(this._dependencies).map((key: string) => {
+                            const dep = (this._dependencies as any)[key];
+                            if (dep === undefined || typeof dep.destroy !== 'function') {
+                                this._logger.error(`Fail to get correct dependency holder; name = ${key}`);
+                                return Promise.resolve();
+                            } else {
+                                return dep.destroy().catch((err: Error) => {
+                                    this._logger.warn(
+                                        `Fail correctly destroy dependency "${dep.getName()}" due error: ${
+                                            err.message
+                                        }`,
+                                    );
+                                });
+                            }
+                        }),
+                    )
+                        .then(() => {
                             resolve();
                         })
                         .catch((error: Error) => {
@@ -253,6 +265,9 @@ export class Session {
         onOutputInjectionAdd: Observable<IInjectionAddEvent>;
         onOutputInjectionRemove: Observable<IInjectionRemoveEvent>;
     } {
+        if (this._dependencies.stream === undefined) {
+            throw new Error(this._logger.error(`stream dependency isn't inited`));
+        }
         return {
             onSourceChanged: this._dependencies.stream.getObservable().onSourceChanged,
             onOutputInjectionAdd: this._subjects.onOutputInjectionAdd.asObservable(),
@@ -266,13 +281,13 @@ export class Session {
 
     public getImportable(): Importable<any>[] {
         return [
-            this._dependencies.comments,
-            this._dependencies.timestamp,
-            this._dependencies.bookmarks,
-            this._dependencies.search.getFiltersAPI(),
-            this._dependencies.search.getChartsAPI(),
-            this._dependencies.search.getRangesAPI(),
-            this._dependencies.search.getDisabledAPI(),
+            this.getSessionComments(),
+            this.getTimestamp(),
+            this.getBookmarks(),
+            this.getSessionSearch().getFiltersAPI(),
+            this.getSessionSearch().getChartsAPI(),
+            this.getSessionSearch().getRangesAPI(),
+            this.getSessionSearch().getDisabledAPI(),
         ];
     }
 
@@ -281,42 +296,72 @@ export class Session {
     }
 
     public getRowAPI(): ControllerRowAPI {
+        if (this._dependencies.rowapi === undefined) {
+            throw new Error(this._logger.error(`rowapi dependency isn't inited`));
+        }
         return this._dependencies.rowapi;
     }
 
     public getTimestamp(): ControllerSessionTabTimestamp {
+        if (this._dependencies.timestamp === undefined) {
+            throw new Error(this._logger.error(`timestamp dependency isn't inited`));
+        }
         return this._dependencies.timestamp;
     }
 
     public getStreamOutput(): ControllerSessionTabStreamOutput {
+        if (this._dependencies.output === undefined) {
+            throw new Error(this._logger.error(`output dependency isn't inited`));
+        }
         return this._dependencies.output;
     }
 
     public getBookmarks(): ControllerSessionTabStreamBookmarks {
+        if (this._dependencies.bookmarks === undefined) {
+            throw new Error(this._logger.error(`bookmarks dependency isn't inited`));
+        }
         return this._dependencies.bookmarks;
     }
 
     public getScope(): ControllerSessionScope {
+        if (this._dependencies.scope === undefined) {
+            throw new Error(this._logger.error(`scope dependency isn't inited`));
+        }
         return this._dependencies.scope;
     }
 
     public getSessionStream(): ControllerSessionTabStream {
+        if (this._dependencies.stream === undefined) {
+            throw new Error(this._logger.error(`stream dependency isn't inited`));
+        }
         return this._dependencies.stream;
     }
 
     public getSessionComments(): ControllerSessionTabStreamComments {
+        if (this._dependencies.comments === undefined) {
+            throw new Error(this._logger.error(`comments dependency isn't inited`));
+        }
         return this._dependencies.comments;
     }
 
     public getSessionSearch(): ControllerSessionTabSearch {
+        if (this._dependencies.search === undefined) {
+            throw new Error(this._logger.error(`search dependency isn't inited`));
+        }
         return this._dependencies.search;
     }
 
     public getSessionsStates(): ControllerSessionTabStates {
+        if (this._dependencies.states === undefined) {
+            throw new Error(this._logger.error(`states dependency isn't inited`));
+        }
         return this._dependencies.states;
     }
 
     public getStreamMap(): ControllerSessionTabMap {
+        if (this._dependencies.map === undefined) {
+            throw new Error(this._logger.error(`map dependency isn't inited`));
+        }
         return this._dependencies.map;
     }
 
@@ -344,7 +389,11 @@ export class Session {
         return this._titleContextMenu;
     }
 
-    public addOutputInjection(injection: Toolkit.IComponentInjection, type: Toolkit.EViewsTypes, silence: boolean = false) {
+    public addOutputInjection(
+        injection: Toolkit.IComponentInjection,
+        type: Toolkit.EViewsTypes,
+        silence: boolean = false,
+    ) {
         this._subjects.onOutputInjectionAdd.next({
             injection: injection,
             type: type,
@@ -365,14 +414,17 @@ export class Session {
 
     public resetSessionContent(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectronIpc.request(
-                new IPCMessages.StreamResetRequest({
+            ServiceElectronIpc.request<IPC.StreamResetResponse>(
+                new IPC.StreamResetRequest({
                     guid: this._sessionId,
                 }),
-                IPCMessages.StreamResetResponse,
+                IPC.StreamResetResponse,
             )
-                .then((response: IPCMessages.StreamResetResponse) => {
-                    this._dependencies.bookmarks.reset();
+                .then((response) => {
+                    if (response.error !== undefined) {
+                        this._logger.error(`StreamResetResponse returns an error: ${response.error}`);
+                    }
+                    this.getBookmarks().reset();
                     resolve();
                 })
                 .catch((error: Error) => {

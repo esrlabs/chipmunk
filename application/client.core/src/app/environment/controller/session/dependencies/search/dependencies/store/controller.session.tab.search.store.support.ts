@@ -10,12 +10,10 @@ export interface IStoreData {
 }
 
 export interface IStore<T> {
-
     store(): {
-        key(): EStoreKeys,
-        extract(): IStoreData,
-        upload(data: T): void,
-        getItemsCount(): number,
+        key(): EStoreKeys;
+        extract(): IStoreData;
+        upload(data: T): void;
+        getItemsCount(): number;
     };
-
 }

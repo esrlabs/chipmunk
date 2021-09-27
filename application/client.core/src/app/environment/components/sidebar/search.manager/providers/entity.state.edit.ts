@@ -1,5 +1,4 @@
 export class EntityEditState {
-
     private _edit: boolean = false;
 
     public in() {
@@ -13,5 +12,4 @@ export class EntityEditState {
     public state(): boolean {
         return this._edit;
     }
-
 }

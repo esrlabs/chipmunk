@@ -9,7 +9,7 @@ import {
     IFilterDescOptional,
 } from './controller.session.tab.search.filters.storage';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
-import { IPCMessages } from '../../../../../../services/service.electron.ipc';
+import { IPC } from '../../../../../../services/service.electron.ipc';
 
 import ServiceElectronIpc from '../../../../../../services/service.electron.ipc';
 import OutputParsersService from '../../../../../../services/standalone/service.output.parsers';
@@ -35,10 +35,11 @@ export interface ISubjects {
 
 export class ControllerSessionTabSearchFilters
     extends Importable<IFilterDescOptional[]>
-    implements Dependency {
+    implements Dependency
+{
     private _logger: Toolkit.Logger;
     private _guid: string;
-    private _storage: FiltersStorage;
+    private _storage!: FiltersStorage;
     private _subjects: ISubjects = {
         updated: new Subject<FiltersStorage>(),
         searching: new Subject<void>(),
@@ -67,7 +68,7 @@ export class ControllerSessionTabSearchFilters
         return new Promise((resolve, reject) => {
             this._storage = new FiltersStorage(this._guid);
             this._subscriptions.SearchUpdated = ServiceElectronIpc.subscribe(
-                IPCMessages.SearchUpdated,
+                IPC.SearchUpdated,
                 this._ipc_onSearchUpdated.bind(this),
             );
             this._subscriptions.onStorageUpdated = this._storage
@@ -139,15 +140,15 @@ export class ControllerSessionTabSearchFilters
                         // Drop output
                         this._accessor.search().getOutputStream().clearStream();
                         // Start search
-                        ServiceElectronIpc.request(
-                            new IPCMessages.SearchRequest({
+                        ServiceElectronIpc.request<IPC.SearchRequestResults>(
+                            new IPC.SearchRequest({
                                 requests: _requests.map((reg) => reg.asIPC()),
                                 session: this._guid,
                                 id: requestId,
                             }),
-                            IPCMessages.SearchRequestResults,
+                            IPC.SearchRequestResults,
                         )
-                            .then((results: IPCMessages.SearchRequestResults) => {
+                            .then((results) => {
                                 this._subjects.complited.next();
                                 this._logger.env(
                                     `Search request ${results.requestId} was finished in ${(
@@ -197,15 +198,15 @@ export class ControllerSessionTabSearchFilters
                         // Trigger event
                         this._subjects.dropped.next();
                         // Start search
-                        ServiceElectronIpc.request(
-                            new IPCMessages.SearchRequest({
+                        ServiceElectronIpc.request<IPC.SearchRequestResults>(
+                            new IPC.SearchRequest({
                                 requests: [],
                                 session: this._guid,
                                 id: requestId,
                             }),
-                            IPCMessages.SearchRequestResults,
+                            IPC.SearchRequestResults,
                         )
-                            .then((results: IPCMessages.SearchRequestResults) => {
+                            .then((results) => {
                                 this._logger.env(
                                     `Search request ${results.requestId} was finished in ${(
                                         results.duration / 1000
@@ -320,7 +321,7 @@ export class ControllerSessionTabSearchFilters
             });
     }
 
-    private _ipc_onSearchUpdated(message: IPCMessages.SearchUpdated) {
+    private _ipc_onSearchUpdated(message: IPC.SearchUpdated) {
         if (this._guid !== message.guid) {
             return;
         }

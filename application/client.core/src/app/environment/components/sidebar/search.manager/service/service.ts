@@ -12,14 +12,13 @@ export enum EListID {
     chartsList = 'chartsList',
     disabledList = 'disabledList',
     rangesList = 'rangesList',
-    binList = 'binList'
+    binList = 'binList',
 }
 
 export class SearchManagerService {
-
-    private _dragging: Entity<TRequest>;
-    private _droppedOut: boolean;
-    private _ignore: boolean;
+    private _dragging: Entity<TRequest> | undefined;
+    private _droppedOut: boolean | undefined;
+    private _ignore: boolean | undefined;
 
     private _subjects = {
         remove: new Subject<void>(),
@@ -30,11 +29,11 @@ export class SearchManagerService {
     };
 
     public get observable(): {
-        remove: Observable<void>,
-        drag: Observable<boolean>,
-        mouseOver: Observable<EListID>,
-        mouseOverBin: Observable<boolean>,
-        mouseOverGlobal: Observable<void>,
+        remove: Observable<void>;
+        drag: Observable<boolean>;
+        mouseOver: Observable<EListID>;
+        mouseOverBin: Observable<boolean>;
+        mouseOverGlobal: Observable<void>;
     } {
         return {
             remove: this._subjects.remove.asObservable(),
@@ -73,14 +72,13 @@ export class SearchManagerService {
         this._subjects.mouseOverGlobal.next();
     }
 
-    public get dragging(): Entity<TRequest> {
+    public get dragging(): Entity<TRequest> | undefined {
         return this._dragging;
     }
 
-    get droppedOut(): boolean {
+    get droppedOut(): boolean | undefined {
         return this._droppedOut;
     }
-
 }
 
-export default (new SearchManagerService());
+export default new SearchManagerService();

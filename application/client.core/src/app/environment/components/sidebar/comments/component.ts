@@ -1,4 +1,13 @@
-import { Component, OnDestroy, Input,  ChangeDetectorRef, AfterContentInit, AfterViewInit, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    Input,
+    ChangeDetectorRef,
+    AfterContentInit,
+    AfterViewInit,
+    ChangeDetectionStrategy,
+    ViewEncapsulation,
+} from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { Session } from '../../../controller/session/session';
 import { IServices } from '../../../services/shared.services.sidebar';
@@ -22,15 +31,13 @@ export enum ECommentsOrdering {
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-
 export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
-    @Input() public services: IServices;
-    @Input() public onBeforeTabRemove: Subject<void>;
-    @Input() public close: () => void;
+    @Input() public services!: IServices;
+    @Input() public onBeforeTabRemove!: Subject<void>;
+    @Input() public close!: () => void;
 
     public _ng_comments: IComment[] = [];
-    public _ng_hidden: Array<{ count: number, color: string | undefined}> = [];
+    public _ng_hidden: Array<{ count: number; color: string | undefined }> = [];
     public _ng_controller: Session | undefined;
     public _ng_broadcastEditorUsage: Subject<string> = new Subject<string>();
     public _ng_colors: string[] = CShortColors.slice();
@@ -43,8 +50,7 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     private _destroyed: boolean = false;
     private _comments: IComment[] = [];
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
@@ -54,10 +60,13 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         Object.keys(this._sessionSubs).forEach((key: string) => {
             this._sessionSubs[key].unsubscribe();
         });
-    }
+    }
 
     public ngAfterContentInit() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
     }
 
     public ngAfterViewInit() {
@@ -71,25 +80,32 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
     }
 
     public ngOnRemoveAll() {
-        this._ng_controller.getSessionComments().clear();
+        this._ng_controller !== undefined && this._ng_controller.getSessionComments().clear();
     }
 
     public ngOnOrderingSwitch() {
-        this._ng_ordring = this._ng_ordring === ECommentsOrdering.colors ? ECommentsOrdering.position : ECommentsOrdering.colors;
+        this._ng_ordring =
+            this._ng_ordring === ECommentsOrdering.colors
+                ? ECommentsOrdering.position
+                : ECommentsOrdering.colors;
         this._load();
     }
 
     public _update() {
-        this._ng_comments = this._comments.filter(c => this._filter === undefined || this._filter === c.color).map(c => Object.assign({}, c));
+        this._ng_comments = this._comments
+            .filter((c) => this._filter === undefined || this._filter === c.color)
+            .map((c) => Object.assign({}, c));
         this._ng_hidden = [];
-        this._comments.filter(c => this._filter !== undefined && this._filter !== c.color).map((comment: IComment) => {
-            const index: number = this._ng_hidden.findIndex(d => d.color === comment.color);
-            if (index === -1) {
-                this._ng_hidden.push({ count: 1, color: comment.color });
-            } else {
-                this._ng_hidden[index].count += 1;
-            }
-        });
+        this._comments
+            .filter((c) => this._filter !== undefined && this._filter !== c.color)
+            .map((comment: IComment) => {
+                const index: number = this._ng_hidden.findIndex((d) => d.color === comment.color);
+                if (index === -1) {
+                    this._ng_hidden.push({ count: 1, color: comment.color });
+                } else {
+                    this._ng_hidden[index].count += 1;
+                }
+            });
         this._forceUpdate();
     }
 
@@ -99,9 +115,18 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
             this._sessionSubs[key].unsubscribe();
         });
         if (this._ng_controller !== undefined) {
-            this._sessionSubs.onAdded = this._ng_controller.getSessionComments().getObservable().onAdded.subscribe(this._onCommentAdded.bind(this));
-            this._sessionSubs.onUpdated = this._ng_controller.getSessionComments().getObservable().onUpdated.subscribe(this._onCommentUpdated.bind(this));
-            this._sessionSubs.onRemoved = this._ng_controller.getSessionComments().getObservable().onRemoved.subscribe(this._onCommentRemoved.bind(this));
+            this._sessionSubs.onAdded = this._ng_controller
+                .getSessionComments()
+                .getObservable()
+                .onAdded.subscribe(this._onCommentAdded.bind(this));
+            this._sessionSubs.onUpdated = this._ng_controller
+                .getSessionComments()
+                .getObservable()
+                .onUpdated.subscribe(this._onCommentUpdated.bind(this));
+            this._sessionSubs.onRemoved = this._ng_controller
+                .getSessionComments()
+                .getObservable()
+                .onRemoved.subscribe(this._onCommentRemoved.bind(this));
         }
         this._load();
     }
@@ -111,16 +136,22 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
             this._comments = [];
         } else {
             let comments: IComment[] = [];
-            const all: IComment[] = Array.from(this._ng_controller.getSessionComments().get().values());
+            const all: IComment[] = Array.from(
+                this._ng_controller.getSessionComments().get().values(),
+            );
             switch (this._ng_ordring) {
                 case ECommentsOrdering.colors:
-                    CShortColors.slice().concat([undefined]).forEach((color: string | undefined) => {
-                        const group: IComment[] = all.filter(c => c.color === color);
-                        group.sort((a: IComment, b: IComment) => {
-                            return a.selection.start.position > b.selection.start.position ? 1 : -1;
+                    (CShortColors.slice() as Array<string | undefined>)
+                        .concat([undefined] as Array<string | undefined>)
+                        .forEach((color: string | undefined) => {
+                            const group: IComment[] = all.filter((c) => c.color === color);
+                            group.sort((a: IComment, b: IComment) => {
+                                return a.selection.start.position > b.selection.start.position
+                                    ? 1
+                                    : -1;
+                            });
+                            comments = comments.concat(group);
                         });
-                        comments = comments.concat(group);
-                    });
                     break;
                 case ECommentsOrdering.position:
                     all.sort((a: IComment, b: IComment) => {
@@ -152,5 +183,4 @@ export class SidebarAppCommentsComponent implements OnDestroy, AfterContentInit,
         }
         this._cdRef.detectChanges();
     }
-
 }

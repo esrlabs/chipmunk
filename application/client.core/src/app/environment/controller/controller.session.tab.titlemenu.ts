@@ -5,7 +5,6 @@ import { ITabAPI } from 'chipmunk-client-material';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class ControllerSessionTabTitleContextMenu {
-
     private _logger: Toolkit.Logger;
     private _sessionId: string;
     private _tabAPI: ITabAPI;
@@ -38,6 +37,7 @@ export class ControllerSessionTabTitleContextMenu {
             return new Error(`Item with ID "${item.id}" already exist`);
         }
         this._menu.push(item);
+        return undefined;
     }
 
     public unshift(item: IMenuItem): Error | undefined {
@@ -48,6 +48,7 @@ export class ControllerSessionTabTitleContextMenu {
             return new Error(`Item with ID "${item.id}" already exist`);
         }
         this._menu.unshift(item);
+        return undefined;
     }
 
     public delete(id: string) {
@@ -56,7 +57,10 @@ export class ControllerSessionTabTitleContextMenu {
         });
     }
 
-    public update(updated: IMenuItem, cmdIfDoesNotExist?: 'push' | 'unshift' | undefined) {
+    public update(
+        updated: IMenuItem,
+        cmdIfDoesNotExist?: 'push' | 'unshift' | undefined,
+    ): Error | undefined {
         if (typeof updated.id !== 'string') {
             return new Error(`ID of menu item should be defined`);
         }
@@ -79,6 +83,7 @@ export class ControllerSessionTabTitleContextMenu {
                     break;
             }
         }
+        return undefined;
     }
 
     private _exist(id: string): boolean {
@@ -100,5 +105,4 @@ export class ControllerSessionTabTitleContextMenu {
         event.stopImmediatePropagation();
         event.preventDefault();
     }
-
 }

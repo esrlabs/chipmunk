@@ -24,7 +24,6 @@ export enum ESource {
 }
 
 export class Selection implements ISelectionAccessor {
-
     private _selection: Map<string, IRange> = new Map();
     private _prev: ESource | undefined;
 
@@ -38,13 +37,19 @@ export class Selection implements ISelectionAccessor {
                 } else if (start.positionInStream === row.positionInStream - 1) {
                     prev = row;
                 } else if (start.positionInStream !== row.positionInStream - 1) {
-                    this.add({ output: start.positionInStream }, prev === undefined ? undefined : { output: prev.positionInStream });
+                    this.add(
+                        { output: start.positionInStream },
+                        prev === undefined ? undefined : { output: prev.positionInStream },
+                    );
                     start = row;
                     prev = undefined;
                 }
             });
             if (start !== undefined) {
-                this.add({ output: start.positionInStream }, prev === undefined ? undefined : { output: prev.positionInStream });
+                this.add(
+                    { output: start.positionInStream },
+                    prev === undefined ? undefined : { output: prev.positionInStream },
+                );
             }
         }
     }
@@ -58,16 +63,21 @@ export class Selection implements ISelectionAccessor {
         if (to === undefined) {
             this._addSingleRow(from);
         } else {
-            if ((from.search !== undefined && to.search === undefined) || (from.search === undefined && to.search !== undefined)) {
+            if (
+                (from.search !== undefined && to.search === undefined) ||
+                (from.search === undefined && to.search !== undefined)
+            ) {
                 // Both should have search or shoundn't
-                return;
+                return undefined;
             }
             this._addRowsRange(from, to);
         }
-        if (to !== undefined || this._selection.size > 1) {
-            window.getSelection().removeAllRanges();
+        const selection = window.getSelection();
+        if ((to !== undefined || this._selection.size > 1) && selection !== null) {
+            selection.removeAllRanges();
         }
         this._prev = current;
+        return undefined;
     }
 
     public isSelected(position: number, source: ESource): boolean {
@@ -123,7 +133,10 @@ export class Selection implements ISelectionAccessor {
                 guid = Toolkit.guid();
                 this._selection.set(guid, {
                     start: included.start,
-                    end: { output: position.output - 1, search: position.search !== undefined ? position.search - 1 : undefined },
+                    end: {
+                        output: position.output - 1,
+                        search: position.search !== undefined ? position.search - 1 : undefined,
+                    },
                     id: guid,
                 });
             }
@@ -131,7 +144,10 @@ export class Selection implements ISelectionAccessor {
             if (included.end !== position) {
                 guid = Toolkit.guid();
                 this._selection.set(guid, {
-                    start: { output: position.output + 1, search: position.search !== undefined ? position.search + 1 : undefined },
+                    start: {
+                        output: position.output + 1,
+                        search: position.search !== undefined ? position.search + 1 : undefined,
+                    },
                     end: included.end,
                     id: guid,
                 });
@@ -150,9 +166,11 @@ export class Selection implements ISelectionAccessor {
             });
         } else {
             this._selection.forEach((range: IRange, id: string) => {
-                if ((range.start.output <= from.output && range.end.output >= from.output) ||
+                if (
+                    (range.start.output <= from.output && range.end.output >= from.output) ||
                     (range.start.output <= to.output && range.end.output >= to.output) ||
-                    (range.start.output >= from.output && range.start.output <= to.output)) {
+                    (range.start.output >= from.output && range.start.output <= to.output)
+                ) {
                     if (from.output > range.start.output) {
                         from = range.start;
                     }
@@ -170,5 +188,4 @@ export class Selection implements ISelectionAccessor {
             });
         }
     }
-
 }

@@ -12,7 +12,6 @@ export interface IRowNumberWidthData {
 }
 
 export class ControllerSessionScope implements Dependency {
-
     public static Keys = {
         CRowNumberWidth: 'CRowNumberWidth',
         CViewState: 'CViewState',
@@ -73,5 +72,4 @@ export class ControllerSessionScope implements Dependency {
             checked: false,
         });
     }
-
 }

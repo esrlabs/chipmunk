@@ -3,7 +3,6 @@ import { EntityEditState } from './entity.state.edit';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export class Entity<T> {
-
     private _guid: string;
     private _entity: T;
     private _editState: EntityEditState = new EntityEditState();
@@ -28,5 +27,4 @@ export class Entity<T> {
     public getEditState(): EntityEditState {
         return this._editState;
     }
-
 }

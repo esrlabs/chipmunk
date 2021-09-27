@@ -1,4 +1,12 @@
-import { Component, ChangeDetectorRef, Input, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    Input,
+    OnInit,
+    OnDestroy,
+    ViewChild,
+    AfterViewInit,
+} from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { map, startWith } from 'rxjs/operators';
@@ -10,7 +18,7 @@ import { sortFiles, ISortedFile } from '../../../thirdparty/code/engine';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import ElectronIpcService, { IPCMessages } from '../../../services/service.electron.ipc';
+import ElectronIpcService, { IPC } from '../../../services/service.electron.ipc';
 import FileOpenerService from '../../../services/service.file.opener';
 import FocusOutputService from '../../../services/service.focus.output';
 
@@ -19,13 +27,11 @@ import FocusOutputService from '../../../services/service.focus.output';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit, OnDestroy {
+    @ViewChild(MatInput) _inputComRef!: MatInput;
+    @ViewChild(MatAutocompleteTrigger) _autoComRef!: MatAutocompleteTrigger;
 
-    @ViewChild(MatInput) _inputComRef: MatInput;
-    @ViewChild(MatAutocompleteTrigger) _autoComRef: MatAutocompleteTrigger;
-
-    public _ng_files: Observable<ISortedFile[]>;
+    public _ng_files!: Observable<ISortedFile[]>;
     public _files: ISortedFile[] = [];
     public _ng_inputCtrl = new FormControl();
     private _logger: Toolkit.Logger = new Toolkit.Logger('DialogsRecentFilesActionComponent');
@@ -33,9 +39,11 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
 
     @Input() close: () => void = () => {};
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notificationsService: NotificationsService,
-                private _sanitizer: DomSanitizer) {
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _notificationsService: NotificationsService,
+        private _sanitizer: DomSanitizer,
+    ) {
         this._ng_displayWith = this._ng_displayWith.bind(this);
     }
 
@@ -45,36 +53,40 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
     }
 
     public ngOnInit() {
-        ElectronIpcService.request(new IPCMessages.FilesRecentRequest(), IPCMessages.FilesRecentResponse).then((response: IPCMessages.FilesRecentResponse) => {
-            if (response.error !== undefined) {
-                this._files = [];
-                this._logger.error(`Fail to get list of recent files due error: ${response.error}`);
-                this._notificationsService.add({
-                    caption: 'Fail load recent files',
-                    message: `Fail to load recent files due error: ${response.error}`
+        ElectronIpcService.request(new IPC.FilesRecentRequest(), IPC.FilesRecentResponse)
+            .then((response: IPC.FilesRecentResponse) => {
+                if (response.error !== undefined) {
+                    this._files = [];
+                    this._logger.error(
+                        `Fail to get list of recent files due error: ${response.error}`,
+                    );
+                    this._notificationsService.add({
+                        caption: 'Fail load recent files',
+                        message: `Fail to load recent files due error: ${response.error}`,
+                    });
+                } else {
+                    this._files = response.files.map((file: IPC.IRecentFileInfo) => {
+                        return {
+                            file: file.file,
+                            basename: Toolkit.basename(file.file),
+                            dirname: Toolkit.dirname(file.file),
+                            tbasename: Toolkit.basename(file.file),
+                            tdirname: Toolkit.dirname(file.file),
+                            size: file.size,
+                        };
+                    });
+                }
+                this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
+                    startWith(''),
+                    map((value) => this._filter(value)),
+                );
+                this._ng_files.subscribe(() => {
+                    this._focus();
                 });
-            } else {
-                this._files = response.files.map((file: IPCMessages.IRecentFileInfo) => {
-                    return {
-                        file: file.file,
-                        basename: Toolkit.basename(file.file),
-                        dirname: Toolkit.dirname(file.file),
-                        tbasename: Toolkit.basename(file.file),
-                        tdirname: Toolkit.dirname(file.file),
-                        size: file.size,
-                    };
-                });
-            }
-            this._ng_files = this._ng_inputCtrl.valueChanges.pipe(
-                startWith(''),
-                map(value => this._filter(value))
-            );
-            this._ng_files.subscribe(() => {
-                this._focus();
+            })
+            .catch((error: Error) => {
+                this._logger.error(`Fail to get list of recent files due error: ${error}`);
             });
-        }).catch((error: Error) => {
-            this._logger.error(`Fail to get list of recent files due error: ${error}`);
-        });
     }
 
     public ngAfterViewInit() {
@@ -85,12 +97,12 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
         this.close();
     }
 
-    public _ng_onFileSelected(file: IPCMessages.IRecentFileInfo) {
+    public _ng_onFileSelected(file: IPC.IRecentFileInfo) {
         FileOpenerService.openFileByName(file.file).catch((openFileErr: Error) => {
             this._logger.error(`Fail to open new session due error: ${openFileErr.message}`);
             this._notificationsService.add({
                 caption: 'Fail open file',
-                message: `Fail to open file "${file.file}" due error: ${openFileErr.message}`
+                message: `Fail to open file "${file.file}" due error: ${openFileErr.message}`,
             });
         });
         this.close();
@@ -118,7 +130,7 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
 
     private _filter(value: string): ISortedFile[] {
         if (typeof value !== 'string') {
-            return;
+            return [];
         }
         const scored = sortFiles(this._files, value, value !== '', 'span');
         this._focus();
@@ -131,5 +143,4 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
         }
         this._cdRef.detectChanges();
     }
-
 }

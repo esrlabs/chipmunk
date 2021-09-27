@@ -16,7 +16,7 @@ import {
 import { IServices } from '../../../services/shared.services.sidebar';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DLTDeamonSettingsErrorStateMatcher, EDLTSettingsFieldAlias } from './state.error';
-import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPC } from '../../../services/service.electron.ipc';
 import { IConnectEvent } from '../../../services/service.connections';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { IDLTDeamonMulticast } from './multicast/component';
@@ -35,10 +35,10 @@ interface IState {
     bindingPort: string;
     connectionId: string;
     ecu: string;
-    multicast: IPCMessages.IDLTDeamonConnectionMulticastOptions[];
+    multicast: IPC.IDLTDeamonConnectionMulticastOptions[];
     fibex: boolean;
     state: 'progress' | 'connected' | 'disconnected';
-    target: IPCMessages.EDLTDeamonConnectionType;
+    target: IPC.EDLTDeamonConnectionType;
 }
 
 interface IDLTDeamonSettings {
@@ -51,9 +51,9 @@ interface IDLTDeamonSettings {
     multicast: IDLTDeamonMulticast[];
     // fibex
     fibex: boolean;
-    fibexFiles: IPCMessages.IFilePickerFileInfo[];
+    fibexFiles: IPC.IFilePickerFileInfo[];
     // Connection type
-    target: IPCMessages.EDLTDeamonConnectionType;
+    target: IPC.EDLTDeamonConnectionType;
 }
 
 const CDefaulsDLTSettingsField = {
@@ -65,7 +65,7 @@ const CDefaulsDLTSettingsField = {
     multicastInterface: '0.0.0.0',
     fibex: false,
     fibexFiles: [],
-    target: IPCMessages.EDLTDeamonConnectionType.Udp,
+    target: IPC.EDLTDeamonConnectionType.Udp,
 };
 
 // TODO: take care about prev format of settins (single multicast) to prevent error on restoring state
@@ -79,9 +79,9 @@ const CDefaulsDLTSettingsField = {
 export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentInit, AfterViewInit {
     public static StateKey = 'side-bar-dlt-connector-view';
 
-    @Input() public services: IServices;
-    @Input() public onBeforeTabRemove: Subject<void>;
-    @Input() public close: () => void;
+    @Input() public services!: IServices;
+    @Input() public onBeforeTabRemove!: Subject<void>;
+    @Input() public close!: () => void;
 
     public _ng_session: Session | undefined;
     public _ng_state: 'progress' | 'connected' | 'disconnected' = 'disconnected';
@@ -96,7 +96,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
         target: CDefaulsDLTSettingsField.target,
     };
-    public _ng_errorStates = {
+    public _ng_errorStates: { [key: string]: DLTDeamonSettingsErrorStateMatcher } = {
         ecu: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.ecu),
         bindingAddress: new DLTDeamonSettingsErrorStateMatcher(
             EDLTSettingsFieldAlias.bindingAddress,
@@ -110,13 +110,14 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppDLTConnectorComponent');
     private _destroyed: boolean = false;
-    private _recent: IPCMessages.IDLTDeamonConnectionOptions[] = [];
+    private _recent: IPC.IDLTDeamonConnectionOptions[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {
         this._ng_session = SessionsService.getActive();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         this._subscriptions.multicastCleanSubject = this._ng_multicastCleanSubject.subscribe(
             this._checkEmptyMulticasts.bind(this),
         );
@@ -138,9 +139,10 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         this._subscriptions.onBeforeTabRemove = this.onBeforeTabRemove
             .asObservable()
             .subscribe(this._onBeforeTabRemove.bind(this));
-        this._subscriptions.onDisconnected = ConnectionsService.getObservable().disconnected.subscribe(
-            this._onDisconnected.bind(this),
-        );
+        this._subscriptions.onDisconnected =
+            ConnectionsService.getObservable().disconnected.subscribe(
+                this._onDisconnected.bind(this),
+            );
         this._loadState();
         this._checkConnection();
         this._forceUpdate();
@@ -148,15 +150,15 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
 
     public _ng_onTypeConnectionChange(event: MatButtonToggleChange) {
         this._ng_settings.target =
-            event.value === IPCMessages.EDLTDeamonConnectionType.Udp
-                ? IPCMessages.EDLTDeamonConnectionType.Udp
-                : IPCMessages.EDLTDeamonConnectionType.Tcp;
+            event.value === IPC.EDLTDeamonConnectionType.Udp
+                ? IPC.EDLTDeamonConnectionType.Udp
+                : IPC.EDLTDeamonConnectionType.Tcp;
         this._forceUpdate();
     }
 
     public _ng_isSettingsValid(): boolean {
         let valid: boolean = true;
-        Object.keys(this._ng_errorStates).forEach((key: EDLTSettingsFieldAlias) => {
+        Object.keys(this._ng_errorStates).forEach((key: string) => {
             if (!(this._ng_errorStates[key] as DLTDeamonSettingsErrorStateMatcher).isValid()) {
                 valid = false;
             }
@@ -170,6 +172,9 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     public _ng_onConnectClick() {
+        if (this._ng_session === undefined) {
+            return;
+        }
         if (!this._ng_isSettingsValid()) {
             return this._forceUpdate();
         }
@@ -177,8 +182,8 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         const mcast: string[] = [];
         this._ng_state = 'progress';
         this._ng_settings.connectionId = Toolkit.guid();
-        ElectronIpcService.request(
-            new IPCMessages.DLTDeamonConnectRequest({
+        ElectronIpcService.request<IPC.DLTDeamonConnectResponse>(
+            new IPC.DLTDeamonConnectRequest({
                 id: this._ng_settings.connectionId,
                 session: this._ng_session.getGuid(),
                 ecu: this._ng_settings.ecu,
@@ -201,9 +206,9 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 fibex: this._ng_settings.fibexFiles,
                 target: this._ng_settings.target,
             }),
-            IPCMessages.DLTDeamonConnectResponse,
+            IPC.DLTDeamonConnectResponse,
         )
-            .then((response: IPCMessages.DLTDeamonConnectResponse) => {
+            .then((response) => {
                 this._ng_state = 'connected';
                 this._loadRecent();
                 this._forceUpdate();
@@ -223,16 +228,19 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     public _ng_onDisconnectClick() {
+        if (this._ng_session === undefined) {
+            return;
+        }
         const prevState = this._ng_state;
         this._ng_state = 'progress';
-        ElectronIpcService.request(
-            new IPCMessages.DLTDeamonDisconnectRequest({
+        ElectronIpcService.request<IPC.DLTDeamonConnectResponse>(
+            new IPC.DLTDeamonDisconnectRequest({
                 id: this._ng_settings.connectionId,
                 session: this._ng_session.getGuid(),
             }),
-            IPCMessages.DLTDeamonConnectResponse,
+            IPC.DLTDeamonConnectResponse,
         )
-            .then((response: IPCMessages.DLTDeamonConnectResponse) => {
+            .then((response) => {
                 if (typeof response.error === 'string') {
                     this._notifications.add({
                         caption: `DLT: ${this._ng_settings.bindingAddress}:${this._ng_settings.bindingPort}`,
@@ -293,13 +301,16 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     public _ng_onSaveAsClick() {
-        ElectronIpcService.request(
-            new IPCMessages.DLTDeamonSaveRequest({
+        if (this._ng_session === undefined) {
+            return;
+        }
+        ElectronIpcService.request<IPC.DLTDeamonSaveResponse>(
+            new IPC.DLTDeamonSaveRequest({
                 session: this._ng_session.getGuid(),
             }),
-            IPCMessages.DLTDeamonSaveResponse,
+            IPC.DLTDeamonSaveResponse,
         )
-            .then((response: IPCMessages.DLTDeamonSaveResponse) => {
+            .then((response) => {
                 if (typeof response.error === 'string') {
                     this._notifications.add({
                         caption: `DLT Saving`,
@@ -333,18 +344,16 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     public _ng_onECUChange(value: string) {
         if (typeof value === 'string') {
             this._ng_recent = this._recent
-                .filter((options: IPCMessages.IDLTDeamonConnectionOptions) => {
+                .filter((options: IPC.IDLTDeamonConnectionOptions) => {
                     return options.ecu.toLowerCase().includes(value.toLowerCase());
                 })
-                .map((options: IPCMessages.IDLTDeamonConnectionOptions) => {
+                .map((options: IPC.IDLTDeamonConnectionOptions) => {
                     return options.ecu;
                 });
         } else {
-            this._ng_recent = this._recent.map(
-                (options: IPCMessages.IDLTDeamonConnectionOptions) => {
-                    return options.ecu;
-                },
-            );
+            this._ng_recent = this._recent.map((options: IPC.IDLTDeamonConnectionOptions) => {
+                return options.ecu;
+            });
         }
         this._forceUpdate();
     }
@@ -364,8 +373,8 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 caption: `Clear Recent Options`,
                 handler: () => {
                     ElectronIpcService.request(
-                        new IPCMessages.DLTDeamonRecentDropRequest(),
-                        IPCMessages.DLTDeamonRecentDropResponse,
+                        new IPC.DLTDeamonRecentDropRequest(),
+                        IPC.DLTDeamonRecentDropResponse,
                     )
                         .then(() => {
                             this._recent = [];
@@ -419,13 +428,13 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
 
     public _ng_onAddFibexFile() {
         ElectronIpcService.request(
-            new IPCMessages.FilePickerRequest({
+            new IPC.FilePickerRequest({
                 filter: [{ name: 'XML files', extensions: ['xml'] }],
                 multiple: true,
             }),
-            IPCMessages.FilePickerResponse,
+            IPC.FilePickerResponse,
         )
-            .then((responce: IPCMessages.FilePickerResponse) => {
+            .then((responce: IPC.FilePickerResponse) => {
                 if (typeof responce.error === 'string') {
                     return this._notifications.add({
                         caption: `Fail open`,
@@ -436,10 +445,10 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                     });
                 }
                 responce.files = responce.files
-                    .filter((incomeFile: IPCMessages.IFilePickerFileInfo) => {
+                    .filter((incomeFile: IPC.IFilePickerFileInfo) => {
                         let fileIsIn: boolean = false;
                         this._ng_settings.fibexFiles.forEach(
-                            (existFile: IPCMessages.IFilePickerFileInfo) => {
+                            (existFile: IPC.IFilePickerFileInfo) => {
                                 if (existFile.path === incomeFile.path) {
                                     fileIsIn = true;
                                 }
@@ -447,7 +456,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                         );
                         return !fileIsIn;
                     })
-                    .map((file: IPCMessages.IFilePickerFileInfo) => {
+                    .map((file: IPC.IFilePickerFileInfo) => {
                         (file as any).viewPath = file.path
                             .replace(file.name, '')
                             .replace(/[^\w\d\.\_\-]$/gi, '');
@@ -468,12 +477,12 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     public _ng_onFibexFileDragged(event: CdkDragDrop<string[]>) {
-        const target: IPCMessages.IFilePickerFileInfo = Object.assign(
+        const target: IPC.IFilePickerFileInfo = Object.assign(
             {},
             this._ng_settings.fibexFiles[event.previousIndex],
         );
         this._ng_settings.fibexFiles = this._ng_settings.fibexFiles.filter(
-            (file: IPCMessages.IFilePickerFileInfo, i: number) => {
+            (file: IPC.IFilePickerFileInfo, i: number) => {
                 return i !== event.previousIndex;
             },
         );
@@ -481,13 +490,13 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         this._forceUpdate();
     }
 
-    public _ng_onFibexContexMenu(event: MouseEvent, file: IPCMessages.IFilePickerFileInfo) {
+    public _ng_onFibexContexMenu(event: MouseEvent, file: IPC.IFilePickerFileInfo) {
         const items: IMenuItem[] = [
             {
                 caption: `Remove`,
                 handler: () => {
                     this._ng_settings.fibexFiles = this._ng_settings.fibexFiles.filter(
-                        (item: IPCMessages.IFilePickerFileInfo) => {
+                        (item: IPC.IFilePickerFileInfo) => {
                             return file.path !== item.path;
                         },
                     );
@@ -519,7 +528,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _onBeforeTabRemove() {
-        this._ng_session.getSessionsStates().drop(this._getStateGuid());
+        this._ng_session?.getSessionsStates().drop(this._getStateGuid());
     }
 
     private _loadState(): void {
@@ -609,6 +618,9 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     private _dropState(): void {}
 
     private _checkConnection() {
+        if (this._ng_session === undefined) {
+            return;
+        }
         if (this._ng_settings.connectionId === '') {
             return;
         }
@@ -625,7 +637,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _getStateGuid(): string {
-        return `${SidebarAppDLTConnectorComponent.StateKey}:${this._ng_session.getGuid()}`;
+        return `${SidebarAppDLTConnectorComponent.StateKey}:${this._ng_session?.getGuid()}`;
     }
 
     private _onSessionChange(session: Session | undefined) {
@@ -647,7 +659,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _onDisconnected(event: IConnectEvent) {
-        if (this._ng_session.getGuid() !== event.session) {
+        if (this._ng_session === undefined || this._ng_session.getGuid() !== event.session) {
             return;
         }
         if (this._ng_settings.connectionId !== event.id) {
@@ -663,15 +675,12 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _loadRecent() {
-        ElectronIpcService.request(
-            new IPCMessages.DLTDeamonRecentRequest(),
-            IPCMessages.DLTDeamonRecentResponse,
-        )
-            .then((response: IPCMessages.DLTDeamonRecentResponse) => {
+        ElectronIpcService.request(new IPC.DLTDeamonRecentRequest(), IPC.DLTDeamonRecentResponse)
+            .then((response: IPC.DLTDeamonRecentResponse) => {
                 if (response.recent instanceof Array) {
                     this._recent = response.recent;
                     this._ng_recent = this._recent.map(
-                        (options: IPCMessages.IDLTDeamonConnectionOptions) => {
+                        (options: IPC.IDLTDeamonConnectionOptions) => {
                             return options.ecu;
                         },
                     );
@@ -686,8 +695,8 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _applyRecent(ecu: string) {
-        const options: IPCMessages.IDLTDeamonConnectionOptions | undefined = this._recent.find(
-            (opt: IPCMessages.IDLTDeamonConnectionOptions) => {
+        const options: IPC.IDLTDeamonConnectionOptions | undefined = this._recent.find(
+            (opt: IPC.IDLTDeamonConnectionOptions) => {
                 return opt.ecu === ecu;
             },
         );
@@ -696,7 +705,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         }
         this._ng_settings.bindingAddress = CDefaulsDLTSettingsField.bindingAddress;
         this._ng_settings.bindingPort = options.bindingPort;
-        this._ng_settings.multicast = options.multicast.map((i) => {
+        this._ng_settings.multicast = options.multicast.map((i: any) => {
             return {
                 address: i.address,
                 interface: i.interface,
