@@ -20,19 +20,18 @@ export interface IColumn {
 const CLocalStorageKey = '__logviewer.row.render.custom.columns';
 
 export class ControllerColumns {
-
-    private _columns: IColumn[] = [];
+    private _columns: IColumn[] | undefined = [];
     private _hash: string;
     private _defaultColor: string = '#eaeaea';
     private _subjects: {
-        onResized: Subject<IColumn[]>,
-        onUpdated: Subject<IColumn[]>,
+        onResized: Subject<IColumn[]>;
+        onUpdated: Subject<IColumn[]>;
     } = {
         onResized: new Subject<IColumn[]>(),
         onUpdated: new Subject<IColumn[]>(),
     };
 
-    constructor(widths: Array<{ width: number, min: number}>, headers: string[]) {
+    constructor(widths: Array<{ width: number; min: number }>, headers: string[]) {
         this._hash = Toolkit.hash(headers.join(','));
         this._columns = this._getStored(headers);
         if (!(this._columns instanceof Array)) {
@@ -43,19 +42,19 @@ export class ControllerColumns {
         }
     }
 
-    public destroy() {
-
-    }
+    public destroy() {}
 
     public getColumns(): IColumn[] {
-        return this._columns.map((column: IColumn) => {
-            return Object.assign({}, column);
-        });
+        return this._columns === undefined
+            ? []
+            : this._columns.map((column: IColumn) => {
+                  return Object.assign({}, column);
+              });
     }
 
     public getObservable(): {
-        onResized: Observable<IColumn[]>,
-        onUpdated: Observable<IColumn[]>,
+        onResized: Observable<IColumn[]>;
+        onUpdated: Observable<IColumn[]>;
     } {
         return {
             onResized: this._subjects.onResized.asObservable(),
@@ -64,10 +63,11 @@ export class ControllerColumns {
     }
 
     public resize(index: number, width: number) {
-        if (this._columns[index] === undefined) {
+        if (this._columns === undefined || this._columns[index] === undefined) {
             return;
         }
-        this._columns[index].width = width > this._columns[index].minWidth ? width : this._columns[index].minWidth;
+        this._columns[index].width =
+            width > this._columns[index].minWidth ? width : this._columns[index].minWidth;
         this._setStored();
         this._subjects.onResized.next(this._columns);
     }
@@ -81,7 +81,11 @@ export class ControllerColumns {
     private _getStored(headers: string[]): IColumn[] | undefined {
         let columns: IColumn[];
         try {
-            columns = JSON.parse(localStorage.getItem(this._getStorageKey()));
+            const stored = localStorage.getItem(this._getStorageKey());
+            if (stored === null) {
+                return undefined;
+            }
+            columns = JSON.parse(stored);
         } catch (e) {
             localStorage.removeItem(this._getStorageKey());
             return undefined;
@@ -101,10 +105,11 @@ export class ControllerColumns {
         localStorage.setItem(this._getStorageKey(), JSON.stringify(this._columns));
     }
 
-    private _initColumns(widths: Array<{ width: number, min: number}>, headers: string[]) {
+    private _initColumns(widths: Array<{ width: number; min: number }>, headers: string[]) {
         this._columns = [];
+        const columns: IColumn[] = [];
         headers.forEach((header: string, index: number) => {
-            this._columns.push({
+            columns.push({
                 width: widths[index].width,
                 minWidth: widths[index].min,
                 header: header,
@@ -113,11 +118,10 @@ export class ControllerColumns {
                 color: this._defaultColor,
             });
         });
+        this._columns = columns;
     }
 
     private _getStorageKey(): string {
         return `${CLocalStorageKey}:${this._hash}`;
     }
-
 }
-

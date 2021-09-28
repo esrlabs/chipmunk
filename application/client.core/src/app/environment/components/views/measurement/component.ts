@@ -1,4 +1,13 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    ViewChild,
+    ElementRef,
+    AfterContentInit,
+    AfterViewInit,
+    ViewContainerRef,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Session } from '../../../controller/session/session';
 import { ControllerSessionTabTimestamp } from '../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
@@ -12,11 +21,9 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-views-measurement',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
     public _ng_service: DataService | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
@@ -24,9 +31,7 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
     private _session: Session | undefined;
     private _destroy: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {}
 
     public ngOnDestroy() {
         this._destroy = true;
@@ -37,16 +42,16 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
             this._ng_service.destroy();
             this._ng_service = undefined;
         }
-    }
-
-    public ngAfterContentInit() {
     }
+
+    public ngAfterContentInit() {}
 
     public ngAfterViewInit() {
         this._ng_service = new DataService();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         this._onSessionChange(TabsSessionsService.getActive());
     }
 
@@ -70,5 +75,4 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         }
         this._cdRef.detectChanges();
     }
-
 }

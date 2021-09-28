@@ -1,4 +1,13 @@
-import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, EventEmitter, Input } from '@angular/core';
+import {
+    Component,
+    HostListener,
+    AfterViewInit,
+    OnDestroy,
+    ChangeDetectorRef,
+    ViewContainerRef,
+    EventEmitter,
+    Input,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { IPositionChange, IPositionForce } from '../../service.position';
 import { ServiceData } from '../../service.data';
@@ -12,7 +21,7 @@ enum EChangeKind {
     move = 'move',
     left = 'left',
     right = 'right',
-    undefined = 'undefined'
+    undefined = 'undefined',
 }
 
 const CSettings = {
@@ -22,15 +31,12 @@ const CSettings = {
 @Component({
     selector: 'app-views-chart-zoomer-cursor-canvas',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDestroy {
-
-    @Input() serviceData: ServiceData;
-    @Input() servicePosition: ServicePosition;
-    @Input() onOffsetUpdated: EventEmitter<void>;
-
+    @Input() serviceData!: ServiceData;
+    @Input() servicePosition!: ServicePosition;
+    @Input() onOffsetUpdated!: EventEmitter<void>;
 
     public _ng_width: number = -1;
     public _ng_left: number = 0;
@@ -39,8 +45,8 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewChartZoomerCursorCanvasComponent');
     private _width: number = -1;
     private _mouse: {
-        x: number,
-        kind: EChangeKind,
+        x: number;
+        kind: EChangeKind;
     } = {
         x: -1,
         kind: EChangeKind.undefined,
@@ -49,8 +55,7 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
 
     @Input() getLeftOffset: () => number = () => 0;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
         this._onWindowMousemove = this._onWindowMousemove.bind(this);
         this._onWindowMouseup = this._onWindowMouseup.bind(this);
         window.addEventListener('mousemove', this._onWindowMousemove);
@@ -126,15 +131,27 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
 
     public ngAfterViewInit() {
         // Cursor events
-        this._subscriptions.onSwitch = this.servicePosition.getObservable().onSwitch.subscribe(this._onPositionRestored.bind(this));
-        this._subscriptions.onForce = this.servicePosition.getObservable().onForce.subscribe(this._onPositionForced.bind(this));
+        this._subscriptions.onSwitch = this.servicePosition
+            .getObservable()
+            .onSwitch.subscribe(this._onPositionRestored.bind(this));
+        this._subscriptions.onForce = this.servicePosition
+            .getObservable()
+            .onForce.subscribe(this._onPositionForced.bind(this));
         // Data events
-        this._subscriptions.onData = this.serviceData.getObservable().onData.subscribe(this._onResizeIsRequired.bind(this));
-        this._subscriptions.onCharts = this.serviceData.getObservable().onCharts.subscribe(this._onResizeIsRequired.bind(this));
+        this._subscriptions.onData = this.serviceData
+            .getObservable()
+            .onData.subscribe(this._onResizeIsRequired.bind(this));
+        this._subscriptions.onCharts = this.serviceData
+            .getObservable()
+            .onCharts.subscribe(this._onResizeIsRequired.bind(this));
         // Listen session changes event
-        this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(this._onResizeIsRequired.bind(this));
+        this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(
+            this._onResizeIsRequired.bind(this),
+        );
         // Listen offset changes
-        this._subscriptions.onOffsetUpdated = this.onOffsetUpdated.subscribe(this._onResizeIsRequired.bind(this));
+        this._subscriptions.onOffsetUpdated = this.onOffsetUpdated.subscribe(
+            this._onResizeIsRequired.bind(this),
+        );
         // Restore state
         this._restore();
         // Update width
@@ -189,7 +206,9 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
             this._forceUpdate();
             return;
         }
-        const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        const size: ClientRect = (
+            this._vcRef.element.nativeElement as HTMLElement
+        ).getBoundingClientRect();
         const width: number = size.width - this.getLeftOffset();
         if (width <= 0 || isNaN(width) || !isFinite(width)) {
             return;
@@ -338,7 +357,9 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
         if (this._vcRef === undefined) {
             return;
         }
-        const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        const size: ClientRect = (
+            this._vcRef.element.nativeElement as HTMLElement
+        ).getBoundingClientRect();
         this.servicePosition.correction(size.width);
         const position: IPositionChange | undefined = this.servicePosition.get();
         if (position === undefined) {
@@ -355,5 +376,4 @@ export class ViewChartZoomerCursorCanvasComponent implements AfterViewInit, OnDe
         }
         this._cdRef.detectChanges();
     }
-
 }

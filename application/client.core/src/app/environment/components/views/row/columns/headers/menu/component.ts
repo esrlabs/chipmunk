@@ -1,4 +1,11 @@
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    Input,
+    AfterContentInit,
+    AfterViewInit,
+} from '@angular/core';
 import { ControllerColumns, IColumn } from '../../controller.columns';
 import { CColors } from '../../../../../../conts/colors';
 import ContextMenuService from '../../../../../../services/standalone/service.contextmenu';
@@ -8,13 +15,13 @@ export const CColumnsHeadersKey = 'CColumnsHeadersKey';
 @Component({
     selector: 'app-views-output-row-columns-headers-contextmenu',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
-export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
-    @Input() public controller: ControllerColumns;
-    @Input() public header: string;
+export class ViewOutputRowColumnsHeadersMenuComponent
+    implements OnDestroy, AfterContentInit, AfterViewInit
+{
+    @Input() public controller!: ControllerColumns;
+    @Input() public header!: string;
 
     public _ng_columns: IColumn[] = [];
     public _ng_selected: number | undefined = undefined;
@@ -23,8 +30,7 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
     private _destroyed: boolean = false;
     private _checkBoxClicked: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
@@ -103,5 +109,4 @@ export class ViewOutputRowColumnsHeadersMenuComponent implements OnDestroy, Afte
         }
         return 0;
     }
-
 }

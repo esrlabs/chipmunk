@@ -1,6 +1,19 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit, ViewEncapsulation } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterViewInit,
+    Input,
+    AfterContentInit,
+    ViewEncapsulation,
+} from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { EManagerState, IPlugin, EUpdateState, IViewState } from '../../../../controller/controller.plugins.manager';
+import {
+    EManagerState,
+    IPlugin,
+    EUpdateState,
+    IViewState,
+} from '../../../../controller/controller.plugins.manager';
 import { Storage } from '../../../../controller/helpers/virtualstorage';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 import { sortPairs, IPair } from '../../../../thirdparty/code/engine';
@@ -14,11 +27,9 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     selector: 'app-views-plugins-list',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
 })
-
 export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, AfterContentInit {
-
     @Input() public selected: Subject<IPlugin> = new Subject();
 
     public _ng_plugins: IPluginData[] = [];
@@ -26,24 +37,27 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
     public _ng_selected: string | undefined;
     public _ng_search: string = '';
 
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewPluginsListComponent');
     private _plugins: IPlugin[] = [];
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notifications: NotificationsService) {
-
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {}
 
     ngAfterViewInit() {
         if (PluginsService.getManager().getManagerState() === EManagerState.pending) {
-            this._subscriptions.ready = PluginsService.getManager().getObservable().ready.subscribe(this._getPluginsList.bind(this));
+            this._subscriptions.ready = PluginsService.getManager()
+                .getObservable()
+                .ready.subscribe(this._getPluginsList.bind(this));
         } else {
             this._getPluginsList();
         }
-        this._subscriptions.updater = PluginsService.getManager().getObservable().updater.subscribe(this._forceUpdate.bind(this));
-        this._subscriptions.custom = PluginsService.getManager().getObservable().custom.subscribe(this._forceUpdate.bind(this));
+        this._subscriptions.updater = PluginsService.getManager()
+            .getObservable()
+            .updater.subscribe(this._forceUpdate.bind(this));
+        this._subscriptions.custom = PluginsService.getManager()
+            .getObservable()
+            .custom.subscribe(this._forceUpdate.bind(this));
     }
 
     ngAfterContentInit() {
@@ -56,7 +70,7 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public _ng_onPluginClick(plugin: IPlugin) {
         const selected: IPlugin | undefined = PluginsService.getManager().getByName(plugin.name);
@@ -70,33 +84,47 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
 
     public _ng_onDoAllClick() {
         if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
-            PluginsService.getManager().restart().then(() => {
-                this._logger.debug(`Application will be restarted`);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request restart of application due error: ${error.message}`);
-            });
+            PluginsService.getManager()
+                .restart()
+                .then(() => {
+                    this._logger.debug(`Application will be restarted`);
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request restart of application due error: ${error.message}`,
+                    );
+                });
         } else {
-            PluginsService.getManager().updateAndUpgradeAll().catch((error: Error) => {
-                this._logger.warn(`Fail to update/upgrade all due error: ${error.message}`);
-            });
+            PluginsService.getManager()
+                .updateAndUpgradeAll()
+                .catch((error: Error) => {
+                    this._logger.warn(`Fail to update/upgrade all due error: ${error.message}`);
+                });
         }
     }
 
     public _ng_onAddCustom() {
         if (PluginsService.getManager().getCustomState() === EUpdateState.restart) {
-            PluginsService.getManager().restart().then(() => {
-                this._logger.debug(`Application will be restarted`);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to request restart of application due error: ${error.message}`);
-            });
-        } else {
-            PluginsService.getManager().custom().catch((error: Error) => {
-                this._notifications.add({
-                    caption: 'Plugin Error',
-                    message: `Fail install custom plugin due error: ${error.message}`
+            PluginsService.getManager()
+                .restart()
+                .then(() => {
+                    this._logger.debug(`Application will be restarted`);
+                })
+                .catch((error: Error) => {
+                    this._logger.error(
+                        `Fail to request restart of application due error: ${error.message}`,
+                    );
                 });
-            });
-            }
+        } else {
+            PluginsService.getManager()
+                .custom()
+                .catch((error: Error) => {
+                    this._notifications.add({
+                        caption: 'Plugin Error',
+                        message: `Fail install custom plugin due error: ${error.message}`,
+                    });
+                });
+        }
     }
 
     public _ng_showDoAllButton() {
@@ -105,7 +133,7 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
 
     public _ng_getBadgeCount(): number {
         if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
-            return undefined;
+            return 0;
         } else {
             return PluginsService.getManager().getCountToBeUpgradedUpdated();
         }
@@ -125,7 +153,10 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         } else if (PluginsService.getManager().getUpdateState() === EUpdateState.restart) {
             return 'Restart';
         } else {
-            if (PluginsService.getManager().getCountToBeUpdated() > 0 && PluginsService.getManager().getCountToBeUpgraded() > 0) {
+            if (
+                PluginsService.getManager().getCountToBeUpdated() > 0 &&
+                PluginsService.getManager().getCountToBeUpgraded() > 0
+            ) {
                 return 'Upgrade & Update All';
             } else if (PluginsService.getManager().getCountToBeUpdated() > 0) {
                 return 'Update All';
@@ -176,7 +207,7 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
                     matches: {
                         name: plugin.display_name,
                         description: plugin.description,
-                    }
+                    },
                 };
             });
         }
@@ -190,16 +221,16 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         const scored = sortPairs(pairs, search, search !== '', 'span');
         const plugins: IPluginData[] = [];
         scored.forEach((s: IPair) => {
-            const found: IPlugin | undefined = this._plugins.find(p => p.name === s.id);
+            const found: IPlugin | undefined = this._plugins.find((p) => p.name === s.id);
             if (found === undefined) {
                 return;
             }
             plugins.push({
                 plugin: found,
                 matches: {
-                    name: s.tcaption,
-                    description: s.tdescription,
-                }
+                    name: s.tcaption === undefined ? s.caption : s.tcaption,
+                    description: s.tdescription === undefined ? s.description : s.tdescription,
+                },
             });
         });
         return plugins;
@@ -211,5 +242,4 @@ export class ViewPluginsListComponent implements OnDestroy, AfterViewInit, After
         }
         this._cdRef.detectChanges();
     }
-
 }

@@ -1,6 +1,15 @@
-import { Component, HostListener, AfterViewInit, OnDestroy, ChangeDetectorRef, ViewContainerRef, AfterContentInit, EventEmitter, Input } from '@angular/core';
+import {
+    Component,
+    HostListener,
+    AfterViewInit,
+    OnDestroy,
+    ChangeDetectorRef,
+    ViewContainerRef,
+    AfterContentInit,
+    Input,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
-import { DataService, EChartMode } from '../../service.data';
+import { DataService } from '../../service.data';
 
 import ViewsEventsService from '../../../../../services/standalone/service.views.events';
 import EventsSessionService from '../../../../../services/standalone/service.events.session';
@@ -13,18 +22,18 @@ enum EChangeKind {
     right = 'right',
     zoom = 'zoom',
     set = 'set',
-    undefined = 'undefined'
+    undefined = 'undefined',
 }
 
 @Component({
     selector: 'app-views-measurement-overview-cursor',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
-export class ViewMeasurementOverviewCursorComponent implements AfterContentInit, AfterViewInit, OnDestroy {
-
-    @Input() service: DataService;
+export class ViewMeasurementOverviewCursorComponent
+    implements AfterContentInit, AfterViewInit, OnDestroy
+{
+    @Input() service!: DataService;
 
     public _ng_width: number = -1;
     public _ng_left: number = 0;
@@ -35,16 +44,15 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementOverviewCursorComponent');
     private _width: number = -1;
     private _mouse: {
-        x: number | undefined,
-        kind: EChangeKind,
+        x: number | undefined;
+        kind: EChangeKind;
     } = {
         x: undefined,
         kind: EChangeKind.undefined,
     };
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
         this._onWindowMousemove = this._onWindowMousemove.bind(this);
         this._onWindowMouseup = this._onWindowMouseup.bind(this);
         window.addEventListener('mousemove', this._onWindowMousemove);
@@ -94,14 +102,20 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         }
         this._ng_width = width;
         this._ng_left = left;
-        this.service.setZoomOffsets(this._ng_left * r, (this._width - (this._ng_left + this._ng_width)) * r);
+        this.service.setZoomOffsets(
+            this._ng_left * r,
+            (this._width - (this._ng_left + this._ng_width)) * r,
+        );
         event.stopImmediatePropagation();
         event.preventDefault();
     }
 
     @HostListener('mousedown', ['$event']) _ng_onClick(event: MouseEvent) {
-        if ((event.target as HTMLElement).nodeName.toLowerCase() !== 'app-views-measurement-overview-cursor' &&
-            (event.target as HTMLElement).className.indexOf('select') === -1) {
+        if (
+            (event.target as HTMLElement).nodeName.toLowerCase() !==
+                'app-views-measurement-overview-cursor' &&
+            (event.target as HTMLElement).className.indexOf('select') === -1
+        ) {
             return;
         }
         this._mouse.x = event.x;
@@ -111,12 +125,13 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
     }
 
     public ngAfterContentInit() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
-        this._subscriptions.zoom = this.service.getObservable().zoom.subscribe(
-            this._onChartDataZoom.bind(this),
-        );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.zoom = this.service
+            .getObservable()
+            .zoom.subscribe(this._onChartDataZoom.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
             this._resize.bind(this),
         );
@@ -165,8 +180,15 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
     }
 
     public _ng_getSelectionStyle(): { [key: string]: string } {
+        if (this._ng_selection_width === undefined || this._ng_selection_left === undefined) {
+            return {};
+        }
         return {
-            left: `${this._ng_selection_width < 0 ? (this._ng_selection_left + this._ng_selection_width) : this._ng_selection_left}px`,
+            left: `${
+                this._ng_selection_width < 0
+                    ? this._ng_selection_left + this._ng_selection_width
+                    : this._ng_selection_left
+            }px`,
             width: `${Math.abs(this._ng_selection_width)}px`,
         };
     }
@@ -224,7 +246,7 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         this._mouse.x = event.x;
         if (this._ng_selection_left === undefined) {
             this._change(this._mouse.kind, offset);
-        } else {
+        } else if (this._ng_selection_width !== undefined) {
             this._ng_selection_width += offset;
             if (this._ng_selection_width + this._ng_selection_left < 0) {
                 this._ng_selection_width = -this._ng_selection_left;
@@ -242,8 +264,11 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         }
         this._mouse.x = undefined;
         this._mouse.kind = EChangeKind.undefined;
-        if (this._ng_selection_left !== undefined) {
-            this._ng_left = this._ng_selection_width < 0 ? (this._ng_selection_left + this._ng_selection_width) : this._ng_selection_left;
+        if (this._ng_selection_left !== undefined && this._ng_selection_width !== undefined) {
+            this._ng_left =
+                this._ng_selection_width < 0
+                    ? this._ng_selection_left + this._ng_selection_width
+                    : this._ng_selection_left;
             this._change(EChangeKind.set, Math.abs(this._ng_selection_width));
             this._ng_selection_left = undefined;
             this._ng_selection_width = undefined;
@@ -295,7 +320,10 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
                 }
                 break;
         }
-        this.service.setZoomOffsets(this._ng_left * r, (this._width - (this._ng_left + this._ng_width)) * r);
+        this.service.setZoomOffsets(
+            this._ng_left * r,
+            (this._width - (this._ng_left + this._ng_width)) * r,
+        );
     }
 
     private _forceUpdate() {
@@ -304,5 +332,4 @@ export class ViewMeasurementOverviewCursorComponent implements AfterContentInit,
         }
         this._cdRef.detectChanges();
     }
-
 }

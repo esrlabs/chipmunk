@@ -1,7 +1,21 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef, Input, HostListener } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    ViewChild,
+    ElementRef,
+    AfterContentInit,
+    AfterViewInit,
+    ViewContainerRef,
+    Input,
+    HostListener,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Session } from '../../../../controller/session/session';
-import { ControllerSessionTabTimestamp, IRange, EChartMode } from '../../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
+import {
+    IRange,
+    EChartMode,
+} from '../../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { scheme_color_2, getContrastColor } from '../../../../theme/colors';
 import { Chart } from 'chart.js';
@@ -11,7 +25,9 @@ import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
-import OutputRedirectionsService, { EParent } from '../../../../services/standalone/service.output.redirections';
+import OutputRedirectionsService, {
+    EParent,
+} from '../../../../services/standalone/service.output.redirections';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -24,26 +40,24 @@ enum EScrollingMode {
 @Component({
     selector: 'app-views-measurement-chart',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class ViewMeasurementChartComponent implements OnDestroy, AfterContentInit, AfterViewInit {
+    @Input() service!: DataService;
 
-    @Input() service: DataService;
-
-    @ViewChild('canvas', { static: true }) _ng_canvas: ElementRef<HTMLCanvasElement>;
+    @ViewChild('canvas', { static: true }) _ng_canvas!: ElementRef<HTMLCanvasElement>;
 
     readonly CHART_UPDATE_DURATION: number = 60;
     readonly CHART_LEN_PX = 8;
 
     private _sizes: {
         container: {
-            width: number,
-            height: number,
-        },
+            width: number;
+            height: number;
+        };
         charts: {
-            height: number,
-        },
+            height: number;
+        };
     } = {
         container: {
             width: 0,
@@ -58,16 +72,16 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
     private _session: Session | undefined;
     private _destroy: boolean = false;
     private _chart: {
-        instance?: Chart,
-        update: number,
-        timer: any,
+        instance?: Chart;
+        update: number;
+        timer: any;
     } = {
         instance: undefined,
         update: 0,
         timer: undefined,
     };
     private _cursor: {
-        left: number,
+        left: number;
     } = {
         left: -1,
     };
@@ -98,8 +112,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         event.preventDefault();
     }
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
         this._onWinKeyDown = this._onWinKeyDown.bind(this);
         this._onWinKeyUp = this._onWinKeyUp.bind(this);
         window.addEventListener('keydown', this._onWinKeyDown);
@@ -117,26 +130,26 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         }
         window.removeEventListener('keydown', this._onWinKeyDown);
         window.removeEventListener('keyup', this._onWinKeyUp);
-    }
-
-    public ngAfterContentInit() {
     }
 
+    public ngAfterContentInit() {}
+
     public ngAfterViewInit() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
-        this._subscriptions.update = this.service.getObservable().update.subscribe(
-            this._onChartDataUpdate.bind(this),
-        );
-        this._subscriptions.change = this.service.getObservable().change.subscribe(
-            this._onChartDataChange.bind(this),
-        );
-        this._subscriptions.zoom = this.service.getObservable().zoom.subscribe(
-            this._onChartDataZoom.bind(this),
-        );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.update = this.service
+            .getObservable()
+            .update.subscribe(this._onChartDataUpdate.bind(this));
+        this._subscriptions.change = this.service
+            .getObservable()
+            .change.subscribe(this._onChartDataChange.bind(this));
+        this._subscriptions.zoom = this.service
+            .getObservable()
+            .zoom.subscribe(this._onChartDataZoom.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
-            this._resize.bind(this),
+            this._resize.bind(this, false),
         );
         this._build();
         this._onSessionChange(TabsSessionsService.getActive());
@@ -156,36 +169,45 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         const target = this._getDatasetOnClick(event);
         const items: IMenuItem[] = [
             {
-                caption: `Switch to: ${this.service.getMode() === EChartMode.aligned ? 'scaled' : 'aligned'}`,
+                caption: `Switch to: ${
+                    this.service.getMode() === EChartMode.aligned ? 'scaled' : 'aligned'
+                }`,
                 handler: () => {
                     this.service.toggleMode();
                 },
             },
         ];
         if (target !== undefined || this._session.getTimestamp().getCount() !== 0) {
-            items.push({ /* Delimiter */});
+            items.push({
+                /* Delimiter */
+            });
         }
         if (target !== undefined) {
-            items.push(...[
-                {
-                    caption: target === undefined ? 'Remove this range' : `Remove this range: ${target.range.start.position} - ${target.range.end.position} / ${target.range.duration}`,
-                    handler: () => {
-                        if (this._session === undefined) {
-                            return;
-                        }
-                        this._session.getTimestamp().removeRange(target.range.id);
+            items.push(
+                ...[
+                    {
+                        caption:
+                            target === undefined
+                                ? 'Remove this range'
+                                : `Remove this range: ${target.range.start.position} - ${target.range.end?.position} / ${target.range.duration}`,
+                        handler: () => {
+                            if (this._session === undefined) {
+                                return;
+                            }
+                            this._session.getTimestamp().removeRange(target.range.id);
+                        },
                     },
-                },
-                {
-                    caption: `Remove all except this`,
-                    handler: () => {
-                        if (this._session === undefined) {
-                            return;
-                        }
-                        this._session.getTimestamp().clear([target.range.id]);
+                    {
+                        caption: `Remove all except this`,
+                        handler: () => {
+                            if (this._session === undefined) {
+                                return;
+                            }
+                            this._session.getTimestamp().clear([target.range.id]);
+                        },
                     },
-                },
-            ]);
+                ],
+            );
         }
         if (this._session.getTimestamp().getCount() !== 0) {
             items.push({
@@ -199,52 +221,75 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             });
         }
         if (this.service.getMode() === EChartMode.scaled) {
-            items.push(...[
-                { /* Delimiter */},
-                {
-                    caption: this.service.getOptimizationState() ? `Do not optimize duration` : `Optimize duration`,
-                    handler: () => {
-                        this.service.toggleOptimizationState();
+            items.push(
+                ...[
+                    {
+                        /* Delimiter */
                     },
-                },
-            ]);
+                    {
+                        caption: this.service.getOptimizationState()
+                            ? `Do not optimize duration`
+                            : `Optimize duration`,
+                        handler: () => {
+                            this.service.toggleOptimizationState();
+                        },
+                    },
+                ],
+            );
         }
         if (target !== undefined) {
-            items.push(...[
-                { /* Delimiter */},
-                {
-                    caption: `Go to row: ${target.range.start.position}`,
-                    handler: () => {
-                        if (this._session === undefined) {
-                            return;
-                        }
-                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), { output: target.range.start.position });
+            items.push(
+                ...[
+                    {
+                        /* Delimiter */
                     },
-                },
-                {
-                    caption: `Go to row: ${target.range.end.position}`,
-                    handler: () => {
-                        if (this._session === undefined) {
-                            return;
-                        }
-                        OutputRedirectionsService.select(EParent.timemeasurement, this._session.getGuid(), { output: target.range.end.position });
+                    {
+                        caption: `Go to row: ${target.range.start.position}`,
+                        handler: () => {
+                            if (this._session === undefined) {
+                                return;
+                            }
+                            OutputRedirectionsService.select(
+                                EParent.timemeasurement,
+                                this._session.getGuid(),
+                                { output: target.range.start.position },
+                            );
+                        },
                     },
-                }
-            ]);
+                    {
+                        caption: `Go to row: ${target.range.end?.position}`,
+                        handler: () => {
+                            if (this._session === undefined) {
+                                return;
+                            }
+                            target.range.end !== undefined &&
+                                OutputRedirectionsService.select(
+                                    EParent.timemeasurement,
+                                    this._session.getGuid(),
+                                    { output: target.range.end.position },
+                                );
+                        },
+                    },
+                ],
+            );
         }
         if (this._session.getTimestamp().getCount() > 0) {
-            items.push(...[
-                { /* Delimiter */},
-                {
-                    caption: `Export to CSV file`,
-                    handler: () => {
-                        if (this._session === undefined) {
-                            return;
-                        }
-                        this.service.exportToCSV();
+            items.push(
+                ...[
+                    {
+                        /* Delimiter */
                     },
-                },
-            ]);
+                    {
+                        caption: `Export to CSV file`,
+                        handler: () => {
+                            if (this._session === undefined) {
+                                return;
+                            }
+                            this.service.exportToCSV();
+                        },
+                    },
+                ],
+            );
         }
         ContextMenuService.show({
             items: items,
@@ -257,7 +302,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
 
     public _ng_getChartsHeight(): string {
         if (this.service === undefined) {
-            return;
+            return '';
         }
         return `${this._sizes.charts.height}px`;
     }
@@ -290,46 +335,62 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                         display: false,
                     },
                     hover: {
-                        animationDuration: 0
+                        animationDuration: 0,
                     },
                     responsiveAnimationDuration: 0,
                     responsive: false,
                     maintainAspectRatio: false,
                     scales: {
-                        xAxes: [{
-                            gridLines: {
-                                offsetGridLines: true
+                        xAxes: [
+                            {
+                                gridLines: {
+                                    offsetGridLines: true,
+                                },
+                                ticks: {
+                                    display: false,
+                                    min:
+                                        this.service.getMode() === EChartMode.aligned
+                                            ? 0
+                                            : this.service.getMinXAxe(),
+                                    max:
+                                        this.service.getMode() === EChartMode.aligned
+                                            ? this.service.getMaxDuration()
+                                            : this.service.getMaxXAxe(),
+                                },
                             },
-                            ticks: {
-                                display: false,
-                                min: this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinXAxe(),
-                                max: this.service.getMode() === EChartMode.aligned ? this.service.getMaxDuration() : this.service.getMaxXAxe()
+                        ],
+                        yAxes: [
+                            {
+                                ticks: {
+                                    display: false,
+                                    min: 0,
+                                    max: data.maxY === undefined ? 0 : data.maxY + 1,
+                                    beginAtZero: true,
+                                    stepSize: 1,
+                                    maxTicksLimit: 100,
+                                },
                             },
-                        }],
-                        yAxes: [{
-                            ticks: {
-                                display: false,
-                                min: 0,
-                                max: data.maxY + 1,
-                                beginAtZero: true,
-                                stepSize: 1,
-                                maxTicksLimit: 100,
-                            },
-                        }],
+                        ],
                     },
                     animation: {
                         duration: 1,
-                        onComplete: function() {
+                        onComplete: function () {
                             if (self.service === undefined) {
                                 return;
                             }
-                            const chartInstance = this.chart;
+                            const chartInstance = (this as any).chart;
                             const ctx = chartInstance.ctx;
-                            ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                            ctx.font = Chart.helpers.fontString(
+                                Chart.defaults.global.defaultFontSize,
+                                Chart.defaults.global.defaultFontStyle,
+                                Chart.defaults.global.defaultFontFamily,
+                            );
                             ctx.textAlign = 'right';
                             ctx.textBaseline = 'top';
-                            this.data.datasets.forEach(function(dataset, i) {
-                                const rect = self._getBarRect(chartInstance.controller.getDatasetMeta(i));
+                            (this as any).data.datasets.forEach(function (dataset: any, i: number) {
+                                const rect = self._getBarRect(
+                                    chartInstance.controller.getDatasetMeta(i),
+                                );
                                 if (rect === undefined) {
                                     return;
                                 }
@@ -339,23 +400,42 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                                     return;
                                 }
                                 if (dataset.data[1].range === true) {
-                                    ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                                    ctx.font = Chart.helpers.fontString(
+                                        Chart.defaults.global.defaultFontSize,
+                                        Chart.defaults.global.defaultFontStyle,
+                                        Chart.defaults.global.defaultFontFamily,
+                                    );
                                     ctx.fillStyle = getContrastColor(dataset.borderColor, true);
                                 } else {
-                                    ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize * 0.8, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
+                                    ctx.font = Chart.helpers.fontString(
+                                        Chart.defaults.global.defaultFontSize === undefined
+                                            ? 1
+                                            : Chart.defaults.global.defaultFontSize * 0.8,
+                                        Chart.defaults.global.defaultFontStyle,
+                                        Chart.defaults.global.defaultFontFamily,
+                                    );
                                     ctx.fillStyle = scheme_color_2;
                                 }
-                                ctx.fillText(`${duration} ms`, rect.x2 - 4, dataset.data[1].range === true ? rect.y1 + 3 : rect.y1 - 2);
+                                ctx.fillText(
+                                    `${duration} ms`,
+                                    rect.x2 - 4,
+                                    dataset.data[1].range === true ? rect.y1 + 3 : rect.y1 - 2,
+                                );
                             });
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             });
         } else {
             this._chart.instance.data.datasets = data.datasets;
-            this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinXAxe();
-            this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMode() === EChartMode.aligned ? this.service.getMaxDuration() : this.service.getMaxXAxe();
-            this._chart.instance.options.scales.yAxes[0].ticks.max = data.maxY + 1;
+            (this._chart as any).instance.options.scales.xAxes[0].ticks.min =
+                this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinXAxe();
+            (this._chart as any).instance.options.scales.xAxes[0].ticks.max =
+                this.service.getMode() === EChartMode.aligned
+                    ? this.service.getMaxDuration()
+                    : this.service.getMaxXAxe();
+            (this._chart as any).instance.options.scales.yAxes[0].ticks.max =
+                data.maxY === undefined ? 0 : data.maxY + 1;
         }
         this._resize(true);
     }
@@ -364,30 +444,37 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this._session === undefined || this.service === undefined) {
             return;
         }
-        if (this._chart.instance.data === undefined || !(this._chart.instance.data.datasets instanceof Array)) {
+        if (
+            (this._chart as any).instance.data === undefined ||
+            !((this._chart as any).instance.data.datasets instanceof Array)
+        ) {
             return;
         }
         const target = this._getDatasetOnClick(event);
         if (target === undefined) {
             return;
         }
-        OutputRedirectionsService.select(
-            EParent.notassigned,
-            this._session.getGuid(),
-            { output: target.range.start.position < target.range.end.position ? target.range.start.position : target.range.end.position },
-        );
+        target.range.end !== undefined &&
+            OutputRedirectionsService.select(EParent.notassigned, this._session.getGuid(), {
+                output:
+                    target.range.start.position < target.range.end.position
+                        ? target.range.start.position
+                        : target.range.end.position,
+            });
     }
 
-    private _getDatasetOnClick(event?: MouseEvent): {
-        range: IRange,
-        x: number,
-        y: number
-    } | undefined {
+    private _getDatasetOnClick(event?: MouseEvent):
+        | {
+              range: IRange;
+              x: number;
+              y: number;
+          }
+        | undefined {
         if (event === undefined) {
             return undefined;
         }
-        let match;
-        this._chart.instance.data.datasets.forEach((dataset, index: number) => {
+        let match: any;
+        (this._chart as any).instance.data.datasets.forEach((dataset: any, index: number) => {
             if (match !== undefined) {
                 return;
             }
@@ -395,22 +482,29 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                 // It might be distance range, which has to be ignored
                 return;
             }
-            const rect = this._getBarRect(this._chart.instance.getDatasetMeta(index));
+            const rect = this._getBarRect((this._chart as any).instance.getDatasetMeta(index));
             if (rect === undefined) {
                 return;
             }
-            if (event.offsetX >= rect.x1 && event.offsetX <= rect.x2 && event.offsetY >= rect.y1 && event.offsetY <= rect.y2) {
+            if (
+                event.offsetX >= rect.x1 &&
+                event.offsetX <= rect.x2 &&
+                event.offsetY >= rect.y1 &&
+                event.offsetY <= rect.y2
+            ) {
                 match = {
                     range: (dataset as any).range,
                     x: event.clientX,
-                    y: event.clientY
+                    y: event.clientY,
                 };
             }
         });
         return match;
     }
 
-    private _getBarRect(meta: any): undefined | { x1: number, y1: number, x2: number, y2: number, w: number, h: number } {
+    private _getBarRect(
+        meta: any,
+    ): undefined | { x1: number; y1: number; x2: number; y2: number; w: number; h: number } {
         if (meta.data.length !== 2) {
             return undefined;
         }
@@ -452,13 +546,18 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this.service.getMode() === EChartMode.aligned) {
             return;
         }
-        this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe();
-        this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe();
+        (this._chart as any).instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe();
+        (this._chart as any).instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe();
         this._chartResizeUpdate();
     }
 
     private _resize(force: boolean = false) {
-        if (!force && (this._sizes.container.height !== 0 && !isNaN(this._sizes.container.height) && isFinite(this._sizes.container.height))) {
+        if (
+            !force &&
+            this._sizes.container.height !== 0 &&
+            !isNaN(this._sizes.container.height) &&
+            isFinite(this._sizes.container.height)
+        ) {
             return;
         }
         // Container
@@ -483,7 +582,8 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this._chart.update === 0) {
             this._chart.update = Date.now();
         }
-        const duration: number = this.CHART_UPDATE_DURATION - Math.abs(Date.now() - this._chart.update);
+        const duration: number =
+            this.CHART_UPDATE_DURATION - Math.abs(Date.now() - this._chart.update);
         if (duration <= 0) {
             this._chart.instance.update();
             this._chart.instance.resize();
@@ -514,5 +614,4 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         }
         this._cdRef.detectChanges();
     }
-
 }

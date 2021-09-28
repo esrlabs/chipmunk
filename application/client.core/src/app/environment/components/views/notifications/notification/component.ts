@@ -1,8 +1,19 @@
 // tslint:disable:member-ordering
 
-import { Component, OnDestroy, ChangeDetectorRef, Input, AfterContentInit, AfterViewInit, ViewEncapsulation } from '@angular/core';
-import { Subscription, Observable, Subject } from 'rxjs';
-import { NotificationsService, INotification } from '../../../../services.injectable/injectable.service.notifications';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    Input,
+    AfterContentInit,
+    AfterViewInit,
+    ViewEncapsulation,
+} from '@angular/core';
+import { Subscription } from 'rxjs';
+import {
+    NotificationsService,
+    INotification,
+} from '../../../../services.injectable/injectable.service.notifications';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
 
@@ -24,35 +35,30 @@ const CReadTimeout = 2000;
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
 })
-
 export class SidebarAppNotificationComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
-
-    @Input() public data: INotificationData;
-    @Input() public session: string;
+    @Input() public data!: INotificationData;
+    @Input() public session!: string;
 
     public _ng_more: boolean = false;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notifications: NotificationsService,
-                private _sanitizer: DomSanitizer) {
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _notifications: NotificationsService,
+        private _sanitizer: DomSanitizer,
+    ) {}
 
-    }
-
-    public ngAfterContentInit() {
-
-    }
+    public ngAfterContentInit() {}
 
     public ngAfterViewInit() {
         if (this.data.notification.read) {
             return;
         }
-        const id: string = this.data.notification.id;
+        const id: string | undefined = this.data.notification.id;
         setTimeout(() => {
-            this._notifications.setAsRead(this.session, id);
+            id !== undefined && this._notifications.setAsRead(this.session, id);
         }, CReadTimeout);
     }
 
@@ -61,14 +67,16 @@ export class SidebarAppNotificationComponent implements OnDestroy, AfterContentI
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
         });
-    }
+    }
 
     public _ng_hasRef(): boolean {
         return this.data.notification.row !== undefined;
     }
 
     public _ng_hasActions(): boolean {
-        return this.data.notification.buttons instanceof Array ? (this.data.notification.buttons.length > 0) : false;
+        return this.data.notification.buttons instanceof Array
+            ? this.data.notification.buttons.length > 0
+            : false;
     }
 
     public _ng_getSafeHTML(input: string): SafeHtml {
@@ -76,10 +84,15 @@ export class SidebarAppNotificationComponent implements OnDestroy, AfterContentI
     }
 
     public _ng_goToLink() {
-        if (typeof this.data.notification.row !== 'number' || isNaN(this.data.notification.row) || !isFinite(this.data.notification.row)) {
+        if (
+            typeof this.data.notification.row !== 'number' ||
+            isNaN(this.data.notification.row) ||
+            !isFinite(this.data.notification.row)
+        ) {
             return;
         }
-        OutputRedirectionsService.select(EParent.notification, this.session, { output: this.data.notification.row });
+        OutputRedirectionsService.select(EParent.notification, this.session, {
+            output: this.data.notification.row,
+        });
     }
-
 }

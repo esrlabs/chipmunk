@@ -1,7 +1,10 @@
 import { Subscription, Subject, Observable } from 'rxjs';
-import { IRange, EChartMode } from '../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
+import {
+    IRange,
+    EChartMode,
+} from '../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { Session } from '../../../controller/session/session';
-import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPC } from '../../../services/service.electron.ipc';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
@@ -23,12 +26,11 @@ export interface IMoveEvent {
 }
 
 export class DataService {
-
     public readonly SCALED_ROW_HEIGHT: number = 50;
     public readonly MAX_BAR_HEIGHT: number = 16;
     public readonly MIN_BAR_HEIGHT: number = 2;
     public readonly MIN_ZOOMING_PX: number = 20;
-    public readonly MIN_DISTANCE_SCALE_RATE: number = 0.50;
+    public readonly MIN_DISTANCE_SCALE_RATE: number = 0.5;
 
     private _refs: number[] = [];
     private _ranges: IRange[] = [];
@@ -39,10 +41,10 @@ export class DataService {
     private _mode: EChartMode = EChartMode.aligned;
     private _offset: number = 1;
     private _subjects: {
-        update: Subject<void>,  // Updates happens in scope of session
-        change: Subject<void>,  // Session was changed
-        zoom: Subject<void>,
-        mode: Subject<void>,
+        update: Subject<void>; // Updates happens in scope of session
+        change: Subject<void>; // Session was changed
+        zoom: Subject<void>;
+        mode: Subject<void>;
     } = {
         update: new Subject(),
         change: new Subject(),
@@ -51,9 +53,10 @@ export class DataService {
     };
 
     constructor() {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         this._onSessionChange(TabsSessionsService.getActive());
     }
 
@@ -67,10 +70,10 @@ export class DataService {
     }
 
     public getObservable(): {
-        update: Observable<void>,
-        change: Observable<void>,
-        zoom: Observable<void>,
-        mode: Observable<void>,
+        update: Observable<void>;
+        change: Observable<void>;
+        zoom: Observable<void>;
+        mode: Observable<void>;
     } {
         return {
             update: this._subjects.update.asObservable(),
@@ -88,13 +91,15 @@ export class DataService {
         if (this._session === undefined) {
             return;
         }
-        this._session.getTimestamp().setMode(this._mode === EChartMode.aligned ? EChartMode.scaled : EChartMode.aligned);
+        this._session
+            .getTimestamp()
+            .setMode(this._mode === EChartMode.aligned ? EChartMode.scaled : EChartMode.aligned);
     }
 
     public getChartDataset(overview: boolean = false): {
-        datasets: any[],
-        labels: string[],
-        maxY?: number
+        datasets: any[];
+        labels: string[];
+        maxY?: number;
     } {
         if (overview) {
             return this._getChartDatasetModeScale(true);
@@ -127,7 +132,7 @@ export class DataService {
     public getMinXAxe(applyCursorOffset: boolean = true): number {
         const cursor = this.getCursorState();
         if (cursor === undefined) {
-            return undefined;
+            return 0;
         }
         const min = this.getMinTimestamp();
         return min + (applyCursorOffset ? cursor.left : 0);
@@ -136,7 +141,7 @@ export class DataService {
     public getMaxXAxe(applyCursorOffset: boolean = true): number {
         const cursor = this.getCursorState();
         if (cursor === undefined) {
-            return undefined;
+            return 0;
         }
         const max = this.getMaxTimestamp() - this._offset;
         return max - (applyCursorOffset ? cursor.right : 0);
@@ -149,7 +154,9 @@ export class DataService {
     public getGroups(): Map<number, IRange[]> {
         const groups: Map<number, IRange[]> = new Map();
         this._getComplitedRanges().forEach((range: IRange) => {
-            const ranges: IRange[] = groups.has(range.group) ? groups.get(range.group) : [];
+            const ranges: IRange[] = groups.has(range.group)
+                ? (groups.get(range.group) as IRange[])
+                : [];
             ranges.push(range);
             groups.set(range.group, ranges);
         });
@@ -163,6 +170,9 @@ export class DataService {
     }
 
     public zoom(event: IZoomEvent) {
+        if (this._session === undefined) {
+            return;
+        }
         const cursor = this.getCursorState();
         if (cursor === undefined) {
             return;
@@ -183,7 +193,7 @@ export class DataService {
         if (maxT - right > maxT) {
             right = 0;
         }
-        if ((maxT - right) - (minT + left) < limit) {
+        if (maxT - right - (minT + left) < limit) {
             const allowed = duration - limit;
             right = allowed * (right / (right + left));
             left = allowed - right;
@@ -222,10 +232,12 @@ export class DataService {
         this.setZoomOffsets(left, right);
     }
 
-    public getCursorState(): undefined | {
-        left: number,
-        right: number,
-    } {
+    public getCursorState():
+        | undefined
+        | {
+              left: number;
+              right: number;
+          } {
         if (this._session === undefined) {
             return undefined;
         }
@@ -245,17 +257,22 @@ export class DataService {
 
     public toggleOptimizationState() {
         if (this._session === undefined) {
-            return false;
+            return;
         }
-        this._session.getTimestamp().setOptimization(!this._session.getTimestamp().getOptimization());
+        this._session
+            .getTimestamp()
+            .setOptimization(!this._session.getTimestamp().getOptimization());
     }
 
     public exportToCSV() {
         const id: string = Toolkit.guid();
-        ElectronIpcService.request(new IPCMessages.TimestampExportCSVRequest({
-            id: id,
-            csv: this._getRangesAsCSV(),
-        }), IPCMessages.TimestampExportCSVResponse).then((response: IPCMessages.TimestampExtractResponse) => {
+        ElectronIpcService.request(
+            new IPC.TimestampExportCSVRequest({
+                id: id,
+                csv: this._getRangesAsCSV(),
+            }),
+            IPC.TimestampExportCSVResponse,
+        ).then((response: IPC.TimestampExtractResponse) => {
             if (response.error) {
                 this._logger.warn(`Fail to export time ranges data due error: ${response.error}`);
             }
@@ -275,29 +292,41 @@ export class DataService {
 
     private _getRangesAsCSV(): string {
         const VALUE_DIV = ',';
-        const content: string[] = [[
-            'Range #',
-            'Start Timestamp',
-            'End Timestamp',
-            'Duration',
-            'Start Row Number',
-            'End Row Number',
-            'Start Row',
-            'End Row',
-        ].join(VALUE_DIV)];
+        const content: string[] = [
+            [
+                'Range #',
+                'Start Timestamp',
+                'End Timestamp',
+                'Duration',
+                'Start Row Number',
+                'End Row Number',
+                'Start Row',
+                'End Row',
+            ].join(VALUE_DIV),
+        ];
         this.getGroups().forEach((ranges: IRange[], groupId: number) => {
             ranges.forEach((range: IRange, index: number) => {
                 const values: string[] = [];
+                if (
+                    range.end === undefined ||
+                    range.start === undefined ||
+                    range.start.timestamp === undefined ||
+                    range.end.timestamp === undefined
+                ) {
+                    return;
+                }
                 values.push(index === 0 ? groupId.toString() : '');
-                values.push(...[
-                    range.start.timestamp.toString(),
-                    range.end.timestamp.toString(),
-                    range.duration.toString(),
-                    range.start.position.toString(),
-                    range.end.position.toString(),
-                    `"${range.start.str.replace(/"/gi, '""')}"`,
-                    `"${range.end.str.replace(/"/gi, '""')}"`,
-                ]);
+                values.push(
+                    ...[
+                        range.start.timestamp.toString(),
+                        range.end.timestamp.toString(),
+                        range.duration.toString(),
+                        range.start.position.toString(),
+                        range.end.position.toString(),
+                        `"${range.start.str.replace(/"/gi, '""')}"`,
+                        `"${range.end.str.replace(/"/gi, '""')}"`,
+                    ],
+                );
                 content.push(values.join(VALUE_DIV));
             });
         });
@@ -305,9 +334,9 @@ export class DataService {
     }
 
     private _getChartDatasetModeAlign(): {
-        datasets: any[],
-        labels: string[],
-        maxY?: number
+        datasets: any[];
+        labels: string[];
+        maxY?: number;
     } {
         const labels: string[] = [];
         const datasets: any[] = [];
@@ -316,19 +345,38 @@ export class DataService {
         groups.forEach((ranges: IRange[], groupId: number) => {
             let offset: number = 0;
             ranges.forEach((range: IRange, index: number) => {
+                if (
+                    range.end === undefined ||
+                    range.start === undefined ||
+                    range.start.position === undefined ||
+                    range.end.position === undefined
+                ) {
+                    return;
+                }
                 const normalized = this._getNormalizedRange(range);
                 // y += 1;
-                const values: Array<{ x: number, y: number, duration?: number, range?: boolean, row?: number }> = [{
-                    x: offset,
-                    y: y,
-                },
-                {
-                    x: offset + normalized.duration,
-                    y: y,
-                    duration: normalized.duration,
-                    row: range.start.position < range.end.position ? range.start.position : range.end.position,
-                    range: true,
-                }];
+                const values: Array<{
+                    x: number;
+                    y: number;
+                    duration?: number;
+                    range?: boolean;
+                    row?: number;
+                }> = [
+                    {
+                        x: offset,
+                        y: y,
+                    },
+                    {
+                        x: offset + normalized.duration,
+                        y: y,
+                        duration: normalized.duration,
+                        row:
+                            range.start.position < range.end.position
+                                ? range.start.position
+                                : range.end.position,
+                        range: true,
+                    },
+                ];
                 datasets.push({
                     data: values,
                     borderColor: range.color,
@@ -354,9 +402,9 @@ export class DataService {
     }
 
     private _getChartDatasetModeScale(overview: boolean = false): {
-        datasets: any[],
-        labels: string[],
-        maxY?: number
+        datasets: any[];
+        labels: string[];
+        maxY?: number;
     } {
         if (this._session === undefined) {
             return { datasets: [], labels: [], maxY: 0 };
@@ -366,7 +414,7 @@ export class DataService {
         let datasets: any[] = [];
         const groups: Map<number, IRange[]> = this.getGroups();
         let y: number = 1;
-        let prev;
+        let prev: any;
         const params = {
             distance: {
                 count: 0,
@@ -377,21 +425,23 @@ export class DataService {
                 count: 0,
                 duration: 0,
                 middle: 0,
-            }
+            },
         };
         // Building datasets
         groups.forEach((ranges: IRange[], groupId: number) => {
             const borders = this._getGroupBorders(groupId);
             if (prev !== undefined && ranges.length > 0) {
-                const values: Array<{ x: number, y: number, duration?: number }> = [{
-                    x: borders.max,
-                    y: y - 0.5,
-                },
-                {
-                    x: prev.min,
-                    y: y - 0.5,
-                    duration: Math.abs(borders.max - prev.min),
-                }];
+                const values: Array<{ x: number; y: number; duration?: number }> = [
+                    {
+                        x: borders.max,
+                        y: y - 0.5,
+                    },
+                    {
+                        x: prev.min,
+                        y: y - 0.5,
+                        duration: Math.abs(borders.max - prev.min),
+                    },
+                ];
                 datasets.push({
                     data: values,
                     borderColor: '#999999',
@@ -402,26 +452,45 @@ export class DataService {
                     pointHoverRadius: 0,
                     fill: false,
                     tension: 0,
-                    showLine: !overview
+                    showLine: !overview,
                 });
                 params.distance.count += 1;
-                params.distance.duration += values[1].duration;
+                params.distance.duration += values[1].duration as number;
             }
             let offset: number = borders.min;
             ranges.forEach((range: IRange, index: number) => {
+                if (
+                    range.end === undefined ||
+                    range.start === undefined ||
+                    range.start.position === undefined ||
+                    range.end.position === undefined
+                ) {
+                    return;
+                }
                 const normalized = this._getNormalizedRange(range);
                 // y += 1;
-                const values: Array<{ x: number, y: number, duration?: number, range?: boolean, row?: number }> = [{
-                    x: offset,
-                    y: y,
-                },
-                {
-                    x: offset + normalized.duration,
-                    y: y,
-                    duration: normalized.duration,
-                    row: range.start.position < range.end.position ? range.start.position : range.end.position,
-                    range: true,
-                }];
+                const values: Array<{
+                    x: number;
+                    y: number;
+                    duration?: number;
+                    range?: boolean;
+                    row?: number;
+                }> = [
+                    {
+                        x: offset,
+                        y: y,
+                    },
+                    {
+                        x: offset + normalized.duration,
+                        y: y,
+                        duration: normalized.duration,
+                        row:
+                            range.start.position < range.end.position
+                                ? range.start.position
+                                : range.end.position,
+                        range: true,
+                    },
+                ];
                 datasets.push({
                     data: values,
                     borderColor: range.color,
@@ -437,7 +506,7 @@ export class DataService {
                 });
                 offset += normalized.duration;
                 params.ranges.count += 1;
-                params.ranges.duration += values[1].duration;
+                params.ranges.duration += values[1].duration as number;
             });
             prev = borders;
             y += 1;
@@ -459,7 +528,7 @@ export class DataService {
                         dataset.data[0].x -= this._offset;
                         const move = Math.floor(dataset.data[1].duration * change);
                         dataset.data[1].x = dataset.data[0].x + move;
-                        this._offset += (dataset.data[1].duration - move);
+                        this._offset += dataset.data[1].duration - move;
                         dataset.optimized = true;
                     }
                     return dataset;
@@ -474,10 +543,18 @@ export class DataService {
         };
     }
 
-    private _getGroupBorders(group: number): { min: number, max: number, duration: number } {
+    private _getGroupBorders(group: number): { min: number; max: number; duration: number } {
         let min: number = Infinity;
         let max: number = -1;
         this._getComplitedRanges().forEach((range: IRange) => {
+            if (
+                range.end === undefined ||
+                range.start === undefined ||
+                range.start.timestamp === undefined ||
+                range.end.timestamp === undefined
+            ) {
+                return;
+            }
             if (range.group !== group) {
                 return;
             }
@@ -510,17 +587,36 @@ export class DataService {
     }
 
     private _getComplitedRanges(): IRange[] {
-        return this._ranges.filter((range: IRange) => {
-            return range.end !== undefined;
-        }).sort((a: IRange, b: IRange) => {
-            return a.start.timestamp < b.start.timestamp ? 1 : -1;
-        });
+        return this._ranges
+            .filter((range: IRange) => {
+                return range.end !== undefined;
+            })
+            .sort((a: IRange, b: IRange) => {
+                if (a.start.timestamp === undefined || b.start.timestamp === undefined) {
+                    return 0;
+                }
+                return a.start.timestamp < b.start.timestamp ? 1 : -1;
+            });
     }
 
-    private _getNormalizedRange(range: IRange): { min: number, max: number, duration: number  } {
+    private _getNormalizedRange(range: IRange): { min: number; max: number; duration: number } {
+        if (
+            range.end === undefined ||
+            range.start === undefined ||
+            range.start.timestamp === undefined ||
+            range.end.timestamp === undefined
+        ) {
+            return { min: 0, max: 0, duration: 0 };
+        }
         const result = {
-            min: range.start.timestamp < range.end.timestamp ? range.start.timestamp : range.end.timestamp,
-            max: range.start.timestamp > range.end.timestamp ? range.start.timestamp : range.end.timestamp,
+            min:
+                range.start.timestamp < range.end.timestamp
+                    ? range.start.timestamp
+                    : range.end.timestamp,
+            max:
+                range.start.timestamp > range.end.timestamp
+                    ? range.start.timestamp
+                    : range.end.timestamp,
             duration: 0,
         };
         result.duration = Math.abs(result.max - result.min);
@@ -528,7 +624,12 @@ export class DataService {
     }
 
     private _refresh(ranges?: IRange[], change: boolean = false) {
-        this._ranges = ranges instanceof Array ? ranges : (this._session === undefined ? [] : this._session.getTimestamp().getRanges());
+        this._ranges =
+            ranges instanceof Array
+                ? ranges
+                : this._session === undefined
+                ? []
+                : this._session.getTimestamp().getRanges();
         if (!change) {
             this._subjects.update.next();
         } else {
@@ -541,10 +642,22 @@ export class DataService {
             this._sessionSubscriptions[key].unsubscribe();
         });
         if (controller !== undefined) {
-            this._sessionSubscriptions.update = controller.getTimestamp().getObservable().update.subscribe(this._onRangesUpdate.bind(this));
-            this._sessionSubscriptions.mode = controller.getTimestamp().getObservable().mode.subscribe(this._onModeChange.bind(this));
-            this._sessionSubscriptions.zoom = controller.getTimestamp().getObservable().zoom.subscribe(this._onZoom.bind(this));
-            this._sessionSubscriptions.optimization = controller.getTimestamp().getObservable().optimization.subscribe(this._onOptimization.bind(this));
+            this._sessionSubscriptions.update = controller
+                .getTimestamp()
+                .getObservable()
+                .update.subscribe(this._onRangesUpdate.bind(this));
+            this._sessionSubscriptions.mode = controller
+                .getTimestamp()
+                .getObservable()
+                .mode.subscribe(this._onModeChange.bind(this));
+            this._sessionSubscriptions.zoom = controller
+                .getTimestamp()
+                .getObservable()
+                .zoom.subscribe(this._onZoom.bind(this));
+            this._sessionSubscriptions.optimization = controller
+                .getTimestamp()
+                .getObservable()
+                .optimization.subscribe(this._onOptimization.bind(this));
             this._mode = controller.getTimestamp().getMode();
             this._session = controller;
         } else {
@@ -570,5 +683,4 @@ export class DataService {
     private _onZoom() {
         this._subjects.zoom.next();
     }
-
 }
