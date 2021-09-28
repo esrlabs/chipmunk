@@ -4,8 +4,10 @@ import { ShellService } from '../services/service';
 import { Session } from '../../../../controller/session/session';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 
-import OutputRedirectionsService, { EParent } from '../../../../services/standalone/service.output.redirections';
-import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
+import OutputRedirectionsService, {
+    EParent,
+} from '../../../../services/standalone/service.output.redirections';
+import ElectronIpcService, { IPC } from '../../../../services/service.electron.ipc';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import SourcesService from '../../../../services/service.sources';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
@@ -23,28 +25,33 @@ interface ITerminatedProcessInfo {
     styleUrls: ['./styles.less'],
 })
 export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
+    @Input() public service!: ShellService;
 
-    @Input() public service: ShellService;
+    public _ng_terminated: IPC.IShellProcess[] = [];
 
-    public _ng_terminated: IPCMessages.IShellProcess[] = [];
-
-    private _sessionID: string;
+    private _sessionID!: string;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellTerminatedComponent');
 
     constructor(private _notificationsService: NotificationsService) {
-        this._sessionID = TabsSessionsService.getActive().getGuid();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
+        const session = TabsSessionsService.getActive();
+        if (session === undefined) {
+            this._logger.error(`No active session`);
+            return;
+        }
+        this._sessionID = session.getGuid();
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         this._subscriptions.ShellProcessListEvent = ElectronIpcService.subscribe(
-            IPCMessages.ShellProcessStoppedEvent,
+            IPC.ShellProcessStoppedEvent,
             this._onListUpdate.bind(this),
         );
     }
 
     public ngOnInit() {
-        const session: Session = TabsSessionsService.getActive();
+        const session: Session | undefined = TabsSessionsService.getActive();
         if (session !== undefined) {
             this._sessionID = session.getGuid();
         } else {
@@ -59,7 +66,7 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
         });
     }
 
-    public _ng_info(process: IPCMessages.IShellProcess): ITerminatedProcessInfo {
+    public _ng_info(process: IPC.IShellProcess): ITerminatedProcessInfo {
         function getRecievedAmount(recieved: number): string {
             if (recieved < 1024) {
                 return `${recieved} bytes`;
@@ -82,38 +89,44 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
         return `${count} process${count > 1 ? 'es' : ''}`;
     }
 
-    public _ng_onReplay(process: IPCMessages.IShellProcess) {
-        this.service.runCommand({
-            session: this._sessionID,
-            command: process.command,
-        }).catch((error: Error) => {
-            this._showNotification({
-                caption: 'Failed to replay command',
-                message: this._logger.error(error.message),
+    public _ng_onReplay(process: IPC.IShellProcess) {
+        this.service
+            .runCommand({
+                session: this._sessionID,
+                command: process.command,
+            })
+            .catch((error: Error) => {
+                this._showNotification({
+                    caption: 'Failed to replay command',
+                    message: this._logger.error(error.message),
+                });
             });
-        });
     }
 
-    public _ng_onClickTerminated(process: IPCMessages.IShellProcess) {
-        if (process.stat.recieved === 0) {
+    public _ng_onClickTerminated(process: IPC.IShellProcess) {
+        if (process.stat.recieved === 0 || process.stat.row === undefined) {
             return;
         }
         const session: Session | Error = TabsSessionsService.getSessionController(this._sessionID);
         if (session instanceof Error) {
-            this._logger.error(`Failed to jump to start of terminated process due to error: ${session.message}`);
+            this._logger.error(
+                `Failed to jump to start of terminated process due to error: ${session.message}`,
+            );
             return;
         }
         if (session.getStreamOutput().getRowsCount() < process.stat.row) {
             this._logger.warn(`Row of terminated process '${process.command}' is outside of file`);
             return;
         }
-        OutputRedirectionsService.select(EParent.shell, this._sessionID, { output: process.stat.row });
+        OutputRedirectionsService.select(EParent.shell, this._sessionID, {
+            output: process.stat.row,
+        });
     }
 
     private _restoreSession() {
         this.service
             .getTerminated(this._sessionID)
-            .then((response: IPCMessages.ShellProcessTerminatedListResponse) => {
+            .then((response: IPC.ShellProcessTerminatedListResponse) => {
                 if (response.session === this._sessionID) {
                     this._ng_terminated = this._colored(response.processes);
                 }
@@ -123,15 +136,16 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
             });
     }
 
-    private _onListUpdate(response: IPCMessages.ShellProcessStoppedEvent) {
+    private _onListUpdate(response: IPC.ShellProcessStoppedEvent) {
         if (this._sessionID === response.session) {
             this._ng_terminated = this._colored(response.processes);
         }
     }
 
-    private _colored(processes: IPCMessages.IShellProcess[]): IPCMessages.IShellProcess[] {
-        processes.forEach((process: IPCMessages.IShellProcess) => {
-            process.meta.color = SourcesService.getSourceColor(process.meta.sourceId);
+    private _colored(processes: IPC.IShellProcess[]): IPC.IShellProcess[] {
+        processes.forEach((process: IPC.IShellProcess) => {
+            const color = SourcesService.getSourceColor(process.meta.sourceId);
+            color !== undefined && (process.meta.color = color);
         });
         return processes;
     }
@@ -149,5 +163,4 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
             message: notification.message,
         });
     }
-
 }

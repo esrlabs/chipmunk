@@ -165,32 +165,34 @@ export class ControllerSessionTabSearchRanges
                         );
                     }
                     const ranges: IAddRange[] = [];
-                    response.ranges.forEach((item: IPC.IRange) => {
+                    response.ranges.forEach((item: CommonInterfaces.TimeRanges.IRange) => {
                         const group = this._accessor.session().getTimestamp().getNextGroup();
                         const alias = range.getGUID();
-                        item.points.forEach((point: IPC.IRow, index: number) => {
-                            if (item.points[index + 1] === undefined) {
-                                return;
-                            }
-                            const next = item.points[index + 1];
-                            ranges.push({
-                                from: {
-                                    str: point.str,
-                                    position: point.position,
-                                    timestamp: point.timestamp,
-                                },
-                                to: {
-                                    str: next.str,
-                                    position: next.position,
-                                    timestamp: next.timestamp,
-                                },
-                                options: {
-                                    alias: alias,
-                                    group: group,
-                                    color: getColor(index),
-                                },
-                            });
-                        });
+                        item.points.forEach(
+                            (point: CommonInterfaces.TimeRanges.IRow, index: number) => {
+                                if (item.points[index + 1] === undefined) {
+                                    return;
+                                }
+                                const next = item.points[index + 1];
+                                ranges.push({
+                                    from: {
+                                        str: point.str,
+                                        position: point.position,
+                                        timestamp: point.timestamp,
+                                    },
+                                    to: {
+                                        str: next.str,
+                                        position: next.position,
+                                        timestamp: next.timestamp,
+                                    },
+                                    options: {
+                                        alias: alias,
+                                        group: group,
+                                        color: getColor(index),
+                                    },
+                                });
+                            },
+                        );
                     });
                     this._accessor.session().getTimestamp().removeRange(range.getGUID());
                     this._accessor.session().getTimestamp().addRange(ranges);

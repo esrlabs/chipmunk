@@ -464,7 +464,11 @@ export class ServiceData {
                 }
                 prev = match;
             });
-            return this._getValidNumberValue(matches[0].value[0]);
+            if (matches[0].value === undefined) {
+                return undefined;
+            } else {
+                return this._getValidNumberValue(matches[0].value[0]);
+            }
         } catch (target: any) {
             if (typeof target === 'object' && target !== null && target.row && target.value) {
                 const value: number = parseInt(target.value[0], 10);
@@ -504,7 +508,11 @@ export class ServiceData {
                 }
                 prev = match;
             });
-            return this._getValidNumberValue(matches[matches.length - 1].value[0]);
+            if (matches[matches.length - 1].value === undefined) {
+                return undefined;
+            } else {
+                return this._getValidNumberValue((matches[matches.length - 1].value as any)[0]);
+            }
         } catch (target: any) {
             if (typeof target === 'object' && target !== null && target.row && target.value) {
                 return this._getValidNumberValue(target.value[0]);

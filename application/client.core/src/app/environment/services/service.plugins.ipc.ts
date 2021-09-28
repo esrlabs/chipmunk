@@ -44,6 +44,7 @@ export class PluginsIPCService implements IService {
             return new Error(this._logger.error(`Plugin with token "${token}" was already added.`));
         }
         this._ipcs.set(token, controller);
+        return undefined;
     }
 
     public removePlugin(token: TToken): Error | undefined {

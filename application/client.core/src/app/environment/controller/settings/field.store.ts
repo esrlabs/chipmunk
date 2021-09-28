@@ -1,9 +1,20 @@
-
 // tslint:disable: member-ordering
 
-import { Entry, FieldBase, IEntry, ESettingType, IField, RemoteField, Field } from '../../../../../../common/settings/field.store';
-import { ElementRefs, EElementSignature, getElementType } from '../../../../../../common/settings/field.render';
-import { IPCMessages } from '../../services/service.electron.ipc';
+import {
+    Entry,
+    FieldBase,
+    IEntry,
+    ESettingType,
+    IField,
+    RemoteField,
+    Field,
+} from '../../../../../../common/settings/field.store';
+import {
+    ElementRefs,
+    EElementSignature,
+    getElementType,
+} from '../../../../../../common/settings/field.render';
+import { IPC } from '../../services/service.electron.ipc';
 
 import ElectronIpcService from '../../services/service.electron.ipc';
 
@@ -12,50 +23,69 @@ export { Entry, IEntry, ESettingType, getElementType, FieldBase, RemoteField, IF
 const CLocalFieldClassSignature = 'CLocalFieldClassSignature';
 
 export abstract class LocalField<T> extends Field<T> {
-
     public set(value: T): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.validate(value).then(() => {
-                ElectronIpcService.request(new IPCMessages.SettingsOperationSetRequest<T>({
-                    key: this.getKey(),
-                    path: this.getPath(),
-                    value: value,
-                }), IPCMessages.SettingsOperationSetResponse).then((response: IPCMessages.SettingsOperationSetResponse) => {
-                    if (typeof response.error === 'string') {
-                        return reject(new Error(response.error));
-                    }
-                    this.value = value;
-                    resolve();
-                }).catch((err: Error) => {
+            this.validate(value)
+                .then(() => {
+                    ElectronIpcService.request(
+                        new IPC.SettingsOperationSetRequest<T>({
+                            key: this.getKey(),
+                            path: this.getPath(),
+                            value: value,
+                        }),
+                        IPC.SettingsOperationSetResponse,
+                    )
+                        .then((response: IPC.SettingsOperationSetResponse) => {
+                            if (typeof response.error === 'string') {
+                                return reject(new Error(response.error));
+                            }
+                            this.value = value;
+                            resolve();
+                        })
+                        .catch((err: Error) => {
+                            reject(err);
+                        });
+                })
+                .catch((err: Error) => {
                     reject(err);
                 });
-            }).catch((err: Error) => {
-                reject(err);
-            });
         });
     }
 
     public setup(value: T): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.validate(value).then(() => {
-                this.value = value;
-                resolve();
-            }).catch((err: Error) => {
-                reject(err);
-            });
+            this.validate(value)
+                .then(() => {
+                    this.value = value;
+                    resolve();
+                })
+                .catch((err: Error) => {
+                    reject(err);
+                });
         });
     }
 
     public refresh(): Promise<T> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.SettingsOperationGetRequest({
-                key: this.getKey(),
-                path: this.getPath(),
-            }), IPCMessages.SettingsOperationGetResponse).then((response: IPCMessages.SettingsOperationGetResponse<T>) => {
-                resolve(response.value);
-            }).catch((err: Error) => {
-                reject(err);
-            });
+            ElectronIpcService.request(
+                new IPC.SettingsOperationGetRequest({
+                    key: this.getKey(),
+                    path: this.getPath(),
+                }),
+                IPC.SettingsOperationGetResponse,
+            )
+                .then((response: IPC.SettingsOperationGetResponse<T>) => {
+                    if (response.error !== undefined) {
+                        reject(new Error(response.error));
+                    } else if (response.value === undefined) {
+                        reject(new Error(`Invalid response for SettingsOperationGetResponse`));
+                    } else {
+                        resolve(response.value);
+                    }
+                })
+                .catch((err: Error) => {
+                    reject(err);
+                });
         });
     }
 
@@ -78,11 +108,9 @@ export abstract class LocalField<T> extends Field<T> {
         }
         return smth.getClassSignature() === CLocalFieldClassSignature;
     }
-
 }
 
 export class LocalFieldAPIWrapper<T> extends LocalField<T> {
-
     private _field: Field<T>;
 
     constructor(field: Field<T>) {
@@ -102,16 +130,14 @@ export class LocalFieldAPIWrapper<T> extends LocalField<T> {
         return this._field.getElementType();
     }
 
-    public getElement(): ElementRefs {
+    public getElement(): ElementRefs | undefined {
         return this._field.getElement();
     }
-
 }
 
 const CConnectedFieldClassSignature = 'CConnectedFieldClassSignature';
 
 export class ConnectedField<T> extends FieldBase<T> {
-
     private _elementRef: ElementRefs | undefined;
 
     constructor(entry: IField<T>, elementRef: ElementRefs | undefined) {
@@ -121,31 +147,47 @@ export class ConnectedField<T> extends FieldBase<T> {
 
     public validate(value: T): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.SettingsOperationValidateRequest<T>({
-                key: this.getKey(),
-                path: this.getPath(),
-                value: value,
-            }), IPCMessages.SettingsOperationValidateResponse).then((response: IPCMessages.SettingsOperationValidateResponse) => {
-                if (typeof response.error === 'string') {
-                    return reject(new Error(response.error));
-                }
-                resolve();
-            }).catch((err: Error) => {
-                reject(err);
-            });
+            ElectronIpcService.request<IPC.SettingsOperationValidateResponse>(
+                new IPC.SettingsOperationValidateRequest<T>({
+                    key: this.getKey(),
+                    path: this.getPath(),
+                    value: value,
+                }),
+                IPC.SettingsOperationValidateResponse,
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string') {
+                        return reject(new Error(response.error));
+                    }
+                    resolve();
+                })
+                .catch((err: Error) => {
+                    reject(err);
+                });
         });
     }
 
     public getDefault(): Promise<T> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.SettingsOperationDefaultRequest({
-                key: this.getKey(),
-                path: this.getPath(),
-            }), IPCMessages.SettingsOperationDefaultResponse).then((response: IPCMessages.SettingsOperationDefaultResponse<T>) => {
-                resolve(response.value);
-            }).catch((err: Error) => {
-                reject(err);
-            });
+            ElectronIpcService.request<IPC.SettingsOperationDefaultResponse<T>>(
+                new IPC.SettingsOperationDefaultRequest({
+                    key: this.getKey(),
+                    path: this.getPath(),
+                }),
+                IPC.SettingsOperationDefaultResponse,
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string') {
+                        reject(new Error(response.error));
+                    } else if (response.value === undefined) {
+                        reject(new Error(`SettingsOperationDefaultResponse returns invalid response`));
+                    } else {
+                        resolve(response.value);
+                    }
+                })
+                .catch((err: Error) => {
+                    reject(err);
+                });
         });
     }
 
@@ -155,19 +197,24 @@ export class ConnectedField<T> extends FieldBase<T> {
 
     public set(value: T): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.SettingsOperationSetRequest<T>({
-                key: this.getKey(),
-                path: this.getPath(),
-                value: value,
-            }), IPCMessages.SettingsOperationSetResponse).then((response: IPCMessages.SettingsOperationSetResponse) => {
-                if (typeof response.error === 'string') {
-                    return reject(new Error(response.error));
-                }
-                this.value = value;
-                resolve();
-            }).catch((err: Error) => {
-                reject(err);
-            });
+            ElectronIpcService.request(
+                new IPC.SettingsOperationSetRequest<T>({
+                    key: this.getKey(),
+                    path: this.getPath(),
+                    value: value,
+                }),
+                IPC.SettingsOperationSetResponse,
+            )
+                .then((response: IPC.SettingsOperationSetResponse) => {
+                    if (typeof response.error === 'string') {
+                        return reject(new Error(response.error));
+                    }
+                    this.value = value;
+                    resolve();
+                })
+                .catch((err: Error) => {
+                    reject(err);
+                });
         });
     }
 
@@ -180,14 +227,25 @@ export class ConnectedField<T> extends FieldBase<T> {
 
     public refresh(): Promise<T> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPCMessages.SettingsOperationGetRequest({
-                key: this.getKey(),
-                path: this.getPath(),
-            }), IPCMessages.SettingsOperationGetResponse).then((response: IPCMessages.SettingsOperationGetResponse<T>) => {
-                resolve(response.value);
-            }).catch((err: Error) => {
-                reject(err);
-            });
+            ElectronIpcService.request<IPC.SettingsOperationGetResponse<T>>(
+                new IPC.SettingsOperationGetRequest({
+                    key: this.getKey(),
+                    path: this.getPath(),
+                }),
+                IPC.SettingsOperationGetResponse,
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string') {
+                        reject(new Error(response.error));
+                    } else if (response.value === undefined) {
+                        reject(new Error(`SettingsOperationGetResponse returns invalid response`));
+                    } else {
+                        resolve(response.value);
+                    }
+                })
+                .catch((err: Error) => {
+                    reject(err);
+                });
         });
     }
 
@@ -210,5 +268,4 @@ export class ConnectedField<T> extends FieldBase<T> {
         }
         return smth.getClassSignature() === CConnectedFieldClassSignature;
     }
-
 }

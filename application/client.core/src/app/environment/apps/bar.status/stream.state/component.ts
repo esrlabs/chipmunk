@@ -3,7 +3,7 @@ import { Session } from '../../../controller/session/session';
 import { TasksHistoryComponent } from './history/component';
 import { IComponentDesc, IFrameOptions } from 'chipmunk-client-material';
 import { Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPC } from '../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -11,46 +11,54 @@ import TabsSessionsService from '../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ServiceElectronIpc from '../../../services/service.electron.ipc';
 
-
 interface IStorage {
-    tasks: IPCMessages.IStreamProgressTrack[];
+    tasks: IPC.IStreamProgressTrack[];
 }
 
 @Component({
     selector: 'app-apps-status-bar-stream-state',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class AppsStatusBarStreamStateComponent implements OnDestroy {
-
-    public _ng_tasks: IPCMessages.IStreamProgressTrack[] = [];
+    public _ng_tasks: IPC.IStreamProgressTrack[] = [];
     public _ng_showHistory: boolean = false;
     public _ng_frame_options: IFrameOptions = {
         closable: true,
         caption: 'All tasks in queue',
         onClose: undefined,
         style: {
-            maxHeight: '14rem'
-        }
+            maxHeight: '14rem',
+        },
     };
     public _ng_component: IComponentDesc = {
         factory: TasksHistoryComponent,
         inputs: {
-            tasks: []
-        }
+            tasks: [],
+        },
     };
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppsStatusBarStreamStateComponent');
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription | undefined } = {};
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _sessionId: string | undefined;
     private _sessions: Map<string, IStorage> = new Map();
-    private _updated: Subject<IPCMessages.IStreamProgressTrack[]> = new Subject<IPCMessages.IStreamProgressTrack[]>();
+    private _updated: Subject<IPC.IStreamProgressTrack[]> = new Subject<
+        IPC.IStreamProgressTrack[]
+    >();
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.StreamProgressState = ServiceElectronIpc.subscribe(IPCMessages.StreamProgressState, this._onStreamProgressState.bind(this));
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.StreamProgressState = ServiceElectronIpc.subscribe(
+            IPC.StreamProgressState,
+            this._onStreamProgressState.bind(this),
+        );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onSessionClosed =
+            EventsSessionService.getObservable().onSessionClosed.subscribe(
+                this._onSessionClosed.bind(this),
+            );
         this._ng_onToggleHistory = this._ng_onToggleHistory.bind(this);
         this._ng_frame_options.onClose = this._ng_onToggleHistory;
         this._ng_component.inputs.updated = this._updated.asObservable();
@@ -72,12 +80,15 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
     }
 
     public _ng_getDeterminate(): number {
+        if (this._sessionId === undefined) {
+            return 100;
+        }
         const storage: IStorage | undefined = this._sessions.get(this._sessionId);
         if (storage === undefined) {
             return 100;
         }
         let min: number = 100;
-        storage.tasks.forEach((task: IPCMessages.IStreamProgressTrack) => {
+        storage.tasks.forEach((task: IPC.IStreamProgressTrack) => {
             if (min > task.progress) {
                 min = task.progress;
             }
@@ -86,6 +97,9 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
     }
 
     public _ng_onToggleHistory() {
+        if (this._sessionId === undefined) {
+            return;
+        }
         const storage: IStorage | undefined = this._sessions.get(this._sessionId);
         if (storage === undefined) {
             this._ng_showHistory = false;
@@ -97,7 +111,7 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
     }
 
     private _updateHistory() {
-        if (!this._ng_showHistory) {
+        if (!this._ng_showHistory || this._sessionId === undefined) {
             return;
         }
         const storage: IStorage | undefined = this._sessions.get(this._sessionId);
@@ -109,17 +123,20 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         this._updated.next(storage.tasks);
     }
 
-    private _onStreamProgressState(message: IPCMessages.StreamProgressState) {
+    private _onStreamProgressState(message: IPC.StreamProgressState) {
+        if (this._sessionId === undefined) {
+            return;
+        }
         this._add(message.streamId);
         const storage: IStorage | undefined = this._sessions.get(this._sessionId);
         if (storage === undefined) {
             return;
         }
         this._sessions.set(message.streamId, {
-            tasks: message.tracks.map((track: IPCMessages.IStreamProgressTrack) => {
+            tasks: message.tracks.map((track: IPC.IStreamProgressTrack) => {
                 track.progress = Math.round(track.progress * 100);
                 return track;
-            })
+            }),
         });
         if (this._sessionId !== message.streamId) {
             return;
@@ -179,5 +196,4 @@ export class AppsStatusBarStreamStateComponent implements OnDestroy {
         }
         this._cdRef.detectChanges();
     }
-
 }

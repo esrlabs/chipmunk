@@ -427,14 +427,14 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     public _ng_onAddFibexFile() {
-        ElectronIpcService.request(
+        ElectronIpcService.request<IPC.FilePickerResponse>(
             new IPC.FilePickerRequest({
                 filter: [{ name: 'XML files', extensions: ['xml'] }],
                 multiple: true,
             }),
             IPC.FilePickerResponse,
         )
-            .then((responce: IPC.FilePickerResponse) => {
+            .then((responce) => {
                 if (typeof responce.error === 'string') {
                     return this._notifications.add({
                         caption: `Fail open`,
@@ -675,8 +675,8 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _loadRecent() {
-        ElectronIpcService.request(new IPC.DLTDeamonRecentRequest(), IPC.DLTDeamonRecentResponse)
-            .then((response: IPC.DLTDeamonRecentResponse) => {
+        ElectronIpcService.request<IPC.DLTDeamonRecentResponse>(new IPC.DLTDeamonRecentRequest(), IPC.DLTDeamonRecentResponse)
+            .then((response) => {
                 if (response.recent instanceof Array) {
                     this._recent = response.recent;
                     this._ng_recent = this._recent.map(

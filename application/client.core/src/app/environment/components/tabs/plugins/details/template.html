@@ -35,7 +35,7 @@
             </mat-expansion-panel-header>
             <p class="t-medium">{{_ng_error}}</p>
         </mat-expansion-panel>
-        <markdown [src]="_ng_plugin.readme" (load)="_ng_onLoad($event)" (error)="_ng_onError($event)"></markdown>
+        <markdown [src]="_ng_plugin.readme" (load)="_ng_onLoad()" (error)="_ng_onError($event)"></markdown>
         <div *ngIf="_ng_state.readme === 'pending'" class="pending">
             <mat-spinner [diameter]="32" mode="indeterminate"></mat-spinner>
         </div>

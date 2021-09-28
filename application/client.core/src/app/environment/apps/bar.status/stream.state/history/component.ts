@@ -1,23 +1,19 @@
 import { Component, ChangeDetectorRef, AfterViewInit, Input, OnDestroy } from '@angular/core';
 import { Subscription, Observable, Subject } from 'rxjs';
-import { IPCMessages } from '../../../../services/service.electron.ipc';
+import { IPC } from '../../../../services/service.electron.ipc';
 
 @Component({
     selector: 'app-apps-status-bar-electron-state-list',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class TasksHistoryComponent implements AfterViewInit, OnDestroy {
-
-    @Input() public tasks: IPCMessages.IStreamProgressTrack[];
-    @Input() public updated: Observable<IPCMessages.IStreamProgressTrack[]>;
+    @Input() public tasks!: IPC.IStreamProgressTrack[];
+    @Input() public updated!: Observable<IPC.IStreamProgressTrack[]>;
 
     private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
@@ -29,9 +25,8 @@ export class TasksHistoryComponent implements AfterViewInit, OnDestroy {
         this._subscriptions.onUpdate = this.updated.subscribe(this._onUpdate.bind(this));
     }
 
-    private _onUpdate(tasks: IPCMessages.IStreamProgressTrack[]) {
+    private _onUpdate(tasks: IPC.IStreamProgressTrack[]) {
         this.tasks = tasks;
         this._cdRef.markForCheck();
     }
-
 }

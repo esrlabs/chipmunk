@@ -7,20 +7,20 @@ import SidebarSessionsService from '../../services/service.sessions.sidebar';
 @Component({
     selector: 'app-layout-sidebar-caption',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutSessionSidebarCaptionComponent implements AfterViewInit, OnDestroy {
-
     public _ng_injection: IComponentDesc | undefined = undefined;
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutSessionSidebarCaptionComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     ngAfterViewInit() {
-        this._subscriptions.onInjectionUpdated = SidebarSessionsService.getObservable().injection.subscribe(this._onInjectionUpdated.bind(this));
+        this._subscriptions.onInjectionUpdated =
+            SidebarSessionsService.getObservable().injection.subscribe(
+                this._onInjectionUpdated.bind(this),
+            );
     }
 
     ngOnDestroy() {
@@ -35,5 +35,4 @@ export class LayoutSessionSidebarCaptionComponent implements AfterViewInit, OnDe
         this._ng_injection = comp;
         this._cdRef.detectChanges();
     }
-
 }

@@ -11,19 +11,21 @@ export interface ITask {
 @Component({
     selector: 'app-apps-status-bar-queue-state',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class AppsStatusBarQueueStateComponent implements OnDestroy {
-
     public _ng_tasks: Map<string, ITask> = new Map();
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppsStatusBarQueueStateComponent');
-    private _subscriptions: { [key: string]: Subscription | undefined } = {};
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.next = QueueService.getObservable().next.subscribe(this._onNext.bind(this));
-        this._subscriptions.done = QueueService.getObservable().done.subscribe(this._onDone.bind(this));
+        this._subscriptions.next = QueueService.getObservable().next.subscribe(
+            this._onNext.bind(this),
+        );
+        this._subscriptions.done = QueueService.getObservable().done.subscribe(
+            this._onDone.bind(this),
+        );
     }
 
     ngOnDestroy() {
@@ -38,9 +40,9 @@ export class AppsStatusBarQueueStateComponent implements OnDestroy {
         if (task === undefined) {
             (task as any) = {};
         }
-        task.count = state.count;
-        task.done = state.done;
-        this._ng_tasks.set(state.title, task);
+        task!.count = state.count;
+        task!.done = state.done;
+        this._ng_tasks.set(state.title, task!);
         this._cdRef.detectChanges();
     }
 
@@ -48,5 +50,4 @@ export class AppsStatusBarQueueStateComponent implements OnDestroy {
         this._ng_tasks.delete(title);
         this._cdRef.detectChanges();
     }
-
 }

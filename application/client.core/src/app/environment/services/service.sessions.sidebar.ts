@@ -128,6 +128,7 @@ export class SidebarSessionsService implements IService {
             return service;
         }
         service.remove(tab);
+        return undefined;
     }
 
     public has(tab: string, session?: string): boolean {

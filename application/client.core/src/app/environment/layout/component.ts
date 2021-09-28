@@ -1,6 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewContainerRef } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterViewInit,
+    ViewContainerRef,
+} from '@angular/core';
 import { AreaState } from './state';
-import { Subscription} from 'rxjs';
+import { Subscription } from 'rxjs';
 import { Session } from '../controller/session/session';
 
 import ViewsEventsService from '../services/standalone/service.views.events';
@@ -14,12 +20,12 @@ import * as ThemeParams from '../theme/sizes';
 enum EResizeType {
     nothing = 'nothing',
     func = 'func',
-    sec = 'sec'
+    sec = 'sec',
 }
 
 enum EFuncLocation {
     right = 'func-right',
-    left = 'func-left'
+    left = 'func-left',
 }
 
 const FUNC_MIN_WIDTH = 50;
@@ -29,11 +35,9 @@ const MAX_SIZE_RATE = 0.7;
 @Component({
     selector: 'app-layout',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutComponent implements OnDestroy, AfterViewInit {
-
     public funcBarState: AreaState = new AreaState();
     public secAreaState: AreaState = new AreaState();
     public funcLocation: EFuncLocation = EFuncLocation.right;
@@ -62,33 +66,64 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
         holder: {
             height: 0,
             width: 0,
-        }
+        },
     };
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _toolbarHeights: { [guid: string]: number } = {};
-    private _session: Session;
+    private _session: Session | undefined;
     private _movement: {
-        x: number,
-        y: number,
-        type: EResizeType,
+        x: number;
+        y: number;
+        type: EResizeType;
     } = { x: 0, y: 0, type: EResizeType.nothing };
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
         this._subscribeToWinEvents();
-        this._subscriptions.minimizedFunc = this.funcBarState.getObservable().minimized.subscribe(this._onFuncMinimized.bind(this));
-        this._subscriptions.updatedFunc = this.funcBarState.getObservable().updated.subscribe(this._onFuncStateUpdated.bind(this));
-        this._subscriptions.minimizedSecondary = this.secAreaState.getObservable().minimized.subscribe(this._onSecAreaMinimized.bind(this));
-        this._subscriptions.updatedSecondary = this.secAreaState.getObservable().updated.subscribe(this._onSecAreaStateUpdated.bind(this));
-        this._subscriptions.onSidebarMax = LayoutStateService.getObservable().onSidebarMax.subscribe(this._onSidebarServiceMax.bind(this));
-        this._subscriptions.onSidebarMin = LayoutStateService.getObservable().onSidebarMin.subscribe(this._onSidebarServiceMin.bind(this));
-        this._subscriptions.onToolbarMax = LayoutStateService.getObservable().onToolbarMax.subscribe(this._onToolbarServiceMax.bind(this));
-        this._subscriptions.onToolbarMin = LayoutStateService.getObservable().onToolbarMin.subscribe(this._onToolbarServiceMin.bind(this));
-        this._subscriptions.onToolbarToggle = HotkeysService.getObservable().toolbarToggle.subscribe(this._onToolbarToggle.bind(this));
-        this._subscriptions.onSidebarToggle = HotkeysService.getObservable().sidebarToggle.subscribe(this._onSidebarToggle.bind(this));
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.minimizedFunc = this.funcBarState
+            .getObservable()
+            .minimized.subscribe(this._onFuncMinimized.bind(this));
+        this._subscriptions.updatedFunc = this.funcBarState
+            .getObservable()
+            .updated.subscribe(this._onFuncStateUpdated.bind(this));
+        this._subscriptions.minimizedSecondary = this.secAreaState
+            .getObservable()
+            .minimized.subscribe(this._onSecAreaMinimized.bind(this));
+        this._subscriptions.updatedSecondary = this.secAreaState
+            .getObservable()
+            .updated.subscribe(this._onSecAreaStateUpdated.bind(this));
+        this._subscriptions.onSidebarMax =
+            LayoutStateService.getObservable().onSidebarMax.subscribe(
+                this._onSidebarServiceMax.bind(this),
+            );
+        this._subscriptions.onSidebarMin =
+            LayoutStateService.getObservable().onSidebarMin.subscribe(
+                this._onSidebarServiceMin.bind(this),
+            );
+        this._subscriptions.onToolbarMax =
+            LayoutStateService.getObservable().onToolbarMax.subscribe(
+                this._onToolbarServiceMax.bind(this),
+            );
+        this._subscriptions.onToolbarMin =
+            LayoutStateService.getObservable().onToolbarMin.subscribe(
+                this._onToolbarServiceMin.bind(this),
+            );
+        this._subscriptions.onToolbarToggle =
+            HotkeysService.getObservable().toolbarToggle.subscribe(
+                this._onToolbarToggle.bind(this),
+            );
+        this._subscriptions.onSidebarToggle =
+            HotkeysService.getObservable().sidebarToggle.subscribe(
+                this._onSidebarToggle.bind(this),
+            );
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onSessionClosed =
+            EventsSessionService.getObservable().onSessionClosed.subscribe(
+                this._onSessionClosed.bind(this),
+            );
         LayoutStateService.setSideBarStateGetter(() => {
             return this.funcBarState.minimized;
         });
@@ -183,7 +218,10 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
                     this._ng_sizes.func.current = this._ng_sizes.func.last;
                     this.funcBarState.minimize();
                     drop();
-                } else if (this._ng_sizes.func.current > this._ng_sizes.holder.width * MAX_SIZE_RATE) {
+                } else if (
+                    this._ng_sizes.func.current >
+                    this._ng_sizes.holder.width * MAX_SIZE_RATE
+                ) {
                     this._ng_sizes.func.current = this._ng_sizes.holder.width * MAX_SIZE_RATE;
                 }
                 break;
@@ -193,7 +231,10 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
                     this._ng_sizes.sec.current = this._ng_sizes.sec.last;
                     this.secAreaState.minimize();
                     drop();
-                } else if (this._ng_sizes.sec.current > this._ng_sizes.holder.height * MAX_SIZE_RATE) {
+                } else if (
+                    this._ng_sizes.sec.current >
+                    this._ng_sizes.holder.height * MAX_SIZE_RATE
+                ) {
                     this._ng_sizes.sec.current = this._ng_sizes.holder.height * MAX_SIZE_RATE;
                 }
                 break;
@@ -232,41 +273,56 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     }
 
     public _ng_onTriggerFuncLocation() {
-        this.funcLocation = this.funcLocation === EFuncLocation.right ? EFuncLocation.left : EFuncLocation.right;
+        this.funcLocation =
+            this.funcLocation === EFuncLocation.right ? EFuncLocation.left : EFuncLocation.right;
         this._cdRef.detectChanges();
         ViewsEventsService.fire().onResize();
     }
 
     public _ng_getPrimaryStyle(): { [key: string]: string } {
-       return this._session === undefined ? {} : {
-            right: (this.funcLocation === 'func-right' ? this._ng_sizes.func.current : 0) + 'px',
-            left: (this.funcLocation === 'func-left' ? this._ng_sizes.func.current : 0) + 'px',
-            bottom: this._ng_sizes.sec.current + 'px',
-       };
+        return this._session === undefined
+            ? {}
+            : {
+                  right:
+                      (this.funcLocation === 'func-right' ? this._ng_sizes.func.current : 0) + 'px',
+                  left:
+                      (this.funcLocation === 'func-left' ? this._ng_sizes.func.current : 0) + 'px',
+                  bottom: this._ng_sizes.sec.current + 'px',
+              };
     }
 
     public _ng_getSecondaryStyle(): { [key: string]: string } {
-        return this._session === undefined ? {} : {
-            right: (this.funcLocation === 'func-right' ? this._ng_sizes.func.current : 0) + 'px',
-            left: (this.funcLocation === 'func-left' ? this._ng_sizes.func.current : 0) + 'px',
-            height: this._ng_sizes.sec.current + 'px',
-       };
+        return this._session === undefined
+            ? {}
+            : {
+                  right:
+                      (this.funcLocation === 'func-right' ? this._ng_sizes.func.current : 0) + 'px',
+                  left:
+                      (this.funcLocation === 'func-left' ? this._ng_sizes.func.current : 0) + 'px',
+                  height: this._ng_sizes.sec.current + 'px',
+              };
     }
 
     public _ng_getToolsResizerStyle(): { [key: string]: string } {
-        return this._session === undefined ? {} : {
-            marginBottom: this._ng_sizes.sec.current + 'px',
-       };
+        return this._session === undefined
+            ? {}
+            : {
+                  marginBottom: this._ng_sizes.sec.current + 'px',
+              };
     }
 
     public _ng_getToolsStyle(): { [key: string]: string } {
-        return this._session === undefined ? {} : {
-            width: this._ng_sizes.func.current + 'px',
-       };
+        return this._session === undefined
+            ? {}
+            : {
+                  width: this._ng_sizes.func.current + 'px',
+              };
     }
 
     private _getHolderSize() {
-        const size: ClientRect = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect();
+        const size: ClientRect = (
+            this._vcRef.element.nativeElement as HTMLElement
+        ).getBoundingClientRect();
         this._ng_sizes.holder.height = size.height;
         this._ng_sizes.holder.width = size.width;
     }
@@ -391,5 +447,4 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     private _onSessionClosed(guid: string) {
         delete this._toolbarHeights[guid];
     }
-
 }

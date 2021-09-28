@@ -6,6 +6,7 @@ import {
     IDependencyVersion,
     CDependencies,
     getDependenciesVersions,
+    IDependenciesList,
 } from '../../../controller/helpers/versions';
 import {
     NotificationsService,
@@ -28,7 +29,7 @@ const CUrls = {
     styleUrls: ['./styles.less'],
 })
 export class TabAboutComponent implements OnDestroy, AfterContentInit {
-    @Input() public data: IPC.TabCustomAbout;
+    @Input() public data!: IPC.TabCustomAbout;
     public _ng_version: string = '';
     public _ng_dependencies: IDependencyVersion[] = [];
     public _ng_logsExtracting: boolean = false;
@@ -66,10 +67,10 @@ export class TabAboutComponent implements OnDestroy, AfterContentInit {
     public _ng_onCopyToClipboard() {
         let text = `Version: ${this.data.version}\nPlatform: ${this.data.platform}\n`;
         Object.keys(CDependencies).forEach((key: string) => {
-            if (this.data.dependencies[key] === undefined) {
+            if ((this.data.dependencies as any)[key] === undefined) {
                 return;
             }
-            text += `${CDependencies[key].name}: ${this.data.dependencies[key]}\n`;
+            text += `${CDependencies[key].name}: ${(this.data.dependencies as any)[key]}\n`;
         });
         copyTextToClipboard(text);
     }

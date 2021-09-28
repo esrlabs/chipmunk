@@ -50,8 +50,8 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     @Input() public onBeforeTabRemove!: Subject<void>;
     @Input() public close!: () => void;
 
-    public _ng_controller: ControllerFileMergeSession | undefined;
-    public _ng_select: Subject<IMergeFile | undefined> = new Subject<IMergeFile | undefined>();
+    public _ng_controller!: ControllerFileMergeSession;
+    public _ng_select: Subject<IMergeFile> = new Subject<IMergeFile>();
     public _ng_selected: IMergeFile | undefined;
     public _ng_state: EState = EState.ready;
     public _ng_viewMode: EViewMode = EViewMode.max;
@@ -117,11 +117,15 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         this._subscriptions.selected = this._ng_select
             .asObservable()
             .subscribe(this._onSelected.bind(this));
-        this._ng_controller = this.services.MergeFilesService.getController();
         this._dragdrop = new ControllerComponentsDragDropFiles(this._vcRef.element.nativeElement);
         this._subscriptions.onFiles = this._dragdrop
             .getObservable()
             .onFiles.subscribe(this._onFilesDropped.bind(this));
+        const controller = this.services.MergeFilesService.getController();
+        if (controller === undefined) {
+            throw new Error(this._logger.error(`Fail to get merge files controller`));
+        }
+        this._ng_controller = controller;
     }
 
     public ngAfterViewInit() {
@@ -199,18 +203,21 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         this._forceUpdate();
     }
 
-    private _onFilesDropped(files: IPC.IFile[]) {
+    private _onFilesDropped(files: File[]) {
         if (this._ng_controller === undefined) {
             return;
         }
-        this._ng_controller.add(files.map((file: IPC.IFile) => file.path));
+        this._ng_controller.add(files.map((file: File) => file.path));
     }
 
     private _onSessionChange(session: Session | undefined) {
-        if (session === undefined) {
-            this._ng_controller = undefined;
-        } else {
-            this._ng_controller = this.services.MergeFilesService.getController(session.getGuid());
+        if (session !== undefined) {
+            const controller = this.services.MergeFilesService.getController(session.getGuid());
+            if (controller === undefined) {
+                this._logger.error(`Fail to get merge files controller`);
+                return;
+            }
+            this._ng_controller = controller;
         }
         this._forceUpdate();
     }

@@ -1,4 +1,5 @@
 import { CommonInterfaces } from '../../interfaces/interface.common';
+import { IPC } from '../../interfaces/interface.ipc';
 
 export interface IDependencyVersion {
     name: string;
@@ -16,7 +17,7 @@ interface IDependency {
     name: string;
     description: string;
 }
-interface IDependenciesList {
+export interface IDependenciesList {
     [key: string]: string;
 }
 export const CDependencies: { [key: string]: IDependency } = {
@@ -29,16 +30,18 @@ export const CDependencies: { [key: string]: IDependency } = {
     'angular-material': { name: 'Angular Material', description: 'Angular Material Library' },
 };
 
-export function getDependenciesVersions(versions: IDependenciesList): IDependencyVersion[] {
+export function getDependenciesVersions(
+    versions: IDependenciesList | IPC.IApplicationVersions,
+): IDependencyVersion[] {
     const dependencies: IDependencyVersion[] = [];
     Object.keys(CDependencies).forEach((key: string) => {
-        if (versions[key] === undefined) {
+        if ((versions as any)[key] === undefined) {
             return;
         }
         dependencies.push({
             name: CDependencies[key].name,
             description: CDependencies[key].description,
-            version: versions[key],
+            version: (versions as any)[key],
         });
     });
     return dependencies;

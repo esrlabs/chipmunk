@@ -44,11 +44,11 @@ export class ContextMenuService {
         };
     }
 
-    public subscribeToWinEvents(type: EEventType, func: (event: TEvent) => void) {
+    public subscribeToWinEvents(type: EEventType, func: (event: any) => void) {
         window.addEventListener(type, func, true);
     }
 
-    public unsubscribeToWinEvents(type: EEventType, func: (event: TEvent) => void) {
+    public unsubscribeToWinEvents(type: EEventType, func: (event: any) => void) {
         window.removeEventListener(type, func);
     }
 

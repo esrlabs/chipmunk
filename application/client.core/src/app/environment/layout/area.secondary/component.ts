@@ -11,19 +11,17 @@ import ToolbarSessionsService from '../../services/service.sessions.toolbar';
 @Component({
     selector: 'app-layout-area-secondary',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
+    @Input() public state!: AreaState;
 
-    @Input() public state: AreaState;
-
-    public _ng_tabsService: TabsService;
+    public _ng_tabsService: TabsService | undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
 
     private _subjects: {
-        injectionIntoTitleBar: Subject<IComponentDesc>,
+        injectionIntoTitleBar: Subject<IComponentDesc>;
     } = {
         injectionIntoTitleBar: new Subject<IComponentDesc>(),
     };
@@ -33,14 +31,21 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
         ToolbarSessionsService.setCommonInputs({
             injectionIntoTitleBar: this._subjects.injectionIntoTitleBar,
         });
-        this._subscriptions.onTabServiceChange = ToolbarSessionsService.getObservable().change.subscribe(this._onTabServiceChange.bind(this));
+        this._subscriptions.onTabServiceChange =
+            ToolbarSessionsService.getObservable().change.subscribe(
+                this._onTabServiceChange.bind(this),
+            );
     }
 
     ngAfterViewInit() {
         this.state.maximize();
         this._setService(ToolbarSessionsService.getTabsService());
-        this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
-        this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));
+        this._subscriptions.minimized = this.state
+            .getObservable()
+            .minimized.subscribe(this._onMinimized.bind(this));
+        this._subscriptions.updated = this.state
+            .getObservable()
+            .updated.subscribe(this._onUpdated.bind(this));
     }
 
     ngOnDestroy() {
@@ -65,24 +70,29 @@ export class LayoutSecondaryAreaComponent implements AfterViewInit, OnDestroy {
             this._ng_tabsService = undefined;
         } else {
             // Set options area
-            service.setOptions(new TabsOptions({ injections: { bar: {
-                factory: LayoutSecondaryAreaControlsComponent,
-                inputs: {
-                    state: this.state,
-                    injection: this._getObservable().injectionIntoTitleBar
-                }
-            }}}));
+            service.setOptions(
+                new TabsOptions({
+                    injections: {
+                        bar: {
+                            factory: LayoutSecondaryAreaControlsComponent,
+                            inputs: {
+                                state: this.state,
+                                injection: this._getObservable().injectionIntoTitleBar,
+                            },
+                        },
+                    },
+                }),
+            );
             this._ng_tabsService = service;
         }
         this._cdRef.detectChanges();
-
     }
 
     private _getObservable(): {
-        injectionIntoTitleBar: Observable<IComponentDesc>
+        injectionIntoTitleBar: Observable<IComponentDesc>;
     } {
         return {
-            injectionIntoTitleBar: this._subjects.injectionIntoTitleBar.asObservable()
+            injectionIntoTitleBar: this._subjects.injectionIntoTitleBar.asObservable(),
         };
     }
 

@@ -39,11 +39,15 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     @Input() entity!: Entity<FilterRequest>;
     @Input() provider: ProviderFilters | undefined;
 
-    public _ng_flags: IFlags | undefined;
+    public _ng_flags: IFlags = {
+        casesensitive: false,
+        wholeword: false,
+        regexp: true,
+    };
     public _ng_request: string | undefined;
     public _ng_color: string | undefined;
     public _ng_background: string | undefined;
-    public _ng_state: boolean | undefined;
+    public _ng_state: boolean = false;
     public _ng_directive: SidebarAppSearchManagerItemDirective;
 
     private _subscriptions: { [key: string]: Subscription } = {};

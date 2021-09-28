@@ -13,22 +13,18 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-layout-area-secondary-controls',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, OnDestroy {
-
-    @Input() public state: AreaState;
-    @Input() public injection: Observable<IComponentDesc>;
+    @Input() public state!: AreaState;
+    @Input() public injection!: Observable<IComponentDesc>;
 
     public _ng_injection: IComponentDesc | undefined = undefined;
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutSecondaryAreaControlsComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngAfterContentInit() {
         this._subscriptions.onInjection = this.injection.subscribe(this._onInjecton.bind(this));
@@ -60,10 +56,16 @@ export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, O
             return {
                 caption: tab.name,
                 handler: () => {
+                    if (tab.guid === undefined) {
+                        this._logger.error(`Tab guid is undefined`);
+                        return;
+                    }
                     this.state.maximize();
                     ToolbarSessionsService.addByGuid(tab.guid);
-                    ToolbarSessionsService.setActive(tab.guid, undefined, false).catch((error: Error) => this._logger.error(error.message));
-                }
+                    ToolbarSessionsService.setActive(tab.guid, undefined, false).catch(
+                        (error: Error) => this._logger.error(error.message),
+                    );
+                },
             };
         });
         ContextMenuService.show({
@@ -79,5 +81,4 @@ export class LayoutSecondaryAreaControlsComponent implements AfterContentInit, O
         this._ng_injection = injection;
         this._cdRef.detectChanges();
     }
-
 }

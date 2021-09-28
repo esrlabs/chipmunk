@@ -9,7 +9,7 @@
 
 <span class="slitter"></span>
 
-<app-com-color-selector [colors]="_ng_colors" [color]="_ng_currentColor" (change)="_ng_onColorChange($event)"></app-com-color-selector>
+<app-com-color-selector [colors]="_ng_colors" [color]="_ng_currentColor === undefined ? '' : _ng_currentColor" (change)="_ng_onColorChange($event)"></app-com-color-selector>
 
 <span class="slitter"></span>
 

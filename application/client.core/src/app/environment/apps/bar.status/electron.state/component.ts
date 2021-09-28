@@ -1,5 +1,5 @@
 import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit } from '@angular/core';
-import ServiceElectronIpc, { IPCMessages, Subscription } from '../../../services/service.electron.ipc';
+import ServiceElectronIpc, { IPC, Subscription } from '../../../services/service.electron.ipc';
 import { IComponentDesc, IFrameOptions } from 'chipmunk-client-material';
 import { StateHistoryComponent } from './history/component';
 import * as Toolkit from 'chipmunk.client.toolkit';
@@ -7,11 +7,9 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-apps-status-bar-electron-state',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterViewInit {
-
     public ng_current: string = 'waiting';
     public ng_showHistory: boolean = false;
     public ng_frame_options: IFrameOptions = {
@@ -19,28 +17,31 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         caption: 'Host notifications',
         onClose: undefined,
         style: {
-            maxHeight: '14rem'
-        }
+            maxHeight: '14rem',
+        },
     };
     public ng_component: IComponentDesc = {
         factory: StateHistoryComponent,
         inputs: {
-            history: []
-        }
+            history: [],
+        },
     };
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppsStatusBarElectronStateComponent');
     private _history: string[] = [];
-    private _subscriptions: { [key: string]: Subscription | undefined } = {
-        state: undefined,
-        history: undefined
-    };
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
         this._ipc_onHostStateChanged = this._ipc_onHostStateChanged.bind(this);
         this._ipc_onHostStateHistory = this._ipc_onHostStateHistory.bind(this);
-        this._subscriptions.state = ServiceElectronIpc.subscribe(IPCMessages.HostState, this._ipc_onHostStateChanged);
-        this._subscriptions.history = ServiceElectronIpc.subscribe(IPCMessages.HostStateHistory, this._ipc_onHostStateHistory);
+        this._subscriptions.state = ServiceElectronIpc.subscribe(
+            IPC.HostState,
+            this._ipc_onHostStateChanged,
+        );
+        this._subscriptions.history = ServiceElectronIpc.subscribe(
+            IPC.HostStateHistory,
+            this._ipc_onHostStateHistory,
+        );
         this._ng_onToggleHistory = this._ng_onToggleHistory.bind(this);
         this.ng_frame_options.onClose = this._ng_onToggleHistory;
     }
@@ -52,8 +53,8 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
     }
 
     ngAfterViewInit() {
-        ServiceElectronIpc.send(new IPCMessages.HostState({}));
-        ServiceElectronIpc.send(new IPCMessages.HostStateHistory({}));
+        ServiceElectronIpc.send(new IPC.HostState({}));
+        ServiceElectronIpc.send(new IPC.HostStateHistory({}));
     }
 
     public _ng_onToggleHistory() {
@@ -66,8 +67,8 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         }
     }
 
-    private _ipc_onHostStateChanged(state: IPCMessages.HostState) {
-        if (state.state === IPCMessages.HostState.States.ready) {
+    private _ipc_onHostStateChanged(state: IPC.HostState) {
+        if (state.state === IPC.HostState.States.ready) {
             this.ng_current = 'ready';
         } else if (state.message !== '') {
             this.ng_current = state.message;
@@ -78,9 +79,8 @@ export class AppsStatusBarElectronStateComponent implements OnDestroy, AfterView
         this._cdRef.detectChanges();
     }
 
-    private _ipc_onHostStateHistory(state: IPCMessages.HostStateHistory) {
+    private _ipc_onHostStateHistory(state: IPC.HostStateHistory) {
         this._history.unshift(...state.history);
         this._cdRef.detectChanges();
     }
-
 }

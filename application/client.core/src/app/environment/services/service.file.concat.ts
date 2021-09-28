@@ -46,9 +46,8 @@ export class ConcatFilesService implements IService, IConcatFilesService {
     public add(files: IPC.IFile[], session: string) {
         const controller: ControllerFileConcatSession | undefined = this._controllers.get(session);
         if (controller === undefined) {
-            return this._logger.error(
-                `Fail to find ControllerFileConcatSession for session: ${session}`,
-            );
+            this._logger.error(`Fail to find ControllerFileConcatSession for session: ${session}`);
+            return;
         }
         controller
             .add(

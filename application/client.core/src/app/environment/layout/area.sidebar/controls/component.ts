@@ -10,21 +10,16 @@ import ContextMenuService from '../../../services/standalone/service.contextmenu
 @Component({
     selector: 'app-layout-area-secondary-controls',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutSessionSidebarControlsComponent implements AfterContentInit, OnDestroy {
-
-    @Input() public state: AreaState;
+    @Input() public state!: AreaState;
 
     private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
-    }
-
-    ngAfterContentInit() {
-    }
+    ngAfterContentInit() {}
 
     ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
@@ -41,9 +36,12 @@ export class LayoutSessionSidebarControlsComponent implements AfterContentInit, 
             return {
                 caption: tab.name,
                 handler: () => {
+                    if (tab.guid === undefined) {
+                        return;
+                    }
                     this.state.maximize();
                     SidebarSessionsService.addByGuid(tab.guid);
-                }
+                },
             };
         });
         ContextMenuService.show({
@@ -54,5 +52,4 @@ export class LayoutSessionSidebarControlsComponent implements AfterContentInit, 
         event.stopImmediatePropagation();
         event.preventDefault();
     }
-
 }

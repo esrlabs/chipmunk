@@ -466,6 +466,8 @@ export class ViewOutputRowComponent
             return this.position;
         } else if (this.parent === EParent.search) {
             return this.positionInStream;
+        } else {
+            return undefined;
         }
     }
 

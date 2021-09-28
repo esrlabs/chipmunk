@@ -15,11 +15,9 @@ interface IStorage {
 @Component({
     selector: 'app-apps-status-bar-search-state',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewInit {
-
     public _ng_read: number = 0;
     public _ng_found: number = 0;
 
@@ -28,15 +26,23 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
     private _activeSession: string | undefined;
     private _sessions: Map<string, IStorage> = new Map();
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngAfterViewInit() {
-        this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onStreamUpdated(this._onStreamUpdated.bind(this));
-        this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub().subscribe().onSearchUpdated(this._onSearchUpdated.bind(this));
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onSessionClosed = EventsSessionService.getObservable().onSessionClosed.subscribe(this._onSessionClosed.bind(this));
+        this._subscriptions.onStreamUpdated = TabsSessionsService.getSessionEventsHub()
+            .subscribe()
+            .onStreamUpdated(this._onStreamUpdated.bind(this));
+        this._subscriptions.onSearchUpdated = TabsSessionsService.getSessionEventsHub()
+            .subscribe()
+            .onSearchUpdated(this._onSearchUpdated.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onSessionClosed =
+            EventsSessionService.getObservable().onSessionClosed.subscribe(
+                this._onSessionClosed.bind(this),
+            );
         const controller: Session | undefined = TabsSessionsService.getActive();
         if (controller === undefined) {
             return;
@@ -113,5 +119,4 @@ export class AppsStatusBarSearchStateComponent implements OnDestroy, AfterViewIn
         }
         this._cdRef.detectChanges();
     }
-
 }

@@ -92,8 +92,8 @@ export class ViewPluginsDetailsComponent implements AfterContentInit, AfterViewI
         this._forceUpdate();
     }
 
-    public _ng_onError(event: Error) {
-        this._ng_error = event.message;
+    public _ng_onError(event: string) {
+        this._ng_error = event;
         this._ng_state.readme = EReadmeState.error;
     }
 

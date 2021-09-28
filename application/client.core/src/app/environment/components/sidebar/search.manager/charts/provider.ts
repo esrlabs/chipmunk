@@ -280,7 +280,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
     }
 
     public isViable(): boolean {
-        const dragging: Entity<TRequest> = SearchManagerService.dragging;
+        const dragging: Entity<TRequest> | undefined = SearchManagerService.dragging;
         if (dragging) {
             const request: TRequest = dragging.getEntity();
             if (request instanceof DisabledRequest) {

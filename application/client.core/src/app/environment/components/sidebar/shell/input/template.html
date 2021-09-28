@@ -28,7 +28,7 @@
                         [attr.title]="recent.description"
                         class="recent-requests small t-console t-small app-sidebar-app-shell-input">
                 <div class="options">
-                    <span class="filename" [innerHTML]="_ng_getSafeHTML(recent.tdescription)"></span>
+                    <span class="filename" [innerHTML]="_ng_getSafeHTML(recent.tdescription === undefined : recent.description : recent.tdescription)"></span>
                     <mat-icon class="clear" (click)="_ng_onRemove(recent.description)">close</mat-icon>
                 </div>
             </mat-option>

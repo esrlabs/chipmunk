@@ -4,11 +4,9 @@ import PluginsService from '../../services/service.plugins';
 @Component({
     selector: 'app-layout-status-bar',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutStatusBarComponent implements OnDestroy {
-
     public _ng_plugins: any[] = [];
 
     constructor(private _cdRef: ChangeDetectorRef) {
@@ -26,10 +24,9 @@ export class LayoutStatusBarComponent implements OnDestroy {
             resolved: true,
             inputs: {
                 session: -1,
-                ipc: ipc
-            }
+                ipc: ipc,
+            },
         });
         this._cdRef.detectChanges();
     }
-
 }

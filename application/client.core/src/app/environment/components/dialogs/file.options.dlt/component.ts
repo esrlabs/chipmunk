@@ -127,7 +127,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_filters: IStats | undefined = undefined;
     public _ng_fibex: IPC.IFilePickerFileInfo[] = [];
     public _ng_error: string | undefined;
-    public _ng_dispayed = ['id', ...CLevelOrder];
+    public _ng_dispayed: string[] = ['id', ...CLevelOrder];
     public _ng_filterSubject: Subject<string> = new Subject<string>();
     public _ng_filterValue: string = '';
     public _ng_sortSubject: Subject<IForceSortData> = new Subject<IForceSortData>();
@@ -202,7 +202,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     public _ng_onFibex() {
-        ElectronIpcService.request(
+        ElectronIpcService.request<IPC.FilePickerResponse>(
             new IPC.FilePickerRequest({
                 filter: [{ name: 'XML files', extensions: ['xml'] }],
                 multiple: true,
@@ -210,7 +210,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             }),
             IPC.FilePickerResponse,
         )
-            .then((responce: IPC.FilePickerResponse) => {
+            .then((responce) => {
                 if (typeof responce.error === 'string') {
                     return this._notifications.add({
                         caption: `Fail open`,
@@ -321,7 +321,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         }
         const session: string = controller.getGuid();
         this._requestId = Toolkit.guid();
-        ElectronIpcService.request(
+        ElectronIpcService.request<IPC.DLTStatsResponse>(
             new IPC.DLTStatsRequest({
                 file: this.fullFileName,
                 id: this._requestId,
@@ -329,7 +329,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             }),
             IPC.DLTStatsResponse,
         )
-            .then((response: IPC.DLTStatsResponse) => {
+            .then((response) => {
                 this._requestId = undefined;
                 this._ng_scanning = false;
                 if (typeof response.error === 'string' && response.error.trim() !== '') {

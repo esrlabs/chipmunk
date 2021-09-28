@@ -1,18 +1,27 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChild, AfterViewInit, ElementRef } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    ViewChild,
+    AfterViewInit,
+    ElementRef,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { IComponentDesc } from 'chipmunk-client-material';
-import ContextMenuService, { IMenu, IMenuItem, EEventType } from '../../services/standalone/service.contextmenu';
+import ContextMenuService, {
+    IMenu,
+    IMenuItem,
+    EEventType,
+} from '../../services/standalone/service.contextmenu';
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 @Component({
     selector: 'app-layout-contextmenu',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
-
-    @ViewChild('menu') _ng_menu: ElementRef;
+    @ViewChild('menu') _ng_menu!: ElementRef;
 
     public _ng_component: IComponentDesc | undefined;
     public _ng_items: IMenuItem[] | undefined;
@@ -23,8 +32,12 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
     private _left: number = 0;
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.onShow = ContextMenuService.getObservable().onShow.subscribe(this._onShow.bind(this));
-        this._subscriptions.onRemove = ContextMenuService.getObservable().onRemove.subscribe(this._remove.bind(this));
+        this._subscriptions.onShow = ContextMenuService.getObservable().onShow.subscribe(
+            this._onShow.bind(this),
+        );
+        this._subscriptions.onRemove = ContextMenuService.getObservable().onRemove.subscribe(
+            this._remove.bind(this),
+        );
     }
 
     public get _ng_top() {
@@ -68,11 +81,13 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
             if (this._ng_menu === undefined || this._ng_menu === null) {
                 return;
             }
-            const size: ClientRect = (this._ng_menu.nativeElement as HTMLElement).getBoundingClientRect();
-            if (window.innerWidth < (size.width + menu.x)) {
+            const size: ClientRect = (
+                this._ng_menu.nativeElement as HTMLElement
+            ).getBoundingClientRect();
+            if (window.innerWidth < size.width + menu.x) {
                 this._left = window.innerWidth - size.width;
             }
-            if (window.innerHeight < (size.height + menu.y)) {
+            if (window.innerHeight < size.height + menu.y) {
                 this._top = window.innerHeight - size.height;
             }
             if (this._top !== menu.y || this._left !== menu.x) {
@@ -82,20 +97,36 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
     }
 
     private _subscribeToWinEvents() {
-        ContextMenuService.subscribeToWinEvents(EEventType.keydown, this._onWindowKeyDown.bind(this));
-        ContextMenuService.subscribeToWinEvents(EEventType.mousedown, this._onWindowMouseDown.bind(this));
+        ContextMenuService.subscribeToWinEvents(
+            EEventType.keydown,
+            this._onWindowKeyDown.bind(this),
+        );
+        ContextMenuService.subscribeToWinEvents(
+            EEventType.mousedown,
+            this._onWindowMouseDown.bind(this),
+        );
     }
 
     private _unsubscribeToWinEvents() {
-        ContextMenuService.unsubscribeToWinEvents(EEventType.keydown, this._onWindowKeyDown.bind(this));
-        ContextMenuService.unsubscribeToWinEvents(EEventType.mousedown, this._onWindowMouseDown.bind(this));
+        ContextMenuService.unsubscribeToWinEvents(
+            EEventType.keydown,
+            this._onWindowKeyDown.bind(this),
+        );
+        ContextMenuService.unsubscribeToWinEvents(
+            EEventType.mousedown,
+            this._onWindowMouseDown.bind(this),
+        );
     }
 
     private _onWindowKeyDown(event: KeyboardEvent) {
-        if (this._isContextMenuNode(event.target as HTMLElement) || (event.key !== 'Escape' && event.key !== 'Enter')) {
+        if (
+            this._isContextMenuNode(event.target as HTMLElement) ||
+            (event.key !== 'Escape' && event.key !== 'Enter')
+        ) {
             return false;
         }
         this._remove();
+        return;
     }
 
     private _onWindowMouseDown(event: MouseEvent) {
@@ -103,6 +134,7 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
             return false;
         }
         this._remove();
+        return;
     }
 
     private _remove() {
@@ -125,5 +157,4 @@ export class LayoutContextMenuComponent implements OnDestroy, AfterViewInit {
         }
         return false;
     }
-
 }
