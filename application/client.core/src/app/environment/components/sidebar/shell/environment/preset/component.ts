@@ -16,10 +16,8 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
 })
-
 export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
-
-    @Input() service: ShellService;
+    @Input() service!: ShellService;
 
     public _ng_add: boolean = false;
     public _ng_valid: boolean = false;
@@ -32,52 +30,58 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
 
     private _prevSelectedTitle: string = 'Default';
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellPresetComponent');
-    private _sessionID: string;
+    private _sessionID: string | undefined;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
 
     constructor() {
-        this._sessionID = TabsSessionsService.getActive().getGuid();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
+        const session = TabsSessionsService.getActive();
+        this._sessionID = session !== undefined ? session.getGuid() : undefined;
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
     }
 
     public ngOnInit() {
-        const session: Session = TabsSessionsService.getActive();
+        const session: Session | undefined = TabsSessionsService.getActive();
         if (session !== undefined) {
             this._sessionID = session.getGuid();
         } else {
             this._logger.error('Session not available');
         }
 
-        this._subscriptions.onRestored = this.service.getObservable().onRestored.subscribe(this._onRestored.bind(this));
-        this.service.restoreSession({ session: this._sessionID }, true).then(() => {
-            this._onRestored();
-        }).catch((error: Error) => {
-            this._logger.error(error.message);
-        });
+        this._subscriptions.onRestored = this.service
+            .getObservable()
+            .onRestored.subscribe(this._onRestored.bind(this));
+        this.service
+            .restoreSession({ session: this._sessionID }, true)
+            .then(() => {
+                this._onRestored();
+            })
+            .catch((error: Error) => {
+                this._logger.error(error.message);
+            });
         this._ng_control.setValue(this.service.selectedPresetTitle);
-        this._ng_control.valueChanges.pipe(
-            startWith(this._ng_control.value),
-            pairwise()
-        ).subscribe(
-            ([ prevTitle, currTitle ]) => {
+        this._ng_control.valueChanges
+            .pipe(startWith(this._ng_control.value), pairwise())
+            .subscribe(([prevTitle, currTitle]) => {
                 if (currTitle === this.service.saveAs) {
                     this._ng_add = true;
                 } else {
-                    this.service.setEnv({
-                        session: this._sessionID,
-                        env: this.service.getPreset(currTitle).information.env,
-                    }).catch((error: Error) => {
-                        this._logger.error(error.message);
-                    });
+                    this.service
+                        .setEnv({
+                            session: this._sessionID,
+                            env: this.service.getPreset(currTitle).information.env,
+                        })
+                        .catch((error: Error) => {
+                            this._logger.error(error.message);
+                        });
                 }
                 if (prevTitle !== this.service.saveAs) {
                     this._prevSelectedTitle = prevTitle;
                 }
                 this.service.selectedPresetTitle = currTitle;
-            }
-        );
+            });
     }
 
     public ngOnDestroy() {
@@ -100,7 +104,7 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
             return;
         }
         this._ng_valid = true;
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && this._sessionID !== undefined) {
             this._ng_add = false;
             const index = this.service.addPreset(this._ng_title, this._prevSelectedTitle);
             this._ng_title = '';
@@ -113,9 +117,11 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
     }
 
     public _ng_onRemove() {
-        this.service.removePreset({ session: this._sessionID, title: this.service.selectedPresetTitle }).catch((error: Error) => {
-            this._logger.error(error.message);
-        });
+        this.service
+            .removePreset({ session: this._sessionID, title: this.service.selectedPresetTitle })
+            .catch((error: Error) => {
+                this._logger.error(error.message);
+            });
         this._ng_control.setValue(this.service.presets[this.service.presets.length - 1].title);
         this._prevSelectedTitle = this.service.selectedPresetTitle;
     }
@@ -127,7 +133,9 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
     private _titleExits(): boolean {
         return this.service.presets.filter((preset: IPreset) => {
             return preset.title === this._ng_title;
-        }).length === 0 ? false : true;
+        }).length === 0
+            ? false
+            : true;
     }
 
     private _revertSelection() {
@@ -147,5 +155,4 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
         this._ng_control.setValue(this.service.selectedPresetTitle);
         this._prevSelectedTitle = this.service.selectedPresetTitle;
     }
-
 }

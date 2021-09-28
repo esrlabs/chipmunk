@@ -202,7 +202,13 @@ export default class ControllerPluginsManager {
                             case EPluginState.upgrade:
                                 return this.upgrade(plugin.name, plugin.upgrade[0]);
                             default:
-                                return Promise.reject(new Error(this._logger.error(`Unexpected type of plugin (${plugin.state}) for plugin: ${plugin.name}`)));
+                                return Promise.reject(
+                                    new Error(
+                                        this._logger.error(
+                                            `Unexpected type of plugin (${plugin.state}) for plugin: ${plugin.name}`,
+                                        ),
+                                    ),
+                                );
                         }
                     }),
             )
@@ -533,7 +539,9 @@ export default class ControllerPluginsManager {
                 );
                 return;
             }
-            const versions: string[] = msg.versions.map((r) => r.version);
+            const versions: string[] = msg.versions.map(
+                (r: CommonInterfaces.Plugins.IHistory) => r.version,
+            );
             if (versions.length === 0) {
                 this._logger.warn(
                     `Have gotten message about update plugin "${plugin.name}", but no versions list.`,
@@ -559,7 +567,9 @@ export default class ControllerPluginsManager {
                 );
                 return;
             }
-            const versions: string[] = msg.versions.map((r) => r.version);
+            const versions: string[] = msg.versions.map(
+                (r: CommonInterfaces.Plugins.IHistory) => r.version,
+            );
             if (versions.length === 0) {
                 this._logger.warn(
                     `Have gotten message about upgrade plugin "${plugin.name}", but no versions list.`,

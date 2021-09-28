@@ -4,12 +4,10 @@ import { ShellService } from './services/service';
 @Component({
     selector: 'app-sidebar-app-shell',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppShellComponent implements OnInit, OnDestroy {
-
-    public _ng_service: ShellService;
+    public _ng_service!: ShellService;
 
     constructor() {}
 

@@ -42,10 +42,10 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
     @Input() public filter: string = '';
 
     public _ng_treeControl: FlatTreeControl<ISettingNode>;
-    public _ng_dataSource;
+    public _ng_dataSource!: MatTreeFlatDataSource<any, any, any>;
     public _ng_focused: string | undefined;
 
-    private _treeFlattener;
+    private _treeFlattener!: MatTreeFlattener<any, any>;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabSettingsNavigationComponent');

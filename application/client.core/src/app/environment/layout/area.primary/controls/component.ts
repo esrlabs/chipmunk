@@ -7,16 +7,16 @@ import { Subscription } from 'rxjs';
 @Component({
     selector: 'app-layout-area-primary-controls',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutPrimiryAreaControlsComponent implements OnDestroy {
-
-    @Input() public onNewTab: () => void;
+    @Input() public onNewTab!: () => void;
     private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.recentFiles = HotkeysService.getObservable().recentFiles.subscribe(this._ng_onRecent.bind(this));
+        this._subscriptions.recentFiles = HotkeysService.getObservable().recentFiles.subscribe(
+            this._ng_onRecent.bind(this),
+        );
     }
 
     ngOnDestroy() {
@@ -35,24 +35,23 @@ export class LayoutPrimiryAreaControlsComponent implements OnDestroy {
         return false;
     }
 
-    public _ng_onRecent(event: MouseEvent) {
-        const popupId: string = PopupsService.add({
+    public _ng_onRecent() {
+        const popupId: string | undefined = PopupsService.add({
             id: 'recent-files-dialog',
             caption: ``,
             component: {
                 factory: DialogsRecentFilesActionComponent,
                 inputs: {
                     close: () => {
-                        PopupsService.remove(popupId);
-                    }
-                }
+                        popupId !== undefined && PopupsService.remove(popupId);
+                    },
+                },
             },
             buttons: [],
             options: {
                 width: 40,
                 minimalistic: true,
-            }
+            },
         });
     }
-
 }

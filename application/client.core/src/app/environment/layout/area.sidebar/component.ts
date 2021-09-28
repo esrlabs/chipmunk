@@ -14,30 +14,34 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-layout-func-bar',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
+    @Input() public state!: AreaState;
 
-    @Input() public state: AreaState;
+    public _ng_tabsService: TabsService | undefined;
 
-    public _ng_tabsService: TabsService;
-
-    private _subscriptions: { [key: string]: Subscription | undefined } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('LayoutSessionSidebarComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     ngAfterViewInit() {
-        if (!(this.state)) {
+        if (!this.state) {
             return;
         }
         // Subscribe to change of current session
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         // Subscribe to state events
-        this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
-        this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));
+        this._subscriptions.minimized = this.state
+            .getObservable()
+            .minimized.subscribe(this._onMinimized.bind(this));
+        this._subscriptions.updated = this.state
+            .getObservable()
+            .updated.subscribe(this._onUpdated.bind(this));
         // Get tabs service
         this._setActiveTabsService();
         // Update layout
@@ -78,27 +82,30 @@ export class LayoutSessionSidebarComponent implements AfterViewInit, OnDestroy {
         this._ng_tabsService = undefined;
         if (session !== undefined && session !== null) {
             // Get tabs service
-            const service: TabsService | Error = SidebarSessionsService.getTabsService(session.getGuid());
+            const service: TabsService | undefined = SidebarSessionsService.getTabsService(
+                session.getGuid(),
+            );
             if (service !== undefined) {
                 this._ng_tabsService = service;
                 // Change layout of tabs in sidebar
-                this._ng_tabsService.setOptions(new TabsOptions({
-                    injections: {
-                        bar: {
-                            factory: LayoutSessionSidebarControlsComponent,
-                            inputs: {
-                                state: this.state,
-                            }
-                        }
-                    },
-                    direction: ETabsListDirection.left,
-                    minimized: true
-                }));
+                this._ng_tabsService.setOptions(
+                    new TabsOptions({
+                        injections: {
+                            bar: {
+                                factory: LayoutSessionSidebarControlsComponent,
+                                inputs: {
+                                    state: this.state,
+                                },
+                            },
+                        },
+                        direction: ETabsListDirection.left,
+                        minimized: true,
+                    }),
+                );
             } else {
                 this._logger.warn(`Fail to init sidebar because no tab's service available.`);
             }
         }
         this._cdRef.detectChanges();
     }
-
 }

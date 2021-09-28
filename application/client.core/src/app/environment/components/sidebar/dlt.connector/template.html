@@ -14,13 +14,13 @@
             placeholder="Label"
             [(ngModel)]="_ng_settings.ecu"
             (ngModelChange)="_ng_onECUChange($event)"
-            [disabled]="_ng_state === 'disconnected' ? null : true"
+            [disabled]="_ng_state === 'disconnected' ? false : true"
             matAutocomplete
             [matAutocomplete]="auto"
             [errorStateMatcher]="_ng_errorStates.ecu">
         <mat-autocomplete #auto="matAutocomplete"
             (optionSelected)="_ng_onRecentSelected($event)">
-            <mat-option *ngFor="let recent of _ng_recent" [value]="file" [attr.title]="recent" class="recent-requests small t-console t-small">
+            <mat-option *ngFor="let recent of _ng_recent" [value]="recent" [attr.title]="recent" class="recent-requests small t-console t-small">
                 {{recent}}
             </mat-option>
         </mat-autocomplete>
@@ -52,7 +52,7 @@
     </mat-form-field>
  -->
     <mat-form-field>
-        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.bindingAddress" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.bindingAddress">
+        <input matInput placeholder="IP Address" [(ngModel)]="_ng_settings.bindingAddress" [disabled]="_ng_state === 'disconnected' ? false : true" [errorStateMatcher]="_ng_errorStates.bindingAddress">
         <mat-error *ngIf="_ng_errorStates.bindingAddress.getErrorCode() === 'INVALID'">
             Please enter a valid IPv4/IPv6 address
         </mat-error>
@@ -61,7 +61,7 @@
         </mat-error>
     </mat-form-field>
     <mat-form-field>
-        <input matInput placeholder="Port" [(ngModel)]="_ng_settings.bindingPort" [disabled]="_ng_state === 'disconnected' ? null : true" [errorStateMatcher]="_ng_errorStates.bindingPort">
+        <input matInput placeholder="Port" [(ngModel)]="_ng_settings.bindingPort" [disabled]="_ng_state === 'disconnected' ? false : true" [errorStateMatcher]="_ng_errorStates.bindingPort">
         <mat-error *ngIf="_ng_errorStates.bindingPort.getErrorCode() === 'INVALID'">
             Please enter a valid port value
         </mat-error>
@@ -83,7 +83,7 @@
         </mat-button-toggle-group>
     </p>
     <span class="slitter"></span>
-    <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange()" [disabled]="_ng_state === 'disconnected' ? null : true">Add fibex data</mat-checkbox>
+    <mat-checkbox [(ngModel)]="_ng_settings.fibex" (change)="_ng_onMuliticastingStateChange()" [disabled]="_ng_state === 'disconnected' ? false : true">Add fibex data</mat-checkbox>
 </mat-expansion-panel>
 
 <span class="slitter"></span>

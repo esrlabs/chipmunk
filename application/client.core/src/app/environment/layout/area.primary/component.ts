@@ -1,5 +1,5 @@
 import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { TabsService  } from 'chipmunk-client-material';
+import { TabsService } from 'chipmunk-client-material';
 import { AreaState } from '../state';
 import { Subscription } from 'rxjs';
 import { LayoutPrimiryAreaControlsComponent } from './controls/component';
@@ -13,12 +13,10 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-layout-area-primary',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
-
-    @Input() public state: AreaState;
+    @Input() public state!: AreaState;
 
     public tabsService: TabsService;
 
@@ -34,30 +32,35 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
                 bar: {
                     factory: LayoutPrimiryAreaControlsComponent,
                     inputs: {
-                        onNewTab: this._onNewTab.bind(this)
-                    }
-                }
+                        onNewTab: this._onNewTab.bind(this),
+                    },
+                },
             },
             noTabsContent: {
                 factory: LayoutPrimiryAreaNoTabsComponent,
-                inputs: {}
-            }
+                inputs: {},
+            },
         });
         // Create default session
-        TabsSessionsService.add().then(() => {
-            RenderStateService.state().ready();
-        }).catch((error: Error) => {
-            this._logger.error(`Fail to create default tab due error: ${error.message}`);
-        });
-
+        TabsSessionsService.add()
+            .then(() => {
+                RenderStateService.state().ready();
+            })
+            .catch((error: Error) => {
+                this._logger.error(`Fail to create default tab due error: ${error.message}`);
+            });
     }
 
     ngAfterViewInit() {
-        if (!(this.state)) {
+        if (!this.state) {
             return;
         }
-        this._subscriptions.minimized = this.state.getObservable().minimized.subscribe(this._onMinimized.bind(this));
-        this._subscriptions.updated = this.state.getObservable().updated.subscribe(this._onUpdated.bind(this));
+        this._subscriptions.minimized = this.state
+            .getObservable()
+            .minimized.subscribe(this._onMinimized.bind(this));
+        this._subscriptions.updated = this.state
+            .getObservable()
+            .updated.subscribe(this._onUpdated.bind(this));
     }
 
     ngOnDestroy() {
@@ -88,5 +91,4 @@ export class LayoutPrimaryAreaComponent implements AfterViewInit, OnDestroy {
             this._logger.error(`Fail to open new tab due error: ${error.message}`);
         });
     }
-
 }

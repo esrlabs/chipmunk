@@ -21,4 +21,4 @@
 
 <p class="caption t-small">Color line</p>
 
-<app-com-color-selector [colors]="_ng_colors" [color]="_ng_color" (change)="_ng_onColorChange($event)"></app-com-color-selector>
+<app-com-color-selector [colors]="_ng_colors" [color]="_ng_color === undefined ? '' : _ng_color" (change)="_ng_onColorChange($event)"></app-com-color-selector>

@@ -1,4 +1,11 @@
-import { Component, OnDestroy, ChangeDetectorRef, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    ElementRef,
+    AfterViewInit,
+    ViewChild,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import EventsSessionService from '../../services/standalone/service.events.session';
@@ -6,17 +13,18 @@ import EventsSessionService from '../../services/standalone/service.events.sessi
 @Component({
     selector: 'app-layout-focus-holder',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class LayoutFocusHolderComponent implements OnDestroy, AfterViewInit {
+    @ViewChild('input') _ng_input!: ElementRef;
 
-    @ViewChild('input') _ng_input: ElementRef;
-
-    private _subscriptions: { [key: string]: Subscription } = { };
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(private _cdRef: ChangeDetectorRef) {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
     }
 
     ngOnDestroy() {
@@ -30,10 +38,9 @@ export class LayoutFocusHolderComponent implements OnDestroy, AfterViewInit {
     }
 
     private _onSessionChange() {
-        if (this._ng_input === undefined && this._ng_input.nativeElement !== undefined) {
+        if (this._ng_input === undefined && (this._ng_input as any).nativeElement !== undefined) {
             return;
         }
         (this._ng_input.nativeElement as HTMLInputElement).focus();
     }
-
 }

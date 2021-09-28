@@ -3,20 +3,12 @@ import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input } from '@
 @Component({
     selector: 'app-apps-status-bar-electron-state-list',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class StateHistoryComponent implements AfterViewInit {
+    @Input() public history!: string[];
 
-    @Input() public history: string[];
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
-    constructor(private _cdRef: ChangeDetectorRef) {
-
-    }
-
-    ngAfterViewInit() {
-
-    }
-
-
+    ngAfterViewInit() {}
 }

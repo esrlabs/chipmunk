@@ -266,13 +266,13 @@ export class DataService {
 
     public exportToCSV() {
         const id: string = Toolkit.guid();
-        ElectronIpcService.request(
+        ElectronIpcService.request<IPC.TimestampExtractResponse>(
             new IPC.TimestampExportCSVRequest({
                 id: id,
                 csv: this._getRangesAsCSV(),
             }),
             IPC.TimestampExportCSVResponse,
-        ).then((response: IPC.TimestampExtractResponse) => {
+        ).then((response) => {
             if (response.error) {
                 this._logger.warn(`Fail to export time ranges data due error: ${response.error}`);
             }

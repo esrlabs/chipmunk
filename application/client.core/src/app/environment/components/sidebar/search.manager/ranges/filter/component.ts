@@ -25,7 +25,11 @@ export class SidebarAppSearchManagerFilterMiniComponent
 {
     @Input() entity!: Entity<FilterRequest>;
 
-    public _ng_flags: IFlags | undefined;
+    public _ng_flags: IFlags = {
+        casesensitive: false,
+        wholeword: false,
+        regexp: true,
+    };
     public _ng_request: string | undefined;
     public _ng_color: string | undefined;
     public _ng_background: string | undefined;

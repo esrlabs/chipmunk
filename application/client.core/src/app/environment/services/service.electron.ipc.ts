@@ -3,7 +3,7 @@ declare var window: any;
 import { guid, Subscription, THandler, Logger } from 'chipmunk.client.toolkit';
 import { IPCMessagePackage } from './service.electron.ipc.messagepackage';
 import { IService } from '../interfaces/interface.service';
-import { IPCMessages as IPC } from '../interfaces/interface.ipc';
+import { IPC } from '../interfaces/interface.ipc';
 import { CommonInterfaces } from '../interfaces/interface.common';
 
 export { IPC, Subscription, THandler };

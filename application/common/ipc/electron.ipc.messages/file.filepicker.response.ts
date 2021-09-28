@@ -1,10 +1,10 @@
-
 export interface IFilePickerFileInfo {
-    path: string;       // Full file name (path + basename)
-    name: string;       // Only basename
-    size: number;       // Size in bytes
-    created: number;    // unixtime
-    changed: number;    // unixtime
+    path: string; // Full file name (path + basename)
+    name: string; // Only basename
+    size: number; // Size in bytes
+    created: number; // unixtime
+    changed: number; // unixtime
+    viewPath?: string; // Used on front-end side
 }
 
 export interface IFilePickerResponse {
@@ -13,7 +13,6 @@ export interface IFilePickerResponse {
 }
 
 export class FilePickerResponse {
-
     public static signature: string = 'FilePickerResponse';
     public signature: string = FilePickerResponse.signature;
     public files: IFilePickerFileInfo[] = [];

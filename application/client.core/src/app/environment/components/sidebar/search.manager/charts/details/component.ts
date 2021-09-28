@@ -26,6 +26,7 @@ import { MatSelectChange, MatSelect } from '@angular/material/select';
 interface IOptionComponent {
     component: IComponentDesc;
     caption: string;
+    value: any;
 }
 
 interface IChartTypeOption {
@@ -169,6 +170,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
                         inputs: Object.assign(inputs, option.option),
                     },
                     caption: option.caption,
+                    value: option.value,
                 };
             });
     }

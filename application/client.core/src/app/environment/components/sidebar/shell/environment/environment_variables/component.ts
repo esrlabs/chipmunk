@@ -1,21 +1,21 @@
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { IEnvironment, INewInformation } from '../component';
 
-import ContextMenuService, { IMenuItem } from '../../../../../services/standalone/service.contextmenu';
+import ContextMenuService, {
+    IMenuItem,
+} from '../../../../../services/standalone/service.contextmenu';
 
 @Component({
     selector: 'app-sidebar-app-shell-environment-variables',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
 export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnDestroy {
+    @Input() public information!: INewInformation;
+    @Input() public setEnvironment!: (information: INewInformation) => void;
+    @Input() public close!: () => {};
 
-    @Input() public information: INewInformation;
-    @Input() public setEnvironment: (information: INewInformation) => void;
-    @Input() public close: () => {};
-
-    @ViewChild('variableAdd') _ng_variableAdd: ElementRef<HTMLInputElement>;
+    @ViewChild('variableAdd') _ng_variableAdd!: ElementRef<HTMLInputElement>;
 
     public readonly _ng_inputType = {
         variable: 'variable',
@@ -38,11 +38,11 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
     private _prevVariable: string = '';
     private _prevSelected: IEnvironment | undefined;
 
-    constructor() { }
+    constructor() {}
 
     public ngOnInit() {
         this._sortInformation();
-        this._ng_height = Math.round(window.innerHeight * .7);
+        this._ng_height = Math.round(window.innerHeight * 0.7);
     }
 
     public ngOnDestroy() {
@@ -59,6 +59,9 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
             {
                 caption: 'Edit',
                 handler: () => {
+                    if (this._ng_selected === undefined) {
+                        return;
+                    }
                     if (type === this._ng_value) {
                         this._ng_value = this._ng_selected.value;
                         env.editing.value = true;
@@ -68,7 +71,7 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
                         env.editing.variable = true;
                         this._prevVariable = env.variable;
                     }
-                }
+                },
             },
             {
                 caption: 'Remove',
@@ -87,7 +90,10 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
     }
 
     public _ng_onKeyUp(event: KeyboardEvent, isVariable: boolean, environment: IEnvironment) {
-        if (isVariable && (this._ng_variable.trim() === '' || this._variableExists(this._ng_variable))) {
+        if (
+            isVariable &&
+            (this._ng_variable.trim() === '' || this._variableExists(this._ng_variable))
+        ) {
             this._ng_valid = false;
             return;
         }
@@ -105,7 +111,10 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
     }
 
     public _ng_onKeyUpAdd(event: KeyboardEvent, isVariable: boolean = false) {
-        if (isVariable && (this._ng_newVariable.trim() === '' || this._variableExists(this._ng_newVariable))) {
+        if (
+            isVariable &&
+            (this._ng_newVariable.trim() === '' || this._variableExists(this._ng_newVariable))
+        ) {
             this._ng_valid = false;
             return;
         }
@@ -120,7 +129,7 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
 
     public _ng_onClick(env: IEnvironment) {
         if (this._ng_selected !== undefined && this._ng_selected.variable === env.variable) {
-                this._ng_selected = undefined;
+            this._ng_selected = undefined;
         } else {
             this._ng_selected = env;
             this._changeFocus(env);
@@ -128,6 +137,9 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
     }
 
     public _ng_onDoubleClick(env: IEnvironment, type: string) {
+        if (this._ng_selected === undefined) {
+            return;
+        }
         this._changeFocus(env);
         if (type === this._ng_inputType.value) {
             this._ng_value = this._ng_selected.value;
@@ -149,11 +161,14 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
     }
 
     public _ng_remove() {
-        if (this._ng_selected !== undefined) {
-            this.information.env = this.information.env.filter((env: IEnvironment) => {
-                return (env.value !== this._ng_selected.value && env.variable !== this._ng_selected.variable);
-            });
-        }
+        this.information.env = this.information.env.filter((env: IEnvironment) => {
+            if (this._ng_selected === undefined) {
+                return;
+            }
+            return (
+                env.value !== this._ng_selected.value && env.variable !== this._ng_selected.variable
+            );
+        });
     }
 
     public _ng_onCancel() {
@@ -213,8 +228,12 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
 
     private _sortInformation() {
         this.information.env.sort((a: IEnvironment, b: IEnvironment) => {
-            if (a.variable < b.variable) { return -1; }
-            if (a.variable > b.variable) { return 1; }
+            if (a.variable < b.variable) {
+                return -1;
+            }
+            if (a.variable > b.variable) {
+                return 1;
+            }
             return 0;
         });
     }
@@ -222,7 +241,8 @@ export class SidebarAppShellEnvironmentVariablesComponent implements OnInit, OnD
     private _variableExists(variable: string): boolean {
         return this.information.env.filter((env: IEnvironment) => {
             return env.variable === variable;
-        }).length === 0 ? false : true;
+        }).length === 0
+            ? false
+            : true;
     }
-
 }

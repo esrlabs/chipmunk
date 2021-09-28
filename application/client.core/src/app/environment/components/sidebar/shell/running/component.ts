@@ -4,7 +4,7 @@ import { ShellService } from '../services/service';
 import { Session } from '../../../../controller/session/session';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 
-import ElectronIpcService, { IPCMessages } from '../../../../services/service.electron.ipc';
+import ElectronIpcService, { IPC } from '../../../../services/service.electron.ipc';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import SourcesService from '../../../../services/service.sources';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
@@ -22,28 +22,33 @@ interface IRunningProcessInfo {
     styleUrls: ['./styles.less'],
 })
 export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
-    @Input() public service: ShellService;
+    @Input() public service!: ShellService;
 
-    public _ng_running: IPCMessages.IShellProcess[] = [];
+    public _ng_running: IPC.IShellProcess[] = [];
 
-    private _sessionID: string;
+    private _sessionID!: string;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppShellRunningComponent');
     private _updating: boolean = false;
 
     constructor(private _notificationsService: NotificationsService) {
-        this._sessionID = TabsSessionsService.getActive().getGuid();
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(
-            this._onSessionChange.bind(this),
-        );
+        const session = TabsSessionsService.getActive();
+        if (session === undefined) {
+            throw new Error(this._logger.error(`No active session has been found`));
+        }
+        this._sessionID = session.getGuid();
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
         this._subscriptions.ShellProcessListEvent = ElectronIpcService.subscribe(
-            IPCMessages.ShellProcessListEvent,
+            IPC.ShellProcessListEvent,
             this._onListUpdate.bind(this),
         );
     }
 
     public ngOnInit() {
-        const session: Session = TabsSessionsService.getActive();
+        const session: Session | undefined = TabsSessionsService.getActive();
         if (session !== undefined) {
             this._sessionID = session.getGuid();
         } else {
@@ -58,7 +63,7 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
         });
     }
 
-    public _ng_info(process: IPCMessages.IShellProcess): IRunningProcessInfo {
+    public _ng_info(process: IPC.IShellProcess): IRunningProcessInfo {
         function getRecievedAmount(recieved: number): string {
             if (recieved < 1024) {
                 return `${recieved} bytes`;
@@ -78,13 +83,15 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
         };
     }
 
-    public _ng_onTerminate(process: IPCMessages.IShellProcess) {
-        this.service.terminate({ session: this._sessionID, guid: process.guid }, process.command ).catch((error: Error) => {
-            this._showNotification({
-                caption: 'Failed to terminate process',
-                message: this._logger.error(error.message),
+    public _ng_onTerminate(process: IPC.IShellProcess) {
+        this.service
+            .terminate({ session: this._sessionID, guid: process.guid }, process.command)
+            .catch((error: Error) => {
+                this._showNotification({
+                    caption: 'Failed to terminate process',
+                    message: this._logger.error(error.message),
+                });
             });
-        });
     }
 
     public _ng_count(): string {
@@ -95,23 +102,31 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
     private _update(guid: string) {
         if (!this._updating) {
             this._updating = true;
-            this.service.getDetails({ session: this._sessionID, guid: guid }).then((details: IPCMessages.IShellProcess) => {
-                const index: number = this._ng_running.findIndex(p => p.guid === guid);
-                if (index === -1) {
-                    return;
-                }
-                this._ng_running[index].stat = details.stat;
-                this._updating = false;
-            }).catch((err: Error) => {
-                this._logger.warn(`Fail to request details of process "${guid}" due error: ${err.message}`);
-            });
+            this.service
+                .getDetails({ session: this._sessionID, guid: guid })
+                .then((details: IPC.IShellProcess) => {
+                    const index: number = this._ng_running.findIndex((p) => p.guid === guid);
+                    if (index === -1) {
+                        return;
+                    }
+                    this._ng_running[index].stat = details.stat;
+                    this._updating = false;
+                })
+                .catch((err: Error) => {
+                    this._logger.warn(
+                        `Fail to request details of process "${guid}" due error: ${err.message}`,
+                    );
+                });
         }
     }
 
     private _restoreSession() {
+        if (this._sessionID === undefined) {
+            return;
+        }
         this.service
             .getRunning(this._sessionID)
-            .then((response: IPCMessages.ShellProcessListResponse) => {
+            .then((response: IPC.ShellProcessListResponse) => {
                 if (response.session === this._sessionID) {
                     this._ng_running = this._colored(response.processes);
                 }
@@ -121,15 +136,16 @@ export class SidebarAppShellRunningComponent implements OnDestroy, OnInit {
             });
     }
 
-    private _onListUpdate(response: IPCMessages.ShellProcessListEvent) {
+    private _onListUpdate(response: IPC.ShellProcessListEvent) {
         if (this._sessionID === response.session) {
             this._ng_running = this._colored(response.processes);
         }
     }
 
-    private _colored(processes: IPCMessages.IShellProcess[]): IPCMessages.IShellProcess[] {
-        processes.forEach((process: IPCMessages.IShellProcess) => {
-            process.meta.color = SourcesService.getSourceColor(process.meta.sourceId);
+    private _colored(processes: IPC.IShellProcess[]): IPC.IShellProcess[] {
+        processes.forEach((process: IPC.IShellProcess) => {
+            const color = SourcesService.getSourceColor(process.meta.sourceId);
+            color !== undefined && (process.meta.color = color);
         });
         return processes;
     }

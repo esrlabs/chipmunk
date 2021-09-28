@@ -465,9 +465,10 @@ export class TabsSessionsService implements IService {
         // Get session controller
         const controller: Session | ICustomTab | undefined = this._sessions.get(session);
         if (controller === undefined) {
-            return this._logger.warn(
+            this._logger.warn(
                 `Fail to destroy session "${session}" because cannot find this session.`,
             );
+            return;
         }
         this._sessions.delete(session);
         if (controller instanceof Session) {
@@ -567,7 +568,12 @@ export class TabsSessionsService implements IService {
                 if (session instanceof Session) {
                     response(new IPC.RenderSessionAddResponse({ session: session.getGuid() }));
                 } else {
-                    response(new IPC.RenderSessionAddResponse({ session: '', error: `Fail to create Session. Has been gotten ICustomTab` }));
+                    response(
+                        new IPC.RenderSessionAddResponse({
+                            session: '',
+                            error: `Fail to create Session. Has been gotten ICustomTab`,
+                        }),
+                    );
                 }
             })
             .catch((error: Error) => {

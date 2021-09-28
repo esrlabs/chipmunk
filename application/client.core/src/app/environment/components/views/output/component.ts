@@ -842,7 +842,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         const injections: Map<string, Toolkit.IComponentInjection> | undefined =
             this._getInjections(event.type);
         if (injections === undefined) {
-            return false;
+            return;
         }
         // Check is injection already exist
         if (injections.has(event.injection.id)) {
@@ -877,7 +877,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         const injections: Map<string, Toolkit.IComponentInjection> | undefined =
             this._getInjections(event.type);
         if (injections === undefined) {
-            return false;
+            return;
         }
         // Check is injection already exist
         if (!injections.has(event.id)) {

@@ -14,17 +14,14 @@ export interface IButton {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class ViewSearchControlsComponent implements AfterContentInit, OnDestroy {
-
-    @Input() public getButtons: () => IButton[];
-    @Input() public onUpdate: Observable<IButton[]>;
+    @Input() public getButtons!: () => IButton[];
+    @Input() public onUpdate!: Observable<IButton[]>;
 
     public _ng_buttons: IButton[] = [];
     private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef ) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef) {}
 
     public ngOnDestroy() {
         Object.keys(this._subscriptions).forEach((key: string) => {
@@ -48,5 +45,4 @@ export class ViewSearchControlsComponent implements AfterContentInit, OnDestroy 
         this._ng_buttons = buttons;
         this._cdRef.detectChanges();
     }
-
 }
