@@ -20,14 +20,13 @@ const CSettings = {
 };
 
 export class ServicePosition {
-
     private _position: IPositionChange | undefined;
     private _subscriptions: { [key: string]: Subscription } = {};
     private _sessionController: Session | undefined;
     private _subjects: {
-        onChange: Subject<IPositionChange>,
-        onForce: Subject<IPositionForce>,
-        onSwitch: Subject<IPositionChange>,
+        onChange: Subject<IPositionChange>;
+        onForce: Subject<IPositionForce>;
+        onSwitch: Subject<IPositionChange>;
     } = {
         onChange: new Subject<IPositionChange>(),
         onForce: new Subject<IPositionForce>(),
@@ -59,9 +58,9 @@ export class ServicePosition {
     }
 
     public getObservable(): {
-        onChange: Observable<IPositionChange>,
-        onSwitch: Observable<IPositionChange>,
-        onForce: Observable<IPositionForce>,
+        onChange: Observable<IPositionChange>;
+        onSwitch: Observable<IPositionChange>;
+        onForce: Observable<IPositionForce>;
     } {
         return {
             onChange: this._subjects.onChange.asObservable(),
@@ -102,7 +101,9 @@ export class ServicePosition {
             return;
         }
         const scope: ControllerSessionScope = this._sessionController.getScope();
-        const state: IPositionChange | undefined = scope.get<IPositionChange>(CSettings.serviceScopeKey);
+        const state: IPositionChange | undefined = scope.get<IPositionChange>(
+            CSettings.serviceScopeKey,
+        );
         if (state === undefined) {
             this._position = undefined;
         } else {
@@ -122,5 +123,4 @@ export class ServicePosition {
         const scope: ControllerSessionScope = this._sessionController.getScope();
         scope.set<IPositionChange>(CSettings.serviceScopeKey, Object.assign({}, this._position));
     }
-
 }

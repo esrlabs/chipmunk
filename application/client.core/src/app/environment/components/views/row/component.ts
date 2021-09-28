@@ -1,16 +1,34 @@
 import * as Toolkit from 'chipmunk.client.toolkit';
 
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, ViewChild, ElementRef, AfterViewInit, HostListener, ChangeDetectionStrategy } from '@angular/core';
+import {
+    Component,
+    Input,
+    AfterContentChecked,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    ViewChild,
+    ElementRef,
+    AfterViewInit,
+    HostListener,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { IBookmark } from '../../../controller/session/dependencies/bookmarks/controller.session.tab.stream.bookmarks';
-import { ControllerSessionScope, IRowNumberWidthData } from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
+import {
+    ControllerSessionScope,
+    IRowNumberWidthData,
+} from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
 import { IComponentDesc } from 'chipmunk-client-material';
 import { AOutputRenderComponent } from '../../../interfaces/interface.output.render';
 import { NotificationsService } from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from '../../../../../../../common/ipc/electron.ipc.messages/index';
 import { scheme_color_accent } from '../../../theme/colors';
 import { EParent } from '../../../services/standalone/service.output.redirections';
-import { IRowAPI, ControllerRowAPI } from '../../../controller/session/dependencies/row/controller.row.api';
+import {
+    IRowAPI,
+    ControllerRowAPI,
+} from '../../../controller/session/dependencies/row/controller.row.api';
 import { ESource } from '../../../controller/helpers/selection';
 
 import SourcesService from '../../../services/service.sources';
@@ -20,13 +38,15 @@ import OutputRedirectionsService from '../../../services/standalone/service.outp
 import ViewsEventsService from '../../../services/standalone/service.views.events';
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 
- enum ERenderType {
+enum ERenderType {
     standard = 'standard',
     external = 'external',
     columns = 'columns',
 }
 
-export interface IScope { [key: string]: any; }
+export interface IScope {
+    [key: string]: any;
+}
 
 export const CRowLengthLimit = 10000;
 
@@ -43,19 +63,19 @@ interface ITooltip {
     changeDetection: ChangeDetectionStrategy.OnPush,
     // encapsulation: ViewEncapsulation.None
 })
-
-export class ViewOutputRowComponent implements AfterContentInit, AfterContentChecked, OnDestroy, AfterViewInit {
-
-    @ViewChild('rendercomp') rendercomp: AOutputRenderComponent;
-    @ViewChild('numbernode') numbernode: ElementRef;
+export class ViewOutputRowComponent
+    implements AfterContentInit, AfterContentChecked, OnDestroy, AfterViewInit
+{
+    @ViewChild('rendercomp') rendercomp!: AOutputRenderComponent;
+    @ViewChild('numbernode') numbernode!: ElementRef;
 
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public positionInStream: number | undefined;
     @Input() public pluginId: number | undefined;
-    @Input() public parent: EParent;
-    @Input() public api: ControllerRowAPI;
+    @Input() public parent!: EParent;
+    @Input() public api!: ControllerRowAPI;
 
     public _ng_sourceName: string | undefined;
     public _ng_number: string | undefined;
@@ -76,24 +96,35 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     private _hovered: number = -1;
     private _guid: string = Toolkit.guid();
 
-    @HostListener('mouseover', ['$event', '$event.target']) onMouseIn(event: MouseEvent, target: HTMLElement) {
-        if (target === undefined || target === null) {
+    @HostListener('mouseover', ['$event', '$event.target']) onMouseIn(
+        event: MouseEvent,
+        target: HTMLElement,
+    ) {
+        const position = this._getPosition();
+        if (
+            target === undefined ||
+            target === null ||
+            this.str === undefined ||
+            position === undefined
+        ) {
             return;
         }
-        ViewsEventsService.fire().onRowHover(this._getPosition());
-        OutputParsersService.getTooltipContent(target, this.str, this._getPosition()).then((content: string | undefined) => {
-            if (content === undefined) {
-                return;
-            }
-            this._ng_tooltip = {
-                content: content,
-                top: 0,
-                left: event.clientX,
-            };
-            this._forceUpdate();
-        }).catch((err: Error) => {
-            this._logger.debug(`Fail get tooltip content due error: ${err.message}`);
-        });
+        ViewsEventsService.fire().onRowHover(position);
+        OutputParsersService.getTooltipContent(target, this.str, position)
+            .then((content: string | undefined) => {
+                if (content === undefined) {
+                    return;
+                }
+                this._ng_tooltip = {
+                    content: content,
+                    top: 0,
+                    left: event.clientX,
+                };
+                this._forceUpdate();
+            })
+            .catch((err: Error) => {
+                this._logger.debug(`Fail get tooltip content due error: ${err.message}`);
+            });
     }
 
     @HostListener('mouseout', ['$event.target']) onMouseOut() {
@@ -122,9 +153,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._forceUpdate();
     }
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notifications: NotificationsService) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {}
 
     public ngOnDestroy() {
         this._destroyed = true;
@@ -143,7 +172,10 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         }
         if (typeof this.str === 'string' && this.str.length > CRowLengthLimit) {
             const length: number = this.str.length;
-            this.str = `${this.str.substr(0, CRowLengthLimit)}... [this line has ${length} chars. It's cropped to ${CRowLengthLimit}]`;
+            this.str = `${this.str.substr(
+                0,
+                CRowLengthLimit,
+            )}... [this line has ${length} chars. It's cropped to ${CRowLengthLimit}]`;
             this._ng_error = `Row #${this._getPosition()} has length ${length} chars. Row is cropped to ${CRowLengthLimit}.`;
             this._notifications.add({
                 caption: 'Length limit',
@@ -151,23 +183,29 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 options: {
                     type: ENotificationType.warning,
                     once: true,
-                }
+                },
             });
         }
-        const sourceName: string | undefined = SourcesService.getSourceName(this.pluginId);
+        const sourceName: string | undefined =
+            this.pluginId === undefined ? undefined : SourcesService.getSourceName(this.pluginId);
         if (sourceName === undefined) {
             this._ng_sourceName = 'n/d';
         } else {
             this._ng_sourceName = sourceName;
         }
-        this._sourceMeta = SourcesService.getSourceMeta(this.pluginId);
+        this._sourceMeta =
+            this.pluginId === undefined ? undefined : SourcesService.getSourceMeta(this.pluginId);
     }
 
     public ngAfterContentChecked() {
-        if (this._getPosition().toString() === this._ng_number) {
+        const position = this._getPosition();
+        if (position === undefined) {
             return;
         }
-        this._ng_bookmarked = this.api.getBookmarks().isBookmarked(this._getPosition());
+        if (position.toString() === this._ng_number) {
+            return;
+        }
+        this._ng_bookmarked = this.api.getBookmarks().isBookmarked(position);
         if (this.str === undefined) {
             this._pending();
         } else {
@@ -180,8 +218,12 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         this._checkNumberNodeWidth();
     }
 
-    public _ng_onContextMenu(event: MouseEvent) {
-        SelectionParsersService.setContextRowNumber(this._getPosition());
+    public _ng_onContextMenu() {
+        const position = this._getPosition();
+        if (position === undefined) {
+            return;
+        }
+        SelectionParsersService.setContextRowNumber(position);
     }
 
     public _ng_getAdditionCssClass(): string {
@@ -200,7 +242,13 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public _ng_onRowSelect(event: MouseEvent) {
-        if (OutputParsersService.emitClickHandler(event.target as HTMLElement, this.str, this._getPosition())) {
+        const position = this._getPosition();
+        if (position === undefined || this.str === undefined || this.sessionId === undefined) {
+            return;
+        }
+        if (
+            OutputParsersService.emitClickHandler(event.target as HTMLElement, this.str, position)
+        ) {
             event.stopImmediatePropagation();
             event.preventDefault();
         } else {
@@ -208,41 +256,46 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 this.parent,
                 this.sessionId,
                 {
-                    output: this._getPosition(),
-                    search: this.parent === EParent.search ? this.position : undefined
+                    output: position,
+                    search: this.parent === EParent.search ? this.position : undefined,
                 },
-                this.str
+                this.str,
             );
-            if (this.pluginId === -1) {
+            if (this.pluginId === -1 || this.pluginId === undefined) {
                 return;
             }
             if (TabsSessionsService.getActive() === undefined) {
                 return;
             }
-            TabsSessionsService.getPluginAPI(this.pluginId).getViewportEventsHub().getSubject().onRowSelected.emit({
-                session: this.sessionId,
-                source: {
-                    id: this.pluginId,
-                    name: this._ng_sourceName,
-                    meta: this._sourceMeta,
-                },
-                str: this.str,
-                row: this._getPosition(),
-            });
+            const events_hub = TabsSessionsService.getPluginAPI(
+                this.pluginId,
+            ).getViewportEventsHub();
+            events_hub !== undefined &&
+                events_hub.getSubject().onRowSelected.emit({
+                    session: this.sessionId,
+                    source: {
+                        id: this.pluginId,
+                        name: this._ng_sourceName,
+                        meta: this._sourceMeta,
+                    },
+                    str: this.str,
+                    row: position,
+                });
         }
     }
 
     public _ng_onNumberClick() {
-        if (this.api === undefined) {
+        const position = this._getPosition();
+        if (position === undefined || this.api === undefined || this.pluginId === undefined) {
             return;
         }
-        if (this.api.getBookmarks().isBookmarked(this._getPosition())) {
-            this.api.getBookmarks().remove(this._getPosition());
+        if (this.api.getBookmarks().isBookmarked(position)) {
+            this.api.getBookmarks().remove(position);
             this._ng_bookmarked = false;
         } else {
             this.api.getBookmarks().add({
                 str: this.str,
-                position: this._getPosition(),
+                position: position,
                 pluginId: this.pluginId,
             });
             this._ng_bookmarked = true;
@@ -251,53 +304,85 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     public _ng_isSelected(): boolean {
-        if (this.api.getStreamOutput() === undefined) {
+        const position = this._getPosition();
+        if (
+            this.sessionId === undefined ||
+            position === undefined ||
+            this.api.getStreamOutput() === undefined
+        ) {
             return false;
         }
-        return OutputRedirectionsService.isSelected(this.sessionId, this._getPosition(), this.parent === EParent.search ? ESource.search : ESource.output);
+        return OutputRedirectionsService.isSelected(
+            this.sessionId,
+            position,
+            this.parent === EParent.search ? ESource.search : ESource.output,
+        );
     }
 
     public _ng_getRangeCssClass(): string {
-        const type = this.api.getTimestamp().getStatePositionInRange(this._getPosition());
-        return type === undefined ? (this.api.getTimestamp().getOpenRow() !== undefined ? 'opening' : '') : type;
+        const position = this._getPosition();
+        if (position === undefined) {
+            return '';
+        }
+        const type = this.api.getTimestamp().getStatePositionInRange(position);
+        return type === undefined
+            ? this.api.getTimestamp().getOpenRow() !== undefined
+                ? 'opening'
+                : ''
+            : type;
     }
 
     public _ng_getRangeStyle(): { [key: string]: string } {
-        const type = this.api.getTimestamp().getStatePositionInRange(this._getPosition());
+        const position = this._getPosition();
+        if (position === undefined) {
+            return {};
+        }
+        const type = this.api.getTimestamp().getStatePositionInRange(position);
         if (type === 'open') {
             return {};
         }
         const row = this.api.getTimestamp().getOpenRow();
-        const position: number = this._getPosition();
         const color: string | undefined = this.api.getTimestamp().getRangeColorFor(position);
         if (row === undefined) {
             return {
-                borderColor: color,
+                borderColor: color === undefined ? '' : color,
             };
         }
         if (color === undefined && this._hovered !== -1) {
-            if ((row.position < this._hovered && position >= row.position && position <= this._hovered) ||
-                (row.position > this._hovered && position <= row.position && position >= this._hovered)) {
+            if (
+                (row.position < this._hovered &&
+                    position >= row.position &&
+                    position <= this._hovered) ||
+                (row.position > this._hovered &&
+                    position <= row.position &&
+                    position >= this._hovered)
+            ) {
                 return {
                     borderColor: scheme_color_accent,
-                    borderWidth: '2px'
+                    borderWidth: '2px',
                 };
             }
         }
         return {
-            borderColor: color,
+            borderColor: color === undefined ? '' : color,
         };
     }
 
     public _ng_getRangeColor(): string | undefined {
-        return this.api.getTimestamp().getRangeColorFor(this._getPosition());
+        const position = this._getPosition();
+        if (position === undefined) {
+            return undefined;
+        }
+        return this.api.getTimestamp().getRangeColorFor(position);
     }
 
     public _ng_getTooltipStyle() {
-        return this._ng_tooltip === undefined ? {} : {
-            top: `${this._ng_tooltip.top}px`,
-            left: `${this._ng_tooltip.left}px`,
-        };
+        return this._ng_tooltip === undefined
+            ? {}
+            : {
+                  top: `${this._ng_tooltip.top}px`,
+                  left: `${this._ng_tooltip.left}px`,
+              };
     }
 
     public _ng_isRangeVisible(): boolean {
@@ -325,7 +410,8 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             },
             setBookmark(bookmark: IBookmark): void {
                 const prev: boolean = self._ng_bookmarked;
-                self._ng_bookmarked = self._getPosition() === bookmark.position ? true : self._ng_bookmarked;
+                self._ng_bookmarked =
+                    self._getPosition() === bookmark.position ? true : self._ng_bookmarked;
                 if (prev !== self._ng_bookmarked) {
                     self._forceUpdate();
                 }
@@ -339,30 +425,39 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
             },
             setHoverPosition(position: number): void {
                 self._hovered = position;
-                if (self._ng_tooltip === undefined && self.api.getTimestamp().getOpenRow() === undefined) {
+                if (
+                    self._ng_tooltip === undefined &&
+                    self.api.getTimestamp().getOpenRow() === undefined
+                ) {
                     return;
                 }
                 self._ng_tooltip = undefined;
                 self._forceUpdate();
             },
             resize(scope: ControllerSessionScope): void {
-                const info: IRowNumberWidthData | undefined = scope.get(ControllerSessionScope.Keys.CRowNumberWidth);
+                const info: IRowNumberWidthData | undefined = scope.get(
+                    ControllerSessionScope.Keys.CRowNumberWidth,
+                );
                 if (info === undefined) {
                     return;
                 }
                 if (info.checked) {
                     return;
                 }
-                scope.set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
-                    checked: true,
-                }, false);
+                scope.set<any>(
+                    ControllerSessionScope.Keys.CRowNumberWidth,
+                    {
+                        checked: true,
+                    },
+                    false,
+                );
                 self._checkNumberNodeWidth(true);
             },
             setRank(rank: number): void {
                 self._ng_number_filler = self._getNumberFiller();
                 self._forceUpdate();
                 self._checkNumberNodeWidth();
-            }
+            },
         };
     }
 
@@ -375,16 +470,24 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _render() {
-        if (this.pluginId === -1) {
+        const position = this._getPosition();
+        if (position === undefined) {
+            return;
+        }
+        if (this.pluginId === -1 || this.pluginId === undefined) {
             return;
         }
         this._ng_render = ERenderType.standard;
         this._ng_component = undefined;
         this._ng_render_api = undefined;
         this._ng_sourceColor = SourcesService.getSourceColor(this.pluginId);
-        this._ng_number = this._getPosition().toString();
+        this._ng_number = position.toString();
         this._ng_number_filler = this._getNumberFiller();
-        const render: Toolkit.ATypedRowRender<any> | undefined = OutputParsersService.getTypedRowRender(this._ng_sourceName, this._sourceMeta);
+        const render: Toolkit.ATypedRowRender<any> | undefined =
+            OutputParsersService.getTypedRowRender(
+                this._ng_sourceName === undefined ? '' : this._ng_sourceName,
+                this._sourceMeta,
+            );
         if (render === undefined) {
             this._ng_render = ERenderType.standard;
             return this._updateRenderComp();
@@ -399,7 +502,7 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
                 this._ng_component = {
                     factory: (render.getAPI() as Toolkit.ATypedRowRenderAPIExternal).getFactory(),
                     resolved: true,
-                    inputs: (render.getAPI() as Toolkit.ATypedRowRenderAPIExternal).getInputs()
+                    inputs: (render.getAPI() as Toolkit.ATypedRowRenderAPIExternal).getInputs(),
                 };
                 break;
         }
@@ -408,7 +511,11 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _pending() {
-        this._ng_number = this._getPosition().toString();
+        const position = this._getPosition();
+        if (position === undefined) {
+            return;
+        }
+        this._ng_number = position.toString();
         this._ng_number_filler = this._getNumberFiller();
         this._ng_component = undefined;
     }
@@ -422,14 +529,22 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
     }
 
     private _updateRenderComp() {
-        if (this.rendercomp === undefined || this.rendercomp === null) {
+        const position = this._getPosition();
+        if (
+            this.rendercomp === undefined ||
+            this.rendercomp === null ||
+            this.sessionId === undefined ||
+            this.str === undefined ||
+            this.pluginId === undefined ||
+            position === undefined
+        ) {
             return;
         }
         this.rendercomp.update({
             str: this.str,
             sessionId: this.sessionId,
             pluginId: this.pluginId,
-            position: this._getPosition(),
+            position: position,
             scope: this.api.getScope(),
             output: this.api.getStreamOutput(),
         });
@@ -442,21 +557,29 @@ export class ViewOutputRowComponent implements AfterContentInit, AfterContentChe
         if (this.api.getScope() === undefined) {
             return;
         }
-        const info: IRowNumberWidthData | undefined = this.api.getScope().get(ControllerSessionScope.Keys.CRowNumberWidth);
+        const info: IRowNumberWidthData | undefined = this.api
+            .getScope()
+            .get(ControllerSessionScope.Keys.CRowNumberWidth);
         if (info === undefined) {
             return;
         }
         if (info.rank === this.api.getRank() && info.width !== 0 && !force) {
             return;
         }
-        const size: ClientRect = (this.numbernode.nativeElement as HTMLElement).getBoundingClientRect();
+        const size: ClientRect = (
+            this.numbernode.nativeElement as HTMLElement
+        ).getBoundingClientRect();
         if (size.width === 0 || info.width === size.width) {
             return;
         }
-        this.api.getScope().set<any>(ControllerSessionScope.Keys.CRowNumberWidth, {
-            rank: this.api.getRank(),
-            width: size.width,
-        }, false);
+        this.api.getScope().set<any>(
+            ControllerSessionScope.Keys.CRowNumberWidth,
+            {
+                rank: this.api.getRank(),
+                width: size.width,
+            },
+            false,
+        );
         info.onChanged.next();
     }
 

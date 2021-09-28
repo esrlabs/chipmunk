@@ -1,6 +1,22 @@
-import { Component, Input, OnDestroy, AfterContentInit, ChangeDetectorRef, ElementRef, ChangeDetectionStrategy, ViewChild, AfterViewInit, HostBinding, HostListener } from '@angular/core';
+import {
+    Component,
+    Input,
+    OnDestroy,
+    AfterContentInit,
+    ChangeDetectorRef,
+    ElementRef,
+    ChangeDetectionStrategy,
+    ViewChild,
+    AfterViewInit,
+    HostListener,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ControllerSessionTabMap, IMapPoint, IMapState, IMap } from '../../../../controller/session/dependencies/map/controller.session.tab.map';
+import {
+    ControllerSessionTabMap,
+    IMapPoint,
+    IMapState,
+    IMap,
+} from '../../../../controller/session/dependencies/map/controller.session.tab.map';
 import { FilterRequest } from '../../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.storage';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
@@ -17,12 +33,10 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-
 export class ViewContentMapComponent implements OnDestroy, AfterContentInit, AfterViewInit {
+    @ViewChild('canvas') _ng_canvas!: ElementRef;
 
-    @ViewChild('canvas') _ng_canvas: ElementRef;
-
-    @Input() service: ControllerSessionTabMap;
+    @Input() service!: ControllerSessionTabMap;
 
     public _ng_width: number = 0;
     public _ng_height: number = 0;
@@ -49,15 +63,17 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
                 handler: () => {
                     this.service.expanding();
                     this._onRepaint();
-                }
+                },
             },
-            { /* Delimiter */ },
+            {
+                /* Delimiter */
+            },
             {
                 caption: this.service.isColumnsWide() ? 'Narrower Columns' : 'Wider Columns',
                 handler: () => {
                     this.service.toggleColumnWidth();
                     this._onRepaint();
-                }
+                },
             },
         ];
         ContextMenuService.show({
@@ -68,7 +84,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
     }
 
     @HostListener('click', ['$event']) public _ng_onClick(event: MouseEvent) {
-        let row: number = Math.ceil((this._state.count / this._ng_height ) * event.offsetY);
+        let row: number = Math.ceil((this._state.count / this._ng_height) * event.offsetY);
         if (row > this._state.count - 1) {
             row = this._state.count - 1;
         }
@@ -80,17 +96,27 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         this._onRepaint();
     }
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _elRef: ElementRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _elRef: ElementRef) {}
 
     public ngAfterContentInit() {
-        this._subscriptions.onMapRecalculated = this.service.getObservable().onMapRecalculated.subscribe(this._onMapRecalculated.bind(this));
-        this._subscriptions.onUpdateStateSubject = this.service.getObservable().onStateUpdate.subscribe(this._onUpdateState.bind(this));
-        this._subscriptions.onPositionUpdateSubject = this.service.getObservable().onPositionUpdate.subscribe(this._onPositionUpdate.bind(this));
-        this._subscriptions.onRepaintSubject = this.service.getObservable().onRepaint.subscribe(this._onRepaint.bind(this));
-        this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(this._onRepaint.bind(this, true));
-        this._subscriptions.onRestyleSubject = this.service.getObservable().onRestyle.subscribe(this._onRestyle.bind(this));
+        this._subscriptions.onMapRecalculated = this.service
+            .getObservable()
+            .onMapRecalculated.subscribe(this._onMapRecalculated.bind(this));
+        this._subscriptions.onUpdateStateSubject = this.service
+            .getObservable()
+            .onStateUpdate.subscribe(this._onUpdateState.bind(this));
+        this._subscriptions.onPositionUpdateSubject = this.service
+            .getObservable()
+            .onPositionUpdate.subscribe(this._onPositionUpdate.bind(this));
+        this._subscriptions.onRepaintSubject = this.service
+            .getObservable()
+            .onRepaint.subscribe(this._onRepaint.bind(this, false));
+        this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
+            this._onRepaint.bind(this, true),
+        );
+        this._subscriptions.onRestyleSubject = this.service
+            .getObservable()
+            .onRestyle.subscribe(this._onRestyle.bind(this));
         this._setState(this.service.getState());
     }
 
@@ -173,16 +199,26 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
             if (this._ng_canvas === undefined || this.service === undefined) {
                 return;
             }
-            const context: CanvasRenderingContext2D = (this._ng_canvas.nativeElement as HTMLCanvasElement).getContext('2d');
+            const context: CanvasRenderingContext2D | null = (
+                this._ng_canvas.nativeElement as HTMLCanvasElement
+            ).getContext('2d');
+            if (context === null) {
+                this._logger.error(`Fail to create 2D context of CANVAS`);
+                return;
+            }
             // Drop background
             context.fillStyle = 'rgb(0,0,0)';
             context.fillRect(0, 0, this._ng_width, this._ng_height);
             // Drawing markers
             let height: number = this._ng_height / this.service.getStreamLength();
-            height = height < this.service.getSettings().minMarkerHeight ? this.service.getSettings().minMarkerHeight : height;
-            const done: {[key: string]: boolean} = {};
+            height =
+                height < this.service.getSettings().minMarkerHeight
+                    ? this.service.getSettings().minMarkerHeight
+                    : height;
+            const done: { [key: string]: boolean } = {};
             points.forEach((point: IMapPoint) => {
-                const x: number = this._ng_width - this.service.getColumnWidth() * (1 + point.column);
+                const x: number =
+                    this._ng_width - this.service.getColumnWidth() * (1 + point.column);
                 const y: number = Math.ceil(point.position) * height - height;
                 const key: string = y + '-' + x;
                 if (done[key]) {
@@ -190,12 +226,7 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
                 }
                 context.fillStyle = point.color === '' ? 'rgb(255,0,0)' : point.color;
                 done[key] = true;
-                context.fillRect(
-                    x - 1,
-                    y,
-                    this.service.getColumnWidth() - 1,
-                    height
-                );
+                context.fillRect(x - 1, y, this.service.getColumnWidth() - 1, height);
             });
         };
         width(this._map.columns);
@@ -215,5 +246,4 @@ export class ViewContentMapComponent implements OnDestroy, AfterContentInit, Aft
         }
         this._cdRef.detectChanges();
     }
-
 }

@@ -1,6 +1,18 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ChangeDetectionStrategy } from '@angular/core';
+import {
+    Component,
+    Input,
+    AfterContentChecked,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    HostBinding,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
+import {
+    AOutputRenderComponent,
+    IOutputRenderInputs,
+} from '../../../../interfaces/interface.output.render';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
 import { ControllerRowAPI } from '../../../../controller/session/dependencies/row/controller.row.api';
 
@@ -12,20 +24,21 @@ import OutputParsersService from '../../../../services/standalone/service.output
     template: '',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-
-export class ViewOutputRowStandardComponent extends AOutputRenderComponent implements AfterContentInit, AfterContentChecked, OnDestroy {
-
+export class ViewOutputRowStandardComponent
+    extends AOutputRenderComponent
+    implements AfterContentInit, AfterContentChecked, OnDestroy
+{
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public source: string | undefined;
-    @Input() public parent: EParent;
-    @Input() public api: ControllerRowAPI;
+    @Input() public parent!: EParent;
+    @Input() public api!: ControllerRowAPI;
 
-    private _safeHtml: SafeHtml = null;
+    private _safeHtml: SafeHtml | null = null;
 
-    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
+    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef) {
         super();
     }
 
@@ -37,45 +50,52 @@ export class ViewOutputRowStandardComponent extends AOutputRenderComponent imple
             this._safeHtml = null;
             return;
         }
+        if (this.sessionId === undefined || this.str === undefined) {
+            return;
+        }
         let html = this.str;
         // Apply search matches parser
         const highlight = OutputParsersService.highlight(this.sessionId, this.str);
-        this.color = highlight.color;
-        this.background = highlight.background;
+        this.color = highlight.color === undefined ? '' : highlight.color;
+        this.background = highlight.background === undefined ? '' : highlight.background;
         // Rid of HTML
         html = OutputParsersService.serialize(html);
         // Apply plugin parser html, this.pluginId, this.source, this.position
-        html = OutputParsersService.row({
-            str: html,
-            pluginId: this.pluginId,
-            source: this.source,
-            position: this.position,
-            hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
-        }, this.parent);
+        html = OutputParsersService.row(
+            {
+                str: html,
+                pluginId: this.pluginId,
+                source: this.source,
+                position: this.position,
+                hasOwnStyles: highlight.color !== undefined || highlight.background !== undefined,
+            },
+            this.parent,
+        );
         // Generate html
         this._safeHtml = this._sanitizer.bypassSecurityTrustHtml(html);
     }
 
     get html() {
-        return this._safeHtml;
+        return this._safeHtml === null ? '' : this._safeHtml;
     }
 
-    public ngOnDestroy() {
-    }
+    public ngOnDestroy() {}
 
     public ngAfterContentInit() {
-        this.html = this.str;
+        if (this.str !== undefined) {
+            this.html = this.str;
+        }
     }
 
-    public ngAfterContentChecked() {
-
-    }
+    public ngAfterContentChecked() {}
 
     public update(inputs: IOutputRenderInputs): void {
+        if (this.str === undefined) {
+            return;
+        }
         Object.keys(inputs).forEach((key: string) => {
-            (this as any)[key] = inputs[key];
+            (this as any)[key] = (inputs as any)[key];
         });
         this.html = this.str;
     }
-
 }

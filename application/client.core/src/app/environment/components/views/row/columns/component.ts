@@ -1,6 +1,19 @@
-import { Component, Input, AfterContentChecked, OnDestroy, ChangeDetectorRef, AfterContentInit, HostBinding, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
+import {
+    Component,
+    Input,
+    AfterContentChecked,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    HostBinding,
+    ViewEncapsulation,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { AOutputRenderComponent, IOutputRenderInputs } from '../../../../interfaces/interface.output.render';
+import {
+    AOutputRenderComponent,
+    IOutputRenderInputs,
+} from '../../../../interfaces/interface.output.render';
 import { ControllerColumns, IColumn } from './controller.columns';
 import { Subscription } from 'rxjs';
 import { Session } from '../../../../controller/session/session';
@@ -16,7 +29,7 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 interface IAPI {
     getHeaders(): string[];
     getDelimiter(): string;
-    getDefaultWidths(): Array<{ width: number, min: number }>;
+    getDefaultWidths(): Array<{ width: number; min: number }>;
 }
 
 const CControllerColumnsKey = 'row.columns.service';
@@ -26,28 +39,29 @@ const CControllerColumnsKey = 'row.columns.service';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
 })
-
-export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implements AfterContentInit, AfterContentChecked, OnDestroy {
-
+export class ViewOutputRowColumnsComponent
+    extends AOutputRenderComponent
+    implements AfterContentInit, AfterContentChecked, OnDestroy
+{
     @Input() public str: string | undefined;
     @Input() public sessionId: string | undefined;
     @Input() public position: number | undefined;
     @Input() public pluginId: number | undefined;
     @Input() public source: string | undefined;
     @Input() public render: IAPI | undefined;
-    @Input() public api: ControllerRowAPI;
-    @Input() public parent: EParent;
+    @Input() public api!: ControllerRowAPI;
+    @Input() public parent!: EParent;
 
-    public _ng_columns: Array<{ html: SafeHtml, index: number }> = [];
+    public _ng_columns: Array<{ html: SafeHtml; index: number }> = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _columns: IColumn[] = [];
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewOutputRowColumnsComponent');
     private _destroyed: boolean = false;
 
-    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef ) {
+    constructor(private _sanitizer: DomSanitizer, private _cdRef: ChangeDetectorRef) {
         super();
     }
 
@@ -67,8 +81,12 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         if (controller === undefined) {
             return;
         }
-        this._subscriptions.onResized = controller.getObservable().onResized.subscribe(this._onResized.bind(this));
-        this._subscriptions.onUpdated = controller.getObservable().onUpdated.subscribe(this._onUpdated.bind(this));
+        this._subscriptions.onResized = controller
+            .getObservable()
+            .onResized.subscribe(this._onResized.bind(this));
+        this._subscriptions.onUpdated = controller
+            .getObservable()
+            .onUpdated.subscribe(this._onUpdated.bind(this));
         // Get widths
         this._columns = controller.getColumns();
         // Render
@@ -77,23 +95,23 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         this._headers();
     }
 
-    public ngAfterContentChecked() {
-
-    }
+    public ngAfterContentChecked() {}
 
     public update(inputs: IOutputRenderInputs): void {
         Object.keys(inputs).forEach((key: string) => {
-            (this as any)[key] = inputs[key];
+            (this as any)[key] = (inputs as any)[key];
         });
         this._render();
         this._forceUpdate();
     }
 
     public _ng_getStyles(key: number): { [key: string]: string } {
-        return this._ng_isVisible(key) ? {
-            width: `${this._columns[key].width}px`,
-            color: this.color === undefined ? this._columns[key].color : this.color,
-        } : { };
+        return this._ng_isVisible(key)
+            ? {
+                  width: `${(this._columns as any)[key].width}px`,
+                  color: this.color === undefined ? (this._columns as any)[key].color : this.color,
+              }
+            : {};
     }
 
     public _ng_isVisible(index: number): boolean {
@@ -101,33 +119,42 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     }
 
     private _render() {
+        if (this.sessionId === undefined || this.str === undefined) {
+            return;
+        }
         if (this.pluginId === -1) {
             this._ng_columns = [];
             return;
         }
-        this.color = undefined;
-        this.background = undefined;
+        this.color = '';
+        this.background = '';
         let html = this.str;
         // Apply search matches parser
         const highlight = OutputParsersService.highlight(this.sessionId, this.str);
-        this.color = highlight.color;
-        this.background = highlight.background;
+        this.color = highlight.color === undefined ? '' : highlight.color;
+        this.background = highlight.background === undefined ? '' : highlight.background;
         // Rid of HTML
         html = OutputParsersService.serialize(html);
         // Apply plugin parser html, this.pluginId, this.source, this.position
-        html = OutputParsersService.row({
-            str: html,
-            pluginId: this.pluginId,
-            source: this.source,
-            position: this.position,
-            hasOwnStyles: (highlight.color !== undefined) || (highlight.background !== undefined),
-        }, this.parent);
+        html = OutputParsersService.row(
+            {
+                str: html,
+                pluginId: this.pluginId,
+                source: this.source,
+                position: this.position,
+                hasOwnStyles: highlight.color !== undefined || highlight.background !== undefined,
+            },
+            this.parent,
+        );
         this._ng_columns = this._parse(html)
-//            .filter(c => this._columns[c.index] && this._columns[c.index].visible)
-            .map(c => ({ html: this._sanitizer.bypassSecurityTrustHtml(c.html), index: c.index }));
+            //            .filter(c => this._columns[c.index] && this._columns[c.index].visible)
+            .map((c) => ({
+                html: this._sanitizer.bypassSecurityTrustHtml(c.html),
+                index: c.index,
+            }));
     }
 
-    private _parse(html: string): Array<{ html: string, index: number }> {
+    private _parse(html: string): Array<{ html: string; index: number }> {
         function getStrUntilChar(str: string): string | Error {
             const index: number = str.search('>');
             if (index === -1) {
@@ -137,11 +164,16 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         }
         function getTagName(str: string): string | Error {
             const index: number = str.search(/[>\s]/gi);
-            return index === -1 ? new Error(`Fail to find closing tag symbol ">"`) : str.substring(0, index).replace(/[^\w\d_-]/gi, '');
+            return index === -1
+                ? new Error(`Fail to find closing tag symbol ">"`)
+                : str.substring(0, index).replace(/[^\w\d_-]/gi, '');
+        }
+        if (this.render === undefined) {
+            return [];
         }
         let chunk = '';
-        const tags: Array<{ value: string, name: string }> = [];
-        const columns: Array<{ html: string, index: number }> = [];
+        const tags: Array<{ value: string; name: string }> = [];
+        const columns: Array<{ html: string; index: number }> = [];
         const delimiter: string = this.render.getDelimiter();
         let cNum: number = 0;
         try {
@@ -152,9 +184,13 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                         case '<':
                             // Some tag is opened
                             if (pos + 1 > html.length) {
-                                throw new Error(`Open/close tag symbol "<" has been found at the end of string`);
+                                throw new Error(
+                                    `Open/close tag symbol "<" has been found at the end of string`,
+                                );
                             }
-                            const tag: string | Error = getStrUntilChar(html.substring(pos, html.length));
+                            const tag: string | Error = getStrUntilChar(
+                                html.substring(pos, html.length),
+                            );
                             if (tag instanceof Error) {
                                 throw tag;
                             }
@@ -178,11 +214,11 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                         case '>':
                             throw new Error(`">" has been found unexpectable`);
                         case delimiter:
-                            chunk += tags.map(t => `</${t.name}>`).join('');
+                            chunk += tags.map((t) => `</${t.name}>`).join('');
                             chunk += delimiter;
                             columns.push({ html: chunk, index: cNum });
                             cNum += 1;
-                            chunk = tags.map(t => t.value).join('');
+                            chunk = tags.map((t) => t.value).join('');
                             pos += 1;
                             break;
                     }
@@ -195,21 +231,27 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
                 columns.push({ html: chunk, index: cNum });
             }
         } catch (err) {
-            this._logger.warn(`Fail to process columns row view due error: ${err.message}`);
+            this._logger.warn(
+                `Fail to process columns row view due error: ${
+                    err instanceof Error ? err.message : err
+                }`,
+            );
             return [];
         }
         return columns;
     }
 
     private _getControllerColumns(): ControllerColumns | undefined {
-        if (this.api === undefined) {
+        if (this.api === undefined || this.render === undefined) {
             return undefined;
         }
-        let controller: ControllerColumns | undefined = this.api.getScope().get<ControllerColumns>(CControllerColumnsKey);
+        let controller: ControllerColumns | undefined = this.api
+            .getScope()
+            .get<ControllerColumns>(CControllerColumnsKey);
         if (!(controller instanceof ControllerColumns)) {
             controller = new ControllerColumns(
                 this.render.getDefaultWidths(),
-                this.render.getHeaders()
+                this.render.getHeaders(),
             );
             this.api.getScope().set(CControllerColumnsKey, controller);
         }
@@ -230,19 +272,23 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
     private _headers() {
         const headerScopeValue: boolean | undefined = this.api.getScope().get(CColumnsHeadersKey);
         const headersState: boolean = headerScopeValue === undefined ? false : headerScopeValue;
-        if (headersState) {
+        const session: Session | undefined = TabsSessionsService.getActive();
+        if (headersState || session === undefined) {
             return;
         }
-        const session: Session = TabsSessionsService.getActive();
-        session.addOutputInjection({
-            factory: ViewOutputRowColumnsHeadersComponent,
-            resolved: false,
-            id: CColumnsHeadersKey,
-            inputs: {
-                controller: this._getControllerColumns(),
-                api: this.api,
-            }
-        }, Toolkit.EViewsTypes.outputTop, true);
+        session.addOutputInjection(
+            {
+                factory: ViewOutputRowColumnsHeadersComponent,
+                resolved: false,
+                id: CColumnsHeadersKey,
+                inputs: {
+                    controller: this._getControllerColumns(),
+                    api: this.api,
+                },
+            },
+            Toolkit.EViewsTypes.outputTop,
+            true,
+        );
         this.api.getScope().set(CColumnsHeadersKey, true);
     }
 
@@ -252,5 +298,4 @@ export class ViewOutputRowColumnsComponent extends AOutputRenderComponent implem
         }
         this._cdRef.detectChanges();
     }
-
 }

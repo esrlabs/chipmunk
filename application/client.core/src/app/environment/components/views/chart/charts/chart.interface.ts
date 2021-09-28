@@ -1,4 +1,4 @@
-import { IPCMessages } from '../../../../services/service.electron.ipc';
+import { IPC } from '../../../../services/service.electron.ipc';
 
 export enum EChartType {
     stepped = 'stepped',
@@ -17,11 +17,10 @@ export interface IResults {
 
 export interface IChartDatasetAPI {
     getColor: (source: string) => string | undefined;
-    getOptions: (source: string) => IOptionsObj;
+    getOptions: (source: string) => IOptionsObj | undefined;
     getLeftPoint: (reg: string, begin: number) => number | undefined;
     getRightPoint: (reg: string, begin: number, previous: boolean) => number | undefined;
 }
-
 
 export enum EOptionType {
     input = 'input',
@@ -36,7 +35,7 @@ export interface IOptionInput {
 }
 
 export interface IOptionList {
-    items: Array<{ caption: string, value: any }>;
+    items: Array<{ caption: string; value: any }>;
     value: string | number;
 }
 
@@ -59,20 +58,18 @@ export interface IOptionsObj {
 }
 
 export abstract class AChart {
-
     abstract getDataset(
         filter: string,
-        matches: IPCMessages.IChartMatch[],
+        matches: IPC.IChartMatch[],
         api: IChartDatasetAPI,
         width: number,
         range: IRange,
         preview: boolean,
-    ): { dataset: { [key: string]: any }, max: number, min: number };
+    ): { dataset: { [key: string]: any }; max: number; min: number };
 
     abstract getOptions(opt: IOptionsObj): IOption[];
 
     abstract getDefaultsOptions(opt?: IOptionsObj): IOptionsObj;
 
     abstract setOption(opt: IOptionsObj, option: IOption): IOptionsObj;
-
 }

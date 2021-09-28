@@ -1,8 +1,18 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, AfterViewInit, ViewContainerRef } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    AfterContentInit,
+    AfterViewInit,
+    ViewContainerRef,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Session } from '../../../controller/session/session';
 import { ControllerSessionScope } from '../../../controller/session/dependencies/scope/controller.session.tab.scope';
-import { NotificationsService, INotification } from '../../../services.injectable/injectable.service.notifications';
+import {
+    NotificationsService,
+    INotification,
+} from '../../../services.injectable/injectable.service.notifications';
 import { ENotificationType } from 'chipmunk.client.toolkit';
 import { sortPairs, IPair } from '../../../thirdparty/code/engine';
 import { INotificationData } from './notification/component';
@@ -27,8 +37,17 @@ interface ISummary {
 }
 
 const CLogLevels: { [key: string]: ENotificationType[] } = {
-    [ENotificationType.info]: [ENotificationType.info, ENotificationType.accent, ENotificationType.warning, ENotificationType.error],
-    [ENotificationType.accent]: [ENotificationType.accent, ENotificationType.warning, ENotificationType.error],
+    [ENotificationType.info]: [
+        ENotificationType.info,
+        ENotificationType.accent,
+        ENotificationType.warning,
+        ENotificationType.error,
+    ],
+    [ENotificationType.accent]: [
+        ENotificationType.accent,
+        ENotificationType.warning,
+        ENotificationType.error,
+    ],
     [ENotificationType.warning]: [ENotificationType.warning, ENotificationType.error],
     [ENotificationType.error]: [ENotificationType.error],
 };
@@ -38,11 +57,11 @@ const CStateKey = 'notifications-state-key';
 @Component({
     selector: 'app-sidebar-app-notifications',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
-
-export class SidebarAppNotificationsComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
+export class SidebarAppNotificationsComponent
+    implements OnDestroy, AfterContentInit, AfterViewInit
+{
     public _ng_session: string | undefined = undefined;
     public _ng_notifications: INotificationData[] = [];
     public _ng_filter: string = '';
@@ -59,11 +78,18 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppNotificationsComponent');
     private _destroyed: boolean = false;
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef,
-                private _notifications: NotificationsService) {
-        this._subscriptions.onSessionChange = EventsSessionService.getObservable().onSessionChange.subscribe(this._onSessionChange.bind(this));
-        this._subscriptions.onNewNotification = this._notifications.getObservable().new.subscribe(this._onNewNotification.bind(this));
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _vcRef: ViewContainerRef,
+        private _notifications: NotificationsService,
+    ) {
+        this._subscriptions.onSessionChange =
+            EventsSessionService.getObservable().onSessionChange.subscribe(
+                this._onSessionChange.bind(this),
+            );
+        this._subscriptions.onNewNotification = this._notifications
+            .getObservable()
+            .new.subscribe(this._onNewNotification.bind(this));
         this._ng_onFilterChange = this._ng_onFilterChange.bind(this);
     }
 
@@ -73,7 +99,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
             this._subscriptions[key].unsubscribe();
         });
         this._saveState();
-    }
+    }
 
     public ngAfterContentInit() {
         const session: Session | undefined = TabsSessionsService.getActive();
@@ -84,9 +110,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         this._loadState();
     }
 
-    public ngAfterViewInit() {
-
-    }
+    public ngAfterViewInit() {}
 
     public _ng_contextMenu(event: MouseEvent) {
         const items: IMenuItem[] = [
@@ -96,7 +120,9 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
                     this._setLogLevel(undefined);
                 },
             },
-            { /* delimiter */ },
+            {
+                /* delimiter */
+            },
             {
                 caption: `Important`,
                 handler: () => {
@@ -115,7 +141,9 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
                     this._setLogLevel(ENotificationType.error);
                 },
             },
-            { /* delimiter */ },
+            {
+                /* delimiter */
+            },
             {
                 caption: `Clear All`,
                 handler: () => {
@@ -141,7 +169,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         this._ng_notifications = [];
         this._ng_filter = '';
         this._ng_selected = undefined;
-        this._notifications.clear(this._ng_session);
+        this._ng_session !== undefined && this._notifications.clear(this._ng_session);
         this._ng_summary = this._getSummary();
         this._forceUpdate();
     }
@@ -163,38 +191,58 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
     }
 
     private _getNotifications(): INotificationData[] {
-        const notifications: INotification[] = this._notifications.get(this._ng_session);
-        if (this._ng_filter === '') {
-            return this._filterLogLevel(notifications.map((notification: INotification) => {
-                return {
-                    notification: notification,
-                    match: {
-                        caption: notification.caption,
-                        message: notification.message,
-                    }
-                };
-            }));
+        if (this._ng_session === undefined) {
+            return [];
         }
-        const pairs: IPair[] = notifications.map((notification: INotification) => {
-            return {
-                id: notification.id,
-                caption: notification.caption,
-                description: notification.message,
-            };
-        });
+        const notifications: INotification[] | undefined = this._notifications.get(
+            this._ng_session,
+        );
+        if (notifications === undefined) {
+            return [];
+        }
+        if (this._ng_filter === '') {
+            return this._filterLogLevel(
+                notifications
+                    .map((notification: INotification) => {
+                        if (notification.message === undefined) {
+                            return null;
+                        }
+                        return {
+                            notification: notification,
+                            match: {
+                                caption: notification.caption,
+                                message: notification.message,
+                            },
+                        };
+                    })
+                    .filter((n) => n !== null) as INotificationData[],
+            );
+        }
+        const pairs: IPair[] = notifications
+            .map((notification: INotification) => {
+                if (notification.id === undefined) {
+                    return null;
+                }
+                return {
+                    id: notification.id,
+                    caption: notification.caption,
+                    description: notification.message,
+                };
+            })
+            .filter((n) => n !== null) as IPair[];
         const scored = sortPairs(pairs, this._ng_filter, this._ng_filter !== '', 'span');
         const sorted: INotificationData[] = [];
         scored.forEach((s: IPair) => {
-            const found: INotification | undefined = notifications.find(p => p.id === s.id);
+            const found: INotification | undefined = notifications.find((p) => p.id === s.id);
             if (found === undefined) {
                 return;
             }
             sorted.push({
                 notification: found,
                 match: {
-                    caption: s.tcaption,
-                    message: s.tdescription,
-                }
+                    caption: s.tcaption === undefined ? s.caption : s.tcaption,
+                    message: s.tdescription === undefined ? s.description : s.tdescription,
+                },
             });
         });
         return this._filterLogLevel(sorted);
@@ -205,7 +253,10 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
             return notifications;
         }
         return notifications.filter((data: INotificationData) => {
-            return CLogLevels[this._level].indexOf(data.notification.options.type) !== -1;
+            if (this._level === undefined) {
+                return false;
+            }
+            return CLogLevels[this._level].indexOf((data as any).notification.options.type) !== -1;
         });
     }
 
@@ -242,7 +293,7 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         const scope: ControllerSessionScope = session.getScope();
         scope.set<IState>(CStateKey, {
             filter: this._ng_filter,
-            level: this._level
+            level: this._level,
         });
     }
 
@@ -277,14 +328,20 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
     }
 
     private _getSummary(): ISummary {
-        const notifications: INotification[] = this._notifications.get(this._ng_session);
         const summary: ISummary = {
             info: 0,
             accent: 0,
             warning: 0,
             error: 0,
         };
+        if (this._ng_session === undefined) {
+            return summary;
+        }
+        const notifications: INotification[] = this._notifications.get(this._ng_session);
         notifications.forEach((notification: INotification) => {
+            if (notification.options === undefined) {
+                return;
+            }
             summary.info += notification.options.type === ENotificationType.info ? 1 : 0;
             summary.accent += notification.options.type === ENotificationType.accent ? 1 : 0;
             summary.warning += notification.options.type === ENotificationType.warning ? 1 : 0;
@@ -299,5 +356,4 @@ export class SidebarAppNotificationsComponent implements OnDestroy, AfterContent
         }
         this._cdRef.detectChanges();
     }
-
 }

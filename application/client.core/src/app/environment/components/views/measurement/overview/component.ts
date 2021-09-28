@@ -1,4 +1,14 @@
-import { Component, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, AfterContentInit, AfterViewInit, ViewContainerRef, Input } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    ViewChild,
+    ElementRef,
+    AfterContentInit,
+    AfterViewInit,
+    ViewContainerRef,
+    Input,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Chart } from 'chart.js';
 import { DataService, EChartMode } from '../service.data';
@@ -10,22 +20,22 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-views-measurement-overview',
     templateUrl: './template.html',
-    styleUrls: ['./styles.less']
+    styleUrls: ['./styles.less'],
 })
+export class ViewMeasurementOverviewComponent
+    implements OnDestroy, AfterContentInit, AfterViewInit
+{
+    @Input() service!: DataService;
 
-export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContentInit, AfterViewInit {
-
-    @Input() service: DataService;
-
-    @ViewChild('canvas', { static: true }) _ng_canvas: ElementRef<HTMLCanvasElement>;
+    @ViewChild('canvas', { static: true }) _ng_canvas!: ElementRef<HTMLCanvasElement>;
 
     readonly CHART_UPDATE_DURATION: number = 60;
 
-    public _ng_mode: EChartMode;
+    public _ng_mode: EChartMode = EChartMode.aligned;
 
     private _heights: {
-        container: number,
-        charts: number,
+        container: number;
+        charts: number;
     } = {
         container: 0,
         charts: 0,
@@ -34,18 +44,16 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewMeasurementOverviewComponent');
     private _destroy: boolean = false;
     private _chart: {
-        instance?: Chart,
-        update: number,
-        timer: any,
+        instance?: Chart;
+        update: number;
+        timer: any;
     } = {
         instance: undefined,
         update: 0,
         timer: undefined,
     };
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _vcRef: ViewContainerRef) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {}
 
     public ngOnDestroy() {
         this._destroy = true;
@@ -56,21 +64,20 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
             this._chart.instance.destroy();
             this._chart.instance = undefined;
         }
-    }
-
-    public ngAfterContentInit() {
     }
 
+    public ngAfterContentInit() {}
+
     public ngAfterViewInit() {
-        this._subscriptions.update = this.service.getObservable().update.subscribe(
-            this._onChartDataUpdate.bind(this),
-        );
-        this._subscriptions.change = this.service.getObservable().change.subscribe(
-            this._onChartDataChange.bind(this),
-        );
-        this._subscriptions.mode = this.service.getObservable().mode.subscribe(
-            this._setChartMode.bind(this),
-        );
+        this._subscriptions.update = this.service
+            .getObservable()
+            .update.subscribe(this._onChartDataUpdate.bind(this));
+        this._subscriptions.change = this.service
+            .getObservable()
+            .change.subscribe(this._onChartDataChange.bind(this));
+        this._subscriptions.mode = this.service
+            .getObservable()
+            .mode.subscribe(this._setChartMode.bind(this));
         this._subscriptions.onResize = ViewsEventsService.getObservable().onResize.subscribe(
             this._resize.bind(this),
         );
@@ -90,7 +97,7 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
                     datasets: data.datasets,
                 },
                 options: {
-                     tooltips: {
+                    tooltips: {
                         enabled: false,
                     },
                     title: {
@@ -100,46 +107,53 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
                         display: false,
                     },
                     hover: {
-                        animationDuration: 0
+                        animationDuration: 0,
                     },
                     responsiveAnimationDuration: 0,
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        xAxes: [{
-                            gridLines: {
-                                display: false
+                        xAxes: [
+                            {
+                                gridLines: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    display: false,
+                                    min: this.service.getMinXAxe(false),
+                                    max: this.service.getMaxXAxe(false),
+                                },
                             },
-                            ticks: {
-                                display: false,
-                                min: this.service.getMinXAxe(false),
-                                max: this.service.getMaxXAxe(false),
+                        ],
+                        yAxes: [
+                            {
+                                gridLines: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    display: false,
+                                    min: 0,
+                                    max: (data.maxY === undefined ? 0 : data.maxY) + 1,
+                                    beginAtZero: true,
+                                    stepSize: 1,
+                                    maxTicksLimit: 100,
+                                },
                             },
-                        }],
-                        yAxes: [{
-                            gridLines: {
-                                display: false
-                            },
-                            ticks: {
-                                display: false,
-                                min: 0,
-                                max: data.maxY + 1,
-                                beginAtZero: true,
-                                stepSize: 1,
-                                maxTicksLimit: 100,
-                            },
-                        }],
+                        ],
                     },
                     animation: {
                         duration: 0,
-                    }
-                }
+                    },
+                },
             });
         } else {
             this._chart.instance.data.datasets = data.datasets;
-            this._chart.instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe(false);
-            this._chart.instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe(false);
-            this._chart.instance.options.scales.yAxes[0].ticks.max = data.maxY + 1;
+            (this._chart as any).instance.options.scales.xAxes[0].ticks.min =
+                this.service.getMinXAxe(false);
+            (this._chart as any).instance.options.scales.xAxes[0].ticks.max =
+                this.service.getMaxXAxe(false);
+            (this._chart as any).instance.options.scales.yAxes[0].ticks.max =
+                (data.maxY === undefined ? 0 : data.maxY) + 1;
         }
         this._resize();
     }
@@ -162,7 +176,9 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
     }
 
     private _resize() {
-        this._heights.container = (this._vcRef.element.nativeElement as HTMLElement).getBoundingClientRect().height;
+        this._heights.container = (
+            this._vcRef.element.nativeElement as HTMLElement
+        ).getBoundingClientRect().height;
         this._chartResizeUpdate();
         this._forceUpdate();
     }
@@ -175,7 +191,8 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
         if (this._chart.update === 0) {
             this._chart.update = Date.now();
         }
-        const duration: number = this.CHART_UPDATE_DURATION - Math.abs(Date.now() - this._chart.update);
+        const duration: number =
+            this.CHART_UPDATE_DURATION - Math.abs(Date.now() - this._chart.update);
         if (duration <= 0) {
             this._chart.instance.update();
             this._chart.instance.resize();
@@ -192,5 +209,4 @@ export class ViewMeasurementOverviewComponent implements OnDestroy, AfterContent
         }
         this._cdRef.detectChanges();
     }
-
 }

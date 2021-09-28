@@ -2,10 +2,13 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Session, IStreamState } from '../../../controller/session/session';
 import { ChartRequest } from '../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { FilterRequest } from '../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
-import { IMapState, IMapPoint } from '../../../controller/session/dependencies/map/controller.session.tab.map';
+import {
+    IMapState,
+    IMapPoint,
+} from '../../../controller/session/dependencies/map/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { AChart } from './charts/charts';
-import { IPCMessages } from '../../../services/service.electron.ipc';
+import { IPC } from '../../../services/service.electron.ipc';
 import { scheme_color_accent } from '../../../theme/colors';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
@@ -44,7 +47,7 @@ export class ServiceData {
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
     private _sessionController: Session | undefined;
     private _stream: IStreamState | undefined;
-    private _charts: IPCMessages.TChartResults = {};
+    private _charts: IPC.TChartResults = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger(`Charts ServiceData`);
     private _scale: IScaleState = {
         min: [],
@@ -55,11 +58,11 @@ export class ServiceData {
     };
     private _subjects: {
         onData: Subject<void>;
-        onCharts: Subject<IPCMessages.TChartResults>;
+        onCharts: Subject<IPC.TChartResults>;
         onChartsScaleType: Subject<EScaleType>;
     } = {
         onData: new Subject<void>(),
-        onCharts: new Subject<IPCMessages.TChartResults>(),
+        onCharts: new Subject<IPC.TChartResults>(),
         onChartsScaleType: new Subject<EScaleType>(),
     };
 
@@ -73,7 +76,7 @@ export class ServiceData {
 
     public getObservable(): {
         onData: Observable<void>;
-        onCharts: Observable<IPCMessages.TChartResults>;
+        onCharts: Observable<IPC.TChartResults>;
         onChartsScaleType: Observable<EScaleType>;
     } {
         return {
@@ -119,6 +122,9 @@ export class ServiceData {
 
     public getDatasets(width: number, range?: IRange): Promise<IResults> {
         return new Promise((resolve, reject) => {
+            if (this._sessionController === undefined) {
+                return reject(new Error(this._logger.error(`Session controller isn't defined`)));
+            }
             if (this._stream === undefined) {
                 return resolve({ dataset: [], max: undefined, min: undefined });
             }
@@ -131,44 +137,58 @@ export class ServiceData {
                     end: this._stream.count,
                 };
             }
-            this._sessionController.getStreamMap().getMatchesMap(width, range).then((map) => {
-                const dss: any = {};
-                const indexes: number[] = Object.keys(map).map(k => typeof k !== 'number' ? parseInt(k, 10) : k);
-                const count: number = indexes.length;
-                let max: number = -1;
-                indexes.forEach((key: number) => {
-                    const matches: { [key: string]: number } = map[key];
-                    Object.keys(matches).forEach((match: string) => {
-                        if (dss[match] === undefined) {
-                            dss[match] = new Array(Math.round(count)).fill(0);
-                        }
-                        dss[match][key] = matches[match];
-                        if (matches[match] > max) {
-                            max = matches[match];
-                        }
+            this._sessionController
+                .getStreamMap()
+                .getMatchesMap(width, range)
+                .then((map) => {
+                    const dss: any = {};
+                    const indexes: number[] = Object.keys(map).map((k) =>
+                        typeof k !== 'number' ? parseInt(k, 10) : k,
+                    );
+                    const count: number = indexes.length;
+                    let max: number = -1;
+                    indexes.forEach((key: number) => {
+                        const matches: { [key: string]: number } = map[key];
+                        Object.keys(matches).forEach((match: string) => {
+                            if (dss[match] === undefined) {
+                                dss[match] = new Array(Math.round(count)).fill(0);
+                            }
+                            dss[match][key] = matches[match];
+                            if (matches[match] > max) {
+                                max = matches[match];
+                            }
+                        });
                     });
+                    const datasets: any[] = [];
+                    Object.keys(dss).forEach((filter: string) => {
+                        const smth: FilterRequest | ChartRequest | undefined =
+                            this._getFilterOrChart(filter);
+                        let color: string = scheme_color_accent;
+                        if (smth !== undefined) {
+                            color =
+                                smth instanceof FilterRequest
+                                    ? smth.getBackground()
+                                    : smth.getColor();
+                        }
+                        const dataset = {
+                            barPercentage: 1,
+                            categoryPercentage: 1,
+                            label: filter,
+                            backgroundColor: color,
+                            showLine: false,
+                            data: dss[filter],
+                        };
+                        datasets.push(dataset);
+                    });
+                    resolve({ dataset: datasets, max: max, min: undefined });
+                })
+                .catch((err: Error) => {
+                    reject(
+                        new Error(
+                            this._logger.warn(`Fail to get dataset due error: ${err.message}`),
+                        ),
+                    );
                 });
-                const datasets = [];
-                Object.keys(dss).forEach((filter: string) => {
-                    const smth: FilterRequest | ChartRequest | undefined = this._getFilterOrChart(filter);
-                    let color: string = scheme_color_accent;
-                    if (smth !== undefined) {
-                        color = smth instanceof FilterRequest ? smth.getBackground() : smth.getColor();
-                    }
-                    const dataset = {
-                        barPercentage: 1,
-                        categoryPercentage: 1,
-                        label: filter,
-                        backgroundColor: color,
-                        showLine: false,
-                        data: dss[filter],
-                    };
-                    datasets.push(dataset);
-                });
-                resolve({ dataset: datasets, max: max, min: undefined });
-            }).catch((err: Error) => {
-                reject(new Error(this._logger.warn(`Fail to get dataset due error: ${err.message}`)));
-            });
         });
     }
 
@@ -181,8 +201,8 @@ export class ServiceData {
             return {
                 dataset: [],
                 scale: {
-                    max: undefined,
-                    min: undefined,
+                    max: [],
+                    min: [],
                     yAxisIDs: [],
                     type: this._scale.type,
                     colors: [],
@@ -193,15 +213,15 @@ export class ServiceData {
             return {
                 dataset: [],
                 scale: {
-                    max: undefined,
-                    min: undefined,
+                    max: [],
+                    min: [],
                     yAxisIDs: [],
                     type: this._scale.type,
                     colors: [],
                 },
             };
         }
-        const datasets = [];
+        const datasets: any[] = [];
         const max: number[] = [];
         const min: number[] = [];
         const colors: Array<string | undefined> = [];
@@ -218,7 +238,7 @@ export class ServiceData {
                 this._logger.error(`[datasets] Fail to find a chart with source "${filter}"`);
                 return;
             }
-            const matches: IPCMessages.IChartMatch[] = this._charts[filter];
+            const matches: IPC.IChartMatch[] = this._charts[filter];
             const controller: AChart | undefined = ChartsControllers[chart.getType()];
             if (controller === undefined) {
                 this._logger.error(`Fail get controller for chart "${chart.getType()}"`);
@@ -240,7 +260,7 @@ export class ServiceData {
                     getRightPoint: this._getRightBorderChartDS.bind(this),
                 },
                 width,
-                range,
+                range as IRange,
                 preview,
             );
 
@@ -282,6 +302,10 @@ export class ServiceData {
     }
 
     public hasData(): boolean {
+        if (this._sessionController === undefined) {
+            this._logger.error(`Session controller isn't defined`);
+            return false;
+        }
         if (this._stream === undefined || this._stream.count === 0) {
             return false;
         }
@@ -386,9 +410,7 @@ export class ServiceData {
             .getObservable()
             .onChartsUpdated.subscribe(this._onChartsUpdated.bind(this));
         // Get default data
-        this._stream = controller
-            .getStreamOutput()
-            .getState();
+        this._stream = controller.getStreamOutput().getState();
         this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
         this._subjects.onData.next();
         this._subjects.onCharts.next();
@@ -398,7 +420,7 @@ export class ServiceData {
         this._subjects.onData.next();
     }
 
-    private _onSearchStateUpdated(state) {
+    private _onSearchStateUpdated() {
         this._subjects.onData.next();
     }
 
@@ -412,7 +434,7 @@ export class ServiceData {
         this._subjects.onData.next();
     }
 
-    private _onChartsResultsUpdated(charts: IPCMessages.TChartResults) {
+    private _onChartsResultsUpdated(charts: IPC.TChartResults) {
         this._charts = charts;
         this._subjects.onCharts.next();
     }
@@ -423,13 +445,13 @@ export class ServiceData {
     }
 
     private _getLeftBorderChartDS(reg: string, begin: number): number | undefined {
-        const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
+        const matches: IPC.IChartMatch[] | undefined = this._charts[reg];
         if (matches === undefined) {
             return undefined;
         }
         try {
-            let prev: IPCMessages.IChartMatch | undefined;
-            matches.forEach((match: IPCMessages.IChartMatch) => {
+            let prev: IPC.IChartMatch | undefined;
+            matches.forEach((match: IPC.IChartMatch) => {
                 if (match.row === begin) {
                     throw match;
                 }
@@ -443,7 +465,7 @@ export class ServiceData {
                 prev = match;
             });
             return this._getValidNumberValue(matches[0].value[0]);
-        } catch (target) {
+        } catch (target: any) {
             if (typeof target === 'object' && target !== null && target.row && target.value) {
                 const value: number = parseInt(target.value[0], 10);
                 if (isNaN(value) || !isFinite(value)) {
@@ -460,13 +482,13 @@ export class ServiceData {
         end: number,
         previous: boolean,
     ): number | undefined {
-        const matches: IPCMessages.IChartMatch[] | undefined = this._charts[reg];
+        const matches: IPC.IChartMatch[] | undefined = this._charts[reg];
         if (matches === undefined || matches.length === 0) {
             return undefined;
         }
         try {
-            let prev: IPCMessages.IChartMatch | undefined;
-            matches.forEach((match: IPCMessages.IChartMatch) => {
+            let prev: IPC.IChartMatch | undefined;
+            matches.forEach((match: IPC.IChartMatch) => {
                 if (match.row === end) {
                     throw match;
                 }
@@ -483,7 +505,7 @@ export class ServiceData {
                 prev = match;
             });
             return this._getValidNumberValue(matches[matches.length - 1].value[0]);
-        } catch (target) {
+        } catch (target: any) {
             if (typeof target === 'object' && target !== null && target.row && target.value) {
                 return this._getValidNumberValue(target.value[0]);
             }

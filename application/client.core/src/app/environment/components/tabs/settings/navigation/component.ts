@@ -1,4 +1,13 @@
-import { Component, OnDestroy, ChangeDetectorRef, SimpleChanges, OnChanges, Input, AfterContentInit, NgZone } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    SimpleChanges,
+    OnChanges,
+    Input,
+    AfterContentInit,
+    NgZone,
+} from '@angular/core';
 import { Subscription, Subject, Observable } from 'rxjs';
 import { Entry, ConnectedField, Field } from '../../../../controller/settings/field.store';
 import { FlatTreeControl } from '@angular/cdk/tree';
@@ -26,10 +35,8 @@ interface ISettingNode {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class TabSettingsNavigationComponent implements OnDestroy, AfterContentInit, OnChanges {
-
-    @Input() public entries: Map<string, Entry | ConnectedField<any> | Field<any>>;
+    @Input() public entries!: Map<string, Entry | ConnectedField<any> | Field<any>>;
     @Input() public focused: Subject<string> = new Subject();
     @Input() public matches: Map<string, IPair> = new Map();
     @Input() public filter: string = '';
@@ -39,21 +46,30 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
     public _ng_focused: string | undefined;
 
     private _treeFlattener;
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabSettingsNavigationComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _zone: NgZone) {
-        this._treeFlattener = new MatTreeFlattener(this._transformer, node => node.level, node => node.expandable, node => node.children);
-        this._ng_treeControl = new FlatTreeControl<ISettingNode>(node => node.level, node => node.expandable);
+    constructor(private _cdRef: ChangeDetectorRef, private _zone: NgZone) {
+        this._treeFlattener = new MatTreeFlattener(
+            this._transformer,
+            (node) => node.level,
+            (node) => node.expandable,
+            (node) => node.children,
+        );
+        this._ng_treeControl = new FlatTreeControl<ISettingNode>(
+            (node) => node.level,
+            (node) => node.expandable,
+        );
         this._ng_dataSource = new MatTreeFlatDataSource(this._ng_treeControl, this._treeFlattener);
         this._ng_dataSource.data = [];
     }
 
     public ngAfterContentInit() {
         this._ng_dataSource.data = this._getData();
-        this._subscriptions.focused = this.focused.asObservable().subscribe(this._onFocusChanged.bind(this));
+        this._subscriptions.focused = this.focused
+            .asObservable()
+            .subscribe(this._onFocusChanged.bind(this));
     }
 
     public ngOnDestroy() {
@@ -61,7 +77,7 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
             this._subscriptions[key].unsubscribe();
         });
         this._destroyed = true;
-    }
+    }
 
     public ngOnChanges(changes: SimpleChanges) {
         if (changes.entries === undefined) {
@@ -138,15 +154,17 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
             return tree;
         }
         const data: ISettingNodeSrc[] = [];
-        const sources: Entry[] = Array.from(this.entries.values()).filter((entry: Entry | ConnectedField<any> | Field<any>) => {
-            if (entry.getType() === ESettingType.hidden) {
-                return false;
-            }
-            if (entry instanceof ConnectedField || entry instanceof Field) {
-                return false;
-            }
-            return true;
-        });
+        const sources: Entry[] = Array.from(this.entries.values()).filter(
+            (entry: Entry | ConnectedField<any> | Field<any>) => {
+                if (entry.getType() === ESettingType.hidden) {
+                    return false;
+                }
+                if (entry instanceof ConnectedField || entry instanceof Field) {
+                    return false;
+                }
+                return true;
+            },
+        );
         let safety: number = 0;
         do {
             fill(data, sources);
@@ -172,5 +190,4 @@ export class TabSettingsNavigationComponent implements OnDestroy, AfterContentIn
         }
         this._cdRef.detectChanges();
     }
-
 }

@@ -1,8 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input, AfterContentInit } from '@angular/core';
-import { Subscription, Subject, Observable } from 'rxjs';
-import { NotificationsService, ENotificationType } from '../../../services.injectable/injectable.service.notifications';
-import { Entry, ConnectedField, Field } from '../../../controller/settings/field.store';
+import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit } from '@angular/core';
+import { Subscription, Subject } from 'rxjs';
+import {
+    Entry as LocalEntry,
+    ConnectedField,
+    Field,
+} from '../../../controller/settings/field.store';
 import { sortPairs, IPair } from '../../../thirdparty/code/engine';
+import { ISettingsAPI, Entry } from 'chipmunk.client.toolkit';
 
 import SettingsService from '../../../services/service.settings';
 
@@ -15,35 +19,34 @@ const CDelimiter = '\u0008';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-
 export class TabSettingsComponent implements OnDestroy, AfterContentInit {
-
     public _ng_entries: Map<string, Entry | ConnectedField<any> | Field<any>> = new Map();
     public _ng_fields: Array<ConnectedField<any> | Field<any>> = [];
-    public _ng_focused: Entry | undefined;
+    public _ng_focused: Entry | ConnectedField<any> | Field<any> | undefined;
     public _ng_focusedSubject: Subject<string> = new Subject();
     public _ng_filter: string = '';
     public _ng_matches: Map<string, IPair> = new Map();
 
     private _entries: Map<string, Entry | ConnectedField<any> | Field<any>> = new Map();
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabSettingsComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _notifications: NotificationsService) {
+    constructor(private _cdRef: ChangeDetectorRef) {
         this._ng_focusedSubject.asObservable().subscribe(this._onFocusChange.bind(this));
     }
 
     public ngAfterContentInit() {
-        SettingsService.entries().then((entries) => {
-            this._entries = entries;
-            this._ng_entries = this._getEntries();
-            this._ng_matches = this._getMatches();
-            this._forceUpdate();
-        }).catch((error: Error) => {
-            this._logger.error(`Fail get settings data due error: ${error.message}`);
-        });
+        SettingsService.entries()
+            .then((entries) => {
+                this._entries = entries;
+                this._ng_entries = this._getEntries();
+                this._ng_matches = this._getMatches();
+                this._forceUpdate();
+            })
+            .catch((error: Error) => {
+                this._logger.error(`Fail get settings data due error: ${error.message}`);
+            });
     }
 
     public ngOnDestroy() {
@@ -51,7 +54,7 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
             this._subscriptions[key].unsubscribe();
         });
         this._destroyed = true;
-    }
+    }
 
     public _ng_onFilterChange(value: string) {
         this._ng_matches = this._getMatches();
@@ -68,8 +71,11 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         if (this._ng_matches.size === 0) {
             return;
         }
-        const entry: Entry | undefined = this._entries.get(Array.from(this._ng_matches.values())[0].id);
-        const parent: Entry | undefined = entry === undefined ? undefined : this._entries.get(entry.getPath());
+        const entry: Entry | undefined = this._entries.get(
+            Array.from(this._ng_matches.values())[0].id,
+        ) as Entry;
+        const parent: Entry | undefined =
+            entry === undefined ? undefined : (this._entries.get(entry.getPath()) as Entry);
         if (parent !== undefined) {
             this._onFocusChange(parent.getFullPath(), true);
         } else if (this._ng_focused !== undefined) {
@@ -80,7 +86,7 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
     private _getMatches(): Map<string, IPair> {
         const filtered: Map<string, IPair> = new Map();
         if (this._ng_filter === '') {
-            this._entries.forEach((entry: Entry) => {
+            this._entries.forEach((entry: Entry | ConnectedField<any> | Field<any>) => {
                 filtered.set(entry.getFullPath(), {
                     id: entry.getFullPath(),
                     caption: entry.getName(),
@@ -90,7 +96,7 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
             return filtered;
         }
         const pairs: IPair[] = [];
-        this._entries.forEach((entry: Entry) => {
+        this._entries.forEach((entry: Entry | ConnectedField<any> | Field<any>) => {
             pairs.push({
                 id: entry.getFullPath(),
                 caption: `${entry.getName()}${CDelimiter}${entry.getDesc()}`,
@@ -99,7 +105,7 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         });
         const scored = sortPairs(pairs, this._ng_filter, true, 'span');
         scored.forEach((s: IPair) => {
-            const pair = s.tcaption.split(CDelimiter);
+            const pair = s.tcaption === undefined ? s.caption : s.tcaption.split(CDelimiter);
             filtered.set(s.id, {
                 id: s.id,
                 caption: pair[0],
@@ -135,12 +141,16 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
     }
 
     private _getFields(): Array<ConnectedField<any> | Field<any>> {
-        if (this._ng_focused === undefined) {
+        const focused = this._ng_focused;
+        if (focused === undefined) {
             return [];
         }
         const fields: Array<ConnectedField<any> | Field<any>> = [];
         this._entries.forEach((field: Entry | ConnectedField<any> | Field<any>, key: string) => {
-            if ((!(field instanceof ConnectedField) && !(field instanceof Field)) || field.getPath() !== this._ng_focused.getFullPath()) {
+            if (
+                (!(field instanceof ConnectedField) && !(field instanceof Field)) ||
+                field.getPath() !== focused.getFullPath()
+            ) {
                 return;
             }
             if (this._ng_filter === '' || this._ng_matches.has(field.getFullPath())) {
@@ -158,7 +168,10 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         if (entry === undefined) {
             return;
         }
-        if (this._ng_focused !== undefined && this._ng_focused.getFullPath() === entry.getFullPath()) {
+        if (
+            this._ng_focused !== undefined &&
+            this._ng_focused.getFullPath() === entry.getFullPath()
+        ) {
             return;
         }
         this._ng_focused = entry;
@@ -175,5 +188,4 @@ export class TabSettingsComponent implements OnDestroy, AfterContentInit {
         }
         this._cdRef.detectChanges();
     }
-
 }

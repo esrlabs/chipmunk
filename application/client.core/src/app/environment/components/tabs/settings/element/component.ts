@@ -1,5 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, ViewChild, Input, AfterContentInit, ElementRef, ViewEncapsulation } from '@angular/core';
-import { Subscription, Subject, Observable } from 'rxjs';
+import {
+    Component,
+    OnDestroy,
+    ChangeDetectorRef,
+    Input,
+    AfterContentInit,
+    ViewEncapsulation,
+} from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ConnectedField, Field } from '../../../../controller/settings/field.store';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
@@ -19,21 +26,31 @@ export class ValueErrorStateMatcher implements ErrorStateMatcher {
         this._update = update;
     }
 
-    public isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    public isErrorState(
+        control: FormControl | null,
+        form: FormGroupDirective | NgForm | null,
+    ): boolean {
+        if (control === null) {
+            return false;
+        }
         const valid = this._valid;
         if (this._last_checked !== control.value) {
             this._last_checked = control.value;
-            this._field.validate(control.value).then(() => {
-                this._valid = true;
-                this._error = undefined;
-            }).catch((error: Error) => {
-                this._valid = false;
-                this._error = error.message;
-            }).finally(() => {
-                if (valid !== this._valid) {
-                    this._update();
-                }
-            });
+            this._field
+                .validate(control.value)
+                .then(() => {
+                    this._valid = true;
+                    this._error = undefined;
+                })
+                .catch((error: Error) => {
+                    this._valid = false;
+                    this._error = error.message;
+                })
+                .finally(() => {
+                    if (valid !== this._valid) {
+                        this._update();
+                    }
+                });
         }
         return !this._valid;
     }
@@ -45,7 +62,6 @@ export class ValueErrorStateMatcher implements ErrorStateMatcher {
     public getError(): string | undefined {
         return this._error;
     }
-
 }
 
 @Component({
@@ -54,24 +70,20 @@ export class ValueErrorStateMatcher implements ErrorStateMatcher {
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
 })
-
 export class TabSettingsElementComponent implements OnDestroy, AfterContentInit {
-
-    @Input() public field: ConnectedField<any> | Field<any>;
-    @Input() public change: (value: any) => void;
+    @Input() public field!: ConnectedField<any> | Field<any>;
+    @Input() public change!: (value: any) => void;
     @Input() public name: string = '';
     @Input() public description: string = '';
 
     public _ng_value: any;
-    public _ng_value_error: ValueErrorStateMatcher;
+    public _ng_value_error!: ValueErrorStateMatcher;
 
-    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = { };
+    private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('TabSettingsElementComponent');
 
-    constructor(private _cdRef: ChangeDetectorRef,
-                private _sanitizer: DomSanitizer) {
-    }
+    constructor(private _cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {}
 
     public ngAfterContentInit() {
         this._ng_value_error = new ValueErrorStateMatcher(this.field, this._forceUpdate.bind(this));
@@ -83,9 +95,9 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
             this._subscriptions[key].unsubscribe();
         });
         this._destroyed = true;
-    }
+    }
 
-    public _ng_onValueChange(value) {
+    public _ng_onValueChange(value: any) {
         this.change(value);
     }
 
@@ -99,5 +111,4 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
         }
         this._cdRef.detectChanges();
     }
-
 }

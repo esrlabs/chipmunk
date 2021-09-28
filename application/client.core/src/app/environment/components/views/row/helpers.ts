@@ -3,5 +3,7 @@ export function removeRowNumber(str: string): string {
 }
 
 export function cleanupOutput(str: string): string {
-    return removeRowNumber(str).replace(/\u0004/gi, '').replace(/\u0005/gi, '');
+    return removeRowNumber(str)
+        .replace(/\u0004/gi, '')
+        .replace(/\u0005/gi, '');
 }
