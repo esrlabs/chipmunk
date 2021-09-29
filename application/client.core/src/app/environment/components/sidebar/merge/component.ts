@@ -24,8 +24,8 @@ import {
     EViewMode,
 } from '../../../controller/controller.file.merge.session';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
-import { IPC } from '../../../services/service.electron.ipc';
 
+import FileOpenerService from '../../../services/service.file.opener';
 import EventsSessionService from '../../../services/standalone/service.events.session';
 import ContextMenuService from '../../../services/standalone/service.contextmenu';
 import ElectronEnvService from '../../../services/service.electron.env';
@@ -207,7 +207,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
         if (this._ng_controller === undefined) {
             return;
         }
-        this._ng_controller.add(files.map((file: File) => file.path));
+        this._ng_controller.add(FileOpenerService.getPathsFromFiles(files));
     }
 
     private _onSessionChange(session: Session | undefined) {

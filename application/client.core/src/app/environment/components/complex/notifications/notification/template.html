@@ -1,7 +1,7 @@
 <div class="icon">
-    <mat-icon *ngIf="data.notification.options.type === 'error'" class="error">error_outline</mat-icon>
-    <mat-icon *ngIf="data.notification.options.type === 'warning'" class="warning">warning</mat-icon>
-    <mat-icon *ngIf="data.notification.options.type === 'accent'" class="accent">notification_important</mat-icon>
+    <mat-icon *ngIf="data.notification.options !== undefined && data.notification.options.type === 'error'" class="error">error_outline</mat-icon>
+    <mat-icon *ngIf="data.notification.options !== undefined && data.notification.options.type === 'warning'" class="warning">warning</mat-icon>
+    <mat-icon *ngIf="data.notification.options !== undefined && data.notification.options.type === 'accent'" class="accent">notification_important</mat-icon>
 </div>
 <div class="message">
     <p class="t-normal">{{_ng_getMessage()}}</p>

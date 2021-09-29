@@ -146,6 +146,9 @@ export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, 
     }
 
     public _ng_onRemove(command: string) {
+        if (this._sessionID === undefined) {
+            return;
+        }
         this._recent = this._recent.filter((recent: IPair) => {
             return recent.description !== command;
         });

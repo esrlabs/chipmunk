@@ -48,13 +48,13 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
             this._sessionID = session.getGuid();
         } else {
             this._logger.error('Session not available');
+            return;
         }
-
         this._subscriptions.onRestored = this.service
             .getObservable()
             .onRestored.subscribe(this._onRestored.bind(this));
         this.service
-            .restoreSession({ session: this._sessionID }, true)
+            .restoreSession({ session: session.getGuid() }, true)
             .then(() => {
                 this._onRestored();
             })
@@ -70,7 +70,7 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
                 } else {
                     this.service
                         .setEnv({
-                            session: this._sessionID,
+                            session: session.getGuid(),
                             env: this.service.getPreset(currTitle).information.env,
                         })
                         .catch((error: Error) => {
@@ -117,6 +117,9 @@ export class SidebarAppShellPresetComponent implements OnInit, OnDestroy {
     }
 
     public _ng_onRemove() {
+        if (this._sessionID === undefined) {
+            return;
+        }
         this.service
             .removePreset({ session: this._sessionID, title: this.service.selectedPresetTitle })
             .catch((error: Error) => {

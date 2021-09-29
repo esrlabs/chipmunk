@@ -129,6 +129,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         if (this._ng_deviceSelected.name === this._ng_noDevice.name) {
             return;
         }
+        if (this._session === undefined) {
+            this._logger.error(`Session guid isn't defined`);
+            return;
+        }
         const id = parseInt(this._ng_processSelected.id, 10);
         this.service
             .change({
@@ -218,6 +222,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _init() {
+        if (this._session === undefined) {
+            this._logger.error(`Session guid isn't defined`);
+            return;
+        }
         this.service
             .prepare({ guid: this._session })
             .then(() => {
@@ -242,6 +250,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _restore() {
+        if (this._session === undefined) {
+            this._logger.error(`Session guid isn't defined`);
+            return;
+        }
         this.service
             .restore({ session: this._session })
             .then((response: IPC.AdbLoadResponse) => {
@@ -292,6 +304,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _start() {
+        if (this._session === undefined) {
+            this._logger.error(`Session guid isn't defined`);
+            return;
+        }
         const id = parseInt(this._ng_processSelected.id, 10);
         this.service
             .start({
@@ -318,6 +334,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _stop() {
+        if (this._session === undefined) {
+            this._logger.error(`Session guid isn't defined`);
+            return;
+        }
         this.service
             .stop({ session: this._session })
             .then(() => {
@@ -336,6 +356,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     private _detectDevices() {
+        if (this._session === undefined) {
+            this._logger.error(`Session guid isn't defined`);
+            return;
+        }
         this.service
             .getDevices({ session: this._session })
             .then((response: IAdbDevice[]) => {
@@ -364,6 +388,9 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
 
     private _detectProcesses(): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (this._session === undefined) {
+                return reject(new Error(this._logger.error(`Session guid isn't defined`)));
+            }
             if (this._ng_deviceSelected.name === this._ng_noDevice.name) {
                 this._processPairs = [];
                 return resolve();

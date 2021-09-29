@@ -199,7 +199,7 @@ export class PluginsService extends Toolkit.Emitter implements IService {
                 // Steps 2 - 3. Prepare environment and init code of module
                 this._loadAndInit_InitPlugin.bind(this, name, token, id, location), // Returns { [key: string]: any } - all exports of module
                 // Steps 4 - 6. Compile code as Angular module, discover shares of module
-                this._loadAndInit_CompilePlugin.bind(this, name, displayName, token, id, location), // Returns { IPluginData } - plugin data
+                this._loadAndInit_CompilePlugin.bind(this, name, token, id, displayName), // Returns { IPluginData } - plugin data
                 // Steps 7. Setup access to API for plugin's service (if it exists)
                 this._loadAndInit_SetupPluginService.bind(this, name, token, id, location), // Returns { IPluginData } - plugin data
             ])
@@ -309,10 +309,9 @@ export class PluginsService extends Toolkit.Emitter implements IService {
 
     private _loadAndInit_CompilePlugin(
         name: string,
-        displayName: string,
         token: string,
         id: number,
-        location: string,
+        displayName: string,
         exports: Toolkit.IPluginExports,
     ): Promise<IPluginData> {
         return new Promise((resolve, reject) => {

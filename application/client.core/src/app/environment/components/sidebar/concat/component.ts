@@ -258,7 +258,7 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         this._forceUpdate();
     }
 
-    public _ng_onContexMenu(event: MouseEvent, file: IConcatFile) {
+    public _ng_onContexMenu(event: MouseEvent, file: IConcatFile | undefined) {
         if (this._controller === undefined) {
             return;
         }
@@ -515,8 +515,10 @@ export class SidebarAppConcatFilesComponent implements OnDestroy, AfterContentIn
         this._controller.drop();
     }
 
-    private _onFilesDropped(files: IPC.IFile[]) {
-        this.services.FileOpenerService.concat(files);
+    private _onFilesDropped(files: File[]) {
+        this.services.FileOpenerService.concat(
+            this.services.FileOpenerService.converFilesToIFiles(files),
+        );
     }
 
     private _subscribe() {

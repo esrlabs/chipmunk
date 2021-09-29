@@ -59,7 +59,7 @@
                     >
                         <span
                             class="noreset process-caption"
-                            [innerHTML]="_ng_getSafeHTML(processPair.tcaption)"
+                            [innerHTML]="_ng_getSafeHTML(processPair.tcaption === undefined ? processPair.caption : processPair.tcaption)"
                         ></span>
                     </mat-option>
                 </mat-select>

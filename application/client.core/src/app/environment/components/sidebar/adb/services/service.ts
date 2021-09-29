@@ -70,11 +70,11 @@ export class SidebarAppAdbService {
     public prepare(request: IPC.IAdbStartServerRequest): Promise<void> {
         this._status = EAdbStatus.init;
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
+            ElectronIpcService.request<IPC.AdbStartServerResponse>(
                 new IPC.AdbStartServerRequest(request),
                 IPC.AdbStartServerResponse,
             )
-                .then((response: IPC.AdbStartServerResponse) => {
+                .then((response) => {
                     if (response.error !== undefined) {
                         this._errorMessage = response.error;
                         this._status = EAdbStatus.error;
@@ -93,10 +93,16 @@ export class SidebarAppAdbService {
 
     public getDevices(request: IPC.IAdbDevicesRequest): Promise<IAdbDevice[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPC.AdbDevicesRequest(request), IPC.AdbDevicesResponse)
-                .then((response: IPC.AdbDevicesResponse) => {
+            ElectronIpcService.request<IPC.AdbDevicesResponse>(
+                new IPC.AdbDevicesRequest(request),
+                IPC.AdbDevicesResponse,
+            )
+                .then((response) => {
                     if (response.error !== undefined) {
                         return reject(new Error(response.error));
+                    }
+                    if (response.devices === undefined) {
+                        return reject(new Error(`AdbDevicesResponse returns invalid response`));
                     }
                     resolve(response.devices);
                 })
@@ -108,13 +114,16 @@ export class SidebarAppAdbService {
 
     public getProcesses(request: IPC.IAdbProcessesRequest): Promise<IAdbProcess[]> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(
+            ElectronIpcService.request<IPC.AdbProcessesResponse>(
                 new IPC.AdbProcessesRequest(request),
                 IPC.AdbProcessesResponse,
             )
-                .then((response: IPC.AdbProcessesResponse) => {
+                .then((response) => {
                     if (response.error !== undefined) {
                         return reject(new Error(response.error));
+                    }
+                    if (response.processes === undefined) {
+                        return reject(new Error(`AdbProcessesResponse returns invalid response`));
                     }
                     resolve(response.processes);
                 })
@@ -165,8 +174,11 @@ export class SidebarAppAdbService {
 
     public restore(request: IPC.IAdbLoadRequest): Promise<IPC.AdbLoadResponse> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request(new IPC.AdbLoadRequest(request), IPC.AdbLoadResponse)
-                .then((response: IPC.AdbLoadResponse) => {
+            ElectronIpcService.request<IPC.AdbLoadResponse>(
+                new IPC.AdbLoadRequest(request),
+                IPC.AdbLoadResponse,
+            )
+                .then((response) => {
                     resolve(response);
                 })
                 .catch((error: Error) => {

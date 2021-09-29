@@ -1,7 +1,13 @@
-import { AfterViewInit, Component, Compiler, Injector, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import {
+    AfterViewInit,
+    Component,
+    Compiler,
+    Injector,
+    ChangeDetectorRef,
+    OnDestroy,
+} from '@angular/core';
 import { NotificationsService } from './environment/services.injectable/injectable.service.notifications';
-import { Observable, Subject, Subscription } from 'rxjs';
-import { IPCMessages } from './environment/services/service.electron.ipc';
+import { Subscription } from 'rxjs';
 import { CDefaultTabsGuids } from './environment/services/service.sessions.toolbar';
 
 import ServiceElectronIpc from './environment/services/service.electron.ipc';
@@ -15,21 +21,20 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
-    styleUrls: ['./app.component.less']
+    styleUrls: ['./app.component.less'],
 })
-
 export class AppComponent implements AfterViewInit, OnDestroy {
-
     public _ng_ready: boolean = false;
 
     private _logger: Toolkit.Logger = new Toolkit.Logger('AppComponent');
-    private _subscriptions: {[key: string]: Subscription} = {};
+    private _subscriptions: { [key: string]: Subscription } = {};
 
     constructor(
         private _cdRef: ChangeDetectorRef,
         private _compiler: Compiler,
         private _injector: Injector,
-        private _notifications: NotificationsService) {
+        private _notifications: NotificationsService,
+    ) {
         PluginsService.defineCompilerAndInjector(_compiler, _injector);
     }
 
@@ -48,13 +53,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
                 this._cdRef.detectChanges();
             });
             // Subscribe to notifications
-            this._subscriptions.onNewNotification = this._notifications.getObservable().new.subscribe(() => {
-                if (!ToolbarSessionsService.has(CDefaultTabsGuids.notification)) {
-                    ToolbarSessionsService.addByGuid(CDefaultTabsGuids.notification);
-                }
-            });
+            this._subscriptions.onNewNotification = this._notifications
+                .getObservable()
+                .new.subscribe(() => {
+                    if (!ToolbarSessionsService.has(CDefaultTabsGuids.notification)) {
+                        ToolbarSessionsService.addByGuid(CDefaultTabsGuids.notification);
+                    }
+                });
             RenderStateService.state().inited();
         });
     }
-
 }

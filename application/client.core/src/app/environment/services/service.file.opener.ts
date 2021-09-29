@@ -24,8 +24,9 @@ export enum EActionType {
 }
 
 export interface IFileOpenerService {
-    merge: (files: IPC.IFile[] | FilesList) => void;
-    concat: (files: IPC.IFile[] | FilesList) => void;
+    merge(files: IPC.IFile[] | FilesList): void;
+    concat(files: IPC.IFile[] | FilesList): void;
+    converFilesToIFiles(files: File[]): IPC.IFile[];
 }
 
 const CReopenContextMenuItemId = 'reopen_file_item';
@@ -80,12 +81,49 @@ export class FileOpenerService implements IService, IFileOpenerService {
         return fileList.filter((file: IPC.IFile) => file.checked === true);
     }
 
-    public open(files: IPC.IFile[]): Promise<void> {
+    public getPathsFromFiles(files: File[]): string[] {
+        return files.map((file: File) => {
+            if (typeof (file as any).path !== 'string') {
+                this._logger.error(
+                    `file {File} doesn't have property "path": ${JSON.stringify(file)}`,
+                );
+                if (typeof (file as any).webkitRelativePath !== 'string') {
+                    this._logger.error(
+                        `file {File} doesn't have property "webkitRelativePath" too`,
+                    );
+                    return (file as any).webkitRelativePath;
+                } else {
+                    return '';
+                }
+            } else {
+                return (file as any).path;
+            }
+        });
+    }
+
+    public converFilesToIFiles(files: File[]): IPC.IFile[] {
+        return files.map((file: File) => {
+            return {
+                lastModified: file.lastModified,
+                lastModifiedDate: new Date(file.lastModified),
+                name: file.name,
+                path: (file as any).path,
+                size: file.size,
+                type: file.type,
+                hasParser: false,
+                isHidden: false,
+                checked: false,
+                disabled: false,
+            };
+        });
+    }
+
+    public open(paths: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (files.length === 0) {
+            if (paths.length === 0) {
                 return resolve();
             }
-            this._getDetailedFileList(files.map((file: IPC.IFile) => file.path))
+            this._getDetailedFileList(paths)
                 .then((list: IPC.IFile[]) => {
                     this._setSessionNewSession()
                         .then((session: Session) => {
@@ -107,7 +145,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                                             return reject(
                                                 new Error(
                                                     this._logger.error(
-                                                        `Fail open file/folder "${files[0].path}" due error: ${response.error}`,
+                                                        `Fail open file/folder "${paths[0]}" due error: ${response.error}`,
                                                     ),
                                                 ),
                                             );
@@ -118,7 +156,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                                         return reject(
                                             new Error(
                                                 this._logger.error(
-                                                    `Fail open file/folder "${files[0].path}" due error: ${error.message}`,
+                                                    `Fail open file/folder "${paths[0]}" due error: ${error.message}`,
                                                 ),
                                             ),
                                         );
@@ -158,7 +196,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                             return reject(
                                 new Error(
                                     this._logger.error(
-                                        `Fail open file "${files[0].path}" due error: ${error.message}`,
+                                        `Fail open file "${paths[0]}" due error: ${error.message}`,
                                     ),
                                 ),
                             );
@@ -330,7 +368,11 @@ export class FileOpenerService implements IService, IFileOpenerService {
         if (menuService === undefined) {
             return;
         }
-        if (stream === undefined || stream.meta === undefined || !FileOptionsService.hasOptions(stream.meta)) {
+        if (
+            stream === undefined ||
+            stream.meta === undefined ||
+            !FileOptionsService.hasOptions(stream.meta)
+        ) {
             menuService.update(
                 {
                     id: CReopenContextMenuItemId,
@@ -391,7 +433,9 @@ export class FileOpenerService implements IService, IFileOpenerService {
                     if (session instanceof Session) {
                         resolve(session);
                     } else {
-                        reject(new Error(this._logger.error(`ICustomTab is created instead Session`)));
+                        reject(
+                            new Error(this._logger.error(`ICustomTab is created instead Session`)),
+                        );
                     }
                 })
                 .catch((addSessionErr: Error) => {
