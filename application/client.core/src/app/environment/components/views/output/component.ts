@@ -753,8 +753,8 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._output.setHorScrollOffset(offset);
     }
 
-    private _onFilesDropped(value: File[]) {
-        FileOpenerService.open(value).catch((error: Error) => {
+    private _onFilesDropped(files: File[]) {
+        FileOpenerService.open(FileOpenerService.getPathsFromFiles(files)).catch((error: Error) => {
             this._notifications.add({
                 caption: 'Error opening file',
                 message: error.message,

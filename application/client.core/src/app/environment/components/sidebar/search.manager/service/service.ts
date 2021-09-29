@@ -16,8 +16,8 @@ export enum EListID {
 }
 
 export class SearchManagerService {
-    private _dragging: Entity<TRequest> | undefined;
-    private _droppedOut: boolean | undefined;
+    private _dragging!: Entity<TRequest>;
+    private _droppedOut!: boolean;
     private _ignore: boolean | undefined;
 
     private _subjects = {
@@ -50,7 +50,9 @@ export class SearchManagerService {
 
     public onDragStart(status: boolean, entity?: Entity<TRequest>) {
         this._subjects.drag.next(status);
-        this._dragging = entity;
+        if (entity !== undefined) {
+            this._dragging = entity;
+        }
     }
 
     public onMouseOver(listID: EListID) {
@@ -72,11 +74,11 @@ export class SearchManagerService {
         this._subjects.mouseOverGlobal.next();
     }
 
-    public get dragging(): Entity<TRequest> | undefined {
+    public get dragging(): Entity<TRequest> {
         return this._dragging;
     }
 
-    get droppedOut(): boolean | undefined {
+    get droppedOut(): boolean {
         return this._droppedOut;
     }
 }

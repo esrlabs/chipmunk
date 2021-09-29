@@ -13,7 +13,7 @@
 
 <mat-form-field *ngIf="field.getElementType() === 'number'" class="outline-settings" appearance="outline">
     <mat-label><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(name)"></span></mat-label>
-    <input matInput [(ngModel)]="_ng_value" (ngModelChange)="_ng_onValueChange($event)" type="number" [errorStateMatcher]="_ng_value_error" [attr.min]="field.min" [attr.max]="field.min">
+    <input matInput [(ngModel)]="_ng_value" (ngModelChange)="_ng_onValueChange($event)" type="number" [errorStateMatcher]="_ng_value_error" [attr.min]="_ng_min()" [attr.max]="_ng_max()">
     <mat-hint><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(description)"></span></mat-hint>
     <mat-error *ngIf="!_ng_value_error.isValid()">{{_ng_value_error.getError()}}</mat-error>
 </mat-form-field>

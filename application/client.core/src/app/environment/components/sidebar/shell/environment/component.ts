@@ -111,6 +111,9 @@ export class SidebarAppShellEnvironmentComponent implements OnDestroy, OnInit {
     }
 
     public _ng_onSetPwd() {
+        if (this._sessionID === undefined) {
+            return;
+        }
         this.service.setPwd({ session: this._sessionID }).catch((error: Error) => {
             this._showNotification({
                 caption: 'Failed to set PWD',
@@ -120,6 +123,9 @@ export class SidebarAppShellEnvironmentComponent implements OnDestroy, OnInit {
     }
 
     public _ng_onShellChange(event: MatSelectChange) {
+        if (this._sessionID === undefined) {
+            return;
+        }
         this.service
             .setEnv({ session: this._sessionID, shell: event.value })
             .then(() => {

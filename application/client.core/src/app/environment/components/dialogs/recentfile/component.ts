@@ -53,8 +53,11 @@ export class DialogsRecentFilesActionComponent implements OnInit, AfterViewInit,
     }
 
     public ngOnInit() {
-        ElectronIpcService.request(new IPC.FilesRecentRequest(), IPC.FilesRecentResponse)
-            .then((response: IPC.FilesRecentResponse) => {
+        ElectronIpcService.request<IPC.FilesRecentResponse>(
+            new IPC.FilesRecentRequest(),
+            IPC.FilesRecentResponse,
+        )
+            .then((response) => {
                 if (response.error !== undefined) {
                     this._files = [];
                     this._logger.error(

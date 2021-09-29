@@ -105,6 +105,14 @@ export class TabSettingsElementComponent implements OnDestroy, AfterContentInit 
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 
+    public _ng_min(): number {
+        return (this.field as any).min !== undefined ? (this.field as any).min : 0;
+    }
+
+    public _ng_max(): number {
+        return (this.field as any).max !== undefined ? (this.field as any).max : 0;
+    }
+
     private _forceUpdate() {
         if (this._destroyed) {
             return;

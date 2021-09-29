@@ -2,7 +2,14 @@
 src: http://blog.rangle.io/dynamically-creating-components-with-angular-2/
 */
 
-import { Component, Input, ViewContainerRef, ComponentFactoryResolver, Injector, InjectionToken } from '@angular/core';
+import {
+    Component,
+    Input,
+    ViewContainerRef,
+    ComponentFactoryResolver,
+    Injector,
+    InjectionToken,
+} from '@angular/core';
 
 export interface IComponentDesc {
     factory: any;
@@ -12,36 +19,34 @@ export interface IComponentDesc {
 
 const CCachedFactories: Map<number, any> = new Map();
 const CCacheFactoryKey: string = '__dynamic_component_factory_cache_key__';
-const getSequence: () => number = function() {
+const getSequence: () => number = (function () {
     let sequence: number = 0;
     return () => {
-        return sequence ++;
+        return sequence++;
     };
-}();
+})();
 
 @Component({
-    selector        : 'lib-containers-dynamic',
-    entryComponents : [],
-    template        : '',
-    styles          : [':host { display: none; }'],
+    selector: 'lib-containers-dynamic',
+    entryComponents: [],
+    template: '',
+    styles: [':host { display: none; }'],
 })
-
 export class DynamicComponent {
-
     private _component: any = null;
     private _cachedKey: number = -1;
 
     @Input() detectChanges = true;
     @Input() alwaysDrop = false;
 
-    @Input() set component(desc: IComponentDesc) {
-        if (typeof desc !== 'object' || desc === null) {
+    @Input() set component(desc: IComponentDesc | undefined) {
+        if (typeof desc !== 'object' || desc === null || desc === undefined) {
             return;
         }
-        if (desc.factory === void 0) {
+        if (desc.factory === undefined) {
             return;
         }
-        if (desc.inputs === void 0) {
+        if (desc.inputs === undefined) {
             desc.inputs = {};
         }
         if (this._component) {
@@ -83,7 +88,7 @@ export class DynamicComponent {
                 component.instance[key] = desc.inputs[key];
             });
             this.viewContainerRef.insert(component.hostView);
-            if (this.detectChanges)  {
+            if (this.detectChanges) {
                 component.hostView.detectChanges();
             }
         } else {
@@ -109,7 +114,6 @@ export class DynamicComponent {
 
     constructor(
         private resolver: ComponentFactoryResolver,
-        private viewContainerRef: ViewContainerRef) {
-    }
-
+        private viewContainerRef: ViewContainerRef,
+    ) {}
 }

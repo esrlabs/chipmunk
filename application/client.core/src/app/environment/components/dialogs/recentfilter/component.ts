@@ -51,11 +51,11 @@ export class DialogsRecentFitlersActionComponent implements OnInit, AfterViewIni
     }
 
     public ngOnInit() {
-        ElectronIpcService.request(
+        ElectronIpcService.request<IPC.FiltersFilesRecentResponse>(
             new IPC.FiltersFilesRecentRequest(),
             IPC.FiltersFilesRecentResponse,
         )
-            .then((response: IPC.FiltersFilesRecentResponse) => {
+            .then((response) => {
                 if (response.error) {
                     this._files = [];
                     this._notificationsService.add({

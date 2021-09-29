@@ -45,18 +45,20 @@ export class LayoutPrimiryAreaNoTabsComponent implements AfterViewInit, OnDestro
         });
     }
 
-    private _onFilesDropped(files: IPC.IFile[]) {
+    private _onFilesDropped(files: File[]) {
         TabsSessionsService.add()
             .then(() => {
-                FileOpenerService.open(files).catch((error: Error) => {
-                    this._notifications.add({
-                        caption: 'Error opening file',
-                        message: error.message,
-                        options: {
-                            type: ENotificationType.error,
-                        },
-                    });
-                });
+                FileOpenerService.open(FileOpenerService.getPathsFromFiles(files)).catch(
+                    (error: Error) => {
+                        this._notifications.add({
+                            caption: 'Error opening file',
+                            message: error.message,
+                            options: {
+                                type: ENotificationType.error,
+                            },
+                        });
+                    },
+                );
             })
             .catch((error: Error) => {
                 this._logger.error(`Fail to open new tab due error: ${error.message}`);

@@ -12,6 +12,7 @@ import { Observable, Subscription } from 'rxjs';
 import { ControllerComponentsDragDropFiles } from '../../../controller/components/controller.components.dragdrop.files';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
+import FileOpenerService from '../../../services/service.file.opener';
 
 @Component({
     selector: 'app-views-dialogs-multiplefilescation-map',
@@ -61,17 +62,17 @@ export class DialogsMultipleFilesActionComponent implements AfterViewInit, OnDes
         fileName.checked = event.checked;
     }
 
-    private _onFilesDropped(files: IPC.IFile[]) {
+    private _onFilesDropped(files: File[]) {
         if (files.length === 0) {
             return;
         }
-        ServiceElectronIpc.request(
+        ServiceElectronIpc.request<IPC.FileListResponse>(
             new IPC.FileListRequest({
-                files: files.map((file: IPC.IFile) => file.path),
+                files: FileOpenerService.getPathsFromFiles(files),
             }),
             IPC.FileListResponse,
         )
-            .then((checkResponse: IPC.FileListResponse) => {
+            .then((checkResponse) => {
                 if (checkResponse.error !== undefined) {
                     this._logger.error(`Failed to check paths due error: ${checkResponse.error}`);
                     return;

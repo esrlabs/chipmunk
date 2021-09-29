@@ -42,7 +42,6 @@ import * as RXJS from 'rxjs';
 import * as LogviewerClientMaterial from 'chipmunk-client-material';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as ChartJS from 'chart.js';
-import * as hammerjs from 'hammerjs';
 
 export function getAvailablePluginModules(): { [key: string]: any } {
     return {
@@ -90,6 +89,5 @@ export function getAvailablePluginModules(): { [key: string]: any } {
         'chipmunk-client-material': LogviewerClientMaterial,
         'chipmunk.client.toolkit': Toolkit,
         'chart.js': ChartJS,
-        hammerjs: hammerjs,
     };
 }

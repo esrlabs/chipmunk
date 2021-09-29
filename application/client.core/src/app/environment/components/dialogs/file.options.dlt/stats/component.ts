@@ -64,7 +64,7 @@ export class DialogsFileOptionsDltStatsComponent implements OnDestroy, AfterView
     @Input() public id!: string;
     @Input() public caption!: string;
     @Input() public stats!: IStatRow[];
-    @Input() public display!: ELogLevel[];
+    @Input() public display!: string[];
     @Input() public filter!: Observable<string>;
     @Input() public sort!: Subject<IForceSortData>;
 
