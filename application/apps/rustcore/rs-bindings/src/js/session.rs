@@ -5,6 +5,7 @@ use crate::js::events::{
 use crossbeam_channel as cc;
 use indexer_base::progress::{ComputationResult, Progress, Severity};
 use log::{debug, info, trace, warn};
+use merging::concatenator::concat_files_use_config_file;
 use node_bindgen::{
     core::{
         val::{JsEnv, JsObject},
@@ -27,6 +28,7 @@ use processor::{
 };
 use serde::Serialize;
 use std::{
+    fs::OpenOptions,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
     thread,
@@ -46,7 +48,7 @@ pub struct SessionState {
 #[derive(Debug, Clone)]
 enum Operation {
     Assign {
-        file_path: String,
+        file_path: PathBuf,
         source_id: String,
         operation_id: Uuid,
         source_type: SupportedFileType,
@@ -67,10 +69,155 @@ enum Operation {
         range: Option<(u64, u64)>,
         operation_id: Uuid,
     },
+    Concat {
+        config_file: PathBuf,
+        out_path: PathBuf,
+        append: bool,
+        source_type: SupportedFileType,
+        source_id: String,
+        operation_id: Uuid,
+        cancellation_token: CancellationToken,
+    },
     Cancel {
         operation_id: Uuid,
     },
     End,
+}
+
+async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
+    op_event: Operation,
+    state: Arc<Mutex<SessionState>>,
+    search_metadata_tx: &cc::Sender<Option<(PathBuf, GrabMetadata)>>,
+    callback: &F,
+) -> bool {
+    match op_event {
+        Operation::Assign {
+            file_path,
+            source_id,
+            operation_id,
+            source_type,
+            cancellation_token,
+        } => {
+            debug!("RUST: received Assign operation event");
+            let callback_event = match handle_assign(
+                &file_path,
+                source_type,
+                source_id,
+                &state,
+                cancellation_token,
+            ) {
+                Ok(Some(line_count)) => CallbackEvent::StreamUpdated(line_count),
+                Ok(None) => CallbackEvent::Progress {
+                    uuid: operation_id,
+                    progress: Progress::Stopped,
+                },
+                Err(error) => CallbackEvent::OperationError {
+                    uuid: operation_id,
+                    error,
+                },
+            };
+            callback(callback_event);
+            callback(CallbackEvent::OperationDone(OperationDone {
+                uuid: operation_id,
+                result: None,
+            }));
+        }
+        Operation::Search {
+            target_file,
+            filters,
+            operation_id,
+        } => {
+            for event in handle_search(
+                target_file,
+                filters,
+                operation_id,
+                &search_metadata_tx,
+                &state,
+            ) {
+                callback(event);
+            }
+        }
+        Operation::Extract {
+            target_file,
+            filters,
+            operation_id,
+        } => {
+            debug!("RUST: Extract values operation is requested");
+            callback(handle_extract(&target_file, filters.iter(), operation_id));
+        }
+        Operation::Map {
+            dataset_len,
+            range,
+            operation_id,
+        } => {
+            debug!("RUST: received Map operation event");
+            match state.lock() {
+                Ok(state) => {
+                    callback(result_to_callback_event(
+                        &(state.search_map.scaled(dataset_len, range)),
+                        operation_id,
+                    ));
+                }
+                Err(err) => {
+                    callback(CallbackEvent::OperationError {
+                        uuid: operation_id,
+                        error: NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::OperationSearch,
+                            message: Some(format!("Failed to write search map. Error: {}", err)),
+                        },
+                    });
+                }
+            };
+        }
+        Operation::Concat {
+            config_file,
+            out_path,
+            append,
+            source_type,
+            source_id,
+            operation_id,
+            cancellation_token,
+        } => {
+            warn!(
+                "RUST: received concat operation event with operation id {}",
+                operation_id
+            );
+            let callback_event = handle_concat(
+                operation_id,
+                &config_file,
+                &out_path,
+                append,
+                source_type,
+                source_id,
+                &state,
+                cancellation_token,
+            )
+            .await;
+            callback(callback_event);
+            callback(CallbackEvent::OperationDone(OperationDone {
+                uuid: operation_id,
+                result: None,
+            }));
+        }
+        Operation::Cancel { operation_id } => {
+            debug!("RUST: received cancel operation event");
+            callback(CallbackEvent::OperationError {
+                uuid: operation_id,
+                error: NativeError {
+                    severity: Severity::WARNING,
+                    kind: NativeErrorKind::NotYetImplemented,
+                    message: Some("Cancel operation not implemented".to_string()),
+                },
+            });
+        }
+        Operation::End => {
+            debug!("RUST: received End operation event");
+            callback(CallbackEvent::SessionDestroyed);
+            return true;
+        }
+    }
+    false
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -88,6 +235,38 @@ pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
             _ => Some(SupportedFileType::Text),
         },
         None => Some(SupportedFileType::Text),
+    }
+}
+
+fn lazy_init_grabber(
+    input_p: &Path,
+    source_id: &str,
+) -> Result<(SupportedFileType, Box<dyn AsyncGrabTrait>), ComputationError> {
+    match get_supported_file_type(input_p) {
+        Some(SupportedFileType::Text) => {
+            type GrabberType = processor::grabber::Grabber<TextFileSource>;
+            let source = TextFileSource::new(input_p, source_id);
+            let grabber = GrabberType::lazy(source).map_err(|e| {
+                let err_msg = format!("Could not create grabber: {}", e);
+                warn!("{}", err_msg);
+                ComputationError::Process(err_msg)
+            })?;
+            Ok((SupportedFileType::Text, Box::new(grabber)))
+        }
+        Some(SupportedFileType::Dlt) => {
+            type GrabberType = processor::grabber::Grabber<DltSource>;
+            let source = DltSource::new(input_p, source_id);
+            let grabber = GrabberType::lazy(source).map_err(|e| {
+                ComputationError::Process(format!("Could not create grabber: {}", e))
+            })?;
+            Ok((SupportedFileType::Dlt, Box::new(grabber)))
+        }
+        None => {
+            warn!("Trying to assign unsupported file type: {:?}", input_p);
+            Err(ComputationError::OperationNotSupported(
+                "Unsupported file type".to_string(),
+            ))
+        }
     }
 }
 
@@ -109,7 +288,9 @@ impl RustSession {
     /// written to the metadata-channel. If so, this metadata is used in the grabber.
     /// If there was no new metadata, we make sure that the metadata has been set.
     /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    fn get_content_grabber(&mut self) -> Result<&mut Box<dyn AsyncGrabTrait>, ComputationError> {
+    fn get_updated_content_grabber(
+        &mut self,
+    ) -> Result<&mut Box<dyn AsyncGrabTrait>, ComputationError> {
         let current_grabber = match &mut self.content_grabber {
             Some(c) => Ok(c),
             None => {
@@ -241,103 +422,18 @@ impl RustSession {
                 info!("RUST: running runtime");
                 loop {
                     match event_stream.recv().await {
-                        Ok(op_event) => match op_event {
-                            Operation::Assign {
-                                file_path,
-                                source_id,
-                                operation_id,
-                                source_type,
-                                cancellation_token,
-                            } => {
-                                debug!("RUST: received Assign operation event");
-                                let callback_event = handle_assign(
-                                    operation_id,
-                                    file_path,
-                                    source_type,
-                                    source_id,
-                                    &state,
-                                    cancellation_token,
-                                );
-                                callback(callback_event);
-                                callback(CallbackEvent::OperationDone(OperationDone {
-                                    uuid: operation_id,
-                                    result: None,
-                                }));
-                            }
-                            Operation::Search {
-                                target_file,
-                                filters,
-                                operation_id,
-                            } => {
-                                for event in handle_search(
-                                    target_file,
-                                    filters,
-                                    operation_id,
-                                    &search_metadata_tx,
-                                    &state,
-                                ) {
-                                    callback(event);
-                                }
-                            }
-                            Operation::Extract {
-                                target_file,
-                                filters,
-                                operation_id,
-                            } => {
-                                debug!("RUST: Extract values operation is requested");
-                                callback(handle_extract(
-                                    &target_file,
-                                    filters.iter(),
-                                    operation_id,
-                                ));
-                            }
-                            Operation::Map {
-                                dataset_len,
-                                range,
-                                operation_id,
-                            } => {
-                                debug!("RUST: received Map operation event");
-                                match state.lock() {
-                                    Ok(state) => {
-                                        callback(result_to_callback_event(
-                                            &(state.search_map.scaled(dataset_len, range)),
-                                            operation_id,
-                                        ));
-                                    }
-                                    Err(err) => {
-                                        callback(CallbackEvent::OperationError((
-                                            operation_id,
-                                            NativeError {
-                                                severity: Severity::ERROR,
-                                                kind: NativeErrorKind::OperationSearch,
-                                                message: Some(format!(
-                                                    "Fail write search map. Error: {}",
-                                                    err
-                                                )),
-                                            },
-                                        )));
-                                    }
-                                };
-                            }
-                            Operation::Cancel { operation_id } => {
-                                debug!("RUST: received cancel operation event");
-                                callback(CallbackEvent::OperationError((
-                                    operation_id,
-                                    NativeError {
-                                        severity: Severity::WARNING,
-                                        kind: NativeErrorKind::NotYetImplemented,
-                                        message: Some(
-                                            "Cancel operation not implemented".to_string(),
-                                        ),
-                                    },
-                                )));
-                            }
-                            Operation::End => {
-                                debug!("RUST: received End operation event");
-                                callback(CallbackEvent::SessionDestroyed);
+                        Ok(op_event) => {
+                            let abort = process_operation_request(
+                                op_event,
+                                state.clone(),
+                                &search_metadata_tx,
+                                &callback,
+                            )
+                            .await;
+                            if abort {
                                 break;
                             }
-                        },
+                        }
                         Err(e) => {
                             debug!("Rust: error on channel: {}", e);
                             break;
@@ -352,7 +448,7 @@ impl RustSession {
 
     #[node_bindgen]
     fn get_stream_len(&mut self) -> Result<i64, ComputationError> {
-        match &self.get_content_grabber()?.get_metadata() {
+        match &self.get_updated_content_grabber()?.get_metadata() {
             Some(md) => Ok(md.line_count as i64),
             None => Err(ComputationError::Protocol("Cannot happen".to_owned())),
         }
@@ -382,7 +478,7 @@ impl RustSession {
             start_line_index, number_of_lines
         );
         let grabbed_content = self
-            .get_content_grabber()?
+            .get_updated_content_grabber()?
             .grab_content(&LineRange::from(
                 (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
             ))
@@ -409,38 +505,12 @@ impl RustSession {
         debug!("RUST: send assign event on channel");
         let operation_id = parse_operation_id(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
-        let source_type = match get_supported_file_type(&input_p) {
-            Some(SupportedFileType::Text) => {
-                type GrabberType = processor::grabber::Grabber<TextFileSource>;
-                let source = TextFileSource::new(&input_p, &source_id);
-                let grabber = GrabberType::lazy(source).map_err(|e| {
-                    let err_msg = format!("Could not create grabber: {}", e);
-                    warn!("{}", err_msg);
-                    ComputationError::Process(err_msg)
-                })?;
-                self.content_grabber = Some(Box::new(grabber));
-                SupportedFileType::Text
-            }
-            Some(SupportedFileType::Dlt) => {
-                type GrabberType = processor::grabber::Grabber<DltSource>;
-                let source = DltSource::new(&input_p, &source_id);
-                let grabber = GrabberType::lazy(source).map_err(|e| {
-                    ComputationError::Process(format!("Could not create grabber: {}", e))
-                })?;
-                self.content_grabber = Some(Box::new(grabber));
-                SupportedFileType::Dlt
-            }
-            None => {
-                warn!("Trying to assign unsupported file type: {}", file_path);
-                return Err(ComputationError::OperationNotSupported(
-                    "Unsupported file type".to_string(),
-                ));
-            }
-        };
+        let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
+        self.content_grabber = Some(boxed_grabber);
         let op_channel_tx = self.op_channel.0.clone();
         let cancellation_token = CancellationToken::new();
         match op_channel_tx.send(Operation::Assign {
-            file_path,
+            file_path: input_p,
             source_id,
             operation_id,
             source_type,
@@ -511,7 +581,7 @@ impl RustSession {
         let mut row: usize = start_line_index as usize;
         for range in ranges.iter() {
             let mut original_content = self
-                .get_content_grabber()?
+                .get_updated_content_grabber()?
                 .grab_content(&LineRange::from(range.clone()))
                 .map_err(|e| {
                     ComputationError::Communication(format!("grab matched content failed: {}", e))
@@ -688,6 +758,43 @@ impl RustSession {
             ))),
         }
     }
+
+    #[node_bindgen]
+    async fn concat(
+        &mut self,
+        config_file: String,
+        out_path_name: String,
+        append: bool,
+        operation_id: String,
+    ) -> Result<(), ComputationError> {
+        let config_file = PathBuf::from(config_file);
+        let out_path = PathBuf::from(&out_path_name);
+        let _ = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&out_path)?;
+        let operation_id = parse_operation_id(&operation_id)?;
+        let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_name)?;
+        self.content_grabber = Some(boxed_grabber);
+
+        let cancellation_token = CancellationToken::new();
+        match self.op_channel.0.send(Operation::Concat {
+            config_file,
+            out_path,
+            append,
+            source_type,
+            source_id: out_path_name,
+            operation_id,
+            cancellation_token,
+        }) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not send operation on channel. Error: {}",
+                e
+            ))),
+        }
+    }
 }
 
 // TODO:
@@ -802,11 +909,10 @@ impl JSValue<'_> for WrappedSearchFilter {
 }
 
 fn create_metadata_for_source(
-    file_path: String,
+    file_path: &Path,
     source_type: SupportedFileType,
     source_id: String,
 ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-    let file_path = Path::new(&file_path);
     match source_type {
         SupportedFileType::Dlt => {
             let source = DltSource::new(file_path, &source_id);
@@ -871,7 +977,10 @@ where
 
     match matches {
         Ok(matches) => result_to_callback_event::<Vec<ExtractedMatchValue>>(&matches, operation_id),
-        Err(e) => CallbackEvent::OperationError((operation_id, e)),
+        Err(e) => CallbackEvent::OperationError {
+            uuid: operation_id,
+            error: e,
+        },
     }
 }
 
@@ -884,59 +993,88 @@ where
             uuid: operation_id,
             result: Some(serialized),
         }),
-        Err(err) => CallbackEvent::OperationError((
-            operation_id,
-            NativeError {
+        Err(err) => CallbackEvent::OperationError {
+            uuid: operation_id,
+            error: NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ComputationFailed,
                 message: Some(format!("{}", err)),
             },
-        )),
+        },
     }
 }
 
-fn handle_assign(
+#[allow(clippy::too_many_arguments)]
+async fn handle_concat(
     operation_id: Uuid,
-    file_path: String,
+    config_file: &Path,
+    out_path: &Path,
+    append: bool,
     source_type: SupportedFileType,
     source_id: String,
     state: &Arc<Mutex<SessionState>>,
     cancellation_token: CancellationToken,
 ) -> CallbackEvent {
+    let (tx, rx) = cc::unbounded();
+    match concat_files_use_config_file(config_file, out_path, append, 500, tx, None) {
+        Ok(()) => {
+            match handle_assign(out_path, source_type, source_id, state, cancellation_token) {
+                Ok(Some(line_count)) => CallbackEvent::StreamUpdated(line_count),
+                Ok(None) => CallbackEvent::Progress {
+                    uuid: operation_id,
+                    progress: Progress::Stopped,
+                },
+                Err(error) => CallbackEvent::OperationError {
+                    uuid: operation_id,
+                    error,
+                },
+            }
+        }
+        Err(err) => CallbackEvent::OperationError {
+            uuid: operation_id,
+            error: NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::OperationSearch,
+                message: Some(format!("Failed to concatenate files: {}", err)),
+            },
+        },
+    }
+}
+
+/// assign a file initially by creating the meta for it and sending it as metadata update
+/// for the content grabber (current_grabber)
+/// if the metadata was successfully created, we return the line count of it
+/// if the operation was stopped, we return None
+fn handle_assign(
+    file_path: &Path,
+    source_type: SupportedFileType,
+    source_id: String,
+    state: &Arc<Mutex<SessionState>>,
+    cancellation_token: CancellationToken,
+) -> Result<Option<u64>, NativeError> {
     match create_metadata_for_source(file_path, source_type, source_id) {
         Ok(ComputationResult::Item(metadata)) => {
             trace!("received metadata {:?}", metadata);
             debug!("RUST: received metadata");
             let line_count: u64 = metadata.line_count as u64;
             match update_state(state, Some(line_count), Some(Some(metadata))) {
-                Some(()) => CallbackEvent::StreamUpdated(line_count),
-                None => CallbackEvent::OperationError((
-                    operation_id,
-                    NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::OperationSearch,
-                        message: Some("Failed to write stream len".to_string()),
-                    },
-                )),
+                Some(()) => Ok(Some(line_count)),
+                None => Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::OperationSearch,
+                    message: Some("Failed to write stream len".to_string()),
+                }),
             }
         }
         Ok(ComputationResult::Stopped) => {
             info!("RUST: metadata calculation aborted");
             let _ = update_state(state, None, Some(None));
-            CallbackEvent::Progress((operation_id, Progress::Stopped))
+            Ok(None)
         }
         Err(e) => {
             warn!("RUST error computing metadata: {}", e);
             let _ = update_state(state, None, Some(None));
-            CallbackEvent::OperationError((
-                operation_id,
-                e.into(),
-                // NativeError {
-                //     severity: Severity::WARNING,
-                //     kind: NativeErrorKind::ComputationFailed,
-                //     message: None,
-                // },
-            ))
+            Err(e.into())
         }
     }
 }
@@ -1023,23 +1161,29 @@ fn handle_search(
                         }
                         Ok(ComputationResult::Stopped) => {
                             debug!("RUST: search metadata calculation aborted");
-                            vec![CallbackEvent::Progress((operation_id, Progress::Stopped))]
+                            vec![CallbackEvent::Progress {
+                                uuid: operation_id,
+                                progress: Progress::Stopped,
+                            }]
                         }
                         Err(e) => {
                             let err_msg = format!("RUST error computing search metadata: {:?}", e);
-                            vec![CallbackEvent::OperationError((
-                                operation_id,
-                                NativeError {
+                            vec![CallbackEvent::OperationError {
+                                uuid: operation_id,
+                                error: NativeError {
                                     severity: Severity::WARNING,
                                     kind: NativeErrorKind::ComputationFailed,
                                     message: Some(err_msg),
                                 },
-                            ))]
+                            }]
                         }
                     }
                 }
             }
-            Err(e) => vec![CallbackEvent::OperationError((operation_id, e))],
+            Err(e) => vec![CallbackEvent::OperationError {
+                uuid: operation_id,
+                error: e,
+            }],
         }
     }
 }

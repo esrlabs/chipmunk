@@ -78,7 +78,7 @@ pub struct SearchOperationResult {
     pub stats: FilterStats,
 }
 
-#[derive(strum_macros::ToString, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum CallbackEvent {
     /**
      * Triggered on update of stream (session) file
@@ -102,7 +102,7 @@ pub enum CallbackEvent {
      * >> Scope: async operation
      * >> Kind: repeated
      */
-    Progress((Uuid, Progress)),
+    Progress { uuid: Uuid, progress: Progress },
     /**
      * Triggered on error in the scope of session
      * >> Scope: session
@@ -114,7 +114,7 @@ pub enum CallbackEvent {
      * >> Scope: session, async operation
      * >> Kind: repeated
      */
-    OperationError((Uuid, NativeError)),
+    OperationError { uuid: Uuid, error: NativeError },
     /**
      * Triggered on some asynch operation is done
      * >> Scope: async operation
@@ -142,6 +142,8 @@ pub enum ComputationError {
     OperationNotSupported(String),
     #[error("IO error ({0})")]
     IoOperation(#[from] std::io::Error),
+    #[error("(De)serialization error ({0})")]
+    Input(#[from] serde_json::Error),
     #[error("Invalid data error")]
     InvalidData,
     #[error("Error during processing: ({0})")]

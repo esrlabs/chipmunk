@@ -15,6 +15,7 @@ import {
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
 } from '../interfaces/index';
+import { IConcatResults } from './session.stream.concat.executor';
 
 export {
     IFileToBeMerged,
@@ -79,8 +80,8 @@ export class SessionStream {
         });
     }
 
-    public concat(files: string[]): CancelablePromise<void> {
-        return Executors.concat(this._session, this._provider, this._logger, { files: files });
+    public concat(configFile: string, outPath: string, append: boolean): CancelablePromise<IConcatResults> {
+        return Executors.concat(this._session, this._provider, this._logger, { configFile: configFile, outPath: outPath, append: append });
     }
 
     public merge(files: IFileToBeMerged[]): CancelablePromise<void> {

@@ -1,4 +1,4 @@
-use crate::map::FilterMatch;
+use crate::{grabber::GrabError, map::FilterMatch};
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher, Sink, SinkMatch};
 use itertools::Itertools;

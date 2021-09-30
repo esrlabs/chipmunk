@@ -18,7 +18,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
     options: TOptions,
     runner: TOperationRunner<TOptions>,
     reader: TOperationResultReader<TResult>,
-    name: string, 
+    name: string,
 ): CancelablePromise<TResult> {
     return new CancelablePromise<TResult>((resolve, reject, cancel, refCancelCB, self) => {
         let error: Error | undefined;
@@ -82,7 +82,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 }
             },
         };
-        logger.debug('Assign operation is started');
+        logger.debug('Async result operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
@@ -91,7 +91,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Assign operation promise is closed as well');
+            logger.debug('Async result operation promise is closed as well');
             lifecircle.unsunscribe();
         });
         // Call operation

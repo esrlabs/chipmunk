@@ -15,7 +15,7 @@ export function AsyncVoidExecutor<TOptions>(
     logger: Logger,
     options: TOptions,
     runner: TOperationRunner<TOptions>,
-    name: string, 
+    name: string,
 ): CancelablePromise<void> {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         let error: Error | undefined;
@@ -79,7 +79,7 @@ export function AsyncVoidExecutor<TOptions>(
                 }
             },
         };
-        logger.debug('Assign operation is started');
+        logger.debug('Async void operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
@@ -88,7 +88,7 @@ export function AsyncVoidExecutor<TOptions>(
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Assign operation promise is closed as well');
+            logger.debug('Async void operation promise is closed as well');
             lifecircle.unsunscribe();
         });
         const opUuid: string = uuidv4();

@@ -14,21 +14,16 @@ node-bindgen = {git = "https://github.com/marcmo/node-bindgen.git",branch = "wit
 anyhow = "1.0"
 crossbeam-channel = "0.5"
 ctor = "0.1.6"
-dirs = "3.0"
-# dlt = { path = "../../indexer/dlt" }
+dirs = "4.0"
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "1.0.0"
-# merging = { path = "../../indexer/merging" }
+merging = { path = "../../indexer/merging" }
 node-bindgen = {git = "https://github.com/marcmo/node-bindgen.git", branch = "without_logging_init_4.4.0", features = [] }
-# node-bindgen = { git = "https://github.com/marcmo/node-bindgen.git", branch = "without_logging_init_4.4.0" }
 processor = { path = "../../indexer/processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-strum_macros = "0.20.1"
-# tempfile = "3.2.0"
-thiserror = "1.0.22"
+thiserror = "1.0"
 tokio = { version = "1.5", features = ["full"] }
 tokio-util = "0.6"
-# tokio-stream = "0.1.2"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }

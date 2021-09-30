@@ -142,7 +142,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract concat(files: string[]): string | NativeError;
+    public abstract concat(configFile: string, outPath: string, append: boolean, operationUuid?: string): Promise<void>;
 
     /**
      * Merge files and assigns it with session. After this operation, @method assign, @method concat cannot be used
@@ -188,6 +188,8 @@ export abstract class RustSessionNative {
     public abstract start(callback: TEventEmitter): undefined;
 
     public abstract assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void>;
+
+    public abstract concat(configFile: string, outPath: string, append: boolean, operationUuid?: string): Promise<void>;
 
     public abstract getStreamLen(): number;
 
@@ -365,8 +367,16 @@ export class RustSessionDebug extends RustSession {
         });
     }
 
-    public concat(files: string[]): string | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Concat);
+    public concat(configFile: string, outPath: string, append: boolean, operationUuid?: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._native.concat(configFile, outPath, append, operationUuid).then(resolve).catch((err: Error) => {
+                    reject(new NativeError(err, Type.Other, Source.Assign));
+                });
+            } catch (err) {
+                return reject(new NativeError(err, Type.Other, Source.Assign));
+            }
+        });
     }
 
     public merge(files: IFileToBeMerged[]): string | NativeError {

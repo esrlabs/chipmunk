@@ -131,6 +131,11 @@ namespace :test do
     sh "#{test_runner} ts-bindings/spec/session.extract.spec.ts"
   end
 
+  desc 'run concat tests'
+  task :concat do
+    sh "#{test_runner} ts-bindings/spec/session.concat.spec.ts"
+  end
+
   desc 'run utils tests'
   task :utils do
     sh "#{test_runner} ts-bindings/spec/utils.spec.ts"

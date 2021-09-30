@@ -24,7 +24,7 @@ enum ELevel {
 
 let tm: number = Date.now();
 let init: number = Date.now();
-let gLevel: number = 1;
+let gLevel: number = 3;
 let locker: string | undefined;
 
 export function setLogLevels(level: number) {

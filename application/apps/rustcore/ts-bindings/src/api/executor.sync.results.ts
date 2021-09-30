@@ -16,7 +16,7 @@ export function ResultsExecutor<TResult, TOptions>(
     options: TOptions,
     runner: TOperationRunner<TOptions>,
     reader: TOperationResultReader<TResult>,
-    name: string, 
+    name: string,
 ): CancelablePromise<TResult> {
     return new CancelablePromise<TResult>((resolve, reject, cancel, refCancelCB, self) => {
         let error: Error | undefined;
@@ -71,7 +71,7 @@ export function ResultsExecutor<TResult, TOptions>(
                 session.abort(opUuid);
             },
         };
-        logger.debug('Assign operation is started');
+        logger.debug('Sync result operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
@@ -80,7 +80,7 @@ export function ResultsExecutor<TResult, TOptions>(
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Assign operation promise is closed as well');
+            logger.debug('Sync result operation promise is closed as well');
             lifecircle.unsunscribe();
         });
         // Call operation

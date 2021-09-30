@@ -144,7 +144,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             try {
                 event = JSON.parse(data);
             } catch (e) {
-                const msg: string = `Fail to parse event data due error: ${e}.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
+                const msg: string = `Failed to parse rust event data due error: ${e}.\nExpecting type (JSON string): { [type: string]: string | undefined }, got: ${data}`;
                 this.debug().emit.error(msg);
                 this.logger.error(msg);
                 return;
@@ -202,7 +202,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                     data,
                 );
                 if (err instanceof Error) {
-                    this.logger.error(`Fail to parse event "${event}" due error: ${err.message}`);
+                    this.logger.error(`Failed to parse event "${event}" due error: ${err.message}`);
                 } else {
                     (this.getEvents() as any)[event].emit(data);
                 }

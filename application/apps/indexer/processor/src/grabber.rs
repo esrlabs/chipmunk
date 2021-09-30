@@ -229,13 +229,8 @@ where
 impl<T: MetadataSource> Grabber<T> {
     /// Create a new Grabber without creating the metadata
     /// ...
-    /// A new Grabber instance can only be created if the file is non-empty,
-    /// otherwise this function will return an error
     pub fn lazy(source: T) -> Result<Self, GrabError> {
         let input_file_size = source.input_size()?;
-        if input_file_size == 0 {
-            return Err(GrabError::Config("Cannot grab empty file".to_string()));
-        }
         Ok(Self {
             source,
             metadata: None,

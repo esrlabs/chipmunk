@@ -1,5 +1,6 @@
 NJ = 'nj-cli'
 
+desc 'build'
 task :build do
   sh "#{NJ} build"
 end
