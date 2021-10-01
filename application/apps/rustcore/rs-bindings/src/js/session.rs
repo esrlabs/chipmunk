@@ -131,7 +131,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
                 target_file,
                 filters,
                 operation_id,
-                &search_metadata_tx,
+                search_metadata_tx,
                 &state,
             ) {
                 callback(event);
@@ -773,7 +773,13 @@ impl RustSession {
             .read(true)
             .write(true)
             .create(true)
-            .open(&out_path)?;
+            .open(&out_path)
+            .map_err(|_| {
+                ComputationError::IoOperation(format!(
+                    "Could not create/open file {}",
+                    &out_path_name
+                ))
+            })?;
         let operation_id = parse_operation_id(&operation_id)?;
         let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_name)?;
         self.content_grabber = Some(boxed_grabber);
@@ -1015,7 +1021,7 @@ async fn handle_concat(
     state: &Arc<Mutex<SessionState>>,
     cancellation_token: CancellationToken,
 ) -> CallbackEvent {
-    let (tx, rx) = cc::unbounded();
+    let (tx, _rx) = cc::unbounded();
     match concat_files_use_config_file(config_file, out_path, append, 500, tx, None) {
         Ok(()) => {
             match handle_assign(out_path, source_type, source_id, state, cancellation_token) {

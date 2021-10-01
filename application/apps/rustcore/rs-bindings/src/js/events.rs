@@ -1,12 +1,16 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity};
+use node_bindgen::{
+    core::{val::JsEnv, NjError, TryIntoJs},
+    sys::napi_value,
+};
 use processor::{
     grabber::GrabError,
     search::{FilterStats, SearchError},
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio::sync::broadcast;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,7 +39,7 @@ impl From<GrabError> for NativeError {
             GrabError::IoOperation(e) => NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ComputationFailed,
-                message: Some(format!("{}", e)),
+                message: Some(e.to_string()),
             },
             GrabError::Config(msg) => NativeError {
                 severity: Severity::ERROR,
@@ -130,7 +134,7 @@ pub enum CallbackEvent {
     SessionDestroyed,
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Serialize)]
 pub enum ComputationError {
     #[error("Attemp to call operation before assign a session")]
     NoAssignedContent,
@@ -141,9 +145,9 @@ pub enum ComputationError {
     #[error("Operation not supported ({0})")]
     OperationNotSupported(String),
     #[error("IO error ({0})")]
-    IoOperation(#[from] std::io::Error),
+    IoOperation(String),
     #[error("(De)serialization error ({0})")]
-    Input(#[from] serde_json::Error),
+    Input(String),
     #[error("Invalid data error")]
     InvalidData,
     #[error("Error during processing: ({0})")]
@@ -156,8 +160,15 @@ pub enum ComputationError {
     SearchError(SearchError),
 }
 
+impl TryIntoJs for ComputationError {
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        let value = serde_json::to_value(&self).map_err(|e| NjError::Other(format!("{}", e)))?;
+        value.try_to_js(js_env)
+    }
+}
+
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);
-pub type AsyncChannel<T> = (mpsc::Sender<T>, mpsc::Receiver<T>);
-pub type AsyncOneshotChannel<T> = (oneshot::Sender<T>, oneshot::Receiver<T>);
+// pub type AsyncChannel<T> = (mpsc::Sender<T>, mpsc::Receiver<T>);
+// pub type AsyncOneshotChannel<T> = (oneshot::Sender<T>, oneshot::Receiver<T>);
 pub type AsyncBroadcastChannel<T> = (broadcast::Sender<T>, broadcast::Receiver<T>);
 // pub type ShutdownReceiver = cc::Receiver<()>;
