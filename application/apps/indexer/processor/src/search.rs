@@ -13,14 +13,14 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Serialize)]
 pub enum SearchError {
     #[error("Configuration error ({0})")]
     Config(String),
     #[error("Channel-Communication error ({0})")]
     Communication(String),
     #[error("IO error while grabbing: ({0})")]
-    IoOperation(#[from] std::io::Error),
+    IoOperation(String),
     #[error("Regex-Error: ({0})")]
     Regex(String),
     //Regex(#[from] grep_regex::Error),
@@ -214,7 +214,9 @@ impl SearchHolder {
                     .map_err(|err| SearchError::Regex(format!("{}", err)))?,
             );
         }
-        let out_file = File::create(&self.out_file_path)?;
+        let out_file = File::create(&self.out_file_path).map_err(|_| {
+            GrabError::IoOperation(format!("Could not open file {:?}", &self.out_file_path))
+        })?;
         let mut matched_lines = 0u64;
         let mut writer = BufWriter::new(out_file);
         let mut indexes: Vec<FilterMatch> = vec![];
@@ -222,23 +224,27 @@ impl SearchHolder {
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
-        Searcher::new().search_path(
-            &matcher,
-            &self.file_path,
-            UTF8(|lnum, line| {
-                matched_lines += 1;
-                let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
-                for (index, re) in matchers.iter().enumerate() {
-                    if re.is_match(line) {
-                        line_indexes.filters.push(index as u8);
-                        *stats.entry(index as u8).or_insert(0) += 1;
+        Searcher::new()
+            .search_path(
+                &matcher,
+                &self.file_path,
+                UTF8(|lnum, line| {
+                    matched_lines += 1;
+                    let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
+                    for (index, re) in matchers.iter().enumerate() {
+                        if re.is_match(line) {
+                            line_indexes.filters.push(index as u8);
+                            *stats.entry(index as u8).or_insert(0) += 1;
+                        }
                     }
-                }
-                indexes.push(line_indexes);
-                writeln!(writer, "{}", lnum - 1)?;
-                Ok(true)
-            }),
-        )?;
+                    indexes.push(line_indexes);
+                    writeln!(writer, "{}", lnum - 1)?;
+                    Ok(true)
+                }),
+            )
+            .map_err(|_| {
+                SearchError::IoOperation(format!("Could not search in file {:?}", &self.file_path))
+            })?;
 
         Ok((
             self.out_file_path.clone(),
@@ -297,14 +303,18 @@ impl MatchesExtractor {
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
-        Searcher::new().search_path(
-            &regex_matcher,
-            &self.file_path,
-            UTF8(|lnum, line| {
-                values.push(ExtractedMatchValue::new(lnum - 1, line, &regexs));
-                Ok(true)
-            }),
-        )?;
+        Searcher::new()
+            .search_path(
+                &regex_matcher,
+                &self.file_path,
+                UTF8(|lnum, line| {
+                    values.push(ExtractedMatchValue::new(lnum - 1, line, &regexs));
+                    Ok(true)
+                }),
+            )
+            .map_err(|_| {
+                SearchError::IoOperation(format!("Could not search in file {:?}", &self.file_path))
+            })?;
 
         Ok(values)
     }

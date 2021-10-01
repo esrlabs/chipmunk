@@ -18,14 +18,14 @@ pub trait GrabTrait {
 
 pub trait AsyncGrabTrait: GrabTrait + Sync + Send + std::fmt::Debug {}
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Serialize)]
 pub enum GrabError {
     #[error("Configuration error ({0})")]
     Config(String),
     #[error("Channel-Communication error ({0})")]
     Communication(String),
-    #[error("IO error while grabbing: ({0:?})")]
-    IoOperation(#[from] std::io::Error),
+    #[error("IO error while grabbing: ({0})")]
+    IoOperation(String),
     #[error("Invalid range: ({range:?}) ({context})")]
     InvalidRange { range: LineRange, context: String },
     #[error("Grabber interrupted")]
@@ -327,8 +327,11 @@ impl<T: MetadataSource> Grabber<T> {
     ) -> Result<(), GrabError> {
         let encoded: Vec<u8> = bincode::serialize(&self.metadata)
             .map_err(|_| GrabError::Config("Could not serialize metadata".to_string()))?;
-        let mut output = fs::File::create(&out_path)?;
-        output.write_all(&encoded)?;
+        let mut output = fs::File::create(&out_path)
+            .map_err(|_| GrabError::IoOperation("Could not create output path".to_string()))?;
+        output
+            .write_all(&encoded)
+            .map_err(|_| GrabError::IoOperation("Could not write to slots to file".to_string()))?;
         Ok(())
     }
 }

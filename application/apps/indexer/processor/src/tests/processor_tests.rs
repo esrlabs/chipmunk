@@ -359,7 +359,7 @@ mod tests {
                         expected_content
                     );
                     assert_eq!(expected_content.trim_end(), out_file_content.trim_end());
-                    assert_eq!(true, chunks_fit_together(&chunks), "chunks need to fit");
+                    assert!(chunks_fit_together(&chunks), "chunks need to fit");
                     break;
                 }
                 Ok(Ok(IndexingProgress::Progress { ticks: _t })) => {

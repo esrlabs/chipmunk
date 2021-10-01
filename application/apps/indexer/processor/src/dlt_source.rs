@@ -52,13 +52,17 @@ impl MetadataSource for DltSource {
         &self,
         shutdown_receiver: Option<cc::Receiver<()>>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-        if !fs::metadata(&self.path)?.is_file() {
+        if !fs::metadata(&self.path)
+            .map_err(|_| GrabError::IoOperation("Could not get metadata of file".to_string()))?
+            .is_file()
+        {
             return Err(GrabError::Config(format!(
                 "File {} does not exist",
                 self.path.to_string_lossy()
             )));
         }
-        let f = fs::File::open(&self.path)?;
+        let f = fs::File::open(&self.path)
+            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
         let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
             .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
 
@@ -152,10 +156,17 @@ impl MetadataSource for DltSource {
         trace!("get_entries, file-part: {:?}", file_part);
 
         let mut read_buf = vec![0; file_part.length];
-        let mut read_from = fs::File::open(&self.path())?;
+        let mut read_from = fs::File::open(&self.path())
+            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
 
-        read_from.seek(SeekFrom::Start(file_part.offset_in_file))?;
-        read_from.read_exact(&mut read_buf)?;
+        read_from
+            .seek(SeekFrom::Start(file_part.offset_in_file))
+            .map_err(|_| {
+                GrabError::IoOperation(format!("Could not seek in file {:?}", &self.path))
+            })?;
+        read_from.read_exact(&mut read_buf).map_err(|_| {
+            GrabError::IoOperation(format!("Could not read from file {:?}", &self.path))
+        })?;
 
         let message_stream = FileMessageProducer::new(Cursor::new(read_buf), None, true, None);
 
