@@ -5,7 +5,6 @@ import {
     ChangeDetectorRef,
     AfterContentInit,
     ViewChild,
-    Provider,
 } from '@angular/core';
 import { DisabledRequest } from '../../../../../controller/session/dependencies/search/dependencies/disabled/controller.session.tab.search.disabled.request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
@@ -13,6 +12,7 @@ import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
 import { ProviderDisabled } from '../provider';
+import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { MatDragDropResetFeatureDirective } from '../../../../../directives/material.dragdrop.directive';
 
@@ -25,7 +25,7 @@ export class SidebarAppSearchManagerDisabledComponent implements OnDestroy, Afte
     @ViewChild(MatInput) _inputRefCom!: MatInput;
 
     @Input() entity!: Entity<DisabledRequest>;
-    @Input() provider!: ProviderDisabled | undefined;
+    @Input() provider!: Provider<DisabledRequest>;
 
     public _ng_display_name: string | undefined;
     public _ng_icon: string | undefined;

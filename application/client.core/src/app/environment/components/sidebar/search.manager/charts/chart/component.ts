@@ -18,6 +18,7 @@ import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
 import { ProviderCharts } from '../provider';
+import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { MatDragDropResetFeatureDirective } from '../../../../../directives/material.dragdrop.directive';
 import { tryDetectChanges } from '../../../../../controller/helpers/angular.insides';
@@ -37,7 +38,7 @@ export class SidebarAppSearchManagerChartComponent implements OnDestroy, AfterCo
     @ViewChild(MatCheckbox) _stateRefCom!: MatCheckbox;
 
     @Input() entity!: Entity<ChartRequest>;
-    @Input() provider!: ProviderCharts;
+    @Input() provider!: Provider<ChartRequest>;
 
     public _ng_request!: string;
     public _ng_color!: string;

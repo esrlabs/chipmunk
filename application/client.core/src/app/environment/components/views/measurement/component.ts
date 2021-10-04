@@ -55,9 +55,13 @@ export class ViewMeasurementComponent implements OnDestroy, AfterContentInit, Af
         this._onSessionChange(TabsSessionsService.getActive());
     }
 
-    public _ng_getController(): ControllerSessionTabTimestamp | undefined {
+    public _ng_isControllerAvailable(): boolean {
+        return this._session !== undefined;
+    }
+
+    public _ng_getController(): ControllerSessionTabTimestamp {
         if (this._session === undefined) {
-            return undefined;
+            throw new Error(this._logger.error(`Session isn't available`));
         }
         return this._session.getTimestamp();
     }

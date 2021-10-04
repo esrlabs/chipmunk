@@ -1,6 +1,5 @@
 // tslint:disable
 
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -171,8 +170,8 @@ function doScore(
 }
 
 function computeCharScore(
-    queryCharAtIndex,
-    queryLowerCharAtIndex,
+    queryCharAtIndex: any,
+    queryLowerCharAtIndex: any,
     target: string,
     targetLower: string,
     targetIndex: number,
@@ -458,7 +457,7 @@ function doScoreItem(
             const descriptionMatch: IMatch[] = [];
 
             // We have to split the matches back onto the label and description portions
-            labelDescriptionMatches.forEach(h => {
+            labelDescriptionMatches.forEach((h) => {
                 // Match overlaps label and description part, we need to split it up
                 if (h.start < descriptionPrefixLength && h.end > descriptionPrefixLength) {
                     labelMatch.push({ start: 0, end: h.end - descriptionPrefixLength });

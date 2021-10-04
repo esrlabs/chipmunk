@@ -102,7 +102,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         super.change();
     }
 
-    public getContentIfEmpty(): string | undefined {
+    public getContentIfEmpty(): undefined {
         return undefined;
     }
 

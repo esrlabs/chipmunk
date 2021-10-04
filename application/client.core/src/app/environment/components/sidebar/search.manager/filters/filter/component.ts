@@ -19,6 +19,7 @@ import { MatCheckbox } from '@angular/material/checkbox';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
 import { ProviderFilters } from '../provider';
+import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { MatDragDropResetFeatureDirective } from '../../../../../directives/material.dragdrop.directive';
 import { tryDetectChanges } from '../../../../../controller/helpers/angular.insides';
@@ -37,7 +38,7 @@ export class SidebarAppSearchManagerFilterComponent implements OnDestroy, AfterC
     @ViewChild(MatInput) _inputRefCom!: MatInput;
     @ViewChild(MatCheckbox) _stateRefCom!: MatCheckbox;
     @Input() entity!: Entity<FilterRequest>;
-    @Input() provider: ProviderFilters | undefined;
+    @Input() provider!: Provider<FilterRequest>;
 
     public _ng_flags: IFlags = {
         casesensitive: false,

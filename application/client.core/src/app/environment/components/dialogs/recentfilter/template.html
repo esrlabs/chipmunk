@@ -5,7 +5,6 @@
             aria-label="Filter"
             matInput
             [formControl]="_ng_inputCtrl"
-            matAutocomplete
             [matAutocomplete]="auto">
     <mat-autocomplete #auto="matAutocomplete" class="recent-files regular"
         (optionSelected)="_ng_onFileSelected($event.option.value)"
