@@ -7,5 +7,5 @@
     </div>
 </div>
 <div class="controlls">
-    <app-views-measurement-controlls *ngIf="_ng_getController() !== undefined" [controller]="_ng_getController()"></app-views-measurement-controlls>
+    <app-views-measurement-controlls *ngIf="_ng_isControllerAvailable()" [controller]="_ng_getController()"></app-views-measurement-controlls>
 </div>

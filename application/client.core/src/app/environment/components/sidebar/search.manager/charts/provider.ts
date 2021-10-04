@@ -103,7 +103,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
         super.change();
     }
 
-    public getContentIfEmpty(): string | undefined {
+    public getContentIfEmpty(): undefined {
         return undefined;
     }
 

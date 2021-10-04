@@ -24,7 +24,7 @@ export class SidebarAppSearchManagerFiltersPlaceholderComponent implements OnDes
         });
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
+    public _ng_onItemDragged(event: CdkDragDrop<any>) {
         SearchManagerService.onDragStart(false);
         if (SearchManagerService.droppedOut) {
             return;

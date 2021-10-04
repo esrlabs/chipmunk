@@ -97,7 +97,7 @@ export class ProviderRanges extends Provider<RangeRequest> {
         super.change();
     }
 
-    public getContentIfEmpty(): string | undefined {
+    public getContentIfEmpty(): undefined {
         return undefined;
     }
 

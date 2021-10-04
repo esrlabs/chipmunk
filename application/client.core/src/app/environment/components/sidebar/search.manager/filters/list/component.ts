@@ -36,7 +36,7 @@ export class SidebarAppSearchManagerFiltersComponent implements OnDestroy, After
             .change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
+    public _ng_onItemDragged(event: CdkDragDrop<any>) {
         SearchManagerService.onDragStart(false);
         if (SearchManagerService.droppedOut) {
             return;

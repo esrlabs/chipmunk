@@ -43,7 +43,7 @@ export class SidebarAppSearchManagerDisabledsComponent implements OnDestroy, Aft
             .change.subscribe(this._onDataUpdate.bind(this));
     }
 
-    public _ng_onItemDragged(event: CdkDragDrop<EntityData<TRequest>>) {
+    public _ng_onItemDragged(event: CdkDragDrop<any>) {
         SearchManagerService.onDragStart(false);
         if (SearchManagerService.droppedOut) {
             return;

@@ -15,6 +15,7 @@ import { MatInput } from '@angular/material/input';
 import { Subscription } from 'rxjs';
 import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
 import { ProviderRanges } from '../provider';
+import { Provider } from '../../providers/provider';
 import { Entity } from '../../providers/entity';
 import { MatDragDropResetFeatureDirective } from '../../../../../directives/material.dragdrop.directive';
 
@@ -31,7 +32,7 @@ export class SidebarAppSearchManagerTimeRangeComponent implements OnDestroy, Aft
     @ViewChild(MatInput) _inputRefCom!: MatInput;
 
     @Input() entity!: Entity<RangeRequest>;
-    @Input() provider!: ProviderRanges;
+    @Input() provider!: Provider<RangeRequest>;
 
     public _ng_alias: string | undefined;
     public _ng_color: string | undefined;

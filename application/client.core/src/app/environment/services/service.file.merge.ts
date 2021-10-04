@@ -61,9 +61,8 @@ export class MergeFilesService implements IService, IMergeFilesService {
     public add(files: IPC.IFile[], session: string) {
         const controller: ControllerFileMergeSession | undefined = this._controllers.get(session);
         if (controller === undefined) {
-            return this._logger.error(
-                `Fail to find ControllerFileMergeSession for session: ${session}`,
-            );
+            this._logger.error(`Fail to find ControllerFileMergeSession for session: ${session}`);
+            return;
         }
         controller
             .add(
