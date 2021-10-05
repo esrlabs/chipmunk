@@ -16,6 +16,8 @@ export class ControllerSessionImporter implements Dependency {
     private _lastOperationHash: string = '';
     private _session: SessionGetter;
     private _locked: boolean = true;
+    private _ready: boolean = false;
+    private _opened: boolean = false;
 
     constructor(uuid: string, getter: SessionGetter) {
         this._uuid = uuid;
@@ -30,6 +32,10 @@ export class ControllerSessionImporter implements Dependency {
                 IPC.FileOpenDoneEvent,
                 this._onFileOpenDoneEvent.bind(this),
             );
+            this._subscriptions.onSessionChange = this._session()
+                .getSessionEventsHub()
+                .subscribe()
+                .onSessionChange(this._onSessionChange.bind(this));
             this._controllers.forEach((controller: Importable<any>) => {
                 this._subscriptions[controller.getImporterUUID()] = controller
                     .getExportObservable()
@@ -230,14 +236,31 @@ export class ControllerSessionImporter implements Dependency {
         });
     }
 
+    private _onSessionChange(session: string) {
+        if (this._uuid !== session) {
+            return;
+        }
+        this._subscriptions.onSessionChange.unsubscribe();
+        this._ready = true;
+        this._import();
+    }
+
     private _onFileOpenDoneEvent(event: IPC.FileOpenDoneEvent) {
         if (this._uuid !== event.session) {
+            return;
+        }
+        this._opened = true;
+        this._import();
+    }
+
+    private _import() {
+        if (!this._opened || !this._ready) {
             return;
         }
         this.import()
             .catch((error: Error) => {
                 this._logger.warn(
-                    `Import for "${event.file}" is failed due error: ${error.message}`,
+                    `Import for "${this._uuid}" is failed due error: ${error.message}`,
                 );
             })
             .finally(() => {

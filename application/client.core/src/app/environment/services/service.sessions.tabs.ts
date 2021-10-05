@@ -332,9 +332,9 @@ export class TabsSessionsService implements IService {
         getDefsToolbarApps: () => Toolkit.IDefaultTabsGuids | undefined;
     } {
         const self = this;
-        const tab = self._tabsService.getActiveTab();
         return {
             openSidebarApp: (appId: string, openTabOnly: boolean = false) => {
+                const tab = self._tabsService.getActiveTab();
                 if (self._sidebarTabOpener === undefined || tab === undefined) {
                     return;
                 }
@@ -342,6 +342,7 @@ export class TabsSessionsService implements IService {
                 self._sidebarTabOpener(appId, tab.guid, openTabOnly);
             },
             openToolbarApp: (appId: string, openTabOnly: boolean = false): Promise<void> => {
+                const tab = self._tabsService.getActiveTab();
                 return new Promise((resolve, reject) => {
                     if (self._toolbarTabOpener === undefined || tab === undefined) {
                         this._logger.error(
