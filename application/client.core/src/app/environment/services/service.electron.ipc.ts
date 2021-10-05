@@ -104,18 +104,14 @@ class ElectronIpcService implements IService {
         });
     }
 
-    public response(
-        sequence: string,
-        message: Required<IPC.Interface>,
-    ): Promise<Required<IPC.Interface>> {
+    public response(sequence: string, message: Required<IPC.Interface>): Promise<void> {
         return new Promise((resolve, reject) => {
             const ref: Function | undefined = this._getRefToMessageClass(message);
             if (ref === undefined) {
                 return reject(new Error(`Incorrect type of message`));
             }
-            this._sendWithResponse({ message: message, sequence: sequence })
-                .then(resolve)
-                .catch(reject);
+            this._sendWithoutResponse(message, sequence);
+            resolve(undefined);
         });
     }
 
@@ -255,9 +251,10 @@ class ElectronIpcService implements IService {
         });
     }
 
-    private _sendWithoutResponse(message: Required<IPC.Interface>): void {
+    private _sendWithoutResponse(message: Required<IPC.Interface>, sequence?: string): void {
         const messagePackage: IPCMessagePackage = new IPCMessagePackage({
             message: message,
+            sequence: sequence,
         });
         const signature: string = message.signature;
         // Format:               | channel  |  event  | instance |

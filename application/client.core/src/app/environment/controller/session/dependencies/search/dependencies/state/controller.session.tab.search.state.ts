@@ -23,7 +23,7 @@ export class ControllerSessionTabSearchQueue implements Dependency {
             session,
             search,
         };
-        this._logger = new Toolkit.Logger(`SearchState [${session}]`);
+        this._logger = new Toolkit.Logger(`SearchState [${uuid}]`);
     }
 
     public init(): Promise<void> {
