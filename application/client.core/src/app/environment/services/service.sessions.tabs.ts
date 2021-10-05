@@ -460,6 +460,10 @@ export class TabsSessionsService implements IService {
         if (tab.guid === undefined) {
             return;
         }
+        if (!this._sessions.has(tab.guid)) {
+            // Session isn't created yet, but creating
+            return;
+        }
         this.setActive(tab.guid);
         if (this.getSearchSettings(tab.guid) === undefined) {
             this.setSearchSettings(tab.guid, {
