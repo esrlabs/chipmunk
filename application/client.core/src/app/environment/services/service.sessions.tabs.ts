@@ -344,7 +344,15 @@ export class TabsSessionsService implements IService {
             openToolbarApp: (appId: string, openTabOnly: boolean = false): Promise<void> => {
                 return new Promise((resolve, reject) => {
                     if (self._toolbarTabOpener === undefined || tab === undefined) {
-                        return reject(new Error(`Toolbar API isn't inited or no active tab`));
+                        this._logger.error(
+                            `Cannot open Toolbar because ${
+                                this._toolbarTabOpener === undefined
+                                    ? `opener isn't inited`
+                                    : `no active session`
+                            }`,
+                        );
+                        return resolve();
+                        //return reject(new Error(`Toolbar API isn't inited or no active tab`));
                     }
                     LayoutStateService.toolbarMax();
                     self._toolbarTabOpener(appId, tab.guid, openTabOnly)
