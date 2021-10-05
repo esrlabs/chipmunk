@@ -166,7 +166,7 @@ export class SidebarAppSearchManagerChartDetailsComponent implements OnDestroy, 
                 // Returns dynamic component description
                 return {
                     component: {
-                        factory: (CComponentsInputs as any)[option.type],
+                        factory: (COptionComponents as any)[option.type],
                         inputs: Object.assign(inputs, option.option),
                     },
                     caption: option.caption,
