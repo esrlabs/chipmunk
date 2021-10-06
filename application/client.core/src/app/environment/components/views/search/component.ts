@@ -58,7 +58,6 @@ interface IViewState {
     searchRequestId: string | undefined;
     isRequestValid: boolean;
     request: string;
-    prevRequest: string;
     isRequestSaved: boolean;
     read: number;
     found: number;
@@ -93,6 +92,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_isRequestSaved: boolean = false;
     public _ng_read: number = -1;
     public _ng_found: number = -1;
+    public _ng_activeSearch: string = '';
     // Out of state (stored in controller)
     public _ng_onSessionChanged: Subject<Session> = new Subject<Session>();
     public _ng_inputCtrl = new FormControl();
@@ -106,7 +106,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _logger: Toolkit.Logger = new Toolkit.Logger('ViewSearchComponent');
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
     private _sessionSubscriptions: { [key: string]: Subscription } = {};
-    private _prevRequest: string = '';
     private _recent: IPair[] = [];
     private _selectedTextOnInputClick: boolean = false;
     private _filtersStorage: FiltersStorage | undefined;
@@ -154,7 +153,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         this._loadRecentFilters();
         this._ng_recent = this._ng_inputCtrl.valueChanges.pipe(
             startWith(''),
-            map((value) => this._filter(value)),
+            map((value: string) => this._filter(value)),
         );
         this._loadSettings();
     }
@@ -188,24 +187,23 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onKeyUpRequestInput(event?: KeyboardEvent) {
-        if (event !== undefined && event.key !== 'Enter' && event.key !== 'Escape') {
+        if (
+            event !== undefined &&
+            event.key !== 'Enter' &&
+            event.key !== 'Escape' &&
+            event.key !== 'Backspace'
+        ) {
             return;
+        }
+        if (event !== undefined && (event.key === 'Backspace' || event.key === 'Escape')) {
+            this._ng_inputCtrl.setValue(this._ng_activeSearch);
+            this._ng_onDropRequest(true);
         }
         if (this._ng_searchRequestId !== undefined) {
             return;
         }
         this._validateRegExp();
         this._forceUpdate();
-        if (event !== undefined && event.key === 'Escape') {
-            if (this._ng_inputCtrl.value !== '') {
-                // Drop results
-                this._ng_onDropRequest(true);
-            } else {
-                // Drop a focus
-                this._blur();
-            }
-            return;
-        }
         this._onStoreFilter();
     }
 
@@ -225,22 +223,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onBlurRequestInput() {
-        // Do it with timeout, because it might be selection by click in panel
-        setTimeout(() => {
-            if (this._ng_autoComRef === undefined) {
-                return;
-            }
-            this._ng_inputCtrl.setValue(this._prevRequest);
-            this._ng_autoComRef.closePanel();
-            // And do this because Angular still didn't fix a bug: https://github.com/angular/components/issues/7066
-            setTimeout(() => {
-                if (this._ng_autoComRef === undefined) {
-                    return;
-                }
-                this._ng_autoComRef.closePanel();
-                this._forceUpdate();
-            });
-        }, 250);
         this._selectedTextOnInputClick = false;
     }
 
@@ -258,13 +240,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         // Drop results
         this._ng_searchRequestId = Toolkit.guid();
         this._forceUpdate();
+        this._ng_activeSearch = '';
         return this._ng_session
             .getSessionSearch()
             .getFiltersAPI()
             .drop(this._ng_searchRequestId)
             .then(() => {
-                this._prevRequest = '';
-                this._ng_inputCtrl.setValue('');
                 this._ng_isRequestSaved = false;
                 this._ng_searchRequestId = undefined;
                 this._ng_found = -1;
@@ -342,19 +323,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._ng_read !== -1 && this._ng_found !== -1;
     }
 
-    public _ng_isButtonsVisible(): boolean {
-        if (this._ng_session === undefined) {
-            return false;
-        }
-        if (this._prevRequest === this._ng_inputCtrl.value && this._ng_inputCtrl.value !== '') {
-            this._ng_session.getSessionSearch().getQueue().lock();
-            return true;
-        } else {
-            this._ng_session.getSessionSearch().getQueue().unlock();
-            return false;
-        }
-    }
-
     public _ng_onRecentSelected(event: MatAutocompleteSelectedEvent) {
         this._ng_inputCtrl.setValue(event.option.viewValue);
         if (!this._selectedTextOnInputClick) {
@@ -396,10 +364,30 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         return this._sanitizer.bypassSecurityTrustHtml(input);
     }
 
+    public _ng_isValidChart(request: string): boolean {
+        return ChartRequest.isValid(request);
+    }
+
+    public _ng_clickActiveSearchHolder(event: MouseEvent) {
+        event.stopPropagation();
+    }
+
+    private _isSearchActive(): boolean {
+        if (this._ng_session === undefined) {
+            return false;
+        }
+        if (this._ng_activeSearch !== '') {
+            this._ng_session.getSessionSearch().getQueue().lock();
+            return true;
+        } else {
+            this._ng_session.getSessionSearch().getQueue().unlock();
+            return false;
+        }
+    }
+
     private _onStoreFilter() {
         if (this._ng_inputCtrl.value === undefined || this._ng_inputCtrl.value.trim() === '') {
-            // Drop results
-            return this._ng_onDropRequest(true);
+            return;
         }
         if (!this._ng_isRequestValid) {
             return this._notifications.add({
@@ -407,13 +395,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 message: `Regular expresion isn't valid. Please correct it.`,
             });
         }
-        if (this._prevRequest.trim() !== '' && this._ng_inputCtrl.value === this._prevRequest) {
-            if (this._ng_isRequestSaved) {
-                return;
-            }
-            this._ng_onStoreRequest();
-            return;
-        }
+        this._ng_activeSearch = this._ng_inputCtrl.value;
+        this._ng_inputCtrl.setValue('');
+        this._ng_autoComRef.closePanel();
         this._addRecentFilter();
         this._search();
     }
@@ -421,7 +405,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _getCurrentFilter(): FilterRequest | Error {
         try {
             return new FilterRequest({
-                request: this._ng_inputCtrl.value,
+                request: this._ng_activeSearch,
                 flags: Object.assign({}, this._ng_flags),
             });
         } catch (err) {
@@ -432,7 +416,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     private _getCurrentChart(): ChartRequest | Error {
         try {
             return new ChartRequest({
-                request: this._ng_inputCtrl.value,
+                request: this._ng_activeSearch,
                 type: EChartType.smooth,
             });
         } catch (err) {
@@ -474,7 +458,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             });
         }
         this._ng_searchRequestId = Toolkit.guid();
-        this._prevRequest = this._ng_inputCtrl.value;
         session
             .getSessionSearch()
             .getFiltersAPI()
@@ -633,8 +616,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         scope.set<IViewState>(CSettings.viewStateKey, {
             isRequestSaved: this._ng_isRequestSaved,
             isRequestValid: this._ng_isRequestValid,
-            request: this._ng_inputCtrl.value,
-            prevRequest: this._prevRequest,
+            request: this._ng_activeSearch,
             searchRequestId: this._ng_searchRequestId,
             found: this._ng_found,
             read: this._ng_read,
@@ -651,7 +633,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_isRequestSaved = false;
             this._ng_isRequestValid = true;
             this._ng_inputCtrl.setValue('');
-            this._prevRequest = '';
+            this._ng_activeSearch = '';
             this._ng_searchRequestId = undefined;
             this._ng_read = -1;
             this._ng_found = -1;
@@ -659,7 +641,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_isRequestSaved = state.isRequestSaved;
             this._ng_isRequestValid = state.isRequestValid;
             this._ng_inputCtrl.setValue(state.request);
-            this._prevRequest = state.prevRequest;
+            this._ng_activeSearch = state.request;
             this._ng_searchRequestId = state.searchRequestId;
             this._ng_found = state.found;
             this._ng_read = state.read;
@@ -719,7 +701,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_session.getGuid() !== event.session) {
             return;
         }
-        if (!this._ng_isButtonsVisible()) {
+        if (!this._isSearchActive()) {
             return;
         }
         this._ng_read = event.rows;
@@ -733,7 +715,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_session.getGuid() !== event.session) {
             return;
         }
-        if (!this._ng_isButtonsVisible()) {
+        if (!this._isSearchActive()) {
             return;
         }
         this._ng_found = event.rows;

@@ -1,41 +1,77 @@
 @import '../../../theme/variables.less';
 
-
 app-views-search {
     display: flex;
     flex-flow: column;
     height: 100%;
-    & div.request{
+    & div.request {
         position: absolute;
-        top:0;
+        top: 0;
         height: 1.75rem;
-        left:0;
+        left: 0;
         right: 0;
         display: flex;
-        & div.search-input-wrapper{
+        & div.search-input-wrapper {
             transition: right 150ms ease-in-out;
             position: relative;
             display: block;
             min-width: 20rem;
-            width: calc(100% - 22rem);
-            & input.not-valid{
+            width: calc(100% - 12rem);
+            & input.not-valid {
                 color: @scheme-color-error!important;
             }
             & input {
-                width: ~"calc(100% - 81px)";
+                box-sizing: border-box;
+                width: ~'calc(100% - 81px)';
             }
-            & mat-form-field{
+            & div.activeSearchHolder {
+                color: #ffffff;
+                background-color: #74b9ff;
+                border-color: #74b9ff;
+                border-width: 1px;
+                border-style: solid;
+                border-radius: 6px;
+                padding-left: 5px;
+                display: flex;
+                flex-direction: row;
+                max-width: 100%;
+
+                & button {
+                    background-color: @scheme-color-accent;
+                    border: none;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    & mat-icon {
+                        color: @scheme-color-0;
+                        font-size: 15px;
+                        width: 15px;
+                        height: 15px;
+                    }
+                    & mat-icon.disabled {
+                        color: @scheme-color-3;
+                    }
+                }
+            }
+            & span.activeSearch {
+                color: @scheme-color-0;
+                overflow: hidden;
+                white-space: nowrap;
+            }
+            & mat-form-field {
                 margin: 0 4px;
                 width: calc(100% - 8px);
-                & .mat-form-field-flex{
+                & .mat-form-field-flex {
                     height: 31px;
                 }
-                & .mat-form-field-infix{
-                    margin: 4px 0 0 0;
+                & .mat-form-field-infix {
+                    display: flex;
+                    flex-direction: row;
+                    margin: 7px 0 0 0;
                     padding: 0;
                 }
             }
-            & div.spinner{
+            & div.spinner {
                 position: absolute;
                 left: 0px;
                 right: 0px;
@@ -43,7 +79,7 @@ app-views-search {
                 height: 1px;
                 overflow: hidden;
             }
-            & div.request-mode-buttons{
+            & div.request-mode-buttons {
                 position: absolute;
                 right: 3px;
                 bottom: -2px;
@@ -53,11 +89,11 @@ app-views-search {
                 height: 25px;
                 color: @scheme-color-0;
                 cursor: default;
-                & span.small-icon-button{
+                & span.small-icon-button {
                     line-height: 1.5rem;
                     transition: all 50ms ease-in-out;
                     outline: none;
-                    &:hover{
+                    &:hover {
                         color: @scheme-color-1;
                     }
                     &.active {
@@ -70,17 +106,17 @@ app-views-search {
                 }
             }
         }
-        & div.request-buttons{
+        & div.request-buttons {
             position: relative;
             display: block;
             flex: 0;
             white-space: nowrap;
-            padding-top: 3px;
-            & span.small-icon-button{
+            padding-top: 6px;
+            & span.small-icon-button {
                 line-height: 1.5rem;
             }
         }
-        & p.summary{
+        & p.summary {
             position: relative;
             display: block;
             flex: auto;
@@ -92,17 +128,16 @@ app-views-search {
         }
     }
 
-    & div.rows{
+    & div.rows {
         position: absolute;
         padding: 0;
         margin: 0;
         width: 100%;
         top: 34px;
-        left:0;
+        left: 0;
         bottom: 0;
         overflow: hidden;
     }
-
 }
 
 & span.filename {
