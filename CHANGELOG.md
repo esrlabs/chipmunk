@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.22.0] - 10/07/2021
+
+### Changes
+
+-   Upgrade search input
+-   Upgrade npm dependencies (client.core)
+-   Switch client.core to "strict" mode
+-   Upgrade libs: components & toolkit
+
 ## [2.21.1] - 09/24/2021
 
 ### Added
