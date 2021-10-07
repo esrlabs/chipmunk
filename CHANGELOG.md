@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.22.2] - 10/07/2021
+
+### Fix
+
+-   Delivery latest plugins
+
 ## [2.22.1] - 10/07/2021
 
 ### Fix
