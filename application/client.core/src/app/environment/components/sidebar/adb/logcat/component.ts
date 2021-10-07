@@ -158,6 +158,11 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             });
     }
 
+    public _ng_onProcessMousedown(process: IPair) {
+        this._ng_processSelected = process;
+        this._ng_onChange();
+    }
+
     public _ng_onDeviceSelectClick() {
         this._detectDevices();
     }
@@ -189,7 +194,10 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
 
     public _ng_onCloseSearch() {
         this._ng_processSearchTerm = '';
-        this._processSearchTerm.next(this._ng_processSearchTerm);
+        const matSelectArray: Array<MatSelect> = this._ng_matSelectList.toArray();
+        if (matSelectArray[1] !== undefined) {
+            matSelectArray[1].close();
+        }
     }
 
     public _ng_onKeyup(event: KeyboardEvent) {
