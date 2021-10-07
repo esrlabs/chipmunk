@@ -162,9 +162,9 @@ export class ControllerFileMergeSession {
                                                 year: undefined,
                                             },
                                         });
-                                        this._subjects.FileUpdated.next(
-                                            this._files.get(discoveredFile.path),
-                                        );
+                                        const fileDesc = this._files.get(discoveredFile.path);
+                                        fileDesc !== undefined &&
+                                            this._subjects.FileUpdated.next(fileDesc);
                                         this._subjects.FilesUpdated.next(
                                             Array.from(this._files.values()),
                                         );
@@ -245,7 +245,7 @@ export class ControllerFileMergeSession {
                     };
                 },
             );
-            EventsHubService.getSubject().onKeepScrollPrevent.next();
+            EventsHubService.getSubject().onKeepScrollPrevent.next(undefined);
             ElectronIpcService.request<IPC.MergeFilesResponse>(
                 new IPC.MergeFilesRequest({
                     files: files,

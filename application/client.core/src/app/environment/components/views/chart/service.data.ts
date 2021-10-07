@@ -413,7 +413,7 @@ export class ServiceData {
         this._stream = controller.getStreamOutput().getState();
         this._charts = controller.getSessionSearch().getChartsAPI().getChartsData();
         this._subjects.onData.next();
-        this._subjects.onCharts.next();
+        this._subjects.onCharts.next({});
     }
 
     private _onSearchMapStateUpdate(state: IMapState) {
@@ -436,12 +436,12 @@ export class ServiceData {
 
     private _onChartsResultsUpdated(charts: IPC.TChartResults) {
         this._charts = charts;
-        this._subjects.onCharts.next();
+        this._subjects.onCharts.next({});
     }
 
     private _onChartsUpdated(charts: ChartRequest[]) {
         // Some things like colors was changed. Trigger an update
-        this._subjects.onCharts.next();
+        this._subjects.onCharts.next({});
     }
 
     private _getLeftBorderChartDS(reg: string, begin: number): number | undefined {

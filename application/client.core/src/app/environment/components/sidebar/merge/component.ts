@@ -51,7 +51,7 @@ export class SidebarAppMergeFilesComponent implements OnDestroy, AfterContentIni
     @Input() public close!: () => void;
 
     public _ng_controller!: ControllerFileMergeSession;
-    public _ng_select: Subject<IMergeFile> = new Subject<IMergeFile>();
+    public _ng_select: Subject<IMergeFile | undefined> = new Subject<IMergeFile | undefined>();
     public _ng_selected: IMergeFile | undefined;
     public _ng_state: EState = EState.ready;
     public _ng_viewMode: EViewMode = EViewMode.max;

@@ -102,7 +102,8 @@ export class ControllerFileConcatSession {
                     return new Promise((next) => {
                         this._addFileByPath(file)
                             .then(() => {
-                                this._subjects.FileUpdated.next(this._files.get(file));
+                                const fileDesc = this._files.get(file);
+                                fileDesc !== undefined && this._subjects.FileUpdated.next(fileDesc);
                                 this._subjects.FilesUpdated.next(Array.from(this._files.values()));
                                 next(undefined);
                             })
@@ -161,7 +162,7 @@ export class ControllerFileConcatSession {
     public concat(): CancelablePromise<void> {
         const id: string = Toolkit.guid();
         const task: CancelablePromise<void> = new CancelablePromise<void>((resolve, reject) => {
-            EventsHubService.getSubject().onKeepScrollPrevent.next();
+            EventsHubService.getSubject().onKeepScrollPrevent.next(undefined);
             ElectronIpcService.request<IPC.ConcatFilesResponse>(
                 new IPC.ConcatFilesRequest({
                     files: Array.from(this._files.values()).map((file: IConcatFile) => {

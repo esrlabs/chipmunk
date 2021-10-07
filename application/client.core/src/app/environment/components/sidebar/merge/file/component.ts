@@ -34,7 +34,7 @@ export class SidebarAppMergeFilesItemComponent
     implements OnDestroy, AfterContentInit, AfterViewInit, OnChanges
 {
     @Input() public file!: IMergeFile;
-    @Input() public select!: Observable<IMergeFile>;
+    @Input() public select!: Observable<IMergeFile | undefined>;
     @Input() public controller!: ControllerFileMergeSession;
     @Input() public width!: number;
     @Input() public viewMode!: EViewMode;

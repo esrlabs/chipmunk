@@ -30,7 +30,7 @@ export class SidebarAppMergeFilesListComponent
     implements OnDestroy, AfterContentInit, AfterViewInit, OnChanges
 {
     @Input() public controller!: ControllerFileMergeSession;
-    @Input() public select!: Subject<IMergeFile>;
+    @Input() public select!: Subject<IMergeFile | undefined>;
     @Input() public viewMode!: EViewMode;
     @Input() public timeLineVisibility!: boolean;
 

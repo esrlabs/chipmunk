@@ -147,7 +147,7 @@ export class FileOptionsService implements IService {
 
     private _onRequest(request: IPC.FileGetOptionsRequest, response: TResponseFunc) {
         this._subjects.onFileOpenRequest.next();
-        EventsHubService.getSubject().onKeepScrollPrevent.next();
+        EventsHubService.getSubject().onKeepScrollPrevent.next(undefined);
         const fileType: string = request.type;
         if ((CControllers as any)[fileType] === undefined) {
             response(
