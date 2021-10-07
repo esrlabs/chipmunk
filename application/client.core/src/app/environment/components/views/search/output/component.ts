@@ -66,7 +66,7 @@ export class ViewSearchOutputComponent implements OnDestroy, AfterViewInit, Afte
 
     @Input() public session: Session | undefined;
     @Input() public onSessionChanged: Subject<Session> | undefined;
-    @Input() public injectionIntoTitleBar!: Subject<IComponentDesc>;
+    @Input() public injectionIntoTitleBar!: Subject<IComponentDesc | undefined>;
 
     public _ng_outputAPI: IDataAPI;
 

@@ -75,7 +75,7 @@ const CSettings = {
     encapsulation: ViewEncapsulation.None,
 })
 export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterContentInit {
-    @Input() public injectionIntoTitleBar!: Subject<IComponentDesc>;
+    @Input() public injectionIntoTitleBar!: Subject<IComponentDesc | undefined>;
     @Input() public onBeforeTabRemove!: Subject<void>;
     @Input() public setActiveTab!: (guid: string) => void;
     @Input() public getDefaultsTabGuids!: () => { charts: string };

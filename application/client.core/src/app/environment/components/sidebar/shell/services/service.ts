@@ -390,7 +390,10 @@ export class ShellService {
 
     public setPwd(request: IPC.IShellPwdRequest): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request<IPC.ShellPwdResponse>(new IPC.ShellPwdRequest(request), IPC.ShellPwdResponse)
+            ElectronIpcService.request<IPC.ShellPwdResponse>(
+                new IPC.ShellPwdRequest(request),
+                IPC.ShellPwdResponse,
+            )
                 .then((response) => {
                     if (response.error !== undefined) {
                         return reject(
@@ -398,7 +401,13 @@ export class ShellService {
                         );
                     }
                     if (this._sessionID === undefined) {
-                        return reject(new Error(this._logger.error(`Cannot proccedd with "setPwd" because session guid is undefined`)));
+                        return reject(
+                            new Error(
+                                this._logger.error(
+                                    `Cannot proccedd with "setPwd" because session guid is undefined`,
+                                ),
+                            ),
+                        );
                     }
                     if (response.value.trim() !== '') {
                         this._getPreset(this._selectedPresetTitle).information.pwd = response.value;
@@ -464,7 +473,10 @@ export class ShellService {
 
     public restoreSession(request: IPC.IShellLoadRequest, outside: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request<IPC.ShellLoadResponse>(new IPC.ShellLoadRequest(request), IPC.ShellLoadResponse)
+            ElectronIpcService.request<IPC.ShellLoadResponse>(
+                new IPC.ShellLoadRequest(request),
+                IPC.ShellLoadResponse,
+            )
                 .then((response) => {
                     if (response.presetTitle.trim() === '') {
                         return resolve();
@@ -523,7 +535,9 @@ export class ShellService {
 
     private _init() {
         if (this._sessionID === undefined) {
-            throw new Error(this._logger.error(`Cannot init service because session guid is undefined`));
+            throw new Error(
+                this._logger.error(`Cannot init service because session guid is undefined`),
+            );
         }
         this._getPresets(this._sessionID)
             .then((response: IPC.IShellPresetGetResponse) => {
@@ -545,9 +559,8 @@ export class ShellService {
                 }
                 this.getEnv({ session: this._sessionID })
                     .then(() => {
-                        this._subjects.onShellChange.next(
-                            this._getPreset(this._selectedPresetTitle).information.shell,
-                        );
+                        const shell = this._getPreset(this._selectedPresetTitle).information.shell;
+                        shell !== undefined && this._subjects.onShellChange.next(shell);
                     })
                     .catch((error: Error) => {
                         this._logger.error(
@@ -591,7 +604,11 @@ export class ShellService {
 
     private _onSessionChange(session: Session | undefined) {
         if (session !== undefined) {
-            this._sessionID !== undefined && this._saveSession({ session: this._sessionID, presetTitle: this._selectedPresetTitle });
+            this._sessionID !== undefined &&
+                this._saveSession({
+                    session: this._sessionID,
+                    presetTitle: this._selectedPresetTitle,
+                });
             this._sessionID = session.getGuid();
             this.restoreSession({ session: this._sessionID }).catch((error: Error) => {
                 this._logger.error(error.message);
