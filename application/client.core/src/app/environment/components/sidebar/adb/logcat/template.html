@@ -38,7 +38,6 @@
                     [(value)]="_ng_processSelected"
                     [class]="_ng_processSelected.caption === _ng_noProcessPair.caption ? 'none' : ''"
                     (keyup)="_ng_onKeyup($event)"
-                    (selectionChange)="_ng_onChange()"
                     (click)="_ng_onProcessSelectClick()"
                     (blur)="_ng_onCloseSearch()"
                 >
@@ -47,6 +46,7 @@
                         [trigger]="_ng_scrollIntoViewTrigger"
                         [value]="_ng_noProcessPair"
                         [attr.title]="_ng_noProcessPair.caption"
+                        (mousedown)="_ng_onProcessMousedown(_ng_noProcessPair)"
                         class="process small t-console t-small"
                     >
                         <span class="noreset process-caption">{{_ng_noProcessPair.caption}}</span>
@@ -55,6 +55,7 @@
                         *ngFor="let processPair of _ng_processPairs | async"
                         [value]="processPair"
                         [attr.title]="processPair.caption"
+                        (mousedown)="_ng_onProcessMousedown(processPair)"
                         class="process small t-console t-small"
                     >
                         <span
