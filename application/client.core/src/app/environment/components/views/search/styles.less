@@ -30,12 +30,12 @@ app-views-search {
                 border-color: #74b9ff;
                 border-width: 1px;
                 border-style: solid;
-                border-radius: 6px;
+                border-radius: 4px;
                 padding-left: 5px;
                 display: flex;
                 flex-direction: row;
                 max-width: 100%;
-
+                margin-left: -8px;
                 & button {
                     background-color: @scheme-color-accent;
                     border: none;
@@ -44,9 +44,9 @@ app-views-search {
                     justify-content: center;
                     & mat-icon {
                         color: @scheme-color-0;
-                        font-size: 15px;
-                        width: 15px;
-                        height: 15px;
+                        font-size: 14px;
+                        width: 14px;
+                        height: 14px;
                     }
                     & mat-icon.disabled {
                         color: @scheme-color-3;
@@ -57,6 +57,8 @@ app-views-search {
                 color: @scheme-color-0;
                 overflow: hidden;
                 white-space: nowrap;
+                font-size: 14px;
+                line-height: 18px;
             }
             & mat-form-field {
                 margin: 0 4px;
