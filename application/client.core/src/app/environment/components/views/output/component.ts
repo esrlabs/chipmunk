@@ -141,6 +141,7 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
         this._subscriptions.onFocus = FocusOutputService.getObservable().onFocus.subscribe(
             this._onFocus.bind(this),
         );
+        this._ng_outputAPI.onRedraw.next();
         this._onFocus();
     }
 
