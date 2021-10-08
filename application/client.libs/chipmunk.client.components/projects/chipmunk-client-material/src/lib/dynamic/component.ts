@@ -40,15 +40,6 @@ export class DynamicComponent {
     @Input() alwaysDrop = false;
 
     @Input() set component(desc: IComponentDesc | undefined) {
-        if (typeof desc !== 'object' || desc === null || desc === undefined) {
-            return;
-        }
-        if (desc.factory === undefined) {
-            return;
-        }
-        if (desc.inputs === undefined) {
-            desc.inputs = {};
-        }
         if (this._component) {
             const cacheKey: number | undefined = this._getKey(desc.factory);
             // Component already was created
@@ -61,7 +52,18 @@ export class DynamicComponent {
                 return;
             } else {
                 this._component.destroy();
+                this.viewContainerRef.remove();
+                this._component = undefined;
             }
+        }
+        if (typeof desc !== 'object' || desc === null || desc === undefined) {
+            return;
+        }
+        if (desc.factory === undefined) {
+            return;
+        }
+        if (desc.inputs === undefined) {
+            desc.inputs = {};
         }
         let component;
         if (!desc.resolved) {
