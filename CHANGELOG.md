@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.22.3] - 10/08/2021
+
+### Fix
+
+-   Fix a rendering dynamic components
+-   Fix the search input
+-   Fix a selecting of processes (adb)
+
 ## [2.22.2] - 10/07/2021
 
 ### Fix
