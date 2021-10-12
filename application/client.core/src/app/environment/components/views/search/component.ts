@@ -196,6 +196,9 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         if (event !== undefined && (event.key === 'Backspace' || event.key === 'Escape')) {
+            if (this._ng_inputCtrl.value !== '') {
+                return;
+            }
             this._ng_inputCtrl.setValue(this._ng_activeSearch);
             this._ng_onDropRequest(true);
         }
@@ -279,7 +282,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         this._filtersStorage?.add(request);
         this._ng_isRequestSaved = true;
-        this._ng_onDropRequest(false);
+        this._ng_onDropRequest(true);
     }
 
     public _ng_onStoreChart() {
