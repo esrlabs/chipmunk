@@ -54,13 +54,17 @@ app-sidebar-app-adb-logcat {
         }
     }
 }
+& mat-option.spinner {
+    height: 1.5rem !important;
+    line-height: 1.5rem !important;
+}
 & mat-option.mat-selected {
     color: @scheme-color-0!important;
-    background-color: fade(@scheme-color-accent, 40%)!important;
+    background-color: fade(@scheme-color-accent, 40%) !important;
 }
 & mat-option.process {
-    span.mat-option-text {
-        span.process-caption {
+    & span.mat-option-text {
+        & span.process-caption {
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
@@ -69,4 +73,9 @@ app-sidebar-app-adb-logcat {
             }
         }
     }
+}
+& div.spinner-holder {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
 }

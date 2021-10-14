@@ -20,7 +20,7 @@
                     [(value)]="_ng_deviceSelected"
                     [class]="_ng_deviceSelected.name === _ng_noDevice.name ? 'none' : ''"
                     (selectionChange)="_ng_onDeviceChange()"
-                    (click)="_ng_onDeviceSelectClick()"
+                    (openedChange)="_ng_onDeviceOpen($event)"
                 >
                     <mat-option
                         class="small t-console t-small"
@@ -28,6 +28,15 @@
                         *ngFor="let device of _ng_devices"
                         >{{ device.name }}</mat-option
                     >
+                    <mat-option
+                        class="spinner"
+                        [ngStyle]="{ 'display': _ng_loadDevicesDone ? 'none' : '' }"
+                        [disabled]="true"
+                    >
+                        <div class="process spinner-holder">
+                            <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
+                        </div>
+                    </mat-option>
                 </mat-select>
             </mat-form-field>
         </div>
@@ -38,8 +47,8 @@
                     [(value)]="_ng_processSelected"
                     [class]="_ng_processSelected.caption === _ng_noProcessPair.caption ? 'none' : ''"
                     (keyup)="_ng_onKeyup($event)"
-                    (click)="_ng_onProcessSelectClick()"
-                    (blur)="_ng_onCloseSearch()"
+                    (selectionChange)="_ng_onChange()"
+                    (openedChange)="_ng_onProcessOpen($event)"
                 >
                     <mat-option
                         appScrollIntoView
@@ -52,7 +61,7 @@
                         <span class="noreset process-caption">{{_ng_noProcessPair.caption}}</span>
                     </mat-option>
                     <mat-option
-                        *ngFor="let processPair of _ng_processPairs | async"
+                        *ngFor="let processPair of _ng_processPairs"
                         [value]="processPair"
                         [attr.title]="processPair.caption"
                         (mousedown)="_ng_onProcessMousedown(processPair)"
@@ -62,6 +71,15 @@
                             class="noreset process-caption"
                             [innerHTML]="_ng_getSafeHTML(processPair.tcaption === undefined ? processPair.caption : processPair.tcaption)"
                         ></span>
+                    </mat-option>
+                    <mat-option
+                        class="spinner"
+                        [ngStyle]="{ 'display': _ng_loadProcessesDone ? 'none' : '' }"
+                        [disabled]="true"
+                    >
+                        <div class="process spinner-holder">
+                            <mat-spinner [diameter]="15" mode="indeterminate"></mat-spinner>
+                        </div>
                     </mat-option>
                 </mat-select>
             </mat-form-field>

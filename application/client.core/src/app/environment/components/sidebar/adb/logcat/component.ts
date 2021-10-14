@@ -8,7 +8,7 @@ import {
     ViewChildren,
     ViewEncapsulation,
 } from '@angular/core';
-import { SidebarAppAdbService, IAmount, EAdbStatus } from '../services/service';
+import { SidebarAppAdbService, IAmount } from '../services/service';
 import { Session } from '../../../../controller/session/session';
 import {
     NotificationsService,
@@ -19,8 +19,7 @@ import { MatSelect } from '@angular/material/select';
 import { IPC } from '../../../../services/service.electron.ipc';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { sortPairs, IPair } from '../../../../thirdparty/code/engine';
-import { Subscription, Observable, Subject } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { Subscription, Subject } from 'rxjs';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
@@ -67,16 +66,22 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     };
     public _ng_logLevelSelected: string = this._ng_logLevels[0].flag;
     public _ng_processSearchTerm: string = '';
-    public _ng_processSelected: IPair = this._ng_noProcessPair;
-    public _ng_processPairs!: Observable<IPair[]>;
+    public _ng_processSelected: IPair = {
+        caption: '<No process selected>',
+        description: ' ',
+        id: '-1',
+    };
+    public _ng_processPairs: IPair[] = [];
     public _ng_scrollIntoViewTrigger: Subject<void> = new Subject();
+    public _ng_loadProcessesDone: boolean = false;
+    public _ng_loadDevicesDone: boolean = false;
 
     private _session: string | undefined;
     private _destroyed: boolean = false;
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppAdbLogcatComponent');
     private _subscriptions: { [key: string]: Subscription } = {};
     private _processPairs: IPair[] = [];
-    private _processSearchTerm: Subject<string> = new Subject<string>();
+    private _prevDevice: IAdbDevice = this._ng_noDevice;
 
     constructor(
         private _cdRef: ChangeDetectorRef,
@@ -102,10 +107,6 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             .getObservable()
             .onDisconnect.subscribe(this._onDisconnect.bind(this));
         this._init();
-        this._ng_processPairs = this._processSearchTerm.pipe(
-            startWith(''),
-            map((value) => this._filter(value)),
-        );
     }
 
     public ngOnDestroy() {
@@ -116,13 +117,17 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
     }
 
     public _ng_onDeviceChange() {
-        if (this._ng_deviceSelected.name === this._ng_noDevice.name) {
+        if (this._ng_deviceSelected.name !== this._prevDevice.name) {
             this._ng_processSelected = this._ng_noProcessPair;
             this._processPairs = [];
             this._stop();
-            return;
+            if (this._ng_deviceSelected.name === this._ng_noDevice.name) {
+                this._prevDevice = this._ng_noDevice;
+                return;
+            }
         }
         this._start();
+        this._prevDevice = this._ng_deviceSelected;
     }
 
     public _ng_onChange() {
@@ -163,41 +168,44 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         this._ng_onChange();
     }
 
-    public _ng_onDeviceSelectClick() {
-        this._detectDevices();
+    public _ng_onDeviceOpen(open: boolean) {
+        if (open) {
+            this._detectDevices();
+        }
     }
 
-    public _ng_onProcessSelectClick() {
-        const matSelectArray: Array<MatSelect> = this._ng_matSelectList.toArray();
-        if (matSelectArray[1] !== undefined) {
-            matSelectArray[1].close();
-            this._detectProcesses()
-                .then(() => {
-                    matSelectArray[1].open();
-                    this._ng_processSearchTerm = '';
-                    this._processSearchTerm.next(this._ng_processSearchTerm);
-                })
-                .catch((error: Error) => {
-                    this._notifications.add({
-                        caption: 'Fail to detect processes',
-                        message: `Failed to processes for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
-                        options: {
-                            type: ENotificationType.error,
-                        },
-                    });
-                    this._logger.error(
-                        `Failed to processes for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
-                    );
-                });
+    public _ng_onProcessOpen(open: boolean) {
+        if (!open) {
+            this._ng_processSearchTerm = '';
+            this._ng_processPairs = this._filter(this._ng_processSearchTerm);
+            return;
         }
+        this._ng_loadProcessesDone = false;
+        this._detectProcesses()
+            .then(() => {
+                this._ng_processSearchTerm = '';
+                this._ng_processPairs = this._filter(this._ng_processSearchTerm);
+            })
+            .catch((error: Error) => {
+                this._notifications.add({
+                    caption: 'Fail to detect processes',
+                    message: `Failed to processes for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
+                    options: {
+                        type: ENotificationType.error,
+                    },
+                });
+                this._logger.error(
+                    `Failed to processes for device ${this._ng_deviceSelected.name} due to error: ${error.message}`,
+                );
+            })
+            .finally(() => {
+                this._ng_loadProcessesDone = true;
+            });
     }
 
     public _ng_onCloseSearch() {
         this._ng_processSearchTerm = '';
-        const matSelectArray: Array<MatSelect> = this._ng_matSelectList.toArray();
-        if (matSelectArray[1] !== undefined) {
-            matSelectArray[1].close();
-        }
+        this._ng_processPairs = this._filter(this._ng_processSearchTerm);
     }
 
     public _ng_onKeyup(event: KeyboardEvent) {
@@ -213,7 +221,9 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
         } else {
             this._ng_processSearchTerm += event.key;
         }
-        this._processSearchTerm.next(this._ng_processSearchTerm);
+        this._ng_loadProcessesDone = false;
+        this._ng_processPairs = this._filter(this._ng_processSearchTerm);
+        this._ng_loadProcessesDone = true;
     }
 
     public _ng_getSafeHTML(str: string): SafeHtml {
@@ -368,6 +378,7 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             this._logger.error(`Session guid isn't defined`);
             return;
         }
+        this._ng_loadDevicesDone = false;
         this.service
             .getDevices({ session: this._session })
             .then((response: IAdbDevice[]) => {
@@ -391,6 +402,9 @@ export class SidebarAppAdbLogcatComponent implements OnInit, OnDestroy {
             })
             .catch((error: Error) => {
                 this._logger.error(`Failed to detect devices due error: ${error.message}`);
+            })
+            .finally(() => {
+                this._ng_loadDevicesDone = true;
             });
     }
 
