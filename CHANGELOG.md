@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.22.5] - 10/15/2021
+
+### Fix
+
+-   Fix color accepting on columns view
+
 ## [2.22.4] - 10/15/2021
 
 ### Fix
