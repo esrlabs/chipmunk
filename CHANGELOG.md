@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.22.6] - 10/15/2021
+
+### Fix
+
+-   Fix saving recent search
+
 ## [2.22.5] - 10/15/2021
 
 ### Fix
