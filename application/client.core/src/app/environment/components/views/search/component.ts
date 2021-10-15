@@ -769,12 +769,12 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     private _addRecentFilter() {
-        if (this._ng_inputCtrl.value.trim() === '') {
+        if (this._ng_activeSearch.trim() === '') {
             return;
         }
         ElectronIpcService.request<IPC.SearchRecentAddResponse>(
             new IPC.SearchRecentAddRequest({
-                request: this._ng_inputCtrl.value,
+                request: this._ng_activeSearch,
             }),
             IPC.SearchRecentAddResponse,
         )
