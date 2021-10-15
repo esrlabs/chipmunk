@@ -106,10 +106,16 @@ export class ViewOutputRowColumnsComponent
     }
 
     public _ng_getStyles(key: number): { [key: string]: string } {
+        const defColor =
+            this.color === undefined
+                ? (this._columns as any)[key].color
+                : this.color === ''
+                ? (this._columns as any)[key].color
+                : this.color;
         return this._ng_isVisible(key)
             ? {
                   width: `${(this._columns as any)[key].width}px`,
-                  color: this.color === undefined ? (this._columns as any)[key].color : this.color,
+                  color: defColor,
               }
             : {};
     }
