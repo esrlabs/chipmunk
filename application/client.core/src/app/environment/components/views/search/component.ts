@@ -174,10 +174,18 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onKeyDownRequestInput(event: KeyboardEvent): boolean {
+        if (
+            event.key === 'Backspace' &&
+            this._ng_inputCtrl.value.trim() === '' &&
+            this._ng_activeSearch.trim() !== ''
+        ) {
+            this._ng_inputCtrl.setValue(this._ng_activeSearch);
+            this._ng_onDropRequest(true);
+        }
         // Need additional event handler for keydown
         // If Tab is clicked focus on input is lost and event cannot be handled
         // That's why it's necessary to check for keydown even instead
-        if (event.key === 'Tab') {
+        else if (event.key === 'Tab') {
             if (this._ng_autoComRef.activeOption) {
                 this._ng_inputCtrl.setValue(this._ng_autoComRef.activeOption.value.description);
             }
@@ -187,15 +195,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onKeyUpRequestInput(event?: KeyboardEvent) {
-        if (
-            event !== undefined &&
-            event.key !== 'Enter' &&
-            event.key !== 'Escape' &&
-            event.key !== 'Backspace'
-        ) {
+        if (event !== undefined && event.key !== 'Enter' && event.key !== 'Escape') {
             return;
         }
-        if (event !== undefined && (event.key === 'Backspace' || event.key === 'Escape')) {
+        if (event !== undefined && event.key === 'Escape') {
             if (this._ng_inputCtrl.value !== '') {
                 return;
             }
