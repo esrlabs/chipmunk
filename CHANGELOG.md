@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.4] - 10/15/2021
+
+### Fix
+
+-   Fix search UX
+-   Fix adb processes update
+
 ## [2.22.3] - 10/08/2021
 
 ### Fix
