@@ -13,7 +13,6 @@ node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git",branch = "m
 [dependencies]
 anyhow = "1.0"
 crossbeam-channel = "0.5"
-ctor = "0.1.6"
 dirs = "4.0"
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"

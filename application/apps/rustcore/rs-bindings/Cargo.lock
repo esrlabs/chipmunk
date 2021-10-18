@@ -1174,7 +1174,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "crossbeam-channel",
- "ctor",
  "dirs 4.0.0",
  "indexer_base",
  "log",

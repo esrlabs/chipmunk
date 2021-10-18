@@ -1,11 +1,11 @@
 use anyhow::Result;
-use ctor::ctor;
 use log::{Level, LevelFilter, Metadata, Record};
 use log4rs::{
     append::file::FileAppender,
     config::{Appender, Config, Root},
     encode::pattern::PatternEncoder,
 };
+use node_bindgen::init::node_bindgen_init_once;
 use std::{
     path::{Path, PathBuf},
     time::SystemTime,
@@ -36,7 +36,7 @@ impl log::Log for SimpleLogger {
     fn flush(&self) {}
 }
 
-#[ctor]
+#[node_bindgen_init_once]
 fn init_module() {
     if let Err(e) = init_logging() {
         eprintln!("Problems setting up logging: {}", e);
