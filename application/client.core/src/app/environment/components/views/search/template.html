@@ -8,16 +8,11 @@
                     *ngIf="_ng_activeSearch !== ''"
                 >
                     <span class="activeSearch">{{_ng_activeSearch}}</span>
-                    <button (click)="_ng_onStoreRequest()" [disabled]="_ng_isRequestSaved">
-                        <mat-icon [class]="_ng_isRequestSaved ? 'disabled' : ''">save</mat-icon>
+                    <button (click)="_ng_onStoreRequest()" [disabled]="!_ng_canSaveFilter()">
+                        <mat-icon [class]="_ng_canSaveFilter() ? '' : 'disabled'">save</mat-icon>
                     </button>
-                    <button
-                        (click)="_ng_onStoreChart()"
-                        [disabled]="!_ng_isValidChart(_ng_activeSearch)"
-                    >
-                        <mat-icon [class]="_ng_isValidChart(_ng_activeSearch) ? '' : 'disabled'"
-                            >timeline</mat-icon
-                        >
+                    <button (click)="_ng_onStoreChart()" [disabled]="!_ng_canSaveChart()">
+                        <mat-icon [class]="_ng_canSaveChart() ? '' : 'disabled'">timeline</mat-icon>
                     </button>
                     <button (click)="_ng_onDropRequest()">
                         <mat-icon>close</mat-icon>

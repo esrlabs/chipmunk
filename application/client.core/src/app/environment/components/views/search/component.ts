@@ -58,7 +58,6 @@ interface IViewState {
     searchRequestId: string | undefined;
     isRequestValid: boolean;
     request: string;
-    isRequestSaved: boolean;
     read: number;
     found: number;
 }
@@ -89,7 +88,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     public _ng_session: Session | undefined;
     public _ng_searchRequestId: string | undefined;
     public _ng_isRequestValid: boolean = true;
-    public _ng_isRequestSaved: boolean = false;
     public _ng_read: number = -1;
     public _ng_found: number = -1;
     public _ng_activeSearch: string = '';
@@ -252,7 +250,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             .getFiltersAPI()
             .drop(this._ng_searchRequestId)
             .then(() => {
-                this._ng_isRequestSaved = false;
                 this._ng_searchRequestId = undefined;
                 this._ng_found = -1;
                 this._ng_read = -1;
@@ -272,9 +269,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
     }
 
     public _ng_onStoreRequest() {
-        if (this._ng_isRequestSaved) {
-            return;
-        }
         this._openSidebarSearchTab();
         const request: FilterRequest | Error = this._getCurrentFilter();
         if (request instanceof Error) {
@@ -284,14 +278,10 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             return;
         }
         this._filtersStorage?.add(request);
-        this._ng_isRequestSaved = true;
         this._ng_onDropRequest(true);
     }
 
     public _ng_onStoreChart() {
-        if (this._ng_isRequestSaved) {
-            return;
-        }
         this._openSidebarSearchTab();
         const request: ChartRequest | Error = this._getCurrentChart();
         if (request instanceof Error) {
@@ -307,7 +297,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             });
         }
         this._chartsStorage?.add(request);
-        this._ng_isRequestSaved = true;
         this._ng_onDropRequest(false).then(() => {
             if (this.setActiveTab === undefined || this.getDefaultsTabGuids === undefined) {
                 return;
@@ -376,6 +365,26 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
 
     public _ng_clickActiveSearchHolder(event: MouseEvent) {
         event.stopPropagation();
+    }
+
+    public _ng_canSaveFilter(): boolean {
+        const filter: Error | FilterRequest = this._getCurrentFilter();
+        if (filter instanceof Error || this._filtersStorage === undefined) {
+            return false;
+        }
+        return !this._filtersStorage.has(filter);
+    }
+
+    public _ng_canSaveChart(): boolean {
+        const chart: Error | ChartRequest = this._getCurrentChart();
+        if (
+            chart instanceof Error ||
+            this._chartsStorage === undefined ||
+            !this._ng_isValidChart(chart.asDesc().request)
+        ) {
+            return false;
+        }
+        return !this._chartsStorage.has(chart);
     }
 
     private _isSearchActive(): boolean {
@@ -478,8 +487,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
                 this._onSearchUpdated({ session: session.getGuid(), rows: count });
                 // Search done
                 this._ng_searchRequestId = undefined;
-                this._ng_isRequestSaved =
-                    this._filtersStorage === undefined ? false : this._filtersStorage.has(request);
                 if (focus) {
                     this._focus(true);
                 }
@@ -576,7 +583,7 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         if (this._ng_searchRequestId !== undefined) {
             return;
         }
-        this._ng_inputCtrl.setValue(request.asDesc().request);
+        this._ng_activeSearch = request.asDesc().request;
         this._ng_flags = request.asDesc().flags;
         this._addRecentFilter();
         this._search(false);
@@ -620,7 +627,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         }
         const scope: ControllerSessionScope = this._ng_session.getScope();
         scope.set<IViewState>(CSettings.viewStateKey, {
-            isRequestSaved: this._ng_isRequestSaved,
             isRequestValid: this._ng_isRequestValid,
             request: this._ng_activeSearch,
             searchRequestId: this._ng_searchRequestId,
@@ -636,7 +642,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
         const scope: ControllerSessionScope = this._ng_session.getScope();
         const state: IViewState | undefined = scope.get<IViewState>(CSettings.viewStateKey);
         if (state === undefined) {
-            this._ng_isRequestSaved = false;
             this._ng_isRequestValid = true;
             this._ng_inputCtrl.setValue('');
             this._ng_activeSearch = '';
@@ -644,7 +649,6 @@ export class ViewSearchComponent implements OnDestroy, AfterViewInit, AfterConte
             this._ng_read = -1;
             this._ng_found = -1;
         } else {
-            this._ng_isRequestSaved = state.isRequestSaved;
             this._ng_isRequestValid = state.isRequestValid;
             this._ng_inputCtrl.setValue(state.request);
             this._ng_activeSearch = state.request;
