@@ -8,11 +8,11 @@ import {
     EventEmitter,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { Chart } from 'chart.js';
 import { ServiceData, IResults, IChartsResults, IScaleState, EScaleType } from '../service.data';
 import { ServicePosition } from '../service.position';
 
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
+import Chart from 'chart.js/auto';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -35,6 +35,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
     private _destroyed: boolean = false;
     private _filters: Chart | undefined;
     private _charts: Chart | undefined;
+    private _timeout: number | undefined;
 
     constructor(private _cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
         this._ng_getLeftOffset = this._ng_getLeftOffset.bind(this);
@@ -87,7 +88,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         if (this._destroyed) {
             return;
         }
-        const size: ClientRect = (
+        const size: DOMRect = (
             this._vcRef.element.nativeElement as HTMLElement
         ).getBoundingClientRect();
         this._ng_width = size.width;
@@ -102,6 +103,15 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         if (this._charts !== undefined && force) {
             this._charts.resize();
         }
+        clearTimeout(this._timeout);
+        this._timeout = window.setTimeout(() => {
+            if (this._charts !== undefined) {
+                this._charts.update();
+            }
+            if (this._filters !== undefined) {
+                this._filters.update();
+            }
+        }, 200);
     }
 
     private _build() {
@@ -170,37 +180,27 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                             datasets: datasets.dataset,
                         },
                         options: {
-                            title: {
-                                display: false,
+                            plugins: {
+                                title: {
+                                    display: false,
+                                },
+                                legend: {
+                                    display: false,
+                                },
                             },
-                            legend: {
-                                display: false,
-                            },
-                            animation: {
-                                duration: 0,
-                            },
-                            hover: {
-                                animationDuration: 0,
-                            },
-                            responsiveAnimationDuration: 0,
+                            animation: false,
                             responsive: true,
                             maintainAspectRatio: false,
                             scales: {
-                                yAxes: [
-                                    {
-                                        stacked: true,
-                                        ticks: {
-                                            beginAtZero: true,
-                                        },
-                                        display: false,
-                                    },
-                                ],
-                                xAxes: [
-                                    {
-                                        stacked: true,
-                                        display: false,
-                                    },
-                                ],
+                                y: {
+                                    stacked: true,
+                                    beginAtZero: true,
+                                    display: false,
+                                },
+                                x: {
+                                    stacked: true,
+                                    display: false,
+                                },
                             },
                         },
                     },
@@ -243,46 +243,37 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                         datasets: datasets.dataset,
                     },
                     options: {
-                        title: {
-                            display: false,
+                        plugins: {
+                            title: {
+                                display: false,
+                            },
+                            legend: {
+                                display: false,
+                            },
                         },
-                        legend: {
-                            display: false,
-                        },
-                        animation: {
-                            duration: 0,
-                        },
-                        hover: {
-                            animationDuration: 0,
-                        },
-                        responsiveAnimationDuration: 0,
+                        animation: false,
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            xAxes: [
-                                {
-                                    ticks: {
-                                        min: 0,
-                                        max: this.serviceData.getStreamSize(),
-                                    },
-                                    gridLines: {
-                                        color: '#888',
-                                        drawOnChartArea: false,
-                                    },
-                                    display: false,
+                            x: {
+                                min: 0,
+                                max: this.serviceData.getStreamSize(),
+                                grid: {
+                                    color: '#888',
+                                    drawOnChartArea: false,
                                 },
-                            ],
-                            yAxes: this._getYAxes(datasets.scale),
+                                display: false,
+                            },
                         },
                     },
                 },
             );
+            this._setYAxes(datasets.scale);
             this._forceUpdate();
         } else {
             this._charts.data.datasets = datasets.dataset;
-            (this._charts as any).options.scales.yAxes = this._getYAxes(datasets.scale);
-            (this._charts as any).options.scales.xAxes[0].ticks.max =
-                this.serviceData.getStreamSize();
+            this._setYAxes(datasets.scale);
+            (this._charts as any).options.scales.x.max = this.serviceData.getStreamSize();
             setTimeout(() => {
                 if (this._destroyed) {
                     return;
@@ -295,15 +286,21 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         }
     }
 
-    private _getYAxes(scale: IScaleState) {
-        if (scale.yAxisIDs.length === 0) {
-            return [
-                {
-                    display: false,
-                },
-            ];
+    private _setYAxes(scale: IScaleState) {
+        if (
+            this._charts === undefined ||
+            this._charts.options === undefined ||
+            this._charts.options.scales === undefined
+        ) {
+            return;
         }
-        return scale.yAxisIDs.map((yAxisID, i: number) => {
+        if (scale.yAxisIDs.length === 0) {
+            this._charts.options.scales['y'] = {
+                display: false,
+            };
+            return;
+        }
+        scale.yAxisIDs.forEach((yAxisID: string, i: number) => {
             let min: number = 0;
             let max: number = 100;
             switch (this.serviceData.getScaleType()) {
@@ -316,17 +313,21 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
                     max = Math.max(...scale.max);
                     break;
             }
-            return {
+            if (
+                this._charts === undefined ||
+                this._charts.options === undefined ||
+                this._charts.options.scales === undefined
+            ) {
+                return;
+            }
+            this._charts.options.scales[yAxisID] = {
                 display: false,
-                type: 'linear',
-                id: yAxisID,
                 position: 'left',
-                ticks: {
-                    min: min === undefined ? undefined : this._prepMin(min),
-                    max: max === undefined ? undefined : this._prepMax(max),
-                },
+                min: min === undefined ? undefined : this._prepMin(min),
+                max: max === undefined ? undefined : this._prepMax(max),
             };
         });
+        this._charts.update();
     }
 
     private _prepMin(min: number): number {
@@ -357,9 +358,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
         if (this._charts === undefined) {
             return;
         }
-        (this._charts as any).options.scales.yAxes = this._getYAxes(
-            this.serviceData.getScaleState(),
-        );
+        this._setYAxes(this.serviceData.getScaleState());
         setTimeout(() => {
             if (this._destroyed) {
                 return;

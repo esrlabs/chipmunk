@@ -10,10 +10,10 @@ import {
     Input,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { Chart } from 'chart.js';
 import { DataService, EChartMode } from '../service.data';
 
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
+import Chart from 'chart.js/auto';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -97,62 +97,52 @@ export class ViewMeasurementOverviewComponent
                     datasets: data.datasets,
                 },
                 options: {
-                    tooltips: {
-                        enabled: false,
+                    plugins: {
+                        tooltip: {
+                            enabled: false,
+                        },
+                        title: {
+                            display: false,
+                        },
+                        legend: {
+                            display: false,
+                        },
                     },
-                    title: {
-                        display: false,
-                    },
-                    legend: {
-                        display: false,
-                    },
-                    hover: {
-                        animationDuration: 0,
-                    },
-                    responsiveAnimationDuration: 0,
+                    animation: false,
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        xAxes: [
-                            {
-                                gridLines: {
-                                    display: false,
-                                },
-                                ticks: {
-                                    display: false,
-                                    min: this.service.getMinXAxe(false),
-                                    max: this.service.getMaxXAxe(false),
-                                },
+                        x: {
+                            grid: {
+                                display: false,
                             },
-                        ],
-                        yAxes: [
-                            {
-                                gridLines: {
-                                    display: false,
-                                },
-                                ticks: {
-                                    display: false,
-                                    min: 0,
-                                    max: (data.maxY === undefined ? 0 : data.maxY) + 1,
-                                    beginAtZero: true,
-                                    stepSize: 1,
-                                    maxTicksLimit: 100,
-                                },
+                            min: this.service.getMinXAxe(false),
+                            max: this.service.getMaxXAxe(false),
+                            ticks: {
+                                display: false,
                             },
-                        ],
-                    },
-                    animation: {
-                        duration: 0,
+                        },
+                        y: {
+                            grid: {
+                                display: false,
+                            },
+                            min: 0,
+                            max: (data.maxY === undefined ? 0 : data.maxY) + 1,
+                            beginAtZero: true,
+                            ticks: {
+                                display: false,
+                                stepSize: 1,
+                                maxTicksLimit: 100,
+                            },
+                        },
                     },
                 },
             });
         } else {
             this._chart.instance.data.datasets = data.datasets;
-            (this._chart as any).instance.options.scales.xAxes[0].ticks.min =
-                this.service.getMinXAxe(false);
-            (this._chart as any).instance.options.scales.xAxes[0].ticks.max =
-                this.service.getMaxXAxe(false);
-            (this._chart as any).instance.options.scales.yAxes[0].ticks.max =
+            (this._chart as any).instance.options.scales.x.min = this.service.getMinXAxe(false);
+            (this._chart as any).instance.options.scales.x.max = this.service.getMaxXAxe(false);
+            (this._chart as any).instance.options.scales.y.max =
                 (data.maxY === undefined ? 0 : data.maxY) + 1;
         }
         this._resize();

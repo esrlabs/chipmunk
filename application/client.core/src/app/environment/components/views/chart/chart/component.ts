@@ -9,7 +9,6 @@ import {
     HostListener,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { Chart } from 'chart.js';
 import {
     ServiceData,
     IRange,
@@ -23,11 +22,13 @@ import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { Session } from '../../../../controller/session/session';
 import { ChartRequest } from '../../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { EParent } from '../../../../services/standalone/service.output.redirections';
+import { Tick } from 'chart.js';
 
 import OutputRedirectionsService from '../../../../services/standalone/service.output.redirections';
 import ViewsEventsService from '../../../../services/standalone/service.views.events';
 import ContextMenuService from '../../../../services/standalone/service.contextmenu';
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
+import Chart from 'chart.js/auto';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -63,7 +64,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     private _destroyed: boolean = false;
     private _mainViewPosition: number | undefined;
     private _redirectMainView: boolean = false;
-    private _size!: ClientRect;
+    private _size!: DOMRect;
     private _tickSettings: ITickSettings = {
         precision: 1,
         isFloat: false,
@@ -109,14 +110,6 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     ngAfterContentInit() {
-        const position: IPositionChange | undefined = this.position.get();
-        if (position === undefined) {
-            return;
-        }
-        this._position = Object.assign({}, position);
-    }
-
-    ngAfterViewInit() {
         // Data events
         this._subscriptions.onData = this.service
             .getObservable()
@@ -135,6 +128,14 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         this._subscriptions.onViewResize = ViewsEventsService.getObservable().onResize.subscribe(
             this._onViewResize.bind(this),
         );
+        const position: IPositionChange | undefined = this.position.get();
+        if (position === undefined) {
+            return;
+        }
+        this._position = Object.assign({}, position);
+    }
+
+    ngAfterViewInit() {
         // Update size of canvas and containers
         this._resize();
         // Subscribe session events
@@ -180,7 +181,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             const width: number = this._size.width - (visible ? this._ng_charts.chartArea.left : 0);
             const rate: number = width / rows;
             const offsetX: number = event.offsetX - (visible ? this._ng_charts.chartArea.left : 0);
-            position = Math.round(offsetX / rate) + range.begin;
+            position = Math.floor(offsetX / rate) + range.begin;
         }
         OutputRedirectionsService.select(EParent.chart, session, {
             output: position,
@@ -214,18 +215,20 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     private _isYAxisVisible(): boolean {
         if (
             this._ng_charts === undefined ||
+            this._ng_charts.data === undefined ||
+            this._ng_charts.data.datasets === undefined ||
             this._ng_charts.options === undefined ||
             this._ng_charts.options.scales === undefined ||
-            this._ng_charts.options.scales.yAxes === undefined
+            this._ng_charts.options.scales['y'] === undefined
         ) {
             return false;
         }
-        let visible: boolean = false;
-        this._ng_charts.options.scales.yAxes.forEach((yAxis: Chart.ChartYAxe) => {
-            if (yAxis.display === true) {
-                visible = true;
-            }
-        });
+        const visible: string | boolean | undefined = this._ng_charts.options.scales['y'].display;
+        if (typeof visible !== 'boolean') {
+            return this._ng_charts.data.datasets!.length > 0;
+        } else if (visible === undefined) {
+            return false;
+        }
         return visible;
     }
 
@@ -337,38 +340,28 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                                 datasets: datasets.dataset,
                             },
                             options: {
-                                title: {
-                                    display: false,
+                                plugins: {
+                                    title: {
+                                        display: false,
+                                    },
+                                    legend: {
+                                        display: false,
+                                    },
                                 },
-                                legend: {
-                                    display: false,
-                                },
-                                animation: {
-                                    duration: 0,
-                                },
-                                hover: {
-                                    animationDuration: 0,
-                                },
-                                responsiveAnimationDuration: 0,
+                                animation: false,
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 scales: {
-                                    yAxes: [
-                                        {
-                                            display: false, // TODO: make axes visible
-                                            stacked: true,
-                                            ticks: {
-                                                beginAtZero: true,
-                                                // max: Math.round(datasets.max + datasets.max * 0.1)
-                                            },
-                                        },
-                                    ],
-                                    xAxes: [
-                                        {
-                                            stacked: true,
-                                            display: false,
-                                        },
-                                    ],
+                                    y: {
+                                        display: false, // TODO: make axes visible
+                                        stacked: true,
+                                        beginAtZero: true,
+                                        // max: Math.round(datasets.max + datasets.max * 0.1)
+                                    },
+                                    x: {
+                                        stacked: true,
+                                        display: false,
+                                    },
                                 },
                             },
                         },
@@ -431,98 +424,103 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                         datasets: datasets.dataset,
                     },
                     options: {
-                        tooltips: {
-                            callbacks: {
-                                label: function (tooltipItem, data) {
-                                    if (
-                                        tooltipItem.datasetIndex === undefined ||
-                                        isNaN(tooltipItem.datasetIndex) ||
-                                        !isFinite(tooltipItem.datasetIndex)
-                                    ) {
-                                        return [];
-                                    }
-                                    if (data.datasets === undefined) {
-                                        return [];
-                                    }
-                                    if (data.datasets[tooltipItem.datasetIndex] === undefined) {
-                                        return [];
-                                    }
-                                    if (
-                                        (
-                                            (data.datasets as any)[tooltipItem.datasetIndex]
-                                                .data as any
-                                        )[tooltipItem.index as number] === []
-                                    ) {
-                                        return [];
-                                    }
-                                    const point: any = (
-                                        (data.datasets as any)[tooltipItem.datasetIndex].data as any
-                                    )[tooltipItem.index as number];
-                                    if (
-                                        point.row === undefined ||
-                                        isNaN(point.row) ||
-                                        !isFinite(point.row)
-                                    ) {
-                                        return [];
-                                    }
-                                    return `(${point.row - 1}; ${tooltipItem.value})`;
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (tooltipItem) {
+                                        if (
+                                            tooltipItem.datasetIndex === undefined ||
+                                            isNaN(tooltipItem.datasetIndex) ||
+                                            !isFinite(tooltipItem.datasetIndex)
+                                        ) {
+                                            return [];
+                                        }
+                                        if (tooltipItem.chart.data.datasets === undefined) {
+                                            return [];
+                                        }
+                                        if (
+                                            tooltipItem.chart.data.datasets[
+                                                tooltipItem.datasetIndex
+                                            ] === undefined
+                                        ) {
+                                            return [];
+                                        }
+                                        if (
+                                            (
+                                                tooltipItem.chart.data.datasets[
+                                                    tooltipItem.datasetIndex
+                                                ].data as any
+                                            )[tooltipItem.dataIndex] === []
+                                        ) {
+                                            return [];
+                                        }
+                                        const point: any = (
+                                            tooltipItem.chart.data.datasets[
+                                                tooltipItem.datasetIndex
+                                            ].data as any
+                                        )[tooltipItem.dataIndex];
+                                        if (
+                                            point.row === undefined ||
+                                            isNaN(point.row) ||
+                                            !isFinite(point.row)
+                                        ) {
+                                            return [];
+                                        }
+                                        return `(${point.row - 1}; ${tooltipItem.formattedValue})`;
+                                    },
                                 },
                             },
+                            title: {
+                                display: false,
+                            },
+                            legend: {
+                                display: false,
+                            },
                         },
-                        title: {
-                            display: false,
-                        },
-                        legend: {
-                            display: false,
-                        },
-                        animation: {
-                            duration: 0,
-                        },
-                        hover: {
-                            animationDuration: 0,
-                        },
-                        responsiveAnimationDuration: 0,
+                        animation: false,
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            xAxes: [
-                                {
-                                    ticks: {
-                                        min: range.begin,
-                                        max: range.end,
-                                    },
-                                    gridLines: {
-                                        color: '#888',
-                                        drawOnChartArea: false,
-                                    },
-                                    display: false,
+                            x: {
+                                min: range.begin,
+                                max: range.end,
+                                grid: {
+                                    color: '#888',
+                                    drawOnChartArea: false,
                                 },
-                            ],
-                            yAxes: this._getYAxes(datasets.scale),
+                                display: false,
+                                position: 'bottom',
+                            },
                         },
                     },
                 },
             );
+            this._setYAxes(datasets.scale);
             this._forceUpdate();
         } else {
             (this._ng_charts as any).data.datasets = datasets.dataset;
-            (this._ng_charts as any).options.scales.xAxes[0].ticks.max = range.end;
-            (this._ng_charts as any).options.scales.xAxes[0].ticks.min = range.begin;
-            (this._ng_charts as any).options.scales.yAxes = this._getYAxes(datasets.scale);
+            (this._ng_charts as any).options.scales.x.max = range.end;
+            (this._ng_charts as any).options.scales.x.min = range.begin;
+            this._setYAxes(datasets.scale);
             this._softChartUpdate();
         }
         this._scrollMainView();
     }
 
-    private _getYAxes(scale: IScaleState) {
+    private _setYAxes(scale: IScaleState) {
         if (scale.yAxisIDs.length === 0) {
-            return [
-                {
+            if (
+                this._ng_charts !== undefined &&
+                this._ng_charts.options !== undefined &&
+                this._ng_charts.options.scales !== undefined
+            ) {
+                this._ng_charts.options.scales['y'] = {
                     display: false,
-                },
-            ];
+                };
+            }
+            return;
         }
-        return scale.yAxisIDs.map((yAxisID, i: number) => {
+        scale.yAxisIDs.map((yAxisID: string, i: number) => {
             let min: number = 0;
             let max: number = 100;
             switch (this.service.getScaleType()) {
@@ -536,21 +534,31 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                     break;
             }
             const display: boolean = this._getSelectedChartYAxisId() === yAxisID;
-            return {
+            if (
+                this._ng_charts === undefined ||
+                this._ng_charts.options === undefined ||
+                this._ng_charts.options.scales === undefined ||
+                this._ng_charts.options.scales[yAxisID] === undefined
+            ) {
+                return;
+            }
+            this._ng_charts.options.scales[yAxisID] = {
                 display: display,
-                type: 'linear',
-                id: yAxisID,
                 position: 'left',
+                min: min === undefined ? undefined : this._prepMin(min),
+                max: max === undefined ? undefined : this._prepMax(max),
                 ticks: {
-                    min: min === undefined ? undefined : this._prepMin(min),
-                    max: max === undefined ? undefined : this._prepMax(max),
-                    fontColor: display ? scale.colors[i] : undefined,
-                    fontSize: 11,
-                    callback: (value: number) => {
+                    color: display && scale.colors !== undefined ? scale.colors[i] : undefined,
+                    font: {
+                        size: 11,
+                    },
+                    callback: (tickValue: string | number, index: number, ticks: Tick[]) => {
                         if (this._tickSettings.isFloat) {
-                            return value.toPrecision(this._tickSettings.precision);
+                            return parseInt(tickValue.toString()).toPrecision(
+                                this._tickSettings.precision,
+                            );
                         }
-                        return value;
+                        return tickValue;
                     },
                 },
             };
@@ -650,11 +658,16 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             if (this._destroyed) {
                 return;
             }
-            if (this._ng_charts === undefined) {
+            if (
+                this._ng_charts === undefined ||
+                this._ng_charts.options === undefined ||
+                this._ng_charts.options.scales === undefined ||
+                this._ng_charts.options.scales['y'] === undefined
+            ) {
                 return;
             }
             this._ng_charts.update();
-            this._ng_filtersLeft = (this._ng_charts as any).options.scales.yAxes[0].display
+            this._ng_filtersLeft = (this._ng_charts as any).options.scales['y'].display
                 ? this._ng_charts.chartArea.left
                 : 0;
         });
@@ -695,9 +708,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
         if (this._ng_charts === undefined) {
             return;
         }
-        (this._ng_charts as any).options.scales.yAxes = this._getYAxes(
-            this.service.getScaleState(),
-        );
+        this._setYAxes(this.service.getScaleState());
         this._softChartUpdate();
     }
 
@@ -744,12 +755,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     private _onChartSelected() {
-        if (this._ng_charts === undefined) {
-            return;
-        }
-        (this._ng_charts as any).options.scales.yAxes = this._getYAxes(
-            this.service.getScaleState(),
-        );
+        this._setYAxes(this.service.getScaleState());
         this._softChartUpdate();
     }
 
@@ -773,7 +779,12 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             }
             // This feature of chartjs isn't documented well,
             // so that's why here we have many checks
-            const e: any[] = chart.getElementAtEvent(event);
+            const e: any[] = chart.getElementsAtEventForMode(
+                event,
+                'nearest',
+                { intersect: true },
+                false,
+            );
             if (!(e instanceof Array)) {
                 return;
             }
