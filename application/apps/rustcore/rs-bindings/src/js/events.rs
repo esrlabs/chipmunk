@@ -151,24 +151,18 @@ impl TryIntoJs for CallbackEvent {
 pub enum ComputationError {
     #[error("Attemp to call operation before assign a session")]
     NoAssignedContent,
-    #[error("Attemp to call operation before meta data is available")]
-    NoMetaAvailable,
     #[error("Native communication error ({0})")]
     Communication(String),
     #[error("Operation not supported ({0})")]
     OperationNotSupported(String),
     #[error("IO error ({0})")]
     IoOperation(String),
-    #[error("(De)serialization error ({0})")]
-    Input(String),
     #[error("Invalid data error")]
     InvalidData,
     #[error("Error during processing: ({0})")]
     Process(String),
     #[error("Wrong usage of API: ({0})")]
     Protocol(String),
-    #[error("Cancelation error: ({0})")]
-    Cancelation(String),
     #[error("Search related error")]
     SearchError(SearchError),
 }

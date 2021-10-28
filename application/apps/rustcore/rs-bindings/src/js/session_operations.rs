@@ -58,6 +58,16 @@ where
     }
 }
 
+pub fn map_err(result: Result<CallbackEvent, NativeError>, uuid: Uuid) -> CallbackEvent {
+    match result {
+        Ok(result) => result,
+        Err(error) => {
+            warn!("Operation {} done with error: {:?}", uuid, error);
+            CallbackEvent::OperationError { uuid, error }
+        }
+    }
+}
+
 pub fn map_entity<T>(v: &T, uuid: Uuid) -> CallbackEvent
 where
     T: Serialize,
