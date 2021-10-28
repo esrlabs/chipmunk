@@ -30,7 +30,7 @@ use std::{
 };
 use tokio_stream::Stream;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileMergeOptions {
     /// Path to the file to merge
     pub path: String,

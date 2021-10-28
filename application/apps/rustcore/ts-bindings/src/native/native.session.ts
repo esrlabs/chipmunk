@@ -11,6 +11,7 @@ import {
     IGrabbedElement,
     IExtractDTFormatResult,
     IExtractDTFormatOptions,
+    IConcatFile,
 } from '../interfaces/index';
 import { getNativeModule } from './native';
 import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.executor';
@@ -131,7 +132,11 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract assign(filename: string, options: TFileOptions, operationUuid: string): Promise<void>;
+    public abstract assign(
+        filename: string,
+        options: TFileOptions,
+        operationUuid: string,
+    ): Promise<void>;
 
     /**
      * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
@@ -142,7 +147,11 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract concat(configFile: string, outPath: string, append: boolean, operationUuid?: string): Promise<void>;
+    public abstract concat(
+        files: IConcatFile[],
+        append: boolean,
+        operationUuid?: string,
+    ): Promise<void>;
 
     /**
      * Merge files and assigns it with session. After this operation, @method assign, @method concat cannot be used
@@ -179,7 +188,6 @@ export abstract class RustSession extends RustSessionRequiered {
     // public abstract sleep(duration: number): void;
 
     // public abstract sleepUnblock(duration: number): Promise<void>;
-
 }
 
 export abstract class RustSessionNative {
@@ -187,9 +195,17 @@ export abstract class RustSessionNative {
 
     public abstract start(callback: TEventEmitter): undefined;
 
-    public abstract assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void>;
+    public abstract assign(
+        filename: string,
+        options: TFileOptions,
+        operationUuid?: string,
+    ): Promise<void>;
 
-    public abstract concat(configFile: string, outPath: string, append: boolean, operationUuid?: string): Promise<void>;
+    public abstract concat(
+        files: IConcatFile[],
+        append: boolean,
+        operationUuid?: string,
+    ): Promise<void>;
 
     public abstract getStreamLen(): number;
 
@@ -228,7 +244,6 @@ export abstract class RustSessionNative {
     // public abstract sleep(duration: number): void;
 
     // public abstract sleepUnblock(duration: number): Promise<void>;
-
 }
 
 export class RustSessionDebug extends RustSession {
@@ -276,9 +291,15 @@ export class RustSessionDebug extends RustSession {
                 };
             });
         } catch (err) {
-            return new NativeError(new Error(
-                this._logger.error(`Fail to call grab(${start}, ${len}) due error: ${err.message}`),
-            ), Type.ParsingContentChunk, Source.GrabStreamChunk);
+            return new NativeError(
+                new Error(
+                    this._logger.error(
+                        `Fail to call grab(${start}, ${len}) due error: ${err.message}`,
+                    ),
+                ),
+                Type.ParsingContentChunk,
+                Source.GrabStreamChunk,
+            );
         }
     }
 
@@ -304,9 +325,15 @@ export class RustSessionDebug extends RustSession {
                 };
             });
         } catch (err) {
-            return new NativeError(new Error(
-                this._logger.error(`Fail to call grab(${start}, ${len}) due error: ${err.message}`),
-            ), Type.ParsingSearchChunk, Source.GrabSearchChunk);
+            return new NativeError(
+                new Error(
+                    this._logger.error(
+                        `Fail to call grab(${start}, ${len}) due error: ${err.message}`,
+                    ),
+                ),
+                Type.ParsingSearchChunk,
+                Source.GrabSearchChunk,
+            );
         }
     }
 
@@ -352,27 +379,37 @@ export class RustSessionDebug extends RustSession {
 
     public getSocketPath(): string | NativeError {
         // return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
-        return "";
+        return '';
     }
 
     public assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._native.assign(filename, filename, operationUuid).then(resolve).catch((err: Error) => {
-                    reject(new NativeError(err, Type.Other, Source.Assign));
-                });
+                this._native
+                    .assign(filename, filename, operationUuid)
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(err, Type.Other, Source.Assign));
+                    });
             } catch (err) {
                 return reject(new NativeError(err, Type.Other, Source.Assign));
             }
         });
     }
 
-    public concat(configFile: string, outPath: string, append: boolean, operationUuid?: string): Promise<void> {
+    public concat(
+        files: IConcatFile[],
+        append: boolean,
+        operationUuid?: string,
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._native.concat(configFile, outPath, append, operationUuid).then(resolve).catch((err: Error) => {
-                    reject(new NativeError(err, Type.Other, Source.Assign));
-                });
+                this._native
+                    .concat(files, append, operationUuid)
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(err, Type.Other, Source.Assign));
+                    });
             } catch (err) {
                 return reject(new NativeError(err, Type.Other, Source.Assign));
             }
@@ -395,50 +432,50 @@ export class RustSessionDebug extends RustSession {
         return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Extract);
     }
 
-    public search(
-        filters: IFilter[],
-        operationUuid: string,
-    ): Promise<void> {
+    public search(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._native.applySearchFilters(
-                    filters.map((filter) => {
-                        return {
-                            value: filter.filter,
-                            is_regex: filter.flags.reg,
-                            ignore_case: !filter.flags.cases,
-                            is_word: filter.flags.word,
-                        };
-                    }),
-                    operationUuid,
-                ).then(resolve).catch((err: Error) => {
-                    reject(new NativeError(err, Type.Other, Source.Search));
-                });
+                this._native
+                    .applySearchFilters(
+                        filters.map((filter) => {
+                            return {
+                                value: filter.filter,
+                                is_regex: filter.flags.reg,
+                                ignore_case: !filter.flags.cases,
+                                is_word: filter.flags.word,
+                            };
+                        }),
+                        operationUuid,
+                    )
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(err, Type.Other, Source.Search));
+                    });
             } catch (err) {
                 return reject(new NativeError(err, Type.Other, Source.Search));
             }
         });
     }
 
-    public extractMatchesValues(
-        filters: IFilter[],
-        operationUuid: string,
-    ): Promise<void> {
+    public extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._native.extractMatches(
-                    filters.map((filter) => {
-                        return {
-                            value: filter.filter,
-                            is_regex: filter.flags.reg,
-                            ignore_case: !filter.flags.cases,
-                            is_word: filter.flags.word,
-                        };
-                    }),
-                    operationUuid,
-                ).then(resolve).catch((err: Error) => {
-                    reject(new NativeError(err, Type.Other, Source.ExtractMatchesValues));
-                });
+                this._native
+                    .extractMatches(
+                        filters.map((filter) => {
+                            return {
+                                value: filter.filter,
+                                is_regex: filter.flags.reg,
+                                ignore_case: !filter.flags.cases,
+                                is_word: filter.flags.word,
+                            };
+                        }),
+                        operationUuid,
+                    )
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(err, Type.Other, Source.ExtractMatchesValues));
+                    });
             } catch (err) {
                 return reject(new NativeError(err, Type.Other, Source.ExtractMatchesValues));
             }
@@ -466,7 +503,7 @@ export class RustSessionDebug extends RustSession {
     ): NativeError | { index: number; position: number } | undefined {
         const nearest = (() => {
             try {
-                return this._native.getNearestTo(positionInStream)
+                return this._native.getNearestTo(positionInStream);
             } catch (err) {
                 return new NativeError(err, Type.Other, Source.GetNearestTo);
             }
@@ -476,7 +513,9 @@ export class RustSessionDebug extends RustSession {
         }
         if (nearest instanceof Array && nearest.length !== 2) {
             return new NativeError(
-                new Error(`Invalid format of data: ${nearest}. Expecting an array (size 2): [number, number]`),
+                new Error(
+                    `Invalid format of data: ${nearest}. Expecting an array (size 2): [number, number]`,
+                ),
                 Type.InvalidOutput,
                 Source.GetNearestTo,
             );

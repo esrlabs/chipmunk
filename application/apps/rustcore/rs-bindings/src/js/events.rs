@@ -39,12 +39,12 @@ impl From<GrabError> for NativeError {
             GrabError::IoOperation(e) => NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ComputationFailed,
-                message: Some(e.to_string()),
+                message: Some(e),
             },
             GrabError::Config(msg) => NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Configuration,
-                message: Some(msg.to_string()),
+                message: Some(msg),
             },
             GrabError::Interrupted => NativeError {
                 severity: Severity::ERROR,
@@ -132,6 +132,19 @@ pub enum CallbackEvent {
      * >> Kind: once
      */
     SessionDestroyed,
+}
+
+impl TryIntoJs for CallbackEvent {
+    /// serialize into json object
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        match serde_json::to_string(&self) {
+            Ok(s) => js_env.create_string_utf8(&s),
+            Err(e) => Err(NjError::Other(format!(
+                "Could not convert Callback event to json: {}",
+                e
+            ))),
+        }
+    }
 }
 
 #[derive(Error, Debug, Serialize)]
