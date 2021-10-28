@@ -1,9 +1,9 @@
 use crate::js::{
-    events::{NativeError, NativeErrorKind},
+    events::{CallbackEvent, NativeError},
     session::{SessionState, SupportedFileType},
 };
-use indexer_base::progress::{ComputationResult, Severity};
-use log::{debug, info, trace, warn};
+use indexer_base::progress::{ComputationResult, Progress};
+use log::{debug, info, trace};
 
 use processor::{
     dlt_source::DltSource,
@@ -12,36 +12,37 @@ use processor::{
 };
 use std::path::Path;
 use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
 
 /// assign a file initially by creating the meta for it and sending it as metadata update
 /// for the content grabber (current_grabber)
 /// if the metadata was successfully created, we return the line count of it
 /// if the operation was stopped, we return None
 pub fn handle(
+    operation_id: Uuid,
     file_path: &Path,
     source_type: SupportedFileType,
     source_id: String,
     state: &mut SessionState,
-    cancellation_token: CancellationToken,
-) -> Result<Option<u64>, NativeError> {
+    _cancellation_token: CancellationToken,
+) -> Result<CallbackEvent, NativeError> {
     match create_metadata_for_source(file_path, source_type, source_id) {
         Ok(ComputationResult::Item(metadata)) => {
             trace!("received metadata {:?}", metadata);
             debug!("RUST: received metadata");
             let line_count: u64 = metadata.line_count as u64;
             update_state(state, Some(line_count), Some(Some(metadata)));
-            Ok(Some(line_count))
+            Ok(CallbackEvent::StreamUpdated(line_count))
         }
         Ok(ComputationResult::Stopped) => {
             info!("RUST: metadata calculation aborted");
             let _ = update_state(state, None, Some(None));
-            Ok(None)
+            Ok(CallbackEvent::Progress {
+                uuid: operation_id,
+                progress: Progress::Stopped,
+            })
         }
-        Err(e) => {
-            warn!("RUST error computing metadata: {}", e);
-            let _ = update_state(state, None, Some(None));
-            Err(e.into())
-        }
+        Err(e) => Err(e.into()),
     }
 }
 

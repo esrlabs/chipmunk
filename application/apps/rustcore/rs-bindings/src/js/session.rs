@@ -10,7 +10,7 @@ use crate::js::{
     },
 };
 use crossbeam_channel as cc;
-use indexer_base::progress::{Progress, Severity};
+use indexer_base::progress::Severity;
 use log::{debug, error, info, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use node_bindgen::derive::node_bindgen;
@@ -109,23 +109,17 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             debug!("RUST: received Assign operation event");
             sop::finish(
                 operation_id,
-                vec![match handlers::assign::handle(
-                    &file_path,
-                    source_type,
-                    source_id,
-                    state,
-                    cancellation_token,
-                ) {
-                    Ok(Some(line_count)) => CallbackEvent::StreamUpdated(line_count),
-                    Ok(None) => CallbackEvent::Progress {
-                        uuid: operation_id,
-                        progress: Progress::Stopped,
-                    },
-                    Err(error) => CallbackEvent::OperationError {
-                        uuid: operation_id,
-                        error,
-                    },
-                }],
+                vec![sop::map_err(
+                    handlers::assign::handle(
+                        operation_id,
+                        &file_path,
+                        source_type,
+                        source_id,
+                        state,
+                        cancellation_token,
+                    ),
+                    operation_id,
+                )],
                 operations,
                 callback,
             );
@@ -190,7 +184,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             );
             sop::finish(
                 operation_id,
-                vec![
+                vec![sop::map_err(
                     handlers::concat::handle(
                         operation_id,
                         files,
@@ -202,7 +196,8 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
                         cancellation_token,
                     )
                     .await,
-                ],
+                    operation_id,
+                )],
                 operations,
                 callback,
             );
@@ -222,7 +217,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             );
             sop::finish(
                 operation_id,
-                vec![
+                vec![sop::map_err(
                     handlers::merge::handle(
                         operation_id,
                         files,
@@ -234,7 +229,8 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
                         cancellation_token,
                     )
                     .await,
-                ],
+                    operation_id,
+                )],
                 operations,
                 callback,
             );
@@ -381,7 +377,7 @@ impl RustSession {
             Ok(metadata) => {
                 if let Some(metadata) = metadata {
                     current_grabber
-                        .inject_metadata(metadata.clone())
+                        .inject_metadata(metadata)
                         .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
                 }
             }
@@ -906,11 +902,26 @@ impl RustSession {
     async fn merge(
         &mut self,
         files: Vec<WrappedFileMergeOptions>,
-        out_path_name: String,
         append: bool,
         operation_id: String,
     ) -> Result<(), ComputationError> {
-        let out_path = PathBuf::from(&out_path_name);
+        //TODO: out_path should be gererics by some settings.
+        let operation_id = sop::uuid_from_str(&operation_id)?;
+        let (out_path, out_path_str) = if files.is_empty() {
+            return Err(ComputationError::InvalidData);
+        } else {
+            let filename = PathBuf::from(&files[0].as_file_merge_options().path);
+            if let Some(parent) = filename.parent() {
+                if let Some(file_name) = filename.file_name() {
+                    let path = parent.join(format!("{}.merged", file_name.to_string_lossy()));
+                    (path.clone(), path.to_string_lossy().to_string())
+                } else {
+                    return Err(ComputationError::InvalidData);
+                }
+            } else {
+                return Err(ComputationError::InvalidData);
+            }
+        };
         let _ = OpenOptions::new()
             .read(true)
             .write(true)
@@ -919,11 +930,10 @@ impl RustSession {
             .map_err(|_| {
                 ComputationError::IoOperation(format!(
                     "Could not create/open file {}",
-                    &out_path_name
+                    &out_path_str
                 ))
             })?;
-        let operation_id = sop::uuid_from_str(&operation_id)?;
-        let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_name)?;
+        let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
         self.content_grabber = Some(boxed_grabber);
         let cancellation_token = CancellationToken::new();
         match self.op_channel.0.send(Operation::Merge {
@@ -934,7 +944,7 @@ impl RustSession {
             out_path,
             append,
             source_type,
-            source_id: out_path_name,
+            source_id: out_path_str,
             operation_id,
             cancellation_token,
         }) {

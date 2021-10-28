@@ -10,7 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::merger::combined_file_size;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use crossbeam_channel as cc;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
