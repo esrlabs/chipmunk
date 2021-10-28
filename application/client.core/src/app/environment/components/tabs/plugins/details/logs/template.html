@@ -1,5 +1,0 @@
-<p *ngIf="_ng_error !== undefined" class="t-console color-scheme-warning">{{_ng_error}}</p>
-<p *ngIf="_ng_logs.length === 0 && _ng_error === undefined" class="t-console color-scheme-1">No logs</p>
-<cdk-virtual-scroll-viewport itemSize="14" *ngIf="_ng_logs.length > 0">
-    <p *cdkVirtualFor="let log of _ng_logs" class="log t-console color-scheme-1">{{log}}</p>
-</cdk-virtual-scroll-viewport>

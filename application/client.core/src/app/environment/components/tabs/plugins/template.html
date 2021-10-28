@@ -1,9 +1,0 @@
-<div class="left" [ngStyle]="{'right': _ng_getViewDelimiterPosition('right')}">
-  <app-views-plugins-list [selected]="_ng_selected"></app-views-plugins-list>
-</div>
-
-<div [attr.class]="_ng_getViewDelimiterClass()" [ngStyle]="{'left': _ng_getViewDelimiterPosition('left')}" (mousedown)="_ng_onResizeStart($event)"></div>
-
-<div class="right" [ngStyle]="{'left': _ng_getViewDelimiterPosition('left')}">
-  <app-views-plugins-details [selected]="_ng_selected"></app-views-plugins-details>
-</div>
