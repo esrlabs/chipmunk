@@ -18,8 +18,9 @@ import {
 } from '../../../../controller/session/dependencies/timestamps/session.dependency.timestamps';
 import { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import { scheme_color_2, getContrastColor } from '../../../../theme/colors';
-import { Chart } from 'chart.js';
-import { DataService, IZoomEvent } from '../service.data';
+import { DataService } from '../service.data';
+import { fontString } from 'chart.js/helpers';
+import { ChartEvent } from 'chart.js';
 
 import TabsSessionsService from '../../../../services/service.sessions.tabs';
 import EventsSessionService from '../../../../services/standalone/service.events.session';
@@ -28,6 +29,7 @@ import ContextMenuService from '../../../../services/standalone/service.contextm
 import OutputRedirectionsService, {
     EParent,
 } from '../../../../services/standalone/service.output.redirections';
+import Chart from 'chart.js/auto';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -325,71 +327,74 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                 },
                 options: {
                     onClick: this._onChartClick.bind(this),
-                    tooltips: {
-                        enabled: false,
+                    plugins: {
+                        tooltip: {
+                            enabled: false,
+                        },
+                        title: {
+                            display: false,
+                        },
+                        legend: {
+                            display: false,
+                        },
                     },
-                    title: {
-                        display: false,
-                    },
-                    legend: {
-                        display: false,
-                    },
-                    hover: {
-                        animationDuration: 0,
-                    },
-                    responsiveAnimationDuration: 0,
                     responsive: false,
                     maintainAspectRatio: false,
                     scales: {
-                        xAxes: [
-                            {
-                                gridLines: {
-                                    offsetGridLines: true,
-                                },
-                                ticks: {
-                                    display: false,
-                                    min:
-                                        this.service.getMode() === EChartMode.aligned
-                                            ? 0
-                                            : this.service.getMinXAxe(),
-                                    max:
-                                        this.service.getMode() === EChartMode.aligned
-                                            ? this.service.getMaxDuration()
-                                            : this.service.getMaxXAxe(),
-                                },
+                        x: {
+                            grid: {
+                                offset: true,
                             },
-                        ],
-                        yAxes: [
-                            {
-                                ticks: {
-                                    display: false,
-                                    min: 0,
-                                    max: data.maxY === undefined ? 0 : data.maxY + 1,
-                                    beginAtZero: true,
-                                    stepSize: 1,
-                                    maxTicksLimit: 100,
-                                },
+                            min:
+                                this.service.getMode() === EChartMode.aligned
+                                    ? 0
+                                    : this.service.getMinXAxe(),
+                            max:
+                                this.service.getMode() === EChartMode.aligned
+                                    ? this.service.getMaxDuration()
+                                    : this.service.getMaxXAxe(),
+                            ticks: {
+                                display: false,
                             },
-                        ],
+                        },
+                        y: {
+                            min: 0,
+                            max: data.maxY === undefined ? 0 : data.maxY + 1,
+                            beginAtZero: true,
+                            ticks: {
+                                display: false,
+                                stepSize: 1,
+                                maxTicksLimit: 100,
+                            },
+                        },
                     },
                     animation: {
                         duration: 1,
                         onComplete: function () {
-                            if (self.service === undefined) {
+                            if (
+                                self.service === undefined ||
+                                self._chart === undefined ||
+                                self._chart.instance === undefined
+                            ) {
                                 return;
                             }
-                            const chartInstance = (this as any).chart;
-                            const ctx = chartInstance.ctx;
-                            ctx.font = Chart.helpers.fontString(
-                                Chart.defaults.global.defaultFontSize,
-                                Chart.defaults.global.defaultFontStyle,
-                                Chart.defaults.global.defaultFontFamily,
+                            const ctx = self._chart.instance.ctx;
+                            ctx.font = fontString(
+                                Chart.defaults.font.size,
+                                Chart.defaults.font.style,
+                                Chart.defaults.font.family,
                             );
                             ctx.textAlign = 'right';
                             ctx.textBaseline = 'top';
-                            (this as any).data.datasets.forEach(function (dataset: any, i: number) {
+                            (this as any).data.datasets.forEach((dataset: any, i: number) => {
+                                if (
+                                    self._chart === undefined ||
+                                    self._chart.instance === undefined
+                                ) {
+                                    return;
+                                }
                                 const rect = self._getBarRect(
-                                    chartInstance.controller.getDatasetMeta(i),
+                                    self._chart.instance.getDatasetMeta(i),
                                 );
                                 if (rect === undefined) {
                                     return;
@@ -400,19 +405,19 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
                                     return;
                                 }
                                 if (dataset.data[1].range === true) {
-                                    ctx.font = Chart.helpers.fontString(
-                                        Chart.defaults.global.defaultFontSize,
-                                        Chart.defaults.global.defaultFontStyle,
-                                        Chart.defaults.global.defaultFontFamily,
+                                    ctx.font = fontString(
+                                        Chart.defaults.font.size,
+                                        Chart.defaults.font.style,
+                                        Chart.defaults.font.family,
                                     );
                                     ctx.fillStyle = getContrastColor(dataset.borderColor, true);
                                 } else {
-                                    ctx.font = Chart.helpers.fontString(
-                                        Chart.defaults.global.defaultFontSize === undefined
+                                    ctx.font = fontString(
+                                        Chart.defaults.font.size === undefined
                                             ? 1
-                                            : Chart.defaults.global.defaultFontSize * 0.8,
-                                        Chart.defaults.global.defaultFontStyle,
-                                        Chart.defaults.global.defaultFontFamily,
+                                            : Chart.defaults.font.size * 0.8,
+                                        Chart.defaults.font.style,
+                                        Chart.defaults.font.family,
                                     );
                                     ctx.fillStyle = scheme_color_2;
                                 }
@@ -428,19 +433,19 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
             });
         } else {
             this._chart.instance.data.datasets = data.datasets;
-            (this._chart as any).instance.options.scales.xAxes[0].ticks.min =
+            (this._chart as any).instance.options.scales.x.min =
                 this.service.getMode() === EChartMode.aligned ? 0 : this.service.getMinXAxe();
-            (this._chart as any).instance.options.scales.xAxes[0].ticks.max =
+            (this._chart as any).instance.options.scales.x.max =
                 this.service.getMode() === EChartMode.aligned
                     ? this.service.getMaxDuration()
                     : this.service.getMaxXAxe();
-            (this._chart as any).instance.options.scales.yAxes[0].ticks.max =
+            (this._chart as any).instance.options.scales.y.max =
                 data.maxY === undefined ? 0 : data.maxY + 1;
         }
         this._resize(true);
     }
 
-    private _onChartClick(event?: MouseEvent) {
+    private _onChartClick(event: ChartEvent) {
         if (this._session === undefined || this.service === undefined) {
             return;
         }
@@ -450,7 +455,7 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         ) {
             return;
         }
-        const target = this._getDatasetOnClick(event);
+        const target = this._getDatasetOnClick(event.native as MouseEvent);
         if (target === undefined) {
             return;
         }
@@ -508,14 +513,14 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (meta.data.length !== 2) {
             return undefined;
         }
-        const y1 = meta.data[0]._view.y - this.service.MAX_BAR_HEIGHT / 2;
-        const y2 = meta.data[1]._view.y + this.service.MAX_BAR_HEIGHT / 2;
+        const y1 = meta.data[0].y - this.service.MAX_BAR_HEIGHT / 2;
+        const y2 = meta.data[1].y + this.service.MAX_BAR_HEIGHT / 2;
         return {
-            x1: meta.data[0]._view.x,
+            x1: meta.data[0].x,
             y1: y1,
-            x2: meta.data[1]._view.x,
+            x2: meta.data[1].x,
             y2: y2,
-            w: meta.data[1]._view.x - meta.data[0]._view.x,
+            w: meta.data[1].x - meta.data[0].x,
             h: y2 - y1,
         };
     }
@@ -546,8 +551,8 @@ export class ViewMeasurementChartComponent implements OnDestroy, AfterContentIni
         if (this.service.getMode() === EChartMode.aligned) {
             return;
         }
-        (this._chart as any).instance.options.scales.xAxes[0].ticks.min = this.service.getMinXAxe();
-        (this._chart as any).instance.options.scales.xAxes[0].ticks.max = this.service.getMaxXAxe();
+        (this._chart as any).instance.options.scales.x.min = this.service.getMinXAxe();
+        (this._chart as any).instance.options.scales.x.max = this.service.getMaxXAxe();
         this._chartResizeUpdate();
     }
 

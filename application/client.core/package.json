@@ -1,59 +1,59 @@
 {
-  "name": "chipmunk.client",
-  "version": "1.0.0",
-  "description": "Logs analyzer tool",
-  "author": "Dmitry Astafyev",
-  "license": "MIT",
-  "scripts": {
-    "ng": "./node_modules/.bin/ng",
-    "start": "./node_modules/.bin/ng serve",
-    "build": "./node_modules/.bin/ng build --configuration development",
-    "test": "./node_modules/.bin/ng test",
-    "e2e": "./node_modules/.bin/ng e2e",
-    "prod": "./node_modules/.bin/ng build --configuration production"
-  },
-  "private": true,
-  "dependencies": {
-    "@angular/animations": "^12.2.10",
-    "@angular/cdk": "^12.2.10",
-    "@angular/common": "^12.2.10",
-    "@angular/compiler": "^12.2.10",
-    "@angular/core": "^12.2.10",
-    "@angular/forms": "^12.2.10",
-    "@angular/material": "^12.2.10",
-    "@angular/platform-browser": "^12.2.10",
-    "@angular/platform-browser-dynamic": "^12.2.10",
-    "@angular/router": "^12.2.10",
-    "chart.js": "~2.8.0",
-    "chipmunk-client-material": "1.2.18",
-    "chipmunk.client.toolkit": "1.4.1",
-    "moment": "^2.29.1",
-    "ngx-markdown": "~12.0.1",
-    "postcss": "^8.3.9",
-    "rxjs": "^7.4.0",
-    "systemjs": "^6.10.3",
-    "tslib": "^2.3.1",
-    "zone.js": "~0.11.3"
-  },
-  "peerDependencies": {
-    "postcss": ">=8.2.10"
-  },
-  "devDependencies": {
-    "@angular-devkit/build-angular": "^12.2.10",
-    "@angular/cli": "^12.2.10",
-    "@angular/compiler-cli": "^12.2.10",
-    "@types/chart.js": "~2.9.15",
-    "@types/node": "^16.11.1",
-    "@types/systemjs": "~6.1.0",
-    "tslint": "~6.1.0",
-    "typescript": "4.3.5"
-  },
-  "browserslist": [
-    "last 2 Chrome versions"
-  ],
-  "browser": {
-    "fs": false,
-    "os": false,
-    "path": false
-  }
+    "name": "chipmunk.client",
+    "version": "1.0.0",
+    "description": "Logs analyzer tool",
+    "author": "Dmitry Astafyev",
+    "license": "MIT",
+    "scripts": {
+        "ng": "./node_modules/.bin/ng",
+        "start": "./node_modules/.bin/ng serve",
+        "build": "./node_modules/.bin/ng build --configuration development",
+        "test": "./node_modules/.bin/ng test",
+        "e2e": "./node_modules/.bin/ng e2e",
+        "prod": "./node_modules/.bin/ng build --configuration production"
+    },
+    "private": true,
+    "dependencies": {
+        "@angular/animations": "^12.2.10",
+        "@angular/cdk": "^12.2.10",
+        "@angular/common": "^12.2.10",
+        "@angular/compiler": "^12.2.10",
+        "@angular/core": "^12.2.10",
+        "@angular/forms": "^12.2.10",
+        "@angular/material": "^12.2.10",
+        "@angular/platform-browser": "^12.2.10",
+        "@angular/platform-browser-dynamic": "^12.2.10",
+        "@angular/router": "^12.2.10",
+        "chart.js": "~3.5.1",
+        "chipmunk-client-material": "1.2.18",
+        "chipmunk.client.toolkit": "1.4.1",
+        "moment": "^2.29.1",
+        "ngx-markdown": "~12.0.1",
+        "postcss": "^8.3.9",
+        "rxjs": "^7.4.0",
+        "systemjs": "^6.10.3",
+        "tslib": "^2.3.1",
+        "zone.js": "~0.11.3"
+    },
+    "peerDependencies": {
+        "postcss": ">=8.2.10"
+    },
+    "devDependencies": {
+        "@angular-devkit/build-angular": "^12.2.10",
+        "@angular/cli": "^12.2.10",
+        "@angular/compiler-cli": "^12.2.10",
+        "@types/chart.js": "~2.9.15",
+        "@types/node": "^16.11.1",
+        "@types/systemjs": "~6.1.0",
+        "tslint": "~6.1.0",
+        "typescript": "4.3.5"
+    },
+    "browserslist": [
+        "last 2 Chrome versions"
+    ],
+    "browser": {
+        "fs": false,
+        "os": false,
+        "path": false
+    }
 }

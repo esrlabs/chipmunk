@@ -2,14 +2,12 @@ import * as Toolkit from 'chipmunk.client.toolkit';
 import { Session, IStreamState } from '../../../controller/session/session';
 import { ChartRequest } from '../../../controller/session/dependencies/search/dependencies/charts/controller.session.tab.search.charts.request';
 import { FilterRequest } from '../../../controller/session/dependencies/search/dependencies/filters/controller.session.tab.search.filters.request';
-import {
-    IMapState,
-    IMapPoint,
-} from '../../../controller/session/dependencies/map/controller.session.tab.map';
+import { IMapState } from '../../../controller/session/dependencies/map/controller.session.tab.map';
 import { Observable, Subscription, Subject } from 'rxjs';
 import { AChart } from './charts/charts';
 import { IPC } from '../../../services/service.electron.ipc';
 import { scheme_color_accent } from '../../../theme/colors';
+import { ChartDataset } from 'chart.js';
 
 import TabsSessionsService from '../../../services/service.sessions.tabs';
 import ChartsControllers from './charts/charts';
@@ -20,7 +18,7 @@ export interface IRange {
 }
 
 export interface IResults {
-    dataset: Array<{ [key: string]: any }>;
+    dataset: Array<ChartDataset<'bar', number[]>>;
     max: number | undefined;
     min: number | undefined;
 }
@@ -39,7 +37,7 @@ export interface IScaleState {
 }
 
 export interface IChartsResults {
-    dataset: Array<{ [key: string]: any }>;
+    dataset: Array<ChartDataset<'bar', number[]>>;
     scale: IScaleState;
 }
 
