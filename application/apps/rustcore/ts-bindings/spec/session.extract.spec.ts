@@ -13,6 +13,12 @@ import { getLogger } from '../src/util/logging';
 
 describe('Extract search matches', function () {
     it('Test 1. Assign & single extracting', function (done) {
+        const finish = (err?: Error) => {
+            err !== undefined && fail(err);
+            session.destroy();
+            checkSessionDebugger(session);
+            done();
+        };
         const logger = getLogger('Extract. Test 1');
         const session = new Session();
         // Set provider into debug mode
@@ -20,17 +26,22 @@ describe('Extract search matches', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            fail(stream);
-            return done();
+            finish(stream);
+            return;
         }
         if (search instanceof Error) {
-            fail(search);
-            return done();
+            finish(search);
+            return;
         }
-
-        const tmpobj = createSampleFile(5000, logger, (i: number) =>
-            `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some CPU=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
-            }`
+        const tmpobj = createSampleFile(
+            5000,
+            logger,
+            (i: number) =>
+                `[${i}]:: ${
+                    i % 100 === 0 || i <= 5
+                        ? `some CPU=${Math.round(Math.random() * 100)}% line data\n`
+                        : `some line data\n`
+                }`,
         );
         stream
             .assign(tmpobj.name, {})
@@ -57,24 +68,20 @@ describe('Extract search matches', function () {
                             expect(res.values[0].filter.filter).toEqual(filterA);
                         });
                         checkSessionDebugger(session);
-                        done();
+                        finish();
                     })
-                    .catch((err: Error) => {
-                        fail(err);
-                        done();
-                    })
-                    .finally(() => {
-                        session.destroy();
-                    });
+                    .catch(finish);
             })
-            .catch((err: Error) => {
-                session.destroy();
-                fail(err);
-                done();
-            });
+            .catch(finish);
     });
 
     it('Test 2. Assign & multiple extracting', function (done) {
+        const finish = (err?: Error) => {
+            err !== undefined && fail(err);
+            session.destroy();
+            checkSessionDebugger(session);
+            done();
+        };
         const logger = getLogger('Extract. Test 2');
         const session = new Session();
         // Set provider into debug mode
@@ -82,17 +89,24 @@ describe('Extract search matches', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            fail(stream);
-            return done();
+            finish(stream);
+            return;
         }
         if (search instanceof Error) {
-            fail(search);
-            return done();
+            finish(search);
+            return;
         }
-
-        const tmpobj = createSampleFile(5000, logger, (i: number) =>
-            `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some CPU=${Math.round(Math.random() * 100)}% disk=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
-            }`
+        const tmpobj = createSampleFile(
+            5000,
+            logger,
+            (i: number) =>
+                `[${i}]:: ${
+                    i % 100 === 0 || i <= 5
+                        ? `some CPU=${Math.round(Math.random() * 100)}% disk=${Math.round(
+                              Math.random() * 100,
+                          )}% line data\n`
+                        : `some line data\n`
+                }`,
         );
         stream
             .assign(tmpobj.name, {})
@@ -125,24 +139,20 @@ describe('Extract search matches', function () {
                             expect(res.values[1].filter.filter).toEqual(filterB);
                         });
                         checkSessionDebugger(session);
-                        done();
+                        finish();
                     })
-                    .catch((err: Error) => {
-                        fail(err);
-                        done();
-                    })
-                    .finally(() => {
-                        session.destroy();
-                    });
+                    .catch(finish);
             })
-            .catch((err: Error) => {
-                session.destroy();
-                fail(err);
-                done();
-            });
+            .catch(finish);
     });
 
     it('Test 3. Assign & multiple extracting with subgroups extracting', function (done) {
+        const finish = (err?: Error) => {
+            err !== undefined && fail(err);
+            session.destroy();
+            checkSessionDebugger(session);
+            done();
+        };
         const logger = getLogger('Extract. Test 3');
         const session = new Session();
         // Set provider into debug mode
@@ -150,17 +160,24 @@ describe('Extract search matches', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            fail(stream);
-            return done();
+            finish(stream);
+            return;
         }
         if (search instanceof Error) {
-            fail(search);
-            return done();
+            finish(search);
+            return;
         }
-
-        const tmpobj = createSampleFile(5000, logger,
-            (i: number) => `[${i}]:: ${i % 100 === 0 || i <= 5 ? `some x:${Math.round(Math.random() * 100)},y:${Math.round(Math.random() * 100)} CPU=${Math.round(Math.random() * 100)}% line data\n` : `some line data\n`
-                }`
+        const tmpobj = createSampleFile(
+            5000,
+            logger,
+            (i: number) =>
+                `[${i}]:: ${
+                    i % 100 === 0 || i <= 5
+                        ? `some x:${Math.round(Math.random() * 100)},y:${Math.round(
+                              Math.random() * 100,
+                          )} CPU=${Math.round(Math.random() * 100)}% line data\n`
+                        : `some line data\n`
+                }`,
         );
         stream
             .assign(tmpobj.name, {})
@@ -195,21 +212,10 @@ describe('Extract search matches', function () {
                             expect(res.values[1].values.length).toEqual(2);
                         });
                         checkSessionDebugger(session);
-                        done();
+                        finish();
                     })
-                    .catch((err: Error) => {
-                        fail(err);
-                        done();
-                    })
-                    .finally(() => {
-                        session.destroy();
-                    });
+                    .catch(finish);
             })
-            .catch((err: Error) => {
-                session.destroy();
-                fail(err);
-                done();
-            });
+            .catch(finish);
     });
-
 });

@@ -14,45 +14,42 @@ import { getLogger } from '../src/util/logging';
 
 describe('Concat', function () {
     it('Test 1. Concat files', function (done) {
+        const finish = (err?: Error) => {
+            err !== undefined && fail(err);
+            session.destroy();
+            checkSessionDebugger(session);
+            done();
+        };
         const logger = getLogger('Concat. Test 1');
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
         const stream = session.getStream();
         if (stream instanceof Error) {
-            fail(stream);
-            return done();
+            finish(stream);
+            return;
         }
         const tmpobj = createSampleFile(5, logger, (i: number) => `a--${i}\n`);
         const tmpobj2 = createSampleFile(5, logger, (i: number) => `b--${i}\n`);
-        const tmpconf = tmp.fileSync();
-        const confContent = `[
-        {
-            "path": "${tmpobj.name}",
-            "offset": 0,
-            "format": "MM-DD hh:mm:ss.s TZD",
-            "tag": "A-TAG",
-            "year": 2019
-        },
-        {
-            "path": "${tmpobj2.name}",
-            "offset": 0,
-            "tag": "B-TAG",
-            "format": "MM-DD hh:mm:ss.s TZD",
-            "year": 2019
-        }
-        ]`;
-        const tmpout = tmp.fileSync();
-        fs.appendFileSync(tmpconf.name, confContent);
         stream
-            .concat(tmpconf.name, tmpout.name, true)
+            .concat(
+                [
+                    {
+                        path: tmpobj.name,
+                        tag: tmpobj.name,
+                    },
+                    {
+                        path: tmpobj2.name,
+                        tag: tmpobj2.name,
+                    },
+                ],
+                true,
+            )
             .then(() => {
-                // While we do not have operation id
-                logger.warn("Then happpppppened...");
                 let result: IGrabbedElement[] | Error = stream.grab(3, 5);
                 if (result instanceof Error) {
-                    fail(`Fail to grab data due error: ${result.message}`);
-                    return done();
+                    finish(new Error(`Fail to grab data due error: ${result.message}`));
+                    return;
                 }
                 logger.debug('result of grab was: ' + JSON.stringify(result));
                 expect(result.map((i) => i.content.slice(0, 4))).toEqual([
@@ -63,16 +60,8 @@ describe('Concat', function () {
                     'b--2',
                 ]);
                 checkSessionDebugger(session);
-                done();
+                finish();
             })
-            .catch((err: Error) => {
-                logger.warn("Error happpppppened..." + err);
-                fail(err);
-                done();
-            })
-            .finally(() => {
-                logger.warn("concat test over...session.destroy");
-                session.destroy();
-            });
+            .catch(finish);
     });
 });

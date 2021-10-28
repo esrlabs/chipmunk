@@ -39,10 +39,10 @@ pub fn read_concat_options(f: &mut fs::File) -> Result<Vec<ConcatItemOptions>> {
     Ok(v)
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConcatenatorInput {
-    path: String,
-    tag: String,
+    pub path: String,
+    pub tag: String,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatenatorResult {
@@ -51,30 +51,15 @@ pub struct ConcatenatorResult {
     pub byte_cnt: usize,
 }
 pub fn concat_files_use_config_file(
-    config_path: &Path,
+    files: Vec<ConcatenatorInput>,
     out_path: &Path,
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_rx: Option<cc::Receiver<()>>,
 ) -> Result<()> {
-    let mut concat_option_file = fs::File::open(config_path)?;
-    let dir_name = config_path
-        .parent()
-        .ok_or_else(|| anyhow!("could not find directory of config file"))?;
-    let options: Vec<ConcatItemOptions> = read_concat_options(&mut concat_option_file)?;
-    let inputs: Vec<ConcatenatorInput> = options
-        .into_iter()
-        .map(|o: ConcatItemOptions| ConcatenatorInput {
-            path: PathBuf::from(&dir_name)
-                .join(o.path)
-                .to_string_lossy()
-                .into(),
-            tag: o.tag,
-        })
-        .collect();
     concat_files(
-        inputs,
+        files,
         out_path,
         append,
         chunk_size,

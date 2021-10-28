@@ -14,7 +14,8 @@ import {
     IGrabbedElement,
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
-} from '../interfaces/index';
+    IConcatFile,
+} from '../interfaces';
 import { IConcatResults } from './session.stream.concat.executor';
 
 export {
@@ -80,8 +81,8 @@ export class SessionStream {
         });
     }
 
-    public concat(configFile: string, outPath: string, append: boolean): CancelablePromise<IConcatResults> {
-        return Executors.concat(this._session, this._provider, this._logger, { configFile: configFile, outPath: outPath, append: append });
+    public concat(files: IConcatFile[], append: boolean): CancelablePromise<IConcatResults> {
+        return Executors.concat(this._session, this._provider, this._logger, { files, append });
     }
 
     public merge(files: IFileToBeMerged[]): CancelablePromise<void> {
@@ -105,12 +106,13 @@ export class SessionStream {
         } else if (
             typeof results === 'object' &&
             (typeof (results as IExtractDTFormatResult).format !== 'string' ||
-             typeof (results as IExtractDTFormatResult).reg !== 'string' ||
-             typeof (results as IExtractDTFormatResult).timestamp !== 'number'
-            )
+                typeof (results as IExtractDTFormatResult).reg !== 'string' ||
+                typeof (results as IExtractDTFormatResult).timestamp !== 'number')
         ) {
             results = new Error(
-                `Expecting {IExtractDTFormatOptions} as result of "extractTimeformat", but has been gotten: ${JSON.stringify(results)}`,
+                `Expecting {IExtractDTFormatOptions} as result of "extractTimeformat", but has been gotten: ${JSON.stringify(
+                    results,
+                )}`,
             );
         }
         if (results instanceof Error) {

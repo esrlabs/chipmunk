@@ -1,15 +1,13 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
+import { IConcatFile } from '../interfaces';
 
 export interface IExecuteConcatOptions {
-    configFile: string;
-    outPath: string;
+    files: IConcatFile[];
     append: boolean;
 }
-export interface IConcatResults {
-
-}
+export interface IConcatResults {}
 
 export const executor: TExecutor<IConcatResults, IExecuteConcatOptions> = (
     session: RustSession,
@@ -22,10 +20,14 @@ export const executor: TExecutor<IConcatResults, IExecuteConcatOptions> = (
         provider,
         logger,
         options,
-        function(session: RustSession, options: IExecuteConcatOptions, operationUuid: string): Promise<void> {
-            return session.concat(options.configFile, options.outPath, options.append, operationUuid);
+        function (
+            session: RustSession,
+            options: IExecuteConcatOptions,
+            operationUuid: string,
+        ): Promise<void> {
+            return session.concat(options.files, options.append, operationUuid);
         },
-        function(data: any, resolve: (res: IConcatResults) => void, reject: (err: Error) => void) {
+        function (data: any, resolve: (res: IConcatResults) => void, reject: (err: Error) => void) {
             try {
                 const result: IConcatResults = JSON.parse(data);
                 // if (typeof result.found !== 'number' || !(result.stats instanceof Array)) {
@@ -36,6 +38,6 @@ export const executor: TExecutor<IConcatResults, IExecuteConcatOptions> = (
                 return reject(new Error(`Fail to parse concat results. Error: ${e.message}`));
             }
         },
-        "concat",
+        'concat',
     );
 };

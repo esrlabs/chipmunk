@@ -1,36 +1,31 @@
-use crate::js::events::{
-    AsyncBroadcastChannel, CallbackEvent, ComputationError, NativeError, NativeErrorKind,
-    OperationDone, SearchOperationResult, SyncChannel,
+use super::{handlers, session_operations as sop};
+use crate::js::{
+    converting::{
+        concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
+        merge::WrappedFileMergeOptions,
+    },
+    events::{
+        AsyncBroadcastChannel, CallbackEvent, ComputationError, NativeError, NativeErrorKind,
+        SyncChannel,
+    },
 };
 use crossbeam_channel as cc;
-use indexer_base::progress::{ComputationResult, Progress, Severity};
-use log::{debug, info, trace, warn};
-use merging::concatenator::concat_files_use_config_file;
-use node_bindgen::{
-    core::{
-        val::{JsEnv, JsObject},
-        JSValue, NjError, TryIntoJs,
-    },
-    derive::node_bindgen,
-    sys::napi_value,
-};
+use indexer_base::progress::{Progress, Severity};
+use log::{debug, error, info, warn};
+use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
+use node_bindgen::derive::node_bindgen;
 use processor::{
     dlt_source::DltSource,
-    grabber::{
-        AsyncGrabTrait, GrabError, GrabMetadata, GrabTrait, GrabbedContent, LineRange,
-        MetadataSource,
-    },
-    map::SearchMap,
-    search::{
-        ExtractedMatchValue, FilterStats, MatchesExtractor, SearchError, SearchFilter, SearchHolder,
-    },
+    grabber::{AsyncGrabTrait, GrabMetadata, GrabTrait, GrabbedContent, LineRange},
+    map::{NearestPosition, SearchMap},
+    search::{SearchError, SearchFilter},
     text_source::TextFileSource,
 };
 use serde::Serialize;
 use std::{
+    collections::HashMap,
     fs::OpenOptions,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
     thread,
 };
 use tokio::{runtime::Runtime, sync::broadcast};
@@ -70,7 +65,7 @@ enum Operation {
         operation_id: Uuid,
     },
     Concat {
-        config_file: PathBuf,
+        files: Vec<ConcatenatorInput>,
         out_path: PathBuf,
         append: bool,
         source_type: SupportedFileType,
@@ -78,6 +73,18 @@ enum Operation {
         operation_id: Uuid,
         cancellation_token: CancellationToken,
     },
+    Merge {
+        files: Vec<FileMergeOptions>,
+        out_path: PathBuf,
+        append: bool,
+        source_type: SupportedFileType,
+        source_id: String,
+        operation_id: Uuid,
+        cancellation_token: CancellationToken,
+    },
+    ExtractMetadata(cc::Sender<Option<GrabMetadata>>),
+    DropSearch(cc::Sender<()>),
+    GetNearestPosition((u64, cc::Sender<Option<NearestPosition>>)),
     Cancel {
         operation_id: Uuid,
     },
@@ -86,8 +93,9 @@ enum Operation {
 
 async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
     op_event: Operation,
-    state: Arc<Mutex<SessionState>>,
+    state: &mut SessionState,
     search_metadata_tx: &cc::Sender<Option<(PathBuf, GrabMetadata)>>,
+    operations: &mut HashMap<Uuid, CancellationToken>,
     callback: &F,
 ) -> bool {
     match op_event {
@@ -99,43 +107,46 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             cancellation_token,
         } => {
             debug!("RUST: received Assign operation event");
-            let callback_event = match handle_assign(
-                &file_path,
-                source_type,
-                source_id,
-                &state,
-                cancellation_token,
-            ) {
-                Ok(Some(line_count)) => CallbackEvent::StreamUpdated(line_count),
-                Ok(None) => CallbackEvent::Progress {
-                    uuid: operation_id,
-                    progress: Progress::Stopped,
-                },
-                Err(error) => CallbackEvent::OperationError {
-                    uuid: operation_id,
-                    error,
-                },
-            };
-            callback(callback_event);
-            callback(CallbackEvent::OperationDone(OperationDone {
-                uuid: operation_id,
-                result: None,
-            }));
+            sop::finish(
+                operation_id,
+                vec![match handlers::assign::handle(
+                    &file_path,
+                    source_type,
+                    source_id,
+                    state,
+                    cancellation_token,
+                ) {
+                    Ok(Some(line_count)) => CallbackEvent::StreamUpdated(line_count),
+                    Ok(None) => CallbackEvent::Progress {
+                        uuid: operation_id,
+                        progress: Progress::Stopped,
+                    },
+                    Err(error) => CallbackEvent::OperationError {
+                        uuid: operation_id,
+                        error,
+                    },
+                }],
+                operations,
+                callback,
+            );
         }
         Operation::Search {
             target_file,
             filters,
             operation_id,
         } => {
-            for event in handle_search(
-                target_file,
-                filters,
+            sop::finish(
                 operation_id,
-                search_metadata_tx,
-                &state,
-            ) {
-                callback(event);
-            }
+                handlers::search::handle(
+                    target_file,
+                    filters,
+                    operation_id,
+                    search_metadata_tx,
+                    state,
+                ),
+                operations,
+                callback,
+            );
         }
         Operation::Extract {
             target_file,
@@ -143,7 +154,15 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             operation_id,
         } => {
             debug!("RUST: Extract values operation is requested");
-            callback(handle_extract(&target_file, filters.iter(), operation_id));
+            sop::finish(
+                operation_id,
+                vec![sop::map_result(
+                    handlers::extract::handle(&target_file, filters.iter()),
+                    operation_id,
+                )],
+                operations,
+                callback,
+            );
         }
         Operation::Map {
             dataset_len,
@@ -151,27 +170,13 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             operation_id,
         } => {
             debug!("RUST: received Map operation event");
-            match state.lock() {
-                Ok(state) => {
-                    callback(result_to_callback_event(
-                        &(state.search_map.scaled(dataset_len, range)),
-                        operation_id,
-                    ));
-                }
-                Err(err) => {
-                    callback(CallbackEvent::OperationError {
-                        uuid: operation_id,
-                        error: NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::OperationSearch,
-                            message: Some(format!("Failed to write search map. Error: {}", err)),
-                        },
-                    });
-                }
-            };
+            callback(sop::map_entity(
+                &(state.search_map.scaled(dataset_len, range)),
+                operation_id,
+            ));
         }
         Operation::Concat {
-            config_file,
+            files,
             out_path,
             append,
             source_type,
@@ -179,37 +184,103 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             operation_id,
             cancellation_token,
         } => {
-            warn!(
+            debug!(
                 "RUST: received concat operation event with operation id {}",
                 operation_id
             );
-            let callback_event = handle_concat(
+            sop::finish(
                 operation_id,
-                &config_file,
-                &out_path,
-                append,
-                source_type,
-                source_id,
-                &state,
-                cancellation_token,
-            )
-            .await;
-            callback(callback_event);
-            callback(CallbackEvent::OperationDone(OperationDone {
-                uuid: operation_id,
-                result: None,
-            }));
+                vec![
+                    handlers::concat::handle(
+                        operation_id,
+                        files,
+                        &out_path,
+                        append,
+                        source_type,
+                        source_id,
+                        state,
+                        cancellation_token,
+                    )
+                    .await,
+                ],
+                operations,
+                callback,
+            );
+        }
+        Operation::Merge {
+            files,
+            out_path,
+            append,
+            source_type,
+            source_id,
+            operation_id,
+            cancellation_token,
+        } => {
+            debug!(
+                "RUST: received concat operation event with operation id {}",
+                operation_id
+            );
+            sop::finish(
+                operation_id,
+                vec![
+                    handlers::merge::handle(
+                        operation_id,
+                        files,
+                        &out_path,
+                        append,
+                        source_type,
+                        source_id,
+                        state,
+                        cancellation_token,
+                    )
+                    .await,
+                ],
+                operations,
+                callback,
+            );
         }
         Operation::Cancel { operation_id } => {
             debug!("RUST: received cancel operation event");
-            callback(CallbackEvent::OperationError {
-                uuid: operation_id,
-                error: NativeError {
-                    severity: Severity::WARNING,
-                    kind: NativeErrorKind::NotYetImplemented,
-                    message: Some("Cancel operation not implemented".to_string()),
-                },
-            });
+            if let Some(token) = operations.remove(&operation_id) {
+                token.cancel();
+            } else {
+                callback(CallbackEvent::OperationError {
+                    uuid: operation_id,
+                    error: NativeError {
+                        severity: Severity::WARNING,
+                        kind: NativeErrorKind::NotYetImplemented,
+                        message: Some(format!("Operation {} isn't found", operation_id)),
+                    },
+                });
+            }
+        }
+        Operation::ExtractMetadata(tx_response) => {
+            if let Err(err) = tx_response.send(if let Some(md) = &state.metadata {
+                let md = md.clone();
+                state.metadata = None;
+                Some(md)
+            } else {
+                None
+            }) {
+                error!(
+                    "fail to responce to Operation::ExtractMetadata; error: {}",
+                    err
+                );
+            }
+        }
+        Operation::DropSearch(tx_response) => {
+            state.search_map.set(None);
+            if let Err(err) = tx_response.send(()) {
+                error!("fail to responce to Operation::DropSearch; error: {}", err);
+            }
+        }
+        Operation::GetNearestPosition((position, tx_response)) => {
+            if let Err(err) = tx_response.send(state.search_map.nearest_to(position)) {
+                error!(
+                    "fail to responce to Operation::GetNearestPosition; error: {}",
+                    err
+                );
+            }
         }
         Operation::End => {
             debug!("RUST: received End operation event");
@@ -276,7 +347,6 @@ pub struct RustSession {
     pub running: bool,
     pub content_grabber: Option<Box<dyn AsyncGrabTrait>>,
     pub search_grabber: Option<Box<dyn AsyncGrabTrait>>,
-    pub state: Arc<Mutex<SessionState>>,
     op_channel: AsyncBroadcastChannel<Operation>,
     // channel to store the metadata of the search results once available
     search_metadata_channel: SyncChannel<Option<(PathBuf, GrabMetadata)>>,
@@ -299,19 +369,26 @@ impl RustSession {
                 Err(ComputationError::Protocol(msg))
             }
         }?;
-        match self.state.lock() {
-            Ok(mut state) => {
-                if let Some(md) = &state.metadata {
+        let (tx_response, rx_response): (
+            cc::Sender<Option<GrabMetadata>>,
+            cc::Receiver<Option<GrabMetadata>>,
+        ) = cc::bounded(1);
+        self.op_channel
+            .0
+            .send(Operation::ExtractMetadata(tx_response))
+            .map_err(|e| ComputationError::Process(e.to_string()))?;
+        match rx_response.recv() {
+            Ok(metadata) => {
+                if let Some(metadata) = metadata {
                     current_grabber
-                        .inject_metadata(md.clone())
+                        .inject_metadata(metadata.clone())
                         .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
-                    state.metadata = None;
                 }
             }
-            Err(_) => {
-                warn!("Could not access state");
+            Err(err) => {
+                warn!("Fail to get a metadata; error: {}", err);
             }
-        }
+        };
         Ok(current_grabber)
     }
 
@@ -370,12 +447,6 @@ impl RustSession {
         Self {
             id,
             running: false,
-            state: Arc::new(Mutex::new(SessionState {
-                assigned_file: None,
-                filters: vec![],
-                search_map: SearchMap::new(),
-                metadata: None,
-            })),
             content_grabber: None,
             search_grabber: None,
             op_channel: broadcast::channel(10),
@@ -390,16 +461,10 @@ impl RustSession {
 
     #[node_bindgen]
     fn cancel_operations(&mut self, operation_id_string: String) -> Result<(), ComputationError> {
-        match Uuid::parse_str(&operation_id_string) {
-            Ok(operation_id) => {
-                let _ = self.op_channel.0.send(Operation::Cancel { operation_id });
-                Ok(())
-            }
-            Err(_) => Err(ComputationError::OperationNotSupported(format!(
-                "Unknown operation-id: {}",
-                operation_id_string
-            ))),
-        }
+        let _ = self.op_channel.0.send(Operation::Cancel {
+            operation_id: sop::uuid_from_str(&operation_id_string)?,
+        });
+        Ok(())
     }
 
     /// this will start of the event loop that processes different rust operations
@@ -416,17 +481,24 @@ impl RustSession {
         let mut event_stream = self.op_channel.0.subscribe();
         self.running = true;
         let search_metadata_tx = self.search_metadata_channel.0.clone();
-        let state = Arc::clone(&self.state);
         thread::spawn(move || {
             rt.block_on(async {
                 info!("RUST: running runtime");
+                let mut operations: HashMap<Uuid, CancellationToken> = HashMap::new();
+                let mut state = SessionState {
+                    assigned_file: None,
+                    filters: vec![],
+                    search_map: SearchMap::new(),
+                    metadata: None,
+                };
                 loop {
                     match event_stream.recv().await {
                         Ok(op_event) => {
                             let abort = process_operation_request(
                                 op_event,
-                                state.clone(),
+                                &mut state,
                                 &search_metadata_tx,
+                                &mut operations,
                                 &callback,
                             )
                             .await;
@@ -503,7 +575,7 @@ impl RustSession {
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
         debug!("RUST: send assign event on channel");
-        let operation_id = parse_operation_id(&operation_id_string)?;
+        let operation_id = sop::uuid_from_str(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
         let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
         self.content_grabber = Some(boxed_grabber);
@@ -611,17 +683,19 @@ impl RustSession {
         filters: Vec<WrappedSearchFilter>,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        let operation_id = parse_operation_id(&operation_id_string)?;
+        let operation_id = sop::uuid_from_str(&operation_id_string)?;
         self.search_grabber = None;
-        match self.state.lock() {
-            Ok(mut state) => state.search_map.set(None),
-            Err(err) => {
-                return Err(ComputationError::Process(format!(
-                    "Cannot drop search map. Error: {}",
-                    err
-                )));
-            }
-        };
+        let (tx_response, rx_response): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
+        self.op_channel
+            .0
+            .send(Operation::DropSearch(tx_response))
+            .map_err(|e| ComputationError::Process(e.to_string()))?;
+        if let Err(err) = rx_response.recv() {
+            return Err(ComputationError::Process(format!(
+                "Cannot drop search map. Error: {}",
+                err
+            )));
+        }
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
@@ -657,7 +731,7 @@ impl RustSession {
         filters: Vec<WrappedSearchFilter>,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        let operation_id = parse_operation_id(&operation_id_string)?;
+        let operation_id = sop::uuid_from_str(&operation_id_string)?;
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
@@ -744,9 +818,20 @@ impl RustSession {
         )>,
         ComputationError,
     > {
-        match self.state.lock() {
-            Ok(state) => {
-                if let Some(nearest) = state.search_map.nearest_to(position_in_stream as u64) {
+        let (tx_response, rx_response): (
+            cc::Sender<Option<NearestPosition>>,
+            cc::Receiver<Option<NearestPosition>>,
+        ) = cc::bounded(1);
+        self.op_channel
+            .0
+            .send(Operation::GetNearestPosition((
+                position_in_stream as u64,
+                tx_response,
+            )))
+            .map_err(|e| ComputationError::Process(e.to_string()))?;
+        match rx_response.recv() {
+            Ok(nearest) => {
+                if let Some(nearest) = nearest {
                     Ok(Some((nearest.index as i64, nearest.position as i64)))
                 } else {
                     Ok(None)
@@ -762,12 +847,69 @@ impl RustSession {
     #[node_bindgen]
     async fn concat(
         &mut self,
-        config_file: String,
+        files: Vec<WrappedConcatenatorInput>,
+        append: bool,
+        operation_id: String,
+    ) -> Result<(), ComputationError> {
+        //TODO: out_path should be gererics by some settings.
+        let operation_id = sop::uuid_from_str(&operation_id)?;
+        let (out_path, out_path_str) = if files.is_empty() {
+            return Err(ComputationError::InvalidData);
+        } else {
+            let filename = PathBuf::from(&files[0].as_concatenator_input().path);
+            if let Some(parent) = filename.parent() {
+                if let Some(file_name) = filename.file_name() {
+                    let path = parent.join(format!("{}.concat", file_name.to_string_lossy()));
+                    (path.clone(), path.to_string_lossy().to_string())
+                } else {
+                    return Err(ComputationError::InvalidData);
+                }
+            } else {
+                return Err(ComputationError::InvalidData);
+            }
+        };
+        let _ = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&out_path)
+            .map_err(|_| {
+                ComputationError::IoOperation(format!(
+                    "Could not create/open file {}",
+                    &out_path_str
+                ))
+            })?;
+        let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
+        self.content_grabber = Some(boxed_grabber);
+        let cancellation_token = CancellationToken::new();
+        match self.op_channel.0.send(Operation::Concat {
+            files: files
+                .iter()
+                .map(|file| file.as_concatenator_input())
+                .collect(),
+            out_path,
+            append,
+            source_type,
+            source_id: out_path_str,
+            operation_id,
+            cancellation_token,
+        }) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not send operation on channel. Error: {}",
+                e
+            ))),
+        }
+    }
+
+    #[node_bindgen]
+    async fn merge(
+        &mut self,
+        files: Vec<WrappedFileMergeOptions>,
         out_path_name: String,
         append: bool,
         operation_id: String,
     ) -> Result<(), ComputationError> {
-        let config_file = PathBuf::from(config_file);
         let out_path = PathBuf::from(&out_path_name);
         let _ = OpenOptions::new()
             .read(true)
@@ -780,13 +922,15 @@ impl RustSession {
                     &out_path_name
                 ))
             })?;
-        let operation_id = parse_operation_id(&operation_id)?;
+        let operation_id = sop::uuid_from_str(&operation_id)?;
         let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_name)?;
         self.content_grabber = Some(boxed_grabber);
-
         let cancellation_token = CancellationToken::new();
-        match self.op_channel.0.send(Operation::Concat {
-            config_file,
+        match self.op_channel.0.send(Operation::Merge {
+            files: files
+                .iter()
+                .map(|file| file.as_file_merge_options())
+                .collect(),
             out_path,
             append,
             source_type,
@@ -814,382 +958,4 @@ impl RustSession {
 pub struct GeneralError {
     severity: Severity,
     message: String,
-}
-
-impl TryIntoJs for CallbackEvent {
-    /// serialize into json object
-    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        match serde_json::to_string(&self) {
-            Ok(s) => js_env.create_string_utf8(&s),
-            Err(e) => Err(NjError::Other(format!(
-                "Could not convert Callback event to json: {}",
-                e
-            ))),
-        }
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-pub struct WrappedSearchFilter(SearchFilter);
-
-impl WrappedSearchFilter {
-    pub fn as_filter(&self) -> SearchFilter {
-        self.0.clone()
-    }
-}
-
-impl JSValue<'_> for WrappedSearchFilter {
-    fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
-        if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
-            // let mut filter = ;
-            let value: String = match js_obj.get_property("value") {
-                Ok(Some(value)) => match value.as_value::<String>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
-                Ok(None) => {
-                    return Err(NjError::Other("[value] property is not found".to_owned()));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-            let is_regex: bool = match js_obj.get_property("is_regex") {
-                Ok(Some(value)) => match value.as_value::<bool>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
-                Ok(None) => {
-                    return Err(NjError::Other(
-                        "[is_regex] property is not found".to_owned(),
-                    ));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-            let is_word: bool = match js_obj.get_property("is_word") {
-                Ok(Some(value)) => match value.as_value::<bool>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
-                Ok(None) => {
-                    return Err(NjError::Other("[is_word] property is not found".to_owned()));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-            let ignore_case: bool = match js_obj.get_property("ignore_case") {
-                Ok(Some(value)) => match value.as_value::<bool>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
-                Ok(None) => {
-                    return Err(NjError::Other(
-                        "[ignore_case] property is not found".to_owned(),
-                    ));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-            Ok(WrappedSearchFilter(SearchFilter {
-                value,
-                is_regex,
-                ignore_case,
-                is_word,
-            }))
-        } else {
-            Err(NjError::Other("not valid format".to_owned()))
-        }
-    }
-}
-
-fn create_metadata_for_source(
-    file_path: &Path,
-    source_type: SupportedFileType,
-    source_id: String,
-) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-    match source_type {
-        SupportedFileType::Dlt => {
-            let source = DltSource::new(file_path, &source_id);
-            source.from_file(None)
-        }
-        SupportedFileType::Text => {
-            let source = TextFileSource::new(file_path, &source_id);
-            source.from_file(None)
-        }
-    }
-}
-
-fn run_search<'a, I>(
-    target_file_path: &Path,
-    filters: I,
-    state: &Arc<Mutex<SessionState>>,
-) -> Result<(PathBuf, usize, FilterStats), NativeError>
-where
-    I: Iterator<Item = &'a SearchFilter>,
-{
-    let search_holder = SearchHolder::new(target_file_path, filters);
-    match search_holder.execute_search() {
-        Ok((file_path, matches, stats)) => {
-            let found = matches.len();
-            match state.lock() {
-                Ok(mut state) => {
-                    state.search_map.set(Some(matches));
-                    Ok((file_path, found, stats))
-                }
-                Err(err) => Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::OperationSearch,
-                    message: Some(format!("Fail write search map. Error: {}", err)),
-                }),
-            }
-        }
-        Err(err) => Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::OperationSearch,
-            message: Some(format!("Fail to execute search. Error: {}", err)),
-        }),
-    }
-}
-
-fn handle_extract<'a, I>(target_file_path: &Path, filters: I, operation_id: Uuid) -> CallbackEvent
-where
-    I: Iterator<Item = &'a SearchFilter>,
-{
-    let extractor = MatchesExtractor::new(target_file_path, filters);
-
-    let matches = match extractor.extract_matches() {
-        Ok(matches) => Ok(matches),
-        Err(err) => Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::OperationSearch,
-            message: Some(format!(
-                "Fail to execute extract search result operation. Error: {}",
-                err
-            )),
-        }),
-    };
-
-    match matches {
-        Ok(matches) => result_to_callback_event::<Vec<ExtractedMatchValue>>(&matches, operation_id),
-        Err(e) => CallbackEvent::OperationError {
-            uuid: operation_id,
-            error: e,
-        },
-    }
-}
-
-fn result_to_callback_event<T>(v: &T, operation_id: Uuid) -> CallbackEvent
-where
-    T: Serialize,
-{
-    match serde_json::to_string(v) {
-        Ok(serialized) => CallbackEvent::OperationDone(OperationDone {
-            uuid: operation_id,
-            result: Some(serialized),
-        }),
-        Err(err) => CallbackEvent::OperationError {
-            uuid: operation_id,
-            error: NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ComputationFailed,
-                message: Some(format!("{}", err)),
-            },
-        },
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-async fn handle_concat(
-    operation_id: Uuid,
-    config_file: &Path,
-    out_path: &Path,
-    append: bool,
-    source_type: SupportedFileType,
-    source_id: String,
-    state: &Arc<Mutex<SessionState>>,
-    cancellation_token: CancellationToken,
-) -> CallbackEvent {
-    let (tx, _rx) = cc::unbounded();
-    match concat_files_use_config_file(config_file, out_path, append, 500, tx, None) {
-        Ok(()) => {
-            match handle_assign(out_path, source_type, source_id, state, cancellation_token) {
-                Ok(Some(line_count)) => CallbackEvent::StreamUpdated(line_count),
-                Ok(None) => CallbackEvent::Progress {
-                    uuid: operation_id,
-                    progress: Progress::Stopped,
-                },
-                Err(error) => CallbackEvent::OperationError {
-                    uuid: operation_id,
-                    error,
-                },
-            }
-        }
-        Err(err) => CallbackEvent::OperationError {
-            uuid: operation_id,
-            error: NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::OperationSearch,
-                message: Some(format!("Failed to concatenate files: {}", err)),
-            },
-        },
-    }
-}
-
-/// assign a file initially by creating the meta for it and sending it as metadata update
-/// for the content grabber (current_grabber)
-/// if the metadata was successfully created, we return the line count of it
-/// if the operation was stopped, we return None
-fn handle_assign(
-    file_path: &Path,
-    source_type: SupportedFileType,
-    source_id: String,
-    state: &Arc<Mutex<SessionState>>,
-    cancellation_token: CancellationToken,
-) -> Result<Option<u64>, NativeError> {
-    match create_metadata_for_source(file_path, source_type, source_id) {
-        Ok(ComputationResult::Item(metadata)) => {
-            trace!("received metadata {:?}", metadata);
-            debug!("RUST: received metadata");
-            let line_count: u64 = metadata.line_count as u64;
-            match update_state(state, Some(line_count), Some(Some(metadata))) {
-                Some(()) => Ok(Some(line_count)),
-                None => Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::OperationSearch,
-                    message: Some("Failed to write stream len".to_string()),
-                }),
-            }
-        }
-        Ok(ComputationResult::Stopped) => {
-            info!("RUST: metadata calculation aborted");
-            let _ = update_state(state, None, Some(None));
-            Ok(None)
-        }
-        Err(e) => {
-            warn!("RUST error computing metadata: {}", e);
-            let _ = update_state(state, None, Some(None));
-            Err(e.into())
-        }
-    }
-}
-
-fn update_state(
-    state: &Arc<Mutex<SessionState>>,
-    stream_len: Option<u64>,
-    metadata: Option<Option<GrabMetadata>>,
-) -> Option<()> {
-    match state.lock() {
-        Ok(mut state) => {
-            if let Some(stream_len) = stream_len {
-                state.search_map.set_stream_len(stream_len);
-            }
-            if let Some(metadata) = metadata {
-                state.metadata = metadata;
-            }
-            Some(())
-        }
-        Err(_) => None,
-    }
-}
-
-fn parse_operation_id(operation_id: &str) -> Result<Uuid, ComputationError> {
-    match Uuid::parse_str(operation_id) {
-        Ok(uuid) => Ok(uuid),
-        Err(e) => Err(ComputationError::Process(format!(
-            "Fail to parse operation uuid from {}. Error: {}",
-            operation_id, e
-        ))),
-    }
-}
-
-fn handle_search(
-    target_file: PathBuf,
-    filters: Vec<SearchFilter>,
-    operation_id: Uuid,
-    search_metadata_tx: &cc::Sender<Option<(PathBuf, GrabMetadata)>>,
-    state: &Arc<Mutex<SessionState>>,
-) -> Vec<CallbackEvent> {
-    debug!("RUST: Search operation is requested");
-    if filters.is_empty() {
-        debug!("RUST: Search will be dropped. Filters are empty");
-        // This is dropping of search
-        let _ = search_metadata_tx.send(None);
-        vec![
-            CallbackEvent::SearchUpdated(0),
-            result_to_callback_event(
-                &SearchOperationResult {
-                    found: 0,
-                    stats: FilterStats::new(vec![]),
-                },
-                operation_id,
-            ),
-        ]
-    } else {
-        let search_results = run_search(&target_file, filters.iter(), state);
-        match search_results {
-            Ok((file_path, found, stats)) => {
-                if found == 0 {
-                    let _ = search_metadata_tx.send(None);
-                    vec![
-                        CallbackEvent::SearchUpdated(0),
-                        result_to_callback_event(
-                            &SearchOperationResult { found, stats },
-                            operation_id,
-                        ),
-                    ]
-                } else {
-                    let source = TextFileSource::new(&file_path, "search_results");
-                    let metadata_res = source.from_file(None);
-                    match metadata_res {
-                        Ok(ComputationResult::Item(metadata)) => {
-                            debug!("RUST: received search metadata");
-                            let line_count = metadata.line_count as u64;
-                            let _ = search_metadata_tx.send(Some((file_path, metadata)));
-                            vec![
-                                CallbackEvent::SearchUpdated(line_count),
-                                result_to_callback_event(
-                                    &SearchOperationResult { found, stats },
-                                    operation_id,
-                                ),
-                            ]
-                        }
-                        Ok(ComputationResult::Stopped) => {
-                            debug!("RUST: search metadata calculation aborted");
-                            vec![CallbackEvent::Progress {
-                                uuid: operation_id,
-                                progress: Progress::Stopped,
-                            }]
-                        }
-                        Err(e) => {
-                            let err_msg = format!("RUST error computing search metadata: {:?}", e);
-                            vec![CallbackEvent::OperationError {
-                                uuid: operation_id,
-                                error: NativeError {
-                                    severity: Severity::WARNING,
-                                    kind: NativeErrorKind::ComputationFailed,
-                                    message: Some(err_msg),
-                                },
-                            }]
-                        }
-                    }
-                }
-            }
-            Err(e) => vec![CallbackEvent::OperationError {
-                uuid: operation_id,
-                error: e,
-            }],
-        }
-    }
 }
