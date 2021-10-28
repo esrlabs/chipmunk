@@ -87,7 +87,7 @@
         "ncp": "^2.0.0",
         "semver": "^7.1.3",
         "sudo-prompt": "^9.2.1",
-        "tar": "^6.0.1",
+        "tar": "^6.1.9",
         "uuid": "latest"
     },
     "devDependencies": {
