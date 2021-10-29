@@ -23,20 +23,17 @@ pub async fn handle(
     cancellation_token: CancellationToken,
 ) -> Result<CallbackEvent, NativeError> {
     let (tx, _rx) = cc::unbounded();
-    println!(">>>>>>>>>>>>>>>>>>>>>>> MERGE CALLED: {:?}", files);
-    match merge_files_use_config(files, out_path, append, 500, tx, None) {
-        Ok(()) => assign::handle(
-            operation_id,
-            out_path,
-            source_type,
-            source_id,
-            state,
-            cancellation_token,
-        ),
-        Err(err) => Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::OperationSearch,
-            message: Some(format!("Failed to merge files: {}", err)),
-        }),
-    }
+    merge_files_use_config(files, out_path, append, 500, tx, None).map_err(|err| NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::OperationSearch,
+        message: Some(format!("Failed to merge files: {}", err)),
+    })?;
+    assign::handle(
+        operation_id,
+        out_path,
+        source_type,
+        source_id,
+        state,
+        cancellation_token,
+    )
 }

@@ -109,7 +109,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             debug!("RUST: received Assign operation event");
             sop::finish(
                 operation_id,
-                vec![sop::map_err(
+                vec![sop::err_to_event(
                     handlers::assign::handle(
                         operation_id,
                         &file_path,
@@ -150,7 +150,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             debug!("RUST: Extract values operation is requested");
             sop::finish(
                 operation_id,
-                vec![sop::map_result(
+                vec![sop::result_to_event(
                     handlers::extract::handle(&target_file, filters.iter()),
                     operation_id,
                 )],
@@ -164,7 +164,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             operation_id,
         } => {
             debug!("RUST: received Map operation event");
-            callback(sop::map_entity(
+            callback(sop::map_to_event(
                 &(state.search_map.scaled(dataset_len, range)),
                 operation_id,
             ));
@@ -184,7 +184,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             );
             sop::finish(
                 operation_id,
-                vec![sop::map_err(
+                vec![sop::err_to_event(
                     handlers::concat::handle(
                         operation_id,
                         files,
@@ -217,7 +217,7 @@ async fn process_operation_request<F: Fn(CallbackEvent) + Send + 'static>(
             );
             sop::finish(
                 operation_id,
-                vec![sop::map_err(
+                vec![sop::err_to_event(
                     handlers::merge::handle(
                         operation_id,
                         files,

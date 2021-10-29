@@ -21,12 +21,7 @@ impl JSValue<'_> for WrappedSearchFilter {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
             // let mut filter = ;
             let value: String = match js_obj.get_property("value") {
-                Ok(Some(value)) => match value.as_value::<String>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other("[value] property is not found".to_owned()));
                 }
@@ -35,12 +30,7 @@ impl JSValue<'_> for WrappedSearchFilter {
                 }
             };
             let is_regex: bool = match js_obj.get_property("is_regex") {
-                Ok(Some(value)) => match value.as_value::<bool>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other(
                         "[is_regex] property is not found".to_owned(),
@@ -51,12 +41,7 @@ impl JSValue<'_> for WrappedSearchFilter {
                 }
             };
             let is_word: bool = match js_obj.get_property("is_word") {
-                Ok(Some(value)) => match value.as_value::<bool>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other("[is_word] property is not found".to_owned()));
                 }
@@ -65,12 +50,7 @@ impl JSValue<'_> for WrappedSearchFilter {
                 }
             };
             let ignore_case: bool = match js_obj.get_property("ignore_case") {
-                Ok(Some(value)) => match value.as_value::<bool>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other(
                         "[ignore_case] property is not found".to_owned(),

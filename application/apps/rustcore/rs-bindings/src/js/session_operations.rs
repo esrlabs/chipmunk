@@ -45,12 +45,12 @@ pub fn finish<F>(
     trace!("Operations in progress: {}", operations.len());
 }
 
-pub fn map_result<T>(result: Result<T, NativeError>, uuid: Uuid) -> CallbackEvent
+pub fn result_to_event<T>(result: Result<T, NativeError>, uuid: Uuid) -> CallbackEvent
 where
     T: Serialize,
 {
     match result {
-        Ok(result) => map_entity(&result, uuid),
+        Ok(result) => map_to_event(&result, uuid),
         Err(error) => {
             warn!("Operation {} done with error: {:?}", uuid, error);
             CallbackEvent::OperationError { uuid, error }
@@ -58,7 +58,7 @@ where
     }
 }
 
-pub fn map_err(result: Result<CallbackEvent, NativeError>, uuid: Uuid) -> CallbackEvent {
+pub fn err_to_event(result: Result<CallbackEvent, NativeError>, uuid: Uuid) -> CallbackEvent {
     match result {
         Ok(result) => result,
         Err(error) => {
@@ -68,7 +68,7 @@ pub fn map_err(result: Result<CallbackEvent, NativeError>, uuid: Uuid) -> Callba
     }
 }
 
-pub fn map_entity<T>(v: &T, uuid: Uuid) -> CallbackEvent
+pub fn map_to_event<T>(v: &T, uuid: Uuid) -> CallbackEvent
 where
     T: Serialize,
 {

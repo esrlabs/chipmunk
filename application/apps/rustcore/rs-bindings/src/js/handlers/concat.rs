@@ -22,19 +22,19 @@ pub async fn handle(
     cancellation_token: CancellationToken,
 ) -> Result<CallbackEvent, NativeError> {
     let (tx, _rx) = cc::unbounded();
-    match concat_files_use_config_file(files, out_path, append, 500, tx, None) {
-        Ok(()) => assign::handle(
-            operation_id,
-            out_path,
-            source_type,
-            source_id,
-            state,
-            cancellation_token,
-        ),
-        Err(err) => Err(NativeError {
+    concat_files_use_config_file(files, out_path, append, 500, tx, None).map_err(|err| {
+        NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::OperationSearch,
             message: Some(format!("Failed to concatenate files: {}", err)),
-        }),
-    }
+        }
+    })?;
+    assign::handle(
+        operation_id,
+        out_path,
+        source_type,
+        source_id,
+        state,
+        cancellation_token,
+    )
 }
