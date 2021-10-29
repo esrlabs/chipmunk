@@ -34,8 +34,9 @@ app-views-search {
                 padding-left: 5px;
                 display: flex;
                 flex-direction: row;
-                max-width: 100%;
+                max-width: 40%;
                 margin-left: -8px;
+                overflow: hidden;
                 & button {
                     background-color: @scheme-color-accent;
                     border: none;
@@ -54,8 +55,11 @@ app-views-search {
                 }
             }
             & span.activeSearch {
+                position: relative;
+                display: inline-block;
                 color: @scheme-color-0;
                 overflow: hidden;
+                text-overflow: ellipsis;
                 white-space: nowrap;
                 font-size: 14px;
                 line-height: 18px;
