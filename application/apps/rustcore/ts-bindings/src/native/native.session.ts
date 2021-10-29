@@ -12,10 +12,10 @@ import {
     IExtractDTFormatResult,
     IExtractDTFormatOptions,
     IConcatFile,
+    IFileMergeOptions,
 } from '../interfaces/index';
 import { getNativeModule } from './native';
 import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.executor';
-import { IFileToBeMerged } from '../api/session.stream.merge.executor';
 import { IDetectOptions } from '../api/session.stream.timeformat.detect.executor';
 import { IExportOptions } from '../api/session.stream.export.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
@@ -162,7 +162,11 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract merge(files: IFileToBeMerged[]): string | NativeError;
+    public abstract merge(
+        files: IFileMergeOptions[],
+        append: boolean,
+        operationUuid?: string,
+    ): Promise<void>;
 
     public abstract export(options: IExportOptions): string | NativeError;
 
@@ -203,6 +207,12 @@ export abstract class RustSessionNative {
 
     public abstract concat(
         files: IConcatFile[],
+        append: boolean,
+        operationUuid?: string,
+    ): Promise<void>;
+
+    public abstract merge(
+        files: IFileMergeOptions[],
         append: boolean,
         operationUuid?: string,
     ): Promise<void>;
@@ -276,7 +286,11 @@ export class RustSessionDebug extends RustSession {
             try {
                 return this._native.grab(start, len);
             } catch (err) {
-                return new NativeError(err, Type.GrabbingContent, Source.GrabStreamChunk);
+                return new NativeError(
+                    err instanceof Error ? err : new Error(`${err}`),
+                    Type.GrabbingContent,
+                    Source.GrabStreamChunk,
+                );
             }
         })();
         if (grabbed instanceof NativeError) {
@@ -294,7 +308,9 @@ export class RustSessionDebug extends RustSession {
             return new NativeError(
                 new Error(
                     this._logger.error(
-                        `Fail to call grab(${start}, ${len}) due error: ${err.message}`,
+                        `Fail to call grab(${start}, ${len}) due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
                     ),
                 ),
                 Type.ParsingContentChunk,
@@ -308,7 +324,11 @@ export class RustSessionDebug extends RustSession {
             try {
                 return this._native.grabSearch(start, len);
             } catch (err) {
-                return new NativeError(err, Type.GrabbingSearch, Source.GrabSearchChunk);
+                return new NativeError(
+                    err instanceof Error ? err : new Error(`${err}`),
+                    Type.GrabbingSearch,
+                    Source.GrabSearchChunk,
+                );
             }
         })();
         if (grabbed instanceof NativeError) {
@@ -328,7 +348,9 @@ export class RustSessionDebug extends RustSession {
             return new NativeError(
                 new Error(
                     this._logger.error(
-                        `Fail to call grab(${start}, ${len}) due error: ${err.message}`,
+                        `Fail to call grab(${start}, ${len}) due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
                     ),
                 ),
                 Type.ParsingSearchChunk,
@@ -361,7 +383,11 @@ export class RustSessionDebug extends RustSession {
         try {
             return this._native.getStreamLen();
         } catch (err) {
-            return new NativeError(err, Type.Other, Source.GetStreamLen);
+            return new NativeError(
+                err instanceof Error ? err : new Error(`${err}`),
+                Type.Other,
+                Source.GetStreamLen,
+            );
         }
     }
 
@@ -369,7 +395,11 @@ export class RustSessionDebug extends RustSession {
         try {
             return this._native.getSearchLen();
         } catch (err) {
-            return new NativeError(err, Type.Other, Source.GetSearchLen);
+            return new NativeError(
+                err instanceof Error ? err : new Error(`${err}`),
+                Type.Other,
+                Source.GetSearchLen,
+            );
         }
     }
 
@@ -389,35 +419,82 @@ export class RustSessionDebug extends RustSession {
                     .assign(filename, filename, operationUuid)
                     .then(resolve)
                     .catch((err: Error) => {
-                        reject(new NativeError(err, Type.Other, Source.Assign));
+                        reject(
+                            new NativeError(
+                                err instanceof Error ? err : new Error(`${err}`),
+                                Type.Other,
+                                Source.Assign,
+                            ),
+                        );
                     });
             } catch (err) {
-                return reject(new NativeError(err, Type.Other, Source.Assign));
+                return reject(
+                    new NativeError(
+                        err instanceof Error ? err : new Error(`${err}`),
+                        Type.Other,
+                        Source.Assign,
+                    ),
+                );
             }
         });
     }
 
-    public concat(
-        files: IConcatFile[],
-        append: boolean,
-        operationUuid?: string,
-    ): Promise<void> {
+    public concat(files: IConcatFile[], append: boolean, operationUuid?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this._native
                     .concat(files, append, operationUuid)
                     .then(resolve)
                     .catch((err: Error) => {
-                        reject(new NativeError(err, Type.Other, Source.Assign));
+                        reject(
+                            new NativeError(
+                                err instanceof Error ? err : new Error(`${err}`),
+                                Type.Other,
+                                Source.Assign,
+                            ),
+                        );
                     });
             } catch (err) {
-                return reject(new NativeError(err, Type.Other, Source.Assign));
+                return reject(
+                    new NativeError(
+                        err instanceof Error ? err : new Error(`${err}`),
+                        Type.Other,
+                        Source.Assign,
+                    ),
+                );
             }
         });
     }
 
-    public merge(files: IFileToBeMerged[]): string | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Merge);
+    public merge(
+        files: IFileMergeOptions[],
+        append: boolean,
+        operationUuid?: string,
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._native
+                    .merge(files, append, operationUuid)
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(
+                            new NativeError(
+                                err instanceof Error ? err : new Error(`${err}`),
+                                Type.Other,
+                                Source.Merge,
+                            ),
+                        );
+                    });
+            } catch (err) {
+                return reject(
+                    new NativeError(
+                        err instanceof Error ? err : new Error(`${err}`),
+                        Type.Other,
+                        Source.Merge,
+                    ),
+                );
+            }
+        });
     }
 
     public export(options: IExportOptions): string | NativeError {
@@ -449,10 +526,22 @@ export class RustSessionDebug extends RustSession {
                     )
                     .then(resolve)
                     .catch((err: Error) => {
-                        reject(new NativeError(err, Type.Other, Source.Search));
+                        reject(
+                            new NativeError(
+                                err instanceof Error ? err : new Error(`${err}`),
+                                Type.Other,
+                                Source.Search,
+                            ),
+                        );
                     });
             } catch (err) {
-                return reject(new NativeError(err, Type.Other, Source.Search));
+                return reject(
+                    new NativeError(
+                        err instanceof Error ? err : new Error(`${err}`),
+                        Type.Other,
+                        Source.Search,
+                    ),
+                );
             }
         });
     }
@@ -474,10 +563,22 @@ export class RustSessionDebug extends RustSession {
                     )
                     .then(resolve)
                     .catch((err: Error) => {
-                        reject(new NativeError(err, Type.Other, Source.ExtractMatchesValues));
+                        reject(
+                            new NativeError(
+                                err instanceof Error ? err : new Error(`${err}`),
+                                Type.Other,
+                                Source.ExtractMatchesValues,
+                            ),
+                        );
                     });
             } catch (err) {
-                return reject(new NativeError(err, Type.Other, Source.ExtractMatchesValues));
+                return reject(
+                    new NativeError(
+                        err instanceof Error ? err : new Error(`${err}`),
+                        Type.Other,
+                        Source.ExtractMatchesValues,
+                    ),
+                );
             }
         });
     }
@@ -494,7 +595,11 @@ export class RustSessionDebug extends RustSession {
                 return this._native.getMap(datasetLength, from, to);
             }
         } catch (err) {
-            return new NativeError(err, Type.Other, Source.GetMap);
+            return new NativeError(
+                err instanceof Error ? err : new Error(`${err}`),
+                Type.Other,
+                Source.GetMap,
+            );
         }
     }
 
@@ -505,7 +610,11 @@ export class RustSessionDebug extends RustSession {
             try {
                 return this._native.getNearestTo(positionInStream);
             } catch (err) {
-                return new NativeError(err, Type.Other, Source.GetNearestTo);
+                return new NativeError(
+                    err instanceof Error ? err : new Error(`${err}`),
+                    Type.Other,
+                    Source.GetNearestTo,
+                );
             }
         })();
         if (nearest instanceof NativeError) {
@@ -530,7 +639,11 @@ export class RustSessionDebug extends RustSession {
         try {
             return this._native.abort(operationUuid);
         } catch (err) {
-            return new NativeError(err, Type.CancelationError, Source.Abort);
+            return new NativeError(
+                err instanceof Error ? err : new Error(`${err}`),
+                Type.CancelationError,
+                Source.Abort,
+            );
         }
     }
 
@@ -539,7 +652,7 @@ export class RustSessionDebug extends RustSession {
     //         this._native.sleep(duration);
     //         return undefined;
     //     } catch (err) {
-    //         return new NativeError(err, Type.CancelationError, Source.Abort);
+    //         return new NativeError(err instanceof Error ? err : new Error(`${err}`), Type.CancelationError, Source.Abort);
     //     }
     // }
 
@@ -547,7 +660,7 @@ export class RustSessionDebug extends RustSession {
     //     try {
     //         return this._native.sleepUnblock(duration);
     //     } catch (err) {
-    //         return Promise.reject(new NativeError(err, Type.CancelationError, Source.Abort));
+    //         return Promise.reject(new NativeError(err instanceof Error ? err : new Error(`${err}`), Type.CancelationError, Source.Abort));
     //     }
     // }
 }

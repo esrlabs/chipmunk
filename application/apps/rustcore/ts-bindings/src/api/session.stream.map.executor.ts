@@ -20,9 +20,14 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
         provider,
         logger,
         options,
-        function(session: RustSession, options: IOptions): string | Error {
+        function (session: RustSession, options: IOptions): string | Error {
             if (options.from !== undefined && options.to !== undefined) {
-                if (isNaN(options.from) || isNaN(options.to) || !isFinite(options.from) || !isFinite(options.to)) {
+                if (
+                    isNaN(options.from) ||
+                    isNaN(options.to) ||
+                    !isFinite(options.from) ||
+                    !isFinite(options.to)
+                ) {
                     return new Error(`Range is invalid`);
                 }
                 if (options.from > options.to) {
@@ -32,27 +37,39 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
             const uuid: string | Error = session.getMap(
                 options.datasetLength,
                 options.from,
-                options.to
+                options.to,
             );
             if (uuid instanceof Error) {
                 return uuid;
             } else if (typeof uuid !== 'string') {
-                return new Error(`Unexpected format of output of "getMap". Expecting {uuid}; get: ${uuid}`);
+                return new Error(
+                    `Unexpected format of output of "getMap". Expecting {uuid}; get: ${uuid}`,
+                );
             } else {
                 return uuid;
-            };
+            }
         },
-        function(data: any, resolve: (res: ISearchMap) => void, reject: (err: Error) => void) {
+        function (data: any, resolve: (res: ISearchMap) => void, reject: (err: Error) => void) {
             try {
                 const result: ISearchMap = JSON.parse(data);
                 if (!(result instanceof Array)) {
-                    return reject(new Error(`Fail to parse search map. Invalid format. Expecting ISearchMap.`));
+                    return reject(
+                        new Error(
+                            `Fail to parse search map. Invalid format. Expecting ISearchMap.`,
+                        ),
+                    );
                 }
                 resolve(result);
-            } catch (e) {
-                return reject(new Error(`Fail to parse search map. Error: ${e.message}`));
+            } catch (err) {
+                return reject(
+                    new Error(
+                        `Fail to parse search map. Error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
             }
         },
-        "search",
+        'search',
     );
 };

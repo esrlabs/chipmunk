@@ -14,20 +14,30 @@ export const executor: TExecutor<ISearchResults, IFilter[]> = (
         provider,
         logger,
         filters,
-        function(session: RustSession, filters: IFilter[], operationUuid: string): Promise<void> {
+        function (session: RustSession, filters: IFilter[], operationUuid: string): Promise<void> {
             return session.search(filters, operationUuid);
         },
-        function(data: any, resolve: (res: ISearchResults) => void, reject: (err: Error) => void) {
+        function (data: any, resolve: (res: ISearchResults) => void, reject: (err: Error) => void) {
             try {
                 const result: ISearchResults = JSON.parse(data);
                 if (typeof result.found !== 'number' || !(result.stats instanceof Array)) {
-                    return reject(new Error(`Fail to parse search results. Invalid format. Expecting ISearchResults.`));
+                    return reject(
+                        new Error(
+                            `Fail to parse search results. Invalid format. Expecting ISearchResults.`,
+                        ),
+                    );
                 }
                 resolve(result);
-            } catch (e) {
-                return reject(new Error(`Fail to parse search results. Error: ${e.message}`));
+            } catch (err) {
+                return reject(
+                    new Error(
+                        `Fail to parse search results. Error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
             }
         },
-        "search",
+        'search',
     );
 };

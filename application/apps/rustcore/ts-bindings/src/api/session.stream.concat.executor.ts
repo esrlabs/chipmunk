@@ -35,7 +35,13 @@ export const executor: TExecutor<IConcatResults, IExecuteConcatOptions> = (
                 // }
                 resolve(result);
             } catch (e) {
-                return reject(new Error(`Fail to parse concat results. Error: ${e.message}`));
+                return reject(
+                    new Error(
+                        `Fail to parse concat results. Error: ${
+                            e instanceof Error ? e.message : e
+                        }`,
+                    ),
+                );
             }
         },
         'concat',

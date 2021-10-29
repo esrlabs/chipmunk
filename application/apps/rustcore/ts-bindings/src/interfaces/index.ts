@@ -16,4 +16,5 @@ export {
     IMatchEntity,
     IMapEntity,
     IConcatFile,
+    IFileMergeOptions,
 } from '../../../../../common/interfaces/interface.rust.api.general';

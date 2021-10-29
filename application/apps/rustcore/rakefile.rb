@@ -136,6 +136,11 @@ namespace :test do
     sh "#{test_runner} ts-bindings/spec/session.concat.spec.ts"
   end
 
+  desc 'run merge tests'
+  task :merge do
+    sh "#{test_runner} ts-bindings/spec/session.merge.spec.ts"
+  end
+
   desc 'run utils tests'
   task :utils do
     sh "#{test_runner} ts-bindings/spec/utils.spec.ts"
