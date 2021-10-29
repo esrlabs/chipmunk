@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.22.7] - 10/29/2021
+
+### Fix
+
+-   Fix search shortcut
+  
+### Changes
+
+-   Upgraded chartjs library
+
 ## [2.22.6] - 10/15/2021
 
 ### Fix
