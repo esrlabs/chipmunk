@@ -4,7 +4,11 @@ import * as Interfaces from './interfaces/index';
 
 export { CancelablePromise } from './util/promise';
 export { PromiseExecutor } from './util/promise.executor';
-export { TFileOptions, IFileOptionsDLT, EFileOptionsRequirements } from './api/session.stream.assign.executor';
+export {
+    TFileOptions,
+    IFileOptionsDLT,
+    EFileOptionsRequirements,
+} from './api/session.stream.assign.executor';
 export {
     Session,
     SessionSearch,
@@ -16,12 +20,7 @@ export {
     IEventMatchesUpdated,
 } from './api/session';
 
-export {
-    IFileToBeMerged,
-    IExportOptions,
-    IDetectDTFormatResult,
-    IDetectOptions,
-} from './api/session.stream';
+export { IExportOptions, IDetectDTFormatResult, IDetectOptions } from './api/session.stream';
 
 export {
     IGrabbedElement,
@@ -33,7 +32,7 @@ export {
     IMatchEntity,
     IFilter,
     IFilterFlags,
-    IGrabbedContent
+    IGrabbedContent,
 } from './interfaces/index';
 
 export { Units, Events, Interfaces };

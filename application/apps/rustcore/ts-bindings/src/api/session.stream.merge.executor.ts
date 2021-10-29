@@ -1,31 +1,48 @@
-import { TExecutor, Logger, CancelablePromise, VoidExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
+import { IFileMergeOptions } from '../interfaces';
 
 export interface IExecuteMergeOptions {
-    files: IFileToBeMerged[];
+    files: IFileMergeOptions[];
+    append: boolean;
 }
 
-export interface IFileToBeMerged {
-    filename: string;
-    datetimeFormat?: string;
-    datetimeFormatRegExp?: string;
-}
+export interface IMergeResults {}
 
-export const executor: TExecutor<void, IExecuteMergeOptions> = (
+export const executor: TExecutor<IMergeResults, IExecuteMergeOptions> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     options: IExecuteMergeOptions,
-): CancelablePromise<void> => {
-    return VoidExecutor<IExecuteMergeOptions>(
+): CancelablePromise<IMergeResults> => {
+    return AsyncResultsExecutor<IMergeResults, IExecuteMergeOptions>(
         session,
         provider,
         logger,
         options,
-        function(session: RustSession, options: IExecuteMergeOptions): string | Error {
-            return session.merge(options.files);
+        function (
+            session: RustSession,
+            options: IExecuteMergeOptions,
+            operationUuid: string,
+        ): Promise<void> {
+            return session.merge(options.files, options.append, operationUuid);
         },
-        "merge",
+        function (data: any, resolve: (res: IMergeResults) => void, reject: (err: Error) => void) {
+            try {
+                const result: IMergeResults = JSON.parse(data);
+                // if (typeof result.found !== 'number' || !(result.stats instanceof Array)) {
+                //     return reject(new Error(`Fail to parse search results. Invalid format. Expecting ISearchResults.`));
+                // }
+                resolve(result);
+            } catch (e) {
+                return reject(
+                    new Error(
+                        `Fail to parse merge results. Error: ${e instanceof Error ? e.message : e}`,
+                    ),
+                );
+            }
+        },
+        'merge',
     );
 };

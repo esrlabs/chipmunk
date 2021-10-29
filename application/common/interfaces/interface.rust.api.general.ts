@@ -107,3 +107,16 @@ export interface IConcatFile {
     path: string;
     tag: string;
 }
+
+export interface IFileMergeOptions {
+    /// Path to the file to merge
+    path: string;
+    /// Offset in ms, this will be added to each posix timestamp
+    offset?: number;
+    /// If a year is provided and if no year was detected, this is what we use
+    year?: number;
+    /// An identifier string for the file
+    tag: string;
+    /// how we interpret the date string in each line
+    format: string;
+}

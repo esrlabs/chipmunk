@@ -23,6 +23,7 @@ pub async fn handle(
     cancellation_token: CancellationToken,
 ) -> Result<CallbackEvent, NativeError> {
     let (tx, _rx) = cc::unbounded();
+    println!(">>>>>>>>>>>>>>>>>>>>>>> MERGE CALLED: {:?}", files);
     match merge_files_use_config(files, out_path, append, 500, tx, None) {
         Ok(()) => assign::handle(
             operation_id,

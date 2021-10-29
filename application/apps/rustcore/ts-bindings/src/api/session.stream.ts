@@ -4,7 +4,6 @@ import * as Logs from '../util/logging';
 import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
 import { EventProvider } from './session.provider';
-import { IFileToBeMerged } from './session.stream.merge.executor';
 import { IExportOptions } from './session.stream.export.executor';
 import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
 import { Executors } from './session.stream.executors';
@@ -15,11 +14,13 @@ import {
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
     IConcatFile,
+    IFileMergeOptions,
 } from '../interfaces';
 import { IConcatResults } from './session.stream.concat.executor';
+import { IMergeResults } from './session.stream.merge.executor';
 
 export {
-    IFileToBeMerged,
+    IFileMergeOptions,
     IExportOptions,
     IDetectDTFormatResult,
     IDetectOptions,
@@ -85,8 +86,8 @@ export class SessionStream {
         return Executors.concat(this._session, this._provider, this._logger, { files, append });
     }
 
-    public merge(files: IFileToBeMerged[]): CancelablePromise<void> {
-        return Executors.merge(this._session, this._provider, this._logger, { files: files });
+    public merge(files: IFileMergeOptions[], append: boolean): CancelablePromise<IMergeResults> {
+        return Executors.merge(this._session, this._provider, this._logger, { files, append });
     }
 
     public export(options: IExportOptions): CancelablePromise<void> {
