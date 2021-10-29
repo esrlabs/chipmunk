@@ -21,12 +21,7 @@ impl JSValue<'_> for WrappedFileMergeOptions {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
             let path: String = match js_obj.get_property("path") {
-                Ok(Some(value)) => match value.as_value::<String>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other("[path] property is not found".to_owned()));
                 }
@@ -35,12 +30,7 @@ impl JSValue<'_> for WrappedFileMergeOptions {
                 }
             };
             let tag: String = match js_obj.get_property("tag") {
-                Ok(Some(value)) => match value.as_value::<String>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other("[tag] property is not found".to_owned()));
                 }
@@ -49,12 +39,7 @@ impl JSValue<'_> for WrappedFileMergeOptions {
                 }
             };
             let format: String = match js_obj.get_property("format") {
-                Ok(Some(value)) => match value.as_value::<String>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other("[format] property is not found".to_owned()));
                 }
@@ -63,24 +48,14 @@ impl JSValue<'_> for WrappedFileMergeOptions {
                 }
             };
             let offset: Option<i64> = match js_obj.get_property("offset") {
-                Ok(Some(value)) => match value.as_value::<i64>() {
-                    Ok(s) => Some(s),
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => Some(value.as_value()?),
                 Ok(None) => None,
                 Err(e) => {
                     return Err(e);
                 }
             };
             let year: Option<i32> = match js_obj.get_property("year") {
-                Ok(Some(value)) => match value.as_value::<i32>() {
-                    Ok(s) => Some(s),
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => Some(value.as_value()?),
                 Ok(None) => None,
                 Err(e) => {
                     return Err(e);

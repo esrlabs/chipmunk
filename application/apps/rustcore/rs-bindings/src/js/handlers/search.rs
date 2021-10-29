@@ -28,7 +28,7 @@ pub fn handle(
         let _ = search_metadata_tx.send(None);
         vec![
             CallbackEvent::SearchUpdated(0),
-            sop::map_entity(
+            sop::map_to_event(
                 &SearchOperationResult {
                     found: 0,
                     stats: FilterStats::new(vec![]),
@@ -44,7 +44,7 @@ pub fn handle(
                     let _ = search_metadata_tx.send(None);
                     vec![
                         CallbackEvent::SearchUpdated(0),
-                        sop::map_entity(&SearchOperationResult { found, stats }, operation_id),
+                        sop::map_to_event(&SearchOperationResult { found, stats }, operation_id),
                     ]
                 } else {
                     let source = TextFileSource::new(&file_path, "search_results");
@@ -56,7 +56,7 @@ pub fn handle(
                             let _ = search_metadata_tx.send(Some((file_path, metadata)));
                             vec![
                                 CallbackEvent::SearchUpdated(line_count),
-                                sop::map_entity(
+                                sop::map_to_event(
                                     &SearchOperationResult { found, stats },
                                     operation_id,
                                 ),

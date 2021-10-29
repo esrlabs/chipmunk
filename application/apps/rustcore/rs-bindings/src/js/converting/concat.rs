@@ -21,12 +21,7 @@ impl JSValue<'_> for WrappedConcatenatorInput {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
             let path: String = match js_obj.get_property("path") {
-                Ok(Some(value)) => match value.as_value::<String>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other("[path] property is not found".to_owned()));
                 }
@@ -35,12 +30,7 @@ impl JSValue<'_> for WrappedConcatenatorInput {
                 }
             };
             let tag: String = match js_obj.get_property("tag") {
-                Ok(Some(value)) => match value.as_value::<String>() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
+                Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other("[tag] property is not found".to_owned()));
                 }
