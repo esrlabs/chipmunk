@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.22.8] - 11/02/2021
+  
+### Changes
+
+-   Upgraded chartjs library (apply changes for plugins)
+
 ## [2.22.7] - 10/29/2021
 
 ### Fix
