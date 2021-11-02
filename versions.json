@@ -2,9 +2,9 @@
     "electron": "10.2.0",
     "electron-rebuild": "2.3.4",
     "chipmunk.plugin.ipc": "0.0.51",
-    "chipmunk-client-material": "1.2.17",
+    "chipmunk-client-material": "1.2.18",
     "chipmunk.client.toolkit": "1.4.1",
-    "angular-core": "12.2.9",
-    "angular-material": "12.2.9",
+    "angular-core": "12.2.10",
+    "angular-material": "12.2.10",
     "force": "0.0.9"
 }
