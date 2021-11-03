@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.22.9] - 11/03/2021
+  
+### Changes
+
+-   Upgrade search input UI/UX logic
+  
 ## [2.22.8] - 11/02/2021
   
 ### Changes
