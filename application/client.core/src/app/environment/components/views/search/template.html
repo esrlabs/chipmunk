@@ -5,9 +5,9 @@
                 <div
                     class="activeSearchHolder"
                     (click)="_ng_clickActiveSearchHolder($event)"
-                    *ngIf="_ng_activeSearch !== ''"
+                    *ngIf="_ng_searchState.term !== '' && !_ng_searchState.editing"
                 >
-                    <span class="activeSearch">{{_ng_activeSearch}}</span>
+                    <span class="activeSearch">{{_ng_searchState.term}}</span>
                     <button (click)="_ng_onStoreRequest()" [disabled]="!_ng_canSaveFilter()">
                         <mat-icon [class]="_ng_canSaveFilter() ? '' : 'disabled'">save</mat-icon>
                     </button>
@@ -22,13 +22,12 @@
                     #requestinput
                     tabindex="1000"
                     type="text"
-                    [placeholder]="_ng_activeSearch === '' ? 'Type a Search Request' : 'Override the search request'"
+                    [placeholder]="_ng_searchState.term === '' ? 'Type a Search Request' : 'Override the search request'"
                     aria-label="Filter"
                     (focus)="_ng_onFocusRequestInput()"
                     (blur)="_ng_onBlurRequestInput()"
                     (keyup)="_ng_onKeyUpRequestInput($event)"
                     (keydown)="_ng_onKeyDownRequestInput($event)"
-                    (click)="_ng_onClickRequestInput()"
                     matInput
                     [formControl]="_ng_inputCtrl"
                     [readonly]="_ng_isWorking()"
@@ -47,6 +46,7 @@
                         [value]="recent"
                         [attr.title]="recent"
                         class="recent-requests small t-console t-small"
+                        (click)="_ng_recentOptionClick()"
                     >
                         <span
                             class="filename"
