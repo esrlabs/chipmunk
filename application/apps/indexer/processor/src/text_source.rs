@@ -3,12 +3,13 @@ use crate::grabber::{
     LineRange, MetadataSource, Slot,
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
-use indexer_base::{progress::ComputationResult, utils};
+use indexer_base::progress::ComputationResult;
 use std::{
     fs,
     io::{BufRead, Read, SeekFrom},
     path::{Path, PathBuf},
 };
+use tokio_util::sync::CancellationToken;
 
 const REDUX_READER_CAPACITY: usize = 1024 * 1024;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
@@ -64,7 +65,7 @@ impl MetadataSource for TextFileSource {
 
     fn from_file(
         &self,
-        shutdown_receiver: Option<cc::Receiver<()>>,
+        shutdown_token: Option<CancellationToken>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         let file_metadata = fs::metadata(&self.path).map_err(|_| {
             GrabError::IoOperation(format!("Could not get metadata for file {:?}", &self.path))
@@ -86,8 +87,10 @@ impl MetadataSource for TextFileSource {
             .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
 
         loop {
-            if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
-                return Ok(ComputationResult::Stopped);
+            if let Some(shutdown_token) = &shutdown_token {
+                if shutdown_token.is_cancelled() {
+                    return Ok(ComputationResult::Stopped);
+                }
             }
             match reader.fill_buf() {
                 Ok(content) => {

@@ -14,13 +14,14 @@ use std::{
     iter::Iterator,
     path::{Path, PathBuf},
 };
+use tokio_util::sync::CancellationToken;
 
 pub(crate) async fn _merge_inputs_with_writer_async(
     parent_dir: Option<&Path>,
     writer: &mut IndexOutput,
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_rx: Option<&cc::Receiver<()>>,
+    shutdown_token: Option<CancellationToken>,
 ) -> Result<()> {
     trace!("merge_inputs_with_writer ({} files)", merger_inputs.len());
     let mut lines_with_year_missing = 0usize;
