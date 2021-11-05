@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use thiserror::Error;
+use tokio_util::sync::CancellationToken;
 
 pub trait GrabTrait {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
@@ -133,7 +134,7 @@ pub trait MetadataSource {
     /// This will initialize the cached metadata from a file
     fn from_file(
         &self,
-        shutdown_receiver: Option<cc::Receiver<()>>,
+        shutdown_token: Option<CancellationToken>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError>;
 
     /// Calling this function is only possible when the metadata already has been
@@ -242,10 +243,10 @@ impl<T: MetadataSource> Grabber<T> {
     /// function.
     pub fn create_metadata(
         &mut self,
-        shutdown_rx: Option<cc::Receiver<()>>,
+        shutdown_token: Option<CancellationToken>,
     ) -> Result<(), GrabError> {
         if self.metadata.is_none() {
-            if let ComputationResult::Item(md) = self.source.from_file(shutdown_rx)? {
+            if let ComputationResult::Item(md) = self.source.from_file(shutdown_token)? {
                 self.metadata = Some(md)
             }
         }

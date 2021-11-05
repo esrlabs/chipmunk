@@ -9,12 +9,13 @@ use dlt_core::{
     fmt::FormattableMessage,
     parse::{dlt_consume_msg, ParsedMessage},
 };
-use indexer_base::{progress::ComputationResult, utils};
+use indexer_base::progress::ComputationResult;
 use std::{
     fs,
     io::{BufRead, Cursor, SeekFrom},
     path::{Path, PathBuf},
 };
+use tokio_util::sync::CancellationToken;
 
 const REDUX_READER_CAPACITY: usize = 10 * 1024 * 1024;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
@@ -50,7 +51,7 @@ impl MetadataSource for DltSource {
 
     fn from_file(
         &self,
-        shutdown_receiver: Option<cc::Receiver<()>>,
+        shutdown_token: Option<CancellationToken>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         if !fs::metadata(&self.path)
             .map_err(|_| GrabError::IoOperation("Could not get metadata of file".to_string()))?
@@ -74,8 +75,10 @@ impl MetadataSource for DltSource {
         let mut logs_in_slot = 0u64;
         loop {
             debug!("loop over dlt source");
-            if utils::check_if_stop_was_requested(shutdown_receiver.as_ref(), "grabber") {
-                return Ok(ComputationResult::Stopped);
+            if let Some(shutdown_token) = &shutdown_token {
+                if shutdown_token.is_cancelled() {
+                    return Ok(ComputationResult::Stopped);
+                }
             }
             match reader.fill_buf() {
                 Ok(content) => {

@@ -29,6 +29,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio_stream::Stream;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileMergeOptions {
@@ -190,7 +191,7 @@ pub fn merge_files_use_config(
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_rx: Option<cc::Receiver<()>>,
+    shutdown_token: Option<CancellationToken>,
 ) -> Result<()> {
     trace!("merge {} files", options.len());
     do_the_merge(
@@ -199,7 +200,7 @@ pub fn merge_files_use_config(
         chunk_size,
         options,
         update_channel,
-        shutdown_rx.as_ref(),
+        shutdown_token,
     )
 }
 
@@ -215,7 +216,7 @@ pub fn merge_files_use_config_file(
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_rx: Option<cc::Receiver<()>>,
+    shutdown_token: Option<CancellationToken>,
 ) -> Result<()> {
     trace!("merge files using config from {}", config_path.display());
     let mut merge_option_file = File::open(config_path)?;
@@ -228,7 +229,7 @@ pub fn merge_files_use_config_file(
         chunk_size,
         options,
         update_channel,
-        shutdown_rx.as_ref(),
+        shutdown_token,
     )
 }
 
@@ -238,7 +239,7 @@ fn do_the_merge(
     chunk_size: usize,
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_rx: Option<&cc::Receiver<()>>,
+    shutdown_token: Option<CancellationToken>,
 ) -> Result<()> {
     let mut writer = IndexOutput::new(
         append,
@@ -248,7 +249,7 @@ fn do_the_merge(
         update_channel.clone(),
     )?;
     trace!("calling merge_inputs_with_writer");
-    merge_inputs_with_writer(&mut writer, merger_inputs, update_channel, shutdown_rx)
+    merge_inputs_with_writer(&mut writer, merger_inputs, update_channel, shutdown_token)
 }
 
 pub trait Len {
@@ -301,7 +302,7 @@ pub(crate) fn merge_inputs_with_writer(
     writer: &mut IndexOutput,
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_rx: Option<&cc::Receiver<()>>,
+    shutdown_token: Option<CancellationToken>,
 ) -> Result<()> {
     trace!("merge_inputs_with_writer ({} files)", merger_inputs.len());
     let mut lines_with_year_missing = 0usize;
@@ -363,7 +364,11 @@ pub(crate) fn merge_inputs_with_writer(
                 let trimmed_len = line.content.len();
                 if trimmed_len > 0 {
                     writer.add_to_chunk(&line.content, &line.tag, line.original_length)?;
-                    stopped = utils::check_if_stop_was_requested(shutdown_rx, "merger");
+                    stopped = if let Some(shutdown_token) = &shutdown_token {
+                        shutdown_token.is_cancelled()
+                    } else {
+                        false
+                    };
                 }
             } else {
                 break;

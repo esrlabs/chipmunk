@@ -1,90 +1,130 @@
-use crate::js::events::{
-    CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone,
+use crate::js::{
+    events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
+    session::SupportedFileType,
 };
+use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
+use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
+use processor::{grabber::GrabMetadata, map::NearestPosition, search::SearchFilter};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::path::PathBuf;
+use tokio::sync::mpsc::UnboundedSender;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+pub enum Operation {
+    Assign {
+        file_path: PathBuf,
+        source_id: String,
+        source_type: SupportedFileType,
+    },
+    Search {
+        target_file: PathBuf,
+        filters: Vec<SearchFilter>,
+    },
+    Extract {
+        target_file: PathBuf,
+        filters: Vec<SearchFilter>,
+    },
+    Map {
+        dataset_len: u16,
+        range: Option<(u64, u64)>,
+    },
+    Concat {
+        files: Vec<ConcatenatorInput>,
+        out_path: PathBuf,
+        append: bool,
+        source_type: SupportedFileType,
+        source_id: String,
+    },
+    Merge {
+        files: Vec<FileMergeOptions>,
+        out_path: PathBuf,
+        append: bool,
+        source_type: SupportedFileType,
+        source_id: String,
+    },
+    ExtractMetadata(cc::Sender<Option<GrabMetadata>>),
+    DropSearch(cc::Sender<()>),
+    GetNearestPosition((u64, cc::Sender<Option<NearestPosition>>)),
+    Cancel {
+        operation_id: Uuid,
+    },
+    End,
+}
 
 #[derive(Debug, Serialize, Clone)]
 pub struct NoOperationResults;
 
-pub fn finish<F>(
-    uuid: Uuid,
-    events: Vec<CallbackEvent>,
-    operations: &mut HashMap<Uuid, CancellationToken>,
-    callback: &F,
-) where
-    F: Fn(CallbackEvent) + Send + 'static,
-{
-    let mut done_event_exists: bool = false;
-    for event in events {
-        if matches!(event, CallbackEvent::OperationDone(_)) {
-            done_event_exists = true;
-        }
-        callback(event)
-    }
-    if !done_event_exists {
-        // TODO: check is it possible OperationDone is called someone else.
-        // somehow we should prevent such situation.
-        callback(CallbackEvent::OperationDone(OperationDone {
-            uuid,
-            result: None,
-        }))
-    }
-    if operations.remove(&uuid).is_none() {
-        warn!(
-            "Operation {} marked as finished, but operation doesn't exist",
-            uuid
-        );
-    } else {
-        debug!("Operation {} has been finished", uuid);
-    }
-    trace!("Operations in progress: {}", operations.len());
+pub type OperationResult<T: Serialize + std::fmt::Debug> = Result<Option<T>, NativeError>;
+
+pub struct OperationAPI {
+    tx_callback_events: UnboundedSender<CallbackEvent>,
+    operation_id: Uuid,
+    cancellation_token: CancellationToken,
 }
 
-pub fn result_to_event<T>(result: Result<T, NativeError>, uuid: Uuid) -> CallbackEvent
-where
-    T: Serialize,
-{
-    match result {
-        Ok(result) => map_to_event(&result, uuid),
-        Err(error) => {
-            warn!("Operation {} done with error: {:?}", uuid, error);
-            CallbackEvent::OperationError { uuid, error }
+impl OperationAPI {
+    pub fn new(
+        tx_callback_events: UnboundedSender<CallbackEvent>,
+        operation_id: Uuid,
+        cancellation_token: CancellationToken,
+    ) -> Self {
+        OperationAPI {
+            tx_callback_events,
+            operation_id,
+            cancellation_token,
         }
     }
-}
 
-pub fn err_to_event(result: Result<CallbackEvent, NativeError>, uuid: Uuid) -> CallbackEvent {
-    match result {
-        Ok(result) => result,
-        Err(error) => {
-            warn!("Operation {} done with error: {:?}", uuid, error);
-            CallbackEvent::OperationError { uuid, error }
+    pub fn id(&self) -> Uuid {
+        self.operation_id
+    }
+
+    pub fn emit(&self, event: CallbackEvent) {
+        let event_log = format!("{:?}", event);
+        if let Err(err) = self.tx_callback_events.send(event) {
+            error!("Fail to send event {}; error: {}", event_log, err)
         }
     }
-}
 
-pub fn map_to_event<T>(v: &T, uuid: Uuid) -> CallbackEvent
-where
-    T: Serialize,
-{
-    match serde_json::to_string(v) {
-        Ok(serialized) => CallbackEvent::OperationDone(OperationDone {
-            uuid,
-            result: Some(serialized),
-        }),
-        Err(err) => CallbackEvent::OperationError {
-            uuid,
-            error: NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ComputationFailed,
-                message: Some(format!("{}", err)),
+    pub fn finish<T>(&self, result: OperationResult<T>)
+    where
+        T: Serialize + std::fmt::Debug,
+    {
+        let event = match result {
+            Ok(result) => match serde_json::to_string(&result) {
+                Ok(serialized) => CallbackEvent::OperationDone(OperationDone {
+                    uuid: self.operation_id,
+                    result: Some(serialized),
+                }),
+                Err(err) => CallbackEvent::OperationError {
+                    uuid: self.operation_id,
+                    error: NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ComputationFailed,
+                        message: Some(format!("{}", err)),
+                    },
+                },
             },
-        },
+            Err(error) => {
+                warn!(
+                    "Operation {} done with error: {:?}",
+                    self.operation_id, error
+                );
+                CallbackEvent::OperationError {
+                    uuid: self.operation_id,
+                    error,
+                }
+            }
+        };
+        self.emit(event);
+    }
+
+    pub fn get_cancellation_token(&self) -> CancellationToken {
+        self.cancellation_token.child_token()
     }
 }
 

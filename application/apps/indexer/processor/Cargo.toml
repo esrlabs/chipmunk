@@ -32,6 +32,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.5", features = ["full"] }
 termcolor = "1.1"
+tokio-util = "0.6"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"]}

@@ -1,7 +1,7 @@
 use crate::js::{
     events::{CallbackEvent, NativeError, NativeErrorKind, SearchOperationResult},
     session::SessionState,
-    session_operations as sop,
+    session_operations::{OperationAPI, OperationResult},
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::{ComputationResult, Progress, Severity};
@@ -12,40 +12,32 @@ use processor::{
     text_source::TextFileSource,
 };
 use std::path::{Path, PathBuf};
-use uuid::Uuid;
 
 pub fn handle(
+    operation_api: &OperationAPI,
     target_file: PathBuf,
     filters: Vec<SearchFilter>,
-    operation_id: Uuid,
     search_metadata_tx: &cc::Sender<Option<(PathBuf, GrabMetadata)>>,
     state: &mut SessionState,
-) -> Vec<CallbackEvent> {
+) -> OperationResult<SearchOperationResult> {
     debug!("RUST: Search operation is requested");
     if filters.is_empty() {
         debug!("RUST: Search will be dropped. Filters are empty");
         // This is dropping of search
         let _ = search_metadata_tx.send(None);
-        vec![
-            CallbackEvent::SearchUpdated(0),
-            sop::map_to_event(
-                &SearchOperationResult {
-                    found: 0,
-                    stats: FilterStats::new(vec![]),
-                },
-                operation_id,
-            ),
-        ]
+        operation_api.emit(CallbackEvent::SearchUpdated(0));
+        Ok(Some(SearchOperationResult {
+            found: 0,
+            stats: FilterStats::new(vec![]),
+        }))
     } else {
         let search_results = run_search(&target_file, filters.iter(), state);
         match search_results {
             Ok((file_path, found, stats)) => {
                 if found == 0 {
                     let _ = search_metadata_tx.send(None);
-                    vec![
-                        CallbackEvent::SearchUpdated(0),
-                        sop::map_to_event(&SearchOperationResult { found, stats }, operation_id),
-                    ]
+                    operation_api.emit(CallbackEvent::SearchUpdated(0));
+                    Ok(Some(SearchOperationResult { found, stats }))
                 } else {
                     let source = TextFileSource::new(&file_path, "search_results");
                     let metadata_res = source.from_file(None);
@@ -54,39 +46,29 @@ pub fn handle(
                             debug!("RUST: received search metadata");
                             let line_count = metadata.line_count as u64;
                             let _ = search_metadata_tx.send(Some((file_path, metadata)));
-                            vec![
-                                CallbackEvent::SearchUpdated(line_count),
-                                sop::map_to_event(
-                                    &SearchOperationResult { found, stats },
-                                    operation_id,
-                                ),
-                            ]
+                            operation_api.emit(CallbackEvent::SearchUpdated(line_count));
+                            Ok(Some(SearchOperationResult { found, stats }))
                         }
                         Ok(ComputationResult::Stopped) => {
                             debug!("RUST: search metadata calculation aborted");
-                            vec![CallbackEvent::Progress {
-                                uuid: operation_id,
+                            operation_api.emit(CallbackEvent::Progress {
+                                uuid: operation_api.id(),
                                 progress: Progress::Stopped,
-                            }]
+                            });
+                            Ok(None)
                         }
                         Err(e) => {
                             let err_msg = format!("RUST error computing search metadata: {:?}", e);
-                            vec![CallbackEvent::OperationError {
-                                uuid: operation_id,
-                                error: NativeError {
-                                    severity: Severity::WARNING,
-                                    kind: NativeErrorKind::ComputationFailed,
-                                    message: Some(err_msg),
-                                },
-                            }]
+                            Err(NativeError {
+                                severity: Severity::WARNING,
+                                kind: NativeErrorKind::ComputationFailed,
+                                message: Some(err_msg),
+                            })
                         }
                     }
                 }
             }
-            Err(e) => vec![CallbackEvent::OperationError {
-                uuid: operation_id,
-                error: e,
-            }],
+            Err(err) => Err(err),
         }
     }
 }

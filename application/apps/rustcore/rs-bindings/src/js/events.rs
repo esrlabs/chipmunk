@@ -165,6 +165,10 @@ pub enum ComputationError {
     Protocol(String),
     #[error("Search related error")]
     SearchError(SearchError),
+    #[error("Operation with {0} already exists")]
+    OperationIDExists(Uuid),
+    #[error("start method canbe called just once")]
+    MultipleInitCall,
 }
 
 impl TryIntoJs for ComputationError {
@@ -177,5 +181,4 @@ impl TryIntoJs for ComputationError {
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);
 // pub type AsyncChannel<T> = (mpsc::Sender<T>, mpsc::Receiver<T>);
 // pub type AsyncOneshotChannel<T> = (oneshot::Sender<T>, oneshot::Receiver<T>);
-pub type AsyncBroadcastChannel<T> = (broadcast::Sender<T>, broadcast::Receiver<T>);
 // pub type ShutdownReceiver = cc::Receiver<()>;

@@ -1,39 +1,37 @@
 use super::assign;
 use crate::js::{
-    events::{CallbackEvent, NativeError, NativeErrorKind},
+    events::{NativeError, NativeErrorKind},
     session::{SessionState, SupportedFileType},
+    session_operations::{OperationAPI, OperationResult},
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
 use merging::merger::{merge_files_use_config, FileMergeOptions};
-
 use std::path::Path;
-use tokio_util::sync::CancellationToken;
-use uuid::Uuid;
 
 #[allow(clippy::too_many_arguments)]
 pub async fn handle(
-    operation_id: Uuid,
+    operation_api: &OperationAPI,
     files: Vec<FileMergeOptions>,
     out_path: &Path,
     append: bool,
     source_type: SupportedFileType,
     source_id: String,
     state: &mut SessionState,
-    cancellation_token: CancellationToken,
-) -> Result<CallbackEvent, NativeError> {
+) -> OperationResult<()> {
     let (tx, _rx) = cc::unbounded();
-    merge_files_use_config(files, out_path, append, 500, tx, None).map_err(|err| NativeError {
+    merge_files_use_config(
+        files,
+        out_path,
+        append,
+        500,
+        tx,
+        Some(operation_api.get_cancellation_token()),
+    )
+    .map_err(|err| NativeError {
         severity: Severity::ERROR,
         kind: NativeErrorKind::OperationSearch,
         message: Some(format!("Failed to merge files: {}", err)),
     })?;
-    assign::handle(
-        operation_id,
-        out_path,
-        source_type,
-        source_id,
-        state,
-        cancellation_token,
-    )
+    assign::handle(operation_api, out_path, source_type, source_id, state)
 }

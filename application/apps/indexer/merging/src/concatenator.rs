@@ -24,6 +24,7 @@ use std::{
     iter::Iterator,
     path::{Path, PathBuf},
 };
+use tokio_util::sync::CancellationToken;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatItemOptions {
@@ -56,7 +57,7 @@ pub fn concat_files_use_config_file(
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_rx: Option<cc::Receiver<()>>,
+    shutdown_token: Option<CancellationToken>,
 ) -> Result<()> {
     concat_files(
         files,
@@ -64,7 +65,7 @@ pub fn concat_files_use_config_file(
         append,
         chunk_size,
         update_channel,
-        shutdown_rx,
+        shutdown_token,
     )
 }
 pub fn concat_files(
@@ -73,7 +74,7 @@ pub fn concat_files(
     append: bool,
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_rx: Option<cc::Receiver<()>>,
+    shutdown_token: Option<CancellationToken>,
 ) -> Result<()> {
     let file_cnt = concat_inputs.len();
     trace!("concat_files called with {} files", file_cnt);
@@ -98,9 +99,11 @@ pub fn concat_files(
         ProgressReporter::new(combined_file_size(&paths)?, update_channel.clone());
 
     for input in concat_inputs {
-        if utils::check_if_stop_was_requested(shutdown_rx.as_ref(), "concatenator") {
-            update_channel.send(Ok(IndexingProgress::Stopped))?;
-            return Ok(());
+        if let Some(shutdown_token) = shutdown_token.as_ref() {
+            if shutdown_token.is_cancelled() {
+                update_channel.send(Ok(IndexingProgress::Stopped))?;
+                return Ok(());
+            }
         }
         let f: fs::File = fs::File::open(input.path)?;
         let mut reader: BufReader<&std::fs::File> = BufReader::new(&f);
