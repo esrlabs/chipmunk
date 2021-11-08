@@ -4,7 +4,7 @@ use crate::js::{
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
-use log::{debug, error, trace, warn};
+use log::{error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use processor::{grabber::GrabMetadata, map::NearestPosition, search::SearchFilter};
 use serde::Serialize;
@@ -58,7 +58,7 @@ pub enum Operation {
 #[derive(Debug, Serialize, Clone)]
 pub struct NoOperationResults;
 
-pub type OperationResult<T: Serialize + std::fmt::Debug> = Result<Option<T>, NativeError>;
+pub type OperationResult<T> = Result<Option<T>, NativeError>;
 
 pub struct OperationAPI {
     tx_callback_events: UnboundedSender<CallbackEvent>,
@@ -95,20 +95,29 @@ impl OperationAPI {
         T: Serialize + std::fmt::Debug,
     {
         let event = match result {
-            Ok(result) => match serde_json::to_string(&result) {
-                Ok(serialized) => CallbackEvent::OperationDone(OperationDone {
-                    uuid: self.operation_id,
-                    result: Some(serialized),
-                }),
-                Err(err) => CallbackEvent::OperationError {
-                    uuid: self.operation_id,
-                    error: NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ComputationFailed,
-                        message: Some(format!("{}", err)),
-                    },
-                },
-            },
+            Ok(result) => {
+                if let Some(result) = result.as_ref() {
+                    match serde_json::to_string(result) {
+                        Ok(serialized) => CallbackEvent::OperationDone(OperationDone {
+                            uuid: self.operation_id,
+                            result: Some(serialized),
+                        }),
+                        Err(err) => CallbackEvent::OperationError {
+                            uuid: self.operation_id,
+                            error: NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ComputationFailed,
+                                message: Some(format!("{}", err)),
+                            },
+                        },
+                    }
+                } else {
+                    CallbackEvent::OperationDone(OperationDone {
+                        uuid: self.operation_id,
+                        result: None,
+                    })
+                }
+            }
             Err(error) => {
                 warn!(
                     "Operation {} done with error: {:?}",

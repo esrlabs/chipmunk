@@ -17,7 +17,7 @@ where
     let extractor = MatchesExtractor::new(target_file_path, filters);
     extractor
         .extract_matches()
-        .map(|res| Some(res))
+        .map(Some)
         .map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::OperationSearch,
