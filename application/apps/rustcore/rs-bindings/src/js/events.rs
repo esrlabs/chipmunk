@@ -10,7 +10,6 @@ use processor::{
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::sync::broadcast;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -165,8 +164,6 @@ pub enum ComputationError {
     Protocol(String),
     #[error("Search related error")]
     SearchError(SearchError),
-    #[error("Operation with {0} already exists")]
-    OperationIDExists(Uuid),
     #[error("start method canbe called just once")]
     MultipleInitCall,
 }

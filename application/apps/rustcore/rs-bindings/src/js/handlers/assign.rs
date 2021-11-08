@@ -1,5 +1,5 @@
 use crate::js::{
-    events::{CallbackEvent, NativeError},
+    events::CallbackEvent,
     session::{SessionState, SupportedFileType},
     session_operations::{OperationAPI, OperationResult},
 };
