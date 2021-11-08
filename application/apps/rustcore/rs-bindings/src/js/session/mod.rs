@@ -1,28 +1,25 @@
-use crate::js::{
-    converting::{
-        concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
-        merge::WrappedFileMergeOptions,
-    },
-    events::{
-        CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone, SyncChannel,
-    },
-    handlers, session_operations as sop,
-    session_operations::{Operation, OperationResult},
-    session_state,
-    session_state::SessionStateAPI,
+pub mod events;
+pub mod operations;
+pub mod state;
+use crate::js::converting::{
+    concat::WrappedConcatenatorInput, filter::WrappedSearchFilter, merge::WrappedFileMergeOptions,
 };
 use crossbeam_channel as cc;
+use events::{
+    CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone, SyncChannel,
+};
 use indexer_base::progress::Severity;
 use log::{debug, error, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::{
     dlt_source::DltSource,
     grabber::{AsyncGrabTrait, GrabMetadata, GrabTrait, GrabbedContent, LineRange},
-    map::{NearestPosition, SearchMap},
+    map::NearestPosition,
     search::{SearchError, SearchFilter},
     text_source::TextFileSource,
 };
 use serde::Serialize;
+use state::SessionStateAPI;
 use std::{
     collections::HashMap,
     fs::OpenOptions,
@@ -89,8 +86,8 @@ fn lazy_init_grabber(
 }
 
 pub type OperationsChannel = (
-    UnboundedSender<(Uuid, Operation)>,
-    UnboundedReceiver<(Uuid, Operation)>,
+    UnboundedSender<(Uuid, operations::Operation)>,
+    UnboundedReceiver<(Uuid, operations::Operation)>,
 );
 
 #[derive(Debug)]
@@ -99,8 +96,8 @@ pub struct RustSession {
     pub running: bool,
     pub content_grabber: Option<Box<dyn AsyncGrabTrait>>,
     pub search_grabber: Option<Box<dyn AsyncGrabTrait>>,
-    tx_operations: UnboundedSender<(Uuid, Operation)>,
-    rx_operations: Option<UnboundedReceiver<(Uuid, Operation)>>,
+    tx_operations: UnboundedSender<(Uuid, operations::Operation)>,
+    rx_operations: Option<UnboundedReceiver<(Uuid, operations::Operation)>>,
     // channel to store the metadata of the search results once available
     search_metadata_channel: SyncChannel<Option<(PathBuf, GrabMetadata)>>,
 }
@@ -127,7 +124,10 @@ impl RustSession {
             cc::Receiver<Option<GrabMetadata>>,
         ) = cc::bounded(1);
         self.tx_operations
-            .send((Uuid::new_v4(), Operation::ExtractMetadata(tx_response)))
+            .send((
+                Uuid::new_v4(),
+                operations::Operation::ExtractMetadata(tx_response),
+            ))
             .map_err(|e| ComputationError::Process(e.to_string()))?;
         match rx_response.recv() {
             Ok(metadata) => {
@@ -217,8 +217,8 @@ impl RustSession {
     fn cancel_operations(&mut self, operation_id_string: String) -> Result<(), ComputationError> {
         let _ = self.tx_operations.send((
             Uuid::new_v4(),
-            Operation::Cancel {
-                operation_id: sop::uuid_from_str(&operation_id_string)?,
+            operations::Operation::Cancel {
+                operation_id: operations::uuid_from_str(&operation_id_string)?,
             },
         ));
         Ok(())
@@ -248,28 +248,28 @@ impl RustSession {
                 let mut operations: HashMap<Uuid, CancellationToken> = HashMap::new();
                 let (state_api, rx_state_api) = SessionStateAPI::new();
                 let (tx_callback_events, mut rx_callback_events): (
-                    UnboundedSender<sop::OperationCallback>,
-                    UnboundedReceiver<sop::OperationCallback>,
+                    UnboundedSender<operations::OperationCallback>,
+                    UnboundedReceiver<operations::OperationCallback>,
                 ) = unbounded_channel();
                 select! {
                     _ = async move {
                         while let Some((id, operation)) = rx_operations.recv().await {
-                            let operation_api = sop::OperationAPI::new(tx_callback_events.clone(), id, CancellationToken::new());
+                            let operation_api = operations::OperationAPI::new(tx_callback_events.clone(), id, CancellationToken::new());
                             if let Err(err) = operation_api.process(operation, state_api.clone(), search_metadata_tx.clone()).await {
                                 operation_api.emit(CallbackEvent::OperationError { uuid: operation_api.id(), error: err });
                             }
                         }
                     } => {},
-                    _ = session_state::task(rx_state_api) => {
+                    _ = state::task(rx_state_api) => {
 
                     },
                     _ = async move {
                         while let Some(event) = rx_callback_events.recv().await {
                             match event {
-                                sop::OperationCallback::CallbackEvent(event) => {
+                                operations::OperationCallback::CallbackEvent(event) => {
                                     callback(event);
                                 },
-                                sop::OperationCallback::AddOperation((uuid, token, rx_response)) => {
+                                operations::OperationCallback::AddOperation((uuid, token, rx_response)) => {
                                     if rx_response.send(if !operations.contains_key(&uuid) {
                                         operations.insert(uuid, token);
                                         true
@@ -279,13 +279,13 @@ impl RustSession {
                                         error!("Fail to response on OperationCallback::RemoveOperation");
                                     }
                                 },
-                                sop::OperationCallback::RemoveOperation((uuid, rx_response)) => {
+                                operations::OperationCallback::RemoveOperation((uuid, rx_response)) => {
                                     operations.remove(&uuid);
                                     if rx_response.send(()).is_err() {
                                         error!("Fail to response on OperationCallback::RemoveOperation");
                                     }
                                 },
-                                sop::OperationCallback::Cancel((uuid, target)) => {
+                                operations::OperationCallback::Cancel((uuid, target)) => {
                                     debug!("RUST: received cancel operation event");
                                     if let Some(token) = operations.remove(&target) {
                                         token.cancel();
@@ -358,7 +358,9 @@ impl RustSession {
 
     #[node_bindgen]
     fn stop(&mut self) -> Result<(), ComputationError> {
-        let _ = self.tx_operations.send((Uuid::new_v4(), Operation::End));
+        let _ = self
+            .tx_operations
+            .send((Uuid::new_v4(), operations::Operation::End));
         self.running = false;
         Ok(())
     }
@@ -371,13 +373,13 @@ impl RustSession {
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
         debug!("RUST: send assign event on channel");
-        let operation_id = sop::uuid_from_str(&operation_id_string)?;
+        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
         let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
         self.content_grabber = Some(boxed_grabber);
         match self.tx_operations.send((
             operation_id,
-            Operation::Assign {
+            operations::Operation::Assign {
                 file_path: input_p,
                 source_id,
                 source_type,
@@ -478,11 +480,14 @@ impl RustSession {
         filters: Vec<WrappedSearchFilter>,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        let operation_id = sop::uuid_from_str(&operation_id_string)?;
+        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         self.search_grabber = None;
         let (tx_response, rx_response): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
         self.tx_operations
-            .send((Uuid::new_v4(), Operation::DropSearch(tx_response)))
+            .send((
+                Uuid::new_v4(),
+                operations::Operation::DropSearch(tx_response),
+            ))
             .map_err(|e| ComputationError::Process(e.to_string()))?;
         if let Err(err) = rx_response.recv() {
             return Err(ComputationError::Process(format!(
@@ -503,7 +508,7 @@ impl RustSession {
         );
         match self.tx_operations.send((
             operation_id,
-            Operation::Search {
+            operations::Operation::Search {
                 target_file,
                 filters,
             },
@@ -522,7 +527,7 @@ impl RustSession {
         filters: Vec<WrappedSearchFilter>,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        let operation_id = sop::uuid_from_str(&operation_id_string)?;
+        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
@@ -537,7 +542,7 @@ impl RustSession {
             .tx_operations
             .send((
                 operation_id,
-                Operation::Extract {
+                operations::Operation::Extract {
                     target_file,
                     filters,
                 },
@@ -584,7 +589,7 @@ impl RustSession {
             .tx_operations
             .send((
                 operation_id,
-                Operation::Map {
+                operations::Operation::Map {
                     dataset_len: dataset_len as u16,
                     range,
                 },
@@ -616,7 +621,7 @@ impl RustSession {
         self.tx_operations
             .send((
                 Uuid::new_v4(),
-                Operation::GetNearestPosition((position_in_stream as u64, tx_response)),
+                operations::Operation::GetNearestPosition((position_in_stream as u64, tx_response)),
             ))
             .map_err(|e| ComputationError::Process(e.to_string()))?;
         match rx_response.recv() {
@@ -642,7 +647,7 @@ impl RustSession {
         operation_id: String,
     ) -> Result<(), ComputationError> {
         //TODO: out_path should be gererics by some settings.
-        let operation_id = sop::uuid_from_str(&operation_id)?;
+        let operation_id = operations::uuid_from_str(&operation_id)?;
         let (out_path, out_path_str) = if files.is_empty() {
             return Err(ComputationError::InvalidData);
         } else {
@@ -673,7 +678,7 @@ impl RustSession {
         self.content_grabber = Some(boxed_grabber);
         match self.tx_operations.send((
             operation_id,
-            Operation::Concat {
+            operations::Operation::Concat {
                 files: files
                     .iter()
                     .map(|file| file.as_concatenator_input())
@@ -700,7 +705,7 @@ impl RustSession {
         operation_id: String,
     ) -> Result<(), ComputationError> {
         //TODO: out_path should be gererics by some settings.
-        let operation_id = sop::uuid_from_str(&operation_id)?;
+        let operation_id = operations::uuid_from_str(&operation_id)?;
         let (out_path, out_path_str) = if files.is_empty() {
             return Err(ComputationError::InvalidData);
         } else {
@@ -731,7 +736,7 @@ impl RustSession {
         self.content_grabber = Some(boxed_grabber);
         match self.tx_operations.send((
             operation_id,
-            Operation::Merge {
+            operations::Operation::Merge {
                 files: files
                     .iter()
                     .map(|file| file.as_file_merge_options())

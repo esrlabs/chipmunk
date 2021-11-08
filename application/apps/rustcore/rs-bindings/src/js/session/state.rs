@@ -1,4 +1,4 @@
-use crate::js::events::{NativeError, NativeErrorKind};
+use crate::js::session::events::{NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
 use processor::{
     grabber::GrabMetadata,
