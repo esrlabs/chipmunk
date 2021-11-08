@@ -1,8 +1,10 @@
 use crate::js::{
-    events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
     handlers,
-    session::SupportedFileType,
-    session_state::SessionStateAPI,
+    session::{
+        events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
+        state::SessionStateAPI,
+        SupportedFileType,
+    },
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;

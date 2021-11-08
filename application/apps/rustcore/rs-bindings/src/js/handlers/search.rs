@@ -1,7 +1,7 @@
-use crate::js::{
+use crate::js::session::{
     events::{CallbackEvent, NativeError, NativeErrorKind, SearchOperationResult},
-    session_operations::{OperationAPI, OperationResult},
-    session_state::SessionStateAPI,
+    operations::{OperationAPI, OperationResult},
+    state::SessionStateAPI,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::{ComputationResult, Progress, Severity};

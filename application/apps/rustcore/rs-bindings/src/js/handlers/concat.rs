@@ -1,9 +1,9 @@
 use super::assign;
-use crate::js::{
+use crate::js::session::{
     events::{NativeError, NativeErrorKind},
-    session::SupportedFileType,
-    session_operations::{OperationAPI, OperationResult},
-    session_state::SessionStateAPI,
+    operations::{OperationAPI, OperationResult},
+    state::SessionStateAPI,
+    SupportedFileType,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;

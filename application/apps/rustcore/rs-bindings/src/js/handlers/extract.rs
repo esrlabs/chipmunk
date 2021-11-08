@@ -1,6 +1,6 @@
-use crate::js::{
+use crate::js::session::{
     events::{NativeError, NativeErrorKind},
-    session_operations::OperationResult,
+    operations::OperationResult,
 };
 use indexer_base::progress::Severity;
 

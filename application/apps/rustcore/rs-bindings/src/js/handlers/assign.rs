@@ -1,8 +1,8 @@
-use crate::js::{
+use crate::js::session::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
-    session::SupportedFileType,
-    session_operations::{OperationAPI, OperationResult},
-    session_state::SessionStateAPI,
+    operations::{OperationAPI, OperationResult},
+    state::SessionStateAPI,
+    SupportedFileType,
 };
 use indexer_base::progress::{ComputationResult, Progress};
 use log::{debug, info, trace};
