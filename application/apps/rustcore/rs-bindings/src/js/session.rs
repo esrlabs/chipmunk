@@ -3,7 +3,9 @@ use crate::js::{
         concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
         merge::WrappedFileMergeOptions,
     },
-    events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, SyncChannel},
+    events::{
+        CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone, SyncChannel,
+    },
     handlers, session_operations as sop,
     session_operations::{Operation, OperationResult},
 };
@@ -257,138 +259,60 @@ impl RustSession {
                     metadata: None,
                 };
                 let (tx_callback_events, mut rx_callback_events): (
-                    UnboundedSender<CallbackEvent>,
-                    UnboundedReceiver<CallbackEvent>,
+                    UnboundedSender<sop::OperationCallback>,
+                    UnboundedReceiver<sop::OperationCallback>,
                 ) = unbounded_channel();
                 select! {
                     _ = async move {
-                        while let Some((op_id, op_event)) = rx_operations.recv().await {
-
-                            if operations.contains_key(&op_id) {
-                                error!("Operation {} already exists", op_id);
-                                continue;
+                        while let Some((id, operation)) = rx_operations.recv().await {
+                            let operation_api = sop::OperationAPI::new(tx_callback_events.clone(), id, CancellationToken::new());
+                            if let Err(err) = operation_api.process(operation, &mut state, search_metadata_tx.clone()).await {
+                                operation_api.emit(CallbackEvent::OperationError { uuid: operation_api.id(), error: err });
                             }
-                            let operation_api = sop::OperationAPI::new(tx_callback_events.clone(), op_id, CancellationToken::new());
-                            operations.insert(operation_api.id(), operation_api.get_cancellation_token());
-                            match op_event {
-                                Operation::Assign {
-                                    file_path,
-                                    source_id,
-                                    source_type,
-                                } => {
-                                    operation_api.finish(handlers::assign::handle(&operation_api, &file_path, source_type, source_id, &mut state));
-                                },
-                                Operation::Search {
-                                    target_file,
-                                    filters,
-                                } => {
-                                    operation_api.finish(handlers::search::handle(&operation_api, target_file, filters, &search_metadata_tx, &mut state));
-                                },
-                                Operation::Extract {
-                                    target_file,
-                                    filters,
-                                } => {
-                                    operation_api.finish(handlers::extract::handle(&target_file, filters.iter()));
-                                },
-                                Operation::Map { dataset_len, range } => {
-                                    debug!("RUST: received Map operation event");
-                                    operation_api.finish(Ok(Some(state.search_map.scaled(dataset_len, range))));
-                                },
-                                Operation::Concat {
-                                    files,
-                                    out_path,
-                                    append,
-                                    source_type,
-                                    source_id,
-                                } => {
-                                    operation_api.finish(handlers::concat::handle(
-                                        &operation_api,
-                                        files,
-                                        &out_path,
-                                        append,
-                                        source_type,
-                                        source_id,
-                                        &mut state,
-                                    )
-                                    .await);
-                                },
-                                Operation::Merge {
-                                    files,
-                                    out_path,
-                                    append,
-                                    source_type,
-                                    source_id,
-                                } => {
-                                    operation_api.finish(handlers::merge::handle(
-                                        &operation_api,
-                                        files,
-                                        &out_path,
-                                        append,
-                                        source_type,
-                                        source_id,
-                                        &mut state,
-                                    )
-                                    .await);
-                                },
-                                Operation::Cancel { operation_id } => {
-                                    debug!("RUST: received cancel operation event");
-                                    if let Some(token) = operations.remove(&operation_id) {
-                                        token.cancel();
-                                        operation_api.finish::<OperationResult<()>>(Ok(None));
-                                    } else {
-                                        operation_api.emit(CallbackEvent::OperationError {
-                                            uuid: operation_id,
-                                            error: NativeError {
-                                                severity: Severity::WARNING,
-                                                kind: NativeErrorKind::NotYetImplemented,
-                                                message: Some(format!("Operation {} isn't found", operation_id)),
-                                            },
-                                        });
-                                    }
-                                },
-                                Operation::ExtractMetadata(tx_response) => {
-                                    if let Err(err) = tx_response.send(if let Some(md) = &state.metadata {
-                                        let md = md.clone();
-                                        state.metadata = None;
-                                        Some(md)
-                                    } else {
-                                        None
-                                    }) {
-                                        error!(
-                                            "fail to responce to Operation::ExtractMetadata; error: {}",
-                                            err
-                                        );
-                                    }
-                                    operation_api.finish::<OperationResult<()>>(Ok(None));
-                                },
-                                Operation::DropSearch(tx_response) => {
-                                    state.search_map.set(None);
-                                    if let Err(err) = tx_response.send(()) {
-                                        error!("fail to responce to Operation::DropSearch; error: {}", err);
-                                    }
-                                    operation_api.finish::<OperationResult<()>>(Ok(None));
-                                },
-                                Operation::GetNearestPosition((position, tx_response)) => {
-                                    if let Err(err) = tx_response.send(state.search_map.nearest_to(position)) {
-                                        error!(
-                                            "fail to responce to Operation::GetNearestPosition; error: {}",
-                                            err
-                                        );
-                                    }
-                                    operation_api.finish::<OperationResult<()>>(Ok(None));
-                                },
-                                Operation::End => {
-                                    debug!("RUST: received End operation event");
-                                    operation_api.emit(CallbackEvent::SessionDestroyed);
-                                    break;
-                                }
-                            };
-                            operations.remove(&operation_api.id());
                         }
                     } => {},
                     _ = async move {
                         while let Some(event) = rx_callback_events.recv().await {
-                            callback(event);
+                            match event {
+                                sop::OperationCallback::CallbackEvent(event) => {
+                                    callback(event);
+                                },
+                                sop::OperationCallback::AddOperation((uuid, token, rx_response)) => {
+                                    if rx_response.send(if !operations.contains_key(&uuid) {
+                                        operations.insert(uuid, token);
+                                        true
+                                    } else {
+                                        false
+                                    }).is_err() {
+                                        error!("Fail to response on OperationCallback::RemoveOperation");
+                                    }
+                                },
+                                sop::OperationCallback::RemoveOperation((uuid, rx_response)) => {
+                                    operations.remove(&uuid);
+                                    if rx_response.send(()).is_err() {
+                                        error!("Fail to response on OperationCallback::RemoveOperation");
+                                    }
+                                },
+                                sop::OperationCallback::Cancel((uuid, target)) => {
+                                    debug!("RUST: received cancel operation event");
+                                    if let Some(token) = operations.remove(&target) {
+                                        token.cancel();
+                                        callback(CallbackEvent::OperationDone(OperationDone {
+                                            uuid,
+                                            result: None,
+                                        }));
+                                    } else {
+                                        callback(CallbackEvent::OperationError {
+                                            uuid,
+                                            error: NativeError {
+                                                severity: Severity::WARNING,
+                                                kind: NativeErrorKind::NotYetImplemented,
+                                                message: Some(format!("Operation {} isn't found", target)),
+                                            },
+                                        });
+                                    }
+                                }
+                            }
                         }
                     } => {}
                 };
