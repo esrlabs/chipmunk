@@ -23,6 +23,7 @@ pub enum NativeErrorKind {
     Interrupted,
     OperationSearch,
     NotYetImplemented,
+    ChannelError,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
