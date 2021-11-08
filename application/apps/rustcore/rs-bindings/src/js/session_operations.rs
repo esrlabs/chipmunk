@@ -1,7 +1,8 @@
 use crate::js::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
     handlers,
-    session::{SessionState, SupportedFileType},
+    session::SupportedFileType,
+    session_state::SessionStateAPI,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
@@ -185,7 +186,7 @@ impl OperationAPI {
     pub async fn process(
         &self,
         operation: Operation,
-        state: &mut SessionState,
+        state: SessionStateAPI,
         search_metadata_tx: cc::Sender<Option<(PathBuf, GrabMetadata)>>,
     ) -> Result<(), NativeError> {
         let added = self.register().await?;
@@ -202,26 +203,26 @@ impl OperationAPI {
                 source_id,
                 source_type,
             } => {
-                self.finish(handlers::assign::handle(
-                    &self,
-                    &file_path,
-                    source_type,
-                    source_id,
-                    state,
-                ))
+                self.finish(
+                    handlers::assign::handle(&self, &file_path, source_type, source_id, state)
+                        .await,
+                )
                 .await;
             }
             Operation::Search {
                 target_file,
                 filters,
             } => {
-                self.finish(handlers::search::handle(
-                    &self,
-                    target_file,
-                    filters,
-                    &search_metadata_tx,
-                    state,
-                ))
+                self.finish(
+                    handlers::search::handle(
+                        &self,
+                        target_file,
+                        filters,
+                        &search_metadata_tx,
+                        state,
+                    )
+                    .await,
+                )
                 .await;
             }
             Operation::Extract {
@@ -232,8 +233,10 @@ impl OperationAPI {
                     .await;
             }
             Operation::Map { dataset_len, range } => {
-                self.finish(Ok(Some(state.search_map.scaled(dataset_len, range))))
-                    .await;
+                self.finish(Ok(Some(
+                    state.get_search_map().await?.scaled(dataset_len, range),
+                )))
+                .await;
             }
             Operation::Concat {
                 files,
@@ -294,9 +297,9 @@ impl OperationAPI {
                 // }
             }
             Operation::ExtractMetadata(tx_response) => {
-                if let Err(err) = tx_response.send(if let Some(md) = &state.metadata {
+                if let Err(err) = tx_response.send(if let Some(md) = &state.get_metadata().await? {
                     let md = md.clone();
-                    state.metadata = None;
+                    state.set_metadata(None).await?;
                     Some(md)
                 } else {
                     None
@@ -309,14 +312,16 @@ impl OperationAPI {
                 self.finish::<OperationResult<()>>(Ok(None)).await;
             }
             Operation::DropSearch(tx_response) => {
-                state.search_map.set(None);
+                state.set_matches(None).await?;
                 if let Err(err) = tx_response.send(()) {
                     error!("fail to responce to Operation::DropSearch; error: {}", err);
                 }
                 self.finish::<OperationResult<()>>(Ok(None)).await;
             }
             Operation::GetNearestPosition((position, tx_response)) => {
-                if let Err(err) = tx_response.send(state.search_map.nearest_to(position)) {
+                if let Err(err) =
+                    tx_response.send(state.get_search_map().await?.nearest_to(position))
+                {
                     error!(
                         "fail to responce to Operation::GetNearestPosition; error: {}",
                         err

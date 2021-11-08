@@ -1,8 +1,9 @@
 use super::assign;
 use crate::js::{
     events::{NativeError, NativeErrorKind},
-    session::{SessionState, SupportedFileType},
+    session::SupportedFileType,
     session_operations::{OperationAPI, OperationResult},
+    session_state::SessionStateAPI,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
@@ -17,7 +18,7 @@ pub async fn handle(
     append: bool,
     source_type: SupportedFileType,
     source_id: String,
-    state: &mut SessionState,
+    state: SessionStateAPI,
 ) -> OperationResult<()> {
     let (tx, _rx) = cc::unbounded();
     concat_files_use_config_file(
@@ -33,5 +34,5 @@ pub async fn handle(
         kind: NativeErrorKind::OperationSearch,
         message: Some(format!("Failed to concatenate files: {}", err)),
     })?;
-    assign::handle(operation_api, out_path, source_type, source_id, state)
+    assign::handle(operation_api, out_path, source_type, source_id, state).await
 }

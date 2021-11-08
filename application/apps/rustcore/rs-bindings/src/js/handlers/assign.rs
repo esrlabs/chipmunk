@@ -1,7 +1,8 @@
 use crate::js::{
-    events::CallbackEvent,
-    session::{SessionState, SupportedFileType},
+    events::{CallbackEvent, NativeError, NativeErrorKind},
+    session::SupportedFileType,
     session_operations::{OperationAPI, OperationResult},
+    session_state::SessionStateAPI,
 };
 use indexer_base::progress::{ComputationResult, Progress};
 use log::{debug, info, trace};
@@ -18,12 +19,12 @@ use tokio_util::sync::CancellationToken;
 /// for the content grabber (current_grabber)
 /// if the metadata was successfully created, we return the line count of it
 /// if the operation was stopped, we return None
-pub fn handle(
+pub async fn handle(
     operation_api: &OperationAPI,
     file_path: &Path,
     source_type: SupportedFileType,
     source_id: String,
-    state: &mut SessionState,
+    state: SessionStateAPI,
 ) -> OperationResult<()> {
     match create_metadata_for_source(
         file_path,
@@ -35,13 +36,13 @@ pub fn handle(
             trace!("received metadata {:?}", metadata);
             debug!("RUST: received metadata");
             let line_count: u64 = metadata.line_count as u64;
-            update_state(state, Some(line_count), Some(Some(metadata)));
+            update_state(state, Some(line_count), Some(Some(metadata))).await?;
             operation_api.emit(CallbackEvent::StreamUpdated(line_count));
             Ok(None)
         }
         Ok(ComputationResult::Stopped) => {
             info!("RUST: metadata calculation aborted");
-            let _ = update_state(state, None, Some(None));
+            update_state(state, None, Some(None)).await?;
             operation_api.emit(CallbackEvent::Progress {
                 uuid: operation_api.id(),
                 progress: Progress::Stopped,
@@ -70,15 +71,16 @@ fn create_metadata_for_source(
     }
 }
 
-fn update_state(
-    state: &mut SessionState,
+async fn update_state(
+    state: SessionStateAPI,
     stream_len: Option<u64>,
     metadata: Option<Option<GrabMetadata>>,
-) {
+) -> Result<(), NativeError> {
     if let Some(stream_len) = stream_len {
-        state.search_map.set_stream_len(stream_len);
+        state.set_stream_len(stream_len).await?;
     }
     if let Some(metadata) = metadata {
-        state.metadata = metadata;
+        state.set_metadata(metadata).await?;
     }
+    Ok(())
 }

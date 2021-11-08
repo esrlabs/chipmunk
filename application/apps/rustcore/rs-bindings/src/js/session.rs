@@ -8,6 +8,8 @@ use crate::js::{
     },
     handlers, session_operations as sop,
     session_operations::{Operation, OperationResult},
+    session_state,
+    session_state::SessionStateAPI,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
@@ -35,14 +37,6 @@ use tokio::{
 
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
-
-#[derive(Debug)]
-pub struct SessionState {
-    pub assigned_file: Option<String>,
-    pub filters: Vec<SearchFilter>,
-    pub search_map: SearchMap,
-    pub metadata: Option<GrabMetadata>,
-}
 
 #[derive(Debug, Serialize, Clone)]
 pub enum SupportedFileType {
@@ -252,12 +246,7 @@ impl RustSession {
             rt.block_on(async {
                 info!("RUST: running runtime");
                 let mut operations: HashMap<Uuid, CancellationToken> = HashMap::new();
-                let mut state = SessionState {
-                    assigned_file: None,
-                    filters: vec![],
-                    search_map: SearchMap::new(),
-                    metadata: None,
-                };
+                let (state_api, rx_state_api) = SessionStateAPI::new();
                 let (tx_callback_events, mut rx_callback_events): (
                     UnboundedSender<sop::OperationCallback>,
                     UnboundedReceiver<sop::OperationCallback>,
@@ -266,11 +255,14 @@ impl RustSession {
                     _ = async move {
                         while let Some((id, operation)) = rx_operations.recv().await {
                             let operation_api = sop::OperationAPI::new(tx_callback_events.clone(), id, CancellationToken::new());
-                            if let Err(err) = operation_api.process(operation, &mut state, search_metadata_tx.clone()).await {
+                            if let Err(err) = operation_api.process(operation, state_api.clone(), search_metadata_tx.clone()).await {
                                 operation_api.emit(CallbackEvent::OperationError { uuid: operation_api.id(), error: err });
                             }
                         }
                     } => {},
+                    _ = session_state::task(rx_state_api) => {
+
+                    },
                     _ = async move {
                         while let Some(event) = rx_callback_events.recv().await {
                             match event {
