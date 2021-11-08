@@ -1,9 +1,12 @@
+pub mod cancelers;
 pub mod events;
 pub mod operations;
 pub mod state;
+
 use crate::js::converting::{
     concat::WrappedConcatenatorInput, filter::WrappedSearchFilter, merge::WrappedFileMergeOptions,
 };
+use cancelers::CancelersAPI;
 use crossbeam_channel as cc;
 use events::{
     CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone, SyncChannel,
@@ -235,7 +238,7 @@ impl RustSession {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {}", e))
         })?;
-        let mut rx_operations = if let Some(rx_operations) = self.rx_operations.take() {
+        let rx_operations = if let Some(rx_operations) = self.rx_operations.take() {
             rx_operations
         } else {
             return Err(ComputationError::MultipleInitCall);
@@ -245,68 +248,22 @@ impl RustSession {
         thread::spawn(move || {
             rt.block_on(async {
                 info!("RUST: running runtime");
-                let mut operations: HashMap<Uuid, CancellationToken> = HashMap::new();
                 let (state_api, rx_state_api) = SessionStateAPI::new();
-                let (tx_callback_events, mut rx_callback_events): (
-                    UnboundedSender<operations::OperationCallback>,
-                    UnboundedReceiver<operations::OperationCallback>,
+                let (canceler_api, rx_canceler_api) = CancelersAPI::new();
+                let (tx_callback_events, rx_callback_events): (
+                    UnboundedSender<CallbackEvent>,
+                    UnboundedReceiver<CallbackEvent>,
                 ) = unbounded_channel();
+                // TODO: select -> join
                 select! {
-                    _ = async move {
-                        while let Some((id, operation)) = rx_operations.recv().await {
-                            let operation_api = operations::OperationAPI::new(tx_callback_events.clone(), id, CancellationToken::new());
-                            if let Err(err) = operation_api.process(operation, state_api.clone(), search_metadata_tx.clone()).await {
-                                operation_api.emit(CallbackEvent::OperationError { uuid: operation_api.id(), error: err });
-                            }
-                        }
-                    } => {},
-                    _ = state::task(rx_state_api) => {
-
-                    },
-                    _ = async move {
-                        while let Some(event) = rx_callback_events.recv().await {
-                            match event {
-                                operations::OperationCallback::CallbackEvent(event) => {
-                                    callback(event);
-                                },
-                                operations::OperationCallback::AddOperation((uuid, token, rx_response)) => {
-                                    if rx_response.send(if !operations.contains_key(&uuid) {
-                                        operations.insert(uuid, token);
-                                        true
-                                    } else {
-                                        false
-                                    }).is_err() {
-                                        error!("Fail to response on OperationCallback::RemoveOperation");
-                                    }
-                                },
-                                operations::OperationCallback::RemoveOperation((uuid, rx_response)) => {
-                                    operations.remove(&uuid);
-                                    if rx_response.send(()).is_err() {
-                                        error!("Fail to response on OperationCallback::RemoveOperation");
-                                    }
-                                },
-                                operations::OperationCallback::Cancel((uuid, target)) => {
-                                    debug!("RUST: received cancel operation event");
-                                    if let Some(token) = operations.remove(&target) {
-                                        token.cancel();
-                                        callback(CallbackEvent::OperationDone(OperationDone {
-                                            uuid,
-                                            result: None,
-                                        }));
-                                    } else {
-                                        callback(CallbackEvent::OperationError {
-                                            uuid,
-                                            error: NativeError {
-                                                severity: Severity::WARNING,
-                                                kind: NativeErrorKind::NotYetImplemented,
-                                                message: Some(format!("Operation {} isn't found", target)),
-                                            },
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    } => {}
+                    // Rust session events (internal events)
+                    _ = operations::task(rx_operations, state_api, canceler_api, search_metadata_tx, tx_callback_events) => {},
+                    // Currect session state (filters, matches, len etc.)
+                    _ = state::task(rx_state_api) => {},
+                    // Sender events into JS world
+                    _ = events::task(callback, rx_callback_events) => {},
+                    // Holder cancelation tokens for all operations in progress
+                    _ = cancelers::task(rx_canceler_api) => {}
                 };
                 info!("RUST: exiting runtime");
             })

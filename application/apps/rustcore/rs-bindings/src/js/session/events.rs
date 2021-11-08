@@ -10,6 +10,13 @@ use processor::{
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio::{
+    sync::{
+        mpsc::{UnboundedReceiver, UnboundedSender},
+        oneshot,
+    },
+    task::spawn,
+};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -177,6 +184,13 @@ impl TryIntoJs for ComputationError {
 }
 
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);
-// pub type AsyncChannel<T> = (mpsc::Sender<T>, mpsc::Receiver<T>);
-// pub type AsyncOneshotChannel<T> = (oneshot::Sender<T>, oneshot::Receiver<T>);
-// pub type ShutdownReceiver = cc::Receiver<()>;
+
+pub async fn task<F: Fn(CallbackEvent) + Send + 'static>(
+    callback: F,
+    mut rx_callback_events: UnboundedReceiver<CallbackEvent>,
+) -> Result<(), NativeError> {
+    while let Some(event) = rx_callback_events.recv().await {
+        callback(event)
+    }
+    Ok(())
+}
