@@ -10,13 +10,7 @@ use processor::{
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::{
-    sync::{
-        mpsc::{UnboundedReceiver, UnboundedSender},
-        oneshot,
-    },
-    task::spawn,
-};
+use tokio::sync::mpsc::UnboundedReceiver;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
