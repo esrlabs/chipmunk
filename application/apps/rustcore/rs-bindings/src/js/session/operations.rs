@@ -351,7 +351,7 @@ impl OperationAPI {
                     }
                 }
                 Operation::End => {
-                    api.emit(CallbackEvent::SessionDestroyed);
+                    debug!(target: targets::SESSION, "session closing is requested");
                 }
             };
         });
@@ -384,6 +384,7 @@ pub async fn task(
             CancellationToken::new(),
         );
         if matches!(operation, Operation::End) {
+            state.close_session().await?;
             break;
         } else if let Err(err) = operation_api
             .process(operation, search_metadata_tx.clone())
