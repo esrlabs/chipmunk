@@ -9,7 +9,7 @@ use processor::{
     map::{FilterMatch, SearchMap},
     search::SearchFilter,
 };
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 use tokio::{
     select,
     sync::{
@@ -464,11 +464,12 @@ pub async fn task(
                     }
                     Api::AddOperation((uuid, token, rx_response)) => {
                         if rx_response
-                            .send(if state.operations.contains_key(&uuid) {
-                                false
-                            } else {
-                                state.operations.insert(uuid, token);
-                                true
+                            .send(match state.operations.entry(uuid) {
+                                Entry::Vacant(entry) => {
+                                    entry.insert(token);
+                                    true
+                                },
+                                _ => false,
                             })
                             .is_err()
                         {
