@@ -10,9 +10,12 @@ use processor::{
     search::SearchFilter,
 };
 use std::collections::HashMap;
-use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot,
+use tokio::{
+    select,
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        oneshot,
+    },
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -32,6 +35,7 @@ pub enum Api {
     RemoveOperation((Uuid, oneshot::Sender<bool>)),
     CancelOperation((Uuid, oneshot::Sender<bool>)),
     CloseSession(oneshot::Sender<()>),
+    Shutdown,
 }
 
 #[derive(Debug)]
@@ -53,12 +57,19 @@ pub struct SessionState {
 #[derive(Clone, Debug)]
 pub struct SessionStateAPI {
     tx_api: UnboundedSender<Api>,
+    shutdown: CancellationToken,
 }
 
 impl SessionStateAPI {
     pub fn new() -> (Self, UnboundedReceiver<Api>) {
         let (tx_api, rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) = unbounded_channel();
-        (SessionStateAPI { tx_api }, rx_api)
+        (
+            SessionStateAPI {
+                tx_api,
+                shutdown: CancellationToken::new(),
+            },
+            rx_api,
+        )
     }
     // pub async fn set_assigned_file(&self, file: Option<String>) -> Result<(), NativeError> {
     //     let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
@@ -322,9 +333,25 @@ impl SessionStateAPI {
             message: Some(String::from("fail to get response from Api::CloseSession")),
         })?)
     }
+    pub fn shutdown(&self) -> Result<(), NativeError> {
+        self.tx_api.send(Api::Shutdown).map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(format!("fail to send to Api::Shutdown; error: {}", e,)),
+        })
+    }
+    pub fn is_shutdown(&self) -> bool {
+        self.shutdown.is_cancelled()
+    }
+    pub fn get_shutdown_token(&self) -> CancellationToken {
+        self.shutdown.clone()
+    }
 }
 
-pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError> {
+pub async fn task(
+    mut rx_api: UnboundedReceiver<Api>,
+    shutdown: CancellationToken,
+) -> Result<(), NativeError> {
     let mut state = SessionState {
         assigned_file: None,
         filters: vec![],
@@ -333,167 +360,178 @@ pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError>
         operations: HashMap::new(),
         status: Status::Open,
     };
+    let shutdown_caller = shutdown.clone();
     debug!(target: targets::SESSION, "task is started");
-    while let Some(msg) = rx_api.recv().await {
-        match msg {
-            // Api::SetAssignedFile((file, rx_response)) => {
-            //     state.assigned_file = file;
-            //     if rx_response.send(()).is_err() {
-            //         return Err(NativeError {
-            //             severity: Severity::ERROR,
-            //             kind: NativeErrorKind::ChannelError,
-            //             message: Some(String::from("fail to response to Api::SetAssignedFile")),
-            //         });
-            //     }
-            // }
-            // Api::GetAssignedFile(rx_response) => {
-            //     if rx_response.send(state.assigned_file.clone()).is_err() {
-            //         return Err(NativeError {
-            //             severity: Severity::ERROR,
-            //             kind: NativeErrorKind::ChannelError,
-            //             message: Some(String::from("fail to response to Api::GetAssignedFile")),
-            //         });
-            //     }
-            // }
-            // Api::SetFilters((filters, rx_response)) => {
-            //     state.filters = filters;
-            //     if rx_response.send(()).is_err() {
-            //         return Err(NativeError {
-            //             severity: Severity::ERROR,
-            //             kind: NativeErrorKind::ChannelError,
-            //             message: Some(String::from("fail to response to Api::SetFilters")),
-            //         });
-            //     }
-            // }
-            // Api::GetFilters(rx_response) => {
-            //     if rx_response.send(state.filters.clone()).is_err() {
-            //         return Err(NativeError {
-            //             severity: Severity::ERROR,
-            //             kind: NativeErrorKind::ChannelError,
-            //             message: Some(String::from("fail to response to Api::GetFilters")),
-            //         });
-            //     }
-            // }
-            // Api::SetSearchMap((search_map, rx_response)) => {
-            //     state.search_map = search_map;
-            //     if rx_response.send(()).is_err() {
-            //         return Err(NativeError {
-            //             severity: Severity::ERROR,
-            //             kind: NativeErrorKind::ChannelError,
-            //             message: Some(String::from("fail to response to Api::SetSearchMap")),
-            //         });
-            //     }
-            // }
-            Api::GetSearchMap(rx_response) => {
-                if rx_response.send(state.search_map.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetSearchMap")),
-                    });
+    select! {
+        _ = async move {
+            while let Some(msg) = rx_api.recv().await {
+                match msg {
+                    // Api::SetAssignedFile((file, rx_response)) => {
+                    //     state.assigned_file = file;
+                    //     if rx_response.send(()).is_err() {
+                    //         return Err(NativeError {
+                    //             severity: Severity::ERROR,
+                    //             kind: NativeErrorKind::ChannelError,
+                    //             message: Some(String::from("fail to response to Api::SetAssignedFile")),
+                    //         });
+                    //     }
+                    // }
+                    // Api::GetAssignedFile(rx_response) => {
+                    //     if rx_response.send(state.assigned_file.clone()).is_err() {
+                    //         return Err(NativeError {
+                    //             severity: Severity::ERROR,
+                    //             kind: NativeErrorKind::ChannelError,
+                    //             message: Some(String::from("fail to response to Api::GetAssignedFile")),
+                    //         });
+                    //     }
+                    // }
+                    // Api::SetFilters((filters, rx_response)) => {
+                    //     state.filters = filters;
+                    //     if rx_response.send(()).is_err() {
+                    //         return Err(NativeError {
+                    //             severity: Severity::ERROR,
+                    //             kind: NativeErrorKind::ChannelError,
+                    //             message: Some(String::from("fail to response to Api::SetFilters")),
+                    //         });
+                    //     }
+                    // }
+                    // Api::GetFilters(rx_response) => {
+                    //     if rx_response.send(state.filters.clone()).is_err() {
+                    //         return Err(NativeError {
+                    //             severity: Severity::ERROR,
+                    //             kind: NativeErrorKind::ChannelError,
+                    //             message: Some(String::from("fail to response to Api::GetFilters")),
+                    //         });
+                    //     }
+                    // }
+                    // Api::SetSearchMap((search_map, rx_response)) => {
+                    //     state.search_map = search_map;
+                    //     if rx_response.send(()).is_err() {
+                    //         return Err(NativeError {
+                    //             severity: Severity::ERROR,
+                    //             kind: NativeErrorKind::ChannelError,
+                    //             message: Some(String::from("fail to response to Api::SetSearchMap")),
+                    //         });
+                    //     }
+                    // }
+                    Api::GetSearchMap(rx_response) => {
+                        if rx_response.send(state.search_map.clone()).is_err() {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::GetSearchMap")),
+                            });
+                        }
+                    }
+                    Api::SetMetadata((metadata, rx_response)) => {
+                        state.metadata = metadata;
+                        if rx_response.send(()).is_err() {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::SetMetadata")),
+                            });
+                        }
+                    }
+                    Api::GetMetadata(rx_response) => {
+                        if rx_response.send(state.metadata.clone()).is_err() {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::GetMetadata")),
+                            });
+                        }
+                    }
+                    Api::SetStreamLen((len, rx_response)) => {
+                        state.search_map.set_stream_len(len);
+                        if rx_response.send(()).is_err() {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::SetStreamLen")),
+                            });
+                        }
+                    }
+                    Api::SetMatches((matches, rx_response)) => {
+                        state.search_map.set(matches);
+                        if rx_response.send(()).is_err() {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::SetMatches")),
+                            });
+                        }
+                    }
+                    Api::AddOperation((uuid, token, rx_response)) => {
+                        if rx_response
+                            .send(if state.operations.contains_key(&uuid) {
+                                false
+                            } else {
+                                state.operations.insert(uuid, token);
+                                true
+                            })
+                            .is_err()
+                        {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::AddOperation")),
+                            });
+                        }
+                    }
+                    Api::RemoveOperation((uuid, rx_response)) => {
+                        if rx_response
+                            .send(state.operations.remove(&uuid).is_some())
+                            .is_err()
+                        {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::RemoveOperation")),
+                            });
+                        }
+                    }
+                    Api::CancelOperation((uuid, rx_response)) => {
+                        if rx_response
+                            .send(if let Some(token) = state.operations.remove(&uuid) {
+                                token.cancel();
+                                true
+                            } else {
+                                false
+                            })
+                            .is_err()
+                        {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::CancelOperation")),
+                            });
+                        }
+                    }
+                    Api::CloseSession(rx_response) => {
+                        state.status = Status::Closed;
+                        for token in state.operations.values() {
+                            token.cancel();
+                        }
+                        state.operations.clear();
+                        if rx_response.send(()).is_err() {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::CloseSession")),
+                            });
+                        }
+                    }
+                    Api::Shutdown => {
+                        debug!(target: targets::SESSION, "shutdown has been requested");
+                        shutdown_caller.cancel();
+                    }
                 }
             }
-            Api::SetMetadata((metadata, rx_response)) => {
-                state.metadata = metadata;
-                if rx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetMetadata")),
-                    });
-                }
-            }
-            Api::GetMetadata(rx_response) => {
-                if rx_response.send(state.metadata.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetMetadata")),
-                    });
-                }
-            }
-            Api::SetStreamLen((len, rx_response)) => {
-                state.search_map.set_stream_len(len);
-                if rx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetStreamLen")),
-                    });
-                }
-            }
-            Api::SetMatches((matches, rx_response)) => {
-                state.search_map.set(matches);
-                if rx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetMatches")),
-                    });
-                }
-            }
-            Api::AddOperation((uuid, token, rx_response)) => {
-                if rx_response
-                    .send(if state.operations.contains_key(&uuid) {
-                        false
-                    } else {
-                        state.operations.insert(uuid, token);
-                        true
-                    })
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::AddOperation")),
-                    });
-                }
-            }
-            Api::RemoveOperation((uuid, rx_response)) => {
-                if rx_response
-                    .send(state.operations.remove(&uuid).is_some())
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::RemoveOperation")),
-                    });
-                }
-            }
-            Api::CancelOperation((uuid, rx_response)) => {
-                if rx_response
-                    .send(if let Some(token) = state.operations.remove(&uuid) {
-                        token.cancel();
-                        true
-                    } else {
-                        false
-                    })
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::CancelOperation")),
-                    });
-                }
-            }
-            Api::CloseSession(rx_response) => {
-                state.status = Status::Closed;
-                for token in state.operations.values() {
-                    token.cancel();
-                }
-                state.operations.clear();
-                if rx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::CloseSession")),
-                    });
-                }
-            }
-        }
-    }
+            Ok(())
+        } => {},
+        _ = shutdown.cancelled() => {}
+    };
     debug!(target: targets::SESSION, "task is finished");
     Ok(())
 }

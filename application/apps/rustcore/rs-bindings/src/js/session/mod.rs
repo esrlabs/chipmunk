@@ -12,7 +12,7 @@ use crate::{
 use crossbeam_channel as cc;
 use events::{CallbackEvent, ComputationError, SyncChannel};
 use indexer_base::progress::Severity;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::{
     dlt_source::DltSource,
@@ -101,6 +101,8 @@ pub struct RustSession {
     pub search_grabber: Option<Box<dyn AsyncGrabTrait>>,
     tx_operations: UnboundedSender<(Uuid, operations::Operation)>,
     rx_operations: Option<UnboundedReceiver<(Uuid, operations::Operation)>>,
+    rx_state_api: Option<UnboundedReceiver<state::Api>>,
+    state_api: Option<SessionStateAPI>,
     // channel to store the metadata of the search results once available
     search_metadata_channel: SyncChannel<Option<(PathBuf, GrabMetadata)>>,
 }
@@ -196,6 +198,16 @@ impl RustSession {
             }
         }
     }
+
+    fn is_opened(&self) -> bool {
+        if self.rx_state_api.is_some() {
+            false
+        } else if let Some(state_api) = self.state_api.as_ref() {
+            !state_api.is_shutdown()
+        } else {
+            false
+        }
+    }
 }
 
 #[node_bindgen]
@@ -203,6 +215,7 @@ impl RustSession {
     #[node_bindgen(constructor)]
     pub fn new(id: String) -> Self {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
+        let (state_api, rx_state_api) = SessionStateAPI::new();
         Self {
             id,
             running: false,
@@ -210,6 +223,8 @@ impl RustSession {
             search_grabber: None,
             tx_operations,
             rx_operations: Some(rx_operations),
+            rx_state_api: Some(rx_state_api),
+            state_api: Some(state_api),
             search_metadata_channel: cc::unbounded(),
         }
     }
@@ -247,8 +262,17 @@ impl RustSession {
             return Err(ComputationError::MultipleInitCall);
         };
         self.running = true;
+        let state_api = if let Some(state_api) = self.state_api.as_ref() {
+            state_api.clone()
+        } else {
+            return Err(ComputationError::MultipleInitCall);
+        };
+        let rx_state_api = if let Some(rx_state_api) = self.rx_state_api.take() {
+            rx_state_api
+        } else {
+            return Err(ComputationError::MultipleInitCall);
+        };
         let search_metadata_tx = self.search_metadata_channel.0.clone();
-        let (state_api, rx_state_api) = SessionStateAPI::new();
         thread::spawn(move || {
             rt.block_on(async {
                 info!(target: targets::SESSION, "started");
@@ -256,15 +280,26 @@ impl RustSession {
                     UnboundedSender<CallbackEvent>,
                     UnboundedReceiver<CallbackEvent>,
                 ) = unbounded_channel();
-                let (_, _, _) = join!(
-                    operations::task(
-                        rx_operations,
-                        state_api,
-                        search_metadata_tx,
-                        tx_callback_events
-                    ),
-                    events::task(callback, rx_callback_events),
-                    state::task(rx_state_api),
+                let state_shutdown_token = state_api.get_shutdown_token();
+                let (_, _) = join!(
+                    async move {
+                        let (_, _) = join!(
+                            operations::task(
+                                rx_operations,
+                                state_api.clone(),
+                                search_metadata_tx,
+                                tx_callback_events
+                            ),
+                            events::task(callback, rx_callback_events),
+                        );
+                        if let Err(err) = state_api.shutdown() {
+                            error!(
+                                target: targets::SESSION,
+                                "fail to call state shutdown: {:?}", err
+                            );
+                        }
+                    },
+                    state::task(rx_state_api, state_shutdown_token),
                 );
                 info!(target: targets::SESSION, "finished");
             })
@@ -274,6 +309,9 @@ impl RustSession {
 
     #[node_bindgen]
     fn get_stream_len(&mut self) -> Result<i64, ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         match &self.get_updated_content_grabber()?.get_metadata() {
             Some(md) => Ok(md.line_count as i64),
             None => Err(ComputationError::Protocol("Cannot happen".to_owned())),
@@ -282,6 +320,9 @@ impl RustSession {
 
     #[node_bindgen]
     fn get_search_len(&mut self) -> Result<i64, ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         let grabber = if let Some(grabber) = self.get_search_grabber()? {
             grabber
         } else {
@@ -299,6 +340,9 @@ impl RustSession {
         start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         info!(
             target: targets::SESSION,
             "grab from {} ({} lines)", start_line_index, number_of_lines
@@ -316,6 +360,9 @@ impl RustSession {
 
     #[node_bindgen]
     fn stop(&mut self) -> Result<(), ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         let _ = self
             .tx_operations
             .send((Uuid::new_v4(), operations::Operation::End));
@@ -330,6 +377,9 @@ impl RustSession {
         source_id: String,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         debug!(target: targets::SESSION, "send assign event on channel");
         let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
@@ -357,6 +407,9 @@ impl RustSession {
         start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         info!(
             target: targets::SESSION,
             "grab search results from {} ({} lines)", start_line_index, number_of_lines
@@ -442,6 +495,9 @@ impl RustSession {
         filters: Vec<WrappedSearchFilter>,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         let operation_id = operations::uuid_from_str(&operation_id_string)?;
         self.search_grabber = None;
         let (tx_response, rx_response): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
@@ -495,6 +551,9 @@ impl RustSession {
         filters: Vec<WrappedSearchFilter>,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
@@ -536,6 +595,9 @@ impl RustSession {
         from: Option<i64>,
         to: Option<i64>,
     ) -> Result<String, ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         let operation_id = Uuid::new_v4();
         let mut range: Option<(u64, u64)> = None;
         if let Some(from) = from {
@@ -588,6 +650,9 @@ impl RustSession {
         )>,
         ComputationError,
     > {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         let (tx_response, rx_response): (
             cc::Sender<Option<NearestPosition>>,
             cc::Receiver<Option<NearestPosition>>,
@@ -620,6 +685,9 @@ impl RustSession {
         append: bool,
         operation_id: String,
     ) -> Result<(), ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         //TODO: out_path should be gererics by some settings.
         let operation_id = operations::uuid_from_str(&operation_id)?;
         let (out_path, out_path_str) = if files.is_empty() {
@@ -678,6 +746,9 @@ impl RustSession {
         append: bool,
         operation_id: String,
     ) -> Result<(), ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
         //TODO: out_path should be gererics by some settings.
         let operation_id = operations::uuid_from_str(&operation_id)?;
         let (out_path, out_path_str) = if files.is_empty() {
