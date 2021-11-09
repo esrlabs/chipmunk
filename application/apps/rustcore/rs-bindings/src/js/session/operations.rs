@@ -1,24 +1,25 @@
-use crate::js::{
-    handlers,
-    session::{
-        cancelers::CancelersAPI,
-        events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
-        state::SessionStateAPI,
-        SupportedFileType,
+use crate::{
+    js::{
+        handlers,
+        session::{
+            events::{
+                CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone,
+            },
+            state::SessionStateAPI,
+            SupportedFileType,
+        },
     },
+    logging::targets,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
-use log::{error, warn};
+use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use processor::{grabber::GrabMetadata, map::NearestPosition, search::SearchFilter};
 use serde::Serialize;
 use std::path::PathBuf;
 use tokio::{
-    sync::{
-        mpsc::{UnboundedReceiver, UnboundedSender},
-        oneshot,
-    },
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
     task::spawn,
 };
 use tokio_util::sync::CancellationToken;
@@ -76,12 +77,12 @@ pub struct OperationAPI {
     tx_callback_events: UnboundedSender<CallbackEvent>,
     operation_id: Uuid,
     cancellation_token: CancellationToken,
-    cancelers_api: CancelersAPI,
+    state_api: SessionStateAPI,
 }
 
 impl OperationAPI {
     pub fn new(
-        cancelers_api: CancelersAPI,
+        state_api: SessionStateAPI,
         tx_callback_events: UnboundedSender<CallbackEvent>,
         operation_id: Uuid,
         cancellation_token: CancellationToken,
@@ -90,7 +91,7 @@ impl OperationAPI {
             tx_callback_events,
             operation_id,
             cancellation_token,
-            cancelers_api,
+            state_api,
         }
     }
 
@@ -101,7 +102,10 @@ impl OperationAPI {
     pub fn emit(&self, event: CallbackEvent) {
         let event_log = format!("{:?}", event);
         if let Err(err) = self.tx_callback_events.send(event) {
-            error!("Fail to send event {}; error: {}", event_log, err)
+            error!(
+                target: targets::SESSION,
+                "Fail to send event {}; error: {}", event_log, err
+            )
         }
     }
 
@@ -135,8 +139,8 @@ impl OperationAPI {
             }
             Err(error) => {
                 warn!(
-                    "Operation {} done with error: {:?}",
-                    self.operation_id, error
+                    target: targets::SESSION,
+                    "Operation {} done with error: {:?}", self.operation_id, error
                 );
                 CallbackEvent::OperationError {
                     uuid: self.operation_id,
@@ -144,8 +148,11 @@ impl OperationAPI {
                 }
             }
         };
-        if let Err(err) = self.unregister().await {
-            error!("Fail to unrigister operation; error: {:?}", err);
+        if let Err(err) = self.state_api.remove_operation(self.id()).await {
+            error!(
+                target: targets::SESSION,
+                "Fail to remove operation; error: {:?}", err
+            );
         }
         self.emit(event);
     }
@@ -154,19 +161,15 @@ impl OperationAPI {
         self.cancellation_token.child_token()
     }
 
-    pub async fn register(&self) -> Result<bool, NativeError> {
-        self.cancelers_api
-            .add(self.id(), self.get_cancellation_token())
-            .await
-    }
-
     pub async fn process(
         &self,
         operation: Operation,
-        state: SessionStateAPI,
         search_metadata_tx: cc::Sender<Option<(PathBuf, GrabMetadata)>>,
     ) -> Result<(), NativeError> {
-        let added = self.register().await?;
+        let added = self
+            .state_api
+            .add_operation(self.id(), self.get_cancellation_token())
+            .await?;
         if !added {
             return Err(NativeError {
                 severity: Severity::ERROR,
@@ -175,6 +178,7 @@ impl OperationAPI {
             });
         }
         let api = self.clone();
+        let state = self.state_api.clone();
         spawn(async move {
             match operation {
                 Operation::Assign {
@@ -262,35 +266,52 @@ impl OperationAPI {
                     .await;
                 }
                 Operation::Cancel { operation_id } => {
-                    // debug!("RUST: received cancel operation event");
-                    // if let Some(token) = operations.remove(&operation_id) {
-                    //     token.cancel();
-                    //     operation_api.finish::<OperationResult<()>>(Ok(None));
-                    // } else {
-                    //     operation_api.emit(CallbackEvent::OperationError {
-                    //         uuid: operation_id,
-                    //         error: NativeError {
-                    //             severity: Severity::WARNING,
-                    //             kind: NativeErrorKind::NotYetImplemented,
-                    //             message: Some(format!("Operation {} isn't found", operation_id)),
-                    //         },
-                    //     });
-                    // }
+                    match state.cancel_operation(operation_id).await {
+                        Ok(canceled) => {
+                            if canceled {
+                                api.finish::<OperationResult<()>>(Ok(None)).await;
+                            } else {
+                                api.finish::<OperationResult<()>>(Err(NativeError {
+                                    severity: Severity::WARNING,
+                                    kind: NativeErrorKind::NotYetImplemented,
+                                    message: Some(format!(
+                                        "Fail to cancel operation {}; operation isn't found",
+                                        operation_id
+                                    )),
+                                }))
+                                .await;
+                            }
+                        }
+                        Err(err) => {
+                            api.finish::<OperationResult<()>>(Err(NativeError {
+                                severity: Severity::WARNING,
+                                kind: NativeErrorKind::NotYetImplemented,
+                                message: Some(format!(
+                                    "Fail to cancel operation {}; error: {:?}",
+                                    operation_id, err
+                                )),
+                            }))
+                            .await;
+                        }
+                    }
                 }
                 Operation::ExtractMetadata(tx_response) => match state.get_metadata().await {
                     Ok(md) => {
                         if let Err(err) = tx_response.send(if let Some(md) = &md {
                             let md = md.clone();
                             if let Err(err) = state.set_metadata(None).await {
-                                error!("fail drop metadata; error: {:?}", err);
+                                error!(
+                                    target: targets::SESSION,
+                                    "fail drop metadata; error: {:?}", err
+                                );
                             }
                             Some(md)
                         } else {
                             None
                         }) {
                             error!(
-                                "fail to responce to Operation::ExtractMetadata; error: {}",
-                                err
+                                target: targets::SESSION,
+                                "fail to responce to Operation::ExtractMetadata; error: {}", err
                             );
                         }
                         api.finish::<OperationResult<()>>(Ok(None)).await;
@@ -304,7 +325,10 @@ impl OperationAPI {
                         api.finish::<OperationResult<()>>(Err(err)).await;
                     } else {
                         if let Err(err) = tx_response.send(()) {
-                            error!("fail to responce to Operation::DropSearch; error: {}", err);
+                            error!(
+                                target: targets::SESSION,
+                                "fail to responce to Operation::DropSearch; error: {}", err
+                            );
                         }
                         api.finish::<OperationResult<()>>(Ok(None)).await;
                     }
@@ -314,6 +338,7 @@ impl OperationAPI {
                         Ok(map) => {
                             if let Err(err) = tx_response.send(map.nearest_to(position)) {
                                 error!(
+                                    target: targets::SESSION,
                                     "fail to responce to Operation::GetNearestPosition; error: {}",
                                     err
                                 );
@@ -332,10 +357,6 @@ impl OperationAPI {
         });
         Ok(())
     }
-
-    async fn unregister(&self) -> Result<bool, NativeError> {
-        self.cancelers_api.remove(self.id()).await
-    }
 }
 
 pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
@@ -351,19 +372,21 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
 pub async fn task(
     mut rx_operations: UnboundedReceiver<(Uuid, Operation)>,
     state: SessionStateAPI,
-    cancelers: CancelersAPI,
     search_metadata_tx: cc::Sender<Option<(PathBuf, GrabMetadata)>>,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
+    debug!(target: targets::SESSION, "task is started");
     while let Some((id, operation)) = rx_operations.recv().await {
         let operation_api = OperationAPI::new(
-            cancelers.clone(),
+            state.clone(),
             tx_callback_events.clone(),
             id,
             CancellationToken::new(),
         );
-        if let Err(err) = operation_api
-            .process(operation, state.clone(), search_metadata_tx.clone())
+        if matches!(operation, Operation::End) {
+            break;
+        } else if let Err(err) = operation_api
+            .process(operation, search_metadata_tx.clone())
             .await
         {
             operation_api.emit(CallbackEvent::OperationError {
@@ -372,5 +395,6 @@ pub async fn task(
             });
         }
     }
+    debug!(target: targets::SESSION, "task is finished");
     Ok(())
 }

@@ -3,40 +3,47 @@ refresh_rate: 30 seconds
 
 # The "appenders" map contains the set of appenders, indexed by their names.
 appenders:
+    stdout:
+        kind: console
+        encoder:
+            kind: pattern
+            pattern: "[{l}][{t}: {M}][{d(%H:%M:%S)}] {m}{n}\n"
+    indexer-root:
+        kind: file
+        path: $INDEXER_LOG_PATH
+        encoder:
+            kind: pattern
+            pattern: "[{l}] [{t}: {M}] {d}:: {m}{n}\n"
 
-  indexer-root:
-    kind: file
-    path: $INDEXER_LOG_PATH
-    encoder:
-      kind: pattern
-      pattern: "{d} - {l}:: {m}\n"
-
-  startup-appender:
-    kind: file
-    path: $LAUNCHER_LOG_PATH
-    encoder:
-      kind: pattern
-      pattern: "{d} [{M}] {l}:: {m}\n"
+    startup-appender:
+        kind: file
+        path: $LAUNCHER_LOG_PATH
+        encoder:
+            kind: pattern
+            pattern: "{d} [{M}] {l}:: {m}\n"
 
 root:
-  # level: off
-  # level: error
-  level: warn
-  # level: info
-  # level: debug
-  # level: trace
-
-  appenders:
-    - indexer-root
+    # level: off
+    # level: error
+    level: warn
+    # level: info
+    # level: debug
+    # level: trace
 
 loggers:
-  launcher:
-    level: trace
-    appenders:
-      - startup-appender
-    additive: false
-  updater:
-    level: trace
-    appenders:
-      - startup-appender
-    additive: false
+    session:
+        level: trace
+        appenders:
+            - indexer-root
+            - stdout
+        additive: false
+    launcher:
+        level: trace
+        appenders:
+            - startup-appender
+        additive: false
+    updater:
+        level: trace
+        appenders:
+            - startup-appender
+        additive: false

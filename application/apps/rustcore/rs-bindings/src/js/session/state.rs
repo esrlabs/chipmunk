@@ -5,10 +5,13 @@ use processor::{
     map::{FilterMatch, SearchMap},
     search::SearchFilter,
 };
+use std::collections::HashMap;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot,
 };
+use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
 
 pub enum Api {
     SetAssignedFile((Option<String>, oneshot::Sender<()>)),
@@ -21,6 +24,9 @@ pub enum Api {
     GetMetadata(oneshot::Sender<Option<GrabMetadata>>),
     SetStreamLen((u64, oneshot::Sender<()>)),
     SetMatches((Option<Vec<FilterMatch>>, oneshot::Sender<()>)),
+    AddOperation((Uuid, CancellationToken, oneshot::Sender<bool>)),
+    RemoveOperation((Uuid, oneshot::Sender<bool>)),
+    CancelOperation((Uuid, oneshot::Sender<bool>)),
 }
 
 #[derive(Debug)]
@@ -29,6 +35,7 @@ pub struct SessionState {
     pub filters: Vec<SearchFilter>,
     pub search_map: SearchMap,
     pub metadata: Option<GrabMetadata>,
+    pub operations: HashMap<Uuid, CancellationToken>,
 }
 
 #[derive(Clone)]
@@ -223,6 +230,70 @@ impl SessionStateAPI {
         })?;
         Ok(())
     }
+    pub async fn add_operation(
+        &self,
+        uuid: Uuid,
+        canceler: CancellationToken,
+    ) -> Result<bool, NativeError> {
+        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
+            oneshot::channel();
+        self.tx_api
+            .send(Api::AddOperation((uuid, canceler, tx_response)))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!("fail to send to Api::AddOperation; error: {}", e,)),
+            })?;
+        rx_response.await.map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from("fail to get response from Api::AddOperation")),
+        })
+    }
+
+    pub async fn remove_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
+        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
+            oneshot::channel();
+        self.tx_api
+            .send(Api::RemoveOperation((uuid, tx_response)))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!(
+                    "fail to send to Api::RemoveOperation; error: {}",
+                    e,
+                )),
+            })?;
+        rx_response.await.map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from(
+                "fail to get response from Api::RemoveOperation",
+            )),
+        })
+    }
+
+    pub async fn cancel_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
+        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
+            oneshot::channel();
+        self.tx_api
+            .send(Api::CancelOperation((uuid, tx_response)))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!(
+                    "fail to send to Api::CancelOperation; error: {}",
+                    e,
+                )),
+            })?;
+        rx_response.await.map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from(
+                "fail to get response from Api::CancelOperation",
+            )),
+        })
+    }
 }
 
 pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError> {
@@ -231,6 +302,7 @@ pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError>
         filters: vec![],
         search_map: SearchMap::new(),
         metadata: None,
+        operations: HashMap::new(),
     };
     while let Some(msg) = rx_api.recv().await {
         match msg {
@@ -327,6 +399,52 @@ pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError>
                         severity: Severity::ERROR,
                         kind: NativeErrorKind::ChannelError,
                         message: Some(String::from("fail to response to Api::SetMatches")),
+                    });
+                }
+            }
+            Api::AddOperation((uuid, token, rx_response)) => {
+                if rx_response
+                    .send(if !state.operations.contains_key(&uuid) {
+                        state.operations.insert(uuid, token);
+                        true
+                    } else {
+                        false
+                    })
+                    .is_err()
+                {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(String::from("fail to response to Api::AddOperation")),
+                    });
+                }
+            }
+            Api::RemoveOperation((uuid, rx_response)) => {
+                if rx_response
+                    .send(state.operations.remove(&uuid).is_some())
+                    .is_err()
+                {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(String::from("fail to response to Api::RemoveOperation")),
+                    });
+                }
+            }
+            Api::CancelOperation((uuid, rx_response)) => {
+                if rx_response
+                    .send(if let Some(token) = state.operations.remove(&uuid) {
+                        token.cancel();
+                        true
+                    } else {
+                        false
+                    })
+                    .is_err()
+                {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(String::from("fail to response to Api::CancelOperation")),
                     });
                 }
             }

@@ -1,18 +1,18 @@
-pub mod cancelers;
 pub mod events;
 pub mod operations;
 pub mod state;
 
-use crate::js::converting::{
-    concat::WrappedConcatenatorInput, filter::WrappedSearchFilter, merge::WrappedFileMergeOptions,
+use crate::{
+    js::converting::{
+        concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
+        merge::WrappedFileMergeOptions,
+    },
+    logging::targets,
 };
-use cancelers::CancelersAPI;
 use crossbeam_channel as cc;
-use events::{
-    CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone, SyncChannel,
-};
+use events::{CallbackEvent, ComputationError, SyncChannel};
 use indexer_base::progress::Severity;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::{
     dlt_source::DltSource,
@@ -66,7 +66,7 @@ fn lazy_init_grabber(
             let source = TextFileSource::new(input_p, source_id);
             let grabber = GrabberType::lazy(source).map_err(|e| {
                 let err_msg = format!("Could not create grabber: {}", e);
-                warn!("{}", err_msg);
+                warn!(target: targets::SESSION, "{}", err_msg);
                 ComputationError::Process(err_msg)
             })?;
             Ok((SupportedFileType::Text, Box::new(grabber)))
@@ -80,7 +80,10 @@ fn lazy_init_grabber(
             Ok((SupportedFileType::Dlt, Box::new(grabber)))
         }
         None => {
-            warn!("Trying to assign unsupported file type: {:?}", input_p);
+            warn!(
+                target: targets::SESSION,
+                "Trying to assign unsupported file type: {:?}", input_p
+            );
             Err(ComputationError::OperationNotSupported(
                 "Unsupported file type".to_string(),
             ))
@@ -118,7 +121,7 @@ impl RustSession {
             Some(c) => Ok(c),
             None => {
                 let msg = "Need a grabber first to work with metadata".to_owned();
-                warn!("{}", msg);
+                warn!(target: targets::SESSION, "{}", msg);
                 Err(ComputationError::Protocol(msg))
             }
         }?;
@@ -141,7 +144,10 @@ impl RustSession {
                 }
             }
             Err(err) => {
-                warn!("Fail to get a metadata; error: {}", err);
+                warn!(
+                    target: targets::SESSION,
+                    "Fail to get a metadata; error: {}", err
+                );
             }
         };
         Ok(current_grabber)
@@ -160,7 +166,7 @@ impl RustSession {
                     Ok(grabber) => grabber,
                     Err(err) => {
                         let msg = format!("Failed to create search grabber. Error: {}", err);
-                        warn!("{}", msg);
+                        warn!(target: targets::SESSION, "{}", msg);
                         return Err(ComputationError::Protocol(msg));
                     }
                 };
@@ -169,7 +175,7 @@ impl RustSession {
                         "Failed to inject metadata into search grabber. Error: {}",
                         err
                     );
-                    warn!("{}", msg);
+                    warn!(target: targets::SESSION, "{}", msg);
                     return Err(ComputationError::Protocol(msg));
                 }
                 self.search_grabber = Some(Box::new(grabber));
@@ -183,12 +189,12 @@ impl RustSession {
         };
         match grabber.get_metadata() {
             Some(_) => {
-                debug!("RUST: reusing cached metadata");
+                debug!(target: targets::SESSION, "RUST: reusing cached metadata");
                 Ok(Some(grabber))
             }
             None => {
                 let msg = "No metadata available for search grabber".to_owned();
-                warn!("{}", msg);
+                warn!(target: targets::SESSION, "{}", msg);
                 Err(ComputationError::Protocol(msg))
             }
         }
@@ -247,9 +253,8 @@ impl RustSession {
         let search_metadata_tx = self.search_metadata_channel.0.clone();
         thread::spawn(move || {
             rt.block_on(async {
-                info!("RUST: running runtime");
+                info!(target: targets::SESSION, "RUST: running runtime");
                 let (state_api, rx_state_api) = SessionStateAPI::new();
-                let (canceler_api, rx_canceler_api) = CancelersAPI::new();
                 let (tx_callback_events, rx_callback_events): (
                     UnboundedSender<CallbackEvent>,
                     UnboundedReceiver<CallbackEvent>,
@@ -257,15 +262,13 @@ impl RustSession {
                 // TODO: select -> join
                 select! {
                     // Rust session events (internal events)
-                    _ = operations::task(rx_operations, state_api, canceler_api, search_metadata_tx, tx_callback_events) => {},
-                    // Currect session state (filters, matches, len etc.)
+                    _ = operations::task(rx_operations, state_api, search_metadata_tx, tx_callback_events) => {},
+                    // Currect session state (cancelers, filters, matches, len etc.)
                     _ = state::task(rx_state_api) => {},
                     // Sender events into JS world
                     _ = events::task(callback, rx_callback_events) => {},
-                    // Holder cancelation tokens for all operations in progress
-                    _ = cancelers::task(rx_canceler_api) => {}
                 };
-                info!("RUST: exiting runtime");
+                info!(target: targets::SESSION, "RUST: exiting runtime");
             })
         });
         Ok(())
@@ -299,8 +302,8 @@ impl RustSession {
         number_of_lines: i64,
     ) -> Result<String, ComputationError> {
         info!(
-            "RUST: grab from {} ({} lines)",
-            start_line_index, number_of_lines
+            target: targets::SESSION,
+            "RUST: grab from {} ({} lines)", start_line_index, number_of_lines
         );
         let grabbed_content = self
             .get_updated_content_grabber()?
@@ -329,7 +332,10 @@ impl RustSession {
         source_id: String,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        debug!("RUST: send assign event on channel");
+        debug!(
+            target: targets::SESSION,
+            "RUST: send assign event on channel"
+        );
         let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
         let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
@@ -357,8 +363,8 @@ impl RustSession {
         number_of_lines: i64,
     ) -> Result<String, ComputationError> {
         info!(
-            "RUST: grab search results from {} ({} lines)",
-            start_line_index, number_of_lines
+            target: targets::SESSION,
+            "RUST: grab search results from {} ({} lines)", start_line_index, number_of_lines
         );
         let grabber = if let Some(grabber) = self.get_search_grabber()? {
             grabber
@@ -374,7 +380,10 @@ impl RustSession {
                 (start_line_index as u64)..=((start_line_index + number_of_lines) as u64),
             ))
             .map_err(|e| {
-                warn!("Grab search content failed: {}", e);
+                warn!(
+                    target: targets::SESSION,
+                    "Grab search content failed: {}", e
+                );
                 ComputationError::SearchError(SearchError::Grab(e))
             })?;
         let mut results: GrabbedContent = GrabbedContent {
@@ -423,6 +432,7 @@ impl RustSession {
                 .append(&mut original_content.grabbed_elements);
         }
         debug!(
+            target: targets::SESSION,
             "RUST: grabbing search result from original content {} rows",
             results.grabbed_elements.len()
         );
@@ -455,13 +465,19 @@ impl RustSession {
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
-            warn!("Cannot search when no file has been assigned");
+            warn!(
+                target: targets::SESSION,
+                "Cannot search when no file has been assigned"
+            );
             return Err(ComputationError::NoAssignedContent);
         };
         let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
         info!(
+            target: targets::SESSION,
             "Search (operation: {}) will be done in {:?} withing next filters: {:?}",
-            operation_id, target_file, filters
+            operation_id,
+            target_file,
+            filters
         );
         match self.tx_operations.send((
             operation_id,
@@ -492,8 +508,11 @@ impl RustSession {
         };
         let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
         info!(
+            target: targets::SESSION,
             "Extract (operation: {}) will be done in {:?} withing next filters: {:?}",
-            operation_id, target_file, filters
+            operation_id,
+            target_file,
+            filters
         );
         match self
             .tx_operations
@@ -531,16 +550,19 @@ impl RustSession {
                         range = Some((from as u64, to as u64));
                     } else {
                         warn!(
+                            target: targets::SESSION,
                             "Invalid range (operation: {}): from = {}; to = {}",
-                            operation_id, from, to
+                            operation_id,
+                            from,
+                            to
                         );
                     }
                 }
             }
         }
         info!(
-            "Map requested (operation: {}). Range: {:?}",
-            operation_id, range
+            target: targets::SESSION,
+            "Map requested (operation: {}). Range: {:?}", operation_id, range
         );
         if let Err(e) = self
             .tx_operations
