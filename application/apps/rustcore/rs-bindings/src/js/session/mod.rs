@@ -24,18 +24,15 @@ use processor::{
 use serde::Serialize;
 use state::SessionStateAPI;
 use std::{
-    collections::HashMap,
     fs::OpenOptions,
     path::{Path, PathBuf},
     thread,
 };
 use tokio::{
+    join,
     runtime::Runtime,
-    select,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
 };
-
-use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Clone)]
@@ -189,7 +186,7 @@ impl RustSession {
         };
         match grabber.get_metadata() {
             Some(_) => {
-                debug!(target: targets::SESSION, "RUST: reusing cached metadata");
+                debug!(target: targets::SESSION, "reusing cached metadata");
                 Ok(Some(grabber))
             }
             None => {
@@ -251,24 +248,25 @@ impl RustSession {
         };
         self.running = true;
         let search_metadata_tx = self.search_metadata_channel.0.clone();
+        let (state_api, rx_state_api) = SessionStateAPI::new();
         thread::spawn(move || {
             rt.block_on(async {
-                info!(target: targets::SESSION, "RUST: running runtime");
-                let (state_api, rx_state_api) = SessionStateAPI::new();
+                info!(target: targets::SESSION, "started");
                 let (tx_callback_events, rx_callback_events): (
                     UnboundedSender<CallbackEvent>,
                     UnboundedReceiver<CallbackEvent>,
                 ) = unbounded_channel();
-                // TODO: select -> join
-                select! {
-                    // Rust session events (internal events)
-                    _ = operations::task(rx_operations, state_api, search_metadata_tx, tx_callback_events) => {},
-                    // Currect session state (cancelers, filters, matches, len etc.)
-                    _ = state::task(rx_state_api) => {},
-                    // Sender events into JS world
-                    _ = events::task(callback, rx_callback_events) => {},
-                };
-                info!(target: targets::SESSION, "RUST: exiting runtime");
+                let (_, _, _) = join!(
+                    operations::task(
+                        rx_operations,
+                        state_api,
+                        search_metadata_tx,
+                        tx_callback_events
+                    ),
+                    events::task(callback, rx_callback_events),
+                    state::task(rx_state_api),
+                );
+                info!(target: targets::SESSION, "finished");
             })
         });
         Ok(())
@@ -303,7 +301,7 @@ impl RustSession {
     ) -> Result<String, ComputationError> {
         info!(
             target: targets::SESSION,
-            "RUST: grab from {} ({} lines)", start_line_index, number_of_lines
+            "grab from {} ({} lines)", start_line_index, number_of_lines
         );
         let grabbed_content = self
             .get_updated_content_grabber()?
@@ -332,10 +330,7 @@ impl RustSession {
         source_id: String,
         operation_id_string: String,
     ) -> Result<(), ComputationError> {
-        debug!(
-            target: targets::SESSION,
-            "RUST: send assign event on channel"
-        );
+        debug!(target: targets::SESSION, "send assign event on channel");
         let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
         let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
@@ -364,7 +359,7 @@ impl RustSession {
     ) -> Result<String, ComputationError> {
         info!(
             target: targets::SESSION,
-            "RUST: grab search results from {} ({} lines)", start_line_index, number_of_lines
+            "grab search results from {} ({} lines)", start_line_index, number_of_lines
         );
         let grabber = if let Some(grabber) = self.get_search_grabber()? {
             grabber
@@ -433,7 +428,7 @@ impl RustSession {
         }
         debug!(
             target: targets::SESSION,
-            "RUST: grabbing search result from original content {} rows",
+            "grabbing search result from original content {} rows",
             results.grabbed_elements.len()
         );
         let serialized =

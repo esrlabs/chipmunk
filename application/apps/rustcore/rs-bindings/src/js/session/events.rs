@@ -1,5 +1,7 @@
+use crate::logging::targets;
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity};
+use log::debug;
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
@@ -183,8 +185,10 @@ pub async fn task<F: Fn(CallbackEvent) + Send + 'static>(
     callback: F,
     mut rx_callback_events: UnboundedReceiver<CallbackEvent>,
 ) -> Result<(), NativeError> {
+    debug!(target: targets::SESSION, "task is started");
     while let Some(event) = rx_callback_events.recv().await {
         callback(event)
     }
+    debug!(target: targets::SESSION, "task is finished");
     Ok(())
 }

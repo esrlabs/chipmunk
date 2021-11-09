@@ -7,14 +7,13 @@ appenders:
         kind: console
         encoder:
             kind: pattern
-            pattern: "[{l}][{t}: {M}][{d(%H:%M:%S)}] {m}{n}\n"
+            pattern: '[{l}][{t}: {M}][{d(%H:%M:%S)}] {m}{n}'
     indexer-root:
         kind: file
         path: $INDEXER_LOG_PATH
         encoder:
             kind: pattern
             pattern: "[{l}] [{t}: {M}] {d}:: {m}{n}\n"
-
     startup-appender:
         kind: file
         path: $LAUNCHER_LOG_PATH

@@ -1,5 +1,9 @@
-use crate::js::session::events::{NativeError, NativeErrorKind};
+use crate::{
+    js::session::events::{NativeError, NativeErrorKind},
+    logging::targets,
+};
 use indexer_base::progress::Severity;
+use log::debug;
 use processor::{
     grabber::GrabMetadata,
     map::{FilterMatch, SearchMap},
@@ -14,11 +18,11 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub enum Api {
-    SetAssignedFile((Option<String>, oneshot::Sender<()>)),
-    GetAssignedFile(oneshot::Sender<Option<String>>),
-    SetFilters((Vec<SearchFilter>, oneshot::Sender<()>)),
-    GetFilters(oneshot::Sender<Vec<SearchFilter>>),
-    SetSearchMap((SearchMap, oneshot::Sender<()>)),
+    // SetAssignedFile((Option<String>, oneshot::Sender<()>)),
+    // GetAssignedFile(oneshot::Sender<Option<String>>),
+    // SetFilters((Vec<SearchFilter>, oneshot::Sender<()>)),
+    // GetFilters(oneshot::Sender<Vec<SearchFilter>>),
+    // SetSearchMap((SearchMap, oneshot::Sender<()>)),
     GetSearchMap(oneshot::Sender<SearchMap>),
     SetMetadata((Option<GrabMetadata>, oneshot::Sender<()>)),
     GetMetadata(oneshot::Sender<Option<GrabMetadata>>),
@@ -27,6 +31,13 @@ pub enum Api {
     AddOperation((Uuid, CancellationToken, oneshot::Sender<bool>)),
     RemoveOperation((Uuid, oneshot::Sender<bool>)),
     CancelOperation((Uuid, oneshot::Sender<bool>)),
+    CloseSession(oneshot::Sender<()>),
+}
+
+#[derive(Debug)]
+pub enum Status {
+    Open,
+    Closed,
 }
 
 #[derive(Debug)]
@@ -36,9 +47,10 @@ pub struct SessionState {
     pub search_map: SearchMap,
     pub metadata: Option<GrabMetadata>,
     pub operations: HashMap<Uuid, CancellationToken>,
+    pub status: Status,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SessionStateAPI {
     tx_api: UnboundedSender<Api>,
 }
@@ -48,103 +60,103 @@ impl SessionStateAPI {
         let (tx_api, rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) = unbounded_channel();
         (SessionStateAPI { tx_api }, rx_api)
     }
-    pub async fn set_assigned_file(&self, file: Option<String>) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::SetAssignedFile((file, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::SetAssignedFile; error: {}",
-                    e,
-                )),
-            })?;
-        rx_response.await.map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::SetAssignedFile",
-            )),
-        })?;
-        Ok(())
-    }
-    pub async fn get_assigned_file(&self) -> Result<Option<String>, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Option<String>>,
-            oneshot::Receiver<Option<String>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetAssignedFile(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::GetAssignedFile; error: {}",
-                    e,
-                )),
-            })?;
-        Ok(rx_response.await.map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::GetAssignedFile",
-            )),
-        })?)
-    }
-    pub async fn set_filters(&self, filters: Vec<SearchFilter>) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::SetFilters((filters, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::SetFilters; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::SetFilters")),
-        })?;
-        Ok(())
-    }
-    pub async fn get_filters(&self) -> Result<Vec<SearchFilter>, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Vec<SearchFilter>>,
-            oneshot::Receiver<Vec<SearchFilter>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetFilters(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::GetFilters; error: {}", e,)),
-            })?;
-        Ok(rx_response.await.map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::GetFilters")),
-        })?)
-    }
-    pub async fn set_search_map(&self, map: SearchMap) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::SetSearchMap((map, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::SetSearchMap; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::SetSearchMap")),
-        })?;
-        Ok(())
-    }
+    // pub async fn set_assigned_file(&self, file: Option<String>) -> Result<(), NativeError> {
+    //     let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
+    //         oneshot::channel();
+    //     self.tx_api
+    //         .send(Api::SetAssignedFile((file, tx_response)))
+    //         .map_err(|e| NativeError {
+    //             severity: Severity::ERROR,
+    //             kind: NativeErrorKind::ChannelError,
+    //             message: Some(format!(
+    //                 "fail to send to Api::SetAssignedFile; error: {}",
+    //                 e,
+    //             )),
+    //         })?;
+    //     rx_response.await.map_err(|e| NativeError {
+    //         severity: Severity::ERROR,
+    //         kind: NativeErrorKind::ChannelError,
+    //         message: Some(String::from(
+    //             "fail to get response from Api::SetAssignedFile",
+    //         )),
+    //     })?;
+    //     Ok(())
+    // }
+    // pub async fn get_assigned_file(&self) -> Result<Option<String>, NativeError> {
+    //     let (tx_response, rx_response): (
+    //         oneshot::Sender<Option<String>>,
+    //         oneshot::Receiver<Option<String>>,
+    //     ) = oneshot::channel();
+    //     self.tx_api
+    //         .send(Api::GetAssignedFile(tx_response))
+    //         .map_err(|e| NativeError {
+    //             severity: Severity::ERROR,
+    //             kind: NativeErrorKind::ChannelError,
+    //             message: Some(format!(
+    //                 "fail to send to Api::GetAssignedFile; error: {}",
+    //                 e,
+    //             )),
+    //         })?;
+    //     Ok(rx_response.await.map_err(|e| NativeError {
+    //         severity: Severity::ERROR,
+    //         kind: NativeErrorKind::ChannelError,
+    //         message: Some(String::from(
+    //             "fail to get response from Api::GetAssignedFile",
+    //         )),
+    //     })?)
+    // }
+    // pub async fn set_filters(&self, filters: Vec<SearchFilter>) -> Result<(), NativeError> {
+    //     let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
+    //         oneshot::channel();
+    //     self.tx_api
+    //         .send(Api::SetFilters((filters, tx_response)))
+    //         .map_err(|e| NativeError {
+    //             severity: Severity::ERROR,
+    //             kind: NativeErrorKind::ChannelError,
+    //             message: Some(format!("fail to send to Api::SetFilters; error: {}", e,)),
+    //         })?;
+    //     rx_response.await.map_err(|e| NativeError {
+    //         severity: Severity::ERROR,
+    //         kind: NativeErrorKind::ChannelError,
+    //         message: Some(String::from("fail to get response from Api::SetFilters")),
+    //     })?;
+    //     Ok(())
+    // }
+    // pub async fn get_filters(&self) -> Result<Vec<SearchFilter>, NativeError> {
+    //     let (tx_response, rx_response): (
+    //         oneshot::Sender<Vec<SearchFilter>>,
+    //         oneshot::Receiver<Vec<SearchFilter>>,
+    //     ) = oneshot::channel();
+    //     self.tx_api
+    //         .send(Api::GetFilters(tx_response))
+    //         .map_err(|e| NativeError {
+    //             severity: Severity::ERROR,
+    //             kind: NativeErrorKind::ChannelError,
+    //             message: Some(format!("fail to send to Api::GetFilters; error: {}", e,)),
+    //         })?;
+    //     Ok(rx_response.await.map_err(|e| NativeError {
+    //         severity: Severity::ERROR,
+    //         kind: NativeErrorKind::ChannelError,
+    //         message: Some(String::from("fail to get response from Api::GetFilters")),
+    //     })?)
+    // }
+    // pub async fn set_search_map(&self, map: SearchMap) -> Result<(), NativeError> {
+    //     let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
+    //         oneshot::channel();
+    //     self.tx_api
+    //         .send(Api::SetSearchMap((map, tx_response)))
+    //         .map_err(|e| NativeError {
+    //             severity: Severity::ERROR,
+    //             kind: NativeErrorKind::ChannelError,
+    //             message: Some(format!("fail to send to Api::SetSearchMap; error: {}", e,)),
+    //         })?;
+    //     rx_response.await.map_err(|e| NativeError {
+    //         severity: Severity::ERROR,
+    //         kind: NativeErrorKind::ChannelError,
+    //         message: Some(String::from("fail to get response from Api::SetSearchMap")),
+    //     })?;
+    //     Ok(())
+    // }
     pub async fn get_search_map(&self) -> Result<SearchMap, NativeError> {
         let (tx_response, rx_response): (oneshot::Sender<SearchMap>, oneshot::Receiver<SearchMap>) =
             oneshot::channel();
@@ -155,7 +167,7 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::GetSearchMap; error: {}", e,)),
             })?;
-        Ok(rx_response.await.map_err(|e| NativeError {
+        Ok(rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::GetSearchMap")),
@@ -171,7 +183,7 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::SetMetadata; error: {}", e,)),
             })?;
-        rx_response.await.map_err(|e| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::SetMetadata")),
@@ -190,7 +202,7 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::GetMetadata; error: {}", e,)),
             })?;
-        Ok(rx_response.await.map_err(|e| NativeError {
+        Ok(rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::GetMetadata")),
@@ -206,7 +218,7 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::SetStreamLen; error: {}", e,)),
             })?;
-        rx_response.await.map_err(|e| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::SetStreamLen")),
@@ -223,7 +235,7 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::SetMatches; error: {}", e,)),
             })?;
-        rx_response.await.map_err(|e| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::SetMatches")),
@@ -244,7 +256,7 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::AddOperation; error: {}", e,)),
             })?;
-        rx_response.await.map_err(|e| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::AddOperation")),
@@ -264,7 +276,7 @@ impl SessionStateAPI {
                     e,
                 )),
             })?;
-        rx_response.await.map_err(|e| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from(
@@ -286,13 +298,29 @@ impl SessionStateAPI {
                     e,
                 )),
             })?;
-        rx_response.await.map_err(|e| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from(
                 "fail to get response from Api::CancelOperation",
             )),
         })
+    }
+    pub async fn close_session(&self) -> Result<(), NativeError> {
+        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
+            oneshot::channel();
+        self.tx_api
+            .send(Api::CloseSession(tx_response))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!("fail to send to Api::CloseSession; error: {}", e,)),
+            })?;
+        Ok(rx_response.await.map_err(|_| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from("fail to get response from Api::CloseSession")),
+        })?)
     }
 }
 
@@ -303,57 +331,59 @@ pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError>
         search_map: SearchMap::new(),
         metadata: None,
         operations: HashMap::new(),
+        status: Status::Open,
     };
+    debug!(target: targets::SESSION, "task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
-            Api::SetAssignedFile((file, rx_response)) => {
-                state.assigned_file = file;
-                if rx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetAssignedFile")),
-                    });
-                }
-            }
-            Api::GetAssignedFile(rx_response) => {
-                if rx_response.send(state.assigned_file.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetAssignedFile")),
-                    });
-                }
-            }
-            Api::SetFilters((filters, rx_response)) => {
-                state.filters = filters;
-                if rx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetFilters")),
-                    });
-                }
-            }
-            Api::GetFilters(rx_response) => {
-                if rx_response.send(state.filters.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetFilters")),
-                    });
-                }
-            }
-            Api::SetSearchMap((search_map, rx_response)) => {
-                state.search_map = search_map;
-                if rx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetSearchMap")),
-                    });
-                }
-            }
+            // Api::SetAssignedFile((file, rx_response)) => {
+            //     state.assigned_file = file;
+            //     if rx_response.send(()).is_err() {
+            //         return Err(NativeError {
+            //             severity: Severity::ERROR,
+            //             kind: NativeErrorKind::ChannelError,
+            //             message: Some(String::from("fail to response to Api::SetAssignedFile")),
+            //         });
+            //     }
+            // }
+            // Api::GetAssignedFile(rx_response) => {
+            //     if rx_response.send(state.assigned_file.clone()).is_err() {
+            //         return Err(NativeError {
+            //             severity: Severity::ERROR,
+            //             kind: NativeErrorKind::ChannelError,
+            //             message: Some(String::from("fail to response to Api::GetAssignedFile")),
+            //         });
+            //     }
+            // }
+            // Api::SetFilters((filters, rx_response)) => {
+            //     state.filters = filters;
+            //     if rx_response.send(()).is_err() {
+            //         return Err(NativeError {
+            //             severity: Severity::ERROR,
+            //             kind: NativeErrorKind::ChannelError,
+            //             message: Some(String::from("fail to response to Api::SetFilters")),
+            //         });
+            //     }
+            // }
+            // Api::GetFilters(rx_response) => {
+            //     if rx_response.send(state.filters.clone()).is_err() {
+            //         return Err(NativeError {
+            //             severity: Severity::ERROR,
+            //             kind: NativeErrorKind::ChannelError,
+            //             message: Some(String::from("fail to response to Api::GetFilters")),
+            //         });
+            //     }
+            // }
+            // Api::SetSearchMap((search_map, rx_response)) => {
+            //     state.search_map = search_map;
+            //     if rx_response.send(()).is_err() {
+            //         return Err(NativeError {
+            //             severity: Severity::ERROR,
+            //             kind: NativeErrorKind::ChannelError,
+            //             message: Some(String::from("fail to response to Api::SetSearchMap")),
+            //         });
+            //     }
+            // }
             Api::GetSearchMap(rx_response) => {
                 if rx_response.send(state.search_map.clone()).is_err() {
                     return Err(NativeError {
@@ -404,11 +434,11 @@ pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError>
             }
             Api::AddOperation((uuid, token, rx_response)) => {
                 if rx_response
-                    .send(if !state.operations.contains_key(&uuid) {
+                    .send(if state.operations.contains_key(&uuid) {
+                        false
+                    } else {
                         state.operations.insert(uuid, token);
                         true
-                    } else {
-                        false
                     })
                     .is_err()
                 {
@@ -448,7 +478,22 @@ pub async fn task(mut rx_api: UnboundedReceiver<Api>) -> Result<(), NativeError>
                     });
                 }
             }
+            Api::CloseSession(rx_response) => {
+                state.status = Status::Closed;
+                for token in state.operations.values() {
+                    token.cancel();
+                }
+                state.operations.clear();
+                if rx_response.send(()).is_err() {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(String::from("fail to response to Api::CloseSession")),
+                    });
+                }
+            }
         }
     }
+    debug!(target: targets::SESSION, "task is finished");
     Ok(())
 }
