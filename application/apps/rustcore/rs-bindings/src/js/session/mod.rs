@@ -281,6 +281,16 @@ impl RustSession {
                     UnboundedReceiver<CallbackEvent>,
                 ) = unbounded_channel();
                 let state_shutdown_token = state_api.get_shutdown_token();
+                // let (_, _, _) = join!(
+                //     operations::task(
+                //         rx_operations,
+                //         state_api,
+                //         search_metadata_tx,
+                //         tx_callback_events
+                //     ),
+                //     events::task(callback, rx_callback_events),
+                //     state::task(rx_state_api, state_shutdown_token),
+                // );
                 let (_, _) = join!(
                     async move {
                         let (_, _) = join!(
