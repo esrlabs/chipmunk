@@ -170,6 +170,8 @@ pub enum ComputationError {
     SearchError(SearchError),
     #[error("start method canbe called just once")]
     MultipleInitCall,
+    #[error("Session is destroyed or not inited yet")]
+    SessionUnavailable,
 }
 
 impl TryIntoJs for ComputationError {
@@ -189,6 +191,8 @@ pub async fn task<F: Fn(CallbackEvent) + Send + 'static>(
     while let Some(event) = rx_callback_events.recv().await {
         callback(event)
     }
+    debug!(target: targets::SESSION, "sending SessionDestroyed event");
+    callback(CallbackEvent::SessionDestroyed);
     debug!(target: targets::SESSION, "task is finished");
     Ok(())
 }
