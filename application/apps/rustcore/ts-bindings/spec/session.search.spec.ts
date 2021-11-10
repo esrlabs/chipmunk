@@ -4,22 +4,13 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import * as tmp from 'tmp';
-import * as fs from 'fs';
-
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger, createSampleFile } from './common';
+import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Search', function () {
     it('Test 1. Assign & single search', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Search. Test 1');
         const session = new Session();
         // Set provider into debug mode
@@ -27,10 +18,10 @@ describe('Search', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            return finish(stream);
+            return finish(session, done, stream);
         }
         if (search instanceof Error) {
-            return finish(search);
+            return finish(session, done, search);
         }
         const tmpobj = createSampleFile(
             5000,
@@ -61,6 +52,8 @@ describe('Search', function () {
                                 let result: IGrabbedElement[] | Error = search.grab(0, 10);
                                 if (result instanceof Error) {
                                     return finish(
+                                        session,
+                                        done,
                                         new Error(`Fail to grab data due error: ${result.message}`),
                                     );
                                 }
@@ -109,22 +102,16 @@ describe('Search', function () {
                                     expect((nearest as any).index).toEqual(data[1]);
                                     expect((nearest as any).position).toEqual(data[2]);
                                 });
-                                finish();
+                                finish(session, done);
                             })
-                            .catch(finish);
+                            .catch(finish.bind(null, session, done));
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish);
+            .catch(finish.bind(null, session, done));
     });
 
     it('Test 2. Assign & multiple search', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Search. Test 2');
         const session = new Session();
         // Set provider into debug mode
@@ -132,11 +119,11 @@ describe('Search', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         if (search instanceof Error) {
-            finish(search);
+            finish(session, done, search);
             return;
         }
 
@@ -177,6 +164,8 @@ describe('Search', function () {
                         let result: IGrabbedElement[] | Error = search.grab(0, 10);
                         if (result instanceof Error) {
                             return finish(
+                                session,
+                                done,
                                 new Error(`Fail to grab data due error: ${result.message}`),
                             );
                         }
@@ -224,20 +213,14 @@ describe('Search', function () {
                             expect((nearest as any).index).toEqual(data[1]);
                             expect((nearest as any).position).toEqual(data[2]);
                         });
-                        finish();
+                        finish(session, done);
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish);
+            .catch(finish.bind(null, session, done));
     });
 
     it('Test 3. Assign & zero search', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Search. Test 3');
         const session = new Session();
         // Set provider into debug mode
@@ -245,11 +228,11 @@ describe('Search', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         if (search instanceof Error) {
-            finish(search);
+            finish(session, done, search);
             return;
         }
 
@@ -269,6 +252,8 @@ describe('Search', function () {
                         let result: IGrabbedElement[] | Error = search.grab(0, 10);
                         if (result instanceof Error) {
                             return finish(
+                                session,
+                                done,
                                 new Error(`Fail to grab data due error: ${result.message}`),
                             );
                         }
@@ -276,20 +261,14 @@ describe('Search', function () {
                         logger.debug(
                             'result of grab was: ' + result.map((x) => x.content).join('\n'),
                         );
-                        finish();
+                        finish(session, done);
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish);
+            .catch(finish.bind(null, session, done));
     });
 
     it('Test 4. Assign & single not case sensitive search', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Search. Test 4');
         const session = new Session();
         // Set provider into debug mode
@@ -297,11 +276,11 @@ describe('Search', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         if (search instanceof Error) {
-            finish(search);
+            finish(session, done, search);
             return;
         }
 
@@ -334,6 +313,8 @@ describe('Search', function () {
                                 let result: IGrabbedElement[] | Error = search.grab(0, 10);
                                 if (result instanceof Error) {
                                     return finish(
+                                        session,
+                                        done,
                                         new Error(`Fail to grab data due error: ${result.message}`),
                                     );
                                 }
@@ -382,22 +363,16 @@ describe('Search', function () {
                                     expect((nearest as any).index).toEqual(data[1]);
                                     expect((nearest as any).position).toEqual(data[2]);
                                 });
-                                finish();
+                                finish(session, done);
                             })
-                            .catch(finish);
+                            .catch(finish.bind(null, session, done));
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish);
+            .catch(finish.bind(null, session, done));
     });
 
     it('Test 5. Assign & single word search', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Search. Test 5');
         const session = new Session();
         // Set provider into debug mode
@@ -405,11 +380,11 @@ describe('Search', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         if (search instanceof Error) {
-            finish(search);
+            finish(session, done, search);
             return;
         }
 
@@ -444,6 +419,8 @@ describe('Search', function () {
                                 let result: IGrabbedElement[] | Error = search.grab(0, 10);
                                 if (result instanceof Error) {
                                     return finish(
+                                        session,
+                                        done,
                                         new Error(`Fail to grab data due error: ${result.message}`),
                                     );
                                 }
@@ -492,12 +469,12 @@ describe('Search', function () {
                                     expect((nearest as any).index).toEqual(data[1]);
                                     expect((nearest as any).position).toEqual(data[2]);
                                 });
-                                finish();
+                                finish(session, done);
                             })
-                            .catch(finish);
+                            .catch(finish.bind(null, session, done));
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish);
+            .catch(finish.bind(null, session, done));
     });
 });

@@ -4,21 +4,12 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import * as tmp from 'tmp';
-import * as fs from 'fs';
-
 import { Session } from '../src/api/session';
-import { checkSessionDebugger, createSampleFile } from './common';
+import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Extract search matches', function () {
     it('Test 1. Assign & single extracting', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Extract. Test 1');
         const session = new Session();
         // Set provider into debug mode
@@ -26,11 +17,11 @@ describe('Extract search matches', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         if (search instanceof Error) {
-            finish(search);
+            finish(session, done, search);
             return;
         }
         const tmpobj = createSampleFile(
@@ -67,20 +58,14 @@ describe('Extract search matches', function () {
                             expect(res.values.length).toEqual(1);
                             expect(res.values[0].filter.filter).toEqual(filterA);
                         });
-                        finish();
+                        finish(session, done, );
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null,session, done, ));
             })
-            .catch(finish);
+            .catch(finish.bind(null,session, done, ));
     });
 
     it('Test 2. Assign & multiple extracting', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Extract. Test 2');
         const session = new Session();
         // Set provider into debug mode
@@ -88,11 +73,11 @@ describe('Extract search matches', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         if (search instanceof Error) {
-            finish(search);
+            finish(session, done, search);
             return;
         }
         const tmpobj = createSampleFile(
@@ -137,20 +122,14 @@ describe('Extract search matches', function () {
                             expect(res.values[0].filter.filter).toEqual(filterA);
                             expect(res.values[1].filter.filter).toEqual(filterB);
                         });
-                        finish();
+                        finish(session, done, );
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null,session, done, ));
             })
-            .catch(finish);
+            .catch(finish.bind(null,session, done, ));
     });
 
     it('Test 3. Assign & multiple extracting with subgroups extracting', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Extract. Test 3');
         const session = new Session();
         // Set provider into debug mode
@@ -158,11 +137,11 @@ describe('Extract search matches', function () {
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         if (search instanceof Error) {
-            finish(search);
+            finish(session, done, search);
             return;
         }
         const tmpobj = createSampleFile(
@@ -209,10 +188,10 @@ describe('Extract search matches', function () {
                             expect(res.values[0].values.length).toEqual(1);
                             expect(res.values[1].values.length).toEqual(2);
                         });
-                        finish();
+                        finish(session, done, );
                     })
-                    .catch(finish);
+                    .catch(finish.bind(null, session, done, ));
             })
-            .catch(finish);
+            .catch(finish.bind(null,session, done, ));
     });
 });
