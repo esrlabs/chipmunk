@@ -4,29 +4,20 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import * as tmp from 'tmp';
-import * as fs from 'fs';
-
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger, createSampleFile } from './common';
+import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Merge', function () {
     it('Test 1. Merge files', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Merge. Test 1');
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
         const stream = session.getStream();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         const tmpobj = createSampleFile(
@@ -60,7 +51,11 @@ describe('Merge', function () {
             .then(() => {
                 let result: IGrabbedElement[] | Error = stream.grab(0, 10);
                 if (result instanceof Error) {
-                    finish(new Error(`Fail to grab data due error: ${result.message}`));
+                    finish(
+                        session,
+                        done,
+                        new Error(`Fail to grab data due error: ${result.message}`),
+                    );
                     return;
                 }
                 logger.debug(
@@ -83,8 +78,8 @@ describe('Merge', function () {
                     `a--4`,
                     `b--4`,
                 ]);
-                finish();
+                finish(session, done);
             })
-            .catch(finish);
+            .catch(finish.bind(null, session, done));
     });
 });

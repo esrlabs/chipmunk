@@ -4,29 +4,20 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import * as tmp from 'tmp';
-import * as fs from 'fs';
-
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
-import { checkSessionDebugger, createSampleFile } from './common';
+import { createSampleFile, finish } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Assign', function () {
     it('Test 1. Assign and grab content', function (done) {
-        const finish = (err?: Error) => {
-            err !== undefined && fail(err);
-            session.destroy();
-            checkSessionDebugger(session);
-            done();
-        };
         const logger = getLogger('Assign. Test 1');
         const session = new Session();
         // Set provider into debug mode
         session.debug(true);
         const stream = session.getStream();
         if (stream instanceof Error) {
-            finish(stream);
+            finish(session, done, stream);
             return;
         }
         const tmpobj = createSampleFile(5000, logger, (i: number) => `some line data: ${i}\n`);
@@ -36,7 +27,11 @@ describe('Assign', function () {
                 // While we do not have operation id
                 let result: IGrabbedElement[] | Error = stream.grab(500, 7);
                 if (result instanceof Error) {
-                    return finish(new Error(`Fail to grab data due error: ${result.message}`));
+                    return finish(
+                        session,
+                        done,
+                        new Error(`Fail to grab data due error: ${result.message}`),
+                    );
                 }
                 logger.debug('result of grab was: ' + JSON.stringify(result));
                 expect(result.map((i) => i.content)).toEqual([
@@ -48,8 +43,8 @@ describe('Assign', function () {
                     'some line data: 505',
                     'some line data: 506',
                 ]);
-                finish();
+                finish(session, done);
             })
-            .catch(finish);
+            .catch(finish.bind(null, session, done));
     });
 });
