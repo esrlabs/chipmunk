@@ -27,7 +27,9 @@ pub enum Error {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Chunk {
+    //     (read, total)
     pub r: (usize, usize),
+    //     (read, total)
     pub b: (usize, usize),
 }
 pub fn serialize_chunks(chunks: &[Chunk], out_file_name: &std::path::Path) -> Result<(), Error> {
