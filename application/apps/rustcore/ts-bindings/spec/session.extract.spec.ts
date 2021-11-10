@@ -67,7 +67,6 @@ describe('Extract search matches', function () {
                             expect(res.values.length).toEqual(1);
                             expect(res.values[0].filter.filter).toEqual(filterA);
                         });
-                        checkSessionDebugger(session);
                         finish();
                     })
                     .catch(finish);
@@ -138,7 +137,6 @@ describe('Extract search matches', function () {
                             expect(res.values[0].filter.filter).toEqual(filterA);
                             expect(res.values[1].filter.filter).toEqual(filterB);
                         });
-                        checkSessionDebugger(session);
                         finish();
                     })
                     .catch(finish);
@@ -211,7 +209,6 @@ describe('Extract search matches', function () {
                             expect(res.values[0].values.length).toEqual(1);
                             expect(res.values[1].values.length).toEqual(2);
                         });
-                        checkSessionDebugger(session);
                         finish();
                     })
                     .catch(finish);

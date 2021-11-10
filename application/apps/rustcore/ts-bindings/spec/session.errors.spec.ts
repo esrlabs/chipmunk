@@ -32,7 +32,6 @@ describe('Errors', function () {
         const len = stream.len();
         expect(len).toEqual(0);
         expect(session.getNativeSession().getStreamLen()).toBeInstanceOf(Error);
-        checkSessionDebugger(session);
         finish();
     });
 
@@ -55,7 +54,6 @@ describe('Errors', function () {
         const len = search.len();
         expect(len).toEqual(0);
         expect(session.getNativeSession().getSearchLen()).toEqual(0);
-        checkSessionDebugger(session);
         finish();
     });
 
@@ -190,7 +188,6 @@ describe('Errors', function () {
                         expect(search.len()).toEqual(55);
                         let result: IGrabbedElement[] | Error = search.grab(6000, 1000);
                         expect(result).toBeInstanceOf(Error);
-                        checkSessionDebugger(session);
                         finish();
                     })
                     .catch(finish);

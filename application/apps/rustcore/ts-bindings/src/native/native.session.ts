@@ -4,6 +4,7 @@ import ServiceProduction from '../services/service.production';
 
 import { RustSessionRequiered } from './native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
+import { Computation } from '../provider/provider';
 import { RustSessionNoType } from './native';
 import {
     IFilter,
@@ -20,12 +21,15 @@ import { IDetectOptions } from '../api/session.stream.timeformat.detect.executor
 import { IExportOptions } from '../api/session.stream.export.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
 
-export type RustSessionConstructorImpl<T> = new (uuid: string, emitter: TEventEmitter) => T;
+export type RustSessionConstructorImpl<T> = new (
+    uuid: string,
+    provider: Computation<any, any, any>,
+) => T;
 export type TCanceler = () => void;
 
 // Create abstract class to declare available methods
 export abstract class RustSession extends RustSessionRequiered {
-    constructor(uuid: string, emitter: TEventEmitter) {
+    constructor(uuid: string, provider: Computation<any, any, any>) {
         super();
     }
 
@@ -255,26 +259,25 @@ export abstract class RustSessionNative {
 
     // public abstract sleepUnblock(duration: number): Promise<void>;
 }
-
 export class RustSessionDebug extends RustSession {
     private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionDebug`);
     private readonly _uuid: string;
     private readonly _native: RustSessionNative;
     private _assigned: boolean = false;
-    private _emitter: TEventEmitter;
+    private _provider: Computation<any, any, any>;
 
-    constructor(uuid: string, emitter: TEventEmitter) {
-        super(uuid, emitter);
+    constructor(uuid: string, provider: Computation<any, any, any>) {
+        super(uuid, provider);
         this._native = new (getNativeModule().RustSession)(uuid) as RustSessionNative;
-        this._native.start(emitter);
+        this._native.start(provider.getEmitter());
         this._logger.debug(`Rust native session is created`);
         this._uuid = uuid;
-        this._emitter = emitter;
+        this._provider = provider;
     }
 
     public destroy(): void {
         this._native.stop();
-        this._logger.debug(`destroyed`);
+        this._logger.debug(`Destroy request has been sent to rust-core`);
     }
 
     public id(): string {
@@ -284,6 +287,7 @@ export class RustSessionDebug extends RustSession {
     public grabStreamChunk(start: number, len: number): IGrabbedElement[] | NativeError {
         const grabbed = (() => {
             try {
+                this._provider.debug().emit.operation('grab');
                 return this._native.grab(start, len);
             } catch (err) {
                 return new NativeError(
@@ -322,6 +326,7 @@ export class RustSessionDebug extends RustSession {
     public grabSearchChunk(start: number, len: number): IGrabbedElement[] | NativeError {
         const grabbed = (() => {
             try {
+                this._provider.debug().emit.operation('grabSearch');
                 return this._native.grabSearch(start, len);
             } catch (err) {
                 return new NativeError(
@@ -381,6 +386,7 @@ export class RustSessionDebug extends RustSession {
 
     public getStreamLen(): number | NativeError {
         try {
+            this._provider.debug().emit.operation('getStreamLen');
             return this._native.getStreamLen();
         } catch (err) {
             return new NativeError(
@@ -393,6 +399,7 @@ export class RustSessionDebug extends RustSession {
 
     public getSearchLen(): number | NativeError {
         try {
+            this._provider.debug().emit.operation('getSearchLen');
             return this._native.getSearchLen();
         } catch (err) {
             return new NativeError(
@@ -415,6 +422,7 @@ export class RustSessionDebug extends RustSession {
     public assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
+                this._provider.debug().emit.operation('assign');
                 this._native
                     .assign(filename, filename, operationUuid)
                     .then(resolve)
@@ -442,6 +450,7 @@ export class RustSessionDebug extends RustSession {
     public concat(files: IConcatFile[], append: boolean, operationUuid?: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
+                this._provider.debug().emit.operation('concat');
                 this._native
                     .concat(files, append, operationUuid)
                     .then(resolve)
@@ -473,6 +482,7 @@ export class RustSessionDebug extends RustSession {
     ): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
+                this._provider.debug().emit.operation('merge');
                 this._native
                     .merge(files, append, operationUuid)
                     .then(resolve)
@@ -512,6 +522,7 @@ export class RustSessionDebug extends RustSession {
     public search(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
+                this._provider.debug().emit.operation('applySearchFilters');
                 this._native
                     .applySearchFilters(
                         filters.map((filter) => {
@@ -549,6 +560,7 @@ export class RustSessionDebug extends RustSession {
     public extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
+                this._provider.debug().emit.operation('extractMatches');
                 this._native
                     .extractMatches(
                         filters.map((filter) => {
@@ -589,6 +601,7 @@ export class RustSessionDebug extends RustSession {
 
     public getMap(datasetLength: number, from?: number, to?: number): NativeError | string {
         try {
+            this._provider.debug().emit.operation('getMap');
             if (from === undefined || to === undefined) {
                 return this._native.getMap(datasetLength);
             } else {
@@ -608,6 +621,7 @@ export class RustSessionDebug extends RustSession {
     ): NativeError | { index: number; position: number } | undefined {
         const nearest = (() => {
             try {
+                this._provider.debug().emit.operation('getNearestTo');
                 return this._native.getNearestTo(positionInStream);
             } catch (err) {
                 return new NativeError(
@@ -637,6 +651,7 @@ export class RustSessionDebug extends RustSession {
 
     public abort(operationUuid: string): boolean | NativeError {
         try {
+            this._provider.debug().emit.operation('abort');
             return this._native.abort(operationUuid);
         } catch (err) {
             return new NativeError(

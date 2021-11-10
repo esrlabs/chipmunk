@@ -48,7 +48,6 @@ describe('Assign', function () {
                     'some line data: 505',
                     'some line data: 506',
                 ]);
-                checkSessionDebugger(session);
                 finish();
             })
             .catch(finish);

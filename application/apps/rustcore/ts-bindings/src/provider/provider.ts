@@ -3,20 +3,28 @@ import * as Logs from '../util/logging';
 
 import { TEventData, TEventEmitter, IEventData } from './provider.general';
 
+export interface IOrderStat {
+    type: 'E' | 'O';
+    name: string;
+}
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
     private readonly _uuid: String;
     private readonly _tracking: {
         subjects: {
-            unsupported: Events.Subject<string>,
-            error: Events.Subject<string>,
-        },
+            unsupported: Events.Subject<string>;
+            error: Events.Subject<string>;
+        };
         stat: {
-            unsupported: string[],
-            error: string[],
-        },
-        track: boolean,
-        store: boolean,
+            unsupported: string[];
+            error: string[];
+            counter: { [key: string]: number };
+            order: IOrderStat[];
+            operations: { [key: string]: number };
+        };
+        track: boolean;
+        store: boolean;
+        count: boolean;
     } = {
         subjects: {
             unsupported: new Events.Subject<string>(),
@@ -25,9 +33,13 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         stat: {
             unsupported: [],
             error: [],
+            counter: {},
+            order: [],
+            operations: {},
         },
         track: false,
         store: false,
+        count: false,
     };
     public readonly logger: Logs.Logger;
 
@@ -56,21 +68,27 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
 
     public debug(): {
         getEvents(): {
-            unsupported: Events.Subject<string>,
-            error: Events.Subject<string>,
-        },
-        isTracking(): boolean,
-        isStored(): boolean,
-        setTracking(value: boolean): void,
-        setStoring(value: boolean): void,
+            unsupported: Events.Subject<string>;
+            error: Events.Subject<string>;
+        };
+        isTracking(): boolean;
+        isStored(): boolean;
+        setTracking(value: boolean): void;
+        setStoring(value: boolean): void;
+        setCount(value: boolean): void;
         stat: {
-            unsupported(): string[],
-            error(): string[],
-        },
+            unsupported(): string[];
+            error(): string[];
+            counter(): { [key: string]: number };
+            order(): IOrderStat[];
+            operations(): { [key: string]: number };
+        };
         emit: {
-            unsupported(msg: string): void,
-            error(msg: string): void,
-        },
+            unsupported(msg: string): void;
+            error(msg: string): void;
+            counter(event: string): void;
+            operation(operation: string): void;
+        };
     } {
         const self = this;
         return {
@@ -78,7 +96,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                 return {
                     unsupported: self._tracking.subjects.unsupported,
                     error: self._tracking.subjects.error,
-                }
+                };
             },
             isTracking(): boolean {
                 return self._tracking.track;
@@ -92,12 +110,24 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             setStoring(value: boolean): void {
                 self._tracking.store = value;
             },
+            setCount(value: boolean): void {
+                self._tracking.count = value;
+            },
             stat: {
                 unsupported(): string[] {
                     return self._tracking.stat.unsupported;
                 },
                 error(): string[] {
                     return self._tracking.stat.error;
+                },
+                counter(): { [key: string]: number } {
+                    return self._tracking.stat.counter;
+                },
+                order(): IOrderStat[] {
+                    return self._tracking.stat.order;
+                },
+                operations(): { [key: string]: number } {
+                    return self._tracking.stat.operations;
                 },
             },
             emit: {
@@ -117,8 +147,28 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                         self._tracking.stat.error.push(msg);
                     }
                 },
+                counter(event: string): void {
+                    if (!self._tracking.count) {
+                        return;
+                    }
+                    if (self._tracking.stat.counter[event] === undefined) {
+                        self._tracking.stat.counter[event] = 0;
+                    }
+                    self._tracking.stat.counter[event] += 1;
+                    self._tracking.stat.order.push({ type: 'E', name: event });
+                },
+                operation(operation: string): void {
+                    if (!self._tracking.count) {
+                        return;
+                    }
+                    if (self._tracking.stat.operations[operation] === undefined) {
+                        self._tracking.stat.operations[operation] = 0;
+                    }
+                    self._tracking.stat.operations[operation] += 1;
+                    self._tracking.stat.order.push({ type: 'O', name: operation });
+                },
             },
-        }
+        };
     }
 
     /**
@@ -192,6 +242,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         // Using of try { } catch() {} here isn't good idea as soon as it would not
         // allow to localize an issue
         setTimeout(() => {
+            this.debug().emit.counter(event);
             if ((this.getEventsSignatures() as any)[event] === undefined) {
                 const msg: string = `Has been gotten unsupported event: "${event}".`;
                 this.debug().emit.unsupported(msg);
