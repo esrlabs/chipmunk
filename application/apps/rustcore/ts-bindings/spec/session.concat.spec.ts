@@ -4,9 +4,6 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import * as tmp from 'tmp';
-import * as fs from 'fs';
-
 import { Session } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { checkSessionDebugger, createSampleFile } from './common';
@@ -59,7 +56,6 @@ describe('Concat', function () {
                     'b--1',
                     'b--2',
                 ]);
-                checkSessionDebugger(session);
                 finish();
             })
             .catch(finish);

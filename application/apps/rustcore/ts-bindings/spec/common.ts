@@ -20,6 +20,7 @@ export function checkSessionDebugger(session: Session) {
     if (stat.errors.length !== 0) {
         fail(new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`));
     }
+    session.printDebugStat(true);
 }
 
 (function () {
@@ -37,7 +38,7 @@ export function checkSessionDebugger(session: Session) {
 
 export function createSampleFile(lines: number, logger: Logger, creator: (i: number) => string) {
     const tmpobj = tmp.fileSync();
-    var content = "";
+    var content = '';
     for (let i = 0; i < lines; i++) {
         content += creator(i);
     }

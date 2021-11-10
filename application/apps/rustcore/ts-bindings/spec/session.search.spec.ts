@@ -224,7 +224,6 @@ describe('Search', function () {
                             expect((nearest as any).index).toEqual(data[1]);
                             expect((nearest as any).position).toEqual(data[2]);
                         });
-                        checkSessionDebugger(session);
                         finish();
                     })
                     .catch(finish);
@@ -277,7 +276,6 @@ describe('Search', function () {
                         logger.debug(
                             'result of grab was: ' + result.map((x) => x.content).join('\n'),
                         );
-                        checkSessionDebugger(session);
                         finish();
                     })
                     .catch(finish);
@@ -384,7 +382,6 @@ describe('Search', function () {
                                     expect((nearest as any).index).toEqual(data[1]);
                                     expect((nearest as any).position).toEqual(data[2]);
                                 });
-                                checkSessionDebugger(session);
                                 finish();
                             })
                             .catch(finish);
@@ -495,7 +492,6 @@ describe('Search', function () {
                                     expect((nearest as any).index).toEqual(data[1]);
                                     expect((nearest as any).position).toEqual(data[2]);
                                 });
-                                checkSessionDebugger(session);
                                 finish();
                             })
                             .catch(finish);

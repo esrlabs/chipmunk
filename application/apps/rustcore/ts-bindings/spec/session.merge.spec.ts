@@ -83,7 +83,6 @@ describe('Merge', function () {
                     `a--4`,
                     `b--4`,
                 ]);
-                checkSessionDebugger(session);
                 finish();
             })
             .catch(finish);
