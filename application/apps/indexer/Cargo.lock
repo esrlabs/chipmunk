@@ -880,6 +880,7 @@ dependencies = [
  "tempdir",
  "test-generator",
  "tokio-stream",
+ "tokio-util",
 ]
 
 [[package]]
@@ -1166,6 +1167,7 @@ dependencies = [
  "test-generator",
  "thiserror",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
