@@ -26,6 +26,44 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
+pub enum OperationAlias {
+    Assign,
+    Search,
+    Extract,
+    Map,
+    Concat,
+    Merge,
+    ExtractMetadata,
+    DropSearch,
+    GetNearestPosition,
+    Cancel,
+    End,
+}
+
+impl std::fmt::Display for OperationAlias {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                OperationAlias::Assign => "Assign",
+                OperationAlias::Search => "Search",
+                OperationAlias::Extract => "Extract",
+                OperationAlias::Map => "Map",
+                OperationAlias::Concat => "Concat",
+                OperationAlias::Merge => "Merge",
+                OperationAlias::ExtractMetadata => "ExtractMetadata",
+                OperationAlias::DropSearch => "DropSearch",
+                OperationAlias::GetNearestPosition => "GetNearestPosition",
+                OperationAlias::Cancel => "Cancel",
+                OperationAlias::End => "End",
+            }
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Operation {
     Assign {
         file_path: PathBuf,
@@ -109,7 +147,7 @@ impl OperationAPI {
         }
     }
 
-    pub async fn finish<T>(&self, result: OperationResult<T>)
+    pub async fn finish<T>(&self, result: OperationResult<T>, alias: OperationAlias)
     where
         T: Serialize + std::fmt::Debug,
     {
@@ -154,6 +192,12 @@ impl OperationAPI {
                 "Fail to remove operation; error: {:?}", err
             );
         }
+        debug!(
+            target: targets::SESSION,
+            "Operation \"{}\" ({}) finished",
+            alias,
+            self.id()
+        );
         self.emit(event);
     }
 
@@ -189,6 +233,7 @@ impl OperationAPI {
                     api.finish(
                         handlers::assign::handle(&api, &file_path, source_type, source_id, state)
                             .await,
+                        OperationAlias::Assign,
                     )
                     .await;
                 }
@@ -205,6 +250,7 @@ impl OperationAPI {
                             state,
                         )
                         .await,
+                        OperationAlias::Search,
                     )
                     .await;
                 }
@@ -212,15 +258,23 @@ impl OperationAPI {
                     target_file,
                     filters,
                 } => {
-                    api.finish(handlers::extract::handle(&target_file, filters.iter()))
-                        .await;
+                    api.finish(
+                        handlers::extract::handle(&target_file, filters.iter()),
+                        OperationAlias::Extract,
+                    )
+                    .await;
                 }
                 Operation::Map { dataset_len, range } => match state.get_search_map().await {
                     Ok(map) => {
-                        api.finish(Ok(Some(map.scaled(dataset_len, range)))).await;
+                        api.finish(
+                            Ok(Some(map.scaled(dataset_len, range))),
+                            OperationAlias::Map,
+                        )
+                        .await;
                     }
                     Err(err) => {
-                        api.finish::<OperationResult<()>>(Err(err)).await;
+                        api.finish::<OperationResult<()>>(Err(err), OperationAlias::Map)
+                            .await;
                     }
                 },
                 Operation::Concat {
@@ -241,6 +295,7 @@ impl OperationAPI {
                             state,
                         )
                         .await,
+                        OperationAlias::Concat,
                     )
                     .await;
                 }
@@ -262,6 +317,7 @@ impl OperationAPI {
                             state,
                         )
                         .await,
+                        OperationAlias::Merge,
                     )
                     .await;
                 }
@@ -269,28 +325,35 @@ impl OperationAPI {
                     match state.cancel_operation(operation_id).await {
                         Ok(canceled) => {
                             if canceled {
-                                api.finish::<OperationResult<()>>(Ok(None)).await;
+                                api.finish::<OperationResult<()>>(Ok(None), OperationAlias::Cancel)
+                                    .await;
                             } else {
-                                api.finish::<OperationResult<()>>(Err(NativeError {
-                                    severity: Severity::WARNING,
-                                    kind: NativeErrorKind::NotYetImplemented,
-                                    message: Some(format!(
-                                        "Fail to cancel operation {}; operation isn't found",
-                                        operation_id
-                                    )),
-                                }))
+                                api.finish::<OperationResult<()>>(
+                                    Err(NativeError {
+                                        severity: Severity::WARNING,
+                                        kind: NativeErrorKind::NotYetImplemented,
+                                        message: Some(format!(
+                                            "Fail to cancel operation {}; operation isn't found",
+                                            operation_id
+                                        )),
+                                    }),
+                                    OperationAlias::Cancel,
+                                )
                                 .await;
                             }
                         }
                         Err(err) => {
-                            api.finish::<OperationResult<()>>(Err(NativeError {
-                                severity: Severity::WARNING,
-                                kind: NativeErrorKind::NotYetImplemented,
-                                message: Some(format!(
-                                    "Fail to cancel operation {}; error: {:?}",
-                                    operation_id, err
-                                )),
-                            }))
+                            api.finish::<OperationResult<()>>(
+                                Err(NativeError {
+                                    severity: Severity::WARNING,
+                                    kind: NativeErrorKind::NotYetImplemented,
+                                    message: Some(format!(
+                                        "Fail to cancel operation {}; error: {:?}",
+                                        operation_id, err
+                                    )),
+                                }),
+                                OperationAlias::Cancel,
+                            )
                             .await;
                         }
                     }
@@ -314,15 +377,24 @@ impl OperationAPI {
                                 "fail to responce to Operation::ExtractMetadata; error: {}", err
                             );
                         }
-                        api.finish::<OperationResult<()>>(Ok(None)).await;
+                        api.finish::<OperationResult<()>>(
+                            Ok(None),
+                            OperationAlias::ExtractMetadata,
+                        )
+                        .await;
                     }
                     Err(err) => {
-                        api.finish::<OperationResult<()>>(Err(err)).await;
+                        api.finish::<OperationResult<()>>(
+                            Err(err),
+                            OperationAlias::ExtractMetadata,
+                        )
+                        .await;
                     }
                 },
                 Operation::DropSearch(tx_response) => {
                     if let Err(err) = state.set_matches(None).await {
-                        api.finish::<OperationResult<()>>(Err(err)).await;
+                        api.finish::<OperationResult<()>>(Err(err), OperationAlias::DropSearch)
+                            .await;
                     } else {
                         if let Err(err) = tx_response.send(()) {
                             error!(
@@ -330,7 +402,8 @@ impl OperationAPI {
                                 "fail to responce to Operation::DropSearch; error: {}", err
                             );
                         }
-                        api.finish::<OperationResult<()>>(Ok(None)).await;
+                        api.finish::<OperationResult<()>>(Ok(None), OperationAlias::DropSearch)
+                            .await;
                     }
                 }
                 Operation::GetNearestPosition((position, tx_response)) => {
@@ -343,15 +416,25 @@ impl OperationAPI {
                                     err
                                 );
                             }
-                            api.finish::<OperationResult<()>>(Ok(None)).await;
+                            api.finish::<OperationResult<()>>(
+                                Ok(None),
+                                OperationAlias::GetNearestPosition,
+                            )
+                            .await;
                         }
                         Err(err) => {
-                            api.finish::<OperationResult<()>>(Err(err)).await;
+                            api.finish::<OperationResult<()>>(
+                                Err(err),
+                                OperationAlias::GetNearestPosition,
+                            )
+                            .await;
                         }
                     }
                 }
                 Operation::End => {
                     debug!(target: targets::SESSION, "session closing is requested");
+                    api.finish::<OperationResult<()>>(Ok(None), OperationAlias::End)
+                        .await;
                 }
             };
         });

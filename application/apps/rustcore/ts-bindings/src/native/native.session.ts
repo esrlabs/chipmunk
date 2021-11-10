@@ -269,13 +269,15 @@ export class RustSessionDebug extends RustSession {
     constructor(uuid: string, provider: Computation<any, any, any>) {
         super(uuid, provider);
         this._native = new (getNativeModule().RustSession)(uuid) as RustSessionNative;
-        this._native.start(provider.getEmitter());
         this._logger.debug(`Rust native session is created`);
         this._uuid = uuid;
         this._provider = provider;
+        this._provider.debug().emit.operation('start');
+        this._native.start(provider.getEmitter());
     }
 
     public destroy(): void {
+        this._provider.debug().emit.operation('stop');
         this._native.stop();
         this._logger.debug(`Destroy request has been sent to rust-core`);
     }
