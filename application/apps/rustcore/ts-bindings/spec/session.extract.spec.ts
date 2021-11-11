@@ -13,7 +13,7 @@ describe('Extract search matches', function () {
         const logger = getLogger('Extract. Test 1');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 1. Assign & single extracting');
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
@@ -46,7 +46,6 @@ describe('Extract search matches', function () {
                         },
                     ])
                     .then((results) => {
-                        expect(search.len()).toEqual(0);
                         expect(results.length).toEqual(55);
                         for (let pos = 0; pos <= 5; pos += 1) {
                             expect(results[pos].position).toEqual(pos);
@@ -58,18 +57,26 @@ describe('Extract search matches', function () {
                             expect(res.values.length).toEqual(1);
                             expect(res.values[0].filter.filter).toEqual(filterA);
                         });
-                        finish(session, done, );
+                        search
+                            .len()
+                            .then((len: number) => {
+                                expect(len).toEqual(0);
+                                finish(session, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(session, done, err);
+                            });
                     })
-                    .catch(finish.bind(null,session, done, ));
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish.bind(null,session, done, ));
+            .catch(finish.bind(null, session, done));
     });
 
     it('Test 2. Assign & multiple extracting', function (done) {
         const logger = getLogger('Extract. Test 2');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 2. Assign & multiple extracting');
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
@@ -109,7 +116,6 @@ describe('Extract search matches', function () {
                         },
                     ])
                     .then((results) => {
-                        expect(search.len()).toEqual(0);
                         expect(results.length).toEqual(55);
                         for (let pos = 0; pos <= 5; pos += 1) {
                             expect(results[pos].position).toEqual(pos);
@@ -122,18 +128,26 @@ describe('Extract search matches', function () {
                             expect(res.values[0].filter.filter).toEqual(filterA);
                             expect(res.values[1].filter.filter).toEqual(filterB);
                         });
-                        finish(session, done, );
+                        search
+                            .len()
+                            .then((len: number) => {
+                                expect(len).toEqual(0);
+                                finish(session, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(session, done, err);
+                            });
                     })
-                    .catch(finish.bind(null,session, done, ));
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish.bind(null,session, done, ));
+            .catch(finish.bind(null, session, done));
     });
 
     it('Test 3. Assign & multiple extracting with subgroups extracting', function (done) {
         const logger = getLogger('Extract. Test 3');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 3. Assign & multiple extracting with subgroups extracting');
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
@@ -173,7 +187,6 @@ describe('Extract search matches', function () {
                         },
                     ])
                     .then((results) => {
-                        expect(search.len()).toEqual(0);
                         expect(results.length).toEqual(55);
                         for (let pos = 0; pos <= 5; pos += 1) {
                             expect(results[pos].position).toEqual(pos);
@@ -188,10 +201,18 @@ describe('Extract search matches', function () {
                             expect(res.values[0].values.length).toEqual(1);
                             expect(res.values[1].values.length).toEqual(2);
                         });
-                        finish(session, done, );
+                        search
+                            .len()
+                            .then((len: number) => {
+                                expect(len).toEqual(0);
+                                finish(session, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(session, done, err);
+                            });
                     })
-                    .catch(finish.bind(null, session, done, ));
+                    .catch(finish.bind(null, session, done));
             })
-            .catch(finish.bind(null,session, done, ));
+            .catch(finish.bind(null, session, done));
     });
 });

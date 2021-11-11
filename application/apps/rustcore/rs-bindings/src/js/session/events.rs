@@ -172,6 +172,8 @@ pub enum ComputationError {
     MultipleInitCall,
     #[error("Session is destroyed or not inited yet")]
     SessionUnavailable,
+    #[error("{0:?}")]
+    NativeError(NativeError),
 }
 
 impl TryIntoJs for ComputationError {

@@ -29,6 +29,7 @@ pub enum Api {
     GetSearchMap(oneshot::Sender<SearchMap>),
     SetMetadata((Option<GrabMetadata>, oneshot::Sender<()>)),
     GetMetadata(oneshot::Sender<Option<GrabMetadata>>),
+    ExtractMetadata(oneshot::Sender<Option<GrabMetadata>>),
     SetStreamLen((u64, oneshot::Sender<()>)),
     SetMatches((Option<Vec<FilterMatch>>, oneshot::Sender<()>)),
     AddOperation((Uuid, CancellationToken, oneshot::Sender<bool>)),
@@ -217,6 +218,29 @@ impl SessionStateAPI {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::GetMetadata")),
+        })?)
+    }
+    pub async fn extract_metadata(&self) -> Result<Option<GrabMetadata>, NativeError> {
+        let (tx_response, rx_response): (
+            oneshot::Sender<Option<GrabMetadata>>,
+            oneshot::Receiver<Option<GrabMetadata>>,
+        ) = oneshot::channel();
+        self.tx_api
+            .send(Api::ExtractMetadata(tx_response))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!(
+                    "fail to send to Api::ExtractMetadata; error: {}",
+                    e,
+                )),
+            })?;
+        Ok(rx_response.await.map_err(|_| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from(
+                "fail to get response from Api::ExtractMetadata",
+            )),
         })?)
     }
     pub async fn set_stream_len(&self, len: u64) -> Result<(), NativeError> {
@@ -439,6 +463,15 @@ pub async fn task(
                                 severity: Severity::ERROR,
                                 kind: NativeErrorKind::ChannelError,
                                 message: Some(String::from("fail to response to Api::GetMetadata")),
+                            });
+                        }
+                    }
+                    Api::ExtractMetadata(rx_response) => {
+                        if rx_response.send(state.metadata.take()).is_err() {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::ExtractMetadata")),
                             });
                         }
                     }

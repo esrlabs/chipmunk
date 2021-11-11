@@ -14,39 +14,57 @@ describe('Errors', function () {
         const logger = getLogger('Errors. Test 1');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 1. Error: Stream len before assign');
         const stream = session.getStream();
         if (stream instanceof Error) {
             finish(session, done, stream);
             return;
         }
-        const len = stream.len();
-        expect(len).toEqual(0);
-        expect(session.getNativeSession().getStreamLen()).toBeInstanceOf(Error);
-        finish(session, done);
+        stream
+            .len()
+            .then((len: number) => {
+                finish(session, done, new Error(`Length of stream should not be available`));
+            })
+            .catch((err: Error) => {
+                finish(session, done);
+            });
     });
 
     it('Test 2. Error: Search len before assign', function (done) {
         const logger = getLogger('Errors. Test 2');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 2. Error: Search len before assign');
         const search = session.getSearch();
         if (search instanceof Error) {
             finish(session, done, search);
             return;
         }
-        const len = search.len();
-        expect(len).toEqual(0);
-        expect(session.getNativeSession().getSearchLen()).toEqual(0);
-        finish(session, done);
+        search
+            .len()
+            .then((len: number) => {
+                expect(len).toEqual(0);
+                session
+                    .getNativeSession()
+                    .getSearchLen()
+                    .then((count: number) => {
+                        expect(count).toEqual(0);
+                        finish(session, done);
+                    })
+                    .catch((err: Error) => {
+                        finish(session, done, err);
+                    });
+            })
+            .catch((err: Error) => {
+                finish(session, done, err);
+            });
     });
 
     it('Test 3. Error: search before assign', function (done) {
         const logger = getLogger('Errors. Test 3');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 3. Error: search before assign');
         const search = session.getSearch();
         if (search instanceof Error) {
             finish(session, done, search);
@@ -71,7 +89,7 @@ describe('Errors', function () {
         const logger = getLogger('Errors. Test 4');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 4. Assign fake file');
         const stream = session.getStream();
         if (stream instanceof Error) {
             finish(session, done, stream);
@@ -93,7 +111,7 @@ describe('Errors', function () {
 
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 5. Assign and grab invalid range');
         const stream = session.getStream();
         if (stream instanceof Error) {
             finish(session, done, stream);
@@ -104,9 +122,15 @@ describe('Errors', function () {
             .assign(tmpobj.name, {})
             .then(() => {
                 // While we do not have operation id
-                let result: IGrabbedElement[] | Error = stream.grab(6000, 1000);
-                expect(result).toBeInstanceOf(Error);
-                finish(session, done);
+                stream
+                    .grab(6000, 1000)
+                    .then((result: IGrabbedElement[]) => {
+                        finish(session, done, new Error(`grabber should not return results`));
+                    })
+                    .catch((err: Error) => {
+                        expect(err).toBeInstanceOf(Error);
+                        finish(session, done);
+                    });
             })
             .catch(finish.bind(null, session, done));
     });
@@ -115,7 +139,7 @@ describe('Errors', function () {
         const logger = getLogger('Errors. Test 6');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 6. Assign & single and grab invalid range');
         const stream = session.getStream();
         const search = session.getSearch();
         if (stream instanceof Error) {
@@ -146,10 +170,27 @@ describe('Errors', function () {
                         },
                     ])
                     .then((_) => {
-                        expect(search.len()).toEqual(55);
-                        let result: IGrabbedElement[] | Error = search.grab(6000, 1000);
-                        expect(result).toBeInstanceOf(Error);
-                        finish(session, done);
+                        search
+                            .len()
+                            .then((len: number) => {
+                                expect(len).toEqual(55);
+                                search
+                                    .grab(6000, 1000)
+                                    .then((result: IGrabbedElement[]) => {
+                                        finish(
+                                            session,
+                                            done,
+                                            new Error(`search grabber should not return results`),
+                                        );
+                                    })
+                                    .catch((err: Error) => {
+                                        expect(err).toBeInstanceOf(Error);
+                                        finish(session, done);
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(session, done, err);
+                            });
                     })
                     .catch(finish.bind(null, session, done));
             })

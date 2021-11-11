@@ -14,7 +14,7 @@ describe('Assign', function () {
         const logger = getLogger('Assign. Test 1');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Assign. Test 1');
         const stream = session.getStream();
         if (stream instanceof Error) {
             finish(session, done, stream);
@@ -25,25 +25,28 @@ describe('Assign', function () {
             .assign(tmpobj.name, {})
             .then(() => {
                 // While we do not have operation id
-                let result: IGrabbedElement[] | Error = stream.grab(500, 7);
-                if (result instanceof Error) {
-                    return finish(
-                        session,
-                        done,
-                        new Error(`Fail to grab data due error: ${result.message}`),
-                    );
-                }
-                logger.debug('result of grab was: ' + JSON.stringify(result));
-                expect(result.map((i) => i.content)).toEqual([
-                    'some line data: 500',
-                    'some line data: 501',
-                    'some line data: 502',
-                    'some line data: 503',
-                    'some line data: 504',
-                    'some line data: 505',
-                    'some line data: 506',
-                ]);
-                finish(session, done);
+                stream
+                    .grab(500, 7)
+                    .then((result: IGrabbedElement[]) => {
+                        logger.debug('result of grab was: ' + JSON.stringify(result));
+                        expect(result.map((i) => i.content)).toEqual([
+                            'some line data: 500',
+                            'some line data: 501',
+                            'some line data: 502',
+                            'some line data: 503',
+                            'some line data: 504',
+                            'some line data: 505',
+                            'some line data: 506',
+                        ]);
+                        finish(session, done);
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            session,
+                            done,
+                            new Error(`Fail to grab data due error: ${err.message}`),
+                        );
+                    });
             })
             .catch(finish.bind(null, session, done));
     });

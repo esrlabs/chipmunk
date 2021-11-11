@@ -43,7 +43,7 @@ export abstract class RustSession extends RustSessionRequiered {
      *
      * @error In case of incorrect range should return { NativeError }
      */
-    public abstract grabStreamChunk(start: number, len: number): IGrabbedElement[] | NativeError;
+    public abstract grabStreamChunk(start: number, len: number): Promise<IGrabbedElement[]>;
 
     /**
      * Returns chunk of stream/session file.
@@ -52,7 +52,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * @returns { string }
      * @error In case of incorrect range should return { NativeError }
      */
-    public abstract grabSearchChunk(start: number, len: number): IGrabbedElement[] | NativeError;
+    public abstract grabSearchChunk(start: number, len: number): Promise<IGrabbedElement[]>;
 
     /**
      * TODO: @return needs interface. It should not be a string
@@ -106,13 +106,13 @@ export abstract class RustSession extends RustSessionRequiered {
      * Returns length (count of rows) of session/stream file
      * @returns { nummber }
      */
-    public abstract getStreamLen(): number | NativeError;
+    public abstract getStreamLen(): Promise<number>;
 
     /**
      * Returns length (count of rows) of search results stream
      * @returns { nummber }
      */
-    public abstract getSearchLen(): number | NativeError;
+    public abstract getSearchLen(): Promise<number>;
 
     /**
      * Returns length (count of rows with matches) of getting matches in stream
@@ -185,15 +185,20 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void>;
 
-    public abstract getMap(datasetLength: number, from?: number, to?: number): NativeError | string;
+    public abstract getMap(
+        operationUuid: string,
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): Promise<string>;
 
     public abstract getNearestTo(
         positionInStream: number,
-    ): NativeError | { index: number; position: number } | undefined;
+    ): Promise<{ index: number; position: number } | undefined>;
 
     public abstract abort(operationUuid: string): boolean | NativeError;
 
-    // public abstract sleep(duration: number): void;
+    public abstract sleep(operationUuid: string, duration: number): Promise<void>;
 
     // public abstract sleepUnblock(duration: number): Promise<void>;
 }
@@ -221,13 +226,13 @@ export abstract class RustSessionNative {
         operationUuid?: string,
     ): Promise<void>;
 
-    public abstract getStreamLen(): number;
+    public abstract getStreamLen(): Promise<number>;
 
-    public abstract grab(start: number, len: number): string;
+    public abstract grab(start: number, len: number): Promise<string>;
 
-    public abstract grabSearch(start: number, len: number): string;
+    public abstract grabSearch(start: number, len: number): Promise<string>;
 
-    public abstract getSearchLen(): number;
+    public abstract getSearchLen(): Promise<number>;
 
     public abstract applySearchFilters(
         filters: Array<{
@@ -249,13 +254,18 @@ export abstract class RustSessionNative {
         operationUuid: string,
     ): Promise<void>;
 
-    public abstract getMap(datasetLength: number, from?: number, to?: number): string;
+    public abstract getMap(
+        operationUuid: string,
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): Promise<string>;
 
-    public abstract getNearestTo(positionInStream: number): number[] | null;
+    public abstract getNearestTo(positionInStream: number): Promise<number[] | null>;
 
     public abstract abort(operationUuid: string): boolean;
 
-    // public abstract sleep(duration: number): void;
+    public abstract sleep(operationUuid: string, duration: number): Promise<void>;
 
     // public abstract sleepUnblock(duration: number): Promise<void>;
 }
@@ -286,84 +296,105 @@ export class RustSessionDebug extends RustSession {
         return this._uuid;
     }
 
-    public grabStreamChunk(start: number, len: number): IGrabbedElement[] | NativeError {
-        const grabbed = (() => {
-            try {
-                this._provider.debug().emit.operation('grab');
-                return this._native.grab(start, len);
-            } catch (err) {
-                return new NativeError(
-                    err instanceof Error ? err : new Error(`${err}`),
-                    Type.GrabbingContent,
-                    Source.GrabStreamChunk,
-                );
-            }
-        })();
-        if (grabbed instanceof NativeError) {
-            return grabbed;
-        }
-        try {
-            const result: IGrabbedContent = JSON.parse(grabbed);
-            return result.grabbed_elements.map((item: IGrabbedElement) => {
-                return {
-                    content: item.content === undefined ? (item as any).c : item.content,
-                    source_id: item.source_id === undefined ? (item as any).id : item.source_id,
-                };
-            });
-        } catch (err) {
-            return new NativeError(
-                new Error(
-                    this._logger.error(
-                        `Fail to call grab(${start}, ${len}) due error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
-                    ),
-                ),
-                Type.ParsingContentChunk,
-                Source.GrabStreamChunk,
-            );
-        }
+    public grabStreamChunk(start: number, len: number): Promise<IGrabbedElement[]> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('grab');
+            this._native
+                .grab(start, len)
+                .then((grabbed: string) => {
+                    try {
+                        const result: IGrabbedContent = JSON.parse(grabbed);
+                        resolve(
+                            result.grabbed_elements.map((item: IGrabbedElement) => {
+                                return {
+                                    content:
+                                        item.content === undefined ? (item as any).c : item.content,
+                                    source_id:
+                                        item.source_id === undefined
+                                            ? (item as any).id
+                                            : item.source_id,
+                                };
+                            }),
+                        );
+                    } catch (err) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    this._logger.error(
+                                        `Fail to call grab(${start}, ${len}) due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                ),
+                                Type.ParsingContentChunk,
+                                Source.GrabStreamChunk,
+                            ),
+                        );
+                    }
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.GrabbingContent,
+                            Source.GrabStreamChunk,
+                        ),
+                    );
+                });
+        });
     }
 
-    public grabSearchChunk(start: number, len: number): IGrabbedElement[] | NativeError {
-        const grabbed = (() => {
-            try {
-                this._provider.debug().emit.operation('grabSearch');
-                return this._native.grabSearch(start, len);
-            } catch (err) {
-                return new NativeError(
-                    err instanceof Error ? err : new Error(`${err}`),
-                    Type.GrabbingSearch,
-                    Source.GrabSearchChunk,
-                );
-            }
-        })();
-        if (grabbed instanceof NativeError) {
-            return grabbed;
-        }
-        try {
-            const result: IGrabbedContent = JSON.parse(grabbed);
-            return result.grabbed_elements.map((item: IGrabbedElement) => {
-                return {
-                    content: item.content === undefined ? (item as any).c : item.content,
-                    source_id: item.source_id === undefined ? (item as any).id : item.source_id,
-                    position: item.position === undefined ? (item as any).p : item.position,
-                    row: item.row === undefined ? (item as any).r : item.row,
-                };
-            });
-        } catch (err) {
-            return new NativeError(
-                new Error(
-                    this._logger.error(
-                        `Fail to call grab(${start}, ${len}) due error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
-                    ),
-                ),
-                Type.ParsingSearchChunk,
-                Source.GrabSearchChunk,
-            );
-        }
+    public grabSearchChunk(start: number, len: number): Promise<IGrabbedElement[]> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('grabSearch');
+            this._native
+                .grabSearch(start, len)
+                .then((grabbed: string) => {
+                    try {
+                        const result: IGrabbedContent = JSON.parse(grabbed);
+                        resolve(
+                            result.grabbed_elements.map((item: IGrabbedElement) => {
+                                return {
+                                    content:
+                                        item.content === undefined ? (item as any).c : item.content,
+                                    source_id:
+                                        item.source_id === undefined
+                                            ? (item as any).id
+                                            : item.source_id,
+                                    position:
+                                        item.position === undefined
+                                            ? (item as any).p
+                                            : item.position,
+                                    row: item.row === undefined ? (item as any).r : item.row,
+                                };
+                            }),
+                        );
+                    } catch (err) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    this._logger.error(
+                                        `Fail to call grab(${start}, ${len}) due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                ),
+                                Type.ParsingSearchChunk,
+                                Source.GrabSearchChunk,
+                            ),
+                        );
+                    }
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.GrabbingSearch,
+                            Source.GrabSearchChunk,
+                        ),
+                    );
+                });
+        });
     }
 
     public grabMatchesChunk(start: number, len: number): string[] | NativeError {
@@ -386,30 +417,40 @@ export class RustSessionDebug extends RustSession {
         return EFileOptionsRequirements.NoOptionsRequired;
     }
 
-    public getStreamLen(): number | NativeError {
-        try {
+    public getStreamLen(): Promise<number> {
+        return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('getStreamLen');
-            return this._native.getStreamLen();
-        } catch (err) {
-            return new NativeError(
-                err instanceof Error ? err : new Error(`${err}`),
-                Type.Other,
-                Source.GetStreamLen,
-            );
-        }
+            this._native
+                .getStreamLen()
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.Other,
+                            Source.GetStreamLen,
+                        ),
+                    );
+                });
+        });
     }
 
-    public getSearchLen(): number | NativeError {
-        try {
+    public getSearchLen(): Promise<number> {
+        return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('getSearchLen');
-            return this._native.getSearchLen();
-        } catch (err) {
-            return new NativeError(
-                err instanceof Error ? err : new Error(`${err}`),
-                Type.Other,
-                Source.GetSearchLen,
-            );
-        }
+            this._native
+                .getSearchLen()
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.Other,
+                            Source.GetSearchLen,
+                        ),
+                    );
+                });
+        });
     }
 
     public getMatchesLen(): number | NativeError {
@@ -421,10 +462,10 @@ export class RustSessionDebug extends RustSession {
         return '';
     }
 
-    public assign(filename: string, options: TFileOptions, operationUuid?: string): Promise<void> {
+    public assign(filename: string, options: TFileOptions, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._provider.debug().emit.operation('assign');
+                this._provider.debug().emit.operation('assign', operationUuid);
                 this._native
                     .assign(filename, filename, operationUuid)
                     .then(resolve)
@@ -449,10 +490,10 @@ export class RustSessionDebug extends RustSession {
         });
     }
 
-    public concat(files: IConcatFile[], append: boolean, operationUuid?: string): Promise<void> {
+    public concat(files: IConcatFile[], append: boolean, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._provider.debug().emit.operation('concat');
+                this._provider.debug().emit.operation('concat', operationUuid);
                 this._native
                     .concat(files, append, operationUuid)
                     .then(resolve)
@@ -484,7 +525,7 @@ export class RustSessionDebug extends RustSession {
     ): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._provider.debug().emit.operation('merge');
+                this._provider.debug().emit.operation('merge', operationUuid);
                 this._native
                     .merge(files, append, operationUuid)
                     .then(resolve)
@@ -524,7 +565,7 @@ export class RustSessionDebug extends RustSession {
     public search(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._provider.debug().emit.operation('applySearchFilters');
+                this._provider.debug().emit.operation('applySearchFilters', operationUuid);
                 this._native
                     .applySearchFilters(
                         filters.map((filter) => {
@@ -562,7 +603,7 @@ export class RustSessionDebug extends RustSession {
     public extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._provider.debug().emit.operation('extractMatches');
+                this._provider.debug().emit.operation('extractMatches', operationUuid);
                 this._native
                     .extractMatches(
                         filters.map((filter) => {
@@ -601,59 +642,73 @@ export class RustSessionDebug extends RustSession {
     //     operationUuid: string,
     // ): Promise<void>;
 
-    public getMap(datasetLength: number, from?: number, to?: number): NativeError | string {
-        try {
-            this._provider.debug().emit.operation('getMap');
-            if (from === undefined || to === undefined) {
-                return this._native.getMap(datasetLength);
-            } else {
-                return this._native.getMap(datasetLength, from, to);
-            }
-        } catch (err) {
-            return new NativeError(
-                err instanceof Error ? err : new Error(`${err}`),
-                Type.Other,
-                Source.GetMap,
-            );
-        }
+    public getMap(
+        operationUuid: string,
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('getMap', operationUuid);
+            (() => {
+                if (from === undefined || to === undefined) {
+                    return this._native.getMap(operationUuid, datasetLength);
+                } else {
+                    return this._native.getMap(operationUuid, datasetLength, from, to);
+                }
+            })()
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.Other,
+                            Source.GetMap,
+                        ),
+                    );
+                });
+        });
     }
 
     public getNearestTo(
         positionInStream: number,
-    ): NativeError | { index: number; position: number } | undefined {
-        const nearest = (() => {
-            try {
-                this._provider.debug().emit.operation('getNearestTo');
-                return this._native.getNearestTo(positionInStream);
-            } catch (err) {
-                return new NativeError(
-                    err instanceof Error ? err : new Error(`${err}`),
-                    Type.Other,
-                    Source.GetNearestTo,
-                );
-            }
-        })();
-        if (nearest instanceof NativeError) {
-            return nearest;
-        }
-        if (nearest instanceof Array && nearest.length !== 2) {
-            return new NativeError(
-                new Error(
-                    `Invalid format of data: ${nearest}. Expecting an array (size 2): [number, number]`,
-                ),
-                Type.InvalidOutput,
-                Source.GetNearestTo,
-            );
-        } else if (nearest === null) {
-            return undefined;
-        } else if (nearest instanceof Array && nearest.length === 2) {
-            return { index: nearest[0], position: nearest[1] };
-        }
+    ): Promise<{ index: number; position: number } | undefined> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('getNearestTo');
+            this._native
+                .getNearestTo(positionInStream)
+                .then((nearest) => {
+                    if (nearest instanceof Array && nearest.length !== 2) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    `Invalid format of data: ${nearest}. Expecting an array (size 2): [number, number]`,
+                                ),
+                                Type.InvalidOutput,
+                                Source.GetNearestTo,
+                            ),
+                        );
+                    } else if (nearest === null) {
+                        resolve(undefined);
+                    } else if (nearest instanceof Array && nearest.length === 2) {
+                        resolve({ index: nearest[0], position: nearest[1] });
+                    }
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.Other,
+                            Source.GetNearestTo,
+                        ),
+                    );
+                });
+        });
     }
 
     public abort(operationUuid: string): boolean | NativeError {
         try {
-            this._provider.debug().emit.operation('abort');
+            this._provider.debug().emit.operation('abort', operationUuid);
             return this._native.abort(operationUuid);
         } catch (err) {
             return new NativeError(
@@ -662,6 +717,24 @@ export class RustSessionDebug extends RustSession {
                 Source.Abort,
             );
         }
+    }
+
+    public sleep(operationUuid: string, duration: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('sleep', operationUuid);
+            this._native
+                .sleep(operationUuid, duration)
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.Other,
+                            Source.Sleep,
+                        ),
+                    );
+                });
+        });
     }
 
     // public sleep(duration: number): undefined | NativeError {

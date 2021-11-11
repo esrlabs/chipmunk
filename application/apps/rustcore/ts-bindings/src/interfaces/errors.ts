@@ -30,11 +30,11 @@ export enum Source {
     Export = 'Export',
     Detect = 'Detect',
     Abort = 'Abort',
+    Sleep = 'Sleep',
     Other = 'Other',
 }
 
 export class NativeError extends Error {
-
     private readonly _type: Type;
     private readonly _source: Source;
     private readonly _logger: Logs.Logger = Logs.getLogger(`NativeError`);
@@ -56,7 +56,10 @@ export class NativeError extends Error {
     }
 
     public log(): void {
-        this._logger.error(`\n\ttype: ${this.getType()};\n\tsource: ${this.getSource()};\n\tmessage: ${this.message}`)
+        this._logger.error(
+            `\n\ttype: ${this.getType()};\n\tsource: ${this.getSource()};\n\tmessage: ${
+                this.message
+            }`,
+        );
     }
-
 }

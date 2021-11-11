@@ -15,10 +15,9 @@ interface IFile {
     filename: string;
     from: number;
     count: number;
-};
+}
 
 export class OpenFile extends Action {
-
     private _args: {
         start: number;
         end: number;
@@ -36,7 +35,7 @@ export class OpenFile extends Action {
     }
 
     public pattern(): string {
-        return `${KEYS[0]} filename[start:count]`
+        return `${KEYS[0]} filename[start:count]`;
     }
 
     public valid(args: string[]): Promise<void> {
@@ -49,28 +48,36 @@ export class OpenFile extends Action {
                 return resolve();
             }
             const errors: string[] = [];
-            Promise.all(files.map((file) => {
-                return new Promise((rej, res) => {
-                    fs.access(file.filename, fs.constants.F_OK, (err: NodeJS.ErrnoException | null) => {
-                        if (err) {
-                            if (err.code === ENOENT) {
-                                return rej(new Error(`File doesn't exist`));
-                            } else {
-                                return rej(err);
-                            }
-                        } else {
-                            res();
-                        }
+            Promise.all(
+                files.map((file) => {
+                    return new Promise((rej, res) => {
+                        fs.access(
+                            file.filename,
+                            fs.constants.F_OK,
+                            (err: NodeJS.ErrnoException | null) => {
+                                if (err) {
+                                    if (err.code === ENOENT) {
+                                        return rej(new Error(`File doesn't exist`));
+                                    } else {
+                                        return rej(err);
+                                    }
+                                } else {
+                                    res();
+                                }
+                            },
+                        );
+                    }).catch((err: Error) => {
+                        errors.push(err.message);
                     });
-                }).catch((err: Error) => {
-                    errors.push(err.message);    
-                });
-            })).then(() => {
-                if (errors.length > 0) {
-                    return reject(new Error(errors.join('/n')));
-                }
-                resolve();
-            }).catch(reject);
+                }),
+            )
+                .then(() => {
+                    if (errors.length > 0) {
+                        return reject(new Error(errors.join('/n')));
+                    }
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 
@@ -83,53 +90,92 @@ export class OpenFile extends Action {
             if (files === undefined) {
                 return resolve(args);
             }
-            Promise.all(files.map((file: IFile) => {
-                return new Promise<void>((done, fail) => {
-                    const started: number = Date.now();
-                    const session = new Session();
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        return fail(new Error(`Fail to create a session. Error: ${stream.message}`))
-                    }
-                    stream.assign(file.filename, {}).then(() => {
-                        const grabbed: IGrabbedElement[] | Error = stream.grab(file.from, file.count);
-                        if (grabbed instanceof Error) {
-                            return fail(new Error(`Fail to grab data due error: ${grabbed.message}`));
+            Promise.all(
+                files.map((file: IFile) => {
+                    return new Promise<void>((done, fail) => {
+                        const started: number = Date.now();
+                        const session = new Session();
+                        session.debug(true);
+                        const stream = session.getStream();
+                        if (stream instanceof Error) {
+                            return fail(
+                                new Error(`Fail to create a session. Error: ${stream.message}`),
+                            );
                         }
-                        const finished = Date.now();
-                        isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
-                        console.log(`Grab data from ${file.from} to ${file.from + file.count} in ${finished - started} ms`);
-                        isOutputAllowed() && console.log(`${'='.repeat(5)} BEGIN ${'='.repeat(50)}`);
-                        grabbed.forEach((item, i) => {
-                            isOutputAllowed() && console.log(`${i + file.from}:\t${item.content}`);
-                        });
-                        isOutputAllowed() && console.log(`${'='.repeat(5)} END   ${'='.repeat(50)}`);
-                        const stat = session.getDebugStat();
-                        if (stat.unsupported.length !== 0) {
-                            return fail(new Error(`Unsupported events:\n\t- ${stat.unsupported.join('\n\t- ')}`));
-                        }
-                        if (stat.errors.length !== 0) {
-                            return fail(new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`));
-                        }
-                        isOutputAllowed() && console.log(`Session computation (provider) doesn't have any errors.`);
-                        isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
-                        done();
-                    }).catch((err: Error) => {
-                        fail(err);
-                    }).finally(() => {
-                        session.destroy();
+                        stream
+                            .assign(file.filename, {})
+                            .then(() => {
+                                stream
+                                    .grab(file.from, file.count)
+                                    .then((grabbed: IGrabbedElement[]) => {
+                                        const finished = Date.now();
+                                        isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
+                                        console.log(
+                                            `Grab data from ${file.from} to ${
+                                                file.from + file.count
+                                            } in ${finished - started} ms`,
+                                        );
+                                        isOutputAllowed() &&
+                                            console.log(`${'='.repeat(5)} BEGIN ${'='.repeat(50)}`);
+                                        grabbed.forEach((item, i) => {
+                                            isOutputAllowed() &&
+                                                console.log(`${i + file.from}:\t${item.content}`);
+                                        });
+                                        isOutputAllowed() &&
+                                            console.log(`${'='.repeat(5)} END   ${'='.repeat(50)}`);
+                                        const stat = session.getDebugStat();
+                                        if (stat.unsupported.length !== 0) {
+                                            return fail(
+                                                new Error(
+                                                    `Unsupported events:\n\t- ${stat.unsupported.join(
+                                                        '\n\t- ',
+                                                    )}`,
+                                                ),
+                                            );
+                                        }
+                                        if (stat.errors.length !== 0) {
+                                            return fail(
+                                                new Error(
+                                                    `Errors:\n\t- ${stat.errors.join('\n\t- ')}`,
+                                                ),
+                                            );
+                                        }
+                                        isOutputAllowed() &&
+                                            console.log(
+                                                `Session computation (provider) doesn't have any errors.`,
+                                            );
+                                        isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
+                                        done();
+                                    })
+                                    .catch((err: Error) => {
+                                        fail(
+                                            new Error(
+                                                `Fail to grab data due error: ${err.message}`,
+                                            ),
+                                        );
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                fail(err);
+                            })
+                            .finally(() => {
+                                session.destroy();
+                            });
                     });
-                });
-            })).then(() => {
-                resolve(args.filter((arg, i) => {
-                    if (i < this._args.start || i > this._args.end) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }));
-            }).catch(reject);
+                }),
+            )
+                .then(() => {
+                    resolve(
+                        args.filter((arg, i) => {
+                            if (i < this._args.start || i > this._args.end) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }),
+                    );
+                })
+                .catch(reject);
         });
     }
 
@@ -167,8 +213,17 @@ export class OpenFile extends Action {
                 };
                 const coors: RegExpMatchArray | null = args[i].match(/\[\d{1,}:\d{1,}\]/gi);
                 if (coors !== null) {
-                    const pair = coors[0].replace(/[\[\]]/gi, '').split(':').map((v) => parseInt(v, 10));
-                    if (pair.length !== 2 || isNaN(pair[0]) || isNaN(pair[1]) || !isFinite(pair[0]) || !isFinite(pair[1])) {
+                    const pair = coors[0]
+                        .replace(/[\[\]]/gi, '')
+                        .split(':')
+                        .map((v) => parseInt(v, 10));
+                    if (
+                        pair.length !== 2 ||
+                        isNaN(pair[0]) ||
+                        isNaN(pair[1]) ||
+                        !isFinite(pair[0]) ||
+                        !isFinite(pair[1])
+                    ) {
                         return new Error(`Invalid coors: ${coors[0]}`);
                     }
                     file.from = pair[0];
@@ -190,7 +245,6 @@ export class OpenFile extends Action {
         }
         return files;
     }
-
 }
 
 export default new OpenFile();

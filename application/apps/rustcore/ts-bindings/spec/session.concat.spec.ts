@@ -14,7 +14,7 @@ describe('Concat', function () {
         const logger = getLogger('Concat. Test 1');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true);
+        session.debug(true, 'Test 1. Concat files');
         const stream = session.getStream();
         if (stream instanceof Error) {
             finish(session, done, stream);
@@ -37,24 +37,25 @@ describe('Concat', function () {
                 true,
             )
             .then(() => {
-                let result: IGrabbedElement[] | Error = stream.grab(3, 5);
-                if (result instanceof Error) {
-                    finish(
-                        session,
-                        done,
-                        new Error(`Fail to grab data due error: ${result.message}`),
-                    );
-                    return;
-                }
-                logger.debug('result of grab was: ' + JSON.stringify(result));
-                expect(result.map((i) => i.content.slice(0, 4))).toEqual([
-                    'a--3',
-                    'a--4',
-                    'b--0',
-                    'b--1',
-                    'b--2',
-                ]);
-                finish(session, done);
+                stream
+                    .grab(3, 5)
+                    .then((result: IGrabbedElement[]) => {
+                        expect(result.map((i) => i.content.slice(0, 4))).toEqual([
+                            'a--3',
+                            'a--4',
+                            'b--0',
+                            'b--1',
+                            'b--2',
+                        ]);
+                        finish(session, done);
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            session,
+                            done,
+                            new Error(`Fail to grab data due error: ${err.message}`),
+                        );
+                    });
             })
             .catch(finish.bind(null, session, done));
     });

@@ -61,6 +61,8 @@ pub type IndexingResults<T> = std::result::Result<IndexingProgress<T>, Notificat
 
 #[derive(Debug)]
 pub enum IndexingProgress<T> {
+    /// GotItem called once per operation. It reflects results of operation, but
+    /// not a progress
     GotItem {
         item: T,
     },

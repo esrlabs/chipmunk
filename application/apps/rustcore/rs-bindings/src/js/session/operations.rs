@@ -19,8 +19,10 @@ use processor::{grabber::GrabMetadata, map::NearestPosition, search::SearchFilte
 use serde::Serialize;
 use std::path::PathBuf;
 use tokio::{
+    select,
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     task::spawn,
+    time,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -33,9 +35,9 @@ pub enum OperationAlias {
     Map,
     Concat,
     Merge,
-    ExtractMetadata,
     DropSearch,
     GetNearestPosition,
+    Sleep,
     Cancel,
     End,
 }
@@ -53,9 +55,9 @@ impl std::fmt::Display for OperationAlias {
                 OperationAlias::Map => "Map",
                 OperationAlias::Concat => "Concat",
                 OperationAlias::Merge => "Merge",
-                OperationAlias::ExtractMetadata => "ExtractMetadata",
                 OperationAlias::DropSearch => "DropSearch",
                 OperationAlias::GetNearestPosition => "GetNearestPosition",
+                OperationAlias::Sleep => "Sleep",
                 OperationAlias::Cancel => "Cancel",
                 OperationAlias::End => "End",
             }
@@ -96,12 +98,12 @@ pub enum Operation {
         source_type: SupportedFileType,
         source_id: String,
     },
-    ExtractMetadata(cc::Sender<Option<GrabMetadata>>),
     DropSearch(cc::Sender<()>),
     GetNearestPosition((u64, cc::Sender<Option<NearestPosition>>)),
     Cancel {
         operation_id: Uuid,
     },
+    Sleep(u64),
     End,
 }
 
@@ -321,6 +323,13 @@ impl OperationAPI {
                     )
                     .await;
                 }
+                Operation::Sleep(ms) => {
+                    api.finish(
+                        handlers::sleep::handle(&api, ms).await,
+                        OperationAlias::Sleep,
+                    )
+                    .await;
+                }
                 Operation::Cancel { operation_id } => {
                     match state.cancel_operation(operation_id).await {
                         Ok(canceled) => {
@@ -358,39 +367,6 @@ impl OperationAPI {
                         }
                     }
                 }
-                Operation::ExtractMetadata(tx_response) => match state.get_metadata().await {
-                    Ok(md) => {
-                        if let Err(err) = tx_response.send(if let Some(md) = &md {
-                            let md = md.clone();
-                            if let Err(err) = state.set_metadata(None).await {
-                                error!(
-                                    target: targets::SESSION,
-                                    "fail drop metadata; error: {:?}", err
-                                );
-                            }
-                            Some(md)
-                        } else {
-                            None
-                        }) {
-                            error!(
-                                target: targets::SESSION,
-                                "fail to responce to Operation::ExtractMetadata; error: {}", err
-                            );
-                        }
-                        api.finish::<OperationResult<()>>(
-                            Ok(None),
-                            OperationAlias::ExtractMetadata,
-                        )
-                        .await;
-                    }
-                    Err(err) => {
-                        api.finish::<OperationResult<()>>(
-                            Err(err),
-                            OperationAlias::ExtractMetadata,
-                        )
-                        .await;
-                    }
-                },
                 Operation::DropSearch(tx_response) => {
                     if let Err(err) = state.set_matches(None).await {
                         api.finish::<OperationResult<()>>(Err(err), OperationAlias::DropSearch)

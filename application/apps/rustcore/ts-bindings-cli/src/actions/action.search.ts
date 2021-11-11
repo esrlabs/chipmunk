@@ -16,10 +16,9 @@ interface IParams {
     from: number;
     count: number;
     filters: string[];
-};
+}
 
 export class SearchInFile extends Action {
-
     private _args: {
         start: number;
         end: number;
@@ -37,7 +36,7 @@ export class SearchInFile extends Action {
     }
 
     public pattern(): string {
-        return `${KEYS[0]} filename[start:count] "filter" "filter" ...`
+        return `${KEYS[0]} filename[start:count] "filter" "filter" ...`;
     }
 
     public valid(args: string[]): Promise<void> {
@@ -84,51 +83,83 @@ export class SearchInFile extends Action {
             if (search instanceof Error) {
                 return reject(search);
             }
-            stream.assign(params.filename, {}).then(() => {
-                search.search(params.filters.map((filter) => {
-                    return {
-                        filter: filter,
-                        flags: { reg: true, word: false, cases: false },
-                    };
-                })).then(() => {
-                    const grabbed: IGrabbedElement[] | Error = search.grab(params.from, params.count);
-                    if (grabbed instanceof Error) {
-                        return reject(new Error(`Fail to grab data due error: ${grabbed.message}`));
-                    }
-                    const stat = session.getDebugStat();
-                    if (stat.unsupported.length !== 0) {
-                        return reject(new Error(`Unsupported events:\n\t- ${stat.unsupported.join('\n\t- ')}`));
-                    }
-                    if (stat.errors.length !== 0) {
-                        return reject(new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`));
-                    }
-                    const finished = Date.now();
-                    isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
-                    isOutputAllowed() && console.log(`Filters:`);
-                    isOutputAllowed() && console.log(`\t- ${params.filters.join(`\n\t- `)}`)
-                    isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
-                    console.log(`Grab data from ${params.from} to ${params.from + params.count} in ${finished - started} ms`);
-                    isOutputAllowed() && console.log(`${'='.repeat(5)} BEGIN ${'='.repeat(50)}`);
-                    grabbed.forEach((item, i) => {
-                        isOutputAllowed() && console.log(`${i + params.from}:\t${item.content}`);
-                    });
-                    isOutputAllowed() && console.log(`${'='.repeat(5)} END   ${'='.repeat(50)}`);
-                    resolve(args.filter((arg, i) => {
-                        if (i < this._args.start || i > this._args.end) {
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    }));
-                }).catch((err: Error) => {
-                    reject(err);
-                }).finally(() => {
+            stream
+                .assign(params.filename, {})
+                .then(() => {
+                    search
+                        .search(
+                            params.filters.map((filter) => {
+                                return {
+                                    filter: filter,
+                                    flags: { reg: true, word: false, cases: false },
+                                };
+                            }),
+                        )
+                        .then(() => {
+                            search
+                                .grab(params.from, params.count)
+                                .then((grabbed: IGrabbedElement[]) => {
+                                    const stat = session.getDebugStat();
+                                    if (stat.unsupported.length !== 0) {
+                                        return reject(
+                                            new Error(
+                                                `Unsupported events:\n\t- ${stat.unsupported.join(
+                                                    '\n\t- ',
+                                                )}`,
+                                            ),
+                                        );
+                                    }
+                                    if (stat.errors.length !== 0) {
+                                        return reject(
+                                            new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`),
+                                        );
+                                    }
+                                    const finished = Date.now();
+                                    isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
+                                    isOutputAllowed() && console.log(`Filters:`);
+                                    isOutputAllowed() &&
+                                        console.log(`\t- ${params.filters.join(`\n\t- `)}`);
+                                    isOutputAllowed() && console.log(`\n${'='.repeat(62)}`);
+                                    console.log(
+                                        `Grab data from ${params.from} to ${
+                                            params.from + params.count
+                                        } in ${finished - started} ms`,
+                                    );
+                                    isOutputAllowed() &&
+                                        console.log(`${'='.repeat(5)} BEGIN ${'='.repeat(50)}`);
+                                    grabbed.forEach((item, i) => {
+                                        isOutputAllowed() &&
+                                            console.log(`${i + params.from}:\t${item.content}`);
+                                    });
+                                    isOutputAllowed() &&
+                                        console.log(`${'='.repeat(5)} END   ${'='.repeat(50)}`);
+                                    resolve(
+                                        args.filter((arg, i) => {
+                                            if (i < this._args.start || i > this._args.end) {
+                                                return true;
+                                            } else {
+                                                return false;
+                                            }
+                                        }),
+                                    );
+                                })
+                                .catch((err: Error) => {
+                                    reject(
+                                        new Error(`Fail to grab data due error: ${err.message}`),
+                                    );
+                                });
+                        })
+                        .catch((err: Error) => {
+                            reject(err);
+                        })
+                        .finally(() => {
+                            session.destroy();
+                        });
+                })
+                .catch((err: Error) => {
                     session.destroy();
+                    reject(err);
                 });
-            }).catch((err: Error) => {
-                session.destroy();
-                reject(err);
-            });
         });
     }
 
@@ -167,8 +198,17 @@ export class SearchInFile extends Action {
                 params.filename = getFileName(args[i].replace(/\[\d{1,}:\d{1,}\]/gi, ''));
                 const coors: RegExpMatchArray | null = args[i].match(/\[\d{1,}:\d{1,}\]/gi);
                 if (coors !== null) {
-                    const pair = coors[0].replace(/[\[\]]/gi, '').split(':').map((v) => parseInt(v, 10));
-                    if (pair.length !== 2 || isNaN(pair[0]) || isNaN(pair[1]) || !isFinite(pair[0]) || !isFinite(pair[1])) {
+                    const pair = coors[0]
+                        .replace(/[\[\]]/gi, '')
+                        .split(':')
+                        .map((v) => parseInt(v, 10));
+                    if (
+                        pair.length !== 2 ||
+                        isNaN(pair[0]) ||
+                        isNaN(pair[1]) ||
+                        !isFinite(pair[0]) ||
+                        !isFinite(pair[1])
+                    ) {
                         return new Error(`Invalid coors: ${coors[0]}`);
                     }
                     params.from = pair[0];
@@ -193,7 +233,6 @@ export class SearchInFile extends Action {
         }
         return params;
     }
-
 }
 
 export default new SearchInFile();
