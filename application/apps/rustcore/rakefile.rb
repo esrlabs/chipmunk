@@ -141,6 +141,11 @@ namespace :test do
     sh "#{test_runner} ts-bindings/spec/session.merge.spec.ts"
   end
 
+  desc 'run cancel tests'
+  task :cancel do
+    sh "#{test_runner} ts-bindings/spec/session.cancel.spec.ts"
+  end
+
   desc 'run utils tests'
   task :utils do
     sh "#{test_runner} ts-bindings/spec/utils.spec.ts"

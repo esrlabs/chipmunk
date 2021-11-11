@@ -45,8 +45,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-     public grab(start: number, len: number): IGrabbedElement[] | Error {
-        // TODO grab content
+    public grab(start: number, len: number): Promise<IGrabbedElement[]> {
         return this._session.grabSearchChunk(start, len);
     }
 
@@ -100,38 +99,25 @@ export class SessionSearch {
         return Executors.extract(this._session, this._provider, this._logger, filters);
     }
 
-    public getMap(datasetLength: number, from?: number, to?: number): CancelablePromise<ISearchMap> {
-        return Executors.map(this._session, this._provider, this._logger, { datasetLength, from, to });
+    public getMap(
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): CancelablePromise<ISearchMap> {
+        return Executors.map(this._session, this._provider, this._logger, {
+            datasetLength,
+            from,
+            to,
+        });
     }
 
-    public getNearest(positionInStream: number): { index: number, position: number } | undefined {
-        const nearest = this._session.getNearestTo(positionInStream);
-        if (nearest !== undefined &&
-            typeof nearest === 'object' &&
-            typeof (nearest as any).index === 'number' &&
-            typeof (nearest as any).position === 'number')
-        {
-            const index: number = (nearest as any).index;
-            const position: number = (nearest as any).position;
-            if (!isNaN(index) && !isNaN(position) && isFinite(index) && isFinite(position)) {
-                return index < 0 || position < 0 ? undefined : { index, position };
-            }
-        }
-        return undefined;
+    public getNearest(
+        positionInStream: number,
+    ): Promise<{ index: number; position: number } | undefined> {
+        return this._session.getNearestTo(positionInStream);
     }
 
-    public len(): number {
-        const len = this._session.getSearchLen();
-        if (len instanceof Error) {
-            this._logger.warn(`Fail get length of stream. Error: ${len.message}`);
-            return 0;
-        } else if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
-            this._logger.warn(
-                `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,
-            );
-            return 0;
-        } else {
-            return len;
-        }
+    public len(): Promise<number> {
+        return this._session.getSearchLen();
     }
 }

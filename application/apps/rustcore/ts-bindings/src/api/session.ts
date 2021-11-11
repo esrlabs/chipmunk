@@ -8,6 +8,9 @@ import { EventProvider, ISessionEvents, IError } from './session.provider';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
 import { IOrderStat } from '../provider/provider';
+import { Executors } from './session.executors';
+import { ISleepResults } from './session.sleep.executor';
+import { CancelablePromise } from '../util/promise';
 
 export {
     ISessionEvents,
@@ -140,14 +143,24 @@ export class Session {
     }
 
     /**
+     * Method sleep uses ONLY for cancellation testing
+     * @param duration - duration in ms
+     * @returns
+     */
+    public sleep(duration: number): CancelablePromise<ISleepResults> {
+        return Executors.sleep(this._session, this._provider, this._logger, { duration });
+    }
+
+    /**
      * Switch session provider into debug mode
      * Shows addition logs related to lifecircle
      * @param state {boolean}: true - debug mode ON; false - debug mode OFF
      */
-    public debug(state: boolean) {
+    public debug(state: boolean, alias?: string) {
         this._provider.debug().setStoring(state);
         this._provider.debug().setTracking(state);
         this._provider.debug().setCount(state);
+        typeof alias === 'string' && this._provider.debug().setAlias(alias);
     }
 
     /**
@@ -161,6 +174,7 @@ export class Session {
      * }
      */
     public getDebugStat(): {
+        alias: string | undefined;
         unsupported: string[];
         errors: string[];
         order: IOrderStat[];
@@ -168,6 +182,7 @@ export class Session {
         operations: { [key: string]: number };
     } {
         return {
+            alias: this._provider.debug().getAlias(),
             unsupported: this._provider.debug().stat.unsupported(),
             errors: this._provider.debug().stat.error(),
             order: this._provider.debug().stat.order(),
@@ -179,13 +194,15 @@ export class Session {
     public printDebugStat(stdout: boolean): void {
         const stat = this.getDebugStat();
         const output = stdout ? console.log : this._logger.debug;
-        const max = 72;
-        const format = (str: string): string => {
-            return `│ ${str}${' '.repeat(max > str.length - 3 ? max - str.length - 3 : 0)}│`;
+        const LEN: number = 80;
+        const MAX = LEN + 2;
+        const format = (str: string, filler: string = ' '): string => {
+            return `│ ${str}${filler.repeat(MAX > str.length - 3 ? MAX - str.length - 3 : 0)}│`;
         };
-        output(`┌${'─'.repeat(70)}┐`);
+        output(`┌${'─'.repeat(LEN)}┐`);
+        stat.alias !== undefined && output(format(`▒▒▒ ${stat.alias} `, '▒'));
         output(format(`Stat information. Session: ${this._uuid}`));
-        output(`├${'─'.repeat(70)}┤`);
+        output(`├${'─'.repeat(LEN)}┤`);
         output(format(`Events:`));
         Object.keys(stat.counter).forEach((event: string) => {
             output(format(`  - [${event}]: ${stat.counter[event]}`));
@@ -194,10 +211,56 @@ export class Session {
         Object.keys(stat.operations).forEach((op: string) => {
             output(format(`  - [${op}]: ${stat.operations[op]}`));
         });
+        const operations: IOrderStat[] = [];
+        stat.order.forEach((entity: IOrderStat, i: number) => {
+            if (entity.type === 'O' && entity.id !== undefined) {
+                operations.push(Object.assign({}, entity));
+            }
+        });
         output(format(`Flow:`));
         stat.order.forEach((entity: IOrderStat, i: number) => {
-            output(format(`  ${i + 1}. [${entity.type}] ${entity.name}`));
+            let bound: IOrderStat | undefined;
+            if (
+                entity.type === 'E' &&
+                entity.id !== undefined &&
+                operations.find((e) => e.id === entity.id) !== undefined
+            ) {
+                bound = operations.find((e) => e.id === entity.id);
+            }
+            output(
+                format(
+                    `  ${i + 1}. [${entity.type}][${
+                        entity.id === undefined ? ' ---- ' : entity.id.substr(0, 6)
+                    }] ${entity.name}${bound !== undefined ? ` <-- ${bound.name}` : ''}`,
+                ),
+            );
         });
+        const unboundEvents: IOrderStat[] = stat.order
+            .map((entity: IOrderStat, i: number) => {
+                if (
+                    entity.type !== 'E' ||
+                    entity.id === undefined ||
+                    operations.find((e) => e.id === entity.id) !== undefined
+                ) {
+                    return undefined;
+                }
+                return entity;
+            })
+            .filter((ev) => ev !== undefined) as IOrderStat[];
+        if (unboundEvents.length === 0) {
+            output(format(`Unbound events: no events`));
+        } else {
+            output(format(`Unbound events:`));
+            unboundEvents.forEach((entity: IOrderStat, i: number) => {
+                output(
+                    format(
+                        `  ${i + 1}. [${entity.type}][${
+                            entity.id === undefined ? ' ---- ' : entity.id.substr(0, 6)
+                        }] ${entity.name}`,
+                    ),
+                );
+            });
+        }
         if (stat.unsupported.length === 0) {
             output(format(`Unsupported events: nothing`));
         } else {
@@ -214,6 +277,6 @@ export class Session {
                 output(format(`  - ${event}`));
             });
         }
-        output(`└${'─'.repeat(70)}┘`);
+        output(`└${'─'.repeat(LEN)}┘`);
     }
 }

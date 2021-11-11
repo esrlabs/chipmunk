@@ -6,6 +6,7 @@ import { TEventData, TEventEmitter, IEventData } from './provider.general';
 export interface IOrderStat {
     type: 'E' | 'O';
     name: string;
+    id: string | undefined;
 }
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
@@ -16,6 +17,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             error: Events.Subject<string>;
         };
         stat: {
+            alias: string | undefined;
             unsupported: string[];
             error: string[];
             counter: { [key: string]: number };
@@ -31,6 +33,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             error: new Events.Subject<string>(),
         },
         stat: {
+            alias: undefined,
             unsupported: [],
             error: [],
             counter: {},
@@ -76,6 +79,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         setTracking(value: boolean): void;
         setStoring(value: boolean): void;
         setCount(value: boolean): void;
+        setAlias(value: string): void;
+        getAlias(): string | undefined;
         stat: {
             unsupported(): string[];
             error(): string[];
@@ -86,8 +91,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         emit: {
             unsupported(msg: string): void;
             error(msg: string): void;
-            counter(event: string): void;
-            operation(operation: string): void;
+            counter(event: string, id?: string): void;
+            operation(operation: string, id?: string): void;
         };
     } {
         const self = this;
@@ -112,6 +117,12 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             },
             setCount(value: boolean): void {
                 self._tracking.count = value;
+            },
+            setAlias(value: string): void {
+                self._tracking.stat.alias = value;
+            },
+            getAlias(): string | undefined {
+                return self._tracking.stat.alias;
             },
             stat: {
                 unsupported(): string[] {
@@ -147,7 +158,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                         self._tracking.stat.error.push(msg);
                     }
                 },
-                counter(event: string): void {
+                counter(event: string, id?: string): void {
                     if (!self._tracking.count) {
                         return;
                     }
@@ -155,9 +166,9 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                         self._tracking.stat.counter[event] = 0;
                     }
                     self._tracking.stat.counter[event] += 1;
-                    self._tracking.stat.order.push({ type: 'E', name: event });
+                    self._tracking.stat.order.push({ type: 'E', name: event, id });
                 },
-                operation(operation: string): void {
+                operation(operation: string, id?: string): void {
                     if (!self._tracking.count) {
                         return;
                     }
@@ -165,7 +176,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                         self._tracking.stat.operations[operation] = 0;
                     }
                     self._tracking.stat.operations[operation] += 1;
-                    self._tracking.stat.order.push({ type: 'O', name: operation });
+                    self._tracking.stat.order.push({ type: 'O', name: operation, id });
                 },
             },
         };
@@ -242,12 +253,17 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         // Using of try { } catch() {} here isn't good idea as soon as it would not
         // allow to localize an issue
         setTimeout(() => {
-            this.debug().emit.counter(event);
             if ((this.getEventsSignatures() as any)[event] === undefined) {
                 const msg: string = `Has been gotten unsupported event: "${event}".`;
                 this.debug().emit.unsupported(msg);
                 this.logger.error(msg);
+                this.debug().emit.counter(event);
             } else {
+                if (event === 'OperationDone' && typeof data.uuid === 'string') {
+                    this.debug().emit.counter(event, data.uuid);
+                } else {
+                    this.debug().emit.counter(event);
+                }
                 const err: Error | undefined = Events.Subject.validate(
                     (this.getEventsInterfaces() as any)[event],
                     data,

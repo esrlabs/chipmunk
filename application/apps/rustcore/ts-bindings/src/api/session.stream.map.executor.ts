@@ -1,4 +1,4 @@
-import { TExecutor, Logger, CancelablePromise, ResultsExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../native/index';
 import { EventProvider } from './session.provider';
 import { IFilter, ISearchMap } from '../interfaces/index';
@@ -15,39 +15,32 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
     logger: Logger,
     options: IOptions,
 ): CancelablePromise<ISearchMap> => {
-    return ResultsExecutor<ISearchMap, IOptions>(
+    return AsyncResultsExecutor<ISearchMap, IOptions>(
         session,
         provider,
         logger,
         options,
-        function (session: RustSession, options: IOptions): string | Error {
-            if (options.from !== undefined && options.to !== undefined) {
-                if (
-                    isNaN(options.from) ||
-                    isNaN(options.to) ||
-                    !isFinite(options.from) ||
-                    !isFinite(options.to)
-                ) {
-                    return new Error(`Range is invalid`);
+        function (session: RustSession, options: IOptions, operationUuid: string): Promise<void> {
+            return new Promise((resolve, reject) => {
+                if (options.from !== undefined && options.to !== undefined) {
+                    if (
+                        isNaN(options.from) ||
+                        isNaN(options.to) ||
+                        !isFinite(options.from) ||
+                        !isFinite(options.to)
+                    ) {
+                        return reject(new Error(`Range is invalid`));
+                    }
+                    if (options.from > options.to) {
+                        return reject(
+                            new Error(`Range is invalid: "from" should not be less "to"`),
+                        );
+                    }
                 }
-                if (options.from > options.to) {
-                    return new Error(`Range is invalid: "from" should not be less "to"`);
-                }
-            }
-            const uuid: string | Error = session.getMap(
-                options.datasetLength,
-                options.from,
-                options.to,
-            );
-            if (uuid instanceof Error) {
-                return uuid;
-            } else if (typeof uuid !== 'string') {
-                return new Error(
-                    `Unexpected format of output of "getMap". Expecting {uuid}; get: ${uuid}`,
-                );
-            } else {
-                return uuid;
-            }
+                session
+                    .getMap(operationUuid, options.datasetLength, options.from, options.to)
+                    .catch(reject);
+            });
         },
         function (data: any, resolve: (res: ISearchMap) => void, reject: (err: Error) => void) {
             try {
@@ -70,6 +63,6 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
                 );
             }
         },
-        'search',
+        'get_map',
     );
 };

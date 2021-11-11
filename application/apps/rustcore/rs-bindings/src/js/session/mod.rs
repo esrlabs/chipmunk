@@ -113,7 +113,7 @@ impl RustSession {
     /// written to the metadata-channel. If so, this metadata is used in the grabber.
     /// If there was no new metadata, we make sure that the metadata has been set.
     /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    fn get_updated_content_grabber(
+    async fn get_updated_content_grabber(
         &mut self,
     ) -> Result<&mut Box<dyn AsyncGrabTrait>, ComputationError> {
         let current_grabber = match &mut self.content_grabber {
@@ -124,32 +124,20 @@ impl RustSession {
                 Err(ComputationError::Protocol(msg))
             }
         }?;
-        let (tx_response, rx_response): (
-            cc::Sender<Option<GrabMetadata>>,
-            cc::Receiver<Option<GrabMetadata>>,
-        ) = cc::bounded(1);
-        self.tx_operations
-            .send((
-                Uuid::new_v4(),
-                operations::Operation::ExtractMetadata(tx_response),
-            ))
-            .map_err(|e| ComputationError::Process(e.to_string()))?;
-        match rx_response.recv() {
-            Ok(metadata) => {
-                if let Some(metadata) = metadata {
-                    current_grabber
-                        .inject_metadata(metadata)
-                        .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
-                }
+        if let Some(state) = self.state_api.as_ref() {
+            let metadata = state
+                .extract_metadata()
+                .await
+                .map_err(ComputationError::NativeError)?;
+            if let Some(metadata) = metadata {
+                current_grabber
+                    .inject_metadata(metadata)
+                    .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
             }
-            Err(err) => {
-                warn!(
-                    target: targets::SESSION,
-                    "Fail to get a metadata; error: {}", err
-                );
-            }
-        };
-        Ok(current_grabber)
+            Ok(current_grabber)
+        } else {
+            Err(ComputationError::SessionUnavailable)
+        }
     }
 
     fn get_search_grabber(
@@ -318,18 +306,18 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn get_stream_len(&mut self) -> Result<i64, ComputationError> {
+    async fn get_stream_len(&mut self) -> Result<i64, ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        match &self.get_updated_content_grabber()?.get_metadata() {
+        match &self.get_updated_content_grabber().await?.get_metadata() {
             Some(md) => Ok(md.line_count as i64),
             None => Err(ComputationError::Protocol("Cannot happen".to_owned())),
         }
     }
 
     #[node_bindgen]
-    fn get_search_len(&mut self) -> Result<i64, ComputationError> {
+    async fn get_search_len(&mut self) -> Result<i64, ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
@@ -345,7 +333,7 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn grab(
+    async fn grab(
         &mut self,
         start_line_index: i64,
         number_of_lines: i64,
@@ -358,7 +346,8 @@ impl RustSession {
             "grab from {} ({} lines)", start_line_index, number_of_lines
         );
         let grabbed_content = self
-            .get_updated_content_grabber()?
+            .get_updated_content_grabber()
+            .await?
             .grab_content(&LineRange::from(
                 (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
             ))
@@ -412,7 +401,7 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn grab_search(
+    async fn grab_search(
         &mut self,
         start_line_index: i64,
         number_of_lines: i64,
@@ -474,7 +463,8 @@ impl RustSession {
         let mut row: usize = start_line_index as usize;
         for range in ranges.iter() {
             let mut original_content = self
-                .get_updated_content_grabber()?
+                .get_updated_content_grabber()
+                .await?
                 .grab_content(&LineRange::from(range.clone()))
                 .map_err(|e| {
                     ComputationError::Communication(format!("grab matched content failed: {}", e))
@@ -599,8 +589,9 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn get_map(
+    async fn get_map(
         &mut self,
+        operation_id_string: String,
         dataset_len: i32,
         from: Option<i64>,
         to: Option<i64>,
@@ -608,7 +599,7 @@ impl RustSession {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        let operation_id = Uuid::new_v4();
+        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let mut range: Option<(u64, u64)> = None;
         if let Some(from) = from {
             if let Some(to) = to {
@@ -650,7 +641,7 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn get_nearest_to(
+    async fn get_nearest_to(
         &mut self,
         position_in_stream: i64,
     ) -> Result<
@@ -809,14 +800,24 @@ impl RustSession {
             ))),
         }
     }
+    #[node_bindgen]
+    async fn sleep(&mut self, operation_id: String, ms: i64) -> Result<(), ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
+        let operation_id = operations::uuid_from_str(&operation_id)?;
+        match self
+            .tx_operations
+            .send((operation_id, operations::Operation::Sleep(ms as u64)))
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(ComputationError::Process(format!(
+                "Could not send operation on channel. Error: {}",
+                e
+            ))),
+        }
+    }
 }
-
-// TODO:
-//         - allow break search operation
-//         - break previous search before start new
-//
-//         method getFilters(mut cx) {
-//         method shutdown(mut cx) {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct GeneralError {

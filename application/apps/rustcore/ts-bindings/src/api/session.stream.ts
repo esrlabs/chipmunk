@@ -8,7 +8,6 @@ import { IExportOptions } from './session.stream.export.executor';
 import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
 import { Executors } from './session.stream.executors';
 import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.executor';
-import { NativeError } from '../interfaces/errors';
 import {
     IGrabbedElement,
     IExtractDTFormatOptions,
@@ -65,8 +64,7 @@ export class SessionStream {
         // });
     }
 
-    public grab(start: number, len: number): IGrabbedElement[] | Error {
-        // TODO grab content
+    public grab(start: number, len: number): Promise<IGrabbedElement[]> {
         return this._session.grabStreamChunk(start, len);
     }
 
@@ -133,18 +131,7 @@ export class SessionStream {
         return {};
     }
 
-    public len(): number {
-        const len = this._session.getStreamLen();
-        if (len instanceof Error) {
-            this._logger.warn(`Fail get length of stream. Error: ${len.message}`);
-            return 0;
-        } else if (typeof len !== 'number' || isNaN(len) || !isFinite(len)) {
-            this._logger.warn(
-                `Has been gotten not valid rows number: ${len} (typeof: ${typeof len}).`,
-            );
-            return 0;
-        } else {
-            return len;
-        }
+    public len(): Promise<number> {
+        return this._session.getStreamLen();
     }
 }
