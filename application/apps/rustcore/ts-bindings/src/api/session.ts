@@ -316,10 +316,6 @@ export class Session {
                     ),
                 );
             });
-            output(splitter());
-            output(format(`  - [T/R] - called like TS -> Rust`));
-            output(format(`  - [R] - called in Rust only`));
-            output(splitter());
         }
         if (unboundEvents.length === 0) {
             output(format(`Unbound events: no events`));
@@ -350,6 +346,17 @@ export class Session {
             stat.errors.forEach((event: string, i: number) => {
                 output(format(`  - ${event}`));
             });
+        }
+        if (stat.order.length > 0 || native.length > 0) {
+            output(splitter());
+            if (stat.order.length > 0) {
+                output(format(`  - [O]   - operation`));
+                output(format(`  - [E]   - event`));
+            }
+            if (native.length > 0) {
+                output(format(`  - [T/R] - called like TS -> Rust`));
+                output(format(`  - [R]   - called in Rust only`));
+            }
         }
         output(`└${'─'.repeat(LEN)}┘`);
     }
