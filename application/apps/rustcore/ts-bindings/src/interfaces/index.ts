@@ -18,3 +18,4 @@ export {
     IConcatFile,
     IFileMergeOptions,
 } from '../../../../../common/interfaces/interface.rust.api.general';
+export { OperationStat } from './debug';

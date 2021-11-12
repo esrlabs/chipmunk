@@ -11,6 +11,7 @@ import { IOrderStat } from '../provider/provider';
 import { Executors } from './session.executors';
 import { ISleepResults } from './session.sleep.executor';
 import { CancelablePromise } from '../util/promise';
+import { OperationStat } from '../interfaces';
 
 export {
     ISessionEvents,
@@ -36,6 +37,11 @@ export class Session {
     private readonly _logger: Logs.Logger;
     private readonly _subs: { [key: string]: Events.Subscription } = {};
     private _state: ESessionState = ESessionState.available;
+    private _debug: {
+        native: OperationStat[];
+    } = {
+        native: [],
+    };
 
     constructor() {
         this._logger = Logs.getLogger(`Session: ${this._uuid}`);
@@ -60,42 +66,48 @@ export class Session {
 
     public destroy(unexpectedly: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            Object.keys(this._subs).forEach((key: string) => {
-                this._subs[key].destroy();
-            });
-            if (this._state === ESessionState.destroyed) {
-                return reject(new Error(`Session is already destroyed or destroing`));
-            }
-            this._state = ESessionState.destroyed;
-            Promise.all([
-                // Destroy stream controller
-                (this._stream as SessionStream).destroy().catch((err: Error) => {
-                    this._logger.error(
-                        `Fail correctly destroy SessionStream due error: ${err.message}`,
-                    );
-                }),
-                // Destroy search controller
-                (this._search as SessionSearch).destroy().catch((err: Error) => {
-                    this._logger.error(
-                        `Fail correctly destroy SessionSearch due error: ${err.message}`,
-                    );
-                }),
-            ])
+            this.requestNativeDebugStat()
                 .catch((err: Error) => {
-                    this._logger.error(`Error while destroying: ${err.message}`);
+                    this._logger.error(err.message);
                 })
                 .finally(() => {
-                    if (!unexpectedly) {
-                        this._provider.getEvents().SessionDestroyed.subscribe(() => {
-                            this._logger.debug(
-                                `Confirmation of session destroying has been received`,
-                            );
-                            this._provider.destroy().then(resolve).catch(reject);
-                        });
-                        this._session.destroy();
-                    } else {
-                        this._provider.destroy().then(resolve).catch(reject);
+                    Object.keys(this._subs).forEach((key: string) => {
+                        this._subs[key].destroy();
+                    });
+                    if (this._state === ESessionState.destroyed) {
+                        return reject(new Error(`Session is already destroyed or destroing`));
                     }
+                    this._state = ESessionState.destroyed;
+                    Promise.all([
+                        // Destroy stream controller
+                        (this._stream as SessionStream).destroy().catch((err: Error) => {
+                            this._logger.error(
+                                `Fail correctly destroy SessionStream due error: ${err.message}`,
+                            );
+                        }),
+                        // Destroy search controller
+                        (this._search as SessionSearch).destroy().catch((err: Error) => {
+                            this._logger.error(
+                                `Fail correctly destroy SessionSearch due error: ${err.message}`,
+                            );
+                        }),
+                    ])
+                        .catch((err: Error) => {
+                            this._logger.error(`Error while destroying: ${err.message}`);
+                        })
+                        .finally(() => {
+                            if (!unexpectedly) {
+                                this._provider.getEvents().SessionDestroyed.subscribe(() => {
+                                    this._logger.debug(
+                                        `Confirmation of session destroying has been received`,
+                                    );
+                                    this._provider.destroy().then(resolve).catch(reject);
+                                });
+                                this._session.destroy();
+                            } else {
+                                this._provider.destroy().then(resolve).catch(reject);
+                            }
+                        });
                 });
         });
     }
@@ -160,6 +172,11 @@ export class Session {
         this._provider.debug().setStoring(state);
         this._provider.debug().setTracking(state);
         this._provider.debug().setCount(state);
+        this.getNativeSession()
+            .setDebug(true)
+            .catch((err: Error) => {
+                this._logger.error(`Fail set debug mode on native: ${err.message}`);
+            });
         typeof alias === 'string' && this._provider.debug().setAlias(alias);
     }
 
@@ -191,13 +208,43 @@ export class Session {
         };
     }
 
-    public printDebugStat(stdout: boolean): void {
+    public requestNativeDebugStat(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this._provider.debug().isTracking()) {
+                this.getNativeSession()
+                    .getOperationsStat()
+                    .then((op: string) => {
+                        try {
+                            this._debug.native = JSON.parse(op);
+                            resolve(undefined);
+                        } catch (err) {
+                            reject(
+                                new Error(
+                                    `Fail get debug stat data from native: ${
+                                        err instanceof Error ? err.message : err
+                                    }`,
+                                ),
+                            );
+                        }
+                    })
+                    .catch(reject);
+            } else {
+                resolve(undefined);
+            }
+        });
+    }
+
+    public printDebugStat(stdout: boolean) {
+        const native: OperationStat[] = this._debug.native;
         const stat = this.getDebugStat();
         const output = stdout ? console.log : this._logger.debug;
         const LEN: number = 80;
         const MAX = LEN + 2;
         const format = (str: string, filler: string = ' '): string => {
             return `│ ${str}${filler.repeat(MAX > str.length - 3 ? MAX - str.length - 3 : 0)}│`;
+        };
+        const splitter = (): string => {
+            return `├${'─'.repeat(MAX - 2)}┤`;
         };
         const fill = (str: string, len: number, filler: string = ' '): string => {
             if (len - str.length < 0) {
@@ -246,13 +293,34 @@ export class Session {
                 if (
                     entity.type !== 'E' ||
                     entity.id === undefined ||
-                    operations.find((e) => e.id === entity.id) !== undefined
+                    operations.find((e) => e.id === entity.id) !== undefined ||
+                    native.find((op) => op.uuid == entity.id) !== undefined
                 ) {
                     return undefined;
                 }
                 return entity;
             })
             .filter((ev) => ev !== undefined) as IOrderStat[];
+        if (native.length > 0) {
+            output(format(`Native scope:`));
+            const isBound = (uuid: string): boolean => {
+                return operations.find((e) => e.id === uuid) !== undefined;
+            };
+            native.forEach((operation: OperationStat, i: number) => {
+                output(
+                    format(
+                        `${fill((i + 1).toString(), 4)}. [${operation.uuid.substr(0, 6)}][${fill(
+                            (operation.duration / 1000).toFixed(2),
+                            5,
+                        )}ms][${isBound(operation.uuid) ? ' R/T ' : '  R  '}] ${operation.name}`,
+                    ),
+                );
+            });
+            output(splitter());
+            output(format(`  - [T/R] - called like TS -> Rust`));
+            output(format(`  - [R] - called in Rust only`));
+            output(splitter());
+        }
         if (unboundEvents.length === 0) {
             output(format(`Unbound events: no events`));
         } else {

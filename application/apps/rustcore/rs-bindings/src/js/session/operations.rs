@@ -17,15 +17,56 @@ use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use processor::{grabber::GrabMetadata, map::NearestPosition, search::SearchFilter};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tokio::{
-    select,
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     task::spawn,
-    time,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OperationStat {
+    pub uuid: String,
+    pub name: String,
+    pub duration: u64,
+    pub started: u64,
+}
+
+impl OperationStat {
+    pub fn new(uuid: String, name: String) -> Self {
+        let start = SystemTime::now();
+        let timestamp = match start.duration_since(UNIX_EPOCH) {
+            Ok(timestamp) => timestamp.as_micros() as u64,
+            Err(err) => {
+                error!(target: targets::SESSION, "fail to get timestamp: {}", err);
+                0
+            }
+        };
+        OperationStat {
+            uuid,
+            name,
+            started: timestamp,
+            duration: 0,
+        }
+    }
+    pub fn done(&mut self) {
+        let start = SystemTime::now();
+        let timestamp = match start.duration_since(UNIX_EPOCH) {
+            Ok(timestamp) => timestamp.as_micros() as u64,
+            Err(err) => {
+                error!(target: targets::SESSION, "fail to get timestamp: {}", err);
+                0
+            }
+        };
+        if timestamp > self.started {
+            self.duration = timestamp - self.started;
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum OperationAlias {
@@ -105,6 +146,54 @@ pub enum Operation {
     },
     Sleep(u64),
     End,
+}
+
+impl std::fmt::Display for Operation {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Operation::Assign {
+                    file_path: _,
+                    source_id: _,
+                    source_type: _,
+                } => "Assign",
+                Operation::Search {
+                    target_file: _,
+                    filters: _,
+                } => "Search",
+                Operation::Extract {
+                    target_file: _,
+                    filters: _,
+                } => "Extract",
+                Operation::Map {
+                    dataset_len: _,
+                    range: _,
+                } => "Map",
+                Operation::Concat {
+                    files: _,
+                    out_path: _,
+                    append: _,
+                    source_type: _,
+                    source_id: _,
+                } => "Concat",
+                Operation::Merge {
+                    files: _,
+                    out_path: _,
+                    append: _,
+                    source_type: _,
+                    source_id: _,
+                } => "Merge",
+                Operation::Sleep(_) => "Sleep",
+                Operation::Cancel { operation_id: _ } => "Cancel",
+                Operation::DropSearch(_) => "DropSearch",
+                Operation::GetNearestPosition((_, _)) => "GetNearestPosition",
+                Operation::End => "End",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -214,7 +303,11 @@ impl OperationAPI {
     ) -> Result<(), NativeError> {
         let added = self
             .state_api
-            .add_operation(self.id(), self.get_cancellation_token())
+            .add_operation(
+                self.id(),
+                operation.to_string(),
+                self.get_cancellation_token(),
+            )
             .await?;
         if !added {
             return Err(NativeError {
