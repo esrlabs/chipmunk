@@ -199,6 +199,12 @@ export class Session {
         const format = (str: string, filler: string = ' '): string => {
             return `│ ${str}${filler.repeat(MAX > str.length - 3 ? MAX - str.length - 3 : 0)}│`;
         };
+        const fill = (str: string, len: number, filler: string = ' '): string => {
+            if (len - str.length < 0) {
+                return str;
+            }
+            return `${filler.repeat(len - str.length)}${str}`;
+        };
         output(`┌${'─'.repeat(LEN)}┐`);
         stat.alias !== undefined && output(format(`▒▒▒ ${stat.alias} `, '▒'));
         output(format(`Stat information. Session: ${this._uuid}`));
@@ -229,7 +235,7 @@ export class Session {
             }
             output(
                 format(
-                    `  ${i + 1}. [${entity.type}][${
+                    `${fill((i + 1).toString(), 4)}. [${entity.type}][${
                         entity.id === undefined ? ' ---- ' : entity.id.substr(0, 6)
                     }] ${entity.name}${bound !== undefined ? ` <-- ${bound.name}` : ''}`,
                 ),
@@ -254,7 +260,7 @@ export class Session {
             unboundEvents.forEach((entity: IOrderStat, i: number) => {
                 output(
                     format(
-                        `  ${i + 1}. [${entity.type}][${
+                        `${fill((i + 1).toString(), 4)}. [${entity.type}][${
                             entity.id === undefined ? ' ---- ' : entity.id.substr(0, 6)
                         }] ${entity.name}`,
                     ),
