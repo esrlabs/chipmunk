@@ -306,13 +306,18 @@ export class Session {
             const isBound = (uuid: string): boolean => {
                 return operations.find((e) => e.id === uuid) !== undefined;
             };
+            const SCALE = 10;
+            const step = Math.max(...native.map((op) => op.duration)) / SCALE;
             native.forEach((operation: OperationStat, i: number) => {
+                const scale = Math.floor(operation.duration / step);
                 output(
                     format(
                         `${fill((i + 1).toString(), 4)}. [${operation.uuid.substr(0, 6)}][${fill(
                             (operation.duration / 1000).toFixed(2),
                             5,
-                        )}ms][${isBound(operation.uuid) ? ' R/T ' : '  R  '}] ${operation.name}`,
+                        )}ms][${'■'.repeat(scale)}${'·'.repeat(SCALE - scale)}][${
+                            isBound(operation.uuid) ? ' T/R ' : '  R  '
+                        }] ${operation.name}`,
                     ),
                 );
             });
