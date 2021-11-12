@@ -801,6 +801,34 @@ impl RustSession {
         }
     }
     #[node_bindgen]
+    async fn set_debug(&mut self, debug: bool) -> Result<(), ComputationError> {
+        // if !self.is_opened() {
+        //     return Err(ComputationError::SessionUnavailable);
+        // }
+        if let Some(state) = self.state_api.as_ref() {
+            state
+                .set_debug(debug)
+                .await
+                .map_err(ComputationError::NativeError)
+        } else {
+            Err(ComputationError::SessionUnavailable)
+        }
+    }
+    #[node_bindgen]
+    async fn get_operations_stat(&mut self) -> Result<String, ComputationError> {
+        if !self.is_opened() {
+            return Err(ComputationError::SessionUnavailable);
+        }
+        if let Some(state) = self.state_api.as_ref() {
+            state
+                .get_operations_stat()
+                .await
+                .map_err(ComputationError::NativeError)
+        } else {
+            Err(ComputationError::SessionUnavailable)
+        }
+    }
+    #[node_bindgen]
     async fn sleep(&mut self, operation_id: String, ms: i64) -> Result<(), ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);

@@ -1,9 +1,12 @@
 use crate::{
-    js::session::events::{NativeError, NativeErrorKind},
+    js::session::{
+        events::{NativeError, NativeErrorKind},
+        operations,
+    },
     logging::targets,
 };
 use indexer_base::progress::Severity;
-use log::debug;
+use log::{debug, error};
 use processor::{
     grabber::GrabMetadata,
     map::{FilterMatch, SearchMap},
@@ -26,16 +29,18 @@ pub enum Api {
     // SetFilters((Vec<SearchFilter>, oneshot::Sender<()>)),
     // GetFilters(oneshot::Sender<Vec<SearchFilter>>),
     // SetSearchMap((SearchMap, oneshot::Sender<()>)),
+    // GetMetadata(oneshot::Sender<Option<GrabMetadata>>),
     GetSearchMap(oneshot::Sender<SearchMap>),
     SetMetadata((Option<GrabMetadata>, oneshot::Sender<()>)),
-    GetMetadata(oneshot::Sender<Option<GrabMetadata>>),
     ExtractMetadata(oneshot::Sender<Option<GrabMetadata>>),
     SetStreamLen((u64, oneshot::Sender<()>)),
     SetMatches((Option<Vec<FilterMatch>>, oneshot::Sender<()>)),
-    AddOperation((Uuid, CancellationToken, oneshot::Sender<bool>)),
+    AddOperation((Uuid, String, CancellationToken, oneshot::Sender<bool>)),
     RemoveOperation((Uuid, oneshot::Sender<bool>)),
     CancelOperation((Uuid, oneshot::Sender<bool>)),
     CloseSession(oneshot::Sender<()>),
+    SetDebugMode((bool, oneshot::Sender<()>)),
+    GetOperationsStat(oneshot::Sender<Result<String, NativeError>>),
     Shutdown,
 }
 
@@ -53,6 +58,8 @@ pub struct SessionState {
     pub metadata: Option<GrabMetadata>,
     pub operations: HashMap<Uuid, CancellationToken>,
     pub status: Status,
+    pub stat: Vec<operations::OperationStat>,
+    pub debug: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -169,6 +176,24 @@ impl SessionStateAPI {
     //     })?;
     //     Ok(())
     // }
+    // pub async fn get_metadata(&self) -> Result<Option<GrabMetadata>, NativeError> {
+    //     let (tx_response, rx_response): (
+    //         oneshot::Sender<Option<GrabMetadata>>,
+    //         oneshot::Receiver<Option<GrabMetadata>>,
+    //     ) = oneshot::channel();
+    //     self.tx_api
+    //         .send(Api::GetMetadata(tx_response))
+    //         .map_err(|e| NativeError {
+    //             severity: Severity::ERROR,
+    //             kind: NativeErrorKind::ChannelError,
+    //             message: Some(format!("fail to send to Api::GetMetadata; error: {}", e,)),
+    //         })?;
+    //     Ok(rx_response.await.map_err(|_| NativeError {
+    //         severity: Severity::ERROR,
+    //         kind: NativeErrorKind::ChannelError,
+    //         message: Some(String::from("fail to get response from Api::GetMetadata")),
+    //     })?)
+    // }
     pub async fn get_search_map(&self) -> Result<SearchMap, NativeError> {
         let (tx_response, rx_response): (oneshot::Sender<SearchMap>, oneshot::Receiver<SearchMap>) =
             oneshot::channel();
@@ -201,24 +226,6 @@ impl SessionStateAPI {
             message: Some(String::from("fail to get response from Api::SetMetadata")),
         })?;
         Ok(())
-    }
-    pub async fn get_metadata(&self) -> Result<Option<GrabMetadata>, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Option<GrabMetadata>>,
-            oneshot::Receiver<Option<GrabMetadata>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetMetadata(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::GetMetadata; error: {}", e,)),
-            })?;
-        Ok(rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::GetMetadata")),
-        })?)
     }
     pub async fn extract_metadata(&self) -> Result<Option<GrabMetadata>, NativeError> {
         let (tx_response, rx_response): (
@@ -280,12 +287,13 @@ impl SessionStateAPI {
     pub async fn add_operation(
         &self,
         uuid: Uuid,
+        name: String,
         canceler: CancellationToken,
     ) -> Result<bool, NativeError> {
         let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
             oneshot::channel();
         self.tx_api
-            .send(Api::AddOperation((uuid, canceler, tx_response)))
+            .send(Api::AddOperation((uuid, name, canceler, tx_response)))
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ChannelError,
@@ -357,6 +365,49 @@ impl SessionStateAPI {
             message: Some(String::from("fail to get response from Api::CloseSession")),
         })?)
     }
+    pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {
+        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
+            oneshot::channel();
+        self.tx_api
+            .send(Api::SetDebugMode((debug, tx_response)))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!("fail to send to Api::SetDebugMode; error: {}", e,)),
+            })?;
+        rx_response.await.map_err(|_| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from("fail to get response from Api::SetDebugMode")),
+        })?;
+        Ok(())
+    }
+    pub async fn get_operations_stat(&self) -> Result<String, NativeError> {
+        let (tx_response, rx_response): (
+            oneshot::Sender<Result<String, NativeError>>,
+            oneshot::Receiver<Result<String, NativeError>>,
+        ) = oneshot::channel();
+        self.tx_api
+            .send(Api::GetOperationsStat(tx_response))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!(
+                    "fail to send to Api::GetOperationsStat; error: {}",
+                    e,
+                )),
+            })?;
+        match rx_response.await.map_err(|_| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from(
+                "fail to get response from Api::GetOperationsStat",
+            )),
+        }) {
+            Ok(result) => result,
+            Err(err) => Err(err),
+        }
+    }
     pub fn shutdown(&self) -> Result<(), NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| NativeError {
             severity: Severity::ERROR,
@@ -383,6 +434,8 @@ pub async fn task(
         metadata: None,
         operations: HashMap::new(),
         status: Status::Open,
+        stat: vec![],
+        debug: false,
     };
     let shutdown_caller = shutdown.clone();
     debug!(target: targets::SESSION, "task is started");
@@ -438,6 +491,15 @@ pub async fn task(
                     //         });
                     //     }
                     // }
+                    // Api::GetMetadata(rx_response) => {
+                    //     if rx_response.send(state.metadata.clone()).is_err() {
+                    //         return Err(NativeError {
+                    //             severity: Severity::ERROR,
+                    //             kind: NativeErrorKind::ChannelError,
+                    //             message: Some(String::from("fail to response to Api::GetMetadata")),
+                    //         });
+                    //     }
+                    // }
                     Api::GetSearchMap(rx_response) => {
                         if rx_response.send(state.search_map.clone()).is_err() {
                             return Err(NativeError {
@@ -454,15 +516,6 @@ pub async fn task(
                                 severity: Severity::ERROR,
                                 kind: NativeErrorKind::ChannelError,
                                 message: Some(String::from("fail to response to Api::SetMetadata")),
-                            });
-                        }
-                    }
-                    Api::GetMetadata(rx_response) => {
-                        if rx_response.send(state.metadata.clone()).is_err() {
-                            return Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::ChannelError,
-                                message: Some(String::from("fail to response to Api::GetMetadata")),
                             });
                         }
                     }
@@ -495,7 +548,10 @@ pub async fn task(
                             });
                         }
                     }
-                    Api::AddOperation((uuid, token, rx_response)) => {
+                    Api::AddOperation((uuid, name, token, rx_response)) => {
+                        if state.debug {
+                            state.stat.push(operations::OperationStat::new(uuid.to_string(), name));
+                        }
                         if rx_response
                             .send(match state.operations.entry(uuid) {
                                 Entry::Vacant(entry) => {
@@ -514,6 +570,14 @@ pub async fn task(
                         }
                     }
                     Api::RemoveOperation((uuid, rx_response)) => {
+                        if state.debug {
+                            let str_uuid = uuid.to_string();
+                            if let Some(index) = state.stat.iter().position(|op| op.uuid == str_uuid) {
+                                state.stat[index].done();
+                            } else {
+                                error!(target: targets::SESSION, "fail to find operation in stat: {}", str_uuid);
+                            }
+                        }
                         if rx_response
                             .send(state.operations.remove(&uuid).is_some())
                             .is_err()
@@ -553,6 +617,38 @@ pub async fn task(
                                 severity: Severity::ERROR,
                                 kind: NativeErrorKind::ChannelError,
                                 message: Some(String::from("fail to response to Api::CloseSession")),
+                            });
+                        }
+                    }
+                    Api::SetDebugMode((debug, rx_response)) => {
+                        state.debug = debug;
+                        if rx_response
+                            .send(())
+                            .is_err()
+                        {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::SetDebugMode")),
+                            });
+                        }
+                    }
+                    Api::GetOperationsStat(rx_response) => {
+                        if rx_response
+                            .send(match serde_json::to_string(&state.stat) {
+                                Ok(serialized) => Ok(serialized),
+                                Err(err) => Err(NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::ComputationFailed,
+                                    message: Some(format!("{}", err)),
+                                }),
+                            })
+                            .is_err()
+                        {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::ChannelError,
+                                message: Some(String::from("fail to response to Api::GetOperationsStat")),
                             });
                         }
                     }

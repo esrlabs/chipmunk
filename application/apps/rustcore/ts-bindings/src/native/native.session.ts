@@ -198,6 +198,10 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract abort(operationUuid: string): boolean | NativeError;
 
+    public abstract setDebug(debug: boolean): Promise<void>;
+
+    public abstract getOperationsStat(): Promise<string>;
+
     public abstract sleep(operationUuid: string, duration: number): Promise<void>;
 
     // public abstract sleepUnblock(duration: number): Promise<void>;
@@ -264,6 +268,10 @@ export abstract class RustSessionNative {
     public abstract getNearestTo(positionInStream: number): Promise<number[] | null>;
 
     public abstract abort(operationUuid: string): boolean;
+
+    public abstract setDebug(debug: boolean): Promise<void>;
+
+    public abstract getOperationsStat(): Promise<string>;
 
     public abstract sleep(operationUuid: string, duration: number): Promise<void>;
 
@@ -637,10 +645,6 @@ export class RustSessionDebug extends RustSession {
             }
         });
     }
-    // public abstract extract_matches(
-    //     filter: string,
-    //     operationUuid: string,
-    // ): Promise<void>;
 
     public getMap(
         operationUuid: string,
@@ -717,6 +721,40 @@ export class RustSessionDebug extends RustSession {
                 Source.Abort,
             );
         }
+    }
+
+    public setDebug(debug: boolean): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._native
+                .setDebug(debug)
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.Other,
+                            Source.Sleep,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public getOperationsStat(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this._native
+                .getOperationsStat()
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            err instanceof Error ? err : new Error(`${err}`),
+                            Type.Other,
+                            Source.Sleep,
+                        ),
+                    );
+                });
+        });
     }
 
     public sleep(operationUuid: string, duration: number): Promise<void> {
