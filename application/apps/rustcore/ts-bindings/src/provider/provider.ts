@@ -1,3 +1,8 @@
+/// 1. All RUST public methods should have operation ID
+/// 2. In Summary (test) we should highlight link between operation caller and operation done event;
+///    we should show IDs
+/// 3. Add performance test (grabbing)
+
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
