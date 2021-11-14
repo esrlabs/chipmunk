@@ -1,3 +1,6 @@
+12-11-2021
+- add time measurements for JS side too and compare it with Rust scope
+
 e.g. show text file content
 
 1. create session => RustSession
