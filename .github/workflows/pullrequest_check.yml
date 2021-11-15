@@ -3,72 +3,29 @@ name: Checks
 on: [pull_request]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-18.04, windows-2016, macOS-latest]
-        rust: [stable]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install windows python
-        uses: actions/setup-python@v1
-        if: startsWith(matrix.os, 'windows')
-        with:
-          python-version: "2.7"
-          architecture: "x64" # (x64 or x86)
-      - name: install ruby
-        uses: actions/setup-ruby@v1
-        with:
-          ruby-version: "2.x"
-      - name: install dotenv
-        run: gem install dotenv
-      - name: install octokit
-        run: gem install octokit
-      - name: install node
-        uses: actions/setup-node@master
-        with:
-          node-version: "14.15.4"
-      - name: install typescript
-        if: "!startsWith(matrix.os, 'windows')"
-        run: npm install --global typescript@3.7.3
-      - name: install neon cli
-        run: npm install --global neon-cli@0.3.1
-      - name: install rust
-        uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: ${{ matrix.rust }}
-      - name: cargo install nj-cli
-        run: cargo install nj-cli
-      - name: build release
-        run: rake full_pipeline --trace
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ls
-  lint_js:
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: install ruby
-        uses: actions/setup-ruby@v1
-        with:
-          ruby-version: "2.x"
-      - name: install octokit
-        run: gem install octokit
-      - name: install node
-        uses: actions/setup-node@master
-        with:
-          node-version: "14.15.4"
-      - name: install typescript
-        run: npm install typescript --global
-      - name: install tslint
-        run: npm install --global tslint
-      - name: lint js code
-        run: rake lint_js --trace
   lint_rust:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: clippy
+          override: true
+      - name: Run clippy on indexer
+        working-directory: ./application/apps/indexer
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+      - name: Run clippy on rustbindings
+        working-directory: ./application/apps/rustcore/rs-bindings
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+  integration_tests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -76,30 +33,30 @@ jobs:
         uses: actions/setup-ruby@v1
         with:
           ruby-version: "2.x"
-      - name: install octokit
-        run: gem install octokit
-      - name: install rust
-        uses: hecrj/setup-rust-action@v1
+      - uses: actions-rs/toolchain@v1
         with:
-          rust-version: ${{ matrix.rust }}
-      - name: install clippy
-        run: rustup component add clippy
-      - name: lint rust code
-        run: rake lint_rust --trace
-  run_tests:
-    runs-on: ubuntu-18.04
+          toolchain: stable
+          override: true
+      - name: Install for tests
+        working-directory: ./application/apps/rustcore
+        run: rake install:all
+      - name: Build tests
+        working-directory: ./application/apps/rustcore
+        run: rake build:all
+      - name: Run integration tests
+        working-directory: ./application/apps/rustcore
+        run: rake test:all
+  unit_tests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: install ruby
-        uses: actions/setup-ruby@v1
+      - uses: actions-rs/toolchain@v1
         with:
-          ruby-version: "2.x"
-      - name: install octokit
-        run: gem install octokit
-      - name: install rust
-        uses: hecrj/setup-rust-action@v1
+          toolchain: stable
+          override: true
+      - name: Run unit tests on indexer
+        uses: actions-rs/cargo@v1
+        working-directory: ./application/apps/indexer
         with:
-          rust-version: ${{ matrix.rust }}
-      - name: run tests
-        run: rake test --trace
+          command: test
