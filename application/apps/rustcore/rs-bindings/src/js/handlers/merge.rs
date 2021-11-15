@@ -35,31 +35,29 @@ pub async fn handle(
         message: Some(format!("Failed to merge files: {}", err)),
     })?;
     while let Ok(msg) = rx_progress.recv() {
-        match msg {
+        operation_api.emit(match msg {
             Ok(msg) => match msg {
-                IndexingProgress::Stopped | IndexingProgress::Finished => {
-                    operation_api.emit(CallbackEvent::Progress {
-                        uuid: operation_api.id(),
-                        progress: Progress::Stopped,
-                    });
-                }
+                IndexingProgress::Stopped | IndexingProgress::Finished => CallbackEvent::Progress {
+                    uuid: operation_api.id(),
+                    progress: Progress::Stopped,
+                },
                 IndexingProgress::Progress { ticks } => {
                     let (count, total) = ticks;
-                    operation_api.emit(CallbackEvent::Progress {
+                    CallbackEvent::Progress {
                         uuid: operation_api.id(),
                         progress: Progress::Ticks(Ticks { count, total }),
-                    });
+                    }
                 }
                 IndexingProgress::GotItem { item } => {
                     let (_, rows): (usize, usize) = item.r;
-                    operation_api.emit(CallbackEvent::StreamUpdated(rows as u64));
+                    CallbackEvent::StreamUpdated(rows as u64)
                 }
             },
-            Err(notification) => operation_api.emit(CallbackEvent::Progress {
+            Err(notification) => CallbackEvent::Progress {
                 uuid: operation_api.id(),
                 progress: Progress::Notification(notification),
-            }),
-        }
+            },
+        });
     }
     assign::handle(operation_api, out_path, source_type, source_id, state).await
 }
