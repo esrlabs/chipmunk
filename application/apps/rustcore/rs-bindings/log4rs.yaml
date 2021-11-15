@@ -31,18 +31,18 @@ root:
 
 loggers:
     session:
-        level: trace
+        level: warn
         appenders:
             - indexer-root
             - stdout
         additive: false
     launcher:
-        level: trace
+        level: warn
         appenders:
             - startup-appender
         additive: false
     updater:
-        level: trace
+        level: warn
         appenders:
             - startup-appender
         additive: false

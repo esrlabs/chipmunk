@@ -20,12 +20,11 @@ export function finish(session: Session, done: () => void, err?: Error): void {
             fail(error);
         })
         .finally(() => {
-            checkSessionDebugger(session);
-            done();
+            checkSessionDebugger(session, done);
         });
-};
+}
 
-export function checkSessionDebugger(session: Session) {
+export function checkSessionDebugger(session: Session, done: () => void) {
     const stat = session.getDebugStat();
     if (stat.unsupported.length !== 0) {
         fail(new Error(`Unsupported events:\n\t- ${stat.unsupported.join('\n\t- ')}`));
@@ -34,14 +33,12 @@ export function checkSessionDebugger(session: Session) {
         fail(new Error(`Errors:\n\t- ${stat.errors.join('\n\t- ')}`));
     }
     session.printDebugStat(true);
+    done();
 }
 
 (function () {
     let loglevel = (process.env as any)['JASMIN_LOG_LEVEL'];
-    if (loglevel === undefined) {
-        return;
-    }
-    loglevel = parseInt(loglevel, 10);
+    loglevel = loglevel === undefined ? 1 : parseInt(loglevel, 10);
     if (isNaN(loglevel) || !isFinite(loglevel) || loglevel < 0 || loglevel > 6) {
         return;
     }

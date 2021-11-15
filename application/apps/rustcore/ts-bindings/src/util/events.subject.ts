@@ -9,12 +9,11 @@ export interface IEventDesc {
 const CSignature = '__subject_handler_guid';
 
 export class Subject<T> {
-
     private _handlers: Array<(value: T) => any> = [];
     private _name: string = '';
 
     public static validate(desc: IEventDesc, target: any): Error | undefined {
-        const required: string[] = Object.keys(desc).filter(k => k !== 'self');
+        const required: string[] = Object.keys(desc).filter((k) => k !== 'self');
         if (desc.self === undefined) {
             return new Error(`Self cannot be undefined`);
         }
@@ -25,7 +24,11 @@ export class Subject<T> {
             return new Error(`Self is defined as null, but target isn't null or undefined`);
         }
         if (desc.self !== null && (target === null || target === undefined)) {
-            return new Error(`Self isn't null, but event object null or undefined. Required fields: ${required.join(', ')}`);
+            return new Error(
+                `Self isn't null, but event object null or undefined. Required fields: ${required.join(
+                    ', ',
+                )}`,
+            );
         }
         if (typeof desc.self !== 'string') {
             if (!(target instanceof desc.self)) {
@@ -49,33 +52,50 @@ export class Subject<T> {
                 if (valid) {
                     return;
                 }
-                if (typeof typeRef === 'object' && typeRef !== null && typeof typeRef.self === 'string') {
+                if (
+                    typeof typeRef === 'object' &&
+                    typeRef !== null &&
+                    typeof typeRef.self === 'string'
+                ) {
                     const err: Error | undefined = Subject.validate(typeRef, target[name]);
                     if (err === undefined) {
                         valid = true;
                     }
-                } else if (typeof typeRef === 'string' && (typeof target[name] === typeRef || typeRef === 'any')) {
+                } else if (
+                    typeof typeRef === 'string' &&
+                    (typeof target[name] === typeRef || typeRef === 'any')
+                ) {
                     valid = true;
                 } else if (typeof typeRef !== 'string' && target[name] instanceof typeRef) {
                     valid = true;
                 }
             });
             if (!valid) {
-                errors.push(`Expecting property "${name}" has a type "${types.map((t) => {
-                    if (typeof t === 'string') {
-                        return t;
-                    } else if (typeof t === 'object' && t === null) {
-                        return `ERROR: null as type definition`;
-                    } else if (typeof t === 'object' && typeof t.self === 'string') {
-                        return JSON.stringify(t);
-                    } else if (typeof t === 'function') {
-                        return `${t.name}${t.constructor !== undefined ? `/${t.constructor.name}` : ''}`;
-                    } else if (typeof t === 'object' && t.prototype !== undefined && t.prototype !== null) {
-                        return `${t.prototype.name}`;
-                    } else {
-                        return `ERROR: unknown type definition`
-                    }
-                }).join(' | ')}", but it has type "${typeof target[name]}"`); 
+                errors.push(
+                    `Expecting property "${name}" has a type "${types
+                        .map((t) => {
+                            if (typeof t === 'string') {
+                                return t;
+                            } else if (typeof t === 'object' && t === null) {
+                                return `ERROR: null as type definition`;
+                            } else if (typeof t === 'object' && typeof t.self === 'string') {
+                                return JSON.stringify(t);
+                            } else if (typeof t === 'function') {
+                                return `${t.name}${
+                                    t.constructor !== undefined ? `/${t.constructor.name}` : ''
+                                }`;
+                            } else if (
+                                typeof t === 'object' &&
+                                t.prototype !== undefined &&
+                                t.prototype !== null
+                            ) {
+                                return `${t.prototype.name}`;
+                            } else {
+                                return `ERROR: unknown type definition`;
+                            }
+                        })
+                        .join(' | ')}", but it has type "${typeof target[name]}"`,
+                );
             }
         });
         if (errors.length !== 0) {
@@ -127,5 +147,4 @@ export class Subject<T> {
         }
         this._handlers.splice(index, 1);
     }
-
 }

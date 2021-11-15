@@ -223,7 +223,7 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn cancel_operations(&mut self, operation_id_string: String) -> Result<(), ComputationError> {
+    fn abort(&mut self, operation_id_string: String) -> Result<(), ComputationError> {
         let _ = self.tx_operations.send((
             Uuid::new_v4(),
             operations::Operation::Cancel {
