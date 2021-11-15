@@ -357,8 +357,8 @@ export class Session {
                 );
             });
         }
-        const jsOperationsScopeFiltered = jsOperationsScopeValid.filter((op) =>
-            merged.find((o) => o.js.id !== op.id),
+        const jsOperationsScopeFiltered = jsOperationsScopeValid.filter(
+            (op) => merged.find((o) => o.js.id === op.id) === undefined,
         );
         if (jsOperationsScopeFiltered.length > 0) {
             output(format(`NodeJS scope:`));
@@ -377,7 +377,9 @@ export class Session {
                 );
             });
         }
-        const nativeFiltered = native.filter((op) => merged.find((o) => o.native.uuid !== op.uuid));
+        const nativeFiltered = native.filter(
+            (op) => merged.find((o) => o.native.uuid === op.uuid) === undefined,
+        );
         if (nativeFiltered.length > 0) {
             output(format(`Native scope:`));
             const isBound = (uuid: string): boolean => {
