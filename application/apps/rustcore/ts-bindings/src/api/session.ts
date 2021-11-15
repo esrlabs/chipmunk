@@ -308,65 +308,92 @@ export class Session {
                 .filter((op) => op !== undefined) as IOrderStat[]
         ).filter((op) => op.id !== undefined);
         const jsOperationsScopeValid = jsOperationsScope.filter((op) => op.duration >= 0);
-        if (jsOperationsScopeValid.length > 0) {
+        const merged: Array<{ native: OperationStat; js: IOrderStat }> = [];
+        jsOperationsScopeValid.forEach((jsOp) => {
+            let natOp = native.find((op) => op.uuid === jsOp.id);
+            if (natOp !== undefined) {
+                merged.push({
+                    native: Object.assign({}, natOp),
+                    js: Object.assign({}, jsOp),
+                });
+            }
+        });
+        if (merged.length > 0) {
+            output(format(`NodeJS / Rust scope:`));
+            const step = Math.max(...merged.map((op) => op.js.duration)) / SCALE;
+            merged.forEach((operation: { native: OperationStat; js: IOrderStat }, i: number) => {
+                let scale = Math.floor(operation.native.duration / 1000 / step);
+                output(
+                    format(
+                        `${fill((i + 1).toString(), 4)}. [${(
+                            operation.native.uuid as string
+                        ).substr(0, 6)}][${fill(
+                            (operation.native.duration / 1000).toFixed(2),
+                            8,
+                        )}ms][${'■'.repeat(scale)}${'·'.repeat(SCALE - scale)}][ Rust ] ${
+                            operation.native.name
+                        }`,
+                    ),
+                );
+                scale = Math.floor(operation.js.duration / step);
+                output(
+                    format(
+                        `${fill('', 14)}[${fill(
+                            operation.js.duration.toFixed(2),
+                            8,
+                        )}ms][${'■'.repeat(scale)}${'·'.repeat(SCALE - scale)}][  JS  ] ${
+                            operation.js.name
+                        }`,
+                    ),
+                );
+                const diff = operation.js.duration - operation.native.duration / 1000;
+                scale = Math.floor(diff / step);
+                output(
+                    format(
+                        `${fill('', 14)}[${fill(diff.toFixed(2), 8)}ms][${'■'.repeat(
+                            scale,
+                        )}${'·'.repeat(SCALE - scale)}][ diff ]`,
+                    ),
+                );
+            });
+        }
+        const jsOperationsScopeFiltered = jsOperationsScopeValid.filter((op) =>
+            merged.find((o) => o.js.id !== op.id),
+        );
+        if (jsOperationsScopeFiltered.length > 0) {
             output(format(`NodeJS scope:`));
-            const step = Math.max(...jsOperationsScopeValid.map((op) => op.duration)) / SCALE;
-            jsOperationsScopeValid.forEach((operation: IOrderStat, i: number) => {
+            const step = Math.max(...jsOperationsScopeFiltered.map((op) => op.duration)) / SCALE;
+            jsOperationsScopeFiltered.forEach((operation: IOrderStat, i: number) => {
                 const scale = Math.floor(operation.duration / step);
                 output(
                     format(
                         `${fill((i + 1).toString(), 4)}. [${(operation.id as string).substr(
                             0,
                             6,
-                        )}][${fill(operation.duration.toFixed(2), 5)}ms][${'■'.repeat(
+                        )}][${fill(operation.duration.toFixed(2), 8)}ms][${'■'.repeat(
                             scale,
                         )}${'·'.repeat(SCALE - scale)}][ T/R ] ${operation.name}`,
                     ),
                 );
             });
         }
-        if (native.length > 0) {
+        const nativeFiltered = native.filter((op) => merged.find((o) => o.native.uuid !== op.uuid));
+        if (nativeFiltered.length > 0) {
             output(format(`Native scope:`));
             const isBound = (uuid: string): boolean => {
                 return operations.find((e) => e.id === uuid) !== undefined;
             };
-            const step = Math.max(...native.map((op) => op.duration)) / SCALE;
-            native.forEach((operation: OperationStat, i: number) => {
+            const step = Math.max(...nativeFiltered.map((op) => op.duration)) / SCALE;
+            nativeFiltered.forEach((operation: OperationStat, i: number) => {
                 const scale = Math.floor(operation.duration / step);
                 output(
                     format(
                         `${fill((i + 1).toString(), 4)}. [${operation.uuid.substr(0, 6)}][${fill(
                             (operation.duration / 1000).toFixed(2),
-                            5,
+                            8,
                         )}ms][${'■'.repeat(scale)}${'·'.repeat(SCALE - scale)}][${
                             isBound(operation.uuid) ? ' T/R ' : '  R  '
                         }] ${operation.name}`,
-                    ),
-                );
-            });
-        }
-        const scopesDiff: IOrderStat[] = [];
-        jsOperationsScopeValid.forEach((jsOp) => {
-            const nativeOp = native.find((nOp) => nOp.uuid === jsOp.id);
-            if (nativeOp !== undefined) {
-                const sOp = Object.assign({}, jsOp);
-                sOp.duration = jsOp.duration - nativeOp.duration / 1000;
-                scopesDiff.push(sOp);
-            }
-        });
-        if (scopesDiff.length > 0) {
-            output(format(`Scopes diff:`));
-            const step = Math.max(...scopesDiff.map((op) => op.duration)) / SCALE;
-            scopesDiff.forEach((operation: IOrderStat, i: number) => {
-                const scale = Math.floor(operation.duration / step);
-                output(
-                    format(
-                        `${fill((i + 1).toString(), 4)}. [${(operation.id as string).substr(
-                            0,
-                            6,
-                        )}][${fill(operation.duration.toFixed(2), 5)}ms][${'■'.repeat(
-                            scale,
-                        )}${'·'.repeat(SCALE - scale)}][ T/R ] ${operation.name}`,
                     ),
                 );
             });

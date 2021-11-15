@@ -82,7 +82,10 @@ interface ISessionEventsInterfaces {
     Progress: {
         self: 'object';
         uuid: 'string';
-        progress: { self: 'object'; total: 'number'; count: 'number' };
+        progress: [
+            { self: 'object'; total: 'number'; count: 'number' },
+            { self: 'object'; type: 'string' },
+        ];
     };
     SessionError: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
     OperationError: {
@@ -102,7 +105,10 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     Progress: {
         self: 'object',
         uuid: 'string',
-        progress: { self: 'object', total: 'number', count: 'number' },
+        progress: [
+            { self: 'object', total: 'number', count: 'number' },
+            { self: 'object', type: 'string' },
+        ],
     },
     SessionError: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
     OperationError: {
