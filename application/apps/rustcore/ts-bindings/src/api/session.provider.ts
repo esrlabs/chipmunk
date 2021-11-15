@@ -6,7 +6,7 @@ import { IMapEntity, IMatchEntity } from '../interfaces/index';
 
 export interface IProgressState {
     total: number;
-    done: number;
+    count: number;
 }
 
 export interface IProgressEvent {
@@ -82,7 +82,7 @@ interface ISessionEventsInterfaces {
     Progress: {
         self: 'object';
         uuid: 'string';
-        progress: { self: 'object'; total: 'number'; done: 'number' };
+        progress: { self: 'object'; total: 'number'; count: 'number' };
     };
     SessionError: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
     OperationError: {
@@ -91,7 +91,7 @@ interface ISessionEventsInterfaces {
         error: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
     };
     SessionDestroyed: { self: null };
-    OperationDone: { self: 'object', uuid: 'string', result: 'any' };
+    OperationDone: { self: 'object'; uuid: 'string'; result: 'any' };
 }
 
 const SessionEventsInterfaces: ISessionEventsInterfaces = {
@@ -102,7 +102,7 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     Progress: {
         self: 'object',
         uuid: 'string',
-        progress: { self: 'object', total: 'number', done: 'number' },
+        progress: { self: 'object', total: 'number', count: 'number' },
     },
     SessionError: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
     OperationError: {
@@ -114,12 +114,15 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     OperationDone: { self: 'object', uuid: 'string', result: 'any' },
 };
 
-export class EventProvider extends Computation<ISessionEvents, ISessionEventsSignatures, ISessionEventsInterfaces> {
-
+export class EventProvider extends Computation<
+    ISessionEvents,
+    ISessionEventsSignatures,
+    ISessionEventsInterfaces
+> {
     private readonly _events: ISessionEvents = {
         StreamUpdated: new Events.Subject<number>(),
         SearchUpdated: new Events.Subject<number>(),
-        MapUpdated: new Events.Subject<IEventMapUpdated>(),         // dummy
+        MapUpdated: new Events.Subject<IEventMapUpdated>(), // dummy
         MatchesUpdated: new Events.Subject<IEventMatchesUpdated>(), // dummy
         Progress: new Events.Subject<IProgressEvent>(),
         SessionError: new Events.Subject<IError>(),
@@ -147,5 +150,4 @@ export class EventProvider extends Computation<ISessionEvents, ISessionEventsSig
     public getEventsInterfaces(): ISessionEventsInterfaces {
         return SessionEventsInterfaces;
     }
-
 }

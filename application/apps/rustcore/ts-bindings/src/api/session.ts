@@ -240,6 +240,7 @@ export class Session {
         const output = stdout ? console.log : this._logger.debug;
         const LEN: number = 80;
         const MAX = LEN + 2;
+        const SCALE = 10;
         const format = (str: string, filler: string = ' '): string => {
             return `│ ${str}${filler.repeat(MAX > str.length - 3 ? MAX - str.length - 3 : 0)}│`;
         };
@@ -252,7 +253,7 @@ export class Session {
             }
             return `${filler.repeat(len - str.length)}${str}`;
         };
-        output(`┌${'─'.repeat(LEN)}┐`);
+        output(`\n┌${'─'.repeat(LEN)}┐`);
         stat.alias !== undefined && output(format(`▒▒▒ ${stat.alias} `, '▒'));
         output(format(`Stat information. Session: ${this._uuid}`));
         output(`├${'─'.repeat(LEN)}┤`);
@@ -301,12 +302,34 @@ export class Session {
                 return entity;
             })
             .filter((ev) => ev !== undefined) as IOrderStat[];
+        const jsOperationsScope = (
+            stat.order
+                .map((op) => (op.type === 'O' ? op : undefined))
+                .filter((op) => op !== undefined) as IOrderStat[]
+        ).filter((op) => op.id !== undefined);
+        const jsOperationsScopeValid = jsOperationsScope.filter((op) => op.duration >= 0);
+        if (jsOperationsScopeValid.length > 0) {
+            output(format(`NodeJS scope:`));
+            const step = Math.max(...jsOperationsScopeValid.map((op) => op.duration)) / SCALE;
+            jsOperationsScopeValid.forEach((operation: IOrderStat, i: number) => {
+                const scale = Math.floor(operation.duration / step);
+                output(
+                    format(
+                        `${fill((i + 1).toString(), 4)}. [${(operation.id as string).substr(
+                            0,
+                            6,
+                        )}][${fill(operation.duration.toFixed(2), 5)}ms][${'■'.repeat(
+                            scale,
+                        )}${'·'.repeat(SCALE - scale)}][ T/R ] ${operation.name}`,
+                    ),
+                );
+            });
+        }
         if (native.length > 0) {
             output(format(`Native scope:`));
             const isBound = (uuid: string): boolean => {
                 return operations.find((e) => e.id === uuid) !== undefined;
             };
-            const SCALE = 10;
             const step = Math.max(...native.map((op) => op.duration)) / SCALE;
             native.forEach((operation: OperationStat, i: number) => {
                 const scale = Math.floor(operation.duration / step);
@@ -318,6 +341,32 @@ export class Session {
                         )}ms][${'■'.repeat(scale)}${'·'.repeat(SCALE - scale)}][${
                             isBound(operation.uuid) ? ' T/R ' : '  R  '
                         }] ${operation.name}`,
+                    ),
+                );
+            });
+        }
+        const scopesDiff: IOrderStat[] = [];
+        jsOperationsScopeValid.forEach((jsOp) => {
+            const nativeOp = native.find((nOp) => nOp.uuid === jsOp.id);
+            if (nativeOp !== undefined) {
+                const sOp = Object.assign({}, jsOp);
+                sOp.duration = jsOp.duration - nativeOp.duration / 1000;
+                scopesDiff.push(sOp);
+            }
+        });
+        if (scopesDiff.length > 0) {
+            output(format(`Scopes diff:`));
+            const step = Math.max(...scopesDiff.map((op) => op.duration)) / SCALE;
+            scopesDiff.forEach((operation: IOrderStat, i: number) => {
+                const scale = Math.floor(operation.duration / step);
+                output(
+                    format(
+                        `${fill((i + 1).toString(), 4)}. [${(operation.id as string).substr(
+                            0,
+                            6,
+                        )}][${fill(operation.duration.toFixed(2), 5)}ms][${'■'.repeat(
+                            scale,
+                        )}${'·'.repeat(SCALE - scale)}][ T/R ] ${operation.name}`,
                     ),
                 );
             });

@@ -19,7 +19,6 @@ impl WrappedSearchFilter {
 impl JSValue<'_> for WrappedSearchFilter {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
-            // let mut filter = ;
             let value: String = match js_obj.get_property("value") {
                 Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
