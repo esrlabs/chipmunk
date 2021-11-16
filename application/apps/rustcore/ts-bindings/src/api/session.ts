@@ -347,12 +347,13 @@ export class Session {
                     ),
                 );
                 const diff = operation.js.duration - operation.native.duration / 1000;
-                scale = Math.floor(diff / step);
+                scale = diff <= 0 ? 0 : Math.floor(diff / step);
                 output(
                     format(
-                        `${fill('', 14)}[${fill(diff.toFixed(2), 8)}ms][${'■'.repeat(
-                            scale,
-                        )}${'·'.repeat(SCALE - scale)}][ diff ]`,
+                        `${fill('', 14)}[${fill(
+                            (diff < 0 ? 0 : diff).toFixed(2),
+                            8,
+                        )}ms][${'■'.repeat(scale)}${'·'.repeat(SCALE - scale)}][ diff ]`,
                     ),
                 );
             });
