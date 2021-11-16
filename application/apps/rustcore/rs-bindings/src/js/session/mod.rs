@@ -1,32 +1,30 @@
 pub mod events;
-pub mod operations;
-pub mod state;
 
 use crate::{
-    js::converting::{
-        concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
-        merge::WrappedFileMergeOptions,
+    js::{
+        converting::{
+            concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
+            merge::WrappedFileMergeOptions,
+        },
+        session::events::{callback_event_loop, ComputationErrorWrapper},
     },
     logging::targets,
 };
 use crossbeam_channel as cc;
-use events::{CallbackEvent, ComputationError, SyncChannel};
-use indexer_base::progress::Severity;
+use events::CallbackEventWrapper;
 use log::{debug, error, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::{
-    dlt_source::DltSource,
-    grabber::{AsyncGrabTrait, GrabMetadata, GrabTrait, GrabbedContent, LineRange},
+    grabber::{GrabbedContent, LineRange},
     search::{SearchError, SearchFilter},
-    text_source::TextFileSource,
 };
-use serde::Serialize;
-use state::SessionStateAPI;
-use std::{
-    fs::OpenOptions,
-    path::{Path, PathBuf},
-    thread,
+use session::{
+    events::{CallbackEvent, ComputationError, NativeError},
+    operations,
+    session::{lazy_init_grabber, OperationsChannel, Session},
+    state::{self, SessionStateAPI},
 };
+use std::{fs::OpenOptions, path::PathBuf, thread};
 use tokio::{
     join,
     runtime::Runtime,
@@ -34,168 +32,7 @@ use tokio::{
 };
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Clone)]
-pub enum SupportedFileType {
-    Text,
-    Dlt,
-}
-
-pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
-    let extension = path.extension().map(|ext| ext.to_string_lossy());
-    match extension {
-        Some(ext) => match ext.to_lowercase().as_ref() {
-            "dlt" => Some(SupportedFileType::Dlt),
-            "txt" | "text" => Some(SupportedFileType::Text),
-            _ => Some(SupportedFileType::Text),
-        },
-        None => Some(SupportedFileType::Text),
-    }
-}
-
-fn lazy_init_grabber(
-    input_p: &Path,
-    source_id: &str,
-) -> Result<(SupportedFileType, Box<dyn AsyncGrabTrait>), ComputationError> {
-    match get_supported_file_type(input_p) {
-        Some(SupportedFileType::Text) => {
-            type GrabberType = processor::grabber::Grabber<TextFileSource>;
-            let source = TextFileSource::new(input_p, source_id);
-            let grabber = GrabberType::lazy(source).map_err(|e| {
-                let err_msg = format!("Could not create grabber: {}", e);
-                warn!(target: targets::SESSION, "{}", err_msg);
-                ComputationError::Process(err_msg)
-            })?;
-            Ok((SupportedFileType::Text, Box::new(grabber)))
-        }
-        Some(SupportedFileType::Dlt) => {
-            type GrabberType = processor::grabber::Grabber<DltSource>;
-            let source = DltSource::new(input_p, source_id);
-            let grabber = GrabberType::lazy(source).map_err(|e| {
-                ComputationError::Process(format!("Could not create grabber: {}", e))
-            })?;
-            Ok((SupportedFileType::Dlt, Box::new(grabber)))
-        }
-        None => {
-            warn!(
-                target: targets::SESSION,
-                "Trying to assign unsupported file type: {:?}", input_p
-            );
-            Err(ComputationError::OperationNotSupported(
-                "Unsupported file type".to_string(),
-            ))
-        }
-    }
-}
-
-pub type OperationsChannel = (
-    UnboundedSender<(Uuid, operations::Operation)>,
-    UnboundedReceiver<(Uuid, operations::Operation)>,
-);
-
-#[derive(Debug)]
-pub struct RustSession {
-    pub id: String,
-    pub running: bool,
-    pub content_grabber: Option<Box<dyn AsyncGrabTrait>>,
-    pub search_grabber: Option<Box<dyn AsyncGrabTrait>>,
-    tx_operations: UnboundedSender<(Uuid, operations::Operation)>,
-    rx_operations: Option<UnboundedReceiver<(Uuid, operations::Operation)>>,
-    rx_state_api: Option<UnboundedReceiver<state::Api>>,
-    state_api: Option<SessionStateAPI>,
-    // channel to store the metadata of the search results once available
-    search_metadata_channel: SyncChannel<Option<(PathBuf, GrabMetadata)>>,
-}
-
-impl RustSession {
-    /// will result in a grabber that has it's metadata generated
-    /// this function will first check if there has been some new metadata that was previously
-    /// written to the metadata-channel. If so, this metadata is used in the grabber.
-    /// If there was no new metadata, we make sure that the metadata has been set.
-    /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    async fn get_updated_content_grabber(
-        &mut self,
-    ) -> Result<&mut Box<dyn AsyncGrabTrait>, ComputationError> {
-        let current_grabber = match &mut self.content_grabber {
-            Some(c) => Ok(c),
-            None => {
-                let msg = "Need a grabber first to work with metadata".to_owned();
-                warn!(target: targets::SESSION, "{}", msg);
-                Err(ComputationError::Protocol(msg))
-            }
-        }?;
-        if let Some(state) = self.state_api.as_ref() {
-            let metadata = state
-                .extract_metadata()
-                .await
-                .map_err(ComputationError::NativeError)?;
-            if let Some(metadata) = metadata {
-                current_grabber
-                    .inject_metadata(metadata)
-                    .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
-            }
-            Ok(current_grabber)
-        } else {
-            Err(ComputationError::SessionUnavailable)
-        }
-    }
-
-    fn get_search_grabber(
-        &mut self,
-    ) -> Result<Option<&mut Box<dyn AsyncGrabTrait>>, ComputationError> {
-        if self.search_grabber.is_none() && !self.search_metadata_channel.1.is_empty() {
-            // We are intrested only in last message in queue, all others messages can be just dropped.
-            let latest = self.search_metadata_channel.1.try_iter().last().flatten();
-            if let Some((file_path, metadata)) = latest {
-                type GrabberType = processor::grabber::Grabber<TextFileSource>;
-                let source = TextFileSource::new(&file_path, "search_results");
-                let mut grabber = match GrabberType::new(source) {
-                    Ok(grabber) => grabber,
-                    Err(err) => {
-                        let msg = format!("Failed to create search grabber. Error: {}", err);
-                        warn!(target: targets::SESSION, "{}", msg);
-                        return Err(ComputationError::Protocol(msg));
-                    }
-                };
-                if let Err(err) = grabber.inject_metadata(metadata) {
-                    let msg = format!(
-                        "Failed to inject metadata into search grabber. Error: {}",
-                        err
-                    );
-                    warn!(target: targets::SESSION, "{}", msg);
-                    return Err(ComputationError::Protocol(msg));
-                }
-                self.search_grabber = Some(Box::new(grabber));
-            } else {
-                self.search_grabber = None;
-            }
-        }
-        let grabber = match &mut self.search_grabber {
-            Some(c) => c,
-            None => return Ok(None),
-        };
-        match grabber.get_metadata() {
-            Some(_) => {
-                debug!(target: targets::SESSION, "reusing cached metadata");
-                Ok(Some(grabber))
-            }
-            None => {
-                let msg = "No metadata available for search grabber".to_owned();
-                warn!(target: targets::SESSION, "{}", msg);
-                Err(ComputationError::Protocol(msg))
-            }
-        }
-    }
-
-    fn is_opened(&self) -> bool {
-        if self.rx_state_api.is_some() {
-            false
-        } else if let Some(state_api) = self.state_api.as_ref() {
-            !state_api.is_shutdown()
-        } else {
-            false
-        }
-    }
-}
+struct RustSession(Session);
 
 #[node_bindgen]
 impl RustSession {
@@ -203,7 +40,7 @@ impl RustSession {
     pub fn new(id: String) -> Self {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (state_api, rx_state_api) = SessionStateAPI::new();
-        Self {
+        Self(Session {
             id,
             running: false,
             content_grabber: None,
@@ -213,17 +50,21 @@ impl RustSession {
             rx_state_api: Some(rx_state_api),
             state_api: Some(state_api),
             search_metadata_channel: cc::unbounded(),
-        }
+        })
     }
 
     #[node_bindgen(getter)]
     fn id(&self) -> String {
-        self.id.clone()
+        self.0.id.clone()
     }
 
     #[node_bindgen]
-    fn abort(&mut self, operation_id: String, target_id: String) -> Result<(), ComputationError> {
-        let _ = self.tx_operations.send((
+    fn abort(
+        &mut self,
+        operation_id: String,
+        target_id: String,
+    ) -> Result<(), ComputationErrorWrapper> {
+        let _ = self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::Cancel {
                 target: operations::uuid_from_str(&target_id)?,
@@ -236,30 +77,30 @@ impl RustSession {
     /// in the event-loop-thread
     /// the callback is used to report back to javascript
     #[node_bindgen(mt)]
-    fn start<F: Fn(CallbackEvent) + Send + 'static>(
+    fn start<F: Fn(CallbackEventWrapper) + Send + 'static>(
         &mut self,
         callback: F,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), ComputationErrorWrapper> {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {}", e))
         })?;
-        let rx_operations = if let Some(rx_operations) = self.rx_operations.take() {
+        let rx_operations = if let Some(rx_operations) = self.0.rx_operations.take() {
             rx_operations
         } else {
-            return Err(ComputationError::MultipleInitCall);
+            return Err(ComputationError::MultipleInitCall.into());
         };
-        self.running = true;
-        let state_api = if let Some(state_api) = self.state_api.as_ref() {
+        self.0.running = true;
+        let state_api = if let Some(state_api) = self.0.state_api.as_ref() {
             state_api.clone()
         } else {
-            return Err(ComputationError::MultipleInitCall);
+            return Err(ComputationError::MultipleInitCall.into());
         };
-        let rx_state_api = if let Some(rx_state_api) = self.rx_state_api.take() {
+        let rx_state_api = if let Some(rx_state_api) = self.0.rx_state_api.take() {
             rx_state_api
         } else {
-            return Err(ComputationError::MultipleInitCall);
+            return Err(ComputationError::MultipleInitCall.into());
         };
-        let search_metadata_tx = self.search_metadata_channel.0.clone();
+        let search_metadata_tx = self.0.search_metadata_channel.0.clone();
         thread::spawn(move || {
             rt.block_on(async {
                 info!(target: targets::SESSION, "started");
@@ -277,7 +118,7 @@ impl RustSession {
                                 search_metadata_tx,
                                 tx_callback_events
                             ),
-                            events::task(callback, rx_callback_events),
+                            callback_event_loop(callback, rx_callback_events),
                         );
                         if let Err(err) = state_api.shutdown() {
                             error!(
@@ -295,22 +136,22 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    async fn get_stream_len(&mut self) -> Result<i64, ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    async fn get_stream_len(&mut self) -> Result<i64, ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        match &self.get_updated_content_grabber().await?.get_metadata() {
+        match &self.0.get_updated_content_grabber().await?.get_metadata() {
             Some(md) => Ok(md.line_count as i64),
-            None => Err(ComputationError::Protocol("Cannot happen".to_owned())),
+            None => Err(ComputationError::Protocol("Cannot happen".to_owned()).into()),
         }
     }
 
     #[node_bindgen]
-    async fn get_search_len(&mut self) -> Result<i64, ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    async fn get_search_len(&mut self) -> Result<i64, ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        let grabber = if let Some(grabber) = self.get_search_grabber()? {
+        let grabber = if let Some(grabber) = self.0.get_search_grabber()? {
             grabber
         } else {
             return Ok(0);
@@ -326,15 +167,16 @@ impl RustSession {
         &mut self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<String, ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<String, ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
         info!(
             target: targets::SESSION,
             "grab from {} ({} lines)", start_line_index, number_of_lines
         );
         let grabbed_content = self
+            .0
             .get_updated_content_grabber()
             .await?
             .grab_content(&LineRange::from(
@@ -347,15 +189,15 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn stop(&mut self, operation_id: String) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    fn stop(&mut self, operation_id: String) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        let _ = self.tx_operations.send((
+        let _ = self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::End,
         ));
-        self.running = false;
+        self.0.running = false;
         Ok(())
     }
 
@@ -365,15 +207,15 @@ impl RustSession {
         file_path: String,
         source_id: String,
         operation_id: String,
-    ) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
         debug!(target: targets::SESSION, "send assign event on channel");
         let input_p = PathBuf::from(&file_path);
         let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
-        self.content_grabber = Some(boxed_grabber);
-        match self.tx_operations.send((
+        self.0.content_grabber = Some(boxed_grabber);
+        match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::Assign {
                 file_path: input_p,
@@ -385,7 +227,8 @@ impl RustSession {
             Err(e) => Err(ComputationError::Process(format!(
                 "Could not send operation on channel. Error: {}",
                 e
-            ))),
+            ))
+            .into()),
         }
     }
 
@@ -394,15 +237,15 @@ impl RustSession {
         &mut self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<String, ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<String, ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
         info!(
             target: targets::SESSION,
             "grab search results from {} ({} lines)", start_line_index, number_of_lines
         );
-        let grabber = if let Some(grabber) = self.get_search_grabber()? {
+        let grabber = if let Some(grabber) = self.0.get_search_grabber()? {
             grabber
         } else {
             let serialized = serde_json::to_string(&GrabbedContent {
@@ -440,7 +283,7 @@ impl RustSession {
                     to_pos = pos;
                 }
                 Err(e) => {
-                    return Err(ComputationError::Process(format!("{}", e)));
+                    return Err(ComputationError::Process(format!("{}", e)).into());
                 }
             }
         }
@@ -452,6 +295,7 @@ impl RustSession {
         let mut row: usize = start_line_index as usize;
         for range in ranges.iter() {
             let mut original_content = self
+                .0
                 .get_updated_content_grabber()
                 .await?
                 .grab_content(&LineRange::from(range.clone()))
@@ -483,13 +327,14 @@ impl RustSession {
         &mut self,
         filters: Vec<WrappedSearchFilter>,
         operation_id: String,
-    ) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        self.search_grabber = None;
+        self.0.search_grabber = None;
         let (tx_response, rx_response): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
-        self.tx_operations
+        self.0
+            .tx_operations
             .send((
                 Uuid::new_v4(),
                 operations::Operation::DropSearch(tx_response),
@@ -499,16 +344,17 @@ impl RustSession {
             return Err(ComputationError::Process(format!(
                 "Cannot drop search map. Error: {}",
                 err
-            )));
+            ))
+            .into());
         }
-        let target_file = if let Some(content) = self.content_grabber.as_ref() {
+        let target_file = if let Some(content) = self.0.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
             warn!(
                 target: targets::SESSION,
                 "Cannot search when no file has been assigned"
             );
-            return Err(ComputationError::NoAssignedContent);
+            return Err(ComputationError::NoAssignedContent.into());
         };
         let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
         info!(
@@ -518,7 +364,7 @@ impl RustSession {
             target_file,
             filters
         );
-        match self.tx_operations.send((
+        match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::Search {
                 target_file,
@@ -529,7 +375,8 @@ impl RustSession {
             Err(e) => Err(ComputationError::Process(format!(
                 "Could not send operation on channel. Error: {}",
                 e
-            ))),
+            ))
+            .into()),
         }
     }
 
@@ -538,14 +385,14 @@ impl RustSession {
         &mut self,
         filters: Vec<WrappedSearchFilter>,
         operation_id: String,
-    ) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        let target_file = if let Some(content) = self.content_grabber.as_ref() {
+        let target_file = if let Some(content) = self.0.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
-            return Err(ComputationError::NoAssignedContent);
+            return Err(ComputationError::NoAssignedContent.into());
         };
         let filters: Vec<SearchFilter> = filters.iter().map(|f| f.as_filter()).collect();
         info!(
@@ -556,6 +403,7 @@ impl RustSession {
             filters
         );
         match self
+            .0
             .tx_operations
             .send((
                 operations::uuid_from_str(&operation_id)?,
@@ -571,7 +419,8 @@ impl RustSession {
             Err(e) => Err(ComputationError::Process(format!(
                 "Could not send operation on channel. Error: {}",
                 e
-            ))),
+            ))
+            .into()),
         }
     }
 
@@ -582,9 +431,9 @@ impl RustSession {
         dataset_len: i32,
         from: Option<i64>,
         to: Option<i64>,
-    ) -> Result<String, ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<String, ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
         let mut range: Option<(u64, u64)> = None;
         if let Some(from) = from {
@@ -609,6 +458,7 @@ impl RustSession {
             "Map requested (operation: {}). Range: {:?}", operation_id, range
         );
         if let Err(e) = self
+            .0
             .tx_operations
             .send((
                 operations::uuid_from_str(&operation_id)?,
@@ -621,7 +471,7 @@ impl RustSession {
                 ComputationError::Process("Could not send operation on channel".to_string())
             })
         {
-            return Err(e);
+            return Err(e.into());
         }
         Ok(operation_id)
     }
@@ -631,34 +481,18 @@ impl RustSession {
         &mut self,
         operation_id: String,
         position_in_stream: i64,
-    ) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        self.tx_operations
+        self.0
+            .tx_operations
             .send((
                 operations::uuid_from_str(&operation_id)?,
                 operations::Operation::GetNearestPosition(position_in_stream as u64),
             ))
             .map_err(|e| ComputationError::Process(e.to_string()))?;
         Ok(())
-        // Option<(
-        //     i64, // Position in search results
-        //     i64, // Position in stream/file
-        // )>
-        // match rx_response.recv() {
-        //     Ok(nearest) => {
-        //         if let Some(nearest) = nearest {
-        //             Ok(Some((nearest.index as i64, nearest.position as i64)))
-        //         } else {
-        //             Ok(None)
-        //         }
-        //     }
-        //     Err(err) => Err(ComputationError::Process(format!(
-        //         "Could not get access to state of session: {}",
-        //         err
-        //     ))),
-        // }
     }
 
     #[node_bindgen]
@@ -667,13 +501,13 @@ impl RustSession {
         files: Vec<WrappedConcatenatorInput>,
         append: bool,
         operation_id: String,
-    ) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
         //TODO: out_path should be gererics by some settings.
         let (out_path, out_path_str) = if files.is_empty() {
-            return Err(ComputationError::InvalidData);
+            return Err(ComputationError::InvalidData.into());
         } else {
             let filename = PathBuf::from(&files[0].as_concatenator_input().path);
             if let Some(parent) = filename.parent() {
@@ -681,10 +515,10 @@ impl RustSession {
                     let path = parent.join(format!("{}.concat", file_name.to_string_lossy()));
                     (path.clone(), path.to_string_lossy().to_string())
                 } else {
-                    return Err(ComputationError::InvalidData);
+                    return Err(ComputationError::InvalidData.into());
                 }
             } else {
-                return Err(ComputationError::InvalidData);
+                return Err(ComputationError::InvalidData.into());
             }
         };
         let _ = OpenOptions::new()
@@ -699,8 +533,8 @@ impl RustSession {
                 ))
             })?;
         let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
-        self.content_grabber = Some(boxed_grabber);
-        match self.tx_operations.send((
+        self.0.content_grabber = Some(boxed_grabber);
+        match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::Concat {
                 files: files
@@ -717,7 +551,8 @@ impl RustSession {
             Err(e) => Err(ComputationError::Process(format!(
                 "Could not send operation on channel. Error: {}",
                 e
-            ))),
+            ))
+            .into()),
         }
     }
 
@@ -727,13 +562,13 @@ impl RustSession {
         files: Vec<WrappedFileMergeOptions>,
         append: bool,
         operation_id: String,
-    ) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    ) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
         //TODO: out_path should be gererics by some settings.
         let (out_path, out_path_str) = if files.is_empty() {
-            return Err(ComputationError::InvalidData);
+            return Err(ComputationError::InvalidData.into());
         } else {
             let filename = PathBuf::from(&files[0].as_file_merge_options().path);
             if let Some(parent) = filename.parent() {
@@ -741,10 +576,10 @@ impl RustSession {
                     let path = parent.join(format!("{}.merged", file_name.to_string_lossy()));
                     (path.clone(), path.to_string_lossy().to_string())
                 } else {
-                    return Err(ComputationError::InvalidData);
+                    return Err(ComputationError::InvalidData.into());
                 }
             } else {
-                return Err(ComputationError::InvalidData);
+                return Err(ComputationError::InvalidData.into());
             }
         };
         let _ = OpenOptions::new()
@@ -759,8 +594,8 @@ impl RustSession {
                 ))
             })?;
         let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
-        self.content_grabber = Some(boxed_grabber);
-        match self.tx_operations.send((
+        self.0.content_grabber = Some(boxed_grabber);
+        match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::Merge {
                 files: files
@@ -777,43 +612,48 @@ impl RustSession {
             Err(e) => Err(ComputationError::Process(format!(
                 "Could not send operation on channel. Error: {}",
                 e
-            ))),
+            ))
+            .into()),
         }
     }
+
     #[node_bindgen]
-    async fn set_debug(&mut self, debug: bool) -> Result<(), ComputationError> {
-        // if !self.is_opened() {
-        //     return Err(ComputationError::SessionUnavailable);
-        // }
-        if let Some(state) = self.state_api.as_ref() {
+    async fn set_debug(&mut self, debug: bool) -> Result<(), ComputationErrorWrapper> {
+        if let Some(state) = self.0.state_api.as_ref() {
             state
                 .set_debug(debug)
                 .await
-                .map_err(ComputationError::NativeError)
+                .map_err(|e: NativeError| ComputationError::NativeError(e).into())
         } else {
-            Err(ComputationError::SessionUnavailable)
+            Err(ComputationError::SessionUnavailable.into())
         }
     }
+
     #[node_bindgen]
-    async fn get_operations_stat(&mut self) -> Result<String, ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    async fn get_operations_stat(&mut self) -> Result<String, ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        if let Some(state) = self.state_api.as_ref() {
+        if let Some(state) = self.0.state_api.as_ref() {
             state
                 .get_operations_stat()
                 .await
-                .map_err(ComputationError::NativeError)
+                .map_err(|e: NativeError| ComputationError::NativeError(e).into())
         } else {
-            Err(ComputationError::SessionUnavailable)
+            Err(ComputationError::SessionUnavailable.into())
         }
     }
+
     #[node_bindgen]
-    async fn sleep(&mut self, operation_id: String, ms: i64) -> Result<(), ComputationError> {
-        if !self.is_opened() {
-            return Err(ComputationError::SessionUnavailable);
+    async fn sleep(
+        &mut self,
+        operation_id: String,
+        ms: i64,
+    ) -> Result<(), ComputationErrorWrapper> {
+        if !self.0.is_opened() {
+            return Err(ComputationError::SessionUnavailable.into());
         }
-        match self.tx_operations.send((
+        match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::Sleep(ms as u64),
         )) {
@@ -821,13 +661,8 @@ impl RustSession {
             Err(e) => Err(ComputationError::Process(format!(
                 "Could not send operation on channel. Error: {}",
                 e
-            ))),
+            ))
+            .into()),
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct GeneralError {
-    severity: Severity,
-    message: String,
 }

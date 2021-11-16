@@ -6,6 +6,7 @@ members = [
     "indexer_cli",
     "merging",
     "processor",
+    "session",
 ]
 
 # only uncomment when profiling

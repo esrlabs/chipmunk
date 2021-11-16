@@ -1,9 +1,10 @@
-use crate::js::session::{
+use crate::{
     events::{CallbackEvent, NativeError},
     operations::{OperationAPI, OperationResult},
+    session::SupportedFileType,
     state::SessionStateAPI,
-    SupportedFileType,
 };
+
 use indexer_base::progress::{ComputationResult, Progress};
 use log::{debug, info, trace};
 

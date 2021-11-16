@@ -1,15 +1,8 @@
 use crate::{
-    js::{
-        handlers,
-        session::{
-            events::{
-                CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone,
-            },
-            state::SessionStateAPI,
-            SupportedFileType,
-        },
-    },
-    logging::targets,
+    events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
+    handlers,
+    session::SupportedFileType,
+    state::SessionStateAPI,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
@@ -42,7 +35,7 @@ impl OperationStat {
         let timestamp = match start.duration_since(UNIX_EPOCH) {
             Ok(timestamp) => timestamp.as_micros() as u64,
             Err(err) => {
-                error!(target: targets::SESSION, "fail to get timestamp: {}", err);
+                error!("Failed to get timestamp: {}", err);
                 0
             }
         };
@@ -58,7 +51,7 @@ impl OperationStat {
         let timestamp = match start.duration_since(UNIX_EPOCH) {
             Ok(timestamp) => timestamp.as_micros() as u64,
             Err(err) => {
-                error!(target: targets::SESSION, "fail to get timestamp: {}", err);
+                error!("Failed to get timestamp: {}", err);
                 0
             }
         };
@@ -231,10 +224,7 @@ impl OperationAPI {
     pub fn emit(&self, event: CallbackEvent) {
         let event_log = format!("{:?}", event);
         if let Err(err) = self.tx_callback_events.send(event) {
-            error!(
-                target: targets::SESSION,
-                "Fail to send event {}; error: {}", event_log, err
-            )
+            error!("Fail to send event {}; error: {}", event_log, err)
         }
     }
 
@@ -268,8 +258,8 @@ impl OperationAPI {
             }
             Err(error) => {
                 warn!(
-                    target: targets::SESSION,
-                    "Operation {} done with error: {:?}", self.operation_id, error
+                    "Operation {} done with error: {:?}",
+                    self.operation_id, error
                 );
                 CallbackEvent::OperationError {
                     uuid: self.operation_id,
@@ -278,17 +268,9 @@ impl OperationAPI {
             }
         };
         if let Err(err) = self.state_api.remove_operation(self.id()).await {
-            error!(
-                target: targets::SESSION,
-                "Fail to remove operation; error: {:?}", err
-            );
+            error!("Fail to remove operation; error: {:?}", err);
         }
-        debug!(
-            target: targets::SESSION,
-            "Operation \"{}\" ({}) finished",
-            alias,
-            self.id()
-        );
+        debug!("Operation \"{}\" ({}) finished", alias, self.id());
         self.emit(event);
     }
 
@@ -464,10 +446,7 @@ impl OperationAPI {
                             .await;
                     } else {
                         if let Err(err) = tx_response.send(()) {
-                            error!(
-                                target: targets::SESSION,
-                                "fail to responce to Operation::DropSearch; error: {}", err
-                            );
+                            error!("fail to responce to Operation::DropSearch; error: {}", err);
                         }
                         api.finish::<OperationResult<()>>(Ok(None), OperationAlias::DropSearch)
                             .await;
@@ -490,7 +469,7 @@ impl OperationAPI {
                     }
                 },
                 Operation::End => {
-                    debug!(target: targets::SESSION, "session closing is requested");
+                    debug!("session closing is requested");
                     api.finish::<OperationResult<()>>(Ok(None), OperationAlias::End)
                         .await;
                 }
@@ -516,7 +495,7 @@ pub async fn task(
     search_metadata_tx: cc::Sender<Option<(PathBuf, GrabMetadata)>>,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
-    debug!(target: targets::SESSION, "task is started");
+    debug!("task is started");
     while let Some((id, operation)) = rx_operations.recv().await {
         let operation_api = OperationAPI::new(
             state.clone(),
@@ -537,6 +516,6 @@ pub async fn task(
             });
         }
     }
-    debug!(target: targets::SESSION, "task is finished");
+    debug!("task is finished");
     Ok(())
 }

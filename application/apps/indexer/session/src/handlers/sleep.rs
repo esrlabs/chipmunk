@@ -1,4 +1,4 @@
-use crate::js::session::operations::{OperationAPI, OperationResult};
+use crate::operations::{OperationAPI, OperationResult};
 use serde::{Deserialize, Serialize};
 use tokio::{select, time};
 

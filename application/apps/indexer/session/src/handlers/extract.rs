@@ -1,4 +1,4 @@
-use crate::js::session::{
+use crate::{
     events::{NativeError, NativeErrorKind},
     operations::OperationResult,
 };
