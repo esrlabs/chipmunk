@@ -1,9 +1,6 @@
 use crate::{
-    js::session::{
-        events::{NativeError, NativeErrorKind},
-        operations,
-    },
-    logging::targets,
+    events::{NativeError, NativeErrorKind},
+    operations::OperationStat,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
@@ -50,7 +47,7 @@ pub struct SessionState {
     pub metadata: Option<GrabMetadata>,
     pub operations: HashMap<Uuid, CancellationToken>,
     pub status: Status,
-    pub stat: Vec<operations::OperationStat>,
+    pub stat: Vec<OperationStat>,
     pub debug: bool,
 }
 
@@ -323,7 +320,7 @@ pub async fn task(
         debug: false,
     };
     let shutdown_caller = shutdown.clone();
-    debug!(target: targets::SESSION, "task is started");
+    debug!("task is started");
     select! {
         _ = async move {
             while let Some(msg) = rx_api.recv().await {
@@ -378,7 +375,7 @@ pub async fn task(
                     }
                     Api::AddOperation((uuid, name, token, rx_response)) => {
                         if state.debug {
-                            state.stat.push(operations::OperationStat::new(uuid.to_string(), name));
+                            state.stat.push(OperationStat::new(uuid.to_string(), name));
                         }
                         if rx_response
                             .send(match state.operations.entry(uuid) {
@@ -403,7 +400,7 @@ pub async fn task(
                             if let Some(index) = state.stat.iter().position(|op| op.uuid == str_uuid) {
                                 state.stat[index].done();
                             } else {
-                                error!(target: targets::SESSION, "fail to find operation in stat: {}", str_uuid);
+                                error!("fail to find operation in stat: {}", str_uuid);
                             }
                         }
                         if rx_response
@@ -481,7 +478,7 @@ pub async fn task(
                         }
                     }
                     Api::Shutdown => {
-                        debug!(target: targets::SESSION, "shutdown has been requested");
+                        debug!("shutdown has been requested");
                         shutdown_caller.cancel();
                     }
                 }
@@ -490,6 +487,6 @@ pub async fn task(
         } => {},
         _ = shutdown.cancelled() => {}
     };
-    debug!(target: targets::SESSION, "task is finished");
+    debug!("task is finished");
     Ok(())
 }

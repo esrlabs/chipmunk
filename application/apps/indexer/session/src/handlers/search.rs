@@ -1,4 +1,4 @@
-use crate::js::session::{
+use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind, SearchOperationResult},
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,

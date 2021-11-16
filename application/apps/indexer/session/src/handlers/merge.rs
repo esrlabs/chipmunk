@@ -1,9 +1,9 @@
 use super::assign;
-use crate::js::session::{
+use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
+    session::SupportedFileType,
     state::SessionStateAPI,
-    SupportedFileType,
 };
 use crossbeam_channel as cc;
 use indexer_base::progress::{IndexingProgress, Progress, Severity, Ticks};
