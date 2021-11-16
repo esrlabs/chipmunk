@@ -15,7 +15,7 @@ use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
-use processor::{grabber::GrabMetadata, map::NearestPosition, search::SearchFilter};
+use processor::{grabber::GrabMetadata, search::SearchFilter};
 use serde::Serialize;
 use std::{
     path::PathBuf,
@@ -140,9 +140,9 @@ pub enum Operation {
         source_id: String,
     },
     DropSearch(cc::Sender<()>),
-    GetNearestPosition((u64, cc::Sender<Option<NearestPosition>>)),
+    GetNearestPosition(u64),
     Cancel {
-        operation_id: Uuid,
+        target: Uuid,
     },
     Sleep(u64),
     End,
@@ -187,9 +187,9 @@ impl std::fmt::Display for Operation {
                     source_id: _,
                 } => "Merge",
                 Operation::Sleep(_) => "Sleep",
-                Operation::Cancel { operation_id: _ } => "Cancel",
+                Operation::Cancel { target: _ } => "Cancel",
                 Operation::DropSearch(_) => "DropSearch",
-                Operation::GetNearestPosition((_, _)) => "GetNearestPosition",
+                Operation::GetNearestPosition(_) => "GetNearestPosition",
                 Operation::End => "End",
             }
         )
@@ -423,35 +423,19 @@ impl OperationAPI {
                     )
                     .await;
                 }
-                Operation::Cancel { operation_id } => {
-                    match state.cancel_operation(operation_id).await {
-                        Ok(canceled) => {
-                            if canceled {
-                                api.finish::<OperationResult<()>>(Ok(None), OperationAlias::Cancel)
-                                    .await;
-                            } else {
-                                api.finish::<OperationResult<()>>(
-                                    Err(NativeError {
-                                        severity: Severity::WARNING,
-                                        kind: NativeErrorKind::NotYetImplemented,
-                                        message: Some(format!(
-                                            "Fail to cancel operation {}; operation isn't found",
-                                            operation_id
-                                        )),
-                                    }),
-                                    OperationAlias::Cancel,
-                                )
+                Operation::Cancel { target } => match state.cancel_operation(target).await {
+                    Ok(canceled) => {
+                        if canceled {
+                            api.finish::<OperationResult<()>>(Ok(None), OperationAlias::Cancel)
                                 .await;
-                            }
-                        }
-                        Err(err) => {
+                        } else {
                             api.finish::<OperationResult<()>>(
                                 Err(NativeError {
                                     severity: Severity::WARNING,
                                     kind: NativeErrorKind::NotYetImplemented,
                                     message: Some(format!(
-                                        "Fail to cancel operation {}; error: {:?}",
-                                        operation_id, err
+                                        "Fail to cancel operation {}; operation isn't found",
+                                        target
                                     )),
                                 }),
                                 OperationAlias::Cancel,
@@ -459,7 +443,21 @@ impl OperationAPI {
                             .await;
                         }
                     }
-                }
+                    Err(err) => {
+                        api.finish::<OperationResult<()>>(
+                            Err(NativeError {
+                                severity: Severity::WARNING,
+                                kind: NativeErrorKind::NotYetImplemented,
+                                message: Some(format!(
+                                    "Fail to cancel operation {}; error: {:?}",
+                                    target, err
+                                )),
+                            }),
+                            OperationAlias::Cancel,
+                        )
+                        .await;
+                    }
+                },
                 Operation::DropSearch(tx_response) => {
                     if let Err(err) = state.set_matches(None).await {
                         api.finish::<OperationResult<()>>(Err(err), OperationAlias::DropSearch)
@@ -475,31 +473,22 @@ impl OperationAPI {
                             .await;
                     }
                 }
-                Operation::GetNearestPosition((position, tx_response)) => {
-                    match state.get_search_map().await {
-                        Ok(map) => {
-                            if let Err(err) = tx_response.send(map.nearest_to(position)) {
-                                error!(
-                                    target: targets::SESSION,
-                                    "fail to responce to Operation::GetNearestPosition; error: {}",
-                                    err
-                                );
-                            }
-                            api.finish::<OperationResult<()>>(
-                                Ok(None),
-                                OperationAlias::GetNearestPosition,
-                            )
-                            .await;
-                        }
-                        Err(err) => {
-                            api.finish::<OperationResult<()>>(
-                                Err(err),
-                                OperationAlias::GetNearestPosition,
-                            )
-                            .await;
-                        }
+                Operation::GetNearestPosition(position) => match state.get_search_map().await {
+                    Ok(map) => {
+                        api.finish(
+                            Ok(Some(map.nearest_to(position))),
+                            OperationAlias::GetNearestPosition,
+                        )
+                        .await;
                     }
-                }
+                    Err(err) => {
+                        api.finish::<OperationResult<()>>(
+                            Err(err),
+                            OperationAlias::GetNearestPosition,
+                        )
+                        .await;
+                    }
+                },
                 Operation::End => {
                     debug!(target: targets::SESSION, "session closing is requested");
                     api.finish::<OperationResult<()>>(Ok(None), OperationAlias::End)

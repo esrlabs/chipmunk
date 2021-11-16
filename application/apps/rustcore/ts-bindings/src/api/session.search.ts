@@ -9,6 +9,7 @@ import {
     ISearchResults,
     ISearchMap,
     TExtractedValues,
+    INearest,
 } from '../interfaces/index';
 import { Executors } from './session.stream.executors';
 import { NativeError } from '../interfaces/errors';
@@ -111,10 +112,10 @@ export class SessionSearch {
         });
     }
 
-    public getNearest(
-        positionInStream: number,
-    ): Promise<{ index: number; position: number } | undefined> {
-        return this._session.getNearestTo(positionInStream);
+    public getNearest(positionInStream: number): CancelablePromise<INearest> {
+        return Executors.nearest(this._session, this._provider, this._logger, {
+            positionInStream,
+        });
     }
 
     public len(): Promise<number> {
