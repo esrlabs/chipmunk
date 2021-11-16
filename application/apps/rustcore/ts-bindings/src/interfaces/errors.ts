@@ -39,6 +39,11 @@ export class NativeError extends Error {
     private readonly _source: Source;
     private readonly _logger: Logs.Logger = Logs.getLogger(`NativeError`);
 
+    public static from(smth: any): Error {
+        return smth instanceof Error
+            ? smth
+            : new Error(`${typeof smth !== 'string' ? JSON.stringify(smth) : smth}`);
+    }
     constructor(error: Error, kind: Type, source: Source) {
         super(error.message);
         this.stack = error.stack;

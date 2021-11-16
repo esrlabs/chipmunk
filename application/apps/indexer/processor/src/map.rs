@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::collections::HashMap;
 
 /// When looking at the search results of a file, we can say that
@@ -21,7 +22,7 @@ impl FilterMatch {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Serialize)]
 pub struct NearestPosition {
     pub index: u64,    // Position in search results
     pub position: u64, // Position in original stream/file

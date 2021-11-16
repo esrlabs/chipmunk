@@ -6,7 +6,11 @@ import { Subscription } from '../util/events.subscription';
 import { v4 as uuidv4 } from 'uuid';
 import { NativeError } from '../interfaces/errors';
 
-export type TOperationRunner<TOptions> = (session: RustSession, options: TOptions, operationUuid: string) => Promise<void>;
+export type TOperationRunner<TOptions> = (
+    session: RustSession,
+    options: TOptions,
+    operationUuid: string,
+) => Promise<void>;
 
 // TODO: should be implemented timeout to prevent memory leaking
 export function AsyncVoidExecutor<TOptions>(
@@ -21,14 +25,14 @@ export function AsyncVoidExecutor<TOptions>(
         let error: Error | undefined;
         // Setup subscriptions
         const lifecircle: {
-            canceled: boolean;
+            abortOperationId: string | undefined;
             destroy: Subscription;
             error: Subscription;
             done: Subscription;
             cancel(): void;
             unsunscribe(): void;
         } = {
-            canceled: false,
+            abortOperationId: undefined,
             destroy: provider.getEvents().SessionDestroyed.subscribe(() => {
                 reject(new Error(logger.warn('Session was destroyed')));
             }),
@@ -40,12 +44,12 @@ export function AsyncVoidExecutor<TOptions>(
                 error = new Error(event.error.message);
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
-                if (event.uuid !== opUuid) {
+                if (event.uuid !== opUuid && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
                 if (error instanceof Error) {
                     reject(error);
-                } else if (lifecircle.canceled) {
+                } else if (event.uuid === lifecircle.abortOperationId) {
                     cancel();
                 } else {
                     resolve(undefined);
@@ -57,20 +61,24 @@ export function AsyncVoidExecutor<TOptions>(
                 lifecircle.done.destroy();
             },
             cancel(): void {
-                if (lifecircle.canceled) {
+                if (lifecircle.abortOperationId !== undefined) {
                     logger.warn(`Operation has been already canceled`);
                     return;
                 }
-                lifecircle.canceled = true;
                 /**
                  * We do not need to listen event "done" for cancelation of this operation
                  * because we are listening event "destroyed" in the scope of operation's
                  * computation object
                  */
-                let state: NativeError | boolean = session.abort(opUuid);
+                lifecircle.abortOperationId = uuidv4();
+                let state: NativeError | boolean = session.abort(
+                    lifecircle.abortOperationId,
+                    opUuid,
+                );
                 if (error instanceof NativeError) {
-                    lifecircle.canceled = false;
+                    lifecircle.abortOperationId = undefined;
                     self.stopCancelation();
+                    logger.error(`Fail to cancel operation ${opUuid}; error: ${error.message}`);
                     reject(new Error(`Fail to cancel operation. Error: ${error.message}`));
                 } else if (!state) {
                     logger.warn(`Operation canceler isn't found. Operation probably already done.`);

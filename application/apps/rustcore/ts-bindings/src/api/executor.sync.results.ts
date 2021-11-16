@@ -3,10 +3,19 @@ import { CancelablePromise } from '../util/promise';
 import { RustSession } from '../native/native.session';
 import { EventProvider, IErrorEvent, IOperationDoneEvent } from './session.provider';
 import { Subscription } from '../util/events.subscription';
+import { NativeError } from '../interfaces/errors';
+import { v4 as uuidv4 } from 'uuid';
 
-export type TOperationRunner<TOptions> = (session: RustSession, options: TOptions) => string | Error;
+export type TOperationRunner<TOptions> = (
+    session: RustSession,
+    options: TOptions,
+) => string | Error;
 
-export type TOperationResultReader<TResult> = (result: any, resolve: (res: TResult) => void, reject: (err: Error) => void) => void;
+export type TOperationResultReader<TResult> = (
+    result: any,
+    resolve: (res: TResult) => void,
+    reject: (err: Error) => void,
+) => void;
 
 // TODO: should be implemented timeout to prevent memory leaking
 export function ResultsExecutor<TResult, TOptions>(
@@ -22,14 +31,14 @@ export function ResultsExecutor<TResult, TOptions>(
         let error: Error | undefined;
         // Setup subscriptions
         const lifecircle: {
-            canceled: boolean;
+            abortOperationId: string | undefined;
             destroy: Subscription;
             error: Subscription;
             done: Subscription;
             cancel(): void;
             unsunscribe(): void;
         } = {
-            canceled: false,
+            abortOperationId: undefined,
             destroy: provider.getEvents().SessionDestroyed.subscribe(() => {
                 reject(new Error(logger.warn('Session was destroyed')));
             }),
@@ -41,12 +50,12 @@ export function ResultsExecutor<TResult, TOptions>(
                 error = new Error(event.error.message);
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
-                if (event.uuid !== opUuid) {
+                if (event.uuid !== opUuid && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
                 if (error instanceof Error) {
                     reject(error);
-                } else if (lifecircle.canceled) {
+                } else if (event.uuid === lifecircle.abortOperationId) {
                     cancel();
                 } else {
                     reader(event.result, resolve, reject);
@@ -58,17 +67,30 @@ export function ResultsExecutor<TResult, TOptions>(
                 lifecircle.done.destroy();
             },
             cancel(): void {
-                if (lifecircle.canceled) {
+                if (lifecircle.abortOperationId !== undefined) {
                     logger.warn(`Operation has been already canceled`);
                     return;
                 }
-                lifecircle.canceled = true;
                 /**
                  * We do not need to listen event "done" for cancelation of this operation
                  * because we are listening event "destroyed" in the scope of operation's
                  * computation object
                  */
-                session.abort(opUuid);
+                lifecircle.abortOperationId = uuidv4();
+                let state: NativeError | boolean = session.abort(
+                    lifecircle.abortOperationId,
+                    opUuid,
+                );
+                if (error instanceof NativeError) {
+                    lifecircle.abortOperationId = undefined;
+                    self.stopCancelation();
+                    logger.error(`Fail to cancel operation ${opUuid}; error: ${error.message}`);
+                    reject(new Error(`Fail to cancel operation. Error: ${error.message}`));
+                } else if (!state) {
+                    logger.warn(`Operation canceler isn't found. Operation probably already done.`);
+                } else {
+                    logger.debug(`Cancel signal for operation ${opUuid} has been sent`);
+                }
             },
         };
         logger.debug('Sync result operation is started');

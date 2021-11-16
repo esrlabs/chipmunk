@@ -120,3 +120,8 @@ export interface IFileMergeOptions {
     /// how we interpret the date string in each line
     format: string;
 }
+
+export interface INearest {
+    index: number;
+    position: number;
+}

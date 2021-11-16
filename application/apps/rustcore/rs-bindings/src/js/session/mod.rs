@@ -17,7 +17,6 @@ use node_bindgen::derive::node_bindgen;
 use processor::{
     dlt_source::DltSource,
     grabber::{AsyncGrabTrait, GrabMetadata, GrabTrait, GrabbedContent, LineRange},
-    map::NearestPosition,
     search::{SearchError, SearchFilter},
     text_source::TextFileSource,
 };
@@ -223,11 +222,11 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn abort(&mut self, operation_id_string: String) -> Result<(), ComputationError> {
+    fn abort(&mut self, operation_id: String, target_id: String) -> Result<(), ComputationError> {
         let _ = self.tx_operations.send((
-            Uuid::new_v4(),
+            operations::uuid_from_str(&operation_id)?,
             operations::Operation::Cancel {
-                operation_id: operations::uuid_from_str(&operation_id_string)?,
+                target: operations::uuid_from_str(&target_id)?,
             },
         ));
         Ok(())
@@ -269,16 +268,6 @@ impl RustSession {
                     UnboundedReceiver<CallbackEvent>,
                 ) = unbounded_channel();
                 let state_shutdown_token = state_api.get_shutdown_token();
-                // let (_, _, _) = join!(
-                //     operations::task(
-                //         rx_operations,
-                //         state_api,
-                //         search_metadata_tx,
-                //         tx_callback_events
-                //     ),
-                //     events::task(callback, rx_callback_events),
-                //     state::task(rx_state_api, state_shutdown_token),
-                // );
                 let (_, _) = join!(
                     async move {
                         let (_, _) = join!(
@@ -358,13 +347,14 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn stop(&mut self) -> Result<(), ComputationError> {
+    fn stop(&mut self, operation_id: String) -> Result<(), ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        let _ = self
-            .tx_operations
-            .send((Uuid::new_v4(), operations::Operation::End));
+        let _ = self.tx_operations.send((
+            operations::uuid_from_str(&operation_id)?,
+            operations::Operation::End,
+        ));
         self.running = false;
         Ok(())
     }
@@ -374,18 +364,17 @@ impl RustSession {
         &mut self,
         file_path: String,
         source_id: String,
-        operation_id_string: String,
+        operation_id: String,
     ) -> Result<(), ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
         debug!(target: targets::SESSION, "send assign event on channel");
-        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let input_p = PathBuf::from(&file_path);
         let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
         self.content_grabber = Some(boxed_grabber);
         match self.tx_operations.send((
-            operation_id,
+            operations::uuid_from_str(&operation_id)?,
             operations::Operation::Assign {
                 file_path: input_p,
                 source_id,
@@ -493,12 +482,11 @@ impl RustSession {
     async fn apply_search_filters(
         &mut self,
         filters: Vec<WrappedSearchFilter>,
-        operation_id_string: String,
+        operation_id: String,
     ) -> Result<(), ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         self.search_grabber = None;
         let (tx_response, rx_response): (cc::Sender<()>, cc::Receiver<()>) = cc::bounded(1);
         self.tx_operations
@@ -531,7 +519,7 @@ impl RustSession {
             filters
         );
         match self.tx_operations.send((
-            operation_id,
+            operations::uuid_from_str(&operation_id)?,
             operations::Operation::Search {
                 target_file,
                 filters,
@@ -549,12 +537,11 @@ impl RustSession {
     async fn extract_matches(
         &mut self,
         filters: Vec<WrappedSearchFilter>,
-        operation_id_string: String,
+        operation_id: String,
     ) -> Result<(), ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let target_file = if let Some(content) = self.content_grabber.as_ref() {
             content.as_ref().associated_file()
         } else {
@@ -571,7 +558,7 @@ impl RustSession {
         match self
             .tx_operations
             .send((
-                operation_id,
+                operations::uuid_from_str(&operation_id)?,
                 operations::Operation::Extract {
                     target_file,
                     filters,
@@ -591,7 +578,7 @@ impl RustSession {
     #[node_bindgen]
     async fn get_map(
         &mut self,
-        operation_id_string: String,
+        operation_id: String,
         dataset_len: i32,
         from: Option<i64>,
         to: Option<i64>,
@@ -599,7 +586,6 @@ impl RustSession {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        let operation_id = operations::uuid_from_str(&operation_id_string)?;
         let mut range: Option<(u64, u64)> = None;
         if let Some(from) = from {
             if let Some(to) = to {
@@ -625,7 +611,7 @@ impl RustSession {
         if let Err(e) = self
             .tx_operations
             .send((
-                operation_id,
+                operations::uuid_from_str(&operation_id)?,
                 operations::Operation::Map {
                     dataset_len: dataset_len as u16,
                     range,
@@ -637,46 +623,42 @@ impl RustSession {
         {
             return Err(e);
         }
-        Ok(operation_id.to_string())
+        Ok(operation_id)
     }
 
     #[node_bindgen]
     async fn get_nearest_to(
         &mut self,
+        operation_id: String,
         position_in_stream: i64,
-    ) -> Result<
-        Option<(
-            i64, // Position in search results
-            i64, // Position in stream/file
-        )>,
-        ComputationError,
-    > {
+    ) -> Result<(), ComputationError> {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        let (tx_response, rx_response): (
-            cc::Sender<Option<NearestPosition>>,
-            cc::Receiver<Option<NearestPosition>>,
-        ) = cc::bounded(1);
         self.tx_operations
             .send((
-                Uuid::new_v4(),
-                operations::Operation::GetNearestPosition((position_in_stream as u64, tx_response)),
+                operations::uuid_from_str(&operation_id)?,
+                operations::Operation::GetNearestPosition(position_in_stream as u64),
             ))
             .map_err(|e| ComputationError::Process(e.to_string()))?;
-        match rx_response.recv() {
-            Ok(nearest) => {
-                if let Some(nearest) = nearest {
-                    Ok(Some((nearest.index as i64, nearest.position as i64)))
-                } else {
-                    Ok(None)
-                }
-            }
-            Err(err) => Err(ComputationError::Process(format!(
-                "Could not get access to state of session: {}",
-                err
-            ))),
-        }
+        Ok(())
+        // Option<(
+        //     i64, // Position in search results
+        //     i64, // Position in stream/file
+        // )>
+        // match rx_response.recv() {
+        //     Ok(nearest) => {
+        //         if let Some(nearest) = nearest {
+        //             Ok(Some((nearest.index as i64, nearest.position as i64)))
+        //         } else {
+        //             Ok(None)
+        //         }
+        //     }
+        //     Err(err) => Err(ComputationError::Process(format!(
+        //         "Could not get access to state of session: {}",
+        //         err
+        //     ))),
+        // }
     }
 
     #[node_bindgen]
@@ -690,7 +672,6 @@ impl RustSession {
             return Err(ComputationError::SessionUnavailable);
         }
         //TODO: out_path should be gererics by some settings.
-        let operation_id = operations::uuid_from_str(&operation_id)?;
         let (out_path, out_path_str) = if files.is_empty() {
             return Err(ComputationError::InvalidData);
         } else {
@@ -720,7 +701,7 @@ impl RustSession {
         let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
         self.content_grabber = Some(boxed_grabber);
         match self.tx_operations.send((
-            operation_id,
+            operations::uuid_from_str(&operation_id)?,
             operations::Operation::Concat {
                 files: files
                     .iter()
@@ -751,7 +732,6 @@ impl RustSession {
             return Err(ComputationError::SessionUnavailable);
         }
         //TODO: out_path should be gererics by some settings.
-        let operation_id = operations::uuid_from_str(&operation_id)?;
         let (out_path, out_path_str) = if files.is_empty() {
             return Err(ComputationError::InvalidData);
         } else {
@@ -781,7 +761,7 @@ impl RustSession {
         let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
         self.content_grabber = Some(boxed_grabber);
         match self.tx_operations.send((
-            operation_id,
+            operations::uuid_from_str(&operation_id)?,
             operations::Operation::Merge {
                 files: files
                     .iter()
@@ -833,11 +813,10 @@ impl RustSession {
         if !self.is_opened() {
             return Err(ComputationError::SessionUnavailable);
         }
-        let operation_id = operations::uuid_from_str(&operation_id)?;
-        match self
-            .tx_operations
-            .send((operation_id, operations::Operation::Sleep(ms as u64)))
-        {
+        match self.tx_operations.send((
+            operations::uuid_from_str(&operation_id)?,
+            operations::Operation::Sleep(ms as u64),
+        )) {
             Ok(_) => Ok(()),
             Err(e) => Err(ComputationError::Process(format!(
                 "Could not send operation on channel. Error: {}",

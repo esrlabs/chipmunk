@@ -17,5 +17,6 @@ export {
     IMapEntity,
     IConcatFile,
     IFileMergeOptions,
+    INearest,
 } from '../../../../../common/interfaces/interface.rust.api.general';
 export { OperationStat } from './debug';
