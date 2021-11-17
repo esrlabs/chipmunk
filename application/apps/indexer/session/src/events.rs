@@ -1,13 +1,11 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity};
-use log::debug;
 use processor::{
     grabber::GrabError,
     search::{FilterStats, SearchError},
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::sync::mpsc::UnboundedReceiver;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
