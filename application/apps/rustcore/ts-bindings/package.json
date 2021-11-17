@@ -18,7 +18,7 @@
     "@types/uuid": "^8.3.1",
     "custom.stdout": "^1.0.2",
     "electron-build-env": "0.2.0",
-    "electron-rebuild": "2.2.0",
+    "electron-rebuild": "^3.2.5",
     "jasmine": "^3.10.0",
     "jasmine-ts": "^0.4.0",
     "loglevel": "^1.6.6",
@@ -27,7 +27,7 @@
     "typescript": "^4.4.4"
   },
   "dependencies": {
-    "electron": "10.1.5",
+    "electron": "^16.0.0",
     "uuid": "^8.3.2"
   }
 }
