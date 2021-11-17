@@ -198,10 +198,7 @@ impl SearchHolder {
         }
         let combined_regex: String = format!(
             "({})",
-            self.search_filters
-                .iter()
-                .map(|f: &SearchFilter| filter_as_regex(f))
-                .join("|")
+            self.search_filters.iter().map(filter_as_regex).join("|")
         );
         let matcher = match RegexMatcher::new(&combined_regex) {
             Ok(regex) => regex,
@@ -281,13 +278,8 @@ impl MatchesExtractor {
                 "Cannot search without filters".to_owned(),
             ));
         }
-        let combined_regex: String = format!(
-            "({})",
-            self.filters
-                .iter()
-                .map(|f: &SearchFilter| filter_as_regex(f))
-                .join("|")
-        );
+        let combined_regex: String =
+            format!("({})", self.filters.iter().map(filter_as_regex).join("|"));
         let mut values: Vec<ExtractedMatchValue> = vec![];
         let mut regexs: Vec<Regex> = vec![];
         for filter in self.filters.iter() {
