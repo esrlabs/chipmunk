@@ -49,7 +49,6 @@ jobs:
               working-directory: ./application/apps/rustcore
               env:
                   ELECTRON_RUN_AS_NODE: 1
-                  DISPLAY: :0
               run: rake test:all
     unit_tests:
         runs-on: ubuntu-latest
