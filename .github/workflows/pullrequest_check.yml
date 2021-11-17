@@ -13,17 +13,17 @@ jobs:
           components: clippy
           override: true
       - name: Run clippy on indexer
-        working-directory: ./application/apps/indexer
         uses: actions-rs/clippy-check@v1
         with:
+          toolchain: nightly
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
-      - name: Run clippy on rustbindings
-        working-directory: ./application/apps/rustcore/rs-bindings
+          args: --manifest-path ./application/apps/indexer/Cargo.toml --all-features
+      - name: Run clippy on rs-bindings
         uses: actions-rs/clippy-check@v1
         with:
+          toolchain: nightly
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+          args: --manifest-path ./application/apps/rustcore/rs-bindings/Cargo.toml --all-features
   integration_tests:
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +37,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install the node-bingen tool
+        run: cargo install nj-cli
       - name: Install for tests
         working-directory: ./application/apps/rustcore
         run: rake install:all
@@ -45,7 +47,9 @@ jobs:
         run: rake build:all
       - name: Run integration tests
         working-directory: ./application/apps/rustcore
-        run: rake test:all
+        run: |
+          export DISPLAY=:0
+          rake test:all
   unit_tests:
     runs-on: ubuntu-latest
     steps:
@@ -57,6 +61,6 @@ jobs:
           override: true
       - name: Run unit tests on indexer
         uses: actions-rs/cargo@v1
-        working-directory: ./application/apps/indexer
         with:
           command: test
+          args: --manifest-path ./application/apps/indexer/Cargo.toml
