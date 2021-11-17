@@ -153,6 +153,7 @@ namespace :test do
 
   desc 'run all test'
   task :all => %i[build:all] do
+    ENV['ELECTRON_RUN_AS_NODE'] = '1'
     sh "#{test_runner} ts-bindings/spec/utils.spec.ts ts-bindings/spec/*.ts"
   end
 end
