@@ -15,13 +15,13 @@ use events::CallbackEventWrapper;
 use log::{debug, error, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::{
-    grabber::{GrabbedContent, LineRange},
+    grabber::{factory::create_lazy_grabber, GrabbedContent, LineRange},
     search::{SearchError, SearchFilter},
 };
 use session::{
     events::{CallbackEvent, ComputationError, NativeError},
     operations,
-    session::{lazy_init_grabber, OperationsChannel, Session},
+    session::{OperationsChannel, Session},
     state::{self, SessionStateAPI},
 };
 use std::{fs::OpenOptions, path::PathBuf, thread};
@@ -213,14 +213,14 @@ impl RustSession {
         }
         debug!(target: targets::SESSION, "send assign event on channel");
         let input_p = PathBuf::from(&file_path);
-        let (source_type, boxed_grabber) = lazy_init_grabber(&input_p, &source_id)?;
+        let boxed_grabber =
+            create_lazy_grabber(&input_p, &source_id).map_err(ComputationError::from)?;
         self.0.content_grabber = Some(boxed_grabber);
         match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
             operations::Operation::Assign {
                 file_path: input_p,
                 source_id,
-                source_type,
             },
         )) {
             Ok(_) => Ok(()),
@@ -532,7 +532,8 @@ impl RustSession {
                     &out_path_str
                 ))
             })?;
-        let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
+        let boxed_grabber =
+            create_lazy_grabber(&out_path, &out_path_str).map_err(ComputationError::from)?;
         self.0.content_grabber = Some(boxed_grabber);
         match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
@@ -543,7 +544,6 @@ impl RustSession {
                     .collect(),
                 out_path,
                 append,
-                source_type,
                 source_id: out_path_str,
             },
         )) {
@@ -593,7 +593,8 @@ impl RustSession {
                     &out_path_str
                 ))
             })?;
-        let (source_type, boxed_grabber) = lazy_init_grabber(&out_path, &out_path_str)?;
+        let boxed_grabber =
+            create_lazy_grabber(&out_path, &out_path_str).map_err(ComputationError::from)?;
         self.0.content_grabber = Some(boxed_grabber);
         match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
@@ -604,7 +605,6 @@ impl RustSession {
                     .collect(),
                 out_path,
                 append,
-                source_type,
                 source_id: out_path_str,
             },
         )) {

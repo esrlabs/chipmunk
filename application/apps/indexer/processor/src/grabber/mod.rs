@@ -9,6 +9,8 @@ use std::{
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
+pub mod factory;
+
 pub trait GrabTrait {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
     fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
@@ -33,6 +35,8 @@ pub enum GrabError {
     Interrupted,
     #[error("Metadata initialization not done")]
     NotInitialize,
+    #[error("Unsupported file type: {0}")]
+    Unsupported(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
