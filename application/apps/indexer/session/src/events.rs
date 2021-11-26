@@ -62,6 +62,11 @@ impl From<GrabError> for NativeError {
                 kind: NativeErrorKind::ComputationFailed,
                 message: Some("Grabbing failed, not initialized".to_owned()),
             },
+            GrabError::Unsupported(s) => NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ComputationFailed,
+                message: Some(format!("File type is not supported: {}", s)),
+            },
         }
     }
 }
@@ -154,6 +159,8 @@ pub enum ComputationError {
     SessionUnavailable,
     #[error("{0:?}")]
     NativeError(NativeError),
+    #[error("Grabbing content not possible: {0:?}")]
+    Grabbing(#[from] GrabError),
 }
 
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);

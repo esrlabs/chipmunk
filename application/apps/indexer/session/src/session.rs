@@ -6,64 +6,13 @@ use crate::{
 use indexer_base::progress::Severity;
 use log::{debug, warn};
 use processor::{
-    dlt_source::DltSource,
     grabber::{AsyncGrabTrait, GrabMetadata, GrabTrait},
     text_source::TextFileSource,
 };
 use serde::Serialize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
-
-#[derive(Debug, Serialize, Clone)]
-pub enum SupportedFileType {
-    Text,
-    Dlt,
-}
-
-pub fn get_supported_file_type(path: &Path) -> Option<SupportedFileType> {
-    let extension = path.extension().map(|ext| ext.to_string_lossy());
-    match extension {
-        Some(ext) => match ext.to_lowercase().as_ref() {
-            "dlt" => Some(SupportedFileType::Dlt),
-            "txt" | "text" => Some(SupportedFileType::Text),
-            _ => Some(SupportedFileType::Text),
-        },
-        None => Some(SupportedFileType::Text),
-    }
-}
-
-pub fn lazy_init_grabber(
-    input_p: &Path,
-    source_id: &str,
-) -> Result<(SupportedFileType, Box<dyn AsyncGrabTrait>), ComputationError> {
-    match get_supported_file_type(input_p) {
-        Some(SupportedFileType::Text) => {
-            type GrabberType = processor::grabber::Grabber<TextFileSource>;
-            let source = TextFileSource::new(input_p, source_id);
-            let grabber = GrabberType::lazy(source).map_err(|e| {
-                let err_msg = format!("Could not create grabber: {}", e);
-                warn!("{}", err_msg);
-                ComputationError::Process(err_msg)
-            })?;
-            Ok((SupportedFileType::Text, Box::new(grabber)))
-        }
-        Some(SupportedFileType::Dlt) => {
-            type GrabberType = processor::grabber::Grabber<DltSource>;
-            let source = DltSource::new(input_p, source_id);
-            let grabber = GrabberType::lazy(source).map_err(|e| {
-                ComputationError::Process(format!("Could not create grabber: {}", e))
-            })?;
-            Ok((SupportedFileType::Dlt, Box::new(grabber)))
-        }
-        None => {
-            warn!("Trying to assign unsupported file type: {:?}", input_p);
-            Err(ComputationError::OperationNotSupported(
-                "Unsupported file type".to_string(),
-            ))
-        }
-    }
-}
 
 pub type OperationsChannel = (
     UnboundedSender<(Uuid, Operation)>,

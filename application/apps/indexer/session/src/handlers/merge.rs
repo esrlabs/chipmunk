@@ -2,7 +2,6 @@ use super::assign;
 use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    session::SupportedFileType,
     state::SessionStateAPI,
 };
 use crossbeam_channel as cc;
@@ -16,7 +15,6 @@ pub async fn handle(
     files: Vec<FileMergeOptions>,
     out_path: &Path,
     append: bool,
-    source_type: SupportedFileType,
     source_id: String,
     state: SessionStateAPI,
 ) -> OperationResult<()> {
@@ -59,5 +57,5 @@ pub async fn handle(
             },
         });
     }
-    assign::handle(operation_api, out_path, source_type, source_id, state).await
+    assign::handle(operation_api, out_path, source_id, state).await
 }

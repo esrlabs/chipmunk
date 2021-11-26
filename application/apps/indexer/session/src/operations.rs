@@ -1,7 +1,6 @@
 use crate::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
     handlers,
-    session::SupportedFileType,
     state::SessionStateAPI,
 };
 use crossbeam_channel as cc;
@@ -104,7 +103,6 @@ pub enum Operation {
     Assign {
         file_path: PathBuf,
         source_id: String,
-        source_type: SupportedFileType,
     },
     Search {
         target_file: PathBuf,
@@ -122,14 +120,12 @@ pub enum Operation {
         files: Vec<ConcatenatorInput>,
         out_path: PathBuf,
         append: bool,
-        source_type: SupportedFileType,
         source_id: String,
     },
     Merge {
         files: Vec<FileMergeOptions>,
         out_path: PathBuf,
         append: bool,
-        source_type: SupportedFileType,
         source_id: String,
     },
     DropSearch(cc::Sender<()>),
@@ -151,7 +147,6 @@ impl std::fmt::Display for Operation {
                 Operation::Assign {
                     file_path: _,
                     source_id: _,
-                    source_type: _,
                 } => "Assign",
                 Operation::Search {
                     target_file: _,
@@ -169,14 +164,12 @@ impl std::fmt::Display for Operation {
                     files: _,
                     out_path: _,
                     append: _,
-                    source_type: _,
                     source_id: _,
                 } => "Concat",
                 Operation::Merge {
                     files: _,
                     out_path: _,
                     append: _,
-                    source_type: _,
                     source_id: _,
                 } => "Merge",
                 Operation::Sleep(_) => "Sleep",
@@ -305,11 +298,9 @@ impl OperationAPI {
                 Operation::Assign {
                     file_path,
                     source_id,
-                    source_type,
                 } => {
                     api.finish(
-                        handlers::assign::handle(&api, &file_path, source_type, source_id, state)
-                            .await,
+                        handlers::assign::handle(&api, &file_path, source_id, state).await,
                         OperationAlias::Assign,
                     )
                     .await;
@@ -358,20 +349,11 @@ impl OperationAPI {
                     files,
                     out_path,
                     append,
-                    source_type,
                     source_id,
                 } => {
                     api.finish(
-                        handlers::concat::handle(
-                            &api,
-                            files,
-                            &out_path,
-                            append,
-                            source_type,
-                            source_id,
-                            state,
-                        )
-                        .await,
+                        handlers::concat::handle(&api, files, &out_path, append, source_id, state)
+                            .await,
                         OperationAlias::Concat,
                     )
                     .await;
@@ -380,20 +362,11 @@ impl OperationAPI {
                     files,
                     out_path,
                     append,
-                    source_type,
                     source_id,
                 } => {
                     api.finish(
-                        handlers::merge::handle(
-                            &api,
-                            files,
-                            &out_path,
-                            append,
-                            source_type,
-                            source_id,
-                            state,
-                        )
-                        .await,
+                        handlers::merge::handle(&api, files, &out_path, append, source_id, state)
+                            .await,
                         OperationAlias::Merge,
                     )
                     .await;
