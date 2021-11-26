@@ -23,7 +23,17 @@ pub fn get_supported_file_type(path: &Path) -> Result<SupportedFileType, GrabErr
             "txt" | "text" => Ok(SupportedFileType::Text),
             _ => Ok(SupportedFileType::Text),
         },
-        None => Err(GrabError::Unsupported("Unsupported file type".to_string())),
+        None => {
+            // try to interpret as text
+            if TextFileSource::contains_text(path)? {
+                Ok(SupportedFileType::Text)
+            } else {
+                Err(GrabError::Unsupported(format!(
+                    "Unsupported file type for {:?}",
+                    path
+                )))
+            }
+        }
     }
 }
 

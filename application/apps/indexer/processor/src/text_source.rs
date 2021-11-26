@@ -29,6 +29,25 @@ impl TextFileSource {
     }
 }
 
+impl TextFileSource {
+    pub fn contains_text(path: &Path) -> Result<bool, GrabError> {
+        let chunk_size = 100 * 1024usize;
+        let mut f = fs::File::open(&path)
+            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &path)))?;
+        let mut count = 0usize;
+        let mut buffer = vec![0; chunk_size];
+
+        let n = f
+            .read(&mut buffer)
+            .map_err(|_| GrabError::IoOperation(format!("Could not read from file {:?}", &path)))?;
+        if n < chunk_size {
+            buffer.resize(n, 0);
+        }
+        count += bytecount::count(&buffer, b'\n');
+        Ok(count > 0)
+    }
+}
+
 impl MetadataSource for TextFileSource {
     fn source_id(&self) -> String {
         self.source_id.clone()
