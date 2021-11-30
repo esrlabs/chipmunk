@@ -250,7 +250,7 @@ fn escape_metacharacters(c: char) -> Cow<'static, str> {
 pub(crate) fn date_expression(input: &str) -> IResult<&str, Vec<FormatPiece>> {
     let parser = fold_many0(
         any_date_format,
-        (String::from(""), Vec::new()),
+        || (String::from(""), Vec::new()),
         |mut acc: (String, Vec<_>), item| {
             match item {
                 FormatPiece::SeperatorChar(c) => acc.0.push_str(&escape_metacharacters(c)),
