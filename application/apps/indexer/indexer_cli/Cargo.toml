@@ -2,22 +2,22 @@
 name = "indexer_cli"
 version = "0.35.2"
 authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4"
 clap = "2.33.3"
 crossbeam-channel = "0.5.1"
-dirs = "3.0.1"
+dirs = "4.0"
 dlt = { path = "../dlt" }
 dlt-core = "0.10.1"
 # dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
 # dlt-core = { path = "../../../../../dlt-core.git" }
-env_logger = "0.8.3"
+env_logger = "0.9"
 indexer_base = { path = "../indexer_base" }
-indicatif = "0.15.0"
-lazy_static = "1.4.0"
+indicatif = "0.16"
+lazy_static = "1.4"
 log = "0.4"
 merging = { path = "../merging" }
 processor = { path = "../processor" }

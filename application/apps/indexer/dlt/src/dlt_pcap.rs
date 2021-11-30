@@ -116,6 +116,7 @@ enum MessageStreamItem {
     Empty,
     Done,
 }
+
 impl Stream for PcapMessageProducer {
     type Item = (usize, Result<MessageStreamItem, DltParseError>);
     fn poll_next(
