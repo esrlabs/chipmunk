@@ -2,7 +2,7 @@
 name = "processor"
 version = "0.1.0"
 authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
@@ -25,7 +25,7 @@ indexer_base = { path = "../indexer_base" }
 itertools = "0.10.0"
 lazy_static = "1.4"
 log = "0.4"
-nom = "6.1"
+nom = "7.1"
 regex = "1"
 rustc-hash = "1.1"
 serde = { version = "1.0", features = ["derive"] }
@@ -36,9 +36,9 @@ tokio-util = "0.6"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"]}
-dirs = "3.0"
-env_logger = "0.8"
-pretty_assertions = "0.7"
+dirs = "4.0"
+env_logger = "0.9"
+pretty_assertions = "1.0"
 proptest = "1.0"
 proptest-derive = "0.3"
 rand = "0.8"
