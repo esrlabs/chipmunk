@@ -1,5 +1,4 @@
 use crate::merger::{FileLogEntryProducer, FileMergeOptions, IndexOutput};
-use anyhow::Result;
 use crossbeam_channel as cc;
 use futures::{
     pin_mut,

@@ -5,8 +5,6 @@ authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2021"
 
 [dependencies]
-thiserror = "1.0"
-anyhow = "1.0"
 buf_redux = "0.8"
 bytes = "1.0"
 chrono = "0.4"
@@ -15,7 +13,7 @@ dirs = "4.0"
 dlt-core = "0.10.1"
 # dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
 # dlt-core = { path = "../../../../../dlt-core.git", features = [] }
-etherparse = "0.9"
+etherparse = "0.10"
 humantime = "2.1"
 indexer_base = { path = "../indexer_base" }
 lazy_static = "1.4"
@@ -24,9 +22,10 @@ pcap-parser = "0.13"
 rustc-hash = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+thiserror = "1.0"
 tokio = { version = "1.5", features = ["full"] }
-tokio-util = {version = "0.6", features = ["codec", "net"] }
 tokio-stream = "0.1.5"
+tokio-util = {version = "0.6", features = ["codec", "net"] }
 
 [dev-dependencies]
 rand = "0.8"
