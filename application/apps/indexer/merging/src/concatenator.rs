@@ -10,7 +10,6 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use crate::merger::combined_file_size;
-use anyhow::Result;
 use crossbeam_channel as cc;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults},
@@ -24,7 +23,20 @@ use std::{
     iter::Iterator,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 use tokio_util::sync::CancellationToken;
+
+#[derive(Debug, Error)]
+pub enum ConcatError {
+    #[error("Concat configuration seems to be broken: {0}")]
+    WrongConfiguration(String),
+    #[error("Concatenation not possible: {0:?}")]
+    IoProblem(#[from] std::io::Error),
+    #[error("JSON possible: {0:?}")]
+    JsonProblem(#[from] serde_json::Error),
+    #[error("General concatenation error: {0}")]
+    General(String),
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConcatItemOptions {
@@ -32,7 +44,7 @@ pub struct ConcatItemOptions {
     tag: String,
 }
 
-pub fn read_concat_options(f: &mut fs::File) -> Result<Vec<ConcatItemOptions>> {
+pub fn read_concat_options(f: &mut fs::File) -> Result<Vec<ConcatItemOptions>, ConcatError> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
 
@@ -58,7 +70,7 @@ pub fn concat_files_use_config_file(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_token: Option<CancellationToken>,
-) -> Result<()> {
+) -> Result<(), ConcatError> {
     concat_files(
         files,
         out_path,
@@ -75,7 +87,7 @@ pub fn concat_files(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_token: Option<CancellationToken>,
-) -> Result<()> {
+) -> Result<(), ConcatError> {
     let file_cnt = concat_inputs.len();
     trace!("concat_files called with {} files", file_cnt);
     let mut line_nr = 0;
@@ -95,13 +107,17 @@ pub fn concat_files(
         .iter()
         .map(|x| PathBuf::from(x.path.clone()))
         .collect();
-    let mut progress_reporter =
-        ProgressReporter::new(combined_file_size(&paths)?, update_channel.clone());
+    let mut progress_reporter = ProgressReporter::new(
+        combined_file_size(&paths).map_err(|e| ConcatError::General(format!("{:?}", e)))?,
+        update_channel.clone(),
+    );
 
     for input in concat_inputs {
         if let Some(shutdown_token) = shutdown_token.as_ref() {
             if shutdown_token.is_cancelled() {
-                update_channel.send(Ok(IndexingProgress::Stopped))?;
+                update_channel
+                    .send(Ok(IndexingProgress::Stopped))
+                    .expect("Sending progress must work");
                 return Ok(());
             }
         }
@@ -133,7 +149,9 @@ pub fn concat_files(
                 // check if stop was requested
                 chunk_count += 1;
                 buf_writer.flush()?;
-                update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+                update_channel
+                    .send(Ok(IndexingProgress::GotItem { item: chunk }))
+                    .expect("Sending item must work");
             }
 
             progress_reporter.make_progress(original_line_length);
@@ -142,7 +160,9 @@ pub fn concat_files(
     }
     buf_writer.flush()?;
     if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count > 0) {
-        update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+        update_channel
+            .send(Ok(IndexingProgress::GotItem { item: chunk }))
+            .expect("Sending item must work");
     }
 
     let _ = update_channel.send(Ok(IndexingProgress::Finished));
