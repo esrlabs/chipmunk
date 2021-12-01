@@ -9,7 +9,6 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use indexer_base::{
     chunks::{Chunk, ChunkFactory, ChunkResults},
@@ -18,7 +17,7 @@ use indexer_base::{
     timedline::*,
     utils,
 };
-use processor::parse::{line_to_timed_line, lookup_regex_for_format_str};
+use processor::parse::{line_to_timed_line, lookup_regex_for_format_str, DateParseError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -28,8 +27,23 @@ use std::{
     iter::{Iterator, Peekable},
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 use tokio_stream::Stream;
 use tokio_util::sync::CancellationToken;
+
+#[derive(Debug, Error)]
+pub enum MergeError {
+    #[error("Merge configuration seems to be broken: {0}")]
+    WrongConfiguration(String),
+    #[error("Merging not possible: {0:?}")]
+    IoProblem(#[from] std::io::Error),
+    #[error("JSON possible: {0:?}")]
+    JsonProblem(#[from] serde_json::Error),
+    #[error("Could possible: {0:?}")]
+    DateParsingProblem(#[from] DateParseError),
+    #[error("Merge problem: {0}")]
+    GeneralMergingProblem(String),
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileMergeOptions {
@@ -48,7 +62,7 @@ pub struct FileMergeOptions {
 pub fn read_merge_options(
     f: &mut File,
     relative_path: Option<impl AsRef<Path>>,
-) -> Result<Vec<FileMergeOptions>> {
+) -> Result<Vec<FileMergeOptions>, MergeError> {
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
 
@@ -87,7 +101,7 @@ impl FileLogEntryProducer {
 }
 
 impl Stream for FileLogEntryProducer {
-    type Item = Result<Option<TimedLine>>;
+    type Item = Result<Option<TimedLine>, MergeError>;
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context,
@@ -95,7 +109,7 @@ impl Stream for FileLogEntryProducer {
         let next = self.timed_line_iterator.next();
         match next {
             Some(msg) => core::task::Poll::Ready(Some(Ok(Some(msg)))),
-            None => core::task::Poll::Ready(Some(Err(anyhow!("no more message")))),
+            None => core::task::Poll::Ready(None),
         }
     }
 }
@@ -192,7 +206,7 @@ pub fn merge_files_use_config(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_token: Option<CancellationToken>,
-) -> Result<()> {
+) -> Result<(), MergeError> {
     trace!("merge {} files", options.len());
     do_the_merge(
         append,
@@ -217,7 +231,7 @@ pub fn merge_files_use_config_file(
     chunk_size: usize, // used for mapping line numbers to byte positions
     update_channel: cc::Sender<ChunkResults>,
     shutdown_token: Option<CancellationToken>,
-) -> Result<()> {
+) -> Result<(), MergeError> {
     trace!("merge files using config from {}", config_path.display());
     let mut merge_option_file = File::open(config_path)?;
     let options: Vec<FileMergeOptions> =
@@ -240,7 +254,7 @@ fn do_the_merge(
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_token: Option<CancellationToken>,
-) -> Result<()> {
+) -> Result<(), MergeError> {
     let mut writer = IndexOutput::new(
         append,
         out_path,
@@ -253,12 +267,12 @@ fn do_the_merge(
 }
 
 pub trait Len {
-    fn len(&self) -> Result<u64>;
+    fn len(&self) -> Result<u64, std::io::Error>;
     fn is_empty(&self) -> bool;
 }
 
 impl Len for FileMergeOptions {
-    fn len(&self) -> Result<u64> {
+    fn len(&self) -> Result<u64, std::io::Error> {
         Ok(fs::metadata(&self.path)?.len())
     }
 
@@ -267,7 +281,7 @@ impl Len for FileMergeOptions {
     }
 }
 impl Len for PathBuf {
-    fn len(&self) -> Result<u64> {
+    fn len(&self) -> Result<u64, std::io::Error> {
         Ok(fs::metadata(self)?.len())
     }
     fn is_empty(&self) -> bool {
@@ -303,19 +317,16 @@ pub(crate) fn merge_inputs_with_writer(
     merger_inputs: Vec<FileMergeOptions>,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_token: Option<CancellationToken>,
-) -> Result<()> {
+) -> Result<(), MergeError> {
     trace!("merge_inputs_with_writer ({} files)", merger_inputs.len());
     let mut lines_with_year_missing = 0usize;
     // create a peekable iterator for all file inputs
     let mut readers: Vec<Peekable<TimedLineIter>> = merger_inputs
         .into_iter()
         .map(
-            |input: FileMergeOptions| -> Result<Peekable<TimedLineIter>> {
+            |input: FileMergeOptions| -> Result<Peekable<TimedLineIter>, MergeError> {
                 let file_path = PathBuf::from(input.path);
                 let absolute_path = file_path;
-                //     Some(dir) if !file_path.is_absolute() => PathBuf::from(&dir).join(file_path),
-                //     _ => file_path,
-                // };
                 trace!("absolute_path was: {:?}", absolute_path);
                 Ok(TimedLineIter::new(
                     File::open(absolute_path)?,
@@ -379,7 +390,9 @@ pub(crate) fn merge_inputs_with_writer(
     }
     if stopped {
         debug!("sending IndexingProgress::Stopped");
-        update_channel.send(Ok(IndexingProgress::Stopped))?;
+        update_channel
+            .send(Ok(IndexingProgress::Stopped))
+            .expect("sending to update_channel failed");
     } else {
         if lines_with_year_missing > 0 {
             report_warning(format!(
@@ -389,7 +402,9 @@ pub(crate) fn merge_inputs_with_writer(
         }
         writer.write_rest()?;
     }
-    update_channel.send(Ok(IndexingProgress::Finished))?;
+    update_channel
+        .send(Ok(IndexingProgress::Finished))
+        .expect("sending to update channel failed");
     Ok(())
 }
 
@@ -402,13 +417,16 @@ pub struct IndexOutput {
     progress_reporter: ProgressReporter<Chunk>,
 }
 
-pub(crate) fn combined_file_size<T>(paths: &[T]) -> Result<u64>
+pub(crate) fn combined_file_size<T>(paths: &[T]) -> Result<u64, MergeError>
 where
     T: Len + Debug,
 {
     paths.iter().try_fold(0, |acc, x| match x.len() {
         Ok(len) => Ok(acc + len as u64),
-        Err(e) => Err(anyhow!("error getting combined file size ({})", e)),
+        Err(e) => Err(MergeError::GeneralMergingProblem(format!(
+            "error getting combined file size ({})",
+            e
+        ))),
     })
 }
 
@@ -419,7 +437,7 @@ impl IndexOutput {
         chunk_size: usize,
         combined_size: u64,
         update_channel: cc::Sender<ChunkResults>,
-    ) -> Result<Self> {
+    ) -> Result<Self, MergeError> {
         let out_file: File = if append {
             std::fs::OpenOptions::new()
                 .append(true)
@@ -429,7 +447,8 @@ impl IndexOutput {
             File::create(&out_path)?
         };
         let line_nr = if append {
-            utils::next_line_nr(out_path)?
+            utils::next_line_nr(out_path)
+                .map_err(|e| MergeError::GeneralMergingProblem(format!("{:?}", e)))?
         } else {
             0
         };
@@ -452,7 +471,7 @@ impl IndexOutput {
         content: &str,
         tag: &str,
         original_len: usize,
-    ) -> Result<()> {
+    ) -> Result<(), MergeError> {
         let additional_bytes =
             utils::write_tagged_line(tag, &mut self.buf_writer, content, self.line_nr, true, None)?;
         self.line_nr += 1;
@@ -464,18 +483,20 @@ impl IndexOutput {
             self.chunk_count += 1;
             self.buf_writer.flush()?;
             self.update_channel
-                .send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+                .send(Ok(IndexingProgress::GotItem { item: chunk }))
+                .expect("sending to update channel failed");
         }
         Ok(())
     }
-    pub(crate) fn write_rest(&mut self) -> Result<()> {
+    pub(crate) fn write_rest(&mut self) -> Result<(), MergeError> {
         self.buf_writer.flush()?;
         if let Some(chunk) = self
             .chunk_factory
             .create_last_chunk(self.line_nr, self.chunk_count > 0)
         {
             self.update_channel
-                .send(Ok(IndexingProgress::GotItem { item: chunk }))?;
+                .send(Ok(IndexingProgress::GotItem { item: chunk }))
+                .expect("update_channel send failed");
         }
         Ok(())
     }

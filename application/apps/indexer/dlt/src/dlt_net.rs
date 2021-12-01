@@ -37,9 +37,8 @@ pub enum ConnectionError {
     UnableGetSessionFile { error: String },
     #[error("error trying to connect: {}", info)]
     Other { info: String },
-    #[error(transparent)]
-    Any(#[from] anyhow::Error),
 }
+
 impl From<std::io::Error> for ConnectionError {
     fn from(err: std::io::Error) -> ConnectionError {
         ConnectionError::Other {
@@ -47,6 +46,7 @@ impl From<std::io::Error> for ConnectionError {
         }
     }
 }
+
 impl From<std::net::AddrParseError> for ConnectionError {
     fn from(err: std::net::AddrParseError) -> ConnectionError {
         ConnectionError::WrongConfiguration {
@@ -54,6 +54,7 @@ impl From<std::net::AddrParseError> for ConnectionError {
         }
     }
 }
+
 impl From<std::num::ParseIntError> for ConnectionError {
     fn from(err: std::num::ParseIntError) -> ConnectionError {
         ConnectionError::WrongConfiguration {
