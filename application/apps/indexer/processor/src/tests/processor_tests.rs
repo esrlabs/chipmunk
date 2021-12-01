@@ -2,7 +2,6 @@
 mod tests {
     extern crate rand;
     use crate::processor::*;
-    use anyhow::Result;
     use crossbeam_channel as cc;
     use crossbeam_channel::unbounded;
     use indexer_base::{
@@ -104,7 +103,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_append_to_empty_output() -> Result<()> {
+    async fn test_append_to_empty_output() -> Result<(), IndexError> {
         let tmp_dir = tempdir().expect("could not create temp dir");
         let empty_file_path = tmp_dir.path().join("empty.log");
         // call our function
