@@ -118,17 +118,6 @@ pub fn create_index_and_mapping_dlt(
     let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
 
     let f = fs::File::open(&config.in_file)?;
-    //     Ok(file) => file,
-    //     Err(e) => {
-    //         warn!("could not open {:?}", config.in_file);
-    //         let _ = update_channel.try_send(Err(Notification {
-    //             severity: Severity::WARNING,
-    //             content: format!("could not open file ({})", e),
-    //             line: None,
-    //         }));
-    //         return Err(anyhow!(format!("could not open file ({})", e)));
-    //     }
-    // };
     let mut message_producer = FileMessageProducer::new(f, filter_config, true, fibex_metadata);
     index_dlt_content(
         config,

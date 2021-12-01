@@ -4,34 +4,33 @@ mod tests {
     use crate::{
         grabber::{
             identify_byte_range, identify_end_slot_simple, identify_start_slot,
-            identify_start_slot_simple, ByteRange, FilePart, GrabMetadata, Grabber, LineRange,
-            MetadataSource, Slot,
+            identify_start_slot_simple, ByteRange, FilePart, GrabError, GrabMetadata, Grabber,
+            LineRange, MetadataSource, Slot,
         },
         text_source::TextFileSource,
     };
-    use anyhow::Result;
     use pretty_assertions::assert_eq;
     use proptest::prelude::*;
     use std::ops::RangeInclusive;
 
-    fn write_content_to_tmp_file(content: &[String]) -> Result<tempfile::TempPath> {
+    fn write_content_to_tmp_file(content: &[String]) -> tempfile::TempPath {
         use std::io::{BufWriter, Write};
         use tempfile::NamedTempFile;
-        let file = NamedTempFile::new()?;
+        let file = NamedTempFile::new().expect("Could not create tmp file");
         let mut line_length: Vec<u64> = vec![];
         let mut writer = BufWriter::new(file);
         for (i, line) in content.iter().enumerate() {
             if i == content.len() - 1 && !line.is_empty() {
                 // last
-                write!(writer, "{}", line)?;
+                write!(writer, "{}", line).expect("Could not write");
             } else {
-                writeln!(writer, "{}", line)?;
+                writeln!(writer, "{}", line).expect("Could not write");
             }
 
             line_length.push(line.len() as u64);
         }
         let ff = writer.into_inner().expect("could not get at file anymore");
-        Ok(ff.into_temp_path())
+        ff.into_temp_path()
     }
 
     fn is_consistent(content: &[String], metadata: &GrabMetadata) -> bool {
@@ -48,7 +47,7 @@ mod tests {
     proptest! {
         #[test]
         fn produced_metadata_is_consistent(v in prop::collection::vec(LINE_REGEX, 0..500)) {
-            let p = write_content_to_tmp_file(&v).expect("Could not write content to file");
+            let p = write_content_to_tmp_file(&v);
             let source = TextFileSource::new(&p, "sourceA");
             if let Ok(grabber) = Grabber::<TextFileSource>::new(source) {
                 let metadata = grabber.metadata.expect("metadata was not created");
@@ -138,18 +137,18 @@ mod tests {
     }
 
     #[test]
-    fn test_identify_range() -> Result<()> {
+    fn test_identify_range() -> Result<(), GrabError> {
         use std::io::Write;
         use tempfile::NamedTempFile;
         // many lines
         {
-            let mut file = NamedTempFile::new()?;
+            let mut file = NamedTempFile::new().expect("could not create tmp file");
             let mut s = String::new();
             for i in 0..80 {
                 s.push_str(&format!("{}", i % 10));
             }
             for _line in 0..1000 {
-                writeln!(file, "{}", s)?;
+                writeln!(file, "{}", s).expect("could not write to file");
             }
             let p = file.into_temp_path();
             let source = TextFileSource::new(&p, "sourceA");
@@ -169,18 +168,18 @@ mod tests {
     }
 
     #[test]
-    fn test_identify_range_long_lines() -> Result<()> {
+    fn test_identify_range_long_lines() -> Result<(), GrabError> {
         use std::io::Write;
         use tempfile::NamedTempFile;
         // long lines
         {
-            let mut file = NamedTempFile::new()?;
+            let mut file = NamedTempFile::new().expect("could not create tmp file");
             let mut s = String::new();
             for i in 0..10000 {
                 s.push_str(&format!("{}", i % 10));
             }
             for _line in 0..100 {
-                writeln!(file, "{}", s)?;
+                writeln!(file, "{}", s).expect("could not write to file");
             }
             let p = file.into_temp_path();
             let source = TextFileSource::new(&p, "sourceA");
@@ -199,11 +198,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_entries_single_one_char_line() -> Result<()> {
+    fn test_get_entries_single_one_char_line() -> Result<(), GrabError> {
         use std::io::Write;
         use tempfile::NamedTempFile;
-        let mut file = NamedTempFile::new()?;
-        write!(file, "a")?;
+        let mut file = NamedTempFile::new().expect("could not create tmp file");
+        write!(file, "a").expect("could not write to file");
         let p = file.into_temp_path();
         let source = TextFileSource::new(&p, "sourceA");
         let grabber = Grabber::new(source)?;
@@ -219,10 +218,10 @@ mod tests {
         Ok(())
     }
 
-    fn check_sample_entries(str_entries: Vec<&str>) -> Result<()> {
+    fn check_sample_entries(str_entries: Vec<&str>) -> Result<(), GrabError> {
         let entries: Vec<String> = str_entries.iter().map(|s| s.to_string()).collect();
         let entries_len = entries.len();
-        let p = write_content_to_tmp_file(&entries)?;
+        let p = write_content_to_tmp_file(&entries);
         let source = TextFileSource::new(&p, "sourceA");
         if let Ok(grabber) = Grabber::new(source) {
             let r = LineRange::from(0..=((entries_len - 1) as u64));
@@ -238,13 +237,13 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn test_grab_all_entries_in_file_with_empty_lines() -> Result<()> {
+    fn test_grab_all_entries_in_file_with_empty_lines() -> Result<(), GrabError> {
         check_sample_entries(vec!["A", ""])?;
         check_sample_entries(vec!["a", "", ""])
     }
 
     #[test]
-    fn test_grab_all_entries_in_file_with_some_empty_lines() -> Result<()> {
+    fn test_grab_all_entries_in_file_with_some_empty_lines() -> Result<(), GrabError> {
         check_sample_entries(vec!["", "", "a"])?;
         check_sample_entries(vec!["a", "", "a"])?;
         check_sample_entries(vec!["", "a", "", "a"])?;
@@ -279,11 +278,11 @@ mod tests {
     // }
 
     #[test]
-    fn test_get_one_line_only() -> Result<()> {
+    fn test_get_one_line_only() -> Result<(), GrabError> {
         use std::io::Write;
         use tempfile::NamedTempFile;
-        let mut file = NamedTempFile::new()?;
-        write!(file, "ABC")?;
+        let mut file = NamedTempFile::new().expect("could not create tmp file");
+        write!(file, "ABC").expect("could not write to file");
         let p = file.into_temp_path();
         let source = TextFileSource::new(&p, "sourceA");
         let grabber = Grabber::new(source)?;
@@ -300,20 +299,20 @@ mod tests {
     }
 
     #[test]
-    fn test_get_lines_problem() -> Result<()> {
+    fn test_get_lines_problem() -> Result<(), GrabError> {
         use std::io::Write;
         use tempfile::NamedTempFile;
-        let mut file = NamedTempFile::new()?;
-        writeln!(file, " 1 testblah")?;
-        writeln!(file, " 2 testblah")?;
-        writeln!(file, " 3 testblah")?;
-        writeln!(file, " 4 testblah")?;
-        writeln!(file, " 5 testblah")?;
-        writeln!(file, " 6 testblah")?;
-        writeln!(file, " 7 testblah")?;
-        writeln!(file, " 8 testblah")?;
-        writeln!(file, " 9 testblah")?;
-        write!(file, "10 testblah")?;
+        let mut file = NamedTempFile::new().expect("could not create tmp file");
+        writeln!(file, " 1 testblah").expect("could not write to file");
+        writeln!(file, " 2 testblah").expect("could not write to file");
+        writeln!(file, " 3 testblah").expect("could not write to file");
+        writeln!(file, " 4 testblah").expect("could not write to file");
+        writeln!(file, " 5 testblah").expect("could not write to file");
+        writeln!(file, " 6 testblah").expect("could not write to file");
+        writeln!(file, " 7 testblah").expect("could not write to file");
+        writeln!(file, " 8 testblah").expect("could not write to file");
+        writeln!(file, " 9 testblah").expect("could not write to file");
+        write!(file, "10 testblah").expect("could not write to file");
         let p = file.into_temp_path();
         let source = TextFileSource::new(&p, "sourceA");
         let grabber = Grabber::new(source)?;
@@ -339,13 +338,13 @@ mod tests {
     }
 
     #[test]
-    fn test_get_entries_only_empty_lines() -> Result<()> {
+    fn test_get_entries_only_empty_lines() -> Result<(), GrabError> {
         use std::io::Write;
         use tempfile::NamedTempFile;
-        let mut file = NamedTempFile::new()?;
+        let mut file = NamedTempFile::new().expect("could not create tmp file");
         // 3 lines, all empty
-        writeln!(file)?;
-        writeln!(file)?;
+        writeln!(file).expect("could not write to file");
+        writeln!(file).expect("could not write to file");
         let p = file.into_temp_path();
 
         let source = TextFileSource::new(&p, "sourceA");

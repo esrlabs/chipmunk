@@ -109,7 +109,6 @@ pub(crate) async fn _merge_inputs_with_writer_async(
 }
 mod test {
 
-    use anyhow::{anyhow, Result};
     use futures::{
         executor::block_on,
         pin_mut,
