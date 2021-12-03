@@ -22,13 +22,10 @@ extern crate lazy_static;
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::{
-    dlt_file::{count_dlt_messages, export_as_dlt_file, get_dlt_file_info, StatisticsResults},
-    dlt_pcap::pcap_to_dlt,
-};
+use dlt::dlt_file::{count_dlt_messages, export_as_dlt_file, get_dlt_file_info, StatisticsResults};
 use dlt_core::{
-    fibex::FibexConfig,
-    filtering::{read_filter_options, DltFilterConfig},
+    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
+    filtering::{process_filter_config, read_filter_options, DltFilterConfig},
 };
 use env_logger::Env;
 use indexer_base::{
@@ -45,13 +42,18 @@ use processor::{
     grabber::{GrabError, GrabbedContent},
     text_source::TextFileSource,
 };
+use sources::pcap::{
+    file::{convert_from_pcapng, create_index_and_mapping_from_pcapng},
+    format::dlt::DltParser,
+};
 use std::path::Path;
 
 use tokio::sync;
 
 lazy_static! {
     static ref EXAMPLE_FIBEX: std::path::PathBuf =
-        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dlt/tests/dlt-messages.xml");
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../dlt/test_samples/dlt-messages.xml");
 }
 
 #[macro_use]
@@ -74,7 +76,7 @@ use std::{fs, io::Read, path, time::Instant};
 use std::thread;
 
 fn init_logging() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("warn")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("error")).init();
     info!("logging initialized");
 }
 
@@ -525,7 +527,7 @@ pub async fn main() -> Result<()> {
     } else if let Some(matches) = matches.subcommand_matches("dlt") {
         handle_dlt_subcommand(matches, start).await
     } else if let Some(matches) = matches.subcommand_matches("dlt-pcap") {
-        handle_dlt_pcap_subcommand(matches).await
+        handle_dlt_pcap_subcommand(matches, start).await
     } else if let Some(matches) = matches.subcommand_matches("dlt-udp") {
         handle_dlt_udp_subcommand(matches).await
     } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
@@ -752,7 +754,7 @@ pub async fn main() -> Result<()> {
                                 format!("processing ~{} MB", file_size_in_mb.round()),
                                 file_size_in_mb,
                                 "MB".to_string(),
-                            )
+                            );
                         }
                         progress_bar.finish_and_clear();
                         break;
@@ -1101,7 +1103,7 @@ pub async fn main() -> Result<()> {
         }
     }
 
-    async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches<'_>) {
+    async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches<'_>, start: std::time::Instant) {
         debug!("handle_dlt_pcap_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<DltFilterConfig> = match matches.value_of("filter_config") {
@@ -1126,6 +1128,13 @@ pub async fn main() -> Result<()> {
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
             let file_path = path::PathBuf::from(file_name);
+            let source_file_size = match fs::metadata(&file_path) {
+                Ok(file_meta) => file_meta.len(),
+                Err(_) => {
+                    report_error("could not find out size of source file");
+                    std::process::exit(2);
+                }
+            };
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file_name.to_string() + ".map.json");
 
@@ -1136,15 +1145,21 @@ pub async fn main() -> Result<()> {
             let in_one_go: bool = matches.is_present("convert");
             let shutdown_channel = sync::mpsc::channel(1);
             if in_one_go {
+                println!("one-go");
                 let (tx, rx): (cc::Sender<VoidResults>, cc::Receiver<VoidResults>) = unbounded();
                 tokio::spawn(async move {
-                    let res = pcap_to_dlt(
+                    let fibex_config = load_test_fibex();
+                    let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
+                    let dlt_parser = DltParser {
+                        filter_config: filter_conf.map(process_filter_config),
+                        fibex_metadata: fibex_metadata.as_ref(),
+                    };
+                    let res = convert_from_pcapng(
                         &file_path,
                         &out_path,
-                        filter_conf,
                         tx,
                         shutdown_channel.1,
-                        Some(load_test_fibex()),
+                        dlt_parser,
                     )
                     .await;
                     if let Err(reason) = res {
@@ -1160,6 +1175,14 @@ pub async fn main() -> Result<()> {
                         }
                         Ok(Ok(IndexingProgress::Finished { .. })) => {
                             progress_bar.finish_and_clear();
+
+                            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                            duration_report_throughput(
+                                start,
+                                format!("processing ~{} MB", file_size_in_mb.round()),
+                                file_size_in_mb,
+                                "MB".to_string(),
+                            );
                             break;
                         }
                         Ok(Ok(IndexingProgress::Progress { ticks })) => {
@@ -1185,9 +1208,16 @@ pub async fn main() -> Result<()> {
                     }
                 }
             } else {
+                println!("NOT one-go");
                 let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
                 tokio::spawn(async move {
-                    let res = dlt::dlt_pcap::create_index_and_mapping_dlt_from_pcap(
+                    let fibex_config = load_test_fibex();
+                    let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
+                    let dlt_parser = DltParser {
+                        filter_config: filter_conf.map(process_filter_config),
+                        fibex_metadata: fibex_metadata.as_ref(),
+                    };
+                    let res = create_index_and_mapping_from_pcapng(
                         IndexingConfig {
                             tag: tag_string,
                             chunk_size,
@@ -1196,10 +1226,9 @@ pub async fn main() -> Result<()> {
                             append,
                             watch: false,
                         },
-                        filter_conf,
                         &tx,
                         shutdown_channel.1,
-                        Some(load_test_fibex()),
+                        dlt_parser,
                     )
                     .await;
 

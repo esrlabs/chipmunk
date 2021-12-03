@@ -1,0 +1,22 @@
+[package]
+name = "sources"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossbeam-channel = "0.5"
+dlt-core = "0.10.1"
+pcap-parser = "0.13"
+log = "0.4"
+tokio = { version = "1.5", features = ["full"] }
+tokio-stream = "0.1.5"
+indexer_base = { path = "../indexer_base" }
+itertools = "0.10"
+thiserror = "1.0"
+etherparse = "0.10"
+
+[dev-dependencies]
+lazy_static = "1.4"
+env_logger = "0.9"

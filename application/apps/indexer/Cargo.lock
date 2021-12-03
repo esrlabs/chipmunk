@@ -654,6 +654,7 @@ dependencies = [
  "processor",
  "serde",
  "serde_json",
+ "sources",
  "tokio",
 ]
 
@@ -1586,6 +1587,24 @@ name = "smallvec"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
+
+[[package]]
+name = "sources"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-channel",
+ "dlt-core",
+ "env_logger",
+ "etherparse",
+ "indexer_base",
+ "itertools 0.10.1",
+ "lazy_static",
+ "log",
+ "pcap-parser",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+]
 
 [[package]]
 name = "static_assertions"
