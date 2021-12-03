@@ -3,64 +3,64 @@ name: Checks
 on: [pull_request]
 
 jobs:
-    lint_rust:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v1
-            - uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: nightly
-                  components: clippy
-                  override: true
-            - name: Run clippy on indexer
-              uses: actions-rs/clippy-check@v1
-              with:
-                  toolchain: nightly
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  args: --manifest-path ./application/apps/indexer/Cargo.toml --all-features
-            - name: Run clippy on rs-bindings
-              uses: actions-rs/clippy-check@v1
-              with:
-                  toolchain: nightly
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  args: --manifest-path ./application/apps/rustcore/rs-bindings/Cargo.toml --all-features
-    integration_tests:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: install ruby
-              uses: actions/setup-ruby@v1
-              with:
-                  ruby-version: "2.x"
-            - uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: stable
-                  override: true
-            - name: Install the node-bingen tool
-              run: cargo install nj-cli
-            - name: Install for tests
-              working-directory: ./application/apps/rustcore
-              run: rake install:all
-            - name: Build tests
-              working-directory: ./application/apps/rustcore
-              run: rake build:all
-            - name: Run integration tests
-              working-directory: ./application/apps/rustcore
-              env:
-                  ELECTRON_RUN_AS_NODE: 1
-              run: rake test:all
-    unit_tests:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: stable
-                  override: true
-            - name: Run unit tests on indexer
-              uses: actions-rs/cargo@v1
-              with:
-                  command: test
-                  args: --manifest-path ./application/apps/indexer/Cargo.toml
+  lint_rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: clippy
+          override: true
+      - name: Run clippy on indexer
+        uses: actions-rs/clippy-check@v1
+        with:
+          toolchain: nightly
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --manifest-path ./application/apps/indexer/Cargo.toml --all-features
+      - name: Run clippy on rs-bindings
+        uses: actions-rs/clippy-check@v1
+        with:
+          toolchain: nightly
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --manifest-path ./application/apps/rustcore/rs-bindings/Cargo.toml --all-features
+  integration_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: "2.x"
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install the node-bingen tool
+        run: cargo install nj-cli
+      - name: Install for tests
+        working-directory: ./application/apps/rustcore
+        run: rake install:all
+      - name: Build tests
+        working-directory: ./application/apps/rustcore
+        run: rake build:all
+      - name: Run integration tests
+        working-directory: ./application/apps/rustcore
+        env:
+          ELECTRON_RUN_AS_NODE: 1
+        run: rake test:all
+  unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Run unit tests on indexer
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --manifest-path ./application/apps/indexer/Cargo.toml
