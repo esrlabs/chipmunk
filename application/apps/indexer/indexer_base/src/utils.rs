@@ -23,7 +23,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("Malformed proprocessed content: {0}")]
+    #[error("Malformed preprocessed content: {0}")]
     MalformedPreprocessed(String),
     #[error("IO error: {0:?}")]
     Io(#[from] std::io::Error),

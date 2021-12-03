@@ -428,15 +428,6 @@ dependencies = [
 
 [[package]]
 name = "dirs"
-version = "3.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30baa043103c9d0c2a57cf537cc2f35623889dc0d405e6c3cccfadbc81c71309"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
@@ -459,12 +450,11 @@ dependencies = [
 name = "dlt"
 version = "0.2.0"
 dependencies = [
- "anyhow",
  "buf_redux",
  "bytes",
  "chrono",
  "crossbeam-channel",
- "dirs 3.0.2",
+ "dirs",
  "dlt-core",
  "etherparse",
  "humantime",
@@ -495,7 +485,7 @@ dependencies = [
  "humantime",
  "lazy_static",
  "log",
- "nom",
+ "nom 6.1.2",
  "quick-xml",
  "rustc-hash",
  "serde",
@@ -535,12 +525,9 @@ dependencies = [
 
 [[package]]
 name = "etherparse"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fa20922281f9ee5ffcda45e80d56085829279f1270f79fbabc39809a4354807"
-dependencies = [
- "byteorder",
-]
+checksum = "9feedaea5a9f602932e78b512b2fde69aaefd2ef4fd5fd744238f7424b246186"
 
 [[package]]
 name = "event-listener"
@@ -1062,7 +1049,6 @@ dependencies = [
 name = "merging"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "crossbeam-channel",
  "dlt",
  "indexer_base",
@@ -1071,9 +1057,16 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio-stream",
  "tokio-util",
 ]
+
+[[package]]
+name = "minimal-lexical"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "mio"
@@ -1175,7 +1168,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "crossbeam-channel",
- "dirs 4.0.0",
+ "dirs",
  "indexer_base",
  "log",
  "log4rs",
@@ -1201,6 +1194,17 @@ dependencies = [
  "funty",
  "lexical-core",
  "memchr",
+ "version_check",
+]
+
+[[package]]
+name = "nom"
+version = "7.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d11e1ef389c76fe5b81bcaf2ea32cf88b62bc494e19f493d0b30e7a930109"
+dependencies = [
+ "memchr",
+ "minimal-lexical",
  "version_check",
 ]
 
@@ -1334,12 +1338,12 @@ dependencies = [
 
 [[package]]
 name = "pcap-parser"
-version = "0.11.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b02dbff869a341d90be2efb64dd4d61681f7e981e07c5f1483d5e72ce4d5cf9a"
+checksum = "194ecabc0308fe811aebc55a5cf9344c3e9a328cae79c6addb102a9064dcefb2"
 dependencies = [
  "circular",
- "nom",
+ "nom 7.1.0",
  "rusticata-macros",
 ]
 
@@ -1444,7 +1448,6 @@ dependencies = [
 name = "processor"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "bincode",
  "buf_redux",
  "bytecount",
@@ -1461,7 +1464,7 @@ dependencies = [
  "itertools",
  "lazy_static",
  "log",
- "nom",
+ "nom 7.1.0",
  "regex",
  "rustc-hash",
  "serde",
@@ -1622,11 +1625,11 @@ dependencies = [
 
 [[package]]
 name = "rusticata-macros"
-version = "3.2.0"
+version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbbee512c633ecabd4481c40111b6ded03ddd9ab10ba6caa5a74e14c889921ad"
+checksum = "65c52377bb2288aa522a0c8208947fada1e0c76397f108cc08f57efe6077b50d"
 dependencies = [
- "nom",
+ "nom 7.1.0",
 ]
 
 [[package]]
@@ -1970,9 +1973,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b2f3f698253f03119ac0102beaa64f67a67e08074d03a22d18784104543727f"
+checksum = "50145484efff8818b5ccd256697f36863f587da82cf8b409c53adf1e840798e3"
 dependencies = [
  "futures-core",
  "pin-project-lite",
