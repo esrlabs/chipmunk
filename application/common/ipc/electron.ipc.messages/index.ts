@@ -917,14 +917,39 @@ import {
 } from './shell.recent.commands.clear.response';
 export { IShellRecentCommandsClearResponse, ShellRecentCommandsClearResponse };
 
-import { ShellProcessTerminatedListRequest } from './shell.process.terminated.list.request';
-export { ShellProcessTerminatedListRequest };
+import { ShellProcessHistoryGetRequest } from './shell.process.history.get.request';
+export { ShellProcessHistoryGetRequest };
 
 import {
-    IShellProcessTerminatedListResponse,
-    ShellProcessTerminatedListResponse,
-} from './shell.process.terminated.list.response';
-export { IShellProcessTerminatedListResponse, ShellProcessTerminatedListResponse };
+    IBundle,
+    IShellProcessHistoryGetResponse,
+    ShellProcessHistoryGetResponse,
+} from './shell.process.history.get.response';
+export { IBundle, IShellProcessHistoryGetResponse, ShellProcessHistoryGetResponse };
+
+import {
+    IShellProcessBundleSetRequest,
+    ShellProcessBundleSetRequest,
+} from './shell.process.bundle.set.request';
+export { IShellProcessBundleSetRequest, ShellProcessBundleSetRequest };
+
+import {
+    IShellProcessBundleSetResponse,
+    ShellProcessBundleSetResponse,
+} from './shell.process.bundle.set.response';
+export { IShellProcessBundleSetResponse, ShellProcessBundleSetResponse };
+
+import {
+    IShellProcessBundleRemoveRequest,
+    ShellProcessBundleRemoveRequest,
+} from './shell.process.bundle.remove.request';
+export { IShellProcessBundleRemoveRequest, ShellProcessBundleRemoveRequest };
+
+import {
+    IShellProcessBundleRemoveResponse,
+    ShellProcessBundleRemoveResponse,
+} from './shell.process.bundle.remove.response';
+export { IShellProcessBundleRemoveResponse, ShellProcessBundleRemoveResponse };
 
 import { IShellPwdRequest, ShellPwdRequest } from './shell.pwd.request';
 export { IShellPwdRequest, ShellPwdRequest };
@@ -1248,8 +1273,12 @@ export type TMessage =
     | ShellProcessListEvent
     | ShellRecentCommandsClearRequest
     | ShellRecentCommandsClearResponse
-    | ShellProcessTerminatedListRequest
-    | ShellProcessTerminatedListResponse
+    | ShellProcessHistoryGetRequest
+    | ShellProcessHistoryGetResponse
+    | ShellProcessBundleSetResponse
+    | ShellProcessBundleSetRequest
+    | ShellProcessBundleRemoveRequest
+    | ShellProcessBundleRemoveResponse
     | ShellPwdRequest
     | ShellPwdResponse
     | ShellPresetSetRequest
@@ -1527,8 +1556,12 @@ export const Map = {
     [ShellProcessListEvent.signature]: ShellProcessListEvent,
     [ShellRecentCommandsClearRequest.signature]: ShellRecentCommandsClearRequest,
     [ShellRecentCommandsClearResponse.signature]: ShellRecentCommandsClearResponse,
-    [ShellProcessTerminatedListRequest.signature]: ShellProcessTerminatedListRequest,
-    [ShellProcessTerminatedListResponse.signature]: ShellProcessTerminatedListResponse,
+    [ShellProcessHistoryGetRequest.signature]: ShellProcessHistoryGetRequest,
+    [ShellProcessHistoryGetResponse.signature]: ShellProcessHistoryGetResponse,
+    [ShellProcessBundleSetResponse.signature]: ShellProcessBundleSetResponse,
+    [ShellProcessBundleSetRequest.signature]: ShellProcessBundleSetRequest,
+    [ShellProcessBundleRemoveRequest.signature]: ShellProcessBundleRemoveRequest,
+    [ShellProcessBundleRemoveResponse.signature]: ShellProcessBundleRemoveResponse,
     [ShellPwdRequest.signature]: ShellPwdRequest,
     [ShellPwdResponse.signature]: ShellPwdResponse,
     [ShellPresetSetRequest.signature]: ShellPresetSetRequest,

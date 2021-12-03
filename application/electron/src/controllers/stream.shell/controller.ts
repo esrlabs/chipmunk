@@ -125,15 +125,39 @@ export default class ControllerStreamShell {
                         ),
                     );
                 ServiceElectron.IPC.subscribe(
-                    IPC.ShellProcessTerminatedListRequest,
-                    this._ipc_ShellProcessTerminatedListRequest.bind(this) as any,
+                    IPC.ShellProcessHistoryGetRequest,
+                    this._ipc_ShellProcessHistoryGetRequest.bind(this) as any,
                 )
                     .then((subscription: Subscription) => {
-                        this._subscriptions.ShellProcessTerminatedListRequest = subscription;
+                        this._subscriptions.ShellProcessHistoryGetRequest = subscription;
                     })
                     .catch((err: Error) =>
                         this._logger.error(
-                            `Fail to subscribe to ShellProcessTerminatedListRequest due error: ${err.message}`,
+                            `Fail to subscribe to ShellProcessHistoryGetRequest due error: ${err.message}`,
+                        ),
+                    );
+                ServiceElectron.IPC.subscribe(
+                    IPC.ShellProcessBundleSetRequest,
+                    this._ipc_ShellProcessBundleSetRequest.bind(this) as any,
+                )
+                    .then((subscription: Subscription) => {
+                        this._subscriptions.ShellProcessBundleSetRequest = subscription;
+                    })
+                    .catch((err: Error) =>
+                        this._logger.error(
+                            `Fail to subscribe to ShellProcessBundleSetRequest due error: ${err.message}`,
+                        ),
+                    );
+                ServiceElectron.IPC.subscribe(
+                    IPC.ShellProcessBundleRemoveRequest,
+                    this._ipc_ShellProcessBundleRemoveRequest.bind(this) as any,
+                )
+                    .then((subscription: Subscription) => {
+                        this._subscriptions.ShellProcessBundleRemoveRequest = subscription;
+                    })
+                    .catch((err: Error) =>
+                        this._logger.error(
+                            `Fail to subscribe to ShellProcessBundleRemoveRequest due error: ${err.message}`,
                         ),
                     );
                 ServiceElectron.IPC.subscribe(
@@ -382,19 +406,78 @@ export default class ControllerStreamShell {
         );
     }
 
-    private _ipc_ShellProcessTerminatedListRequest(
-        request: IPC.ShellProcessTerminatedListRequest,
-        response: (response: IPC.ShellProcessTerminatedListResponse) => Promise<void>,
+    private _ipc_ShellProcessHistoryGetRequest(
+        request: IPC.ShellProcessHistoryGetRequest,
+        response: (response: IPC.ShellProcessHistoryGetResponse) => Promise<void>,
     ) {
         if (request.session !== this._guid) {
             return;
         }
         response(
-            new IPC.ShellProcessTerminatedListResponse({
+            new IPC.ShellProcessHistoryGetResponse({
                 session: this._guid,
                 processes: Array.from(this._terminated.values()).map((proc) => proc.getInfo()),
+                bundles: ServiceStorage.get().get().recentBundles,
             }),
         );
+    }
+
+    private _ipc_ShellProcessBundleSetRequest(
+        request: IPC.ShellProcessBundleSetRequest,
+        response: (response: IPC.ShellProcessBundleSetResponse) => Promise<void>,
+    ) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        let error: undefined | Error;
+        const bundles: IPC.IBundle[] = ServiceStorage.get().get().recentBundles;
+        bundles.push(request.bundle);
+        ServiceStorage.get()
+            .set({
+                recentBundles: bundles,
+            })
+            .catch((err: Error) => {
+                this._logger.error(err.message);
+                error = err;
+            })
+            .finally(() => {
+                response(
+                    new IPC.ShellProcessBundleSetResponse({
+                        error: error === undefined ? error : error.message,
+                    }),
+                );
+            });
+    }
+
+    private _ipc_ShellProcessBundleRemoveRequest(
+        request: IPC.ShellProcessBundleRemoveRequest,
+        response: (response: IPC.ShellProcessBundleRemoveResponse) => Promise<void>,
+    ) {
+        if (request.session !== this._guid) {
+            return;
+        }
+        let error: undefined | Error;
+        let bundles: IPC.IBundle[] = ServiceStorage.get().get().recentBundles;
+        request.bundles.forEach((rBundle: IPC.IBundle) => {
+            bundles = bundles.filter((bundle: IPC.IBundle) => {
+                return rBundle.title !== bundle.title;
+            });
+        });
+        ServiceStorage.get()
+            .set({
+                recentBundles: bundles,
+            })
+            .catch((err: Error) => {
+                this._logger.error(err.message);
+                error = err;
+            })
+            .finally(() => {
+                response(
+                    new IPC.ShellProcessBundleRemoveResponse({
+                        error: error === undefined ? error : error.message,
+                    }),
+                );
+            });
     }
 
     private _ipc_ShellPresetSetRequest(

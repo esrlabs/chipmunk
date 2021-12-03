@@ -19,21 +19,27 @@ export interface IShellProcess {
     meta: IShellProcessMeta;
 }
 
-export interface IShellProcessTerminatedListResponse {
-    session: string;
-    processes: IShellProcess[];
+export interface IBundle {
+    title: string;
+    commands: string[];
 }
 
-export class ShellProcessTerminatedListResponse {
+export interface IShellProcessHistoryGetResponse {
+    session: string;
+    processes: IShellProcess[];
+    bundles: IBundle[];
+}
 
-    public static signature: string = 'ShellProcessTerminatedListResponse';
-    public signature: string = ShellProcessTerminatedListResponse.signature;
+export class ShellProcessHistoryGetResponse {
+    public static signature: string = 'ShellProcessHistoryGetResponse';
+    public signature: string = ShellProcessHistoryGetResponse.signature;
     public session: string;
     public processes: IShellProcess[];
+    public bundles: IBundle[];
 
-    constructor(params: IShellProcessTerminatedListResponse) {
+    constructor(params: IShellProcessHistoryGetResponse) {
         if (typeof params !== 'object' || params === null) {
-            throw new Error(`Incorrect parameters for ShellProcessTerminatedListResponse message`);
+            throw new Error(`Incorrect parameters for ShellProcessHistoryGetResponse message`);
         }
         if (typeof params.session !== 'string' || params.session.trim() === '') {
             throw new Error(`Expecting session to be a string`);
@@ -41,7 +47,11 @@ export class ShellProcessTerminatedListResponse {
         if (!(params.processes instanceof Array)) {
             throw new Error(`Expecting processes to be an Array<IShellProcess>`);
         }
+        if (!(params.bundles instanceof Array)) {
+            throw new Error(`Expecting processes to be an Array<IBundle>`);
+        }
         this.session = params.session;
         this.processes = params.processes;
+        this.bundles = params.bundles;
     }
 }

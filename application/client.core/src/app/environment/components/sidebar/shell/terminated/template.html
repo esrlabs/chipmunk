@@ -1,18 +1,43 @@
 <mat-expansion-panel [expanded]="true">
     <mat-expansion-panel-header class="nowrap">
-        <mat-panel-title>Terminated</mat-panel-title>
+        <mat-panel-title>History</mat-panel-title>
         <mat-panel-description>{{_ng_count()}}</mat-panel-description>
     </mat-expansion-panel-header>
-    <div *ngIf="_ng_terminated.length === 0">
-        <p class="t-small nowrap">No processes are terminated</p>
+    <div *ngIf="_ng_bundles.length > 0" (contextmenu)="_ng_onContextMenuBundle($event)">
+        <div
+            *ngFor="let bundle of _ng_bundles"
+            class="terminated"
+            [title]="_ng_parseCommands(bundle.commands)"
+            (contextmenu)="_ng_onContextMenuBundle($event, bundle)"
+        >
+            <span class="bundle-title"> {{bundle.title}} </span>
+            <mat-icon class="replay" (click)="_ng_onReplayBundle(bundle)">replay</mat-icon>
+        </div>
+        <hr />
     </div>
-    <div *ngIf="_ng_terminated.length > 0">
-        <div appTooltip
-             [appTooltipContent]="template"
-             class="terminated"
-             *ngFor="let terminated of _ng_terminated"
-             (click)="_ng_onClickTerminated(terminated)">
-            <div class="colorIndicator" [ngStyle]="{'background-color': terminated.meta.color}"></div>
+    <div *ngIf="_ng_terminated.length === 0">
+        <p class="t-small nowrap">No processes in history</p>
+    </div>
+    <div *ngIf="_ng_terminated.length > 0" (contextmenu)="_ng_onContextMenu($event)">
+        <div
+            appTooltip
+            [appTooltipContent]="template"
+            class="terminated"
+            *ngFor="let terminated of _ng_terminated"
+            (click)="_ng_onClickTerminated(terminated)"
+            (contextmenu)="_ng_onContextMenu($event, terminated)"
+        >
+            <div
+                class="colorIndicator"
+                [ngStyle]="{'background-color': terminated.meta.color}"
+            ></div>
+            <mat-checkbox
+                *ngIf="_ng_bundling"
+                [checked]="_ng_checked[terminated.guid]"
+                [disableRipple]="true"
+                (click)="_ng_onClickCheckbox($event)"
+                (change)="_ng_checked[terminated.guid] = !_ng_checked[terminated.guid]"
+            ></mat-checkbox>
             <span class="command">{{terminated.command}}</span>
             <ng-template #template>
                 <table>
@@ -26,7 +51,7 @@
                     </tr>
                 </table>
             </ng-template>
-            <mat-icon class="replay" (click)="_ng_onReplay(terminated)">replay</mat-icon>
+            <mat-icon class="replay" (click)="_ng_onReplay(terminated.command)">replay</mat-icon>
         </div>
     </div>
 </mat-expansion-panel>
