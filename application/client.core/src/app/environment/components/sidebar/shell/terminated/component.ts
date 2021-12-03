@@ -4,6 +4,7 @@ import { ShellService } from '../services/service';
 import { Session } from '../../../../controller/session/session';
 import { NotificationsService } from '../../../../services.injectable/injectable.service.notifications';
 
+import ContextMenuService, { IMenuItem } from '../../../../services/standalone/service.contextmenu';
 import OutputRedirectionsService, {
     EParent,
 } from '../../../../services/standalone/service.output.redirections';
@@ -28,6 +29,9 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
     @Input() public service!: ShellService;
 
     public _ng_terminated: IPC.IShellProcess[] = [];
+    public _ng_checked: { [guid: string]: boolean } = {};
+    public _ng_bundling: boolean = false;
+    public _ng_bundles: IPC.IBundle[] = [];
 
     private _sessionID!: string;
     private _subscriptions: { [key: string]: Toolkit.Subscription | Subscription } = {};
@@ -89,11 +93,11 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
         return `${count} process${count > 1 ? 'es' : ''}`;
     }
 
-    public _ng_onReplay(process: IPC.IShellProcess) {
+    public _ng_onReplay(command: string) {
         this.service
             .runCommand({
                 session: this._sessionID,
-                command: process.command,
+                command: command,
             })
             .catch((error: Error) => {
                 this._showNotification({
@@ -101,6 +105,29 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
                     message: this._logger.error(error.message),
                 });
             });
+    }
+
+    public _ng_onReplayBundle(bundle: IPC.IBundle) {
+        Promise.all(
+            bundle.commands.map((command: string) => {
+                return this.service
+                    .runCommand({
+                        session: this._sessionID,
+                        command: command,
+                    })
+                    .catch((error: Error) => {
+                        this._showNotification({
+                            caption: `Failed to execute command ${command}`,
+                            message: this._logger.error(error.message),
+                        });
+                    });
+            }),
+        ).catch((error: Error) => {
+            this._showNotification({
+                caption: `Failed to execute bundle ${bundle.title}`,
+                message: this._logger.error(error.message),
+            });
+        });
     }
 
     public _ng_onClickTerminated(process: IPC.IShellProcess) {
@@ -123,12 +150,136 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
         });
     }
 
+    public _ng_onClickCheckbox(event: MouseEvent) {
+        event.stopPropagation();
+    }
+
+    public _ng_onContextMenuBundle(event: MouseEvent, bundle?: IPC.IBundle) {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Remove all',
+                handler: () => {
+                    this.service
+                        .removeBundles(this._sessionID, this._ng_bundles)
+                        .catch((error: Error) => {
+                            this._logger.warn(
+                                `Failed to delete bundles due to error: ${error.message}`,
+                            );
+                        });
+                    this._ng_bundles = [];
+                },
+            },
+        ];
+        if (bundle !== undefined) {
+            items.unshift({
+                caption: 'Remove',
+                handler: () => {
+                    this.service.removeBundles(this._sessionID, [bundle]).catch((error: Error) => {
+                        this._logger.warn(
+                            `Failed to delete bundle ${bundle.title} due to error: ${error.message}`,
+                        );
+                    });
+                    this._ng_bundles = this._ng_bundles.filter((ngBundle: IPC.IBundle) => {
+                        return ngBundle.title !== bundle.title;
+                    });
+                },
+            });
+        }
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
+    }
+
+    public _ng_onContextMenu(event: MouseEvent, process?: IPC.IShellProcess) {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Remove all',
+                handler: () => {
+                    this._ng_terminated = [];
+                    this._ng_checked = {};
+                },
+            },
+        ];
+        if (process !== undefined) {
+            items.unshift({
+                caption: 'Remove',
+                handler: () => {
+                    this._ng_terminated = this._ng_terminated.filter(
+                        (terminated: IPC.IShellProcess) => {
+                            return terminated.guid !== process.guid;
+                        },
+                    );
+                    delete this._ng_checked[process.guid];
+                },
+            });
+        }
+        if (!this._ng_bundling && this._ng_terminated.length > 0) {
+            items.unshift({
+                caption: 'Create bundle',
+                handler: () => {
+                    this._ng_bundling = true;
+                    Object.keys(this._ng_checked).forEach((guid: string) => {
+                        this._ng_checked[guid] = false;
+                    });
+                },
+            });
+        } else if (this._ng_bundling) {
+            items.unshift(
+                {
+                    caption: 'Save bundle',
+                    handler: () => {
+                        this._ng_bundling = false;
+                        const commands: string[] = [];
+                        this._ng_terminated.forEach((terminated: IPC.IShellProcess) => {
+                            if (this._ng_checked[terminated.guid]) {
+                                commands.push(terminated.command);
+                            }
+                        });
+                        const bundle = {
+                            title: this._generateBundleName(),
+                            commands: commands,
+                        };
+                        this._ng_bundles.push(bundle);
+                        this.service.setBundle(this._sessionID, bundle).catch((error: Error) => {
+                            this._logger.warn(
+                                `Failed to save bundle due to error: ${error.message}`,
+                            );
+                        });
+                    },
+                    disabled: !Object.values(this._ng_checked).includes(true),
+                },
+                {
+                    caption: 'Cancel bundle',
+                    handler: () => {
+                        this._ng_bundling = false;
+                    },
+                },
+            );
+        }
+        ContextMenuService.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        event.stopImmediatePropagation();
+        event.preventDefault();
+    }
+
+    public _ng_parseCommands(commands: string[]): string {
+        return commands.join('\n');
+    }
+
     private _restoreSession() {
         this.service
-            .getTerminated(this._sessionID)
-            .then((response: IPC.ShellProcessTerminatedListResponse) => {
+            .getHistory(this._sessionID)
+            .then((response: IPC.ShellProcessHistoryGetResponse) => {
                 if (response.session === this._sessionID) {
                     this._ng_terminated = this._colored(response.processes);
+                    this._ng_bundles = response.bundles;
                 }
             })
             .catch((error: Error) => {
@@ -162,5 +313,17 @@ export class SidebarAppShellTerminatedComponent implements OnDestroy, OnInit {
             caption: notification.caption,
             message: notification.message,
         });
+    }
+
+    private _generateBundleName(): string {
+        let index: number = 0;
+        const regex = /Bundle (\d+)/g;
+        this._ng_bundles.forEach((bundle: IPC.IBundle) => {
+            const match: RegExpMatchArray | null = bundle.title.match(regex);
+            if (match !== null && match.length >= 1) {
+                index = parseInt(match[0].split(' ')[1]) + 1;
+            }
+        });
+        return `Bundle ${index}`;
     }
 }

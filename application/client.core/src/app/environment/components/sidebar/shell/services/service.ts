@@ -150,27 +150,75 @@ export class ShellService {
                 new IPC.ShellProcessListRequest({ session: sessionID }),
                 IPC.ShellProcessListResponse,
             )
-                .then((response) => {
-                    resolve(response);
-                })
+                .then(resolve)
                 .catch((error: Error) => {
                     reject(new Error(`Fail to get running processes due error: ${error.message}`));
                 });
         });
     }
 
-    public getTerminated(sessionID: string): Promise<IPC.ShellProcessTerminatedListResponse> {
+    public getHistory(sessionID: string): Promise<IPC.ShellProcessHistoryGetResponse> {
         return new Promise((resolve, reject) => {
-            ElectronIpcService.request<IPC.ShellProcessTerminatedListResponse>(
-                new IPC.ShellProcessTerminatedListRequest({ session: sessionID }),
-                IPC.ShellProcessTerminatedListResponse,
+            ElectronIpcService.request<IPC.ShellProcessHistoryGetResponse>(
+                new IPC.ShellProcessHistoryGetRequest({ session: sessionID }),
+                IPC.ShellProcessHistoryGetResponse,
             )
-                .then((response) => {
-                    resolve(response);
+                .then(resolve)
+                .catch((error: Error) => {
+                    reject(
+                        new Error(`Fail to get history of processes due error: ${error.message}`),
+                    );
+                });
+        });
+    }
+
+    public setBundle(sessionID: string, bundle: IPC.IBundle) {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request<IPC.ShellProcessBundleSetResponse>(
+                new IPC.ShellProcessBundleSetRequest({ session: sessionID, bundle: bundle }),
+                IPC.ShellProcessBundleSetResponse,
+            )
+                .then((response: IPC.ShellProcessBundleSetResponse) => {
+                    if (response.error !== undefined) {
+                        reject(
+                            new Error(
+                                `Fail to save bundle of processes due error: ${response.error}`,
+                            ),
+                        );
+                    } else {
+                        resolve(response);
+                    }
                 })
                 .catch((error: Error) => {
                     reject(
-                        new Error(`Fail to get terminated processes due error: ${error.message}`),
+                        new Error(`Fail to save bundle of processes due error: ${error.message}`),
+                    );
+                });
+        });
+    }
+
+    public removeBundles(sessionID: string, bundles: IPC.IBundle[]) {
+        return new Promise((resolve, reject) => {
+            ElectronIpcService.request<IPC.ShellProcessBundleRemoveResponse>(
+                new IPC.ShellProcessBundleRemoveRequest({ session: sessionID, bundles: bundles }),
+                IPC.ShellProcessBundleRemoveResponse,
+            )
+                .then((response: IPC.ShellProcessBundleRemoveResponse) => {
+                    if (response.error !== undefined) {
+                        reject(
+                            new Error(
+                                `Fail to save bundles of processes due error: ${response.error}`,
+                            ),
+                        );
+                    } else {
+                        resolve(response);
+                    }
+                })
+                .catch((error: Error) => {
+                    reject(
+                        new Error(
+                            `Fail to remove bundles of processes due error: ${error.message}`,
+                        ),
                     );
                 });
         });

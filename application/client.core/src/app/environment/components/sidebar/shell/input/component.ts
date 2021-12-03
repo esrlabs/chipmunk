@@ -8,9 +8,8 @@ import {
     OnDestroy,
     ViewEncapsulation,
 } from '@angular/core';
-import { sortPairs, IPair, ISortedFile } from '../../../../thirdparty/code/engine';
+import { sortPairs, IPair } from '../../../../thirdparty/code/engine';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { MatInput } from '@angular/material/input';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { Subscription, Observable } from 'rxjs';
@@ -30,14 +29,12 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     encapsulation: ViewEncapsulation.None,
 })
 export class SidebarAppShellInputComponent implements OnInit, AfterContentInit, OnDestroy {
-    @ViewChild(MatInput) _inputComRef!: MatInput;
     @ViewChild(MatAutocompleteTrigger) _ng_autoComRef!: MatAutocompleteTrigger;
     @ViewChild('requestinput') _ng_requestInputComRef!: ElementRef;
 
     @Input() public service!: ShellService;
 
     public _ng_inputCtrl = new FormControl();
-    // public _ng_commands: Observable<ISortedFile[]>;
     public _ng_recent!: Observable<IPair[]>;
 
     private _sessionID: string | undefined;
