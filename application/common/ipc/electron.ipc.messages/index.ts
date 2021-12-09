@@ -325,6 +325,9 @@ import {
 } from './files.recent.response';
 export { IFilesRecentResponse, FilesRecentResponse, IRecentFileInfo };
 
+import { IFilesOpenEvent, FilesOpenEvent } from './files.open.event';
+export { IFilesOpenEvent, FilesOpenEvent };
+
 import { FiltersFilesRecentRequest } from './files.filters.recent.request';
 export { FiltersFilesRecentRequest };
 
@@ -1137,6 +1140,7 @@ export type TMessage =
     | FilesSearchResponse
     | FilesRecentRequest
     | FilesRecentResponse
+    | FilesOpenEvent
     | FileInfoRequest
     | FileInfoResponse
     | FileListRequest
@@ -1400,6 +1404,7 @@ export const Map = {
     [FilesSearchResponse.signature]: FilesSearchResponse,
     [FilesRecentRequest.signature]: FilesRecentRequest,
     [FilesRecentResponse.signature]: FilesRecentResponse,
+    [FilesOpenEvent.signature]: FilesOpenEvent,
     [FileInfoRequest.signature]: FileInfoRequest,
     [FileInfoResponse.signature]: FileInfoResponse,
     [FilePickerRequest.signature]: FilePickerRequest,

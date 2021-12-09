@@ -60,6 +60,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 IPC.CLIActionConcatFilesRequest,
                 this._onCLIActionConcatFilesRequest.bind(this),
             );
+            this._subscriptions.FilesOpenEvent = ServiceElectronIpc.subscribe(
+                IPC.FilesOpenEvent,
+                this._onFilesOpenEvent.bind(this),
+            );
             resolve();
         });
     }
@@ -620,6 +624,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
                     },
                 );
             });
+    }
+
+    private _onFilesOpenEvent(msg: IPC.FilesOpenEvent) {
+        this.open(msg.files);
     }
 }
 

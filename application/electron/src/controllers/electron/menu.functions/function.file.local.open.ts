@@ -1,12 +1,9 @@
-import { dialog, OpenDialogReturnValue } from 'electron';
 import ServiceFileOpener from '../../../services/files/service.file.opener';
-import ServiceElectron, { IPCMessages } from '../../../services/service.electron';
-import { AFileParser, getParserForFile } from '../../../controllers/files.parsers/index';
+import { AFileParser } from '../../../controllers/files.parsers/index';
 
 import Logger from '../../../tools/env.logger';
 
 export default class FunctionOpenLocalFile {
-
     private _parsers: AFileParser[];
     private _logger: Logger;
 
@@ -16,7 +13,7 @@ export default class FunctionOpenLocalFile {
     }
 
     public getLabel(): string {
-        return `Open File`;
+        return `Open File(s)`;
     }
 
     public getHandler(): () => void {
@@ -26,5 +23,4 @@ export default class FunctionOpenLocalFile {
             });
         };
     }
-
 }
