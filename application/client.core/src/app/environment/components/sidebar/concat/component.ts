@@ -26,7 +26,6 @@ import {
     ControllerFileConcatSession,
     IConcatFile,
 } from '../../../controller/controller.file.concat.session';
-import { IPC } from '../../../services/service.electron.ipc';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 
 import EventsSessionService from '../../../services/standalone/service.events.session';

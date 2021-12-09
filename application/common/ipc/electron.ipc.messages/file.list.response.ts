@@ -3,6 +3,10 @@ export interface IFileListResponse {
     error?: string;
 }
 
+export interface IFileFeatures {
+    merge: boolean;
+    concat: boolean;
+}
 export interface IFile {
     lastModified: number;
     lastModifiedDate: Date;
@@ -14,6 +18,7 @@ export interface IFile {
     isHidden: boolean;
     checked: boolean;
     disabled: boolean;
+    features: IFileFeatures;
 }
 
 export class FileListResponse {
@@ -27,7 +32,7 @@ export class FileListResponse {
             throw new Error(`Incorrect parameters for FileListResponse message`);
         }
         if (!(params.files instanceof Array)) {
-            throw new Error(`Field "files" should of type <string[]>`)
+            throw new Error(`Field "files" should of type <string[]>`);
         }
         params.files.forEach((file: IFile) => {
             if (file) {

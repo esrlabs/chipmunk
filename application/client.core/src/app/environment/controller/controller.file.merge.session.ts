@@ -6,6 +6,7 @@ import { CancelablePromise } from 'chipmunk.client.toolkit';
 import SessionsService from '../services/service.sessions.tabs';
 import EventsHubService from '../services/standalone/service.eventshub';
 import ElectronIpcService from '../services/service.electron.ipc';
+import FileOpenerService from '../services/service.file.opener';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
@@ -124,76 +125,93 @@ export class ControllerFileMergeSession {
 
     public add(files: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            files.forEach((file: string) => {
-                this._files.set(file, {
-                    format: undefined,
-                    info: undefined,
-                    path: file,
-                    options: {
-                        offset: undefined,
-                        year: undefined,
-                    },
-                });
-            });
-            this._subjects.FilesUpdated.next(Array.from(this._files.values()));
-            this._discover(files)
-                .then((discoveredFiles: IPC.IMergeFilesDiscoverResult[]) => {
-                    Promise.all(
-                        discoveredFiles.map((discoveredFile: IPC.IMergeFilesDiscoverResult) => {
-                            return new Promise((next) => {
-                                this._getFileInfo(discoveredFile.path)
-                                    .then((info: IFileInfo) => {
-                                        // TODO: discoveredFile.format could be NULL or UNDEFINED
-                                        this._files.set(discoveredFile.path, {
-                                            format:
-                                                discoveredFile.format === undefined
-                                                    ? undefined
-                                                    : {
-                                                          format: discoveredFile.format.format,
-                                                          flags: discoveredFile.format.flags,
-                                                          regex: discoveredFile.format.regex,
-                                                      },
-                                            error: discoveredFile.error,
-                                            scale: this._getTimeScale(discoveredFile),
-                                            info: info,
-                                            path: discoveredFile.path,
-                                            options: {
-                                                offset: undefined,
-                                                year: undefined,
-                                            },
+            FileOpenerService.getDetailedFileList(files)
+                .then((list: IPC.IFile[]) => {
+                    const filtered = list.filter((f) => f.features.merge);
+                    if (filtered.length === 0) {
+                        return resolve();
+                    }
+                    filtered.forEach((file: IPC.IFile) => {
+                        this._files.set(file.path, {
+                            format: undefined,
+                            info: undefined,
+                            path: file.path,
+                            options: {
+                                offset: undefined,
+                                year: undefined,
+                            },
+                        });
+                    });
+                    this._subjects.FilesUpdated.next(Array.from(this._files.values()));
+                    this._discover(filtered.map((f) => f.path))
+                        .then((discoveredFiles: IPC.IMergeFilesDiscoverResult[]) => {
+                            Promise.all(
+                                discoveredFiles.map(
+                                    (discoveredFile: IPC.IMergeFilesDiscoverResult) => {
+                                        return new Promise((next) => {
+                                            this._getFileInfo(discoveredFile.path)
+                                                .then((info: IFileInfo) => {
+                                                    // TODO: discoveredFile.format could be NULL or UNDEFINED
+                                                    this._files.set(discoveredFile.path, {
+                                                        format:
+                                                            discoveredFile.format === undefined
+                                                                ? undefined
+                                                                : {
+                                                                      format: discoveredFile.format
+                                                                          .format,
+                                                                      flags: discoveredFile.format
+                                                                          .flags,
+                                                                      regex: discoveredFile.format
+                                                                          .regex,
+                                                                  },
+                                                        error: discoveredFile.error,
+                                                        scale: this._getTimeScale(discoveredFile),
+                                                        info: info,
+                                                        path: discoveredFile.path,
+                                                        options: {
+                                                            offset: undefined,
+                                                            year: undefined,
+                                                        },
+                                                    });
+                                                    const fileDesc = this._files.get(
+                                                        discoveredFile.path,
+                                                    );
+                                                    fileDesc !== undefined &&
+                                                        this._subjects.FileUpdated.next(fileDesc);
+                                                    this._subjects.FilesUpdated.next(
+                                                        Array.from(this._files.values()),
+                                                    );
+                                                    next(undefined);
+                                                })
+                                                .catch((infoErr: Error) => {
+                                                    this._logger.warn(
+                                                        `Fail get file information for "${discoveredFile.path}" due error: ${infoErr.message}`,
+                                                    );
+                                                    next(undefined);
+                                                });
                                         });
-                                        const fileDesc = this._files.get(discoveredFile.path);
-                                        fileDesc !== undefined &&
-                                            this._subjects.FileUpdated.next(fileDesc);
-                                        this._subjects.FilesUpdated.next(
-                                            Array.from(this._files.values()),
-                                        );
-                                        next(undefined);
-                                    })
-                                    .catch((infoErr: Error) => {
-                                        this._logger.warn(
-                                            `Fail get file information for "${discoveredFile.path}" due error: ${infoErr.message}`,
-                                        );
-                                        next(undefined);
-                                    });
-                            });
-                        }),
-                    )
-                        .then(() => {
-                            this._updateTimeScale();
-                            resolve();
+                                    },
+                                ),
+                            )
+                                .then(() => {
+                                    this._updateTimeScale();
+                                    resolve();
+                                })
+                                .catch((queueErr: Error) => {
+                                    this._logger.warn(
+                                        `Fail to discover some of files due error: ${queueErr.message}`,
+                                    );
+                                    reject(queueErr);
+                                });
                         })
-                        .catch((queueErr: Error) => {
+                        .catch((discoverErr: Error) => {
                             this._logger.warn(
-                                `Fail to discover some of files due error: ${queueErr.message}`,
+                                `Fail to discover files due error: ${discoverErr.message}`,
                             );
-                            reject(queueErr);
+                            reject(discoverErr);
                         });
                 })
-                .catch((discoverErr: Error) => {
-                    this._logger.warn(`Fail to discover files due error: ${discoverErr.message}`);
-                    reject(discoverErr);
-                });
+                .catch(reject);
         });
     }
 

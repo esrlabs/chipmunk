@@ -1,34 +1,42 @@
-import * as path from "path";
-import * as Tools from "../../tools/index";
+import * as path from 'path';
+import * as Tools from '../../tools/index';
 
-import indexer from "indexer-neon";
-import ServiceOutputExport from "../../services/output/service.output.export";
-import ServiceNotifications, { ENotificationType } from "../../services/service.notifications";
-import ServiceStreams from "../../services/service.streams";
-import Logger from "../../tools/env.logger";
-import ServiceElectron from "../../services/service.electron";
+import indexer from 'indexer-neon';
+import ServiceOutputExport from '../../services/output/service.output.export';
+import ServiceNotifications, { ENotificationType } from '../../services/service.notifications';
+import ServiceStreams from '../../services/service.streams';
+import Logger from '../../tools/env.logger';
+import ServiceElectron from '../../services/service.electron';
 import ServiceDLTFiles from '../../services/parsers/service.dlt.files';
 
-import { AFileParser, IMapItem } from "./interface";
-import { DLT, Progress, CancelablePromise } from "indexer-neon";
+import { AFileParser, IMapItem } from './interface';
+import { DLT, Progress, CancelablePromise } from 'indexer-neon';
 import { CommonInterfaces } from '../../interfaces/interface.common';
 import { CExportAllActionId } from '../../consts/output.actions';
 import { dialog, SaveDialogReturnValue } from 'electron';
-import { IPCMessages } from "../../services/service.electron";
+import { IPCMessages } from '../../services/service.electron';
 
 export const CMetaData = 'dlt';
 
-const ExtNames = ["pcapng"];
+const ExtNames = ['pcapng'];
 
 export default class FileParser extends AFileParser {
-
     private _guid: string | undefined;
-    private _logger: Logger = new Logger("DLT PCAP Indexing");
-    private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
-    private _saves: Map<string, CancelablePromise<void, void, DLT.TPcap2DltEvents, DLT.TPcap2DltsEventObject>> = new Map();
+    private _logger: Logger = new Logger('DLT PCAP Indexing');
+    private _task:
+        | CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject>
+        | undefined;
+    private _saves: Map<
+        string,
+        CancelablePromise<void, void, DLT.TPcap2DltEvents, DLT.TPcap2DltsEventObject>
+    > = new Map();
 
     constructor() {
         super();
+    }
+
+    public static getAlias(): string {
+        return 'pcap_dlt';
     }
 
     public destroy(): Promise<void> {
@@ -36,11 +44,11 @@ export default class FileParser extends AFileParser {
     }
 
     public getName(): string {
-        return "DLT format (PCAP wrapped)";
+        return 'DLT format (PCAP wrapped)';
     }
 
     public getAlias(): string {
-        return "pcap_dlt";
+        return FileParser.getAlias();
     }
 
     public getMeta(): string {
@@ -48,7 +56,7 @@ export default class FileParser extends AFileParser {
     }
 
     public getExtnameFilters(): Array<{ name: string; extensions: string[] }> {
-        return [{ name: "DLT Files wrapped into PCAP", extensions: ExtNames }];
+        return [{ name: 'DLT Files wrapped into PCAP', extensions: ExtNames }];
     }
 
     public getExtensions(): string[] {
@@ -57,10 +65,7 @@ export default class FileParser extends AFileParser {
 
     public isSupported(file: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const extname: string = path
-                .extname(file)
-                .toLowerCase()
-                .replace(".", "");
+            const extname: string = path.extname(file).toLowerCase().replace('.', '');
             resolve(ExtNames.indexOf(extname) !== -1);
         });
     }
@@ -80,7 +85,8 @@ export default class FileParser extends AFileParser {
             this._guid = ServiceStreams.getActiveStreamId();
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            const stats: CommonInterfaces.DLT.StatisticInfo | undefined = ServiceDLTFiles.getStats(srcFile);
+            const stats: CommonInterfaces.DLT.StatisticInfo | undefined =
+                ServiceDLTFiles.getStats(srcFile);
             const appIdCount: number = stats === undefined ? -1 : stats.app_ids.length;
             const contextIdCount: number = stats === undefined ? -1 : stats.context_ids.length;
             let appIds: string[] | undefined;
@@ -127,99 +133,122 @@ export default class FileParser extends AFileParser {
                 stdout: false,
                 statusUpdates: true,
             };
-            this._logger.debug("calling indexPcapDlt with params: " + JSON.stringify(dltParams));
-            this._task = indexer.indexPcapDlt(dltParams).then(() => {
-                // Register exports callback
-                ServiceOutputExport.setAction(this._guid as string, {
-                    id: CExportAllActionId,
-                    caption: 'Save file as DLT',
-                    handler: this._saveAsDLT.bind(this, srcFile),
-                    isEnabled: () => true,
-                    source: IPCMessages.EOutputExportFeaturesSource.output,
+            this._logger.debug('calling indexPcapDlt with params: ' + JSON.stringify(dltParams));
+            this._task = indexer
+                .indexPcapDlt(dltParams)
+                .then(() => {
+                    // Register exports callback
+                    ServiceOutputExport.setAction(this._guid as string, {
+                        id: CExportAllActionId,
+                        caption: 'Save file as DLT',
+                        handler: this._saveAsDLT.bind(this, srcFile),
+                        isEnabled: () => true,
+                        source: IPCMessages.EOutputExportFeaturesSource.output,
+                    });
+                    resolve(collectedChunks);
+                })
+                .catch((error: Error) => {
+                    ServiceNotifications.notify({
+                        message:
+                            error.message.length > 1500
+                                ? `${error.message.substr(0, 1500)}...`
+                                : error.message,
+                        caption: `Error with: ${path.basename(srcFile)}`,
+                        session: this._guid,
+                        file: sourceId.toString(),
+                        type: ENotificationType.error,
+                    });
+                    reject(error);
+                })
+                .canceled(() => {
+                    cancel();
+                })
+                .finally(() => {
+                    this._task = undefined;
+                    const hrend = process.hrtime(hrstart);
+                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                    this._logger.debug('parseAndIndex task finished');
+                    this._logger.debug('Execution time for indexing : ' + ms + 'ms');
+                })
+                .on('chunk', (event: Progress.IChunk) => {
+                    if (onMapUpdated !== undefined) {
+                        const mapItem: IMapItem = {
+                            rows: { from: event.rowsStart, to: event.rowsEnd },
+                            bytes: { from: event.bytesStart, to: event.bytesEnd },
+                        };
+                        onMapUpdated([mapItem]);
+                        collectedChunks.push(mapItem);
+                    }
+                })
+                .on('progress', (event: Progress.ITicks) => {
+                    if (onProgress !== undefined) {
+                        onProgress(event);
+                    }
+                })
+                .on('notification', (event: Progress.INeonNotification) => {
+                    ServiceNotifications.notifyFromNeon(
+                        event,
+                        'DLT-PCAP-Indexing',
+                        this._guid,
+                        srcFile,
+                    );
                 });
-                resolve(collectedChunks);
-            }).catch((error: Error) => {
-                ServiceNotifications.notify({
-                    message:
-                        error.message.length > 1500
-                            ? `${error.message.substr(0, 1500)}...`
-                            : error.message,
-                    caption: `Error with: ${path.basename(srcFile)}`,
-                    session: this._guid,
-                    file: sourceId.toString(),
-                    type: ENotificationType.error,
-                });
-                reject(error);
-            }).canceled(() => {
-                cancel();
-            }).finally(() => {
-                this._task = undefined;
-                const hrend = process.hrtime(hrstart);
-                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                this._logger.debug("parseAndIndex task finished");
-                this._logger.debug("Execution time for indexing : " + ms + "ms");
-            }).on('chunk', (event: Progress.IChunk) => {
-                if (onMapUpdated !== undefined) {
-                    const mapItem: IMapItem = {
-                        rows: { from: event.rowsStart, to: event.rowsEnd },
-                        bytes: { from: event.bytesStart, to: event.bytesEnd },
-                    };
-                    onMapUpdated([mapItem]);
-                    collectedChunks.push(mapItem);
-                }
-            }).on('progress', (event: Progress.ITicks) => {
-                if (onProgress !== undefined) {
-                    onProgress(event);
-                }
-            }).on('notification', (event: Progress.INeonNotification) => {
-                ServiceNotifications.notifyFromNeon(
-                    event,
-                    "DLT-PCAP-Indexing",
-                    this._guid,
-                    srcFile,
-                );
-            });
         });
     }
 
     public abort(): Promise<void> {
         return new Promise((resolve) => {
-            this._saves.forEach(task => task.abort());
+            this._saves.forEach((task) => task.abort());
             if (this._task === undefined) {
                 return resolve();
             }
-            this._task.canceled(() => {
-                resolve();
-            }).abort();
+            this._task
+                .canceled(() => {
+                    resolve();
+                })
+                .abort();
         });
     }
 
     private _saveAsDLT(target: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._getFileName().then((filename: string | undefined) => {
-                if (filename === undefined) {
-                    return;
-                }
-                this._logger.info(`Saving`);
-                const guid: string = Tools.guid();
-                const task: CancelablePromise<void, void, DLT.TPcap2DltEvents, DLT.TPcap2DltsEventObject> = indexer.pcapToDlt(target, filename).then(() => {
-                    this._logger.info(`Saved`);
-                    resolve();
-                }).canceled(() => {
-                    this._logger.info(`Saving was canceled`);
-                    resolve();
-                }).catch((error: Error) => {
-                    this._logger.warn(`Exception during saving: ${error.message}`);
-                    reject(error);
-                }).finally(() => {
-                    this._saves.delete(guid);
-                }).on('progress', (event: Progress.ITicks) => {
-                    // TODO: Do we need this event at all?
+            this._getFileName()
+                .then((filename: string | undefined) => {
+                    if (filename === undefined) {
+                        return;
+                    }
+                    this._logger.info(`Saving`);
+                    const guid: string = Tools.guid();
+                    const task: CancelablePromise<
+                        void,
+                        void,
+                        DLT.TPcap2DltEvents,
+                        DLT.TPcap2DltsEventObject
+                    > = indexer
+                        .pcapToDlt(target, filename)
+                        .then(() => {
+                            this._logger.info(`Saved`);
+                            resolve();
+                        })
+                        .canceled(() => {
+                            this._logger.info(`Saving was canceled`);
+                            resolve();
+                        })
+                        .catch((error: Error) => {
+                            this._logger.warn(`Exception during saving: ${error.message}`);
+                            reject(error);
+                        })
+                        .finally(() => {
+                            this._saves.delete(guid);
+                        })
+                        .on('progress', (event: Progress.ITicks) => {
+                            // TODO: Do we need this event at all?
+                        });
+                    this._saves.set(guid, task);
+                })
+                .catch((error: Error) => {
+                    this._logger.warn(`Fail to select a file due error: ${error.message}`);
                 });
-                this._saves.set(guid, task);
-            }).catch((error: Error) => {
-                this._logger.warn(`Fail to select a file due error: ${error.message}`);
-            });
         });
     }
 
@@ -229,19 +258,23 @@ export default class FileParser extends AFileParser {
             if (win === undefined) {
                 return;
             }
-            dialog.showSaveDialog(win, {
-                title: 'Converting PCAPNG to DLT',
-                filters: [{
-                    name: 'DLT Files',
-                    extensions: ['dlt'],
-                }],
-            }).then((returnValue: SaveDialogReturnValue) => {
-                resolve(returnValue.filePath);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail get filename for saving due error: ${error.message}`);
-                reject(error);
-            });
+            dialog
+                .showSaveDialog(win, {
+                    title: 'Converting PCAPNG to DLT',
+                    filters: [
+                        {
+                            name: 'DLT Files',
+                            extensions: ['dlt'],
+                        },
+                    ],
+                })
+                .then((returnValue: SaveDialogReturnValue) => {
+                    resolve(returnValue.filePath);
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail get filename for saving due error: ${error.message}`);
+                    reject(error);
+                });
         });
     }
-
 }
