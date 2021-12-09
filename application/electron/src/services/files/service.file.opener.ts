@@ -644,120 +644,93 @@ class ServiceFileOpener implements IService {
         });
     }
 
-    private _openFile(parser?: AFileParser): Promise<string | undefined> {
+    private _openFile(): Promise<string | undefined> {
         return new Promise((resolve, reject) => {
             const win = ServiceElectron.getBrowserWindow();
             if (win === undefined) {
                 return reject(new Error(`No window found`));
             }
-            if (parser !== undefined) {
-                dialog
-                    .showOpenDialog(win, {
-                        properties: ['openFile', 'showHiddenFiles'],
-                        filters: parser.getExtnameFilters(),
-                    })
-                    .then((returnValue: OpenDialogReturnValue) => {
-                        if (
-                            !(returnValue.filePaths instanceof Array) ||
-                            returnValue.filePaths.length !== 1
-                        ) {
-                            return resolve(undefined);
-                        }
-                        const file: string = returnValue.filePaths[0];
-                        this.open(file, ServiceStreams.getActiveStreamId(), parser)
-                            .then(() => {
-                                resolve(file);
-                            })
-                            .catch((error: Error) => {
-                                this._logger.warn(`Fail open file due error: ${error.message}`);
-                                reject(new Error(`Fail open file due error: ${error.message}`));
-                            });
-                    })
-                    .catch((error: Error) => {
-                        this._logger.error(`Fail open file due error: ${error.message}`);
-                        reject(new Error(`Fail open file due error: ${error.message}`));
-                    });
-            } else {
-                dialog
-                    .showOpenDialog(win, {
-                        properties: ['openFile', 'showHiddenFiles'],
-                        filters: [{ name: 'All Files', extensions: ['*'] }],
-                    })
-                    .then((returnValue: OpenDialogReturnValue) => {
-                        if (
-                            !(returnValue.filePaths instanceof Array) ||
-                            returnValue.filePaths.length !== 1
-                        ) {
-                            return resolve(undefined);
-                        }
-                        const filename: string = returnValue.filePaths[0];
-                        getParserForFile(filename)
-                            .then((_parser: AFileParser | undefined) => {
-                                if (_parser === undefined) {
-                                    this._logger.error(
-                                        `Fail to find a parser for file: ${filename}`,
-                                    );
-                                    return reject(
-                                        new Error(`Fail to find a parser for file: ${filename}`),
-                                    );
-                                }
-                                ServiceElectron.IPC.request(
-                                    new IPCMessages.RenderSessionAddRequest(),
-                                    IPCMessages.RenderSessionAddResponse,
-                                )
-                                    .then((response: IPCMessages.RenderSessionAddResponse) => {
-                                        if (response.error !== undefined) {
-                                            this._logger.warn(
-                                                `Fail to add new session for file "${filename}" due error: ${response.error}`,
-                                            );
-                                            return reject(
-                                                new Error(
-                                                    `Fail to add new session for file "${filename}" due error: ${response.error}`,
-                                                ),
-                                            );
-                                        }
-                                        this.open(filename, response.session, _parser)
-                                            .then(() => {
-                                                resolve(filename);
-                                            })
-                                            .catch((error: Error) => {
-                                                this._logger.warn(
-                                                    `Fail open file "${filename}" due error: ${error.message}`,
-                                                );
-                                                reject(
-                                                    new Error(
-                                                        `Fail open file "${filename}" due error: ${error.message}`,
-                                                    ),
-                                                );
-                                            });
-                                    })
-                                    .catch((addSessionErr: Error) => {
+            dialog
+                .showOpenDialog(win, {
+                    properties: ['openFile', 'multiSelections', 'showHiddenFiles'],
+                    filters: [{ name: 'All Files', extensions: ['*'] }],
+                })
+                .then((returnValue: OpenDialogReturnValue) => {
+                    if (!(returnValue.filePaths instanceof Array)) {
+                        return resolve(undefined);
+                    } else if (returnValue.filePaths.length > 1) {
+                        return ServiceElectron.IPC.send(
+                            new IPCMessages.FilesOpenEvent({ files: returnValue.filePaths }),
+                        ).catch((error: Error) => {
+                            this._logger.error(`Fail to open files due to error: ${error.message}`);
+                            reject(new Error(`Fail to open files due to error: ${error.message}`));
+                        });
+                    }
+                    const filename: string = returnValue.filePaths[0];
+                    getParserForFile(filename)
+                        .then((_parser: AFileParser | undefined) => {
+                            if (_parser === undefined) {
+                                this._logger.error(`Fail to find a parser for file: ${filename}`);
+                                return reject(
+                                    new Error(`Fail to find a parser for file: ${filename}`),
+                                );
+                            }
+                            ServiceElectron.IPC.request(
+                                new IPCMessages.RenderSessionAddRequest(),
+                                IPCMessages.RenderSessionAddResponse,
+                            )
+                                .then((response: IPCMessages.RenderSessionAddResponse) => {
+                                    if (response.error !== undefined) {
                                         this._logger.warn(
-                                            `Fail to add new session for file "${filename}" due error: ${addSessionErr.message}`,
+                                            `Fail to add new session for file "${filename}" due error: ${response.error}`,
                                         );
-                                        reject(
+                                        return reject(
                                             new Error(
-                                                `Fail to add new session for file "${filename}" due error: ${addSessionErr.message}`,
+                                                `Fail to add new session for file "${filename}" due error: ${response.error}`,
                                             ),
                                         );
-                                    });
-                            })
-                            .catch((error: Error) => {
-                                this._logger.error(
+                                    }
+                                    this.open(filename, response.session, _parser)
+                                        .then(() => {
+                                            resolve(filename);
+                                        })
+                                        .catch((error: Error) => {
+                                            this._logger.warn(
+                                                `Fail open file "${filename}" due error: ${error.message}`,
+                                            );
+                                            reject(
+                                                new Error(
+                                                    `Fail open file "${filename}" due error: ${error.message}`,
+                                                ),
+                                            );
+                                        });
+                                })
+                                .catch((addSessionErr: Error) => {
+                                    this._logger.warn(
+                                        `Fail to add new session for file "${filename}" due error: ${addSessionErr.message}`,
+                                    );
+                                    reject(
+                                        new Error(
+                                            `Fail to add new session for file "${filename}" due error: ${addSessionErr.message}`,
+                                        ),
+                                    );
+                                });
+                        })
+                        .catch((error: Error) => {
+                            this._logger.error(
+                                `Error to open file "${filename}" due error: ${error.message}`,
+                            );
+                            reject(
+                                new Error(
                                     `Error to open file "${filename}" due error: ${error.message}`,
-                                );
-                                reject(
-                                    new Error(
-                                        `Error to open file "${filename}" due error: ${error.message}`,
-                                    ),
-                                );
-                            });
-                    })
-                    .catch((error: Error) => {
-                        this._logger.error(`Fail open file due error: ${error.message}`);
-                        reject(new Error(`Fail open file due error: ${error.message}`));
-                    });
-            }
+                                ),
+                            );
+                        });
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail open file due error: ${error.message}`);
+                    reject(new Error(`Fail open file due error: ${error.message}`));
+                });
         });
     }
 
