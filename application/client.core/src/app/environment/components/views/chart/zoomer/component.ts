@@ -304,7 +304,7 @@ export class ViewChartZoomerCanvasComponent implements AfterViewInit, OnDestroy 
             let min: number = 0;
             let max: number = 100;
             switch (this.serviceData.getScaleType()) {
-                case EScaleType.common:
+                case EScaleType.single:
                     min = scale.min[i];
                     max = scale.max[i];
                     break;
