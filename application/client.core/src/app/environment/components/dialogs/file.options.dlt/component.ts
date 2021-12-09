@@ -21,6 +21,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import FocusOutputService from '../../../services/service.focus.output';
 import { Session } from '../../../controller/session/session';
+import * as moment_timezone from 'moment-timezone';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -132,7 +133,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_filterValue: string = '';
     public _ng_sortSubject: Subject<IForceSortData> = new Subject<IForceSortData>();
     public _ng_logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
+    public _ng_timezone: string = '';
     public _ng_filteringExpanded: boolean = false;
+    public _ng_timezones: string[] = [];
 
     private _stats: CommonInterfaces.DLT.StatisticInfo | undefined;
     private _destroyed: boolean = false;
@@ -143,6 +146,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {}
 
     public ngAfterContentInit() {
+        this._ng_timezones = moment_timezone.tz.names();
+        this._ng_timezones.unshift('Use UTC');
+        this._ng_timezone = this._ng_timezones[0];
         this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
         if (this.options !== undefined && this.options.stats !== undefined) {
             this._initAsReopen();
@@ -194,6 +200,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 }),
             },
             fibexFilesInfo: this._ng_fibex,
+            timezone: this._ng_timezone === this._ng_timezones[0] ? undefined : this._ng_timezone,
         });
     }
 
