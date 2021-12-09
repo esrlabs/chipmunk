@@ -30,6 +30,10 @@ export default class FileParser extends AFileParser {
         super();
     }
 
+    public static getAlias(): string {
+        return "dlt";
+    }
+
     public destroy(): Promise<void> {
         return this.abort();
     }
@@ -39,7 +43,7 @@ export default class FileParser extends AFileParser {
     }
 
     public getAlias(): string {
-        return "dlt";
+        return FileParser.getAlias();
     }
 
     public getMeta(): string {

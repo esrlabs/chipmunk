@@ -114,6 +114,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 isHidden: false,
                 checked: false,
                 disabled: false,
+                features: {
+                    merge: false,
+                    concat: false,
+                },
             };
         });
     }
@@ -123,7 +127,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
             if (paths.length === 0) {
                 return resolve();
             }
-            this._getDetailedFileList(paths)
+            this.getDetailedFileList(paths)
                 .then((list: IPC.IFile[]) => {
                     this._setSessionNewSession()
                         .then((session: Session) => {
@@ -165,6 +169,39 @@ export class FileOpenerService implements IService, IFileOpenerService {
                                 // Multiple files
                                 // Select way: merge or concat
                                 const fileList: FilesList = new FilesList(list);
+                                const features: {
+                                    merge: boolean;
+                                    concat: boolean;
+                                } = {
+                                    merge:
+                                        fileList.getFiles().find((f) => !f.features.merge) ===
+                                        undefined
+                                            ? true
+                                            : false,
+                                    concat:
+                                        fileList.getFiles().find((f) => !f.features.concat) ===
+                                        undefined
+                                            ? true
+                                            : false,
+                                };
+                                const buttons = [
+                                    {
+                                        caption: 'Open each',
+                                        handler: this.openEach.bind(this, fileList),
+                                    },
+                                ];
+                                if (features.concat) {
+                                    buttons.unshift({
+                                        caption: 'Concat',
+                                        handler: this.concat.bind(this, fileList),
+                                    });
+                                }
+                                if (features.merge) {
+                                    buttons.unshift({
+                                        caption: 'Merge',
+                                        handler: this.merge.bind(this, fileList),
+                                    });
+                                }
                                 PopupsService.add({
                                     id: 'opening-file-dialog',
                                     caption: `Opening files`,
@@ -174,20 +211,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
                                             fileList: fileList,
                                         },
                                     },
-                                    buttons: [
-                                        {
-                                            caption: 'Merge',
-                                            handler: this.merge.bind(this, fileList),
-                                        },
-                                        {
-                                            caption: 'Concat',
-                                            handler: this.concat.bind(this, fileList),
-                                        },
-                                        {
-                                            caption: 'Open each',
-                                            handler: this.openEach.bind(this, fileList),
-                                        },
-                                    ],
+                                    buttons: buttons,
                                 });
                                 resolve();
                             }
@@ -304,7 +328,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         openFile(0);
     }
 
-    private _getDetailedFileList(paths: string[]): Promise<IPC.IFile[]> {
+    public getDetailedFileList(paths: string[]): Promise<IPC.IFile[]> {
         return new Promise((resolve, reject) => {
             ServiceElectronIpc.request<IPC.FileListResponse>(
                 new IPC.FileListRequest({
@@ -498,7 +522,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         msg: IPC.CLIActionMergeFilesRequest,
         response: (message: IPC.TMessage) => Promise<void>,
     ) {
-        this._getDetailedFileList(msg.files)
+        this.getDetailedFileList(msg.files)
             .then((list: IPC.IFile[]) => {
                 if (list.length === 0) {
                     response(
@@ -548,7 +572,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         msg: IPC.CLIActionConcatFilesRequest,
         response: (message: IPC.TMessage) => Promise<void>,
     ) {
-        this._getDetailedFileList(msg.files)
+        this.getDetailedFileList(msg.files)
             .then((list: IPC.IFile[]) => {
                 if (list.length === 0) {
                     response(

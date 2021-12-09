@@ -4,6 +4,7 @@ import { CancelablePromise } from 'chipmunk.client.toolkit';
 
 import EventsHubService from '../services/standalone/service.eventshub';
 import ElectronIpcService from '../services/service.electron.ipc';
+import FileOpenerService from '../services/service.file.opener';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as moment from 'moment';
@@ -97,32 +98,41 @@ export class ControllerFileConcatSession {
 
     public add(files: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            Promise.all(
-                files.map((file: string) => {
-                    return new Promise((next) => {
-                        this._addFileByPath(file)
-                            .then(() => {
-                                const fileDesc = this._files.get(file);
-                                fileDesc !== undefined && this._subjects.FileUpdated.next(fileDesc);
-                                this._subjects.FilesUpdated.next(Array.from(this._files.values()));
-                                next(undefined);
-                            })
-                            .catch((fileErr: Error) => {
-                                this._logger.warn(
-                                    `Fail to get file info for "${file}" due error: ${fileErr.message}`,
-                                );
-                                next(undefined);
-                            });
-                    });
-                }),
-            )
-                .then(() => {
-                    resolve();
+            FileOpenerService.getDetailedFileList(files)
+                .then((list: IPC.IFile[]) => {
+                    Promise.all(
+                        list
+                            .filter((f) => f.features.concat)
+                            .map((file: IPC.IFile) => {
+                                return new Promise((next) => {
+                                    this._addFileByPath(file.path)
+                                        .then(() => {
+                                            const fileDesc = this._files.get(file.path);
+                                            fileDesc !== undefined &&
+                                                this._subjects.FileUpdated.next(fileDesc);
+                                            this._subjects.FilesUpdated.next(
+                                                Array.from(this._files.values()),
+                                            );
+                                            next(undefined);
+                                        })
+                                        .catch((fileErr: Error) => {
+                                            this._logger.warn(
+                                                `Fail to get file info for "${file.path}" due error: ${fileErr.message}`,
+                                            );
+                                            next(undefined);
+                                        });
+                                });
+                            }),
+                    )
+                        .then(() => {
+                            resolve();
+                        })
+                        .catch((error: Error) => {
+                            this._logger.warn(`Fail to get file info due error: ${error.message}`);
+                            reject(error);
+                        });
                 })
-                .catch((error: Error) => {
-                    this._logger.warn(`Fail to get file info due error: ${error.message}`);
-                    reject(error);
-                });
+                .catch(reject);
         });
     }
 
