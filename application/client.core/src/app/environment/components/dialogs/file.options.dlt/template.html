@@ -53,6 +53,22 @@
 
 <span class="spliter"></span>
 
+<!-- <mat-expansion-panel
+    [disabled]="false"
+    [expanded]="false">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Advanced</mat-panel-title>
+    </mat-expansion-panel-header>
+    <mat-form-field>
+        <mat-label>Timezone (would be applied to to DateTime field)</mat-label>
+        <mat-select [(value)]="_ng_timezone">
+          <mat-option [value]="timezone" *ngFor="let timezone of _ng_timezones">{{ timezone }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+</mat-expansion-panel>
+
+<span class="spliter"></span> -->
+
 <mat-expansion-panel
     *ngIf="_ng_fibex.length > 0"
     [disabled]="true"
