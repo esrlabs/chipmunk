@@ -189,6 +189,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
     }
 
     public _ng_onContexMenu(event: MouseEvent) {
+        const scaleType: EScaleType = this.service.getScaleType();
         const items: IMenuItem[] = [
             {
                 caption: this._redirectMainView
@@ -196,6 +197,16 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
                     : 'Scroll main view: allow',
                 handler: () => {
                     this._redirectMainView = !this._redirectMainView;
+                },
+            },
+            {
+                caption: `Scale type: ${
+                    scaleType === EScaleType.single ? EScaleType.common : EScaleType.single
+                }`,
+                handler: () => {
+                    this.service.setChartsScaleType(
+                        scaleType === EScaleType.single ? EScaleType.common : EScaleType.single,
+                    );
                 },
             },
         ];
