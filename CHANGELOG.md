@@ -1,11 +1,17 @@
 # Changelog
 
-## [2.23.1] - 12/10/2021
+## [2.24.1] - 12/10/2021
 
 ### Changes
 
 -   Open multiple files via the main menu
 -   Prevent merge/concat for unsupported formats
+
+## [2.23.0] - 12/03/2021
+
+### Changes
+
+-   Support multiple commands on a shell extension
 
 ### Fixes
 
