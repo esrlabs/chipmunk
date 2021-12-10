@@ -1,13 +1,25 @@
 # Changelog
 
+## [2.23.1] - 12/10/2021
+
+### Changes
+
+-   Open multiple files via the main menu
+-   Prevent merge/concat for unsupported formats
+
+### Fixes
+
+-   Fix scale issue on chart
+-   Fix clipboard serialization
+
 ## [2.22.9] - 11/03/2021
-  
+
 ### Changes
 
 -   Upgrade search input UI/UX logic
-  
+
 ## [2.22.8] - 11/02/2021
-  
+
 ### Changes
 
 -   Upgraded chartjs library (apply changes for plugins)
@@ -17,7 +29,7 @@
 ### Fix
 
 -   Fix search shortcut
-  
+
 ### Changes
 
 -   Upgraded chartjs library
