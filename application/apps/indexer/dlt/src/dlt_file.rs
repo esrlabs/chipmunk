@@ -15,7 +15,7 @@ use dlt_core::{
     dlt::{LogLevel, Message},
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering,
-    fmt::FormattableMessage,
+    fmt::{FormatOptions, FormattableMessage},
     parse::{
         dlt_consume_msg, dlt_message, forward_to_next_storage_header, skip_storage_header,
         DltParseError, ParsedMessage,
@@ -111,6 +111,7 @@ pub fn create_index_and_mapping_dlt(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     fibex: Option<FibexConfig>,
+    fmt_options: Option<FormatOptions>,
 ) -> Result<(), Error> {
     trace!("create_index_and_mapping_dlt");
     let filter_config: Option<filtering::ProcessedDltFilterConfig> =
@@ -136,6 +137,7 @@ pub fn create_index_and_mapping_dlt(
         update_channel,
         shutdown_receiver,
         &mut message_producer,
+        fmt_options,
     )
 }
 
@@ -357,6 +359,7 @@ pub fn index_dlt_content<R: Read + Seek + Unpin>(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     message_producer: &mut FileMessageProducer<R>,
+    fmt_options: Option<FormatOptions>,
 ) -> Result<(), Error> {
     trace!("index_dlt_file {:?}", config);
     let (out_file, current_out_file_size) =
@@ -395,6 +398,7 @@ pub fn index_dlt_content<R: Read + Seek + Unpin>(
                 let formattable_msg = FormattableMessage {
                     message: msg,
                     fibex_metadata: message_producer.fibex(),
+                    options: fmt_options.as_ref(),
                 };
                 let written_bytes_len = utils::create_tagged_line_d(
                     &config.tag,

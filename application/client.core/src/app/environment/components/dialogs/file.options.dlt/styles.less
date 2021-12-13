@@ -1,20 +1,20 @@
 @import '../../../theme/variables.less';
 
-:host {
+app-views-dialogs-file-options-dlt {
     position: relative;
     display: block;
     padding: 0;
     margin: 0;
-    & p.caption{
+    & p.caption {
         color: @scheme-color-2;
     }
-    & span.spliter{
+    & span.spliter {
         position: relative;
         display: block;
         width: 100%;
         height: 0.5rem;
     }
-    & span.description-loading-spinner{
+    & span.description-loading-spinner {
         padding-left: 12px;
     }
     & div.progress {
@@ -26,23 +26,23 @@
         margin: 6px 0 6px -16px;
         overflow: hidden;
     }
-    & div.logs{
+    & div.logs {
         position: relative;
         padding: 0;
     }
-    & div.controlls{
+    & div.controlls {
         position: relative;
         width: 100%;
         text-align: right;
         & button {
-            margin-right: 8px!important;
+            margin-right: 8px !important;
             &:last-child {
-                margin-right: 0!important;
+                margin-right: 0 !important;
             }
         }
     }
-    & div.filters{
-        & div.group{
+    & div.filters {
+        & div.group {
             position: relative;
             p.name {
                 color: @scheme-color-3;
@@ -56,5 +56,26 @@
         overflow-x: hidden;
         overflow-y: auto;
         background: @scheme-color-4;
+    }
+    & mat-form-field-underline {
+        display: none;
+    }
+    & div.comstyle-input-holder {
+        & mat-form-field {
+            margin: 0 4px;
+            width: calc(100% - 8px);
+            & .mat-form-field-flex {
+                height: 31px;
+            }
+            & .mat-form-field-infix {
+                display: flex;
+                flex-direction: row;
+                margin: 7px 0 0 0;
+                padding: 0;
+            }
+            & .mat-form-field-outline-gap {
+                display: none;
+            }
+        }
     }
 }

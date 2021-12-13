@@ -432,7 +432,7 @@ pub async fn index_from_pcap(
                                 trace!("received msg event");
 
                                 for msg in msgs {
-                                    let formattable_msg = FormattableMessage { message: msg, fibex_metadata: pcap_msg_producer.fibex() };
+                                    let formattable_msg = FormattableMessage { message: msg, fibex_metadata: pcap_msg_producer.fibex(), options: None };
                                     let written_bytes_len = utils::create_tagged_line_d(
                                         &config.tag,
                                         &mut buf_writer,

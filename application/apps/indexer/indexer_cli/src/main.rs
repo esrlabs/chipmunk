@@ -1048,6 +1048,7 @@ pub async fn main() -> Result<()> {
                     //     components: None,
                     // },
                     Some(load_test_fibex()),
+                    None,
                 ) {
                     report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
