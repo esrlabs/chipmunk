@@ -1,6 +1,6 @@
-use crate::pcap::{
-    file::{MessageStreamItem, PcapMessageProducer},
-    format::dlt::DltParser,
+use crate::{
+    pcap::{file::PcapMessageProducer, format::dlt::DltParser},
+    MessageStreamItem,
 };
 
 lazy_static! {
