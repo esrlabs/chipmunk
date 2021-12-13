@@ -10,18 +10,6 @@ impl LogMessage for FormattableMessage<'_> {
     }
 }
 
-/// A dlt message that can be formatted with optional FIBEX data support
-// pub struct FormattableMessage<'a> {
-//     pub message: dlt::Message,
-//     pub fibex_metadata: Option<&'a FibexMetadata>,
-// }
-
-// impl<'a> fmt::Display for FormattableMessage<'a> {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-//         self.message.fmt_as_text(f, self.fibex_metadata)
-//     }
-// }
-
 pub struct DltParser<'m> {
     pub filter_config: Option<ProcessedDltFilterConfig>,
     pub fibex_metadata: Option<&'m FibexMetadata>,

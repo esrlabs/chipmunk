@@ -12,6 +12,7 @@ pcap-parser = "0.13"
 log = "0.4"
 tokio = { version = "1.5", features = ["full"] }
 tokio-stream = "0.1.5"
+tokio-util = "0.6.9"
 indexer_base = { path = "../indexer_base" }
 itertools = "0.10"
 thiserror = "1.0"
