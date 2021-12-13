@@ -11,8 +11,8 @@ clap = "2.33.3"
 crossbeam-channel = "0.5.1"
 dirs = "3.0.1"
 dlt = { path = "../dlt" }
-dlt-core = "0.10.1"
-# dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
+# dlt-core = "0.10.1"
+dlt-core = { git = "https://github.com/DmitryAstafyev/dlt-core.git" }
 # dlt-core = { path = "../../../../../dlt-core.git" }
 env_logger = "0.8.3"
 indexer_base = { path = "../indexer_base" }

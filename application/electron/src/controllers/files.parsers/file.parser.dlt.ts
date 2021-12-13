@@ -1,37 +1,38 @@
-import * as Tools from "../../tools/index";
-import * as path from "path";
+import * as Tools from '../../tools/index';
+import * as path from 'path';
 
-import { AFileParser, IMapItem } from "./interface";
+import { AFileParser, IMapItem } from './interface';
 import { CommonInterfaces } from '../../interfaces/interface.common';
-import { IPCMessages } from "../../services/service.electron";
+import { IPCMessages } from '../../services/service.electron';
 import { CExportSelectionActionId, CExportAllActionId } from '../../consts/output.actions';
-import { DLT, Progress, CancelablePromise } from "indexer-neon";
-import { ENotificationType } from "../../services/service.notifications";
+import { DLT, Progress, CancelablePromise } from 'indexer-neon';
+import { ENotificationType } from '../../services/service.notifications';
 
-import Logger from "../../tools/env.logger";
-import indexer from "indexer-neon";
-import ServiceNotifications from "../../services/service.notifications";
-import ServiceOutputExport from "../../services/output/service.output.export";
-import ServiceStreams from "../../services/service.streams";
+import Logger from '../../tools/env.logger';
+import indexer from 'indexer-neon';
+import ServiceNotifications from '../../services/service.notifications';
+import ServiceOutputExport from '../../services/output/service.output.export';
+import ServiceStreams from '../../services/service.streams';
 import ServiceDLTDeamonConnector from '../../services/connectors/service.dlt.deamon';
 import ServiceDLTFiles from '../../services/parsers/service.dlt.files';
 
 export const CMetaData = 'dlt';
 
-const ExtNames = ["dlt"];
+const ExtNames = ['dlt'];
 
 export default class FileParser extends AFileParser {
-
     private _guid: string | undefined;
-    private _logger: Logger = new Logger("DLT Indexing");
-    private _task: CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject> | undefined;
+    private _logger: Logger = new Logger('DLT Indexing');
+    private _task:
+        | CancelablePromise<void, void, DLT.TIndexDltAsyncEvents, DLT.TIndexDltAsyncEventObject>
+        | undefined;
 
     constructor() {
         super();
     }
 
     public static getAlias(): string {
-        return "dlt";
+        return 'dlt';
     }
 
     public destroy(): Promise<void> {
@@ -39,7 +40,7 @@ export default class FileParser extends AFileParser {
     }
 
     public getName(): string {
-        return "DLT format";
+        return 'DLT format';
     }
 
     public getAlias(): string {
@@ -51,7 +52,7 @@ export default class FileParser extends AFileParser {
     }
 
     public getExtnameFilters(): Array<{ name: string; extensions: string[] }> {
-        return [{ name: "DLT Files", extensions: ExtNames }];
+        return [{ name: 'DLT Files', extensions: ExtNames }];
     }
 
     public getExtensions(): string[] {
@@ -60,10 +61,7 @@ export default class FileParser extends AFileParser {
 
     public isSupported(file: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const extname: string = path
-                .extname(file)
-                .toLowerCase()
-                .replace(".", "");
+            const extname: string = path.extname(file).toLowerCase().replace('.', '');
             resolve(ExtNames.indexOf(extname) !== -1);
         });
     }
@@ -83,7 +81,8 @@ export default class FileParser extends AFileParser {
             this._guid = ServiceStreams.getActiveStreamId();
             const collectedChunks: IMapItem[] = [];
             const hrstart = process.hrtime();
-            const stats: CommonInterfaces.DLT.StatisticInfo | undefined = ServiceDLTFiles.getStats(srcFile);
+            const stats: CommonInterfaces.DLT.StatisticInfo | undefined =
+                ServiceDLTFiles.getStats(srcFile);
             const appIdCount: number = stats === undefined ? -1 : stats.app_ids.length;
             const contextIdCount: number = stats === undefined ? -1 : stats.context_ids.length;
             let appIds: string[] | undefined;
@@ -124,66 +123,72 @@ export default class FileParser extends AFileParser {
                 append: false,
                 stdout: false,
                 statusUpdates: true,
+                formatOptions: {
+                    tz: options.tz,
+                },
             };
-            this._logger.debug("calling indexDltAsync with params: " + JSON.stringify(dltParams));
-            this._task = indexer.indexDltAsync(dltParams).then(() => {
-                resolve(collectedChunks);
-                // Register exports callback
-                ServiceOutputExport.setAction(this._guid as string, {
-                    id: CExportAllActionId,
-                    caption: 'Export all',
-                    handler: this._exportAll.bind(this, srcFile),
-                    isEnabled: () => true,
-                    source: IPCMessages.EOutputExportFeaturesSource.output,
+            this._logger.debug('calling indexDltAsync with params: ' + JSON.stringify(dltParams));
+            this._task = indexer
+                .indexDltAsync(dltParams)
+                .then(() => {
+                    resolve(collectedChunks);
+                    // Register exports callback
+                    ServiceOutputExport.setAction(this._guid as string, {
+                        id: CExportAllActionId,
+                        caption: 'Export all',
+                        handler: this._exportAll.bind(this, srcFile),
+                        isEnabled: () => true,
+                        source: IPCMessages.EOutputExportFeaturesSource.output,
+                    });
+                    ServiceOutputExport.setAction(this._guid as string, {
+                        id: CExportSelectionActionId,
+                        caption: 'Export selection',
+                        handler: this._exportSelection.bind(this, srcFile),
+                        isEnabled: () => true,
+                        source: IPCMessages.EOutputExportFeaturesSource.all,
+                    });
+                })
+                .catch((error: Error) => {
+                    ServiceNotifications.notify({
+                        message:
+                            error.message.length > 1500
+                                ? `${error.message.substr(0, 1500)}...`
+                                : error.message,
+                        caption: `Error with: ${path.basename(srcFile)}`,
+                        session: this._guid,
+                        file: sourceId.toString(),
+                        type: ENotificationType.error,
+                    });
+                    reject(error);
+                })
+                .canceled(() => {
+                    cancel();
+                })
+                .finally(() => {
+                    this._task = undefined;
+                    const hrend = process.hrtime(hrstart);
+                    const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
+                    this._logger.debug('parseAndIndex task finished');
+                    this._logger.debug('Execution time for indexing : ' + ms + 'ms');
+                })
+                .on('chunk', (event: Progress.IChunk) => {
+                    if (onMapUpdated !== undefined) {
+                        const mapItem: IMapItem = {
+                            rows: { from: event.rowsStart, to: event.rowsEnd },
+                            bytes: { from: event.bytesStart, to: event.bytesEnd },
+                        };
+                        onMapUpdated([mapItem]);
+                        collectedChunks.push(mapItem);
+                    }
+                })
+                .on('progress', (event: Progress.ITicks) => {
+                    if (onProgress !== undefined) {
+                        onProgress(event);
+                    }
+                })
+                .on('notification', (event: Progress.INeonNotification) => {
+                    ServiceNotifications.notifyFromNeon(event, 'DLT-Indexing', this._guid, srcFile);
                 });
-                ServiceOutputExport.setAction(this._guid as string, {
-                    id: CExportSelectionActionId,
-                    caption: 'Export selection',
-                    handler: this._exportSelection.bind(this, srcFile),
-                    isEnabled: () => true,
-                    source: IPCMessages.EOutputExportFeaturesSource.all,
-                });
-            }).catch((error: Error) => {
-                ServiceNotifications.notify({
-                    message:
-                        error.message.length > 1500
-                            ? `${error.message.substr(0, 1500)}...`
-                            : error.message,
-                    caption: `Error with: ${path.basename(srcFile)}`,
-                    session: this._guid,
-                    file: sourceId.toString(),
-                    type: ENotificationType.error,
-                });
-                reject(error);
-            }).canceled(() => {
-                cancel();
-            }).finally(() => {
-                this._task = undefined;
-                const hrend = process.hrtime(hrstart);
-                const ms = Math.round(hrend[0] * 1000 + hrend[1] / 1000000);
-                this._logger.debug("parseAndIndex task finished");
-                this._logger.debug("Execution time for indexing : " + ms + "ms");
-            }).on('chunk', (event: Progress.IChunk) => {
-                if (onMapUpdated !== undefined) {
-                    const mapItem: IMapItem = {
-                        rows: { from: event.rowsStart, to: event.rowsEnd },
-                        bytes: { from: event.bytesStart, to: event.bytesEnd },
-                    };
-                    onMapUpdated([mapItem]);
-                    collectedChunks.push(mapItem);
-                }
-            }).on('progress', (event: Progress.ITicks) => {
-                if (onProgress !== undefined) {
-                    onProgress(event);
-                }
-            }).on('notification', (event: Progress.INeonNotification) => {
-                ServiceNotifications.notifyFromNeon(
-                    event,
-                    "DLT-Indexing",
-                    this._guid,
-                    srcFile,
-                );
-            });
         });
     }
 
@@ -192,35 +197,43 @@ export default class FileParser extends AFileParser {
             if (this._task === undefined) {
                 return resolve();
             }
-            this._task.canceled(() => {
-                resolve();
-            }).abort();
+            this._task
+                .canceled(() => {
+                    resolve();
+                })
+                .abort();
         });
     }
 
     private _exportAll(target: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceDLTDeamonConnector.saveAs(target, 'file').then(() => {
-                resolve();
-            }).catch((saveErr: Error) => {
-                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
-                reject(saveErr);
-            });
+            ServiceDLTDeamonConnector.saveAs(target, 'file')
+                .then(() => {
+                    resolve();
+                })
+                .catch((saveErr: Error) => {
+                    this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                    reject(saveErr);
+                });
         });
     }
 
-    private _exportSelection(target: string, request: IPCMessages.OutputExportFeatureCallRequest): Promise<void> {
+    private _exportSelection(
+        target: string,
+        request: IPCMessages.OutputExportFeatureCallRequest,
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             const sections: CommonInterfaces.IIndexSection[] = request.selection.map((range) => {
                 return { first_line: range.from, last_line: range.to };
             });
-            ServiceDLTDeamonConnector.saveAs(target, 'file', sections).then(() => {
-                resolve();
-            }).catch((saveErr: Error) => {
-                this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
-                reject(saveErr);
-            });
+            ServiceDLTDeamonConnector.saveAs(target, 'file', sections)
+                .then(() => {
+                    resolve();
+                })
+                .catch((saveErr: Error) => {
+                    this._logger.warn(`Fail to save stream data due error: ${saveErr.message}`);
+                    reject(saveErr);
+                });
         });
     }
-
 }

@@ -132,6 +132,9 @@ export default class FileParser extends AFileParser {
                 append: false,
                 stdout: false,
                 statusUpdates: true,
+                formatOptions: {
+                    tz: options.tz,
+                },
             };
             this._logger.debug('calling indexPcapDlt with params: ' + JSON.stringify(dltParams));
             this._task = indexer

@@ -23,7 +23,8 @@ anyhow = "1.0.40"
 crossbeam-channel = "0.5.1"
 dirs = "3.0.1"
 dlt = { path = "../../indexer/dlt" }
-dlt-core = "0.10.1"
+# dlt-core = "0.10.1"
+dlt-core = { git = "https://github.com/DmitryAstafyev/dlt-core.git" }
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "1.0.0"
@@ -34,3 +35,5 @@ processor = { path = "../../indexer/processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.5", features = ["full"] }
+chrono = "0.4"
+chrono-tz = "0.6"

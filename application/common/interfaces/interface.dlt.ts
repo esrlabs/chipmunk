@@ -14,7 +14,7 @@ export interface IDLTOptions {
         created: number;
         changed: number;
     }>;
-    timezone?: string;
+    tz?: string;
 }
 
 export interface IIndexDltParams {
@@ -27,6 +27,9 @@ export interface IIndexDltParams {
     append: boolean;
     stdout: boolean;
     statusUpdates: boolean;
+    formatOptions: {
+        tz?: string;
+    };
 }
 
 export interface DltFilterConf {

@@ -1,4 +1,5 @@
 use crate::{channels::EventEmitterTask, config::IndexingThreadConfig};
+use chrono_tz::Tz;
 use crossbeam_channel as cc;
 use dlt_core::fibex::FibexConfig;
 use dlt_core::filtering::DltFilterConfig;
@@ -8,7 +9,13 @@ use indexer_base::{
     progress::{Notification, Severity},
 };
 use neon::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::{path, thread};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FormatOptions {
+    pub tz: Option<String>,
+}
 
 pub struct IndexingDltEventEmitter {
     pub event_receiver: cc::Receiver<ChunkResults>,
@@ -24,6 +31,7 @@ impl IndexingDltEventEmitter {
         thread_conf: IndexingThreadConfig,
         filter_conf: Option<DltFilterConfig>,
         fibex: FibexConfig,
+        fmt_options: dlt_core::fmt::FormatOptions,
     ) {
         info!("start_indexing_dlt_in_thread: {:?}", thread_conf);
 
@@ -42,6 +50,7 @@ impl IndexingDltEventEmitter {
                 chunk_result_sender.clone(),
                 Some(shutdown_rx),
                 Some(fibex),
+                fmt_options,
             );
             debug!("back after DLT indexing finished!");
         }));
@@ -54,6 +63,7 @@ fn index_dlt_file_with_progress(
     tx: cc::Sender<ChunkResults>,
     shutdown_receiver: Option<cc::Receiver<()>>,
     fibex: Option<FibexConfig>,
+    fmt_options: dlt_core::fmt::FormatOptions,
 ) {
     trace!("index_dlt_file_with_progress");
     let source_file_size = match config.in_file.metadata() {
@@ -75,6 +85,7 @@ fn index_dlt_file_with_progress(
         &tx,
         shutdown_receiver,
         fibex,
+        Some(fmt_options),
     ) {
         Err(why) => {
             error!("create_index_and_mapping_dlt: couldn't process: {}", why);
@@ -97,7 +108,20 @@ declare_types! {
             trace!("{:?}", filter_conf);
             let arg_fibex_conf = cx.argument::<JsValue>(6)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
-
+            let arg_fmt_options = cx.argument::<JsValue>(7)?;
+            let fmt_options_in: FormatOptions = neon_serde::from_value(&mut cx, arg_fmt_options)?;
+            let mut fmt_options = dlt_core::fmt::FormatOptions { tz: None };
+            if let Some(tz_str) = fmt_options_in.tz {
+                trace!("will try to use timezone: {}", tz_str);
+                match tz_str.parse::<Tz>() {
+                    Ok(tz) => {
+                        fmt_options.tz = Some(tz);
+                    },
+                    Err(err) => {
+                        warn!("fail to get timezone from: {}; error: {}", tz_str, err);
+                    }
+                }
+            }
             let shutdown_channel = cc::unbounded();
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = IndexingDltEventEmitter {
@@ -119,6 +143,7 @@ declare_types! {
                 },
                 Some(filter_conf),
                 fibex_conf,
+                fmt_options,
             );
             Ok(emitter)
         }

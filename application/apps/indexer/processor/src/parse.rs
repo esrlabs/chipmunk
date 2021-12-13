@@ -770,7 +770,7 @@ pub fn extract_posix_timestamp(
     } else {
         replacements
             .offset
-            .ok_or_else(|| anyhow!("could not detect timestamp in (line {})"))
+            .ok_or_else(|| anyhow!("could not detect timestamp in (line {})", line))
     };
 
     // for the year first try YYYY, then yy, then fallback on the supplied year

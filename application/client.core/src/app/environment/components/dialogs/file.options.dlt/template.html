@@ -8,9 +8,9 @@
     <mat-form-field>
         <mat-label>Required log level</mat-label>
         <mat-select [(value)]="_ng_logLevel">
-          <mat-option [value]="logLevel.value" *ngFor="let logLevel of _ng_logLevels">{{ logLevel.caption }}</mat-option>
+            <mat-option [value]="logLevel.value" *ngFor="let logLevel of _ng_logLevels">{{ logLevel.caption }}</mat-option>
         </mat-select>
-      </mat-form-field>
+    </mat-form-field>
 </mat-expansion-panel>
 
 <span class="spliter"></span>
@@ -53,21 +53,46 @@
 
 <span class="spliter"></span>
 
-<!-- <mat-expansion-panel
+<mat-expansion-panel
     [disabled]="false"
     [expanded]="false">
     <mat-expansion-panel-header>
-        <mat-panel-title>Advanced</mat-panel-title>
+        <mat-panel-title>Timezone</mat-panel-title>
     </mat-expansion-panel-header>
-    <mat-form-field>
-        <mat-label>Timezone (would be applied to to DateTime field)</mat-label>
-        <mat-select [(value)]="_ng_timezone">
-          <mat-option [value]="timezone" *ngFor="let timezone of _ng_timezones">{{ timezone }}</mat-option>
-        </mat-select>
-      </mat-form-field>
+    <div class="comstyle-input-holder">
+        <mat-form-field class="recent-files outline regular" appearance="outline">
+            <input
+                type="text"
+                [placeholder]="'Start typing time zone name'"
+                aria-label="Timezone"
+                matInput
+                [formControl]="_ng_timezoneInput"
+                [matAutocomplete]="auto"
+            />
+            <mat-autocomplete
+                #auto="matAutocomplete"
+                class="recent-files regular"
+                [classList]="'recent-requests'"
+                [autoActiveFirstOption]="true"
+                [disableRipple]="true"
+            >
+                <mat-option
+                    *ngFor="let timezone of _ng_timezones | async"
+                    [value]="timezone.caption"
+                    [attr.title]="timezone.caption"
+                    class="recent-requests small t-console t-small"
+                >
+                    <span
+                        class="filename"
+                        [innerHTML]="_ng_getSafeHTML(timezone.tcaption === undefined ? timezone.caption : timezone.tcaption)"
+                    ></span>
+                </mat-option>
+            </mat-autocomplete>
+        </mat-form-field>
+    </div>
 </mat-expansion-panel>
 
-<span class="spliter"></span> -->
+<span class="spliter"></span>
 
 <mat-expansion-panel
     *ngIf="_ng_fibex.length > 0"

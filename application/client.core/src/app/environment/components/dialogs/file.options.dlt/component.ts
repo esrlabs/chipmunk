@@ -6,9 +6,9 @@ import {
     AfterContentInit,
     ViewChildren,
     QueryList,
+    ViewEncapsulation,
 } from '@angular/core';
 import ElectronIpcService, { IPC } from '../../../services/service.electron.ipc';
-import * as Toolkit from 'chipmunk.client.toolkit';
 import {
     NotificationsService,
     ENotificationType,
@@ -21,7 +21,12 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import FocusOutputService from '../../../services/service.focus.output';
 import { Session } from '../../../controller/session/session';
+import { sortPairs, IPair } from '../../../thirdparty/code/engine';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import * as Toolkit from 'chipmunk.client.toolkit';
 import * as moment_timezone from 'moment-timezone';
+import { map, startWith } from 'rxjs/operators';
+import { FormControl } from '@angular/forms';
 
 export enum EMTIN {
     // If MSTP == DLT_TYPE_LOG
@@ -102,6 +107,7 @@ interface IStats {
     selector: 'app-views-dialogs-file-options-dlt',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentInit {
     @ViewChildren(DialogsFileOptionsDltStatsComponent)
@@ -133,28 +139,45 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_filterValue: string = '';
     public _ng_sortSubject: Subject<IForceSortData> = new Subject<IForceSortData>();
     public _ng_logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
-    public _ng_timezone: string = '';
     public _ng_filteringExpanded: boolean = false;
-    public _ng_timezones: string[] = [];
+    public _ng_timezones!: Observable<IPair[]>;
+    public _ng_timezoneInput = new FormControl();
 
+    private _timezones: string[] = [];
+    private _tzPairs: IPair[] = [];
     private _stats: CommonInterfaces.DLT.StatisticInfo | undefined;
     private _destroyed: boolean = false;
     private _requestId: string | undefined;
     private _logger: Toolkit.Logger = new Toolkit.Logger(`DialogsFileOptionsDltComponent`);
     private _subscriptions: { [key: string]: Subscription } = {};
 
-    constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {}
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _notifications: NotificationsService,
+        private _sanitizer: DomSanitizer,
+    ) {}
 
     public ngAfterContentInit() {
-        this._ng_timezones = moment_timezone.tz.names();
-        this._ng_timezones.unshift('Use UTC');
-        this._ng_timezone = this._ng_timezones[0];
+        this._timezones = moment_timezone.tz.names();
+        this._timezones.unshift('Use UTC time format');
+        this._tzPairs = this._timezones.map((tz, i) => {
+            return {
+                id: `${i}`,
+                caption: tz,
+                description: '',
+            };
+        });
         this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
         if (this.options !== undefined && this.options.stats !== undefined) {
             this._initAsReopen();
         } else {
             this._initAsNewOpen();
         }
+        this._ng_timezoneInput.setValue(this._timezones[0]);
+        this._ng_timezones = this._ng_timezoneInput.valueChanges.pipe(
+            startWith(''),
+            map((value: string) => this._filterTimeZones(value)),
+        );
     }
 
     public ngOnDestroy() {
@@ -187,6 +210,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public _ng_onOpen() {
         const filters: CommonInterfaces.DLT.IDLTFilters = {};
+        const tzIndex = this._timezones.findIndex((v) => v === this._ng_timezoneInput.value);
         this._ng_sectionsRefs.map((section: DialogsFileOptionsDltStatsComponent) => {
             filters[section.getId()] = section.getSelected();
         });
@@ -200,7 +224,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 }),
             },
             fibexFilesInfo: this._ng_fibex,
-            timezone: this._ng_timezone === this._ng_timezones[0] ? undefined : this._ng_timezone,
+            tz: tzIndex <= 0 ? undefined : this._timezones[tzIndex],
         });
     }
 
@@ -319,6 +343,14 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             });
         }
         return `Error(s): ${error}\t Warning(s): ${warning}`;
+    }
+
+    public _ng_getSafeHTML(input: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(input);
+    }
+
+    private _filterTimeZones(filter: string): IPair[] {
+        return sortPairs(this._tzPairs, filter, filter !== '', 'span');
     }
 
     private _initAsNewOpen() {
