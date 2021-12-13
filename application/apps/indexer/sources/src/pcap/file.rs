@@ -1,4 +1,4 @@
-use crate::{LogMessage, Parser};
+use crate::{LogMessage, MessageStreamItem, Parser};
 use core::marker::PhantomData;
 use crossbeam_channel as cc;
 use indexer_base::{
@@ -7,11 +7,9 @@ use indexer_base::{
     progress::*,
     utils,
 };
-use itertools::Itertools;
 use log::{debug, trace, warn};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
 use std::{
-    fmt,
     fs::*,
     io::{BufWriter, Write},
     time::{SystemTime, UNIX_EPOCH},
@@ -19,6 +17,7 @@ use std::{
 use thiserror::Error;
 use tokio::sync;
 use tokio_stream::{self as stream, wrappers::ReceiverStream, StreamExt};
+use tokio_util::sync::CancellationToken;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -32,28 +31,48 @@ pub enum Error {
     Unrecoverable(String),
 }
 
-pub struct PcapMessageProducer<T, P>
+pub trait ByteSource {
+    fn read_next_packet<'a>(&mut self) -> &'a [u8];
+}
+
+struct PcapngByteSource {
+    reader: PcapNGReader<File>,
+}
+impl ByteSource for PcapngByteSource {
+    fn read_next_packet<'a>(&mut self) -> &'a [u8] {
+        unimplemented!()
+    }
+}
+
+pub struct PcapMessageProducer<T, P, S>
 where
     T: LogMessage,
     P: Parser<T>,
+    S: ByteSource,
 {
-    reader: PcapNGReader<File>,
+    // reader: PcapNGReader<File>,
+    byte_source: S,
     index: usize,
     parser: P,
     _phantom_data: Option<PhantomData<T>>,
 }
 
-impl<T: LogMessage, P: Parser<T>> PcapMessageProducer<T, P> {
-    pub fn new(pcap_path: &std::path::Path, parser: P) -> Result<Self, Error> {
+impl<T: LogMessage, P: Parser<T>, S: ByteSource> PcapMessageProducer<T, P, S> {
+    /// create a new producer by plugging into a pcapng file
+    pub fn new(pcap_path: &std::path::Path, parser: P, source: S) -> Result<Self, Error> {
         let pcap_file = File::open(&pcap_path)
             .map_err(|e| Error::Configuration(format!("Could not open {:?}({})", pcap_path, e)))?;
+
         match PcapNGReader::new(65536, pcap_file) {
-            Ok(reader) => Ok(PcapMessageProducer {
-                reader,
-                index: 0,
-                parser,
-                _phantom_data: None,
-            }),
+            Ok(reader) => {
+                // let source = PcapngByteSource { reader };
+                Ok(PcapMessageProducer {
+                    byte_source: source,
+                    index: 0,
+                    parser,
+                    _phantom_data: None,
+                })
+            }
             Err(e) => Err(match e {
                 pcap_parser::PcapError::Incomplete => Error::Parse("Incomplete parse".to_owned()),
                 _ => Error::Unrecoverable(format!("problems parsing pcap: {}", e)),
@@ -195,28 +214,6 @@ fn debug_block(b: PcapBlockOwned) {
         _ => trace!("unknown block"),
     }
 }
-
-#[derive(Debug)]
-pub enum MessageStreamItem<T: LogMessage> {
-    Item(Vec<T>),
-    Skipped,
-    Incomplete,
-    Empty,
-    Done,
-}
-impl<T: LogMessage> fmt::Display for MessageStreamItem<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Item(v) => write!(f, "{}", v.iter().format(",")),
-            Self::Skipped => write!(f, "Skipped"),
-            Self::Incomplete => write!(f, "Incomplete"),
-            Self::Empty => write!(f, "Empty"),
-            Self::Done => write!(f, "Done"),
-        }
-    }
-}
-
-impl<T: LogMessage, P: Parser<T>> Unpin for PcapMessageProducer<T, P> {}
 
 impl<T: LogMessage, P: Parser<T>> std::iter::Iterator for PcapMessageProducer<T, P> {
     type Item = (usize, Result<MessageStreamItem<T>, Error>);
@@ -367,16 +364,19 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
     Ok(())
 }
 
-// make async
 #[allow(clippy::too_many_arguments)]
-pub async fn index_from_pcap<T: LogMessage, P: Parser<T> + Unpin>(
+pub async fn index_from_message_stream<T, I>(
     config: IndexingConfig,
     initial_line_nr: usize,
     update_channel: cc::Sender<ChunkResults>,
     shutdown_receiver: sync::mpsc::Receiver<()>,
-    parser: P,
-) -> Result<(), Error> {
-    trace!("index_from_pcap for  conf: {:?}", config);
+    pcap_msg_producer: I,
+) -> Result<(), Error>
+where
+    T: LogMessage,
+    I: Iterator<Item = (usize, Result<MessageStreamItem<T>, Error>)>,
+{
+    trace!("index_from_message_stream for  conf: {:?}", config);
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)
             .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
@@ -390,7 +390,6 @@ pub async fn index_from_pcap<T: LogMessage, P: Parser<T> + Unpin>(
         }));
     };
 
-    let pcap_msg_producer = PcapMessageProducer::new(&config.in_file, parser)?;
     let mut msg_stream = stream::iter(pcap_msg_producer);
     // listen for both a shutdown request and incomming messages
     // to do this we need to select over streams of the same type
@@ -513,6 +512,7 @@ pub async fn index_from_pcap<T: LogMessage, P: Parser<T> + Unpin>(
 
 pub async fn create_index_and_mapping_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
     config: IndexingConfig,
+    cancel: CancellationToken,
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: sync::mpsc::Receiver<()>,
     parser: P,
@@ -520,12 +520,13 @@ pub async fn create_index_and_mapping_from_pcapng<T: LogMessage, P: Parser<T> + 
     trace!("create_index_and_mapping_from_pcapng");
     match utils::next_line_nr(&config.out_path) {
         Ok(initial_line_nr) => {
-            match index_from_pcap(
+            let pcap_msg_producer = PcapMessageProducer::new(&config.in_file, parser)?;
+            match index_from_message_stream(
                 config,
                 initial_line_nr,
                 update_channel.clone(),
                 shutdown_receiver,
-                parser,
+                pcap_msg_producer,
             )
             .await
             {
