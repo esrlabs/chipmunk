@@ -8,6 +8,7 @@ import {
     QueryList,
     ViewEncapsulation,
 } from '@angular/core';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import ElectronIpcService, { IPC } from '../../../services/service.electron.ipc';
 import {
     NotificationsService,
@@ -21,7 +22,6 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import ContextMenuService, { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import FocusOutputService from '../../../services/service.focus.output';
 import { Session } from '../../../controller/session/session';
-import { sortPairs, IPair } from '../../../thirdparty/code/engine';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import * as Toolkit from 'chipmunk.client.toolkit';
 import * as moment_timezone from 'moment-timezone';
@@ -139,13 +139,11 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_filterValue: string = '';
     public _ng_sortSubject: Subject<IForceSortData> = new Subject<IForceSortData>();
     public _ng_logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
-    public _ng_filteringExpanded: boolean = false;
-    public _ng_timezones!: Observable<IPair[]>;
+    public _ng_filteringExpanded: boolean = true;
+    public _ng_timezones!: Observable<string[]>;
     public _ng_timezoneInput = new FormControl();
-    public _ng_tz_expanded: boolean = false;
 
     private _timezones: string[] = [];
-    private _tzPairs: IPair[] = [];
     private _stats: CommonInterfaces.DLT.StatisticInfo | undefined;
     private _destroyed: boolean = false;
     private _requestId: string | undefined;
@@ -161,13 +159,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public ngAfterContentInit() {
         this._timezones = moment_timezone.tz.names();
         this._timezones.unshift('Use UTC time format');
-        this._tzPairs = this._timezones.map((tz, i) => {
-            return {
-                id: `${i}`,
-                caption: tz,
-                description: '',
-            };
-        });
         this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
         if (this.options !== undefined && this.options.stats !== undefined) {
             this._initAsReopen();
@@ -351,8 +342,31 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         return this._sanitizer.bypassSecurityTrustHtml(input);
     }
 
-    private _filterTimeZones(filter: string): IPair[] {
-        return sortPairs(this._tzPairs, filter, filter !== '', 'span');
+    public _ng_tzOnFocus() {
+        if (this._ng_timezoneInput.value === this._timezones[0]) {
+            this._ng_timezoneInput.setValue('');
+        }
+    }
+
+    public _ng_onTzSelected(event: MatAutocompleteSelectedEvent) {
+        this._ng_timezoneInput.setValue(event.option.viewValue);
+    }
+
+    private _filterTimeZones(filter: string): string[] {
+        filter = filter.replace(/[^\d\w\s]/gi, '');
+        const key = Toolkit.regTools.createFromStr(filter);
+        if (key instanceof Error) {
+            return this._timezones;
+        }
+        return this._timezones
+            .map((tz: string) => {
+                let match: RegExpMatchArray | null = tz.match(key);
+                if (match === null || match.length === 0) {
+                    return undefined;
+                }
+                return tz.replace(match[0], `<span>${match[0]}</span>`);
+            })
+            .filter((tz) => tz !== undefined) as string[];
     }
 
     private _initAsNewOpen() {
@@ -491,8 +505,6 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 } else {
                     if (this._timezones.indexOf(response.timezone) !== -1) {
                         this._ng_timezoneInput.setValue(response.timezone);
-                        this._ng_tz_expanded = true;
-                        this._forceUpdate();
                     } else {
                         this._ng_timezoneInput.setValue(this._timezones[0]);
                     }
