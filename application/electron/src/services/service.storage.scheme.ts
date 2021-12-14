@@ -34,6 +34,7 @@ export interface IStorage {
     recentPresets: IPreset[];
     recentBundles: IBundle[];
     pluginDefaultUninstalled: string[];
+    recentDLTTimeZone: string;
 }
 
 export const defaults: IStorage = {
@@ -46,4 +47,5 @@ export const defaults: IStorage = {
     recentPresets: [],
     recentBundles: [],
     pluginDefaultUninstalled: [],
+    recentDLTTimeZone: '',
 };
