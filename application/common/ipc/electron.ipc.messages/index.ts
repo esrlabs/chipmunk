@@ -507,6 +507,12 @@ export { IDLTStatsRequest, DLTStatsRequest };
 import { IDLTStatsResponse, DLTStatsResponse } from './dlt.filestats.response';
 export { IDLTStatsResponse, DLTStatsResponse };
 
+import { DLTRecentTimeZoneRequest } from './dlt.recenttz.request';
+export { DLTRecentTimeZoneRequest };
+
+import { DLTRecentTimeZoneResponse, IDLTRecentTimeZoneResponse } from './dlt.recenttz.response';
+export { DLTRecentTimeZoneResponse, IDLTRecentTimeZoneResponse };
+
 import { UpdateRequest } from './update.request';
 export { UpdateRequest };
 
@@ -1191,6 +1197,8 @@ export type TMessage =
     | DLTStatsResponse
     | DLTStatsCancelRequest
     | DLTStatsCancelResponse
+    | DLTRecentTimeZoneRequest
+    | DLTRecentTimeZoneResponse
     | UpdateRequest
     | RenderSessionAddRequest
     | RenderSessionAddResponse
@@ -1459,6 +1467,8 @@ export const Map = {
     [DLTDeamonConnectResponse.signature]: DLTDeamonConnectResponse,
     [DLTStatsRequest.signature]: DLTStatsRequest,
     [DLTStatsResponse.signature]: DLTStatsResponse,
+    [DLTRecentTimeZoneRequest.signature]: DLTRecentTimeZoneRequest,
+    [DLTRecentTimeZoneResponse.signature]: DLTRecentTimeZoneResponse,
     [DLTStatsCancelRequest.signature]: DLTStatsCancelRequest,
     [DLTStatsCancelResponse.signature]: DLTStatsCancelResponse,
 

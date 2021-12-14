@@ -142,6 +142,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_filteringExpanded: boolean = false;
     public _ng_timezones!: Observable<IPair[]>;
     public _ng_timezoneInput = new FormControl();
+    public _ng_tz_expanded: boolean = false;
 
     private _timezones: string[] = [];
     private _tzPairs: IPair[] = [];
@@ -178,6 +179,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             startWith(''),
             map((value: string) => this._filterTimeZones(value)),
         );
+        this._getRecentTimezone();
     }
 
     public ngOnDestroy() {
@@ -476,6 +478,32 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 };
             });
         this._forceUpdate();
+    }
+
+    private _getRecentTimezone() {
+        ElectronIpcService.request<IPC.DLTRecentTimeZoneResponse>(
+            new IPC.DLTRecentTimeZoneRequest(),
+            IPC.DLTRecentTimeZoneResponse,
+        )
+            .then((response) => {
+                if (response.timezone === '') {
+                    this._ng_timezoneInput.setValue(this._timezones[0]);
+                } else {
+                    if (this._timezones.indexOf(response.timezone) !== -1) {
+                        this._ng_timezoneInput.setValue(response.timezone);
+                        this._ng_tz_expanded = true;
+                        this._forceUpdate();
+                    } else {
+                        this._ng_timezoneInput.setValue(this._timezones[0]);
+                    }
+                }
+            })
+            .catch((error: Error) => {
+                this._ng_timezoneInput.setValue(this._timezones[0]);
+                this._logger.warn(
+                    `Fail to get recently used timezone for DLT due error: ${error.message}`,
+                );
+            });
     }
 
     private _forceUpdate() {

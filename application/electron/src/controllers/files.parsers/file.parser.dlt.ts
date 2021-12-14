@@ -15,6 +15,7 @@ import ServiceOutputExport from '../../services/output/service.output.export';
 import ServiceStreams from '../../services/service.streams';
 import ServiceDLTDeamonConnector from '../../services/connectors/service.dlt.deamon';
 import ServiceDLTFiles from '../../services/parsers/service.dlt.files';
+import ServiceStorage from '../../services/service.storage';
 
 export const CMetaData = 'dlt';
 
@@ -147,6 +148,13 @@ export default class FileParser extends AFileParser {
                         isEnabled: () => true,
                         source: IPCMessages.EOutputExportFeaturesSource.all,
                     });
+                    ServiceStorage.get()
+                        .set({
+                            recentDLTTimeZone: options.tz === undefined ? '' : options.tz,
+                        })
+                        .catch((err: Error) => {
+                            this._logger.error(err.message);
+                        });
                 })
                 .catch((error: Error) => {
                     ServiceNotifications.notify({
