@@ -23,6 +23,7 @@
                 matInput
                 [formControl]="_ng_timezoneInput"
                 [matAutocomplete]="auto"
+                [disabled]="_ng_recentTzLoading"
                 (focus)="_ng_tzOnFocus()"
             />
             <mat-autocomplete
@@ -46,6 +47,9 @@
                 </mat-option>
             </mat-autocomplete>
         </mat-form-field>
+        <div class="loading-recent-tz" *ngIf="_ng_recentTzLoading">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        </div>
     </div>
 </mat-expansion-panel>
 
