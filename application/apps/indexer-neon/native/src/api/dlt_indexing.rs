@@ -23,6 +23,7 @@ pub struct IndexingDltEventEmitter {
     pub task_thread: Option<std::thread::JoinHandle<()>>,
 }
 impl IndexingDltEventEmitter {
+    #[allow(clippy::too_many_arguments)]
     pub fn start_indexing_dlt_in_thread(
         self: &mut IndexingDltEventEmitter,
         shutdown_rx: cc::Receiver<()>,
