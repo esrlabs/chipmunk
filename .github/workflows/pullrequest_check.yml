@@ -26,10 +26,6 @@ jobs:
         run: gem install dotenv
       - name: install octokit
         run: gem install octokit
-      - name: install node
-        uses: actions/setup-node@master
-        with:
-          node-version: "14.15.4"
       - name: install typescript
         if: "!startsWith(matrix.os, 'windows')"
         run: npm install --global typescript@3.7.3
@@ -76,6 +72,10 @@ jobs:
           ruby-version: "2.x"
       - name: install octokit
         run: gem install octokit
+      - name: install node
+        uses: actions/setup-node@master
+        with:
+          node-version: "14.15.4"
       - name: install rust
         uses: hecrj/setup-rust-action@v1
         with:
