@@ -1,52 +1,52 @@
 name: LintMaster
 
 on:
-    push:
-        branches:
-            - master # Push events on master branch
+  push:
+    branches:
+      - master # Push events on master branch
 
 jobs:
-    lint_js:
-        runs-on: ubuntu-18.04
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: install ruby
-              uses: actions/setup-ruby@v1
-              with:
-                  ruby-version: "2.x"
-            - name: install octokit
-              run: gem install octokit
-            - name: install node
-              uses: actions/setup-node@master
-              with:
-                  node-version: "14.15.4"
-            - name: install typescript
-              run: npm install typescript --global
-            - name: install tslint
-              run: npm install --global tslint
-            - name: lint js code
-              run: rake lint_js --trace
-    lint_rust:
-        runs-on: ubuntu-18.04
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: install ruby
-              uses: actions/setup-ruby@v1
-              with:
-                  ruby-version: "2.x"
-            - name: install octokit
-              run: gem install octokit
-            - name: install node
-              uses: actions/setup-node@master
-              with:
-                  node-version: "14.15.4"
-            - name: install rust
-              uses: hecrj/setup-rust-action@v1
-              with:
-                  rust-version: ${{ matrix.rust }}
-            - name: install clippy
-              run: rustup component add clippy
-            - name: lint rust code
-              run: rake lint_rust --trace
+  lint_js:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: "2.x"
+      - name: install octokit
+        run: gem install octokit
+      - name: install node
+        uses: actions/setup-node@master
+        with:
+          node-version: "14.15.4"
+      - name: install typescript
+        run: npm install typescript --global
+      - name: install tslint
+        run: npm install --global tslint
+      - name: lint js code
+        run: rake lint_js --trace
+  lint_rust:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: "2.x"
+      - name: install octokit
+        run: gem install octokit
+      - name: install node
+        uses: actions/setup-node@master
+        with:
+          node-version: "14.15.4"
+      - name: install rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - name: install clippy
+        run: rustup component add clippy
+      - name: lint rust code
+        run: rake lint_rust --trace

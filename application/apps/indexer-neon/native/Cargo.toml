@@ -24,7 +24,6 @@ crossbeam-channel = "0.5.1"
 dirs = "3.0.1"
 dlt = { path = "../../indexer/dlt" }
 dlt-core = "0.11.0"
-# dlt-core = { git = "https://github.com/DmitryAstafyev/dlt-core.git" }
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "1.0.0"
