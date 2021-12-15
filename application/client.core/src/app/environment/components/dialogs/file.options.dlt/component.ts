@@ -142,6 +142,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_filteringExpanded: boolean = true;
     public _ng_timezones!: Observable<string[]>;
     public _ng_timezoneInput = new FormControl();
+    public _ng_recentTzLoading: boolean = true;
 
     private _timezones: string[] = [];
     private _stats: CommonInterfaces.DLT.StatisticInfo | undefined;
@@ -158,14 +159,14 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public ngAfterContentInit() {
         this._timezones = moment_timezone.tz.names();
-        this._timezones.unshift('Use UTC time format');
+        this._timezones.unshift('UTC');
         this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
         if (this.options !== undefined && this.options.stats !== undefined) {
             this._initAsReopen();
         } else {
             this._initAsNewOpen();
         }
-        this._ng_timezoneInput.setValue(this._timezones[0]);
+        this._ng_timezoneInput.setValue(`Loading ...`);
         this._ng_timezones = this._ng_timezoneInput.valueChanges.pipe(
             startWith(''),
             map((value: string) => this._filterTimeZones(value)),
@@ -515,6 +516,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 this._logger.warn(
                     `Fail to get recently used timezone for DLT due error: ${error.message}`,
                 );
+            })
+            .finally(() => {
+                this._ng_recentTzLoading = false;
             });
     }
 
