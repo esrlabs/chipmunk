@@ -1,5 +1,5 @@
-import { IFilePickerFileInfo} from './file.filepicker.response';
-import { IDLTDeamonConnectionMulticastOptions } from './dlt.deamon.recent.response'
+import { IFilePickerFileInfo } from './file.filepicker.response';
+import { IDLTDeamonConnectionMulticastOptions } from './dlt.deamon.recent.response';
 
 export enum EDLTDeamonConnectionType {
     Tcp = 'Tcp',
@@ -15,10 +15,10 @@ export interface IDLTDeamonConnectRequest {
     multicast: IDLTDeamonConnectionMulticastOptions[];
     fibex: IFilePickerFileInfo[];
     target: EDLTDeamonConnectionType;
+    timezone: string | undefined;
 }
 
 export class DLTDeamonConnectRequest {
-
     public static signature: string = 'DLTDeamonConnectRequest';
     public signature: string = DLTDeamonConnectRequest.signature;
     public id: string = '';
@@ -26,6 +26,7 @@ export class DLTDeamonConnectRequest {
     public ecu: string = '';
     public bindingAddress: string = '';
     public bindingPort: string = '';
+    public timezone: string | undefined;
     public multicast: IDLTDeamonConnectionMulticastOptions[];
     public fibex: IFilePickerFileInfo[] = [];
     public target: EDLTDeamonConnectionType = EDLTDeamonConnectionType.Udp;
@@ -54,10 +55,12 @@ export class DLTDeamonConnectRequest {
         }
         if (!(params.fibex instanceof Array)) {
             throw new Error(`fibex should be defined.`);
-
         }
         if (typeof params.target !== 'string' || params.target.trim() === '') {
             throw new Error(`target should be defined.`);
+        }
+        if (typeof params.timezone !== 'string' && params.timezone !== undefined) {
+            throw new Error(`timezone should be defined as string.`);
         }
         this.id = params.id;
         this.session = params.session;
@@ -67,5 +70,6 @@ export class DLTDeamonConnectRequest {
         this.multicast = params.multicast;
         this.fibex = params.fibex;
         this.target = params.target;
+        this.timezone = params.timezone;
     }
 }

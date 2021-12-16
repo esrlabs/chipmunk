@@ -11,7 +11,7 @@
     <mat-form-field>
         <input
             matInput
-            placeholder="Label"
+            placeholder="Preset name"
             [(ngModel)]="_ng_settings.ecu"
             (ngModelChange)="_ng_onECUChange($event)"
             [disabled]="_ng_state === 'disconnected' ? false : true"
@@ -29,6 +29,29 @@
         <mat-error *ngIf="_ng_errorStates.ecu.getErrorCode() === 'REQUIRED'">
            <strong>required</strong>
         </mat-error>
+    </mat-form-field>
+    <mat-form-field>
+        <input
+            matInput
+            placeholder="Timezone"
+            [(ngModel)]="_ng_settings.timezone"
+            (ngModelChange)="_ng_onTZChange($event)"
+            [disabled]="_ng_state === 'disconnected' ? false : true"
+            [matAutocomplete]="auto_tz"
+            >
+        <mat-autocomplete #auto_tz="matAutocomplete" (optionSelected)="_ng_onTzSelected($event)">
+            <mat-option
+                *ngFor="let timezone of _ng_timezones"
+                [value]="timezone"
+                [attr.title]="timezone"
+                class="recent-requests small t-console t-small"
+            >
+                <span
+                    class="filename"
+                    [innerHTML]="_ng_getSafeHTML(timezone)"
+                ></span>
+            </mat-option>
+        </mat-autocomplete>
     </mat-form-field>
 <!--
     <mat-form-field *ngIf="_ng_settings.IPVer === 'IPv4'">
@@ -68,6 +91,7 @@
             <strong>required</strong>
         </mat-error>
     </mat-form-field>
+    
     <span class="slitter"></span>
     <p class="alignright">
         <span>Connection:</span>

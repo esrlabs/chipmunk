@@ -7,7 +7,7 @@ import {
     AfterViewInit,
 } from '@angular/core';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription, Subject, Observable } from 'rxjs';
 import { Session } from '../../../controller/session/session';
 import {
     NotificationsService,
@@ -21,8 +21,12 @@ import { IConnectEvent } from '../../../services/service.connections';
 import { IMenuItem } from '../../../services/standalone/service.contextmenu';
 import { IDLTDeamonMulticast } from './multicast/component';
 import { MatButtonToggleChange } from '@angular/material/button-toggle';
+import { FormControl } from '@angular/forms';
+import { map, startWith } from 'rxjs/operators';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
+import * as moment_timezone from 'moment-timezone';
 
 import ElectronIpcService from '../../../services/service.electron.ipc';
 import SessionsService from '../../../services/service.sessions.tabs';
@@ -39,6 +43,7 @@ interface IState {
     fibex: boolean;
     state: 'progress' | 'connected' | 'disconnected';
     target: IPC.EDLTDeamonConnectionType;
+    timezone: string;
 }
 
 interface IDLTDeamonSettings {
@@ -54,6 +59,7 @@ interface IDLTDeamonSettings {
     fibexFiles: IPC.IFilePickerFileInfo[];
     // Connection type
     target: IPC.EDLTDeamonConnectionType;
+    timezone: string;
 }
 
 const CDefaulsDLTSettingsField = {
@@ -66,6 +72,7 @@ const CDefaulsDLTSettingsField = {
     fibex: false,
     fibexFiles: [],
     target: IPC.EDLTDeamonConnectionType.Udp,
+    timezone: 'UTC',
 };
 
 // TODO: take care about prev format of settins (single multicast) to prevent error on restoring state
@@ -95,6 +102,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         fibex: CDefaulsDLTSettingsField.fibex,
         fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
         target: CDefaulsDLTSettingsField.target,
+        timezone: CDefaulsDLTSettingsField.timezone,
     };
     public _ng_errorStates: { [key: string]: DLTDeamonSettingsErrorStateMatcher } = {
         ecu: new DLTDeamonSettingsErrorStateMatcher(EDLTSettingsFieldAlias.ecu),
@@ -106,14 +114,22 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
 
     public _ng_allowSaveAs: boolean = false;
     public _ng_multicastCleanSubject: Subject<void> = new Subject<void>();
+    public _ng_timezones: string[] = [];
 
     private _subscriptions: { [key: string]: Subscription } = {};
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppDLTConnectorComponent');
     private _destroyed: boolean = false;
     private _recent: IPC.IDLTDeamonConnectionOptions[] = [];
+    private _timezones: string[] = [];
 
-    constructor(private _cdRef: ChangeDetectorRef, private _notifications: NotificationsService) {
+    constructor(
+        private _cdRef: ChangeDetectorRef,
+        private _notifications: NotificationsService,
+        private _sanitizer: DomSanitizer,
+    ) {
         this._ng_session = SessionsService.getActive();
+        this._timezones = moment_timezone.tz.names();
+        this._timezones.unshift('UTC');
         this._subscriptions.onSessionChange =
             EventsSessionService.getObservable().onSessionChange.subscribe(
                 this._onSessionChange.bind(this),
@@ -132,6 +148,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     public ngAfterContentInit() {
+        this._ng_timezones = this._filterTimeZones('');
         this._loadRecent();
     }
 
@@ -182,6 +199,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         const mcast: string[] = [];
         this._ng_state = 'progress';
         this._ng_settings.connectionId = Toolkit.guid();
+        const tzIndex = this._timezones.findIndex((v) => v === this._ng_settings.timezone);
         ElectronIpcService.request<IPC.DLTDeamonConnectResponse>(
             new IPC.DLTDeamonConnectRequest({
                 id: this._ng_settings.connectionId,
@@ -205,6 +223,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                     }),
                 fibex: this._ng_settings.fibexFiles,
                 target: this._ng_settings.target,
+                timezone: tzIndex <= 0 ? undefined : this._timezones[tzIndex],
             }),
             IPC.DLTDeamonConnectResponse,
         )
@@ -355,6 +374,11 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 return options.ecu;
             });
         }
+        this._forceUpdate();
+    }
+
+    public _ng_onTZChange(value: string) {
+        this._ng_timezones = this._filterTimeZones(typeof value === 'string' ? value : '');
         this._forceUpdate();
     }
 
@@ -520,6 +544,14 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         event.preventDefault();
     }
 
+    public _ng_getSafeHTML(input: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(input);
+    }
+
+    public _ng_onTzSelected(event: MatAutocompleteSelectedEvent) {
+        this._ng_settings.timezone = event.option.viewValue;
+    }
+
     private _checkEmptyMulticasts() {
         this._ng_settings.multicast = this._ng_settings.multicast.filter((mcast) => {
             return mcast.address.trim() !== '' && mcast.interface.trim() !== '';
@@ -590,6 +622,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                 fibex: CDefaulsDLTSettingsField.fibex,
                 fibexFiles: CDefaulsDLTSettingsField.fibexFiles,
                 target: CDefaulsDLTSettingsField.target,
+                timezone: CDefaulsDLTSettingsField.timezone,
             };
         }
     }
@@ -612,6 +645,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             bindingPort: this._ng_settings.bindingPort,
             bindingAddress: this._ng_settings.bindingAddress,
             target: this._ng_settings.target,
+            timezone: this._ng_settings.timezone,
         });
     }
 
@@ -675,7 +709,10 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _loadRecent() {
-        ElectronIpcService.request<IPC.DLTDeamonRecentResponse>(new IPC.DLTDeamonRecentRequest(), IPC.DLTDeamonRecentResponse)
+        ElectronIpcService.request<IPC.DLTDeamonRecentResponse>(
+            new IPC.DLTDeamonRecentRequest(),
+            IPC.DLTDeamonRecentResponse,
+        )
             .then((response) => {
                 if (response.recent instanceof Array) {
                     this._recent = response.recent;
@@ -728,7 +765,26 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
             this._ng_settings.fibex = CDefaulsDLTSettingsField.fibex;
             this._ng_settings.fibexFiles = CDefaulsDLTSettingsField.fibexFiles;
         }
+        this._ng_settings.timezone =
+            options.timezone === undefined ? CDefaulsDLTSettingsField.timezone : options.timezone;
         this._forceUpdate();
+    }
+
+    private _filterTimeZones(filter: string): string[] {
+        filter = filter.replace(/[^\d\w\s\\]/gi, '');
+        const key = Toolkit.regTools.createFromStr(filter);
+        if (key instanceof Error) {
+            return this._timezones;
+        }
+        return this._timezones
+            .map((tz: string) => {
+                let match: RegExpMatchArray | null = tz.match(key);
+                if (match === null || match.length === 0) {
+                    return undefined;
+                }
+                return tz.replace(match[0], `<span>${match[0]}</span>`);
+            })
+            .filter((tz) => tz !== undefined) as string[];
     }
 
     private _forceUpdate() {

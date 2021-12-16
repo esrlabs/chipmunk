@@ -1303,6 +1303,7 @@ pub async fn main() -> Result<()> {
                     &tx,
                     shutdown_channel.1,
                     Some(load_test_fibex()),
+                    dlt_core::fmt::FormatOptions { tz: None },
                 )
                 .await;
 
