@@ -1,4 +1,5 @@
-use crate::channels::EventEmitterTask;
+use crate::{api::dlt_indexing::FormatOptions, channels::EventEmitterTask};
+use chrono_tz::Tz;
 use crossbeam_channel as cc;
 use dlt_core::fibex::FibexConfig;
 use dlt_core::filtering::DltFilterConfig;
@@ -28,6 +29,7 @@ impl SocketDltEventEmitter {
         socket_conf: SocketConfig,
         filter_conf: Option<DltFilterConfig>,
         fibex: FibexConfig,
+        fmt_options: dlt_core::fmt::FormatOptions,
     ) {
         info!("start_indexing_socket_in_thread: {:?}", thread_conf);
         use tokio::runtime::Runtime;
@@ -48,6 +50,7 @@ impl SocketDltEventEmitter {
                     // &tx,
                     shutdown_rx,
                     Some(fibex),
+                    fmt_options,
                 );
                 match socket_future.await {
                     Ok(_) => {}
@@ -75,7 +78,20 @@ declare_types! {
 
             let arg_fibex_conf = cx.argument::<JsValue>(5)?;
             let fibex_conf: FibexConfig = neon_serde::from_value(&mut cx, arg_fibex_conf)?;
-
+            let arg_fmt_options = cx.argument::<JsValue>(6)?;
+            let fmt_options_in: FormatOptions = neon_serde::from_value(&mut cx, arg_fmt_options)?;
+            let mut fmt_options = dlt_core::fmt::FormatOptions { tz: None };
+            if let Some(tz_str) = fmt_options_in.tz {
+                trace!("will try to use timezone: {}", tz_str);
+                match tz_str.parse::<Tz>() {
+                    Ok(tz) => {
+                        fmt_options.tz = Some(tz);
+                    },
+                    Err(err) => {
+                        warn!("fail to get timezone from: {}; error: {}", tz_str, err);
+                    }
+                }
+            }
             let shutdown_channel = sync::mpsc::channel(1);
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = cc::unbounded();
             let mut emitter = SocketDltEventEmitter {
@@ -95,6 +111,7 @@ declare_types! {
                 socket_conf,
                 Some(filter_conf),
                 fibex_conf,
+                fmt_options,
             );
             Ok(emitter)
         }

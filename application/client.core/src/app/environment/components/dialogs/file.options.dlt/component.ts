@@ -354,7 +354,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     private _filterTimeZones(filter: string): string[] {
-        filter = filter.replace(/[^\d\w\s]/gi, '');
+        filter = filter.replace(/[^\d\w\s\\]/gi, '');
         const key = Toolkit.regTools.createFromStr(filter);
         if (key instanceof Error) {
             return this._timezones;

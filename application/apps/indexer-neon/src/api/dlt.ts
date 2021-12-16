@@ -51,6 +51,7 @@ export interface ISocketConfig {
         multicast_addr: IMulticastInfo[];
     };
     target: 'Tcp' | 'Udp';
+    timestamp?: string;
 }
 
 /// Multicast config information.
@@ -380,6 +381,9 @@ export function dltOverSocket(
                     params.out,
                     params.filterConfig,
                     params.fibex,
+                    {
+                        tz: socketConfig.timestamp,
+                    },
                 );
                 // Create emitter
                 const emitter: NativeComputationManager<INeonTransferChunk> =

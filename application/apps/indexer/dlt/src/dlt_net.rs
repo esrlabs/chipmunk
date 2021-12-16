@@ -73,6 +73,7 @@ pub async fn index_from_socket(
     out_path: &Path,
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
+    fmt_options: dlt_core::fmt::FormatOptions,
 ) -> Result<(), ConnectionError> {
     debug!("index_from_socket: with socket conf: {:?}", socket_config);
     let bind_addr_and_port: SocketAddr = match socket_config.socket_addr() {
@@ -98,6 +99,7 @@ pub async fn index_from_socket(
                 out_path,
                 initial_line_nr,
                 shutdown_receiver,
+                fmt_options,
             )
             .await
         }
@@ -113,6 +115,7 @@ pub async fn index_from_socket(
                 out_path,
                 initial_line_nr,
                 shutdown_receiver,
+                fmt_options,
             )
             .await
         }
@@ -131,6 +134,7 @@ pub async fn index_from_socket_udp(
     out_path: &Path,
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
+    fmt_options: dlt_core::fmt::FormatOptions,
 ) -> Result<(), ConnectionError> {
     let mut processor = SessionProcessor::new(
         session_id.clone(),
@@ -216,7 +220,7 @@ pub async fn index_from_socket_udp(
             }
             Some(msg) = message_stream.next() => {
                 match msg {
-                    Ok((dlt_event, _)) => processor.event(dlt_event, message_stream.codec().fibex())?,
+                    Ok((dlt_event, _)) => processor.event(dlt_event, message_stream.codec().fibex(), &fmt_options)?,
                     Err(DltParseError::ParsingHickup ( reason )) => processor.error(reason),
                     Err(e) => {
                         warn!("Unexpected error in message stream: {}", e);
@@ -243,6 +247,7 @@ pub async fn index_from_socket_tcp(
     out_path: &Path,
     initial_line_nr: usize,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
+    fmt_options: dlt_core::fmt::FormatOptions,
 ) -> Result<(), ConnectionError> {
     let mut processor = SessionProcessor::new(
         session_id.clone(),
@@ -288,7 +293,7 @@ pub async fn index_from_socket_tcp(
             }
             Some(msg) = message_stream.next() => {
                 match msg {
-                    Ok(dlt_event) => processor.event(dlt_event, message_stream.codec().fibex())?,
+                    Ok(dlt_event) => processor.event(dlt_event, message_stream.codec().fibex(), &fmt_options)?,
                     Err(DltParseError::ParsingHickup ( reason )) => processor.error(reason),
                     Err(e) => {
                         warn!("Unexpected error in message stream: {}", e);
@@ -314,6 +319,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     update_channel: &cc::Sender<ChunkResults>,
     shutdown_receiver: tokio::sync::mpsc::Receiver<()>,
     fibex: Option<FibexConfig>,
+    fmt_options: dlt_core::fmt::FormatOptions,
 ) -> Result<(), ConnectionError> {
     debug!("create_index_and_mapping_dlt_from_socket");
     let res = match utils::next_line_nr(out_path) {
@@ -330,6 +336,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
                 out_path,
                 initial_line_nr,
                 shutdown_receiver,
+                fmt_options,
             )
             .await
             {
@@ -404,6 +411,7 @@ impl SessionProcessor {
         &mut self,
         event: DltEvent,
         fibex_metadata: Option<&FibexMetadata>,
+        fmt_options: &dlt_core::fmt::FormatOptions,
     ) -> Result<(), ConnectionError> {
         match event {
             DltEvent::Messages(msgs) => {
@@ -412,7 +420,7 @@ impl SessionProcessor {
                     let formattable_msg = FormattableMessage {
                         message: m,
                         fibex_metadata,
-                        options: None,
+                        options: Some(fmt_options),
                     };
                     let written_bytes_len = utils::create_tagged_line_d(
                         &self.tag,

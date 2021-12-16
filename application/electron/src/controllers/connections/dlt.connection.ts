@@ -1,11 +1,14 @@
-import Logger from "../../tools/env.logger";
-import ServiceStreams from "../../services/service.streams";
+import Logger from '../../tools/env.logger';
+import ServiceStreams from '../../services/service.streams';
 import ServiceStreamSource from '../../services/service.stream.sources';
-import ServiceNotifications from "../../services/service.notifications";
-import indexer from "indexer-neon";
+import ServiceNotifications from '../../services/service.notifications';
+import indexer from 'indexer-neon';
 
-import { Progress, DLT, CancelablePromise } from "indexer-neon";
-import { IDLTDeamonConnectionOptions as IConnectionOptions, EDLTDeamonConnectionType } from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
+import { Progress, DLT, CancelablePromise } from 'indexer-neon';
+import {
+    IDLTDeamonConnectionOptions as IConnectionOptions,
+    EDLTDeamonConnectionType,
+} from '../../../../common/ipc/electron.ipc.messages/dlt.deamon.recent.response';
 import { EventEmitter } from 'events';
 import { CMetaData } from '../files.parsers/file.parser.dlt';
 
@@ -18,7 +21,6 @@ export interface IDLTOptions {
 }
 
 export class DLTConnectionController extends EventEmitter {
-
     public static Events = {
         connect: 'connect',
         disconnect: 'disconnect',
@@ -30,7 +32,9 @@ export class DLTConnectionController extends EventEmitter {
     private _session: string;
     private _guid: string;
     private _logger: Logger;
-    private _connector: CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject> | undefined;
+    private _connector:
+        | CancelablePromise<void, void, DLT.TDLTSocketEvents, DLT.TDLTSocketEventObject>
+        | undefined;
     private _bytes: number = 0;
 
     constructor(guid: string, session: string, connection: IConnectionOptions, dlt?: IDLTOptions) {
@@ -39,10 +43,16 @@ export class DLTConnectionController extends EventEmitter {
         this._session = session;
         this._connection = connection;
         this._dlt = {
-            filters: !dlt ? { min_log_level: DLT.DltLogLevel.Debug, app_id_count: -1, context_id_count: -1 } : dlt.filters,
+            filters: !dlt
+                ? { min_log_level: DLT.DltLogLevel.Debug, app_id_count: -1, context_id_count: -1 }
+                : dlt.filters,
             // fibex: !dlt ? {fibex_file_paths: []} : dlt.fibex,
-            stdout: !dlt ? false : (typeof dlt.stdout === 'boolean' ? dlt.stdout : false),
-            statusUpdates: !dlt ? false : (typeof dlt.statusUpdates === 'boolean' ? dlt.statusUpdates : false),
+            stdout: !dlt ? false : typeof dlt.stdout === 'boolean' ? dlt.stdout : false,
+            statusUpdates: !dlt
+                ? false
+                : typeof dlt.statusUpdates === 'boolean'
+                ? dlt.statusUpdates
+                : false,
         };
         this._logger = new Logger(`DLTConnectionController: ${session}`);
     }
@@ -57,11 +67,25 @@ export class DLTConnectionController extends EventEmitter {
             // if (typeof this._connection.ecu !== 'string' || this._connection.ecu.trim() === '') {
             //     return reject(new Error(`ecu isn't defined in options, value: ${this._connection.ecu}`));
             // }
-            if (typeof this._connection.bindingAddress !== 'string' || this._connection.bindingAddress.trim() === '') {
-                return reject(new Error(`bindingAddress isn't defined in options, value: ${this._connection.bindingAddress}`));
+            if (
+                typeof this._connection.bindingAddress !== 'string' ||
+                this._connection.bindingAddress.trim() === ''
+            ) {
+                return reject(
+                    new Error(
+                        `bindingAddress isn't defined in options, value: ${this._connection.bindingAddress}`,
+                    ),
+                );
             }
-            if (typeof this._connection.bindingPort !== 'string' || this._connection.bindingPort.trim() === '') {
-                return reject(new Error(`bindingPort isn't defined in options, value: ${this._connection.bindingPort}`));
+            if (
+                typeof this._connection.bindingPort !== 'string' ||
+                this._connection.bindingPort.trim() === ''
+            ) {
+                return reject(
+                    new Error(
+                        `bindingPort isn't defined in options, value: ${this._connection.bindingPort}`,
+                    ),
+                );
             }
             // Setup socket settings
             const socket: DLT.ISocketConfig = {
@@ -70,14 +94,24 @@ export class DLTConnectionController extends EventEmitter {
                 multicast_addr: this._connection.multicast.map((mcast) => {
                     return {
                         multiaddr: mcast.address,
-                        interface: mcast.interface === 'string' ? (mcast.interface.trim() !== '' ? mcast.interface : undefined) : undefined
+                        interface:
+                            mcast.interface === 'string'
+                                ? mcast.interface.trim() !== ''
+                                    ? mcast.interface
+                                    : undefined
+                                : undefined,
                     };
                 }),
                 target: this._connection.target === EDLTDeamonConnectionType.Udp ? 'Udp' : 'Tcp',
+                timestamp: this._connection.timezone,
             };
             // Creating source alias
             const sourceName: string = `${this._connection.ecu}::${this._connection.bindingAddress}:${this._connection.bindingPort}`;
-            const sourceId: number = ServiceStreamSource.add({ name: sourceName, session: this._session, meta: CMetaData });
+            const sourceId: number = ServiceStreamSource.add({
+                name: sourceName,
+                session: this._session,
+                meta: CMetaData,
+            });
             // Get stream file
             const streamInfo = ServiceStreams.getStreamFile(this._session);
             if (streamInfo instanceof Error) {
@@ -87,9 +121,11 @@ export class DLTConnectionController extends EventEmitter {
             const params: DLT.IDltSocketParams = {
                 filterConfig: this._dlt.filters,
                 fibex: {
-                    fibex_file_paths: !(this._connection.fibex instanceof Array) ? [] : this._connection.fibex.map((file) => {
-                        return file.path;
-                    }),
+                    fibex_file_paths: !(this._connection.fibex instanceof Array)
+                        ? []
+                        : this._connection.fibex.map((file) => {
+                              return file.path;
+                          }),
                 },
                 tag: `${sourceId}`,
                 out: streamInfo.file,
@@ -98,34 +134,45 @@ export class DLTConnectionController extends EventEmitter {
             };
             // Connecting
             this._logger.info(`Connecting`);
-            this._connector = indexer.dltOverSocket(this._session, params, socket).then(() => {
-                this._logger.info(`Disconnected`);
-            }).canceled(() => {
-                this._logger.info(`Task was canceled`);
-            }).catch((error: Error) => {
-                this._logger.warn(`Exception: ${error.message}`);
-                this.emit(DLTConnectionController.Events.error, error);
-            }).finally(() => {
-                this._connector = undefined;
-                this.emit(DLTConnectionController.Events.disconnect);
-            }).on('connect', () => {
-                this.emit(DLTConnectionController.Events.connect);
-            }).on('chunk', (event: Progress.IChunk) => {
-                ServiceStreams.pushToStreamFileMap(streamInfo.streamId, [{
-                    rows: { from: event.rowsStart, to: event.rowsEnd },
-                    bytes: { from: event.bytesStart, to: event.bytesEnd },
-                }]);
-                this._bytes = event.bytesEnd;
-            }).on('progress', (event: Progress.ITicks) => {
-                // TODO: Do we need this event at all?
-            }).on('notification', (event: Progress.INeonNotification) => {
-                ServiceNotifications.notifyFromNeon(
-                    event,
-                    `DLT: ${sourceName}`,
-                    this._session,
-                    streamInfo.file,
-                );
-            });
+            this._connector = indexer
+                .dltOverSocket(this._session, params, socket)
+                .then(() => {
+                    this._logger.info(`Disconnected`);
+                })
+                .canceled(() => {
+                    this._logger.info(`Task was canceled`);
+                })
+                .catch((error: Error) => {
+                    this._logger.warn(`Exception: ${error.message}`);
+                    this.emit(DLTConnectionController.Events.error, error);
+                })
+                .finally(() => {
+                    this._connector = undefined;
+                    this.emit(DLTConnectionController.Events.disconnect);
+                })
+                .on('connect', () => {
+                    this.emit(DLTConnectionController.Events.connect);
+                })
+                .on('chunk', (event: Progress.IChunk) => {
+                    ServiceStreams.pushToStreamFileMap(streamInfo.streamId, [
+                        {
+                            rows: { from: event.rowsStart, to: event.rowsEnd },
+                            bytes: { from: event.bytesStart, to: event.bytesEnd },
+                        },
+                    ]);
+                    this._bytes = event.bytesEnd;
+                })
+                .on('progress', (event: Progress.ITicks) => {
+                    // TODO: Do we need this event at all?
+                })
+                .on('notification', (event: Progress.INeonNotification) => {
+                    ServiceNotifications.notifyFromNeon(
+                        event,
+                        `DLT: ${sourceName}`,
+                        this._session,
+                        streamInfo.file,
+                    );
+                });
             // Resolving
             resolve();
         });
@@ -136,10 +183,11 @@ export class DLTConnectionController extends EventEmitter {
             if (this._connector === undefined) {
                 return resolve();
             }
-            this._connector.finally(() => {
-                resolve();
-            }).abort();
+            this._connector
+                .finally(() => {
+                    resolve();
+                })
+                .abort();
         });
     }
-
 }
