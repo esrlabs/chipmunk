@@ -759,7 +759,7 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             .getSessionSearch()
             .getChartsAPI()
             .getSelectedChart();
-        if (selected === undefined) {
+        if (selected === undefined || !selected.getState()) {
             return;
         }
         return `Y-${selected.asRegExp().source}`;
