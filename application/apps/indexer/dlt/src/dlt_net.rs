@@ -413,6 +413,7 @@ impl SessionProcessor {
                     let formattable_msg = FormattableMessage {
                         message: m,
                         fibex_metadata,
+                        options: None,
                     };
                     let written_bytes_len = utils::create_tagged_line_d(
                         &self.tag,

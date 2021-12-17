@@ -42,11 +42,14 @@ use processor::{
     grabber::{GrabError, GrabbedContent},
     text_source::TextFileSource,
 };
+use sources::pcap::file::PcapngByteSource;
 use sources::pcap::{
     file::{convert_from_pcapng, create_index_and_mapping_from_pcapng},
     format::dlt::DltParser,
 };
+use std::fs::File;
 use std::path::Path;
+use tokio_util::sync::CancellationToken;
 
 use tokio::sync;
 
@@ -1143,7 +1146,8 @@ pub async fn main() -> Result<()> {
             let total = fs::metadata(&file_path).expect("file size error").len();
             let progress_bar = initialize_progress_bar(total);
             let in_one_go: bool = matches.is_present("convert");
-            let shutdown_channel = sync::mpsc::channel(1);
+
+            let cancel = CancellationToken::new();
             if in_one_go {
                 println!("one-go");
                 let (tx, rx): (cc::Sender<VoidResults>, cc::Receiver<VoidResults>) = unbounded();
@@ -1154,14 +1158,8 @@ pub async fn main() -> Result<()> {
                         filter_config: filter_conf.map(process_filter_config),
                         fibex_metadata: fibex_metadata.as_ref(),
                     };
-                    let res = convert_from_pcapng(
-                        &file_path,
-                        &out_path,
-                        tx,
-                        shutdown_channel.1,
-                        dlt_parser,
-                    )
-                    .await;
+                    let res =
+                        convert_from_pcapng(&file_path, &out_path, tx, cancel, dlt_parser).await;
                     if let Err(reason) = res {
                         report_error(format!("couldn't convert: {}", reason));
                         std::process::exit(2)
@@ -1217,6 +1215,10 @@ pub async fn main() -> Result<()> {
                         filter_config: filter_conf.map(process_filter_config),
                         fibex_metadata: fibex_metadata.as_ref(),
                     };
+                    let cancel = CancellationToken::new();
+
+                    let in_file = File::open(&file_path).expect("cannot open file");
+                    let source = PcapngByteSource::new(in_file).expect("cannot create source");
                     let res = create_index_and_mapping_from_pcapng(
                         IndexingConfig {
                             tag: tag_string,
@@ -1227,8 +1229,9 @@ pub async fn main() -> Result<()> {
                             watch: false,
                         },
                         &tx,
-                        shutdown_channel.1,
+                        cancel,
                         dlt_parser,
+                        source,
                     )
                     .await;
 

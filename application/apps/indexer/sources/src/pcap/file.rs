@@ -1,4 +1,8 @@
+use crate::ByteSource;
+use crate::Error as SourceError;
+use crate::Error as ParseError;
 use crate::{LogMessage, MessageStreamItem, Parser};
+use buf_redux::Buffer;
 use core::marker::PhantomData;
 use crossbeam_channel as cc;
 use indexer_base::{
@@ -9,14 +13,15 @@ use indexer_base::{
 };
 use log::{debug, trace, warn};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
+use std::io::BufReader as IoBufReader;
+use std::io::Read;
 use std::{
     fs::*,
     io::{BufWriter, Write},
     time::{SystemTime, UNIX_EPOCH},
 };
 use thiserror::Error;
-use tokio::sync;
-use tokio_stream::{self as stream, wrappers::ReceiverStream, StreamExt};
+use tokio_stream::{self as stream};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Error, Debug)]
@@ -31,16 +36,94 @@ pub enum Error {
     Unrecoverable(String),
 }
 
-pub trait ByteSource {
-    fn read_next_packet<'a>(&mut self) -> &'a [u8];
+pub struct PcapngByteSource<R: Read> {
+    pcapng_reader: PcapNGReader<R>,
+    buffer: Buffer,
 }
 
-struct PcapngByteSource {
-    reader: PcapNGReader<File>,
+impl<R: Read> PcapngByteSource<R> {
+    pub fn new(reader: R) -> Result<Self, SourceError> {
+        Ok(Self {
+            pcapng_reader: PcapNGReader::new(65536, reader)
+                .map_err(|e| SourceError::Setup(format!("{}", e)))?,
+            buffer: Buffer::new(),
+        })
+    }
 }
-impl ByteSource for PcapngByteSource {
-    fn read_next_packet<'a>(&mut self) -> &'a [u8] {
-        unimplemented!()
+
+impl<R: Read> ByteSource for PcapngByteSource<R> {
+    fn current_slice(&self) -> &[u8] {
+        self.buffer.buf()
+    }
+
+    fn reload(&mut self) -> Result<Option<usize>, SourceError> {
+        let maybe_data;
+        let mut consumed;
+        loop {
+            match self.pcapng_reader.next() {
+                Ok((bytes_read, block)) => {
+                    trace!("PcapngByteSource::reload, bytes_read: {}", bytes_read);
+                    consumed = bytes_read;
+                    match block {
+                        PcapBlockOwned::NG(pcap_parser::Block::EnhancedPacket(ref epb)) => {
+                            trace!("Enhanced package");
+                            maybe_data = Some(epb.data);
+                            break;
+                        }
+                        PcapBlockOwned::NG(pcap_parser::Block::SimplePacket(ref spb)) => {
+                            trace!("SimplePacket");
+                            maybe_data = Some(spb.data);
+                            break;
+                        }
+                        other_type => {
+                            debug_block(other_type);
+                            self.pcapng_reader.consume(consumed);
+                            continue;
+                        }
+                    }
+                }
+                Err(PcapError::Eof) => {
+                    trace!("reloading from pcap file, EOF");
+                    return Ok(None);
+                }
+                Err(PcapError::Incomplete) => {
+                    trace!("reloading from pcap file, Incomplete");
+                    return Err(SourceError::Incomplete);
+                }
+                Err(e) => {
+                    let m = format!("{}", e);
+                    trace!("reloading from pcap file, {}", m);
+                    return Err(SourceError::Unrecoverable(m));
+                }
+            }
+        }
+        let res = match maybe_data {
+            Some(payload) => match etherparse::SlicedPacket::from_ethernet(payload) {
+                Ok(value) => Ok(Some(self.buffer.copy_from_slice(value.payload))),
+                Err(e) => Err(SourceError::Unrecoverable(format!(
+                    "error trying to extract data from ethernet frame: {}",
+                    e
+                ))),
+            },
+            None => Ok(Some(0)),
+        };
+        // bytes are copied into buffer and can be dropped by pcap reader
+        trace!("consume {} processed bytes", consumed);
+        self.pcapng_reader.consume(consumed);
+        res
+    }
+
+    fn consume(&mut self, offset: usize) {
+        trace!(
+            "ByteSource::consume before: len {} bytes",
+            self.buffer.len(),
+        );
+        self.buffer.consume(offset);
+        trace!("ByteSource::consume after: len {} bytes", self.buffer.len(),);
+    }
+
+    fn len(&self) -> usize {
+        self.buffer.len()
     }
 }
 
@@ -50,7 +133,6 @@ where
     P: Parser<T>,
     S: ByteSource,
 {
-    // reader: PcapNGReader<File>,
     byte_source: S,
     index: usize,
     parser: P,
@@ -59,119 +141,91 @@ where
 
 impl<T: LogMessage, P: Parser<T>, S: ByteSource> PcapMessageProducer<T, P, S> {
     /// create a new producer by plugging into a pcapng file
-    pub fn new(pcap_path: &std::path::Path, parser: P, source: S) -> Result<Self, Error> {
-        let pcap_file = File::open(&pcap_path)
-            .map_err(|e| Error::Configuration(format!("Could not open {:?}({})", pcap_path, e)))?;
-
-        match PcapNGReader::new(65536, pcap_file) {
-            Ok(reader) => {
-                // let source = PcapngByteSource { reader };
-                Ok(PcapMessageProducer {
-                    byte_source: source,
-                    index: 0,
-                    parser,
-                    _phantom_data: None,
-                })
-            }
-            Err(e) => Err(match e {
-                pcap_parser::PcapError::Incomplete => Error::Parse("Incomplete parse".to_owned()),
-                _ => Error::Unrecoverable(format!("problems parsing pcap: {}", e)),
-            }),
-        }
+    pub fn new(parser: P, source: S) -> Result<Self, Error> {
+        Ok(PcapMessageProducer {
+            byte_source: source,
+            index: 0,
+            parser,
+            _phantom_data: None,
+        })
     }
+
     fn read_next_segment(&mut self) -> Option<(usize, Result<MessageStreamItem<T>, Error>)> {
-        let mut consumed = 0usize;
         self.index += 1;
         let now = SystemTime::now();
         let since_the_epoch = now
             .duration_since(UNIX_EPOCH)
             .unwrap_or_else(|_| std::time::Duration::from_secs(0));
-        let mut last_in_ms = since_the_epoch.as_millis() as i64;
-        let res = match self.reader.next() {
-            Ok((offset, block)) => {
-                consumed = offset;
-                let data = match block {
-                    PcapBlockOwned::NG(pcap_parser::Block::EnhancedPacket(ref epb)) => {
-                        let ts_us: i64 = (epb.ts_high as i64) << 32 | epb.ts_low as i64;
-                        last_in_ms = ts_us / 1000;
-                        Some(epb.data)
-                    }
-                    PcapBlockOwned::NG(pcap_parser::Block::SimplePacket(ref spb)) => {
-                        trace!("SimplePacket");
-                        Some(spb.data)
-                    }
-                    other_type => {
-                        debug_block(other_type);
-                        None
-                    }
-                };
-                if let Some(payload) = data {
-                    match etherparse::SlicedPacket::from_ethernet(payload) {
-                        Err(value) => Some((
-                            consumed,
-                            Err(Error::Parse(format!(
-                                "error trying to extract data from ethernet frame: {}",
-                                value
-                            ))),
-                        )),
-                        Ok(value) => {
-                            let mut input_slice: &[u8] = value.payload;
-                            let mut found_messages = vec![];
-                            let mut skipped = 0usize;
-                            // try to parse all the messages in the payload
-                            while !input_slice.is_empty() {
-                                match self.parser.parse(input_slice, Some(last_in_ms as u64)) {
-                                    // Ok((rest, ParsedMessage::Item(m))) => {
-                                    Ok((rest, Some(m))) => {
-                                        trace!("Extracted a valid message");
-                                        input_slice = rest;
-                                        found_messages.push(m);
-                                    }
-                                    Ok((rest, None)) => {
-                                        skipped += 1;
-                                        input_slice = rest;
-                                    }
-                                    Err(e) => {
-                                        trace!("Found {} log messages, no more valid log message in packet, error: {}",
-                                            found_messages.len(), e);
-                                        break;
-                                    }
-                                }
-                            }
-                            if found_messages.is_empty() {
-                                if skipped > 0 {
-                                    Some((consumed, Ok(MessageStreamItem::Skipped)))
-                                } else {
-                                    Some((consumed, Ok(MessageStreamItem::Empty)))
-                                }
-                            } else {
-                                Some((consumed, Ok(MessageStreamItem::Item(found_messages))))
-                            }
+        let last_in_ms = since_the_epoch.as_millis() as i64;
+        // 1. buffer loaded? if not, fill buffer with frame data
+        // 2. try to parse message from buffer
+        // 3a. if message, pop it of the buffer and deliever
+        // 3b. else reload into buffer and goto 2
+        if self.byte_source.is_empty() {
+            self.byte_source.reload().ok().flatten()?;
+        }
+        let mut available = self.byte_source.len();
+        loop {
+            if available == 0 {
+                trace!("No more bytes available from source");
+                return Some((0, Ok(MessageStreamItem::Done)));
+            }
+            match self
+                .parser
+                .parse(self.byte_source.current_slice(), Some(last_in_ms as u64))
+            {
+                Ok((rest, Some(m))) => {
+                    let consumed = available - rest.len();
+                    trace!("Extracted a valid message, consumed {} bytes", consumed);
+                    self.byte_source.consume(consumed);
+                    return Some((consumed, Ok(MessageStreamItem::Item(m))));
+                }
+                Ok((rest, None)) => {
+                    let consumed = available - rest.len();
+                    self.byte_source.consume(consumed);
+                    return Some((consumed, Ok(MessageStreamItem::Skipped)));
+                }
+                Err(ParseError::Incomplete) => {
+                    trace!("not enough bytes to parse a message");
+                    let reload_res = self.byte_source.reload();
+                    match reload_res {
+                        Ok(Some(n)) => {
+                            available += n;
+                            continue;
+                        }
+                        Ok(None) => return None,
+                        Err(e) => {
+                            trace!("Error reloading content: {}", e);
+                            return None;
                         }
                     }
-                } else {
-                    Some((consumed, Ok(MessageStreamItem::Empty)))
+                }
+                Err(ParseError::Eof) => {
+                    trace!("EOF reached...no more messages");
+                    return None;
+                }
+                Err(ParseError::Parse(s)) => {
+                    trace!("No parse possible, try next batch of data ({})", s);
+                    self.byte_source.consume(available);
+                    let reload_res = self.byte_source.reload();
+                    match reload_res {
+                        Ok(Some(n)) => {
+                            available += n;
+                            continue;
+                        }
+                        Ok(None) => return None,
+                        Err(e) => {
+                            trace!("Error reloading content: {}", e);
+                            return None;
+                        }
+                    }
+                }
+                Err(e) => {
+                    trace!("Error during parsing, cannot continue: {}", e);
+                    return None;
                 }
             }
-            Err(PcapError::Eof) => {
-                trace!("Pcap: EOF");
-                None
-            }
-            Err(PcapError::Incomplete) => {
-                trace!("Pcap: Incomplete");
-                let _ = self.reader.refill();
-                Some((consumed, Ok(MessageStreamItem::Incomplete)))
-            }
-            Err(e) => {
-                warn!("Pcap: error {:?}", e);
-                Some((
-                    consumed,
-                    Err(Error::Unrecoverable(format!("error reading pcap: {:?}", e))),
-                ))
-            }
-        };
-        self.reader.consume(consumed);
-        res
+        }
     }
 }
 
@@ -215,7 +269,9 @@ fn debug_block(b: PcapBlockOwned) {
     }
 }
 
-impl<T: LogMessage, P: Parser<T>> std::iter::Iterator for PcapMessageProducer<T, P> {
+impl<T: LogMessage, P: Parser<T>, S: ByteSource> std::iter::Iterator
+    for PcapMessageProducer<T, P, S>
+{
     type Item = (usize, Result<MessageStreamItem<T>, Error>);
     fn next(&mut self) -> Option<Self::Item> {
         self.read_next_segment()
@@ -247,7 +303,7 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
     pcap_path: &std::path::Path,
     out_path: &std::path::Path,
     update_channel: cc::Sender<VoidResults>,
-    shutdown_receiver: sync::mpsc::Receiver<()>,
+    cancel: CancellationToken,
     parser: P,
 ) -> Result<(), Error> {
     trace!("Starting convert_from_pcapng");
@@ -261,12 +317,14 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
     let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
         .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-    let pcap_msg_producer = PcapMessageProducer::new(pcap_path, parser)?;
+    let pcap_file = File::open(&pcap_path)?;
+    let buf_reader = IoBufReader::new(&pcap_file);
+    let pcapng_byte_src =
+        PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+    let pcap_msg_producer = PcapMessageProducer::new(parser, pcapng_byte_src)?;
     // listen for both a shutdown request and incomming messages
     // to do this we need to select over streams of the same type
     // the type we use to unify is this Event enum
-
-    let mut shutdown_stream = ReceiverStream::new(shutdown_receiver);
 
     let mut processed_bytes = 0usize;
     let mut parsing_hickups = 0usize;
@@ -277,7 +335,7 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
 
     loop {
         tokio::select! {
-            _ = shutdown_stream.next() => {
+            _ = cancel.cancelled() => {
                     warn!("received shutdown through future channel");
                     let _ = update_channel.send(Ok(IndexingProgress::Stopped));
                     stopped = true;
@@ -287,15 +345,13 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
                 match item {
                     Some((consumed, msg)) => {
                         match msg {
-                            Ok(MessageStreamItem::Item(msgs)) => {
+                            Ok(MessageStreamItem::Item(msg)) => {
                                 trace!("convert_from_pcapng: Received msg event");
                                 if consumed > 0 {
                                     processed_bytes += consumed;
                                     progress(processed_bytes);
                                 }
-                                for msg in msgs {
-                                    buf_writer.write_all(&msg.as_stored_bytes())?;
-                                }
+                                buf_writer.write_all(&msg.as_stored_bytes())?;
                             }
                             Ok(MessageStreamItem::Skipped) => {
                                 trace!("convert_from_pcapng: Msg was skipped due to filters");
@@ -369,7 +425,7 @@ pub async fn index_from_message_stream<T, I>(
     config: IndexingConfig,
     initial_line_nr: usize,
     update_channel: cc::Sender<ChunkResults>,
-    shutdown_receiver: sync::mpsc::Receiver<()>,
+    cancel: CancellationToken,
     pcap_msg_producer: I,
 ) -> Result<(), Error>
 where
@@ -394,8 +450,6 @@ where
     // listen for both a shutdown request and incomming messages
     // to do this we need to select over streams of the same type
     // the type we use to unify is this Event enum
-    let mut shutdown_stream = ReceiverStream::new(shutdown_receiver);
-    // we only want the Some(...) stream elements
 
     let mut chunk_count = 0usize;
 
@@ -407,7 +461,7 @@ where
 
     loop {
         tokio::select! {
-            _ = shutdown_stream.next() => {
+            _ = cancel.cancelled() => {
                     debug!("received shutdown through future channel");
                     stopped = true;
                     let _ = update_channel.send(Ok(IndexingProgress::Stopped));
@@ -421,24 +475,22 @@ where
                             progress(processed_bytes);
                         }
                         match msg {
-                            Ok(MessageStreamItem::Item(msgs)) => {
+                            Ok(MessageStreamItem::Item(msg)) => {
                                 trace!("received msg event");
 
-                                for msg in msgs {
-                                    let written_bytes_len = utils::create_tagged_line_d(
-                                        &config.tag,
-                                        &mut buf_writer,
-                                        &msg,
-                                        line_nr,
-                                        true,
-                                    )?;
-                                    line_nr += 1;
-                                    if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
-                                        buf_writer.flush()?;
-                                        chunk_count += 1;
-                                        let _ =
-                                            update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
-                                    }
+                                let written_bytes_len = utils::create_tagged_line_d(
+                                    &config.tag,
+                                    &mut buf_writer,
+                                    &msg,
+                                    line_nr,
+                                    true,
+                                )?;
+                                line_nr += 1;
+                                if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
+                                    buf_writer.flush()?;
+                                    chunk_count += 1;
+                                    let _ =
+                                        update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
                                 }
                             }
                             Ok(MessageStreamItem::Skipped) => {
@@ -510,22 +562,26 @@ where
     Ok(())
 }
 
-pub async fn create_index_and_mapping_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
+pub async fn create_index_and_mapping_from_pcapng<
+    T: LogMessage,
+    P: Parser<T> + Unpin,
+    S: ByteSource,
+>(
     config: IndexingConfig,
-    cancel: CancellationToken,
     update_channel: &cc::Sender<ChunkResults>,
-    shutdown_receiver: sync::mpsc::Receiver<()>,
+    cancel: CancellationToken,
     parser: P,
+    source: S,
 ) -> Result<(), Error> {
     trace!("create_index_and_mapping_from_pcapng");
     match utils::next_line_nr(&config.out_path) {
         Ok(initial_line_nr) => {
-            let pcap_msg_producer = PcapMessageProducer::new(&config.in_file, parser)?;
+            let pcap_msg_producer = PcapMessageProducer::new(parser, source)?;
             match index_from_message_stream(
                 config,
                 initial_line_nr,
                 update_channel.clone(),
-                shutdown_receiver,
+                cancel,
                 pcap_msg_producer,
             )
             .await
