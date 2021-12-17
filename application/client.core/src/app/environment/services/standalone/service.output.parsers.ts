@@ -278,14 +278,7 @@ export class OutputParsersService {
             });
         }
         const requests: IRequest[] | undefined = this._search.get(sessionId);
-        const highlights: IRequest[] | undefined =
-            target === EParent.search
-                ? this._highlights
-                      .get(sessionId)
-                      ?.filter((highlight: IRequest) =>
-                          highlight.active !== undefined ? highlight.active : false,
-                      )
-                : this._highlights.get(sessionId);
+        const highlights: IRequest[] | undefined = this._highlights.get(sessionId);
         const charts: IRequest[] | undefined = this._charts.get(sessionId);
         modifiers.push(
             new HighlightsModifier(
