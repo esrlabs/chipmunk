@@ -21,12 +21,14 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
         input: &'b [u8],
         timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<FormattableMessage<'m>>), Error> {
-        let (rest, message) = match dlt_message(input, self.filter_config.as_ref(), false)
+        match dlt_message(input, self.filter_config.as_ref(), false)
             .map_err(|e| Error::Parse(format!("{}", e)))?
         {
-            (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => (rest, None),
+            (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => Ok((rest, None)),
 
-            (rest, dlt_core::parse::ParsedMessage::Invalid) => (rest, None),
+            (_, dlt_core::parse::ParsedMessage::Invalid) => {
+                Err(Error::Parse("Invalid parse".to_owned()))
+            }
             (rest, dlt_core::parse::ParsedMessage::Item(i)) => {
                 let msg_with_storage_header = i.add_storage_header(
                     timestamp.map(|time| dlt::DltTimeStamp::from_ms(time as u64)),
@@ -34,10 +36,10 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                 let msg = FormattableMessage {
                     message: msg_with_storage_header,
                     fibex_metadata: self.fibex_metadata,
+                    options: None,
                 };
-                (rest, Some(msg))
+                Ok((rest, Some(msg)))
             }
-        };
-        Ok((rest, message))
+        }
     }
 }

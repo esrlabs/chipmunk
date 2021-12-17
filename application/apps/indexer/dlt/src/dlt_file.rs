@@ -384,6 +384,7 @@ pub fn index_dlt_content<R: Read + Seek + Unpin>(
                 let formattable_msg = FormattableMessage {
                     message: msg,
                     fibex_metadata: message_producer.fibex(),
+                    options: None,
                 };
                 let written_bytes_len = utils::create_tagged_line_d(
                     &config.tag,

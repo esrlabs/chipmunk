@@ -1,7 +1,9 @@
+use crate::pcap::file::PcapngByteSource;
 use crate::{
     pcap::{file::PcapMessageProducer, format::dlt::DltParser},
     MessageStreamItem,
 };
+use std::fs::File;
 
 lazy_static! {
     static ref EXAMPLE_PCAPNG: std::path::PathBuf =
@@ -15,13 +17,15 @@ fn test_read_messages_from_pcapng() {
         filter_config: None,
         fibex_metadata: None,
     };
+    let in_file = File::open(&*EXAMPLE_PCAPNG).expect("cannot open file");
+    let source = PcapngByteSource::new(in_file).expect("cannot create source");
     let mut pcap_msg_producer =
-        PcapMessageProducer::new(&EXAMPLE_PCAPNG, dlt_parser).expect("could not create producer");
+        PcapMessageProducer::new(dlt_parser, source).expect("could not create producer");
     let mut found_msg = 0usize;
     for item in pcap_msg_producer.by_ref() {
         if let (_, Ok(MessageStreamItem::Item(v))) = item {
-            found_msg += v.len();
-            assert_eq!(v[0].message.header.ecu_id, Some("TEST".to_owned()));
+            found_msg += 1;
+            assert_eq!(v.message.header.ecu_id, Some("TEST".to_owned()));
         }
     }
     assert_eq!(found_msg, 1);
