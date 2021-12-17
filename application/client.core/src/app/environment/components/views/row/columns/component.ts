@@ -136,7 +136,7 @@ export class ViewOutputRowColumnsComponent
         this.background = '';
         let html = this.str;
         // Apply search matches parser
-        const highlight = OutputParsersService.highlight(this.sessionId, this.str);
+        const highlight = OutputParsersService.highlight(this.sessionId, this.str, this.parent);
         this.color = highlight.color === undefined ? '' : highlight.color;
         this.background = highlight.background === undefined ? '' : highlight.background;
         // Rid of HTML

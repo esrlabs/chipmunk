@@ -107,7 +107,7 @@ export class ViewOutputRowExternalComponent
             return OutputParsersService.serialize(str);
         }
         // Apply search matches parser
-        const highlight = OutputParsersService.highlight(this.sessionId, str);
+        const highlight = OutputParsersService.highlight(this.sessionId, str, this.parent);
         // Rid of HTML
         str = OutputParsersService.serialize(str);
         // Set colors
