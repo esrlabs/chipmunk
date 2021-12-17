@@ -5,6 +5,8 @@ use std::fmt::Display;
 extern crate lazy_static;
 
 pub mod pcap;
+pub mod socket;
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]

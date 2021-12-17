@@ -303,25 +303,6 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> std::iter::Iterator
     }
 }
 
-// impl<T: LogMessage, P: Parser<T>> Stream for PcapMessageProducer<T, P> {
-//     type Item = (usize, Result<MessageStreamItem<T>, Error>);
-
-//     // Poll::Pending means that this stream’s next value is not ready yet.
-//     // Implementations will ensure that the current task will be notified when the next value may be ready.
-
-//     // Poll::Ready(Some(val)) means that the stream has successfully produced a value, val, and may produce
-//     // further values on subsequent poll_next calls.
-
-//     // Poll::Ready(None) means that the stream has terminated, and poll_next should not be invoked again.
-//     fn poll_next(
-//         mut self: std::pin::Pin<&mut Self>,
-//         _cx: &mut std::task::Context,
-//     ) -> Poll<Option<Self::Item>> {
-//         let v = (&mut self).read_next_segment();
-//         core::task::Poll::Ready(v)
-//     }
-// }
-
 /// extract log messages from a PCAPNG file
 #[allow(clippy::too_many_arguments)]
 pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
