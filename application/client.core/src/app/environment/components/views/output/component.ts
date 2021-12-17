@@ -309,33 +309,37 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     ],
                 );
             }
-            items.push(
-                ...[
-                    {
-                        /* delimiter */
-                    },
-                    {
-                        caption: `Comment`,
-                        handler: () => {
-                            const first = this._output.getRowByPosition(
-                                Math.min(textSelection.anchor, textSelection.focus),
-                            );
-                            const last = this._output.getRowByPosition(
-                                Math.max(textSelection.anchor, textSelection.focus),
-                            );
-                            if (
-                                first === undefined ||
-                                last === undefined ||
-                                first.str === undefined ||
-                                last.str === undefined
-                            ) {
-                                return;
-                            }
-                            session.getSessionComments().create(textSelection, first.str, last.str);
+
+            session.getSessionComments().isSelectionVisible(textSelection) &&
+                items.push(
+                    ...[
+                        {
+                            /* delimiter */
                         },
-                    },
-                ],
-            );
+                        {
+                            caption: `Comment`,
+                            handler: () => {
+                                const first = this._output.getRowByPosition(
+                                    Math.min(textSelection.anchor, textSelection.focus),
+                                );
+                                const last = this._output.getRowByPosition(
+                                    Math.max(textSelection.anchor, textSelection.focus),
+                                );
+                                if (
+                                    first === undefined ||
+                                    last === undefined ||
+                                    first.str === undefined ||
+                                    last.str === undefined
+                                ) {
+                                    return;
+                                }
+                                session
+                                    .getSessionComments()
+                                    .create(textSelection, first.str, last.str);
+                            },
+                        },
+                    ],
+                );
         }
         items.push(
             ...[

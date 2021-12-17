@@ -65,6 +65,14 @@ export class ControllerSessionTabStreamComments
         return 'ControllerSessionTabStreamComments';
     }
 
+    public isSelectionVisible(selection: IScrollBoxSelection): boolean {
+        const visibleSel = window.getSelection();
+        if (visibleSel === undefined || visibleSel === null) {
+            return false;
+        }
+        return visibleSel.toString() === selection.original;
+    }
+
     public create(
         selection: IScrollBoxSelection,
         startRowStr: string,
@@ -74,7 +82,12 @@ export class ControllerSessionTabStreamComments
             | { anchorNode: Node; anchorOffset: number; focusNode: Node; focusOffset: number }
             | undefined {
             const winSel = window.getSelection();
-            if (winSel === undefined || winSel === null || winSel.anchorNode === null || winSel.focusNode === null) {
+            if (
+                winSel === undefined ||
+                winSel === null ||
+                winSel.anchorNode === null ||
+                winSel.focusNode === null
+            ) {
                 return undefined;
             }
             const reversed: boolean =
@@ -137,6 +150,9 @@ export class ControllerSessionTabStreamComments
                     },
                 };
             } else {
+                if (!this.isSelectionVisible(selection)) {
+                    return new Error(`No visible selection`);
+                }
                 const rows = selection.original.split(/[\n\r]/gi);
                 const stored = remember();
                 if (stored === undefined) {
