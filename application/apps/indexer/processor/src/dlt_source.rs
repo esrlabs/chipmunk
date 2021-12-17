@@ -196,6 +196,7 @@ impl MetadataSource for DltSource {
                 let fmt_msg = FormattableMessage {
                     message: s.clone(), //FIXME avoid clone
                     fibex_metadata: None,
+                    options: None,
                 };
                 GrabbedElement {
                     source_id: self.source_id.clone(),

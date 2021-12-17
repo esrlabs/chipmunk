@@ -1,5 +1,4 @@
-use itertools::Itertools;
-use std::{fmt, fmt::Display};
+use std::fmt::Display;
 
 #[cfg(test)]
 #[macro_use]
@@ -12,9 +11,25 @@ use thiserror::Error;
 pub enum Error {
     #[error("Parse error: {0}")]
     Parse(String),
+    #[error("Sources setup problem: {0}")]
+    Setup(String),
+    #[error("Unrecoverable source error: {0}")]
+    Unrecoverable(String),
+    #[error("Incomplete, not enough data for a message")]
+    Incomplete,
+    #[error("End of file reached")]
+    Eof,
 }
 
+/// Parser trait that needs to be implemented for any parser we support
+/// in chipmunk
 pub trait Parser<T: LogMessage> {
+    /// take a slice of bytes and try to apply a parser. If the parse was
+    /// successfull, this will yield  the rest of the slice along with `Some(log_message)`
+    ///
+    /// if the slice does not have enough bytes, an `Incomplete` error is returned.
+    ///
+    /// in case we could parse a message but the message was filtered out, `None` is returned
     fn parse<'a>(
         &self,
         input: &'a [u8],
@@ -30,23 +45,31 @@ pub trait LogMessage: Display {
     fn as_stored_bytes(&self) -> Vec<u8>;
 }
 
+pub trait ByteSource {
+    /// will load more bytes from the underlying source
+    /// when the source has reached it's end, this function
+    /// will return Ok(None)
+    /// A successfull reload operation will return the number
+    /// of bytes that were loaded
+    fn reload(&mut self) -> Result<Option<usize>, Error>;
+
+    fn consume(&mut self, offset: usize);
+
+    fn current_slice(&self) -> &[u8];
+
+    /// count of currently loaded bytes
+    fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
 #[derive(Debug)]
 pub enum MessageStreamItem<T: LogMessage> {
-    Item(Vec<T>),
+    Item(T),
     Skipped,
     Incomplete,
     Empty,
     Done,
-}
-
-impl<T: LogMessage> fmt::Display for MessageStreamItem<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Item(v) => write!(f, "{}", v.iter().format(",")),
-            Self::Skipped => write!(f, "Skipped"),
-            Self::Incomplete => write!(f, "Incomplete"),
-            Self::Empty => write!(f, "Empty"),
-            Self::Done => write!(f, "Done"),
-        }
-    }
 }
