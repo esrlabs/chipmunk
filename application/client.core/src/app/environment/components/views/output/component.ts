@@ -309,37 +309,34 @@ export class ViewOutputComponent implements OnDestroy, AfterViewInit, AfterConte
                     ],
                 );
             }
-
-            session.getSessionComments().isSelectionVisible(textSelection) &&
-                items.push(
-                    ...[
-                        {
-                            /* delimiter */
+            items.push(
+                ...[
+                    {
+                        /* delimiter */
+                    },
+                    {
+                        caption: `Comment`,
+                        disabled: !session.getSessionComments().isSelectionVisible(textSelection),
+                        handler: () => {
+                            const first = this._output.getRowByPosition(
+                                Math.min(textSelection.anchor, textSelection.focus),
+                            );
+                            const last = this._output.getRowByPosition(
+                                Math.max(textSelection.anchor, textSelection.focus),
+                            );
+                            if (
+                                first === undefined ||
+                                last === undefined ||
+                                first.str === undefined ||
+                                last.str === undefined
+                            ) {
+                                return;
+                            }
+                            session.getSessionComments().create(textSelection, first.str, last.str);
                         },
-                        {
-                            caption: `Comment`,
-                            handler: () => {
-                                const first = this._output.getRowByPosition(
-                                    Math.min(textSelection.anchor, textSelection.focus),
-                                );
-                                const last = this._output.getRowByPosition(
-                                    Math.max(textSelection.anchor, textSelection.focus),
-                                );
-                                if (
-                                    first === undefined ||
-                                    last === undefined ||
-                                    first.str === undefined ||
-                                    last.str === undefined
-                                ) {
-                                    return;
-                                }
-                                session
-                                    .getSessionComments()
-                                    .create(textSelection, first.str, last.str);
-                            },
-                        },
-                    ],
-                );
+                    },
+                ],
+            );
         }
         items.push(
             ...[
