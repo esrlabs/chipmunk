@@ -45,13 +45,35 @@ pub trait LogMessage: Display {
     fn as_stored_bytes(&self) -> Vec<u8>;
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum TransportProtocol {
+    TCP,
+    UDP,
+    Unknown,
+}
+
+impl From<etherparse::TransportSlice<'_>> for TransportProtocol {
+    fn from(tp_slice: etherparse::TransportSlice<'_>) -> Self {
+        match tp_slice {
+            etherparse::TransportSlice::Tcp(_) => TransportProtocol::TCP,
+            etherparse::TransportSlice::Udp(_) => TransportProtocol::UDP,
+            _ => TransportProtocol::Unknown,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SourceFilter {
+    transport: Option<TransportProtocol>,
+}
+
 pub trait ByteSource {
     /// will load more bytes from the underlying source
     /// when the source has reached it's end, this function
     /// will return Ok(None)
     /// A successfull reload operation will return the number
     /// of bytes that were loaded
-    fn reload(&mut self) -> Result<Option<usize>, Error>;
+    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<usize>, Error>;
 
     fn consume(&mut self, offset: usize);
 

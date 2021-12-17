@@ -1,6 +1,8 @@
 use crate::ByteSource;
 use crate::Error as SourceError;
 use crate::Error as ParseError;
+use crate::SourceFilter;
+use crate::TransportProtocol;
 use crate::{LogMessage, MessageStreamItem, Parser};
 use buf_redux::Buffer;
 use core::marker::PhantomData;
@@ -56,7 +58,7 @@ impl<R: Read> ByteSource for PcapngByteSource<R> {
         self.buffer.buf()
     }
 
-    fn reload(&mut self) -> Result<Option<usize>, SourceError> {
+    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<usize>, SourceError> {
         let maybe_data;
         let mut consumed;
         loop {
@@ -88,7 +90,10 @@ impl<R: Read> ByteSource for PcapngByteSource<R> {
                 }
                 Err(PcapError::Incomplete) => {
                     trace!("reloading from pcap file, Incomplete");
-                    return Err(SourceError::Incomplete);
+                    self.pcapng_reader
+                        .refill()
+                        .expect("refill pcapng reader failed");
+                    continue;
                 }
                 Err(e) => {
                     let m = format!("{}", e);
@@ -99,7 +104,22 @@ impl<R: Read> ByteSource for PcapngByteSource<R> {
         }
         let res = match maybe_data {
             Some(payload) => match etherparse::SlicedPacket::from_ethernet(payload) {
-                Ok(value) => Ok(Some(self.buffer.copy_from_slice(value.payload))),
+                Ok(value) => match (value.transport, filter) {
+                    (
+                        Some(actual),
+                        Some(SourceFilter {
+                            transport: Some(wanted),
+                        }),
+                    ) => {
+                        let actual_tp: TransportProtocol = actual.into();
+                        if actual_tp == *wanted {
+                            Ok(Some(self.buffer.copy_from_slice(value.payload)))
+                        } else {
+                            Ok(Some(0))
+                        }
+                    }
+                    _ => Ok(Some(self.buffer.copy_from_slice(value.payload))),
+                },
                 Err(e) => Err(SourceError::Unrecoverable(format!(
                     "error trying to extract data from ethernet frame: {}",
                     e
@@ -136,6 +156,7 @@ where
     byte_source: S,
     index: usize,
     parser: P,
+    filter: Option<SourceFilter>,
     _phantom_data: Option<PhantomData<T>>,
 }
 
@@ -146,6 +167,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> PcapMessageProducer<T, P, S> {
             byte_source: source,
             index: 0,
             parser,
+            filter: None,
             _phantom_data: None,
         })
     }
@@ -162,7 +184,10 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> PcapMessageProducer<T, P, S> {
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
         if self.byte_source.is_empty() {
-            self.byte_source.reload().ok().flatten()?;
+            self.byte_source
+                .reload(self.filter.as_ref())
+                .ok()
+                .flatten()?;
         }
         let mut available = self.byte_source.len();
         loop {
@@ -187,7 +212,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> PcapMessageProducer<T, P, S> {
                 }
                 Err(ParseError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
-                    let reload_res = self.byte_source.reload();
+                    let reload_res = self.byte_source.reload(self.filter.as_ref());
                     match reload_res {
                         Ok(Some(n)) => {
                             available += n;
@@ -207,7 +232,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> PcapMessageProducer<T, P, S> {
                 Err(ParseError::Parse(s)) => {
                     trace!("No parse possible, try next batch of data ({})", s);
                     self.byte_source.consume(available);
-                    let reload_res = self.byte_source.reload();
+                    let reload_res = self.byte_source.reload(self.filter.as_ref());
                     match reload_res {
                         Ok(Some(n)) => {
                             available += n;
