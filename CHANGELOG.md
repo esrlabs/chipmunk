@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.25.0] - 12/17/2021
+
+### Added
+
+-   Selection of timezone for DLT files
+-   Selection of timezone for DLT connector
+
+### Changes
+-   Logic of applying filter colors
+
+### Fixes
+-   Prevent comments on not-suitable selection
+
 ## [2.24.1] - 12/10/2021
 
 ### Changes
