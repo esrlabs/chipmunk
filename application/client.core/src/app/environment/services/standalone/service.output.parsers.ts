@@ -160,6 +160,7 @@ export class OutputParsersService {
                     reg: request.asRegExp(),
                     color: request.getColor(),
                     background: request.getBackground(),
+                    active: request.getState(),
                 };
             }),
         );
@@ -277,7 +278,14 @@ export class OutputParsersService {
             });
         }
         const requests: IRequest[] | undefined = this._search.get(sessionId);
-        const highlights: IRequest[] | undefined = this._highlights.get(sessionId);
+        const highlights: IRequest[] | undefined =
+            target === EParent.search
+                ? this._highlights
+                      .get(sessionId)
+                      ?.filter((highlight: IRequest) =>
+                          highlight.active !== undefined ? highlight.active : false,
+                      )
+                : this._highlights.get(sessionId);
         const charts: IRequest[] | undefined = this._charts.get(sessionId);
         modifiers.push(
             new HighlightsModifier(
@@ -296,14 +304,14 @@ export class OutputParsersService {
         return processor.parse(row.str, target);
     }
 
-    public highlight(sessionId: string, str: string): IHighlight {
+    public highlight(sessionId: string, str: string, parent: EParent): IHighlight {
         const single: boolean = (() => {
             if (this._controller === undefined) {
                 return false;
             }
             return this._controller.getSessionSearch().getFiltersAPI().isSingle();
         })();
-        if (single) {
+        if (single || this._controller === undefined) {
             return {
                 color: undefined,
                 background: undefined,
@@ -312,9 +320,28 @@ export class OutputParsersService {
         const requests: IRequest[] = this._search.has(sessionId)
             ? (this._search.get(sessionId) as IRequest[])
             : [];
-        const highlights: IRequest[] = this._highlights.has(sessionId)
-            ? (this._highlights.get(sessionId) as IRequest[])
-            : [];
+        let highlights: IRequest[] = [];
+        if (this._highlights.has(sessionId)) {
+            if (parent === EParent.search) {
+                const active = this._controller
+                    .getSessionSearch()
+                    .getFiltersAPI()
+                    .getStorage()
+                    .getActive();
+                highlights = (this._highlights.get(sessionId) as IRequest[]).filter(
+                    (f) =>
+                        active.find(
+                            (a) =>
+                                `${a.asRegExp().source}-${a.asRegExp().flags}` ===
+                                `${f.reg.source}-${f.reg.flags}`,
+                        ) !== undefined,
+                );
+            } else {
+                highlights = this._highlights.get(sessionId) as IRequest[];
+            }
+        } else {
+            highlights = [];
+        }
         const charts: IRequest[] = this._charts.has(sessionId)
             ? (this._charts.get(sessionId) as IRequest[])
             : [];
