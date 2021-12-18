@@ -6,6 +6,7 @@ extern crate lazy_static;
 
 pub mod pcap;
 pub mod socket;
+pub mod producer;
 
 use thiserror::Error;
 
