@@ -5,8 +5,8 @@ use std::fmt::Display;
 extern crate lazy_static;
 
 pub mod pcap;
-pub mod socket;
 pub mod producer;
+pub mod socket;
 
 use thiserror::Error;
 
@@ -70,13 +70,31 @@ pub struct SourceFilter {
     transport: Option<TransportProtocol>,
 }
 
+#[derive(Debug)]
+pub struct ReloadInfo {
+    loaded_bytes: usize,
+    last_known_ts: Option<u64>,
+}
+
+impl ReloadInfo {
+    pub fn new(loaded_bytes: usize, last_known_ts: Option<u64>) -> Self {
+        Self {
+            loaded_bytes,
+            last_known_ts,
+        }
+    }
+}
+
 pub trait ByteSource {
     /// will load more bytes from the underlying source
     /// when the source has reached it's end, this function
-    /// will return Ok(None)
+    /// will return Ok((None, _))
+    ///
     /// A successfull reload operation will return the number
     /// of bytes that were loaded
-    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<usize>, Error>;
+    /// If the source has access to some timestamp (e.g. timestamp of network package),
+    /// this timestamp is passed on additionally
+    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
     fn consume(&mut self, offset: usize);
 
