@@ -1,13 +1,11 @@
-use crate::ByteSource;
 use crate::Error as SourceError;
 use crate::LogMessage;
 use crate::MessageStreamItem;
 use crate::Parser;
 use crate::SourceFilter;
-use log::trace;
+use crate::{ByteSource, ReloadInfo};
+use log::{trace, warn};
 use std::marker::PhantomData;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
 
 pub struct MessageProducer<T, P, S>
 where
@@ -23,7 +21,7 @@ where
 }
 
 impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
-    /// create a new producer by plugging into a pcapng file
+    /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: S) -> Self {
         MessageProducer {
             byte_source: source,
@@ -36,21 +34,14 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
 
     fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem<T>)> {
         self.index += 1;
-        let now = SystemTime::now();
-
-        let since_the_epoch = now
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_| std::time::Duration::from_secs(0));
-        let last_in_ms = since_the_epoch.as_millis() as i64;
         // 1. buffer loaded? if not, fill buffer with frame data
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
+        let mut ts: Option<u64> = None;
         if self.byte_source.is_empty() {
-            self.byte_source
-                .reload(self.filter.as_ref())
-                .ok()
-                .flatten()?;
+            let (_, last_known_ts) = self.do_reload()?;
+            ts = last_known_ts;
         }
         let mut available = self.byte_source.len();
         loop {
@@ -58,10 +49,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                 trace!("No more bytes available from source");
                 return Some((0, MessageStreamItem::Done));
             }
-            match self
-                .parser
-                .parse(self.byte_source.current_slice(), Some(last_in_ms as u64))
-            {
+            match self.parser.parse(self.byte_source.current_slice(), ts) {
                 Ok((rest, Some(m))) => {
                     let consumed = available - rest.len();
                     trace!("Extracted a valid message, consumed {} bytes", consumed);
@@ -75,18 +63,10 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                 }
                 Err(SourceError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
-                    let reload_res = self.byte_source.reload(self.filter.as_ref());
-                    match reload_res {
-                        Ok(Some(n)) => {
-                            available += n;
-                            continue;
-                        }
-                        Ok(None) => return None,
-                        Err(e) => {
-                            trace!("Error reloading content: {}", e);
-                            return None;
-                        }
-                    }
+                    let (loaded_bytes, last_known_ts) = self.do_reload()?;
+                    available += loaded_bytes;
+                    ts = last_known_ts;
+                    continue;
                 }
                 Err(SourceError::Eof) => {
                     trace!("EOF reached...no more messages");
@@ -96,23 +76,29 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                     trace!("No parse possible, try next batch of data ({})", s);
                     self.byte_source.consume(available);
                     available = self.byte_source.len();
-                    let reload_res = self.byte_source.reload(self.filter.as_ref());
-                    match reload_res {
-                        Ok(Some(n)) => {
-                            available += n;
-                            continue;
-                        }
-                        Ok(None) => return None,
-                        Err(e) => {
-                            trace!("Error reloading content: {}", e);
-                            return None;
-                        }
-                    }
+
+                    let (loaded_bytes, last_known_ts) = self.do_reload()?;
+                    available += loaded_bytes;
+                    ts = last_known_ts;
                 }
                 Err(e) => {
                     trace!("Error during parsing, cannot continue: {}", e);
                     return None;
                 }
+            }
+        }
+    }
+
+    fn do_reload(&mut self) -> Option<(usize, Option<u64>)> {
+        match self.byte_source.reload(self.filter.as_ref()) {
+            Ok(Some(ReloadInfo {
+                loaded_bytes,
+                last_known_ts,
+            })) => Some((loaded_bytes, last_known_ts)),
+            Ok(None) => None,
+            Err(e) => {
+                warn!("Error reloading content: {}", e);
+                None
             }
         }
     }

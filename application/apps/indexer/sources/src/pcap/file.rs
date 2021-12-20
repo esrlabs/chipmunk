@@ -1,6 +1,7 @@
 use crate::producer::MessageProducer;
 use crate::ByteSource;
 use crate::Error as SourceError;
+use crate::ReloadInfo;
 use crate::SourceFilter;
 use crate::TransportProtocol;
 use crate::{LogMessage, MessageStreamItem, Parser};
@@ -16,6 +17,8 @@ use log::{debug, trace, warn};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
 use std::io::BufReader as IoBufReader;
 use std::io::Read;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 use std::{
     fs::*,
     io::{BufWriter, Write},
@@ -39,6 +42,15 @@ pub enum Error {
 pub struct PcapngByteSource<R: Read> {
     pcapng_reader: PcapNGReader<R>,
     buffer: Buffer,
+    last_know_timestamp: Option<u64>,
+}
+
+fn current_ts() -> u64 {
+    let now = SystemTime::now();
+    let since_the_epoch = now
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_else(|_| std::time::Duration::from_secs(0));
+    since_the_epoch.as_millis() as u64
 }
 
 impl<R: Read> PcapngByteSource<R> {
@@ -47,6 +59,7 @@ impl<R: Read> PcapngByteSource<R> {
             pcapng_reader: PcapNGReader::new(65536, reader)
                 .map_err(|e| SourceError::Setup(format!("{}", e)))?,
             buffer: Buffer::new(),
+            last_know_timestamp: Some(current_ts()),
         })
     }
 }
@@ -56,7 +69,7 @@ impl<R: Read> ByteSource for PcapngByteSource<R> {
         self.buffer.buf()
     }
 
-    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<usize>, SourceError> {
+    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
         let maybe_data;
         let mut consumed;
         loop {
@@ -67,6 +80,8 @@ impl<R: Read> ByteSource for PcapngByteSource<R> {
                     match block {
                         PcapBlockOwned::NG(pcap_parser::Block::EnhancedPacket(ref epb)) => {
                             trace!("Enhanced package");
+                            let ts_us: u64 = (epb.ts_high as u64) << 32 | epb.ts_low as u64;
+                            self.last_know_timestamp = Some(ts_us / 1000);
                             maybe_data = Some(epb.data);
                             break;
                         }
@@ -111,19 +126,25 @@ impl<R: Read> ByteSource for PcapngByteSource<R> {
                     ) => {
                         let actual_tp: TransportProtocol = actual.into();
                         if actual_tp == *wanted {
-                            Ok(Some(self.buffer.copy_from_slice(value.payload)))
+                            Ok(Some(ReloadInfo::new(
+                                self.buffer.copy_from_slice(value.payload),
+                                self.last_know_timestamp,
+                            )))
                         } else {
-                            Ok(Some(0))
+                            Ok(Some(ReloadInfo::new(0, self.last_know_timestamp)))
                         }
                     }
-                    _ => Ok(Some(self.buffer.copy_from_slice(value.payload))),
+                    _ => Ok(Some(ReloadInfo::new(
+                        self.buffer.copy_from_slice(value.payload),
+                        self.last_know_timestamp,
+                    ))),
                 },
                 Err(e) => Err(SourceError::Unrecoverable(format!(
                     "error trying to extract data from ethernet frame: {}",
                     e
                 ))),
             },
-            None => Ok(Some(0)),
+            None => Ok(Some(ReloadInfo::new(0, self.last_know_timestamp))),
         };
         // bytes are copied into buffer and can be dropped by pcap reader
         trace!("consume {} processed bytes", consumed);
