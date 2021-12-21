@@ -49,6 +49,7 @@ use sources::pcap::{
 };
 use std::fs::File;
 use std::path::Path;
+use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use tokio::sync;
@@ -1106,6 +1107,51 @@ pub async fn main() -> Result<()> {
         }
     }
 
+    async fn progress_listener(
+        source_file_size: u64,
+        mut rx: mpsc::Receiver<VoidResults>,
+        start: std::time::Instant,
+    ) {
+        println!("start progress listener for {} bytes", source_file_size);
+        while let Some(item) = rx.recv().await {
+            match item {
+                Ok(IndexingProgress::Finished { .. }) => {
+                    print!("FINISHED!!!!!!!!!!!!!!!!!!!!!");
+                    // progress_bar.finish_and_clear();
+
+                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                    duration_report_throughput(
+                        start,
+                        format!("processing ~{} MB", file_size_in_mb.round()),
+                        file_size_in_mb,
+                        "MB".to_string(),
+                    );
+                    break;
+                }
+                Ok(IndexingProgress::Progress { ticks }) => {
+                    let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+                    println!("progress... ({:.0} %)", progress_fraction * 100.0);
+                    // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+                }
+                Ok(IndexingProgress::GotItem { item: chunk }) => {
+                    println!("Invalid chunk received {:?}", chunk);
+                }
+                Err(Notification {
+                    severity,
+                    content,
+                    line,
+                }) => {
+                    if severity == Severity::WARNING {
+                        report_warning_ln(content, line);
+                    } else {
+                        report_error_ln(content, line);
+                    }
+                }
+                _ => report_warning("process finished without result"),
+            }
+        }
+    }
+
     async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches<'_>, start: std::time::Instant) {
         debug!("handle_dlt_pcap_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
@@ -1131,83 +1177,33 @@ pub async fn main() -> Result<()> {
                     .unwrap_or_else(|| fallback_out.as_str()),
             );
             let file_path = path::PathBuf::from(file_name);
-            let source_file_size = match fs::metadata(&file_path) {
-                Ok(file_meta) => file_meta.len(),
-                Err(_) => {
-                    report_error("could not find out size of source file");
-                    std::process::exit(2);
-                }
-            };
-            let mapping_out_path: path::PathBuf =
-                path::PathBuf::from(file_name.to_string() + ".map.json");
-
+            let mapping_out_path = path::PathBuf::from(file_name.to_string() + ".map.json");
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let tag_string = tag.to_string();
-            let total = fs::metadata(&file_path).expect("file size error").len();
-            let progress_bar = initialize_progress_bar(total);
+            let source_file_size = fs::metadata(&file_path).expect("file size error").len();
+            // let progress_bar = initialize_progress_bar(total);
             let in_one_go: bool = matches.is_present("convert");
 
             let cancel = CancellationToken::new();
             if in_one_go {
                 println!("one-go");
-                let (tx, rx): (cc::Sender<VoidResults>, cc::Receiver<VoidResults>) = unbounded();
-                tokio::spawn(async move {
-                    let fibex_config = load_test_fibex();
-                    let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
-                    let dlt_parser = DltParser {
-                        filter_config: filter_conf.map(process_filter_config),
-                        fibex_metadata: fibex_metadata.as_ref(),
-                    };
-                    let res =
-                        convert_from_pcapng(&file_path, &out_path, tx, cancel, dlt_parser).await;
-                    if let Err(reason) = res {
-                        report_error(format!("couldn't convert: {}", reason));
-                        std::process::exit(2)
-                    }
-                });
-                loop {
-                    match rx.recv() {
-                        Err(why) => {
-                            report_error(format!("couldn't process: {}", why));
-                            std::process::exit(2)
-                        }
-                        Ok(Ok(IndexingProgress::Finished { .. })) => {
-                            progress_bar.finish_and_clear();
-
-                            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                            duration_report_throughput(
-                                start,
-                                format!("processing ~{} MB", file_size_in_mb.round()),
-                                file_size_in_mb,
-                                "MB".to_string(),
-                            );
-                            break;
-                        }
-                        Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                            let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                            trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                            progress_bar.set_position((progress_fraction * (total as f64)) as u64);
-                        }
-                        Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                            println!("Invalid chunk received {:?}", chunk);
-                        }
-                        Ok(Err(Notification {
-                            severity,
-                            content,
-                            line,
-                        })) => {
-                            if severity == Severity::WARNING {
-                                report_warning_ln(content, line);
-                            } else {
-                                report_error_ln(content, line);
-                            }
-                        }
-                        Ok(_) => report_warning("process finished without result"),
-                    }
-                }
+                let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
+                    mpsc::channel(100);
+                let fibex_config = load_test_fibex();
+                let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
+                let dlt_parser = DltParser {
+                    filter_config: filter_conf.map(process_filter_config),
+                    fibex_metadata: fibex_metadata.as_ref(),
+                };
+                let (_, res) = tokio::join! {
+                    progress_listener(source_file_size, rx, start),
+                    convert_from_pcapng(&file_path, &out_path, tx, cancel, dlt_parser),
+                };
+                println!("total res was: {:?}", res);
             } else {
                 println!("NOT one-go");
-                let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+                let (tx, mut rx): (mpsc::Sender<ChunkResults>, mpsc::Receiver<ChunkResults>) =
+                    mpsc::channel(100);
                 tokio::spawn(async move {
                     let fibex_config = load_test_fibex();
                     let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
@@ -1242,26 +1238,26 @@ pub async fn main() -> Result<()> {
                 });
                 let mut chunks: Vec<Chunk> = vec![];
                 loop {
-                    match rx.recv() {
-                        Err(why) => {
-                            report_error(format!("couldn't process: {}", why));
+                    match rx.recv().await {
+                        None => {
+                            report_error(format!("couldn't receive from channel"));
                             std::process::exit(2)
                         }
-                        Ok(Ok(IndexingProgress::Finished { .. })) => {
+                        Some(Ok(IndexingProgress::Finished { .. })) => {
                             let _ = serialize_chunks(&chunks, &mapping_out_path);
-                            progress_bar.finish_and_clear();
+                            // progress_bar.finish_and_clear();
                             break;
                         }
-                        Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                        Some(Ok(IndexingProgress::Progress { ticks })) => {
                             let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
                             trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                            progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+                            // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
                         }
-                        Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                        Some(Ok(IndexingProgress::GotItem { item: chunk })) => {
                             println!("{:?}", chunk);
                             chunks.push(chunk);
                         }
-                        Ok(Err(Notification {
+                        Some(Err(Notification {
                             severity,
                             content,
                             line,
@@ -1272,7 +1268,7 @@ pub async fn main() -> Result<()> {
                                 report_error_ln(content, line);
                             }
                         }
-                        Ok(_) => report_warning("process finished without result"),
+                        Some(_) => report_warning("process finished without result"),
                     }
                 }
             }
