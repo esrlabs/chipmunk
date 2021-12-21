@@ -1,4 +1,4 @@
-import { IPreset, IBundle } from '../../../common/ipc/electron.ipc.messages';
+import { IPreset, IBundle, IFibex } from '../../../common/ipc/electron.ipc.messages';
 import { IConnectionOptions } from '../controllers/connections/dlt.connection';
 
 export { IConnectionOptions };
@@ -35,6 +35,7 @@ export interface IStorage {
     recentBundles: IBundle[];
     pluginDefaultUninstalled: string[];
     recentDLTTimeZone: string;
+    fibexDLT: IFibex[];
 }
 
 export const defaults: IStorage = {
@@ -48,4 +49,5 @@ export const defaults: IStorage = {
     recentBundles: [],
     pluginDefaultUninstalled: [],
     recentDLTTimeZone: '',
+    fibexDLT: [],
 };

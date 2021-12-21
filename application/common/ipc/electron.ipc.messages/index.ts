@@ -445,6 +445,15 @@ export { DLTDeamonSaveRequest, IDLTDeamonSaveRequest };
 import { DLTDeamonSaveResponse, IDLTDeamonSaveResponse } from './dlt.deamon.save.response';
 export { DLTDeamonSaveResponse, IDLTDeamonSaveResponse };
 
+import { DLTFibexSave, IFibex } from './dlt.fibex.save';
+export { DLTFibexSave, IFibex };
+
+import { DLTFibexLoadRequest, IDLTFibexLoadRequest } from './dlt.fibex.load.request';
+export { DLTFibexLoadRequest, IDLTFibexLoadRequest };
+
+import { DLTFibexLoadResponse, IDLTFibexLoadResponse } from './dlt.fibex.load.response';
+export { DLTFibexLoadResponse, IDLTFibexLoadResponse };
+
 import { DLTDeamonRecentDropRequest } from './dlt.deamon.recent.drop.request';
 export { DLTDeamonRecentDropRequest };
 
@@ -1199,6 +1208,9 @@ export type TMessage =
     | DLTStatsCancelResponse
     | DLTRecentTimeZoneRequest
     | DLTRecentTimeZoneResponse
+    | DLTFibexSave
+    | DLTFibexLoadRequest
+    | DLTFibexLoadResponse
     | UpdateRequest
     | RenderSessionAddRequest
     | RenderSessionAddResponse
@@ -1471,6 +1483,9 @@ export const Map = {
     [DLTRecentTimeZoneResponse.signature]: DLTRecentTimeZoneResponse,
     [DLTStatsCancelRequest.signature]: DLTStatsCancelRequest,
     [DLTStatsCancelResponse.signature]: DLTStatsCancelResponse,
+    [DLTFibexSave.signature]: DLTFibexSave,
+    [DLTFibexLoadRequest.signature]: DLTFibexLoadRequest,
+    [DLTFibexLoadResponse.signature]: DLTFibexLoadResponse,
 
     [UpdateRequest.signature]: UpdateRequest,
 
