@@ -4,7 +4,7 @@ use crate::MessageStreamItem;
 use crate::Parser;
 use crate::SourceFilter;
 use crate::{ByteSource, ReloadInfo};
-use log::{trace, warn};
+use log::{debug, trace, warn};
 use std::marker::PhantomData;
 
 pub struct MessageProducer<T, P, S>
@@ -19,6 +19,8 @@ where
     filter: Option<SourceFilter>,
     last_seen_ts: Option<u64>,
     _phantom_data: Option<PhantomData<T>>,
+    total_loaded: usize,
+    total_skipped: usize,
 }
 
 impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
@@ -31,6 +33,8 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
             filter: None,
             last_seen_ts: None,
             _phantom_data: None,
+            total_loaded: 0,
+            total_skipped: 0,
         }
     }
 
@@ -40,63 +44,99 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
-        if self.byte_source.is_empty() {
-            self.do_reload()?;
-        }
-        let mut available = self.byte_source.len();
+        let mut skipped_bytes = 0usize;
+        let mut available = if self.byte_source.is_empty() {
+            let (loaded, skipped) = self.do_reload()?;
+            skipped_bytes += skipped;
+            loaded
+        } else {
+            self.byte_source.len()
+        };
         loop {
             if available == 0 {
                 trace!("No more bytes available from source");
                 return Some((0, MessageStreamItem::Done));
             }
+            debug!("{} bytes available in buffer", available);
             match self
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
             {
                 Ok((rest, Some(m))) => {
                     let consumed = available - rest.len();
-                    trace!("Extracted a valid message, consumed {} bytes", consumed);
+                    let total_used_bytes = consumed + skipped_bytes;
+                    debug!(
+                        "Extracted a valid message, consumed {} bytes (total used {} bytes)",
+                        consumed, total_used_bytes
+                    );
                     self.byte_source.consume(consumed);
-                    return Some((consumed, MessageStreamItem::Item(m)));
+                    return Some((total_used_bytes, MessageStreamItem::Item(m)));
                 }
                 Ok((rest, None)) => {
                     let consumed = available - rest.len();
                     self.byte_source.consume(consumed);
-                    return Some((consumed, MessageStreamItem::Skipped));
+                    debug!("None, consumed {} bytes", consumed);
+                    let total_used_bytes = consumed + skipped_bytes;
+                    return Some((total_used_bytes, MessageStreamItem::Skipped));
                 }
                 Err(SourceError::Incomplete) => {
-                    trace!("not enough bytes to parse a message");
-                    available += self.do_reload()?;
+                    debug!("not enough bytes to parse a message");
+                    let (reloaded, skipped) = self.do_reload()?;
+                    available += reloaded;
+                    skipped_bytes += skipped;
                     continue;
                 }
                 Err(SourceError::Eof) => {
-                    trace!("EOF reached...no more messages");
+                    debug!(
+                        "EOF reached...no more messages (skipped_bytes={})",
+                        skipped_bytes
+                    );
                     return None;
                 }
                 Err(SourceError::Parse(s)) => {
-                    trace!("No parse possible, try next batch of data ({})", s);
+                    debug!(
+                        "No parse possible, try next batch of data ({}), skipped {} more bytes ({} already)",
+                        s, available, skipped_bytes
+                    );
                     self.byte_source.consume(available);
+                    skipped_bytes += available;
                     available = self.byte_source.len();
-                    available += self.do_reload()?;
+                    if let Some((reloaded, skipped)) = self.do_reload() {
+                        available += reloaded;
+                        skipped_bytes += skipped;
+                    } else {
+                        debug!(
+                            "Nothing more to reload, not used bytes: {}",
+                            skipped_bytes + available
+                        );
+                        return None;
+                    }
                 }
                 Err(e) => {
-                    trace!("Error during parsing, cannot continue: {}", e);
+                    debug!("Error during parsing, cannot continue: {}", e);
                     return None;
                 }
             }
         }
     }
 
-    fn do_reload(&mut self) -> Option<usize> {
+    fn do_reload(&mut self) -> Option<(usize, usize)> {
         match self.byte_source.reload(self.filter.as_ref()) {
             Ok(Some(ReloadInfo {
                 loaded_bytes,
+                skipped_bytes,
                 last_known_ts,
             })) => {
+                self.total_loaded += loaded_bytes;
+                self.total_skipped += skipped_bytes;
                 if let Some(ts) = last_known_ts {
                     self.last_seen_ts = Some(ts);
                 }
-                Some(loaded_bytes)
+                debug!(
+                    "did a do_reload, skipped {} bytes, loaded {} bytes (total loaded and skipped: {})",
+                    skipped_bytes, loaded_bytes, self.total_loaded + self.total_skipped
+                );
+                Some((loaded_bytes, skipped_bytes))
             }
             Ok(None) => None,
             Err(e) => {

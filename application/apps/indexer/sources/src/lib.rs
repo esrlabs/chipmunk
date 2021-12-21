@@ -73,13 +73,15 @@ pub struct SourceFilter {
 #[derive(Debug)]
 pub struct ReloadInfo {
     loaded_bytes: usize,
+    skipped_bytes: usize,
     last_known_ts: Option<u64>,
 }
 
 impl ReloadInfo {
-    pub fn new(loaded_bytes: usize, last_known_ts: Option<u64>) -> Self {
+    pub fn new(loaded_bytes: usize, skipped_bytes: usize, last_known_ts: Option<u64>) -> Self {
         Self {
             loaded_bytes,
+            skipped_bytes,
             last_known_ts,
         }
     }
