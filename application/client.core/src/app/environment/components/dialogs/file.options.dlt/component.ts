@@ -172,6 +172,18 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             map((value: string) => this._filterTimeZones(value)),
         );
         this._getRecentTimezone();
+        ElectronIpcService.request<IPC.DLTFibexLoadResponse>(
+            new IPC.DLTFibexLoadRequest({
+                dlt: this.fullFileName,
+            }),
+            IPC.DLTFibexLoadResponse,
+        )
+            .then((response: IPC.DLTFibexLoadResponse) => {
+                this._ng_fibex = response.fibexFiles;
+            })
+            .catch((error: Error) => {
+                this._logger.warn(`Fail to load fibex files due error: ${error.message}`);
+            });
     }
 
     public ngOnDestroy() {
@@ -219,6 +231,14 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
             },
             fibexFilesInfo: this._ng_fibex,
             tz: tzIndex <= 0 ? undefined : this._timezones[tzIndex],
+        });
+        ElectronIpcService.send(
+            new IPC.DLTFibexSave({
+                dlt: this.fullFileName,
+                fibexFiles: this._ng_fibex,
+            }),
+        ).catch((error: Error) => {
+            this._logger.warn(`Fail to save fibex files due error: ${error.message}`);
         });
     }
 
