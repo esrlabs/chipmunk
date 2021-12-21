@@ -17,6 +17,7 @@ where
     index: usize,
     parser: P,
     filter: Option<SourceFilter>,
+    last_seen_ts: Option<u64>,
     _phantom_data: Option<PhantomData<T>>,
 }
 
@@ -28,6 +29,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
             index: 0,
             parser,
             filter: None,
+            last_seen_ts: None,
             _phantom_data: None,
         }
     }
@@ -38,10 +40,8 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
-        let mut ts: Option<u64> = None;
         if self.byte_source.is_empty() {
-            let (_, last_known_ts) = self.do_reload()?;
-            ts = last_known_ts;
+            self.do_reload()?;
         }
         let mut available = self.byte_source.len();
         loop {
@@ -49,7 +49,10 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                 trace!("No more bytes available from source");
                 return Some((0, MessageStreamItem::Done));
             }
-            match self.parser.parse(self.byte_source.current_slice(), ts) {
+            match self
+                .parser
+                .parse(self.byte_source.current_slice(), self.last_seen_ts)
+            {
                 Ok((rest, Some(m))) => {
                     let consumed = available - rest.len();
                     trace!("Extracted a valid message, consumed {} bytes", consumed);
@@ -63,9 +66,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                 }
                 Err(SourceError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
-                    let (loaded_bytes, last_known_ts) = self.do_reload()?;
-                    available += loaded_bytes;
-                    ts = last_known_ts;
+                    available += self.do_reload()?;
                     continue;
                 }
                 Err(SourceError::Eof) => {
@@ -76,10 +77,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                     trace!("No parse possible, try next batch of data ({})", s);
                     self.byte_source.consume(available);
                     available = self.byte_source.len();
-
-                    let (loaded_bytes, last_known_ts) = self.do_reload()?;
-                    available += loaded_bytes;
-                    ts = last_known_ts;
+                    available += self.do_reload()?;
                 }
                 Err(e) => {
                     trace!("Error during parsing, cannot continue: {}", e);
@@ -89,12 +87,17 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
         }
     }
 
-    fn do_reload(&mut self) -> Option<(usize, Option<u64>)> {
+    fn do_reload(&mut self) -> Option<usize> {
         match self.byte_source.reload(self.filter.as_ref()) {
             Ok(Some(ReloadInfo {
                 loaded_bytes,
                 last_known_ts,
-            })) => Some((loaded_bytes, last_known_ts)),
+            })) => {
+                if let Some(ts) = last_known_ts {
+                    self.last_seen_ts = Some(ts);
+                }
+                Some(loaded_bytes)
+            }
             Ok(None) => None,
             Err(e) => {
                 warn!("Error reloading content: {}", e);
