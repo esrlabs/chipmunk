@@ -1,10 +1,8 @@
 use crate::producer::MessageProducer;
-use crate::ByteSource;
-use crate::Error as SourceError;
-use crate::ReloadInfo;
-use crate::SourceFilter;
-use crate::TransportProtocol;
-use crate::{LogMessage, MessageStreamItem, Parser};
+use crate::{
+    ByteSource, Error as SourceError, LogMessage, MessageStreamItem, Parser, ReloadInfo,
+    SourceFilter, TransportProtocol,
+};
 use buf_redux::Buffer;
 use crossbeam_channel as cc;
 use indexer_base::{
@@ -15,13 +13,9 @@ use indexer_base::{
 };
 use log::{debug, trace, warn};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
-use std::io::BufReader as IoBufReader;
-use std::io::Read;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
 use std::{
     fs::*,
-    io::{BufWriter, Write},
+    io::{BufReader as IoBufReader, BufWriter, Read, Write},
 };
 use thiserror::Error;
 use tokio_stream::{self as stream};
@@ -45,21 +39,13 @@ pub struct PcapngByteSource<R: Read> {
     last_know_timestamp: Option<u64>,
 }
 
-fn current_ts() -> u64 {
-    let now = SystemTime::now();
-    let since_the_epoch = now
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_else(|_| std::time::Duration::from_secs(0));
-    since_the_epoch.as_millis() as u64
-}
-
 impl<R: Read> PcapngByteSource<R> {
     pub fn new(reader: R) -> Result<Self, SourceError> {
         Ok(Self {
             pcapng_reader: PcapNGReader::new(65536, reader)
                 .map_err(|e| SourceError::Setup(format!("{}", e)))?,
             buffer: Buffer::new(),
-            last_know_timestamp: Some(current_ts()),
+            last_know_timestamp: None,
         })
     }
 }
