@@ -1,22 +1,19 @@
 @import '../../../../theme/variables.less';
 
-
 :host {
-    position: relative;
-    display: block;
-    & span.slitter{
-        position: relative;
-        display: block;
-        height: 8px;
+    & .controls {
+        display: flex;
+        justify-content: space-between;
     }
-    & .controlls{
-        text-align: right;
+    & .filename {
+        color: @scheme-color-3;
+        flex-direction: column;
+        display: flex;
+        justify-content: center;
+        overflow: hidden;
+        font-family: Roboto, 'Helvetica Neue', sans-serif;
+        font-size: 12px;
+        direction: rtl;
         white-space: nowrap;
-        & * {
-            margin-right: 8px;
-            &:last-child {
-                margin-right: 0;
-            }
-        }
     }
 }

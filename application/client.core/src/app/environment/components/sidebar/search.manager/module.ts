@@ -21,6 +21,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { SidebarAppSearchManagerChartsComponent } from './charts/list/component';
 import { SidebarAppSearchManagerChartComponent } from './charts/chart/component';
@@ -85,6 +87,8 @@ const modules = [
     MatTooltipModule,
     DragDropModule,
     EnvironmentCommonModule,
+    MatMenuModule,
+    MatDividerModule,
 ];
 
 @NgModule({

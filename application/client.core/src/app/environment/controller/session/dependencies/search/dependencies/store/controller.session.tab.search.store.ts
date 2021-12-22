@@ -1,42 +1,29 @@
-import { Observable, Subject, Subscription } from 'rxjs';
-import {
-    FiltersStorage,
-    FilterRequest,
-} from '../filters/controller.session.tab.search.filters.storage';
-import {
-    ChartsStorage,
-    ChartRequest,
-} from '../charts/controller.session.tab.search.charts.storage';
-import {
-    RangesStorage,
-    RangeRequest,
-} from '../timeranges/controller.session.tab.search.ranges.storage';
-import {
-    DisabledRequest,
-    DisabledStorage,
-} from '../disabled/controller.session.tab.search.disabled.storage';
-import { IStore, EStoreKeys, IStoreData } from './controller.session.tab.search.store.support';
+import { Subscription } from 'rxjs';
+import { FiltersStorage } from '../filters/controller.session.tab.search.filters.storage';
+import { ChartsStorage } from '../charts/controller.session.tab.search.charts.storage';
+import { RangesStorage } from '../timeranges/controller.session.tab.search.ranges.storage';
+import { DisabledStorage } from '../disabled/controller.session.tab.search.disabled.storage';
+import { IStore, IStoreData } from './controller.session.tab.search.store.support';
 import { Dependency, SessionGetter, SearchSessionGetter } from '../search.dependency';
 
 import ElectronIpcService, { IPC } from '../../../../../../services/service.electron.ipc';
 
 import * as Toolkit from 'chipmunk.client.toolkit';
 
+export interface IFiltersLoad {
+    store: string;
+    file: string;
+}
+
 export class ControllerSessionTabSearchStore implements Dependency {
     private _logger: Toolkit.Logger;
     private _uuid: string;
     private _subscriptions: { [key: string]: Subscription | Toolkit.Subscription } = {};
-    private _subjects: {
-        filename: Subject<string>;
-    } = {
-        filename: new Subject<string>(),
-    };
     private _filename: string = '';
     private _filters!: FiltersStorage;
     private _charts!: ChartsStorage;
     private _ranges!: RangesStorage;
     private _disabled!: DisabledStorage;
-    private _loading: boolean = false;
     private _accessor: {
         session: SessionGetter;
         search: SearchSessionGetter;
@@ -52,28 +39,11 @@ export class ControllerSessionTabSearchStore implements Dependency {
     }
 
     public init(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this._filters = this._accessor.search().getFiltersAPI().getStorage();
             this._charts = this._accessor.search().getChartsAPI().getStorage();
             this._ranges = this._accessor.search().getRangesAPI().getStorage();
             this._disabled = this._accessor.search().getDisabledAPI().getStorage();
-            [this._filters, this._charts, this._ranges, this._disabled].forEach(
-                (
-                    storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage,
-                    i: number,
-                ) => {
-                    if ((storage.getObservable() as any).updated !== undefined) {
-                        this._subscriptions[Toolkit.guid()] = (
-                            storage.getObservable() as any
-                        ).updated.subscribe(this._onChanges.bind(this));
-                    }
-                    if ((storage.getObservable() as any).changed !== undefined) {
-                        this._subscriptions[Toolkit.guid()] = (
-                            storage.getObservable() as any
-                        ).changed.subscribe(this._onChanges.bind(this));
-                    }
-                },
-            );
             resolve();
         });
     }
@@ -91,28 +61,19 @@ export class ControllerSessionTabSearchStore implements Dependency {
         return 'ControllerSessionTabSearchStore';
     }
 
-    public getObservable(): {
-        filename: Observable<string>;
-    } {
-        return {
-            filename: this._subjects.filename.asObservable(),
-        };
-    }
-
     public getCurrentFile(): string {
         return this._filename;
     }
 
-    public load(file?: string): Promise<string> {
+    public loadWithFilePicker(file?: string): Promise<string | IFiltersLoad> {
         return new Promise((resolve, reject) => {
-            this._loading = true;
             ElectronIpcService.request<IPC.FiltersLoadResponse>(
                 new IPC.FiltersLoadRequest({
                     file: file,
                 }),
                 IPC.FiltersLoadResponse,
             )
-                .then((response) => {
+                .then((response: IPC.FiltersLoadResponse) => {
                     if (response.error !== undefined) {
                         return reject(new Error(response.error));
                     }
@@ -123,38 +84,44 @@ export class ControllerSessionTabSearchStore implements Dependency {
                             ),
                         );
                     }
-                    let store: IStoreData = {};
-                    try {
-                        store = JSON.parse(response.store);
-                    } catch (err) {
-                        this._logger.error(
-                            `Fail parse filters due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        );
-                        return;
+                    if (this._storedCount() > 0) {
+                        return resolve({
+                            file: response.file,
+                            store: response.store,
+                        });
                     }
-                    [this._filters, this._charts, this._ranges, this._disabled].forEach(
-                        (storage: IStore<any>) => {
-                            if (
-                                typeof store[storage.store().key()] !== 'object' ||
-                                store[storage.store().key()] === null
-                            ) {
-                                return;
-                            }
-                            storage.store().upload(store[storage.store().key()]);
-                        },
-                    );
-                    this.setCurrentFile(response.file);
-                    this._loading = false;
+                    this.load(response.file, response.store, false);
                     resolve(response.file);
                 })
                 .catch((error: Error) => {
                     this._logger.error(`Fail to load filters due error: ${error.message}`);
-                    this._loading = false;
                     reject(error);
                 });
         });
+    }
+
+    public load(filename: string, storeName: string, append: boolean) {
+        let store: IStoreData = {};
+        try {
+            store = JSON.parse(storeName);
+        } catch (err) {
+            this._logger.error(
+                `Fail parse filters due error: ${err instanceof Error ? err.message : err}`,
+            );
+            return;
+        }
+        [this._filters, this._charts, this._ranges, this._disabled].forEach(
+            (storage: IStore<any>) => {
+                if (
+                    typeof store[storage.store().key()] !== 'object' ||
+                    store[storage.store().key()] === null
+                ) {
+                    return;
+                }
+                storage.store().upload(store[storage.store().key()], append);
+            },
+        );
+        this._filename = filename;
     }
 
     public save(filename: string | undefined): Promise<string> {
@@ -179,7 +146,7 @@ export class ControllerSessionTabSearchStore implements Dependency {
                     if (response.error !== undefined) {
                         return reject(new Error(response.error));
                     }
-                    this.setCurrentFile(response.filename);
+                    this._filename = response.filename;
                     resolve(response.filename);
                 })
                 .catch((error: Error) => {
@@ -211,27 +178,13 @@ export class ControllerSessionTabSearchStore implements Dependency {
         });
     }
 
-    public setCurrentFile(filename: string) {
-        this._filename = filename;
-        this._subjects.filename.next(filename);
-    }
-
-    private _onChanges() {
-        if (this._loading) {
-            return;
-        }
-        if (this.getCurrentFile().trim() === '') {
-            return;
-        }
+    private _storedCount(): number {
         let count: number = 0;
         [this._filters, this._charts, this._ranges, this._disabled].forEach(
             (storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage) => {
-                count += storage.get().length;
+                count += storage.getStoredCount();
             },
         );
-        if (count === 0) {
-            return;
-        }
-        this.save(this.getCurrentFile());
+        return count;
     }
 }

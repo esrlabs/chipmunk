@@ -11,6 +11,7 @@ import { DialogsRecentFitlersActionComponent } from './recentfilter/component';
 import { DialogsMeasurementAddFormatComponent } from './measurement.format.add/component';
 import { DialogsMeasurementFormatDefaultsComponent } from './measurement.format.defaults/component';
 import { DialogsAddCommentOnRowComponent } from './comment.row.add/component';
+import { DialogsFiltersLoadComponent } from './filters.load/component';
 
 import { PrimitiveModule, ContainersModule } from 'chipmunk-client-material';
 import { AppDirectiviesModule } from '../../directives/module';
@@ -41,6 +42,7 @@ const CDialogs = [
     DialogsMeasurementAddFormatComponent,
     DialogsMeasurementFormatDefaultsComponent,
     DialogsAddCommentOnRowComponent,
+    DialogsFiltersLoadComponent,
 ];
 
 @NgModule({

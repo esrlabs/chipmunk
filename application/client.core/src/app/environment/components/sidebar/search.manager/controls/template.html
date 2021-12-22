@@ -1,5 +1,31 @@
-<div class="controlls">
-    <button mat-stroked-button color="primary" (click)="_ng_onSave()" [disabled]="false">{{_ng_getSaveButtonLabel()}}</button>
-    <button mat-stroked-button color="primary" (click)="_ng_onLoad()" [disabled]="false">Load</button>
-    <button mat-stroked-button color="primary" (click)="_ng_onRecentOpen()" [disabled]="false">Recent</button>
+<div class="controls">
+    <span class="filename">{{_ng_filename}}</span>
+    <button
+        mat-icon-button
+        color="primary"
+        aria-label="Available Actions"
+        [matMenuTriggerFor]="searchManagerActionsMenu"
+    >
+        <mat-icon>more_horiz</mat-icon>
+    </button>
 </div>
+
+<mat-menu #searchManagerActionsMenu="matMenu" xPosition="before">
+    <button mat-menu-item (click)="_ng_onSave(_ng_filename)">
+        <span>Save</span>
+    </button>
+    <div *ngIf="_ng_filename !== ''">
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="_ng_onSave()">
+            <span>Save as</span>
+        </button>
+    </div>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="_ng_onLoad()">
+        <span>Load</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="_ng_onRecentOpen()">
+        <span>Recent</span>
+    </button>
+</mat-menu>

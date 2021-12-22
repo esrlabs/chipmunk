@@ -31,7 +31,6 @@ import * as Toolkit from 'chipmunk.client.toolkit';
     styleUrls: ['./styles.less'],
 })
 export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewInit {
-    public _ng_filename: string = '';
     public _ng_providers: Provider<any>[] = [];
     public _ng_selected: Provider<any> | undefined;
 
@@ -39,7 +38,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     private _session: Session | undefined;
     private _focused: boolean = false;
     private _subscriptions: { [key: string]: Subscription } = {};
-    private _subs: { [key: string]: Subscription } = {};
     private _destroyed: boolean = false;
 
     @HostBinding('attr.tabindex') get tabindex() {
@@ -91,9 +89,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         this._destroyed = true;
         Object.keys(this._subscriptions).forEach((key: string) => {
             this._subscriptions[key].unsubscribe();
-        });
-        Object.keys(this._subs).forEach((prop: string) => {
-            this._subs[prop].unsubscribe();
         });
         this._providers.destroy();
         window.removeEventListener('keyup', this._onGlobalKeyUp);
@@ -164,9 +159,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
     }
 
     private _onSessionChange(session: Session | undefined) {
-        Object.keys(this._subs).forEach((prop: string) => {
-            this._subs[prop].unsubscribe();
-        });
         if (session === undefined) {
             session = TabsSessionsService.getActive();
         }
@@ -177,11 +169,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
             this._session = session;
             const single = this._providers.select().single(this._session.getGuid());
             this._ng_selected = single === undefined ? undefined : single.provider;
-            this._subs.filename = session
-                .getSessionSearch()
-                .getStoreAPI()
-                .getObservable()
-                .filename.subscribe(this._onFilenameChanged.bind(this));
         }
     }
 
@@ -194,11 +181,6 @@ export class SidebarAppSearchManagerComponent implements OnDestroy, AfterViewIni
         } else {
             this._ng_selected = event.provider;
         }
-        this._forceUpdate();
-    }
-
-    private _onFilenameChanged(filename: string) {
-        this._ng_filename = Toolkit.basename(filename);
         this._forceUpdate();
     }
 

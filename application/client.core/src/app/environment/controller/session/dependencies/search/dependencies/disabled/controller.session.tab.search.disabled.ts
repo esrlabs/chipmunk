@@ -98,7 +98,7 @@ export class ControllerSessionTabSearchDisabled
     public import(disableds: IDisabledDesc[]): Promise<void> {
         return new Promise((resolve, reject) => {
             this._storage.clear();
-            this._storage.store().upload(disableds);
+            this._storage.store().upload(disableds, false);
             resolve();
         });
     }

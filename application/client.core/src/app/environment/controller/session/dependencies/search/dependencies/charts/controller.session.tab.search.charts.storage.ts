@@ -160,6 +160,10 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
         return this._stored;
     }
 
+    public getStoredCount(): number {
+        return this._stored.length;
+    }
+
     public getAsDesc(): IChartDescOptional[] {
         return this._stored.map((c) => c.asDesc());
     }
@@ -186,7 +190,7 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(charts: IChartDesc[]): void;
+        upload(charts: IChartDesc[], append: boolean): void;
         getItemsCount(): number;
     } {
         const self = this;
@@ -199,8 +203,10 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
                     return chart.asDesc();
                 });
             },
-            upload(charts: IChartDesc[]) {
-                self.clear();
+            upload(charts: IChartDesc[], append: boolean) {
+                if (!append) {
+                    self.clear();
+                }
                 self.add(charts.map((desc: IChartDesc) => new ChartRequest(desc)));
             },
             getItemsCount(): number {
