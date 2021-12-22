@@ -153,6 +153,10 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
         return this._stored;
     }
 
+    public getStoredCount(): number {
+        return this._stored.length;
+    }
+
     public getAsDesc(): IFilterDescOptional[] {
         return this._stored.map((filter: FilterRequest) => {
             return filter.asDesc();
@@ -181,7 +185,7 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(filters: IFilterDesc[]): void;
+        upload(filters: IFilterDesc[], append: boolean): void;
         getItemsCount(): number;
     } {
         const self = this;
@@ -194,8 +198,10 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
                     return filter.asDesc();
                 });
             },
-            upload(filters: IFilterDesc[]) {
-                self.clear();
+            upload(filters: IFilterDesc[], append: boolean) {
+                if (!append) {
+                    self.clear();
+                }
                 self.add(filters.map((desc: IFilterDesc) => new FilterRequest(desc)));
             },
             getItemsCount(): number {

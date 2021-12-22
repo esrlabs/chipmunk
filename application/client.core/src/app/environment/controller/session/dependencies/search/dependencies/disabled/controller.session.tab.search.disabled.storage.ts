@@ -134,6 +134,10 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
         return this._stored;
     }
 
+    public getStoredCount(): number {
+        return this._stored.length;
+    }
+
     public getAsDesc(): IDisabledDesc[] {
         return this._stored.map((d) => d.asDesc());
     }
@@ -150,7 +154,7 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(entities: IDisabledDesc[]): void;
+        upload(entities: IDisabledDesc[], append: boolean): void;
         getItemsCount(): number;
     } {
         const self = this;
@@ -163,8 +167,10 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
                     return disabled.asDesc();
                 });
             },
-            upload(entities: IDisabledDesc[]): void {
-                self._clear();
+            upload(entities: IDisabledDesc[], append: boolean): void {
+                if (!append) {
+                    self._clear();
+                }
                 self.add(
                     entities
                         .map((entity: IDisabledDesc) => {

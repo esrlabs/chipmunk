@@ -149,6 +149,10 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
         return this._stored;
     }
 
+    public getStoredCount(): number {
+        return this._stored.length;
+    }
+
     public getAsDesc(): IRangeDescOptional[] {
         return this._stored.map((r) => r.asDesc());
     }
@@ -165,7 +169,7 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(ranges: IRangeDesc[]): void;
+        upload(ranges: IRangeDesc[], append: boolean): void;
         getItemsCount(): number;
     } {
         const self = this;
@@ -178,8 +182,10 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
                     return range.asDesc();
                 });
             },
-            upload(ranges: IRangeDesc[]): void {
-                self.clear();
+            upload(ranges: IRangeDesc[], append: boolean): void {
+                if (!append) {
+                    self.clear();
+                }
                 self.add(ranges.map((desc: IRangeDesc) => new RangeRequest(desc)));
             },
             getItemsCount(): number {
