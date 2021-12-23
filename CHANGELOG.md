@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.26.0] - 12/24/2021
+
+### Changes
+-   Remember recently selected fibex-file
+-   Updated recent filter manager
+
 ## [2.25.0] - 12/17/2021
 
 ### Added
