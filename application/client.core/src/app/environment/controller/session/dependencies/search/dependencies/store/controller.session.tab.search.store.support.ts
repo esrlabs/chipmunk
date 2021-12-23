@@ -13,7 +13,7 @@ export interface IStore<T> {
     store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(data: T, append: boolean): void;
+        upload(data: T, append: boolean): Error | undefined;
         getItemsCount(): number;
     };
 }

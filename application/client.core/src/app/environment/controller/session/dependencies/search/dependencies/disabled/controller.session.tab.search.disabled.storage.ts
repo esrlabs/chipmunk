@@ -154,7 +154,7 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(entities: IDisabledDesc[], append: boolean): void;
+        upload(entities: IDisabledDesc[], append: boolean): Error | undefined;
         getItemsCount(): number;
     } {
         const self = this;
@@ -167,13 +167,25 @@ export class DisabledStorage implements IStore<IDisabledDesc[]> {
                     return disabled.asDesc();
                 });
             },
-            upload(entities: IDisabledDesc[], append: boolean): void {
+            upload(entities: IDisabledDesc[], append: boolean): Error | undefined {
                 if (!append) {
                     self._clear();
                 }
-                self.add(
+                return self.add(
                     entities
                         .map((entity: IDisabledDesc) => {
+                            let contains: boolean = false;
+                            self._stored.forEach((request: DisabledRequest) => {
+                                if (
+                                    request.getEntity().getTypeRef() === entity.type &&
+                                    request.getEntity().getDisplayName() === entity.desc.request
+                                ) {
+                                    contains = true;
+                                }
+                            });
+                            if (contains) {
+                                return undefined;
+                            }
                             const ref = (self._refs as any)[entity.type];
                             if (ref === undefined) {
                                 return undefined;

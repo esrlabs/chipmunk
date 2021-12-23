@@ -97,7 +97,8 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
                         : new FilterRequest(desc);
                 // Check request
                 if (this.has(srchRqst)) {
-                    throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
+                    this._logger.warn(`Request "${srchRqst.asDesc().request}" already exist`);
+                    return;
                 }
                 // Add request
                 if (typeof from === 'number' && from < this._stored.length) {
@@ -185,7 +186,7 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(filters: IFilterDesc[], append: boolean): void;
+        upload(filters: IFilterDesc[], append: boolean): Error | undefined;
         getItemsCount(): number;
     } {
         const self = this;
@@ -202,7 +203,7 @@ export class FiltersStorage implements IStore<IFilterDesc[]> {
                 if (!append) {
                     self.clear();
                 }
-                self.add(filters.map((desc: IFilterDesc) => new FilterRequest(desc)));
+                return self.add(filters.map((desc: IFilterDesc) => new FilterRequest(desc)));
             },
             getItemsCount(): number {
                 return self._stored.length;

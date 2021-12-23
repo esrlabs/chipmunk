@@ -271,8 +271,12 @@ export class ControllerSessionTabSearchFilters
 
     public import(filters: IFilterDescOptional[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._storage.add(filters);
-            resolve();
+            const err: Error | undefined = this._storage.add(filters);
+            if (err instanceof Error) {
+                reject(err);
+            } else {
+                resolve();
+            }
         });
     }
 

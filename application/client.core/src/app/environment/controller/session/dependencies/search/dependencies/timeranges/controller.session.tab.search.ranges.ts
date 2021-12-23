@@ -243,8 +243,12 @@ export class ControllerSessionTabSearchRanges
     public import(filters: IRangeDescOptional[]): Promise<void> {
         return new Promise((resolve, reject) => {
             this._storage.clear();
-            this._storage.add(filters);
-            resolve();
+            const err: Error | undefined = this._storage.add(filters);
+            if (err instanceof Error) {
+                reject(err);
+            } else {
+                resolve();
+            }
         });
     }
 

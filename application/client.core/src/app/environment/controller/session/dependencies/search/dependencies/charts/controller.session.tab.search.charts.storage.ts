@@ -100,7 +100,8 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
                         : new ChartRequest(desc);
                 // Check request
                 if (this.has(srchRqst)) {
-                    throw new Error(`Request "${srchRqst.asDesc().request}" already exist`);
+                    this._logger.warn(`Request "${srchRqst.asDesc().request}" already exist`);
+                    return;
                 }
                 // Add request
                 if (typeof from === 'number' && from < this._stored.length) {
@@ -190,7 +191,7 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(charts: IChartDesc[], append: boolean): void;
+        upload(charts: IChartDesc[], append: boolean): Error | undefined;
         getItemsCount(): number;
     } {
         const self = this;
@@ -207,7 +208,7 @@ export class ChartsStorage implements IStore<IChartDesc[]> {
                 if (!append) {
                     self.clear();
                 }
-                self.add(charts.map((desc: IChartDesc) => new ChartRequest(desc)));
+                return self.add(charts.map((desc: IChartDesc) => new ChartRequest(desc)));
             },
             getItemsCount(): number {
                 return self._stored.length;

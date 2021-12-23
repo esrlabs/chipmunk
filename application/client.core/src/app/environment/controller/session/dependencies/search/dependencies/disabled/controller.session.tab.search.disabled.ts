@@ -98,8 +98,12 @@ export class ControllerSessionTabSearchDisabled
     public import(disableds: IDisabledDesc[]): Promise<void> {
         return new Promise((resolve, reject) => {
             this._storage.clear();
-            this._storage.store().upload(disableds, false);
-            resolve();
+            const err: Error | undefined = this._storage.store().upload(disableds, false);
+            if (err instanceof Error) {
+                reject(err);
+            } else {
+                resolve();
+            }
         });
     }
 
