@@ -93,7 +93,8 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
                     desc instanceof RangeRequest ? desc : new RangeRequest(desc);
                 // Check request
                 if (this.has(range)) {
-                    throw new Error(`Range already exist`);
+                    this._logger.warn(`Range already exist`);
+                    return;
                 }
                 // Add request
                 if (typeof from === 'number' && from < this._stored.length) {
@@ -169,7 +170,7 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
     public store(): {
         key(): EStoreKeys;
         extract(): IStoreData;
-        upload(ranges: IRangeDesc[], append: boolean): void;
+        upload(ranges: IRangeDesc[], append: boolean): Error | undefined;
         getItemsCount(): number;
     } {
         const self = this;
@@ -182,11 +183,11 @@ export class RangesStorage implements IStore<IRangeDesc[]> {
                     return range.asDesc();
                 });
             },
-            upload(ranges: IRangeDesc[], append: boolean): void {
+            upload(ranges: IRangeDesc[], append: boolean): Error | undefined {
                 if (!append) {
                     self.clear();
                 }
-                self.add(ranges.map((desc: IRangeDesc) => new RangeRequest(desc)));
+                return self.add(ranges.map((desc: IRangeDesc) => new RangeRequest(desc)));
             },
             getItemsCount(): number {
                 return self._stored.length;
