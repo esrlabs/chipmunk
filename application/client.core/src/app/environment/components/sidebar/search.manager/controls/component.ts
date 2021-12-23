@@ -80,15 +80,17 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (this._controller === undefined) {
             return;
         }
-        this._controller
+        const controller: ControllerSessionTabSearchStore = this._controller;
+        controller
             .loadWithFilePicker(file)
-            .then((response: string | IFiltersLoad) => {
-                if (typeof response === 'string') {
-                    this._ng_filename = this._removeTrailingSlash(response);
+            .then((response: IFiltersLoad) => {
+                if (controller.storedCount() > 0) {
+                    this._showDialog(response);
+                } else {
+                    controller.load(response.file, response.contentJSON, false);
+                    this._ng_filename = this._removeTrailingSlash(response.file);
                     this._openSidebar();
-                    return;
                 }
-                this._showDialog(response);
             })
             .catch((error: Error) => {
                 this._notifications.add({
@@ -120,6 +122,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         if (this._controller === undefined) {
             return;
         }
+        const controller: ControllerSessionTabSearchStore = this._controller;
         const popupId: string | undefined = PopupsService.add({
             id: 'filters-load-dialog',
             caption: `Load filters`,
@@ -135,13 +138,14 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                 {
                     caption: 'Append',
                     handler: () => {
-                        this._controller?.load(data.file, data.store, true);
+                        controller.load(data.file, data.contentJSON, true);
+                        this._ng_filename = this._removeTrailingSlash(data.file);
                     },
                 },
                 {
                     caption: 'Replace',
                     handler: () => {
-                        this._controller?.load(data.file, data.store, false);
+                        controller.load(data.file, data.contentJSON, false);
                         this._ng_filename = this._removeTrailingSlash(data.file);
                     },
                 },
