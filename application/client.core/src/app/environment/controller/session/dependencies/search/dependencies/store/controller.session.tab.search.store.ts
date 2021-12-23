@@ -11,7 +11,7 @@ import ElectronIpcService, { IPC } from '../../../../../../services/service.elec
 import * as Toolkit from 'chipmunk.client.toolkit';
 
 export interface IFiltersLoad {
-    store: string;
+    contentJSON: string;
     file: string;
 }
 
@@ -65,7 +65,7 @@ export class ControllerSessionTabSearchStore implements Dependency {
         return this._filename;
     }
 
-    public loadWithFilePicker(file?: string): Promise<string | IFiltersLoad> {
+    public loadWithFilePicker(file?: string): Promise<IFiltersLoad> {
         return new Promise((resolve, reject) => {
             ElectronIpcService.request<IPC.FiltersLoadResponse>(
                 new IPC.FiltersLoadRequest({
@@ -84,14 +84,7 @@ export class ControllerSessionTabSearchStore implements Dependency {
                             ),
                         );
                     }
-                    if (this._storedCount() > 0) {
-                        return resolve({
-                            file: response.file,
-                            store: response.store,
-                        });
-                    }
-                    this.load(response.file, response.store, false);
-                    resolve(response.file);
+                    resolve({ file: response.file, contentJSON: response.store });
                 })
                 .catch((error: Error) => {
                     this._logger.error(`Fail to load filters due error: ${error.message}`);
@@ -100,10 +93,10 @@ export class ControllerSessionTabSearchStore implements Dependency {
         });
     }
 
-    public load(filename: string, storeName: string, append: boolean) {
+    public load(filename: string, contentJSON: string, append: boolean) {
         let store: IStoreData = {};
         try {
-            store = JSON.parse(storeName);
+            store = JSON.parse(contentJSON);
         } catch (err) {
             this._logger.error(
                 `Fail parse filters due error: ${err instanceof Error ? err.message : err}`,
@@ -178,7 +171,7 @@ export class ControllerSessionTabSearchStore implements Dependency {
         });
     }
 
-    private _storedCount(): number {
+    public storedCount(): number {
         let count: number = 0;
         [this._filters, this._charts, this._ranges, this._disabled].forEach(
             (storage: FiltersStorage | ChartsStorage | RangesStorage | DisabledStorage) => {
