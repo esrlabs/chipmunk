@@ -84,7 +84,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
             .loadWithFilePicker(file)
             .then((response: string | IFiltersLoad) => {
                 if (typeof response === 'string') {
-                    this._ng_filename = response;
+                    this._ng_filename = this._removeTrailingSlash(response);
                     this._openSidebar();
                     return;
                 }
@@ -105,7 +105,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         this._controller
             .save(file)
             .then((filename: string) => {
-                this._ng_filename = filename;
+                this._ng_filename = this._removeTrailingSlash(filename);
             })
             .catch((error: Error) => {
                 this._ng_filename = '';
@@ -142,7 +142,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
                     caption: 'Replace',
                     handler: () => {
                         this._controller?.load(data.file, data.store, false);
-                        this._ng_filename = data.file;
+                        this._ng_filename = this._removeTrailingSlash(data.file);
                     },
                 },
                 {
@@ -158,6 +158,10 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
         });
     }
 
+    private _removeTrailingSlash(filename: string): string {
+        return filename.replace(/\/$/, '');
+    }
+
     private _onSessionChange(controller?: Session) {
         if (controller === undefined) {
             controller = TabsSessionsService.getActive();
@@ -166,7 +170,7 @@ export class SidebarAppSearchManagerControlsComponent implements AfterContentIni
             return;
         }
         this._controller = controller.getSessionSearch().getStoreAPI();
-        this._ng_filename = this._controller.getCurrentFile();
+        this._ng_filename = this._removeTrailingSlash(this._controller.getCurrentFile());
     }
 
     private _openSidebar() {

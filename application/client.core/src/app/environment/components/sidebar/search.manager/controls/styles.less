@@ -3,17 +3,21 @@
 :host {
     & .controls {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end;
     }
-    & .filename {
-        color: @scheme-color-3;
+    & div.filename-holder {
         flex-direction: column;
         display: flex;
         justify-content: center;
+        overflow: hidden;
+    }
+    & span.filename {
+        color: #979797;
         overflow: hidden;
         font-family: Roboto, 'Helvetica Neue', sans-serif;
         font-size: 12px;
         direction: rtl;
         white-space: nowrap;
+        text-overflow: ellipsis;
     }
 }
