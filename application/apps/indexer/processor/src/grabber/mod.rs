@@ -12,6 +12,17 @@ use tokio_util::sync::CancellationToken;
 
 pub mod factory;
 
+pub trait GrabTrait {
+    fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
+    fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
+    fn merge_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
+    fn get_metadata(&self) -> Option<&GrabMetadata>;
+    fn drop_metadata(&mut self);
+    fn associated_file(&self) -> PathBuf;
+}
+
+pub trait AsyncGrabTrait: GrabTrait + Sync + Send + std::fmt::Debug {}
+
 #[derive(Error, Debug, Serialize)]
 pub enum GrabError {
     #[error("Configuration error ({0})")]
@@ -166,7 +177,19 @@ impl Grabber {
         self.metadata.as_ref()
     }
 
-    pub fn drop_metadata(&mut self) {
+    fn merge_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
+        self.metadata = if let Some(md) = self.metadata.take() {
+            Some(GrabMetadata {
+                slots: [md.slots, metadata.slots].concat(),
+                line_count: metadata.line_count,
+            })
+        } else {
+            Some(metadata)
+        };
+        Ok(())
+    }
+
+    fn drop_metadata(&mut self) {
         self.metadata = None;
     }
 
@@ -252,6 +275,10 @@ impl Grabber {
                 self.source.get_entries(md, line_range)
             }
         }
+    }
+
+    pub fn source(&mut self) -> &mut T {
+        &mut self.source
     }
 
     /// if the metadata was already created, we know the number of log entries in a file

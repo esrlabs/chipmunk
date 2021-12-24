@@ -39,7 +39,7 @@ pub async fn handle(
                     operation_api.emit(CallbackEvent::SearchUpdated(0));
                     Ok(Some(SearchOperationResult { found, stats }))
                 } else {
-                    let source = TextFileSource::new(&file_path, "search_results");
+                    let mut source = TextFileSource::new(&file_path, "search_results");
                     let metadata_res = source.from_file(None);
                     match metadata_res {
                         Ok(ComputationResult::Item(metadata)) => {

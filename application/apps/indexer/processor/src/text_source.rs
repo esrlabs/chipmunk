@@ -18,6 +18,7 @@ const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 pub struct TextFileSource {
     source_id: String,
     path: PathBuf,
+    read_bytes: u64,
 }
 
 impl TextFileSource {
@@ -25,6 +26,7 @@ impl TextFileSource {
         Self {
             source_id: id.to_string(),
             path: PathBuf::from(p),
+            read_bytes: 0,
         }
     }
 }
@@ -98,6 +100,7 @@ impl TextFileSource {
         &self,
         shutdown_token: Option<CancellationToken>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
+        use std::io::prelude::*;
         let file_metadata = fs::metadata(&self.path).map_err(|_| {
             GrabError::IoOperation(format!("Could not get metadata for file {:?}", &self.path))
         })?;
@@ -107,9 +110,14 @@ impl TextFileSource {
                 self.path.to_string_lossy()
             )));
         }
-        let f = fs::File::open(&self.path)
+        let mut f = fs::File::open(&self.path)
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
-
+        f.seek(SeekFrom::Start(self.read_bytes)).map_err(|_| {
+            GrabError::IoOperation(format!(
+                "Could not seek file {:?} to {}",
+                &self.path, self.read_bytes
+            ))
+        })?;
         let mut slots = Vec::<Slot>::new();
         let mut byte_offset = 0u64;
         let mut log_msg_cnt = 0u64;
@@ -127,6 +135,7 @@ impl TextFileSource {
                 Ok(content) => {
                     if content.is_empty() {
                         // everything was processed
+                        self.read_bytes = byte_offset;
                         break;
                     }
 
