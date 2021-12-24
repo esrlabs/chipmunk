@@ -10,14 +10,26 @@
         display: flex;
         justify-content: center;
         overflow: hidden;
+        position: relative;
+        width: 100%;
+        &::before {
+            position: absolute;
+            content: '';
+            display: block;
+            background: linear-gradient(90deg, @scheme-color-5 0%, @scheme-color-5-00 100%);
+            height: 20px;
+            width: 30px;
+            left: 0;
+            z-index: 1;
+        }
     }
     & span.filename {
+        position: absolute;
+        display: inline-block;
+        right: 0;
         color: #979797;
-        overflow: hidden;
         font-family: Roboto, 'Helvetica Neue', sans-serif;
         font-size: 12px;
-        direction: rtl;
         white-space: nowrap;
-        text-overflow: ellipsis;
     }
 }
