@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::fmt::Display;
 
 #[cfg(test)]
@@ -87,6 +88,7 @@ impl ReloadInfo {
     }
 }
 
+#[async_trait]
 pub trait ByteSource {
     /// will load more bytes from the underlying source
     /// when the source has reached it's end, this function
@@ -96,7 +98,7 @@ pub trait ByteSource {
     /// of bytes that were loaded
     /// If the source has access to some timestamp (e.g. timestamp of network package),
     /// this timestamp is passed on additionally
-    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
+    async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
     fn consume(&mut self, offset: usize);
 
