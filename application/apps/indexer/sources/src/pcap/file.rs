@@ -3,6 +3,7 @@ use crate::{
     ByteSource, Error as SourceError, LogMessage, MessageStreamItem, Parser, ReloadInfo,
     SourceFilter, TransportProtocol,
 };
+use async_trait::async_trait;
 use buf_redux::Buffer;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults, VoidResults},
@@ -12,12 +13,14 @@ use indexer_base::{
 };
 use log::{debug, error, trace, warn};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
+use std::pin::Pin;
 use std::{
     fs::*,
     io::{BufReader as IoBufReader, BufWriter, Read, Write},
 };
 use thiserror::Error;
 use tokio::sync::mpsc::Sender;
+use tokio_stream::Stream;
 use tokio_stream::{self as stream};
 use tokio_util::sync::CancellationToken;
 
@@ -54,12 +57,16 @@ impl<R: Read> PcapngByteSource<R> {
     }
 }
 
-impl<R: Read> ByteSource for PcapngByteSource<R> {
+#[async_trait]
+impl<R: Read + Send> ByteSource for PcapngByteSource<R> {
     fn current_slice(&self) -> &[u8] {
         self.buffer.buf()
     }
 
-    fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
+    async fn reload(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
         let raw_data;
         let mut consumed;
         let mut skipped = 0usize;
@@ -210,7 +217,7 @@ fn debug_block(b: PcapBlockOwned) {
 
 /// extract log messages from a PCAPNG file
 #[allow(clippy::too_many_arguments)]
-pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
+pub async fn convert_from_pcapng<T: LogMessage + std::marker::Unpin, P: Parser<T> + Unpin>(
     pcap_path: &std::path::Path,
     out_path: &std::path::Path,
     update_channel: Sender<VoidResults>,
@@ -227,7 +234,7 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
     let buf_reader = IoBufReader::new(&pcap_file);
     let pcapng_byte_src =
         PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
-    let pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
+    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
     // listen for both a shutdown request and incomming messages
     // to do this we need to select over streams of the same type
     // the type we use to unify is this Event enum
@@ -235,7 +242,9 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
     let mut processed_bytes = 0usize;
     let incomplete_parses = 0usize;
     let mut stopped = false;
-    let mut msg_stream = stream::iter(pcap_msg_producer);
+    let msg_stream = pcap_msg_producer.as_stream();
+    futures::pin_mut!(msg_stream);
+    // let mut msg_stream = stream::iter(pcap_msg_producer);
 
     let fraction = (total / PROGRESS_PARTS) as usize;
     let mut index = 0usize;
@@ -319,16 +328,17 @@ pub async fn convert_from_pcapng<T: LogMessage, P: Parser<T> + Unpin>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn index_from_message_stream<T, I>(
+pub async fn index_from_message_stream<T, S>(
     config: IndexingConfig,
     initial_line_nr: usize,
     update_channel: Sender<ChunkResults>,
     cancel: CancellationToken,
-    pcap_msg_producer: I,
+    mut pcap_msg_producer: S,
 ) -> Result<(), Error>
 where
     T: LogMessage,
-    I: Iterator<Item = (usize, MessageStreamItem<T>)>,
+    // I: Iterator<Item = (usize, MessageStreamItem<T>)>,
+    S: Stream<Item = (usize, MessageStreamItem<T>)> + std::marker::Unpin,
 {
     trace!("index_from_message_stream for  conf: {:?}", config);
     let (out_file, current_out_file_size) =
@@ -339,7 +349,7 @@ where
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
     let total = config.in_file.metadata().map(|md| md.len())?;
 
-    let mut msg_stream = stream::iter(pcap_msg_producer);
+    // let mut msg_stream = stream::iter(pcap_msg_producer);
     // listen for both a shutdown request and incomming messages
     // to do this we need to select over streams of the same type
     // the type we use to unify is this Event enum
@@ -360,7 +370,7 @@ where
                     let _ = update_channel.send(Ok(IndexingProgress::Stopped));
                     break;
             }
-            item = tokio_stream::StreamExt::next(&mut msg_stream) => {
+            item = tokio_stream::StreamExt::next(&mut pcap_msg_producer) => {
                 match item {
                     Some((consumed, msg)) => {
                         if consumed > 0 {
@@ -442,7 +452,7 @@ where
 }
 
 pub async fn create_index_and_mapping_from_pcapng<
-    T: LogMessage,
+    T: LogMessage + Unpin,
     P: Parser<T> + Unpin,
     S: ByteSource,
 >(
@@ -455,13 +465,15 @@ pub async fn create_index_and_mapping_from_pcapng<
     trace!("create_index_and_mapping_from_pcapng");
     match utils::next_line_nr(&config.out_path) {
         Ok(initial_line_nr) => {
-            let pcap_msg_producer = MessageProducer::new(parser, source);
+            let mut pcap_msg_producer = MessageProducer::new(parser, source);
+            let msg_stream = pcap_msg_producer.as_stream();
+            futures::pin_mut!(msg_stream);
             match index_from_message_stream(
                 config,
                 initial_line_nr,
                 update_channel.clone(),
                 cancel,
-                pcap_msg_producer,
+                msg_stream,
             )
             .await
             {
