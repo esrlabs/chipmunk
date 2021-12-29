@@ -4,8 +4,10 @@ use crate::MessageStreamItem;
 use crate::Parser;
 use crate::SourceFilter;
 use crate::{ByteSource, ReloadInfo};
+use async_stream::stream;
 use log::{debug, trace, warn};
 use std::marker::PhantomData;
+use tokio_stream::Stream;
 
 pub struct MessageProducer<T, P, S>
 where
@@ -23,7 +25,7 @@ where
     total_skipped: usize,
 }
 
-impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
+impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
     /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: S) -> Self {
         MessageProducer {
@@ -38,7 +40,15 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
         }
     }
 
-    fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem<T>)> {
+    pub fn as_stream(&mut self) -> impl Stream<Item = (usize, MessageStreamItem<T>)> + '_ {
+        stream! {
+            while let Some(item) = self.read_next_segment().await {
+                yield item;
+            }
+        }
+    }
+
+    async fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem<T>)> {
         self.index += 1;
         // 1. buffer loaded? if not, fill buffer with frame data
         // 2. try to parse message from buffer
@@ -46,7 +56,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
         // 3b. else reload into buffer and goto 2
         let mut skipped_bytes = 0usize;
         let mut available = if self.byte_source.is_empty() {
-            let (loaded, skipped) = self.do_reload()?;
+            let (loaded, skipped) = self.do_reload().await?;
             skipped_bytes += skipped;
             loaded
         } else {
@@ -81,7 +91,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                 }
                 Err(SourceError::Incomplete) => {
                     debug!("not enough bytes to parse a message");
-                    let (reloaded, skipped) = self.do_reload()?;
+                    let (reloaded, skipped) = self.do_reload().await?;
                     available += reloaded;
                     skipped_bytes += skipped;
                     continue;
@@ -101,7 +111,7 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
                     self.byte_source.consume(available);
                     skipped_bytes += available;
                     available = self.byte_source.len();
-                    if let Some((reloaded, skipped)) = self.do_reload() {
+                    if let Some((reloaded, skipped)) = self.do_reload().await {
                         available += reloaded;
                         skipped_bytes += skipped;
                     } else {
@@ -120,8 +130,8 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
         }
     }
 
-    fn do_reload(&mut self) -> Option<(usize, usize)> {
-        match self.byte_source.reload(self.filter.as_ref()) {
+    async fn do_reload(&mut self) -> Option<(usize, usize)> {
+        match self.byte_source.reload(self.filter.as_ref()).await {
             Ok(Some(ReloadInfo {
                 loaded_bytes,
                 skipped_bytes,
@@ -147,9 +157,15 @@ impl<T: LogMessage, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
     }
 }
 
-impl<T: LogMessage, P: Parser<T>, S: ByteSource> std::iter::Iterator for MessageProducer<T, P, S> {
-    type Item = (usize, MessageStreamItem<T>);
-    fn next(&mut self) -> Option<Self::Item> {
-        self.read_next_segment()
-    }
-}
+// impl<T: LogMessage, P: Parser<T>, S: ByteSource> std::iter::Iterator for MessageProducer<T, P, S> {
+// impl<T: LogMessage, P: Parser<T>, S: ByteSource> Stream for MessageProducer<T, P, S> {
+//     // type Item = (usize, MessageStreamItem<T>);
+//     type Item = (usize, Option<MessageStreamItem<T>>);
+//     fn poll_next(
+//         mut self: std::pin::Pin<&mut Self>,
+//         _cx: &mut std::task::Context,
+//     ) -> core::task::Poll<Option<Self::Item>> {
+//         // fn next(&mut self) -> Option<Self::Item> {
+//         self.read_next_segment()
+//     }
+// }

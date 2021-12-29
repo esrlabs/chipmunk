@@ -1111,45 +1111,47 @@ pub async fn main() -> Result<()> {
         source_file_size: u64,
         mut rx: mpsc::Receiver<VoidResults>,
         start: std::time::Instant,
-    ) {
-        println!("start progress listener for {} bytes", source_file_size);
-        while let Some(item) = rx.recv().await {
-            match item {
-                Ok(IndexingProgress::Finished { .. }) => {
-                    print!("FINISHED!!!!!!!!!!!!!!!!!!!!!");
-                    // progress_bar.finish_and_clear();
+    ) -> tokio::task::JoinHandle<()> {
+        tokio::spawn(async move {
+            println!("start progress listener for {} bytes", source_file_size);
+            while let Some(item) = rx.recv().await {
+                match item {
+                    Ok(IndexingProgress::Finished { .. }) => {
+                        print!("FINISHED!!!!!!!!!!!!!!!!!!!!!");
+                        // progress_bar.finish_and_clear();
 
-                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                    duration_report_throughput(
-                        start,
-                        format!("processing ~{} MB", file_size_in_mb.round()),
-                        file_size_in_mb,
-                        "MB".to_string(),
-                    );
-                    break;
-                }
-                Ok(IndexingProgress::Progress { ticks }) => {
-                    let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                    println!("progress... ({:.0} %)", progress_fraction * 100.0);
-                    // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
-                }
-                Ok(IndexingProgress::GotItem { item: chunk }) => {
-                    println!("Invalid chunk received {:?}", chunk);
-                }
-                Err(Notification {
-                    severity,
-                    content,
-                    line,
-                }) => {
-                    if severity == Severity::WARNING {
-                        report_warning_ln(content, line);
-                    } else {
-                        report_error_ln(content, line);
+                        let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                        duration_report_throughput(
+                            start,
+                            format!("processing ~{} MB", file_size_in_mb.round()),
+                            file_size_in_mb,
+                            "MB".to_string(),
+                        );
+                        break;
                     }
+                    Ok(IndexingProgress::Progress { ticks }) => {
+                        let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+                        println!("progress... ({:.0} %)", progress_fraction * 100.0);
+                        // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+                    }
+                    Ok(IndexingProgress::GotItem { item: chunk }) => {
+                        println!("Invalid chunk received {:?}", chunk);
+                    }
+                    Err(Notification {
+                        severity,
+                        content,
+                        line,
+                    }) => {
+                        if severity == Severity::WARNING {
+                            report_warning_ln(content, line);
+                        } else {
+                            report_error_ln(content, line);
+                        }
+                    }
+                    _ => report_warning("process finished without result"),
                 }
-                _ => report_warning("process finished without result"),
             }
-        }
+        })
     }
 
     async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches<'_>, start: std::time::Instant) {
@@ -1204,38 +1206,38 @@ pub async fn main() -> Result<()> {
                 println!("NOT one-go");
                 let (tx, mut rx): (mpsc::Sender<ChunkResults>, mpsc::Receiver<ChunkResults>) =
                     mpsc::channel(100);
-                tokio::spawn(async move {
-                    let fibex_config = load_test_fibex();
-                    let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
-                    let dlt_parser = DltParser {
-                        filter_config: filter_conf.map(process_filter_config),
-                        fibex_metadata: fibex_metadata.as_ref(),
-                    };
-                    let cancel = CancellationToken::new();
+                // tokio::spawn(async move {
+                let fibex_config = load_test_fibex();
+                let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
+                let dlt_parser = DltParser {
+                    filter_config: filter_conf.map(process_filter_config),
+                    fibex_metadata: fibex_metadata.as_ref(),
+                };
+                let cancel = CancellationToken::new();
 
-                    let in_file = File::open(&file_path).expect("cannot open file");
-                    let source = PcapngByteSource::new(in_file).expect("cannot create source");
-                    let res = create_index_and_mapping_from_pcapng(
-                        IndexingConfig {
-                            tag: tag_string,
-                            chunk_size,
-                            in_file: file_path,
-                            out_path,
-                            append,
-                            watch: false,
-                        },
-                        &tx,
-                        cancel,
-                        dlt_parser,
-                        source,
-                    )
-                    .await;
+                let in_file = File::open(&file_path).expect("cannot open file");
+                let source = PcapngByteSource::new(in_file).expect("cannot create source");
+                let res = create_index_and_mapping_from_pcapng(
+                    IndexingConfig {
+                        tag: tag_string,
+                        chunk_size,
+                        in_file: file_path,
+                        out_path,
+                        append,
+                        watch: false,
+                    },
+                    &tx,
+                    cancel,
+                    dlt_parser,
+                    source,
+                )
+                .await;
 
-                    if let Err(reason) = res {
-                        report_error(format!("couldn't process: {}", reason));
-                        std::process::exit(2)
-                    }
-                });
+                if let Err(reason) = res {
+                    report_error(format!("couldn't process: {}", reason));
+                    std::process::exit(2)
+                }
+                // });
                 let mut chunks: Vec<Chunk> = vec![];
                 loop {
                     match rx.recv().await {
