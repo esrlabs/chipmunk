@@ -144,7 +144,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     public _ng_timezoneInput = new FormControl();
     public _ng_recentTzLoading: boolean = true;
 
-    private _timezones: string[] = [];
+    private _timezones: { name: string; fullName: string; utcOffset: number }[] = [];
     private _stats: CommonInterfaces.DLT.StatisticInfo | undefined;
     private _destroyed: boolean = false;
     private _requestId: string | undefined;
@@ -158,8 +158,31 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     ) {}
 
     public ngAfterContentInit() {
-        this._timezones = moment_timezone.tz.names();
-        this._timezones.unshift('UTC');
+        const now = new Date();
+        const utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth());
+        this._timezones = moment_timezone.tz
+            .names()
+            .map((tzName: string) => {
+                const zone = moment_timezone.tz.zone(tzName);
+                if (zone === null) {
+                    return undefined;
+                } else {
+                    const offset = zone.utcOffset(utc);
+                    return {
+                        name: tzName,
+                        utcOffset: offset,
+                        fullName: `${tzName} (${offset === 0 ? '' : offset > 0 ? '-' : '+'}${
+                            Math.abs(offset) / 60
+                        } UTC)`,
+                    };
+                }
+            })
+            .filter((t) => t !== undefined) as {
+            name: string;
+            fullName: string;
+            utcOffset: number;
+        }[];
+        this._timezones.unshift({ name: 'UTC', utcOffset: 0, fullName: 'UTC' });
         this._ng_size = this.size === -1 ? '' : `${(this.size / 1024 / 1024).toFixed(2)}Mb`;
         if (this.options !== undefined && this.options.stats !== undefined) {
             this._initAsReopen();
@@ -216,7 +239,9 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
 
     public _ng_onOpen() {
         const filters: CommonInterfaces.DLT.IDLTFilters = {};
-        const tzIndex = this._timezones.findIndex((v) => v === this._ng_timezoneInput.value);
+        const tzIndex = this._timezones.findIndex(
+            (v) => v.fullName === this._ng_timezoneInput.value,
+        );
         this._ng_sectionsRefs.map((section: DialogsFileOptionsDltStatsComponent) => {
             filters[section.getId()] = section.getSelected();
         });
@@ -230,7 +255,7 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
                 }),
             },
             fibexFilesInfo: this._ng_fibex,
-            tz: tzIndex <= 0 ? undefined : this._timezones[tzIndex],
+            tz: tzIndex <= 0 ? undefined : this._timezones[tzIndex].name,
         });
         ElectronIpcService.send(
             new IPC.DLTFibexSave({
@@ -374,18 +399,18 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
     }
 
     private _filterTimeZones(filter: string): string[] {
-        filter = filter.replace(/[^\d\w\s\\]/gi, '');
+        filter = filter.replace(/[^\d\w\s+-\\]/gi, '');
         const key = Toolkit.regTools.createFromStr(filter);
         if (key instanceof Error) {
-            return this._timezones;
+            return this._timezones.map((t) => t.fullName);
         }
         return this._timezones
-            .map((tz: string) => {
-                let match: RegExpMatchArray | null = tz.match(key);
+            .map((tz) => {
+                let match: RegExpMatchArray | null = tz.fullName.match(key);
                 if (match === null || match.length === 0) {
                     return undefined;
                 }
-                return tz.replace(match[0], `<span>${match[0]}</span>`);
+                return tz.fullName.replace(match[0], `<span>${match[0]}</span>`);
             })
             .filter((tz) => tz !== undefined) as string[];
     }
@@ -522,17 +547,20 @@ export class DialogsFileOptionsDltComponent implements OnDestroy, AfterContentIn
         )
             .then((response) => {
                 if (response.timezone === '') {
-                    this._ng_timezoneInput.setValue(this._timezones[0]);
+                    this._ng_timezoneInput.setValue(this._timezones[0].fullName);
                 } else {
-                    if (this._timezones.indexOf(response.timezone) !== -1) {
-                        this._ng_timezoneInput.setValue(response.timezone);
+                    const tzIndex = this._timezones.findIndex(
+                        (tz) => tz.name === response.timezone,
+                    );
+                    if (tzIndex !== -1) {
+                        this._ng_timezoneInput.setValue(this._timezones[tzIndex].fullName);
                     } else {
-                        this._ng_timezoneInput.setValue(this._timezones[0]);
+                        this._ng_timezoneInput.setValue(this._timezones[0].fullName);
                     }
                 }
             })
             .catch((error: Error) => {
-                this._ng_timezoneInput.setValue(this._timezones[0]);
+                this._ng_timezoneInput.setValue(this._timezones[0].fullName);
                 this._logger.warn(
                     `Fail to get recently used timezone for DLT due error: ${error.message}`,
                 );
