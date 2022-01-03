@@ -120,7 +120,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     private _logger: Toolkit.Logger = new Toolkit.Logger('SidebarAppDLTConnectorComponent');
     private _destroyed: boolean = false;
     private _recent: IPC.IDLTDeamonConnectionOptions[] = [];
-    private _timezones: string[] = [];
+    private _timezones: { name: string; fullName: string; utcOffset: number }[] = [];
 
     constructor(
         private _cdRef: ChangeDetectorRef,
@@ -128,8 +128,31 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         private _sanitizer: DomSanitizer,
     ) {
         this._ng_session = SessionsService.getActive();
-        this._timezones = moment_timezone.tz.names();
-        this._timezones.unshift('UTC');
+        const now = new Date();
+        const utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth());
+        this._timezones = moment_timezone.tz
+            .names()
+            .map((tzName: string) => {
+                const zone = moment_timezone.tz.zone(tzName);
+                if (zone === null) {
+                    return undefined;
+                } else {
+                    const offset = zone.utcOffset(utc);
+                    return {
+                        name: tzName,
+                        utcOffset: offset,
+                        fullName: `${tzName} (${offset === 0 ? '' : offset > 0 ? '-' : '+'}${
+                            Math.abs(offset) / 60
+                        } UTC)`,
+                    };
+                }
+            })
+            .filter((t) => t !== undefined) as {
+            name: string;
+            fullName: string;
+            utcOffset: number;
+        }[];
+        this._timezones.unshift({ name: 'UTC', utcOffset: 0, fullName: 'UTC' });
         this._subscriptions.onSessionChange =
             EventsSessionService.getObservable().onSessionChange.subscribe(
                 this._onSessionChange.bind(this),
@@ -199,7 +222,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
         const mcast: string[] = [];
         this._ng_state = 'progress';
         this._ng_settings.connectionId = Toolkit.guid();
-        const tzIndex = this._timezones.findIndex((v) => v === this._ng_settings.timezone);
+        const tzIndex = this._timezones.findIndex((v) => v.name === this._ng_settings.timezone);
         ElectronIpcService.request<IPC.DLTDeamonConnectResponse>(
             new IPC.DLTDeamonConnectRequest({
                 id: this._ng_settings.connectionId,
@@ -223,7 +246,7 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
                     }),
                 fibex: this._ng_settings.fibexFiles,
                 target: this._ng_settings.target,
-                timezone: tzIndex <= 0 ? undefined : this._timezones[tzIndex],
+                timezone: tzIndex <= 0 ? undefined : this._timezones[tzIndex].name,
             }),
             IPC.DLTDeamonConnectResponse,
         )
@@ -771,18 +794,18 @@ export class SidebarAppDLTConnectorComponent implements OnDestroy, AfterContentI
     }
 
     private _filterTimeZones(filter: string): string[] {
-        filter = filter.replace(/[^\d\w\s\\]/gi, '');
+        filter = filter.replace(/[^\d\w\s+-\\]/gi, '');
         const key = Toolkit.regTools.createFromStr(filter);
         if (key instanceof Error) {
-            return this._timezones;
+            return this._timezones.map((v) => v.fullName);
         }
         return this._timezones
-            .map((tz: string) => {
-                let match: RegExpMatchArray | null = tz.match(key);
+            .map((tz) => {
+                let match: RegExpMatchArray | null = tz.fullName.match(key);
                 if (match === null || match.length === 0) {
                     return undefined;
                 }
-                return tz.replace(match[0], `<span>${match[0]}</span>`);
+                return tz.fullName.replace(match[0], `<span>${match[0]}</span>`);
             })
             .filter((tz) => tz !== undefined) as string[];
     }
