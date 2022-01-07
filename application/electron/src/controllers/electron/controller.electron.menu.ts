@@ -217,7 +217,7 @@ export default class ControllerElectronMenu {
                 ],
             });
             // Window menu
-            template[4].submenu = [
+            template[3].submenu = [
                 { role: 'close' },
                 { role: 'minimize' },
                 { role: 'zoom' },
