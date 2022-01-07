@@ -1,8 +1,17 @@
 # Changelog
 
+## [2.26.1] - 01/07/2022
+
+### Changes
+
+-   Add time offset to timezone list
+-   Change cursor type of charts
+-   Update application menu
+
 ## [2.26.0] - 12/24/2021
 
 ### Changes
+
 -   Remember recently selected fibex-file
 -   Updated recent filter manager
 
@@ -14,9 +23,11 @@
 -   Selection of timezone for DLT connector
 
 ### Changes
+
 -   Logic of applying filter colors
 
 ### Fixes
+
 -   Prevent comments on not-suitable selection
 
 ## [2.24.1] - 12/10/2021
