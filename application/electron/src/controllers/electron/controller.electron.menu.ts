@@ -26,7 +26,7 @@ const MAX_NUMBER_OF_RECENT_FILES = 20;
 const MENU_TEMPLATE = [
     {
         label: 'File',
-        submenu: [ ],
+        submenu: [],
     },
     {
         label: 'Edit',
@@ -45,27 +45,63 @@ const MENU_TEMPLATE = [
     {
         label: 'View',
         submenu: [
-            { label: 'Filters & Charts Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.SearchManager) },
-            { label: 'Comments Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.CommentsManager) },
-            { label: 'Shell Commands Executor', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Shell) },
-            { label: 'DLT Connector', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.DLTConnector) },
+            {
+                label: 'Filters & Charts Manager',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.SearchManager),
+            },
+            {
+                label: 'Comments Manager',
+                click: HandlerItemViewSwitcher.bind(
+                    null,
+                    IPCMessages.AvailableViews.CommentsManager,
+                ),
+            },
+            {
+                label: 'Shell Commands Executor',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Shell),
+            },
+            {
+                label: 'DLT Connector',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.DLTConnector),
+            },
             { type: 'separator' },
-            { label: 'Concat Files Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Concat) },
-            { label: 'Merge Files Manager', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Merge) },
+            {
+                label: 'Concat Files Manager',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Concat),
+            },
+            {
+                label: 'Merge Files Manager',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Merge),
+            },
             { type: 'separator' },
-            { label: 'Search Results', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.SearchResults) },
-            { label: 'Charts & Matches Frequency', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Charts) },
-            { label: 'Time Measurement', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.TimeMeasurement) },
+            {
+                label: 'Search Results',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.SearchResults),
+            },
+            {
+                label: 'Charts & Matches Frequency',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Charts),
+            },
+            {
+                label: 'Time Measurement',
+                click: HandlerItemViewSwitcher.bind(
+                    null,
+                    IPCMessages.AvailableViews.TimeMeasurement,
+                ),
+            },
             { type: 'separator' },
-            { label: 'Notifications', click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Notifications) },
+            {
+                label: 'Notifications',
+                click: HandlerItemViewSwitcher.bind(null, IPCMessages.AvailableViews.Notifications),
+            },
+            { type: 'separator' },
+            { role: 'zoomIn' },
+            { role: 'zoomOut' },
         ],
     },
     {
         role: 'window',
-        submenu: [
-            { role: 'minimize' },
-            { role: 'close', accelerator: 'Shift+CmdOrCtrl+W' },
-        ],
+        submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'Shift+CmdOrCtrl+W' }],
     },
 ];
 
@@ -76,7 +112,6 @@ export interface IAddedItems {
 }
 
 export default class ControllerElectronMenu {
-
     private _menu: any;
     private _logger: Logger = new Logger('ControllerElectronMenu');
     private _added: IAddedItems[] = [];
@@ -95,7 +130,7 @@ export default class ControllerElectronMenu {
     }
 
     public remove(guid: string) {
-        this._added = this._added.filter(i => i.guid !== guid);
+        this._added = this._added.filter((i) => i.guid !== guid);
         this._create();
     }
 
@@ -154,7 +189,9 @@ export default class ControllerElectronMenu {
                 ],
             });
         }
-        const exportActions: IExportAction[] = ServiceOutputExport.getActions(ServiceStreams.getActiveStreamId());
+        const exportActions: IExportAction[] = ServiceOutputExport.getActions(
+            ServiceStreams.getActiveStreamId(),
+        );
         if (exportActions.length > 0) {
             template[0].submenu.push({ type: 'separator' });
             exportActions.forEach((action: IExportAction) => {
@@ -224,41 +261,56 @@ export default class ControllerElectronMenu {
         Menu.setApplicationMenu(this._menu);
     }
 
-    private _getFilesLocalSubmenu(): Array<{ label: string, click: () => any }> {
-        const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile(FileParsers.map((parser) => {
-            return new parser.class();
-        }));
-        return [{
-            label: wrapper.getLabel(),
-            click: wrapper.getHandler(),
-        }];
+    private _getFilesLocalSubmenu(): Array<{ label: string; click: () => any }> {
+        const wrapper: FunctionOpenLocalFile = new FunctionOpenLocalFile(
+            FileParsers.map((parser) => {
+                return new parser.class();
+            }),
+        );
+        return [
+            {
+                label: wrapper.getLabel(),
+                click: wrapper.getHandler(),
+            },
+        ];
     }
 
-    private _getRecentFilter(): Array<{ label: string, click: () => any }> {
+    private _getRecentFilter(): Array<{ label: string; click: () => any }> {
         const home: string = os.homedir();
-        return ServiceStorage.get().get().recentFiltersFiles.slice(0, MAX_NUMBER_OF_RECENT_FILES).map((file: IStorageScheme.IRecentFilterFile) => {
-            app.addRecentDocument(file.file);
-            return {
-                label: `${file.file.replace(home, '~')}`,
-                click: () => {
-                    ServiceFilters.openFilters(ServiceStreams.getActiveStreamId(), file.file);
-                },
-            };
-        });
+        return ServiceStorage.get()
+            .get()
+            .recentFiltersFiles.slice(0, MAX_NUMBER_OF_RECENT_FILES)
+            .map((file: IStorageScheme.IRecentFilterFile) => {
+                app.addRecentDocument(file.file);
+                return {
+                    label: `${file.file.replace(home, '~')}`,
+                    click: () => {
+                        ServiceFilters.openFilters(ServiceStreams.getActiveStreamId(), file.file);
+                    },
+                };
+            });
     }
 
-    private _getRecentFiles(): Array<{ label: string, click: () => any }> {
+    private _getRecentFiles(): Array<{ label: string; click: () => any }> {
         const home: string = os.homedir();
-        return ServiceStorage.get().get().recentFiles.slice(0, MAX_NUMBER_OF_RECENT_FILES).map((file: IStorageScheme.IRecentFile) => {
-            app.addRecentDocument(file.file);
-            return {
-                label: `${(file.size / 1024 / 1024).toFixed(2)}Mb: ${file.file.replace(home, '~')}`,
-                click: () => {
-                    ServiceFileOpener.openAsNew(file.file).catch((error: Error) => {
-                        this._logger.warn(`Fail to open file "${file.file}" due error: ${error.message}`);
-                    });
-                },
-            };
-        });
+        return ServiceStorage.get()
+            .get()
+            .recentFiles.slice(0, MAX_NUMBER_OF_RECENT_FILES)
+            .map((file: IStorageScheme.IRecentFile) => {
+                app.addRecentDocument(file.file);
+                return {
+                    label: `${(file.size / 1024 / 1024).toFixed(2)}Mb: ${file.file.replace(
+                        home,
+                        '~',
+                    )}`,
+                    click: () => {
+                        ServiceFileOpener.openAsNew(file.file).catch((error: Error) => {
+                            this._logger.warn(
+                                `Fail to open file "${file.file}" due error: ${error.message}`,
+                            );
+                        });
+                    },
+                };
+            });
     }
 }
