@@ -1,5 +1,4 @@
 extern crate dirs;
-use crate::dlt_file::create_dlt_session_file;
 use bytes::BytesMut;
 use crossbeam_channel as cc;
 use dlt_core::{
@@ -15,6 +14,7 @@ use indexer_base::{
     progress::*,
     utils,
 };
+use std::path::PathBuf;
 use std::{
     io::{BufWriter, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -369,6 +369,22 @@ pub(crate) struct SessionProcessor {
     line_nr: usize,
     tag: String,
     update_channel: cc::Sender<ChunkResults>,
+}
+
+pub(crate) fn session_file_path(session_id: &str) -> Option<PathBuf> {
+    let home_dir = dirs::home_dir()?;
+    let tmp_file_name = format!("{}.dlt", session_id);
+    Some(
+        home_dir
+            .join(".chipmunk")
+            .join("streams")
+            .join(tmp_file_name),
+    )
+}
+
+pub(crate) fn create_dlt_session_file(session_id: &str) -> Option<std::fs::File> {
+    let path = session_file_path(session_id)?;
+    std::fs::File::create(path).ok()
 }
 
 impl SessionProcessor {

@@ -54,7 +54,7 @@ pub fn create_lazy_grabber(
         }
         SupportedFileType::Dlt => {
             type GrabberType = Grabber<DltSource>;
-            let source = DltSource::new(input_p, source_id);
+            let source = DltSource::new(input_p, source_id, true);
             let grabber = GrabberType::lazy(source)
                 .map_err(|e| GrabError::Config(format!("Could not create grabber: {}", e)))?;
             Ok(Box::new(grabber))
@@ -69,7 +69,7 @@ pub fn create_metadata_for_source(
 ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
     match get_supported_file_type(file_path)? {
         SupportedFileType::Dlt => {
-            let source = DltSource::new(file_path, &source_id);
+            let source = DltSource::new(file_path, &source_id, true);
             source.from_file(Some(cancellation_token))
         }
         SupportedFileType::Text => {

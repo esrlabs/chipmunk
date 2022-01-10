@@ -5,6 +5,7 @@ members = [
     "indexer_base",
     "indexer_cli",
     "merging",
+    "parsers",
     "processor",
     "session",
     "sources",

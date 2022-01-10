@@ -40,6 +40,12 @@ pub struct SectionConfig {
     pub sections: Vec<IndexSection>,
 }
 
+impl IndexSection {
+    pub fn len(&self) -> usize {
+        self.last_line - self.first_line + 1
+    }
+}
+
 #[derive(Debug)]
 pub struct IndexingConfig {
     pub tag: String,

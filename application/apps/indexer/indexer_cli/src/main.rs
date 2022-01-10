@@ -20,14 +20,17 @@ extern crate processor;
 extern crate lazy_static;
 
 use anyhow::{anyhow, Result};
+use async_stream::stream;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::dlt_file::{count_dlt_messages, export_as_dlt_file, get_dlt_file_info, StatisticsResults};
+use dlt::dlt_file::{export_as_dlt_file, StatisticsResults};
 use dlt_core::{
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering::{process_filter_config, read_filter_options, DltFilterConfig},
+    statistics::StatisticInfo,
 };
 use env_logger::Env;
+use futures::{stream::Skip, Stream, StreamExt};
 use indexer_base::{
     chunks::{serialize_chunks, Chunk, ChunkResults, VoidResults},
     config::*,
@@ -37,18 +40,26 @@ use indexer_base::{
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
+use parsers::{
+    dlt::{DltParser, DltRangeParser},
+    ByteRepresentation, LogMessage, MessageStreamItem,
+};
 use processor::{
     dlt_source::DltSource,
+    dlt_utils::{count_dlt_messages, count_dlt_messages_old, get_dlt_file_info},
     grabber::{GrabError, GrabbedContent},
     text_source::TextFileSource,
 };
-use sources::pcap::file::PcapngByteSource;
-use sources::pcap::{
-    file::{convert_from_pcapng, create_index_and_mapping_from_pcapng},
-    format::dlt::DltParser,
+use sources::{
+    pcap::file::{convert_from_pcapng, create_index_and_mapping_from_pcapng, PcapngByteSource},
+    producer::MessageProducer,
+    raw::binary::BinaryByteSource,
 };
-use std::fs::File;
-use std::path::Path;
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Write},
+    path::Path,
+};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -271,7 +282,7 @@ pub async fn main() -> Result<()> {
         )
         .subcommand(
             SubCommand::with_name("export")
-                .about("test exorting files")
+                .about("test exporting files")
                 .arg(
                     Arg::with_name("file")
                         .short("f")
@@ -279,6 +290,12 @@ pub async fn main() -> Result<()> {
                         .help("the file to export")
                         .required(true)
                         .index(1),
+                )
+                .arg(
+                    Arg::with_name("legacy")
+                        .short("l")
+                        .long("legacy")
+                        .help("use legacy parsing"),
                 )
                 .arg(
                     Arg::with_name("sections")
@@ -498,6 +515,12 @@ pub async fn main() -> Result<()> {
                         .index(1),
                 )
                 .arg(
+                    Arg::with_name("legacy")
+                        .short("l")
+                        .long("legacy")
+                        .help("use legacy parsing"),
+                )
+                .arg(
                     Arg::with_name("count")
                         .short("c")
                         .long("count")
@@ -569,7 +592,7 @@ pub async fn main() -> Result<()> {
                 let res: Result<(GrabbedContent, Instant), GrabError> = if is_dlt {
                     type GrabberType = processor::grabber::Grabber<DltSource>;
                     let start_op = Instant::now();
-                    let source = DltSource::new(&input_p, "sourceA");
+                    let source = DltSource::new(&input_p, "sourceA", true);
                     let grabber = if matches.is_present("metadata") {
                         let metadata_path =
                             matches.value_of("metadata").expect("input must be present");
@@ -750,7 +773,7 @@ pub async fn main() -> Result<()> {
                 match rx.recv() {
                     Ok(Ok(IndexingProgress::Finished)) => {
                         trace!("finished...");
-                        let _ = serialize_chunks(&chunks, &mapping_out_path);
+                        serialize_chunks(&chunks, &mapping_out_path).unwrap();
                         let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
                         if status_updates {
                             duration_report_throughput(
@@ -955,13 +978,11 @@ pub async fn main() -> Result<()> {
 
         if let Some(file_name) = matches.value_of("file") {
             let fallback_out = file_name.to_string() + ".out";
-            let out_path = path::PathBuf::from(
-                matches
-                    .value_of("output")
-                    .unwrap_or_else(|| fallback_out.as_str()),
-            );
+            let out_path =
+                path::PathBuf::from(matches.value_of("target").unwrap_or(fallback_out.as_str()));
             let file_path = path::PathBuf::from(file_name);
             let was_session_file: bool = matches.is_present("is_session_file");
+            let old_way: bool = matches.is_present("legacy");
             let sections_string = value_t_or_exit!(matches.value_of("sections"), String);
             let sections: Vec<IndexSection> = sections_string
                 .split('|')
@@ -970,10 +991,34 @@ pub async fn main() -> Result<()> {
 
             let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let ending = &file_path.extension().expect("could not get extension");
+            let in_file = File::open(&file_path).unwrap();
+            let reader = BufReader::new(&in_file);
             if ending.to_str() == Some("dlt") {
                 trace!("was dlt file");
-                export_as_dlt_file(file_path, out_path, SectionConfig { sections }, tx)
-                    .expect("export did not work");
+                if old_way {
+                    debug!("export dlt file the old way");
+                    export_as_dlt_file(file_path, out_path, SectionConfig { sections }, tx)
+                        .expect("export did not work");
+                } else if !sections.is_empty() {
+                    debug!("try new way of exporting");
+                    let dlt_parser = DltRangeParser::new(true);
+                    let source = BinaryByteSource::new(reader);
+
+                    let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+                    let msg_stream = dlt_msg_producer.as_stream();
+                    futures::pin_mut!(msg_stream);
+                    let out_file = File::create(out_path).expect("could not create file");
+                    let mut out_writer = BufWriter::new(out_file);
+
+                    let section_stream = produce_section_stream(msg_stream, sections).await;
+                    futures::pin_mut!(section_stream);
+                    while let Some((_, item)) = section_stream.next().await {
+                        if let MessageStreamItem::Item(msg) = item {
+                            msg.to_writer(&mut out_writer).unwrap();
+                        }
+                    }
+                    out_writer.flush().unwrap();
+                }
             } else {
                 trace!("was regular file");
                 export_file_line_based(
@@ -1067,7 +1112,7 @@ pub async fn main() -> Result<()> {
                         std::process::exit(2)
                     }
                     Ok(Ok(IndexingProgress::Finished { .. })) => {
-                        let _ = serialize_chunks(&chunks, &mapping_out_path);
+                        serialize_chunks(&chunks, &mapping_out_path).unwrap();
                         let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
                         duration_report_throughput(
                             start,
@@ -1187,16 +1232,17 @@ pub async fn main() -> Result<()> {
             let in_one_go: bool = matches.is_present("convert");
 
             let cancel = CancellationToken::new();
+            let fibex_config = load_test_fibex();
+            let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
+            let dlt_parser = DltParser {
+                filter_config: filter_conf.map(process_filter_config),
+                fibex_metadata: fibex_metadata.as_ref(),
+                with_storage_header: false,
+            };
             if in_one_go {
                 println!("one-go");
                 let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
                     mpsc::channel(100);
-                let fibex_config = load_test_fibex();
-                let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
-                let dlt_parser = DltParser {
-                    filter_config: filter_conf.map(process_filter_config),
-                    fibex_metadata: fibex_metadata.as_ref(),
-                };
                 let (_, res) = tokio::join! {
                     progress_listener(source_file_size, rx, start),
                     convert_from_pcapng(&file_path, &out_path, tx, cancel, dlt_parser),
@@ -1206,15 +1252,6 @@ pub async fn main() -> Result<()> {
                 println!("NOT one-go");
                 let (tx, mut rx): (mpsc::Sender<ChunkResults>, mpsc::Receiver<ChunkResults>) =
                     mpsc::channel(100);
-                // tokio::spawn(async move {
-                let fibex_config = load_test_fibex();
-                let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
-                let dlt_parser = DltParser {
-                    filter_config: filter_conf.map(process_filter_config),
-                    fibex_metadata: fibex_metadata.as_ref(),
-                };
-                let cancel = CancellationToken::new();
-
                 let in_file = File::open(&file_path).expect("cannot open file");
                 let source = PcapngByteSource::new(in_file).expect("cannot create source");
                 let res = create_index_and_mapping_from_pcapng(
@@ -1246,7 +1283,7 @@ pub async fn main() -> Result<()> {
                             std::process::exit(2)
                         }
                         Some(Ok(IndexingProgress::Finished { .. })) => {
-                            let _ = serialize_chunks(&chunks, &mapping_out_path);
+                            serialize_chunks(&chunks, &mapping_out_path).unwrap();
                             // progress_bar.finish_and_clear();
                             break;
                         }
@@ -1348,7 +1385,7 @@ pub async fn main() -> Result<()> {
                         std::process::exit(2)
                     }
                     Ok(Ok(IndexingProgress::Finished { .. })) => {
-                        let _ = serialize_chunks(&chunks, &mapping_out_path);
+                        serialize_chunks(&chunks, &mapping_out_path).unwrap();
                         break;
                     }
                     Ok(Ok(IndexingProgress::Progress { ticks })) => {
@@ -1541,9 +1578,18 @@ pub async fn main() -> Result<()> {
         let file_name = matches.value_of("input").expect("input must be present");
         let file_path = path::PathBuf::from(file_name);
         let count: bool = matches.is_present("count");
+        let old_way: bool = matches.is_present("legacy");
         if count {
-            if let Ok(res) = count_dlt_messages(&file_path) {
-                println!("counting dlt-msgs in file: {}", res);
+            if let Ok(res) = if old_way {
+                count_dlt_messages_old(&file_path)
+            } else {
+                count_dlt_messages(&file_path).await
+            } {
+                println!(
+                    "counting dlt-msgs in file ({} way): {}",
+                    if old_way { "old" } else { "new" },
+                    res
+                );
             }
         } else {
             let f = match fs::File::open(&file_path) {
@@ -1561,72 +1607,34 @@ pub async fn main() -> Result<()> {
                 }
             };
             let progress_bar = initialize_progress_bar(source_file_size as u64);
-            let (tx, rx): (
-                cc::Sender<StatisticsResults>,
-                cc::Receiver<StatisticsResults>,
-            ) = unbounded();
 
-            thread::spawn(move || {
-                if let Err(why) = get_dlt_file_info(&file_path, &tx, None) {
-                    report_error(format!("couldn't collect statistics: {}", why));
-                    std::process::exit(2)
+            let res = get_dlt_file_info(&file_path, None);
+            match res {
+                Ok(res) => {
+                    trace!("got item...");
+
+                    match serde_json::to_string(&res) {
+                        Ok(stats) => println!("{}", stats),
+                        Err(e) => {
+                            report_error(format!("serializing result {:?} failed: {}", res, e));
+                            std::process::exit(2)
+                        }
+                    }
+                    if status_updates {
+                        let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+                        let elapsed = start.elapsed();
+                        let ms = elapsed.as_millis();
+                        let duration_in_s = ms as f64 / 1000.0;
+                        eprintln!(
+                            "collecting statistics for ~{} MB took {:.3}s!",
+                            file_size_in_mb.round(),
+                            duration_in_s
+                        );
+                    }
                 }
-            });
-            loop {
-                match rx.recv() {
-                    Ok(Ok(IndexingProgress::GotItem { item: res })) => {
-                        trace!("got item...");
-
-                        match serde_json::to_string(&res) {
-                            Ok(stats) => println!("{}", stats),
-                            Err(e) => {
-                                report_error(format!("serializing result {:?} failed: {}", res, e));
-                                std::process::exit(2)
-                            }
-                        }
-                        if status_updates {
-                            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                            let elapsed = start.elapsed();
-                            let ms = elapsed.as_millis();
-                            let duration_in_s = ms as f64 / 1000.0;
-                            eprintln!(
-                                "collecting statistics for ~{} MB took {:.3}s!",
-                                file_size_in_mb.round(),
-                                duration_in_s
-                            );
-                        }
-                    }
-                    Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
-                        let progress_fraction = t.0 as f64 / t.1 as f64;
-                        trace!("progress... ({:.1} %)", progress_fraction * 100.0);
-                        progress_bar
-                            .set_position((progress_fraction * (source_file_size as f64)) as u64);
-                    }
-                    Ok(Ok(IndexingProgress::Finished)) => {
-                        trace!("finished...");
-                        progress_bar.finish_and_clear();
-                        break;
-                    }
-                    Ok(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    Ok(Ok(IndexingProgress::Stopped)) => {
-                        trace!("stopped...");
-                        report_warning("IndexingProgress::Stopped");
-                        break;
-                    }
-                    Err(_) => {
-                        report_error("couldn't process");
-                        std::process::exit(2)
-                    }
+                Err(_) => {
+                    report_error("couldn't process");
+                    std::process::exit(2)
                 }
             }
         }
@@ -1678,4 +1686,32 @@ fn initialize_progress_bar(len: u64) -> ProgressBar {
                 .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
                 .progress_chars("#>-"));
     progress_bar
+}
+
+pub async fn produce_section_stream<S, T>(
+    input_stream: S,
+    sections: Vec<IndexSection>,
+) -> impl Stream<Item = T>
+where
+    S: Stream<Item = T> + Unpin,
+{
+    let mut stream = input_stream.skip(0);
+    let mut index = 0usize;
+    stream! {
+        // for (start, len, a) in sections {
+        for section in sections {
+            let to_skip = section.first_line - index;
+            debug!("start: {}, len: {}, need to skip: {}", section.first_line, section.len(), to_skip);
+            stream = stream.into_inner().skip(to_skip);
+            for _ in 0..section.len() {
+                if let Some(elem) = stream.next().await {
+                    yield elem;
+                } else {
+                    println!("end of stream reached");
+                    break;
+                }
+            }
+            index = section.first_line + section.len();
+        }
+    }
 }

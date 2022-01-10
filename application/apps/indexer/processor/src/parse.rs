@@ -542,38 +542,46 @@ pub fn timespan_in_files(
             Ok(format_expr) => {
                 match timespan_in_file(&format_expr, &file_path, item.fallback_year) {
                     Ok(timestamp_format_result) => {
-                        let _ = update_channel.send(Ok(IndexingProgress::GotItem {
-                            item: timestamp_format_result,
-                        }));
+                        update_channel
+                            .send(Ok(IndexingProgress::GotItem {
+                                item: timestamp_format_result,
+                            }))
+                            .expect("UpdateChannel closed");
                     }
                     Err(e) => {
-                        let _ = update_channel.send(Err(Notification {
-                            severity: Severity::WARNING,
-                            content: format!("{}", e),
-                            line: None,
-                        }));
+                        update_channel
+                            .send(Err(Notification {
+                                severity: Severity::WARNING,
+                                content: format!("{}", e),
+                                line: None,
+                            }))
+                            .expect("UpdateChannel closed");
                     }
                 }
             }
             Err(e) => {
-                let _ = update_channel.send(Ok(IndexingProgress::GotItem {
-                    item: TimestampFormatResult {
-                        path: item.path.to_string(),
-                        format: Err(format!("error trying to detect format expression: {}", e)),
-                        min_time: None,
-                        max_time: None,
-                    },
-                }));
-                let _ = update_channel.send(Err(Notification {
-                    severity: Severity::WARNING,
-                    content: format!("executed with error: {}", e),
-                    line: None,
-                }));
+                update_channel
+                    .send(Ok(IndexingProgress::GotItem {
+                        item: TimestampFormatResult {
+                            path: item.path.to_string(),
+                            format: Err(format!("error trying to detect format expression: {}", e)),
+                            min_time: None,
+                            max_time: None,
+                        },
+                    }))
+                    .expect("UpdateChannel closed");
+                update_channel
+                    .send(Err(Notification {
+                        severity: Severity::WARNING,
+                        content: format!("executed with error: {}", e),
+                        line: None,
+                    }))
+                    .expect("UpdateChannel closed");
             }
         }
         progress_reporter.make_progress(1);
     }
-    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+    update_channel.send(Ok(IndexingProgress::Finished));
     Ok(())
 }
 /// find out how often a format string matches a timestamp in a file
