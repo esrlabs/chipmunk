@@ -1,53 +1,17 @@
 use async_trait::async_trait;
-use std::fmt::Display;
+use thiserror::Error;
 
 #[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate log;
+
 pub mod pcap;
 pub mod producer;
+pub mod raw;
 pub mod socket;
-
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("Parse error: {0}")]
-    Parse(String),
-    #[error("Sources setup problem: {0}")]
-    Setup(String),
-    #[error("Unrecoverable source error: {0}")]
-    Unrecoverable(String),
-    #[error("Incomplete, not enough data for a message")]
-    Incomplete,
-    #[error("End of file reached")]
-    Eof,
-}
-
-/// Parser trait that needs to be implemented for any parser we support
-/// in chipmunk
-pub trait Parser<T: LogMessage> {
-    /// take a slice of bytes and try to apply a parser. If the parse was
-    /// successfull, this will yield  the rest of the slice along with `Some(log_message)`
-    ///
-    /// if the slice does not have enough bytes, an `Incomplete` error is returned.
-    ///
-    /// in case we could parse a message but the message was filtered out, `None` is returned
-    fn parse<'a>(
-        &self,
-        input: &'a [u8],
-        timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<T>), Error>;
-}
-
-pub trait LineFormat {
-    fn format_line(&self) -> String;
-}
-
-pub trait LogMessage: Display {
-    fn as_stored_bytes(&self) -> Vec<u8>;
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransportProtocol {
@@ -88,6 +52,14 @@ impl ReloadInfo {
     }
 }
 
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Sources setup problem: {0}")]
+    Setup(String),
+    #[error("Unrecoverable source error: {0}")]
+    Unrecoverable(String),
+}
+
 #[async_trait]
 pub trait ByteSource {
     /// will load more bytes from the underlying source
@@ -110,13 +82,4 @@ pub trait ByteSource {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-}
-
-#[derive(Debug)]
-pub enum MessageStreamItem<T: LogMessage> {
-    Item(T),
-    Skipped,
-    Incomplete,
-    Empty,
-    Done,
 }

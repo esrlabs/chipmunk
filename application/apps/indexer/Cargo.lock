@@ -456,8 +456,6 @@ dependencies = [
 [[package]]
 name = "dlt-core"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a24f5d7d016cc72e303980839e6ac3488b74f7ef3ce8026ed8d72711f5c8867a"
 dependencies = [
  "byteorder",
  "bytes",
@@ -755,11 +753,13 @@ dependencies = [
  "dlt",
  "dlt-core",
  "env_logger",
+ "futures",
  "indexer_base",
  "indicatif",
  "lazy_static",
  "log",
  "merging",
+ "parsers",
  "processor",
  "serde",
  "serde_json",
@@ -1094,6 +1094,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "parsers"
+version = "0.1.0"
+dependencies = [
+ "buf_redux",
+ "crossbeam-channel",
+ "dlt-core",
+ "log",
+ "rustc-hash",
+ "thiserror",
+]
+
+[[package]]
 name = "pcap-parser"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1255,6 +1267,7 @@ dependencies = [
  "dlt-core",
  "encoding_rs_io",
  "env_logger",
+ "futures",
  "grep-matcher",
  "grep-printer",
  "grep-regex",
@@ -1264,6 +1277,7 @@ dependencies = [
  "lazy_static",
  "log",
  "nom",
+ "parsers",
  "pretty_assertions 1.0.0",
  "proptest",
  "proptest-derive",
@@ -1272,6 +1286,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "sources",
  "tempfile",
  "termcolor",
  "test-generator",
@@ -1740,13 +1755,13 @@ dependencies = [
  "async-trait",
  "buf_redux",
  "crossbeam-channel",
- "dlt-core",
  "env_logger",
  "etherparse",
  "futures",
  "indexer_base",
  "lazy_static",
  "log",
+ "parsers",
  "pcap-parser",
  "pin-project-lite",
  "thiserror",

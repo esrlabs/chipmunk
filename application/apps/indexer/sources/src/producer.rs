@@ -1,17 +1,12 @@
-use crate::Error as SourceError;
-use crate::LogMessage;
-use crate::MessageStreamItem;
-use crate::Parser;
-use crate::SourceFilter;
-use crate::{ByteSource, ReloadInfo};
+use crate::{ByteSource, ReloadInfo, SourceFilter};
 use async_stream::stream;
-use log::{debug, trace, warn};
+use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
 use std::marker::PhantomData;
 use tokio_stream::Stream;
 
 pub struct MessageProducer<T, P, S>
 where
-    T: LogMessage,
+    T: LogMessage + Send,
     P: Parser<T>,
     S: ByteSource,
 {
@@ -25,7 +20,9 @@ where
     total_skipped: usize,
 }
 
-impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
+impl<T: LogMessage + std::marker::Unpin + Send, P: Parser<T>, S: ByteSource>
+    MessageProducer<T, P, S>
+{
     /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: S) -> Self {
         MessageProducer {
@@ -40,6 +37,8 @@ impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessagePro
         }
     }
 
+    /// create a stream of pairs that contain the count of all consumed bytes and the
+    /// MessageStreamItem
     pub fn as_stream(&mut self) -> impl Stream<Item = (usize, MessageStreamItem<T>)> + '_ {
         stream! {
             while let Some(item) = self.read_next_segment().await {
@@ -54,20 +53,12 @@ impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessagePro
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
-        let mut skipped_bytes = 0usize;
-        let mut available = if self.byte_source.is_empty() {
-            let (loaded, skipped) = self.do_reload().await?;
-            skipped_bytes += skipped;
-            loaded
-        } else {
-            self.byte_source.len()
-        };
+        let (mut available, mut skipped_bytes) = self.do_reload().await?;
         loop {
             if available == 0 {
                 trace!("No more bytes available from source");
                 return Some((0, MessageStreamItem::Done));
             }
-            debug!("{} bytes available in buffer", available);
             match self
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
@@ -75,9 +66,10 @@ impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessagePro
                 Ok((rest, Some(m))) => {
                     let consumed = available - rest.len();
                     let total_used_bytes = consumed + skipped_bytes;
-                    debug!(
+                    trace!(
                         "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                        consumed, total_used_bytes
+                        consumed,
+                        total_used_bytes
                     );
                     self.byte_source.consume(consumed);
                     return Some((total_used_bytes, MessageStreamItem::Item(m)));
@@ -85,26 +77,26 @@ impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessagePro
                 Ok((rest, None)) => {
                     let consumed = available - rest.len();
                     self.byte_source.consume(consumed);
-                    debug!("None, consumed {} bytes", consumed);
+                    trace!("None, consumed {} bytes", consumed);
                     let total_used_bytes = consumed + skipped_bytes;
                     return Some((total_used_bytes, MessageStreamItem::Skipped));
                 }
-                Err(SourceError::Incomplete) => {
-                    debug!("not enough bytes to parse a message");
+                Err(ParserError::Incomplete) => {
+                    trace!("not enough bytes to parse a message");
                     let (reloaded, skipped) = self.do_reload().await?;
                     available += reloaded;
                     skipped_bytes += skipped;
                     continue;
                 }
-                Err(SourceError::Eof) => {
-                    debug!(
+                Err(ParserError::Eof) => {
+                    trace!(
                         "EOF reached...no more messages (skipped_bytes={})",
                         skipped_bytes
                     );
                     return None;
                 }
-                Err(SourceError::Parse(s)) => {
-                    debug!(
+                Err(ParserError::Parse(s)) => {
+                    warn!(
                         "No parse possible, try next batch of data ({}), skipped {} more bytes ({} already)",
                         s, available, skipped_bytes
                     );
@@ -115,16 +107,9 @@ impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessagePro
                         available += reloaded;
                         skipped_bytes += skipped;
                     } else {
-                        debug!(
-                            "Nothing more to reload, not used bytes: {}",
-                            skipped_bytes + available
-                        );
-                        return None;
+                        let unused = skipped_bytes + available;
+                        return Some((unused, MessageStreamItem::Done));
                     }
-                }
-                Err(e) => {
-                    debug!("Error during parsing, cannot continue: {}", e);
-                    return None;
                 }
             }
         }
@@ -142,7 +127,7 @@ impl<T: LogMessage + std::marker::Unpin, P: Parser<T>, S: ByteSource> MessagePro
                 if let Some(ts) = last_known_ts {
                     self.last_seen_ts = Some(ts);
                 }
-                debug!(
+                trace!(
                     "did a do_reload, skipped {} bytes, loaded {} bytes (total loaded and skipped: {})",
                     skipped_bytes, loaded_bytes, self.total_loaded + self.total_skipped
                 );

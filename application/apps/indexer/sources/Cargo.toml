@@ -10,11 +10,11 @@ async-stream = "0.3"
 async-trait = "0.1"
 buf_redux = "0.8"
 crossbeam-channel = "0.5"
-dlt-core = "0.11"
 etherparse = "0.10"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
 log = "0.4"
+parsers = { path = "../parsers" }
 pcap-parser = "0.13"
 pin-project-lite = "0.2"
 thiserror = "1.0"

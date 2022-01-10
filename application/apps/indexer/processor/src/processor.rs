@@ -54,11 +54,13 @@ pub async fn create_index_and_mapping(
 
     let in_file = fs::File::open(&config.in_file).map_err(|e| {
         warn!("could not open {:?}", config.in_file);
-        let _ = update_channel.try_send(Err(Notification {
-            severity: Severity::WARNING,
-            content: format!("could not open file ({})", e),
-            line: None,
-        }));
+        update_channel
+            .try_send(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("could not open file ({})", e),
+                line: None,
+            }))
+            .expect("UpdateChannel closed");
         IndexError::ConfigurationProblem(format!("could not open file ({})", e))
     })?;
     let mut decode_builder = DecodeReaderBytesBuilder::new();

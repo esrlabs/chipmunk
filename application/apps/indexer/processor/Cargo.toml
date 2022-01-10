@@ -12,10 +12,11 @@ bytecount = "0.6"
 chrono = "0.4"
 crossbeam-channel = "0.5"
 dlt = { path = "../dlt" }
-dlt-core = "0.11"
+# dlt-core = "0.11"
 # dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
-# dlt-core = { path = "../../../../../dlt-core.git" }
+dlt-core = { path = "../../../../../dlt-core.git" }
 encoding_rs_io = "0.1.7"
+futures = "0.3"
 grep-matcher = "0.1.4"
 grep-regex = "0.1.8"
 grep-searcher = "0.1.7"
@@ -25,10 +26,12 @@ itertools = "0.10.0"
 lazy_static = "1.4"
 log = "0.4"
 nom = "7.1"
+parsers = { path = "../parsers" }
 regex = "1"
 rustc-hash = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sources = { path = "../sources" }
 tokio = { version = "1.5", features = ["full"] }
 termcolor = "1.1"
 tokio-util = "0.6"
@@ -43,7 +46,6 @@ proptest-derive = "0.3"
 rand = "0.8"
 tempfile = "3.2"
 test-generator = "0.3"
-tokio = { version = "1.5", features = ["full"] }
 
 [[bench]]
 name = "map_benchmarks"

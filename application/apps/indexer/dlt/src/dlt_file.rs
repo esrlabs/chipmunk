@@ -312,7 +312,7 @@ pub fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
                     if content.is_empty() {
                         break;
                     }
-                    if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
+                    if let Ok((_rest, consumed)) = dlt_consume_msg(content) {
                         reader.consume(consumed as usize);
                         msg_cnt += 1;
                     } else {
