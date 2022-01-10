@@ -165,6 +165,8 @@ pub fn concat_files(
             .expect("Sending item must work");
     }
 
-    let _ = update_channel.send(Ok(IndexingProgress::Finished));
+    update_channel
+        .send(Ok(IndexingProgress::Finished))
+        .expect("UpdateChannel closed");
     Ok(())
 }

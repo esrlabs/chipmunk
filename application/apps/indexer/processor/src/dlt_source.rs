@@ -3,13 +3,10 @@ use crate::grabber::{
     LineRange, MetadataSource, Slot,
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
-use dlt::dlt_file::FileMessageProducer;
-use dlt_core::{
-    dlt::Message,
-    fmt::FormattableMessage,
-    parse::{dlt_consume_msg, ParsedMessage},
-};
+use dlt_core::{dlt::Message, parse::dlt_consume_msg};
 use indexer_base::progress::ComputationResult;
+use parsers::dlt::DltParser;
+use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
     fs,
     io::{BufRead, Cursor, SeekFrom},
@@ -17,21 +14,23 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
-const REDUX_READER_CAPACITY: usize = 10 * 1024 * 1024;
-const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
+const REDUX_READER_CAPACITY: usize = 17 * 1024 * 1024;
+const REDUX_MIN_BUFFER_SPACE: usize = 17 * 1024;
 const DEFAULT_SLOT_SIZE: usize = 64 * 1024usize;
 
 #[derive(Debug)]
 pub struct DltSource {
     source_id: String,
     path: PathBuf,
+    with_storage_header: bool,
 }
 
 impl DltSource {
-    pub fn new(p: &Path, id: &str) -> Self {
+    pub fn new(p: &Path, id: &str, with_storage_header: bool) -> Self {
         Self {
             source_id: id.to_string(),
             path: PathBuf::from(p),
+            with_storage_header,
         }
     }
 }
@@ -100,7 +99,7 @@ impl MetadataSource for DltSource {
                         break;
                     }
                     debug!("content content is not empty");
-                    if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
+                    if let Ok((_rest, consumed)) = dlt_consume_msg(content) {
                         debug!("dlt_consume_msg consumed {} bytes", consumed);
                         reader.consume(consumed as usize);
                         log_msg_cnt += 1;
@@ -171,41 +170,52 @@ impl MetadataSource for DltSource {
             GrabError::IoOperation(format!("Could not read from file {:?}", &self.path))
         })?;
 
-        let message_stream = FileMessageProducer::new(Cursor::new(read_buf), None, true, None);
+        // let message_stream = FileMessageProducer::new(Cursor::new(read_buf), None, true, None);
+
+        let dlt_parser = DltParser {
+            filter_config: None,
+            fibex_metadata: None,
+            with_storage_header: self.with_storage_header,
+        };
+        let byte_source = BinaryByteSource::new(Cursor::new(read_buf));
+        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, byte_source);
 
         let mut messages: Vec<Message> = Vec::new();
-        for msg_result in message_stream {
-            trace!("got message from stream: {:?}", msg_result);
-            match msg_result {
-                ParsedMessage::Item(msg) => {
-                    // progress_reporter.make_progress(consumed);
-                    messages.push(msg)
-                }
-                _ => warn!("Could not produce message"),
-            }
-        }
 
-        let items_to_grab = line_range.size();
-        let pure_lines = messages
-            .iter()
-            .skip(file_part.lines_to_skip)
-            .take(items_to_grab as usize);
+        let message_stream = dlt_msg_producer.as_stream();
+        todo!("maybe we need to make this async")
+        // for msg_result in message_stream {
+        //     trace!("got message from stream: {:?}", msg_result);
+        //     match msg_result {
+        //         ParsedMessage::Item(msg) => {
+        //             // progress_reporter.make_progress(consumed);
+        //             messages.push(msg)
+        //         }
+        //         _ => warn!("Could not produce message"),
+        //     }
+        // }
 
-        let grabbed_elements = pure_lines
-            .map(|s| {
-                let fmt_msg = FormattableMessage {
-                    message: s.clone(), //FIXME avoid clone
-                    fibex_metadata: None,
-                    options: None,
-                };
-                GrabbedElement {
-                    source_id: self.source_id.clone(),
-                    content: format!("{}", fmt_msg),
-                    row: None,
-                    pos: None,
-                }
-            })
-            .collect::<Vec<GrabbedElement>>();
-        Ok(GrabbedContent { grabbed_elements })
+        // let items_to_grab = line_range.size();
+        // let pure_lines = messages
+        //     .iter()
+        //     .skip(file_part.lines_to_skip)
+        //     .take(items_to_grab as usize);
+
+        // let grabbed_elements = pure_lines
+        //     .map(|s| {
+        //         let fmt_msg = FormattableMessage {
+        //             message: s.clone(), //FIXME avoid clone
+        //             fibex_metadata: None,
+        //             options: None,
+        //         };
+        //         GrabbedElement {
+        //             source_id: self.source_id.clone(),
+        //             content: format!("{}", fmt_msg),
+        //             row: None,
+        //             pos: None,
+        //         }
+        //     })
+        //     .collect::<Vec<GrabbedElement>>();
+        // Ok(GrabbedContent { grabbed_elements })
     }
 }

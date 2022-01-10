@@ -24,7 +24,7 @@ pub async fn handle(
     if filters.is_empty() {
         debug!("RUST: Search will be dropped. Filters are empty");
         // This is dropping of search
-        let _ = search_metadata_tx.send(None);
+        search_metadata_tx.send(None).expect("UpdateChannel closed");
         operation_api.emit(CallbackEvent::SearchUpdated(0));
         Ok(Some(SearchOperationResult {
             found: 0,
@@ -35,7 +35,7 @@ pub async fn handle(
         match search_results {
             Ok((file_path, found, stats)) => {
                 if found == 0 {
-                    let _ = search_metadata_tx.send(None);
+                    search_metadata_tx.send(None).expect("UpdateChannel closed");
                     operation_api.emit(CallbackEvent::SearchUpdated(0));
                     Ok(Some(SearchOperationResult { found, stats }))
                 } else {
@@ -45,7 +45,9 @@ pub async fn handle(
                         Ok(ComputationResult::Item(metadata)) => {
                             debug!("RUST: received search metadata");
                             let line_count = metadata.line_count as u64;
-                            let _ = search_metadata_tx.send(Some((file_path, metadata)));
+                            search_metadata_tx
+                                .send(Some((file_path, metadata)))
+                                .expect("UpdateChannel closed");
                             operation_api.emit(CallbackEvent::SearchUpdated(line_count));
                             Ok(Some(SearchOperationResult { found, stats }))
                         }

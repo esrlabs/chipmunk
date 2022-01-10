@@ -76,15 +76,19 @@ pub fn export_file_line_based(
             }
         }
 
-        let _ = update_channel.send(Ok(IndexingProgress::Finished));
+        update_channel
+            .send(Ok(IndexingProgress::Finished))
+            .expect("UpdateChannel closed");
         Ok(())
     } else {
         let reason = format!("couln't find session file: {:?}", file_path,);
-        let _ = update_channel.send(Err(Notification {
-            severity: Severity::ERROR,
-            content: reason.clone(),
-            line: None,
-        }));
+        update_channel
+            .send(Err(Notification {
+                severity: Severity::ERROR,
+                content: reason.clone(),
+                line: None,
+            }))
+            .expect("UpdateChannel closed");
         Err(Error::Export(reason))
     }
 }

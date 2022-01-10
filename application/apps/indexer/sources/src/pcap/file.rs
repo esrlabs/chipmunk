@@ -1,7 +1,6 @@
-use crate::producer::MessageProducer;
 use crate::{
-    ByteSource, Error as SourceError, LogMessage, MessageStreamItem, Parser, ReloadInfo,
-    SourceFilter, TransportProtocol,
+    producer::MessageProducer, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+    TransportProtocol,
 };
 use async_trait::async_trait;
 use buf_redux::Buffer;
@@ -12,10 +11,12 @@ use indexer_base::{
     utils,
 };
 use log::{debug, error, trace, warn};
+use parsers::{ByteRepresentation, LogMessage, MessageStreamItem, Parser};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
 use std::{
     fs::*,
     io::{BufReader as IoBufReader, BufWriter, Read, Write},
+    path::Path,
 };
 use thiserror::Error;
 use tokio::sync::mpsc::Sender;
@@ -28,13 +29,14 @@ const PROGRESS_PARTS: u64 = 20;
 pub enum Error {
     #[error("IO error: {0:?}")]
     Io(#[from] std::io::Error),
-    #[error("Configuration wrong: {0}")]
-    Configuration(String),
-    #[error("Parse error: {0}")]
-    Parse(String),
+    //     #[error("Configuration wrong: {0}")]
+    //     Configuration(String),
+    //     #[error("Parse error: {0}")]
+    //     Parse(String),
     #[error("Unrecoverable parse error: {0}")]
     Unrecoverable(String),
 }
+const DEBUG_BUF_SIZE: usize = 100 * 1024;
 
 pub struct PcapngByteSource<R: Read> {
     pcapng_reader: PcapNGReader<R>,
@@ -48,7 +50,8 @@ impl<R: Read> PcapngByteSource<R> {
         Ok(Self {
             pcapng_reader: PcapNGReader::new(65536, reader)
                 .map_err(|e| SourceError::Setup(format!("{}", e)))?,
-            buffer: Buffer::new(),
+            buffer: Buffer::with_capacity(DEBUG_BUF_SIZE),
+            // buffer: Buffer::new(),
             last_know_timestamp: None,
             total: 0,
         })
@@ -213,9 +216,160 @@ fn debug_block(b: PcapBlockOwned) {
     }
 }
 
+pub enum OutputProgress {
+    /// Progress indicates how many ticks of the total amount have been processed
+    /// the first number indicates the actual amount, the second the presumed total
+    Progress {
+        ticks: (u64, u64),
+    },
+    Stopped,
+    Finished,
+}
+
+#[async_trait]
+pub trait Output {
+    async fn consume_msg<T>(&mut self, msg: T) -> Result<(), Error>
+    where
+        T: LogMessage + Send;
+
+    async fn done(&mut self) -> Result<(), Error>;
+
+    async fn progress(&mut self, progress: Result<OutputProgress, Notification>);
+}
+
+struct DltFileOutput {
+    buf_writer: BufWriter<File>,
+    update_channel: Sender<VoidResults>,
+}
+
+impl DltFileOutput {
+    pub fn new(out_path: &Path, update_channel: Sender<VoidResults>) -> Result<Self, Error> {
+        let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
+            .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+        let buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+        Ok(Self {
+            buf_writer,
+            update_channel,
+        })
+    }
+}
+
+#[async_trait]
+impl Output for DltFileOutput {
+    async fn consume_msg<T>(&mut self, msg: T) -> Result<(), Error>
+    where
+        T: LogMessage + Send,
+    {
+        msg.to_writer(&mut self.buf_writer)?;
+        Ok(())
+    }
+
+    async fn done(&mut self) -> Result<(), Error> {
+        todo!()
+    }
+
+    async fn progress(&mut self, progress: Result<OutputProgress, Notification>) {
+        self.update_channel
+            .send(match progress {
+                Ok(OutputProgress::Progress { ticks }) => Ok(IndexingProgress::Progress { ticks }),
+                Ok(OutputProgress::Stopped) => (Ok(IndexingProgress::Stopped)),
+                Ok(OutputProgress::Finished) => (Ok(IndexingProgress::Finished)),
+                Err(notification) => (Err(notification)),
+            })
+            .await
+            .expect("Could not use update channel");
+    }
+}
+
+struct ChunkOutput {
+    tag: String,
+    line_nr: usize,
+    chunk_factory: ChunkFactory,
+    chunk_count: usize,
+    buf_writer: BufWriter<File>,
+    update_channel: Sender<ChunkResults>,
+}
+
+impl ChunkOutput {
+    pub fn new(
+        tag: &str,
+        append: bool,
+        out_path: &Path,
+        chunk_size: usize,
+        initial_line_nr: usize,
+        update_channel: Sender<ChunkResults>,
+    ) -> Result<Self, Error> {
+        let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, out_path)
+            .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+        let chunk_factory = ChunkFactory::new(chunk_size, current_out_file_size);
+        let buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+        Ok(Self {
+            tag: tag.to_string(),
+            line_nr: initial_line_nr,
+            chunk_factory,
+            chunk_count: 0,
+            buf_writer,
+            update_channel,
+        })
+    }
+}
+
+#[async_trait]
+impl Output for ChunkOutput {
+    async fn consume_msg<T>(&mut self, msg: T) -> Result<(), Error>
+    where
+        T: LogMessage + Send,
+    {
+        let written_bytes_len =
+            utils::create_tagged_line_d(&self.tag, &mut self.buf_writer, &msg, self.line_nr, true)?;
+        self.line_nr += 1;
+        if let Some(chunk) = self
+            .chunk_factory
+            .add_bytes(self.line_nr, written_bytes_len)
+        {
+            self.buf_writer.flush()?;
+            self.chunk_count += 1;
+            self.update_channel
+                .send(Ok(IndexingProgress::GotItem { item: chunk }))
+                .await
+                .expect("update_channel closed");
+        }
+        Ok(())
+    }
+
+    async fn done(&mut self) -> Result<(), Error> {
+        self.buf_writer.flush()?;
+        if let Some(chunk) = self
+            .chunk_factory
+            .create_last_chunk(self.line_nr, self.chunk_count == 0)
+        {
+            trace!("index: add last chunk {:?}", chunk);
+            self.update_channel
+                .send(Ok(IndexingProgress::GotItem { item: chunk }))
+                .await
+                .expect("UpdateChannel closed");
+        }
+        Ok(())
+    }
+
+    async fn progress(&mut self, progress: Result<OutputProgress, Notification>) {
+        self.update_channel
+            .send(match progress {
+                Ok(OutputProgress::Progress { ticks }) => Ok(IndexingProgress::Progress { ticks }),
+                Ok(OutputProgress::Stopped) => (Ok(IndexingProgress::Stopped)),
+                Ok(OutputProgress::Finished) => (Ok(IndexingProgress::Finished)),
+                Err(notification) => (Err(notification)),
+            })
+            .await
+            .expect("Could not use update channel");
+    }
+}
+
 /// extract log messages from a PCAPNG file
-#[allow(clippy::too_many_arguments)]
-pub async fn convert_from_pcapng<T: LogMessage + std::marker::Unpin, P: Parser<T> + Unpin>(
+pub async fn convert_from_pcapng<
+    T: LogMessage + std::marker::Unpin + Send,
+    P: Parser<T> + Unpin,
+>(
     pcap_path: &std::path::Path,
     out_path: &std::path::Path,
     update_channel: Sender<VoidResults>,
@@ -225,138 +379,129 @@ pub async fn convert_from_pcapng<T: LogMessage + std::marker::Unpin, P: Parser<T
     let total = pcap_path.metadata()?.len();
     debug!("Starting convert_from_pcapng with {} bytes", total);
 
-    let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
-        .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
-    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+    // let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
+    //     .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+
+    let output = DltFileOutput::new(out_path, update_channel)?;
+
     let pcap_file = File::open(&pcap_path)?;
     let buf_reader = IoBufReader::new(&pcap_file);
     let pcapng_byte_src =
         PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
     let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
-    // listen for both a shutdown request and incomming messages
-    // to do this we need to select over streams of the same type
-    // the type we use to unify is this Event enum
-
-    let mut processed_bytes = 0usize;
-    let incomplete_parses = 0usize;
-    let mut stopped = false;
     let msg_stream = pcap_msg_producer.as_stream();
     futures::pin_mut!(msg_stream);
-    // let mut msg_stream = stream::iter(pcap_msg_producer);
+    index_from_message_stream(total, cancel, msg_stream, output).await
 
-    let fraction = (total / PROGRESS_PARTS) as usize;
-    let mut index = 0usize;
+    // let mut processed_bytes = 0usize;
+    // let incomplete_parses = 0usize;
+    // let mut stopped = false;
 
-    loop {
-        tokio::select! {
-            _ = cancel.cancelled() => {
-                    warn!("received shutdown through future channel");
-                    update_channel.send(Ok(IndexingProgress::Stopped)).await.expect("Could not use update channel");
-                    stopped = true;
-                    break;
-            }
-            item = tokio_stream::StreamExt::next(&mut msg_stream) => {
-                match item {
-                    Some((consumed, msg)) => {
-                        if consumed > 0 {
-                            processed_bytes += consumed;
-                            let new_index = processed_bytes/fraction;
-                            if index != new_index {
-                                index = new_index;
-                                update_channel
-                                    .send(Ok(IndexingProgress::Progress {
-                                        ticks: (processed_bytes as u64, total),
-                                    }))
-                                    .await.expect("Could not use update channel");
-                            }
-                        }
-                        match msg {
-                            MessageStreamItem::Item(msg) => {
-                                buf_writer.write_all(&msg.as_stored_bytes())?;
-                            }
-                            MessageStreamItem::Skipped => {
-                                trace!("convert_from_pcapng: Msg was skipped due to filters");
-                            }
-                            MessageStreamItem::Empty => {
-                                trace!("convert_from_pcapng: pcap frame did not contain a message");
-                            }
-                            MessageStreamItem::Incomplete => {
-                                trace!(
-                                    "convert_from_pcapng Msg was incomplete (consumed {} bytes)",
-                                    consumed
-                                );
-                            }
-                            MessageStreamItem::Done => {
-                                debug!("convert_from_pcapng: MessageStreamItem::Done received");
-                                update_channel.send(Ok(IndexingProgress::Finished)).await.expect("Could not use update channel");
-                                break;
-                            }
-                        }
-                    }
-                    _ => {
-                        // stream was terminated
-                        warn!("stream was terminated");
-                        break;
-                    }
-                }
-            }
-        } // select!
-    } // loop
-      // TODO maybe not needed anymore
-    if incomplete_parses > 0 {
-        update_channel
-            .send(Err(Notification {
-                severity: Severity::WARNING,
-                content: format!("parsing incomplete for {} messages", incomplete_parses),
-                line: None,
-            }))
-            .await
-            .expect("Could not use update channel");
-    }
-    buf_writer.flush()?;
-    update_channel
-        .send(Ok(if stopped {
-            IndexingProgress::Stopped
-        } else {
-            IndexingProgress::Finished
-        }))
-        .await
-        .expect("Could not use update channel");
-    Ok(())
+    // let fraction = (total / PROGRESS_PARTS) as usize;
+    // let mut index = 0usize;
+
+    // loop {
+    //     tokio::select! {
+    //         _ = cancel.cancelled() => {
+    //                 warn!("received shutdown through future channel");
+    //                 update_channel.send(Ok(IndexingProgress::Stopped)).await.expect("Could not use update channel");
+    //                 stopped = true;
+    //                 break;
+    //         }
+    //         item = tokio_stream::StreamExt::next(&mut msg_stream) => {
+    //             match item {
+    //                 Some((consumed, msg)) => {
+    //                     if consumed > 0 {
+    //                         processed_bytes += consumed;
+    //                         let new_index = processed_bytes/fraction;
+    //                         if index != new_index {
+    //                             index = new_index;
+    //                             update_channel
+    //                                 .send(Ok(IndexingProgress::Progress {
+    //                                     ticks: (processed_bytes as u64, total),
+    //                                 }))
+    //                                 .await.expect("Could not use update channel");
+    //                         }
+    //                     }
+    //                     match msg {
+    //                         MessageStreamItem::Item(msg) => {
+    //                             buf_writer.write_all(&msg.as_stored_bytes())?;
+    //                         }
+    //                         MessageStreamItem::Skipped => {
+    //                             trace!("convert_from_pcapng: Msg was skipped due to filters");
+    //                         }
+    //                         MessageStreamItem::Empty => {
+    //                             trace!("convert_from_pcapng: pcap frame did not contain a message");
+    //                         }
+    //                         MessageStreamItem::Incomplete => {
+    //                             trace!(
+    //                                 "convert_from_pcapng Msg was incomplete (consumed {} bytes)",
+    //                                 consumed
+    //                             );
+    //                         }
+    //                         MessageStreamItem::Done => {
+    //                             debug!("convert_from_pcapng: MessageStreamItem::Done received");
+    //                             update_channel.send(Ok(IndexingProgress::Finished)).await.expect("Could not use update channel");
+    //                             break;
+    //                         }
+    //                     }
+    //                 }
+    //                 _ => {
+    //                     // stream was terminated
+    //                     warn!("stream was terminated");
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     } // select!
+    // } // loop
+    //   // TODO maybe not needed anymore
+    // if incomplete_parses > 0 {
+    //     update_channel
+    //         .send(Err(Notification {
+    //             severity: Severity::WARNING,
+    //             content: format!("parsing incomplete for {} messages", incomplete_parses),
+    //             line: None,
+    //         }))
+    //         .await
+    //         .expect("Could not use update channel");
+    // }
+    // buf_writer.flush()?;
+    // update_channel
+    //     .send(Ok(if stopped {
+    //         IndexingProgress::Stopped
+    //     } else {
+    //         IndexingProgress::Finished
+    //     }))
+    //     .await
+    //     .expect("Could not use update channel");
+    // Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub async fn index_from_message_stream<T, S>(
-    config: IndexingConfig,
-    initial_line_nr: usize,
-    update_channel: Sender<ChunkResults>,
+pub async fn index_from_message_stream<T, S, O>(
+    total: u64,
     cancel: CancellationToken,
     mut pcap_msg_producer: S,
+    mut output: O,
 ) -> Result<(), Error>
 where
-    T: LogMessage,
-    // I: Iterator<Item = (usize, MessageStreamItem<T>)>,
+    T: LogMessage + Send,
     S: Stream<Item = (usize, MessageStreamItem<T>)> + std::marker::Unpin,
+    O: Output,
 {
-    trace!("index_from_message_stream for  conf: {:?}", config);
-    let (out_file, current_out_file_size) =
-        utils::get_out_file_and_size(config.append, &config.out_path)
-            .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
-    let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
-    let mut line_nr = initial_line_nr;
-    let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-    let total = config.in_file.metadata().map(|md| md.len())?;
+    // trace!("index_from_message_stream for  conf: {:?}", config);
+    // let (out_file, current_out_file_size) =
+    //     utils::get_out_file_and_size(config.append, &config.out_path)
+    //         .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+    // let mut chunk_factory = ChunkFactory::new(config.chunk_size, current_out_file_size);
+    // let mut line_nr = initial_line_nr;
+    // let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
 
-    // let mut msg_stream = stream::iter(pcap_msg_producer);
-    // listen for both a shutdown request and incomming messages
-    // to do this we need to select over streams of the same type
-    // the type we use to unify is this Event enum
-
-    let mut chunk_count = 0usize;
-
+    // let mut chunk_count = 0usize;
     let mut processed_bytes = 0usize;
     let incomplete_parses = 0usize;
     let mut stopped = false;
+
     let fraction = (total / PROGRESS_PARTS) as usize;
     let mut index = 0usize;
 
@@ -365,7 +510,10 @@ where
             _ = cancel.cancelled() => {
                     debug!("received shutdown through future channel");
                     stopped = true;
-                    let _ = update_channel.send(Ok(IndexingProgress::Stopped));
+                    output.progress(Ok(OutputProgress::Stopped)).await;
+                    // update_channel.send(Ok(IndexingProgress::Stopped))
+                    //     .await
+                    //     .expect("UpdateChannel closed");
                     break;
             }
             item = tokio_stream::StreamExt::next(&mut pcap_msg_producer) => {
@@ -376,31 +524,29 @@ where
                             let new_index = processed_bytes/fraction;
                             if index != new_index {
                                 index = new_index;
-                                update_channel
-                                    .send(Ok(IndexingProgress::Progress {
+                                output.progress(Ok(OutputProgress::Progress {
                                         ticks: (processed_bytes as u64, total),
-                                    }))
-                                    .await.expect("Could not use update channel");
+                                    })).await;
                             }
                         }
                         match msg {
                             MessageStreamItem::Item(msg) => {
                                 trace!("received msg event");
+                                output.consume_msg(msg).await?;
 
-                                let written_bytes_len = utils::create_tagged_line_d(
-                                    &config.tag,
-                                    &mut buf_writer,
-                                    &msg,
-                                    line_nr,
-                                    true,
-                                )?;
-                                line_nr += 1;
-                                if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
-                                    buf_writer.flush()?;
-                                    chunk_count += 1;
-                                    let _ =
-                                        update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
-                                }
+                                // let written_bytes_len = utils::create_tagged_line_d(
+                                //     &config.tag,
+                                //     &mut buf_writer,
+                                //     &msg,
+                                //     line_nr,
+                                //     true,
+                                // )?;
+                                // line_nr += 1;
+                                // if let Some(chunk) = chunk_factory.add_bytes(line_nr, written_bytes_len) {
+                                //     buf_writer.flush()?;
+                                //     chunk_count += 1;
+                                //     update_channel.send(Ok(IndexingProgress::GotItem { item: chunk })).await.expect("update_channel closed");
+                                // }
                             }
                             MessageStreamItem::Skipped => {
                                 trace!("msg was skipped due to filters");
@@ -413,12 +559,13 @@ where
                             }
                             MessageStreamItem::Done => {
                                 trace!("MessageStreamItem::Done received");
-                                buf_writer.flush()?;
-                                if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0)
-                                {
-                                    trace!("index: add last chunk {:?}", chunk);
-                                    let _ = update_channel.send(Ok(IndexingProgress::GotItem { item: chunk }));
-                                }
+                                output.done().await?;
+                                // buf_writer.flush()?;
+                                // if let Some(chunk) = chunk_factory.create_last_chunk(line_nr, chunk_count == 0)
+                                // {
+                                //     trace!("index: add last chunk {:?}", chunk);
+                                //     update_channel.send(Ok(IndexingProgress::GotItem { item: chunk })).await.expect("UpdateChannel closed");
+                                // }
                                 break;
                             }
                         };
@@ -435,22 +582,26 @@ where
 
     // TODO maybe not needed anymore
     if incomplete_parses > 0 {
-        let _ = update_channel.send(Err(Notification {
-            severity: Severity::WARNING,
-            content: format!("parsing incomplete for {} messages", incomplete_parses),
-            line: None,
-        }));
+        output
+            .progress(Err(Notification {
+                severity: Severity::WARNING,
+                content: format!("parsing incomplete for {} messages", incomplete_parses),
+                line: None,
+            }))
+            .await;
     }
-    let _ = update_channel.send(Ok(if stopped {
-        IndexingProgress::Stopped
-    } else {
-        IndexingProgress::Finished
-    }));
+    output
+        .progress(Ok(if stopped {
+            OutputProgress::Stopped
+        } else {
+            OutputProgress::Finished
+        }))
+        .await;
     Ok(())
 }
 
 pub async fn create_index_and_mapping_from_pcapng<
-    T: LogMessage + Unpin,
+    T: LogMessage + Unpin + Send,
     P: Parser<T> + Unpin,
     S: ByteSource,
 >(
@@ -466,23 +617,35 @@ pub async fn create_index_and_mapping_from_pcapng<
             let mut pcap_msg_producer = MessageProducer::new(parser, source);
             let msg_stream = pcap_msg_producer.as_stream();
             futures::pin_mut!(msg_stream);
-            match index_from_message_stream(
-                config,
+            let output = ChunkOutput::new(
+                &config.tag,
+                config.append,
+                &config.out_path,
+                config.chunk_size,
                 initial_line_nr,
                 update_channel.clone(),
-                cancel,
-                msg_stream,
+            )?;
+
+            let total = config.in_file.metadata().map(|md| md.len())?;
+            match index_from_message_stream(
+                // config,
+                total, // initial_line_nr,
+                // update_channel.clone(),
+                cancel, msg_stream, output,
             )
             .await
             {
                 Ok(()) => Ok(()),
                 Err(e) => {
                     let content = format!("{}", e);
-                    let _ = update_channel.send(Err(Notification {
-                        severity: Severity::ERROR,
-                        content,
-                        line: None,
-                    }));
+                    update_channel
+                        .send(Err(Notification {
+                            severity: Severity::ERROR,
+                            content,
+                            line: None,
+                        }))
+                        .await
+                        .expect("UpdateChannel closed");
                     Err(e)
                 }
             }
@@ -492,11 +655,14 @@ pub async fn create_index_and_mapping_from_pcapng<
                 "could not determine last line number of {:?} ({})",
                 config.out_path, e
             );
-            let _ = update_channel.send(Err(Notification {
-                severity: Severity::ERROR,
-                content,
-                line: None,
-            }));
+            update_channel
+                .send(Err(Notification {
+                    severity: Severity::ERROR,
+                    content,
+                    line: None,
+                }))
+                .await
+                .expect("UpdateChannel closed");
             Err(Error::Unrecoverable(format!("{}", e)))
         }
     }
