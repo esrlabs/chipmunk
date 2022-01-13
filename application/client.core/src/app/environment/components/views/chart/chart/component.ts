@@ -531,6 +531,15 @@ export class ViewChartCanvasComponent implements AfterViewInit, AfterContentInit
             }
             return;
         }
+        let scales: any | undefined = this._ng_charts?.options.scales;
+        if (scales !== undefined) {
+            Object.keys(scales).forEach((id: string) => {
+                if (id === 'x' || scale.yAxisIDs.includes(id)) {
+                    return;
+                }
+                scales[id].display = false;
+            });
+        }
         scale.yAxisIDs.map((yAxisID: string, i: number) => {
             let min: number = 0;
             let max: number = 100;
