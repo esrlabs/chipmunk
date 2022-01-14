@@ -12,11 +12,13 @@ use processor::{
 };
 use serde::Serialize;
 use sources::{producer::MessageProducer, ByteSource, LogMessage, MessageStreamItem, Parser};
-use std::{fs::File, io::prelude::*, path::PathBuf};
+use std::path::PathBuf;
+use std::pin::Pin;
 use tokio::{
-    join, select,
+    join,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
 };
+use tokio_stream::{Stream, StreamExt};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -56,7 +58,7 @@ impl Session {
     /// a loop inside should be stopped only in:
     /// - error case
     /// - shutdown case
-    pub async fn stream<T: LogMessage, P: Parser<T>, S: ByteSource>(
+    pub async fn stream<T: LogMessage + Unpin, P: Parser<T> + Unpin, S: ByteSource>(
         &self,
         target: Target<T, P, S>,
         dest_path: Option<PathBuf>,
@@ -101,14 +103,14 @@ impl Session {
                     UnboundedSender<usize>,
                     UnboundedReceiver<usize>,
                 ) = unbounded_channel();
-                let session_writer = writer::session::Writer::new(
+                let (session_writer, rx_session_done) = writer::Writer::new(
                     &session_file_path,
                     tx_session_file_flush,
                     operation_api.get_cancellation_token(),
                 )
                 .await
                 .map_err(|e| ComputationError::IoOperation(e.to_string()))?;
-                let binary_writer = writer::binary::Writer::new(
+                let (binary_writer, rx_binary_done) = writer::Writer::new(
                     &binary_file_path,
                     tx_binary_file_flush,
                     operation_api.get_cancellation_token(),
@@ -133,7 +135,33 @@ impl Session {
                         return Err(ComputationError::Protocol(msg));
                     }
                 };
-                let (session_writer, binary_writer, producer) = join!(
+                let producer_stream = producer.as_stream();
+                futures::pin_mut!(producer_stream);
+                let (
+                    session_result,
+                    binary_result,
+                    session_flashing,
+                    binary_flashing,
+                    producer_res,
+                ) = join!(
+                    async {
+                        match rx_session_done.await {
+                            Ok(res) => res,
+                            Err(_) => Err(writer::Error::Channel(String::from(
+                                "Fail to get done signal from session writer",
+                            ))),
+                        }
+                        .map_err(|e| ComputationError::IoOperation(e.to_string()))
+                    },
+                    async {
+                        match rx_binary_done.await {
+                            Ok(res) => res,
+                            Err(_) => Err(writer::Error::Channel(String::from(
+                                "Fail to get done signal from binary writer",
+                            ))),
+                        }
+                        .map_err(|e| ComputationError::IoOperation(e.to_string()))
+                    },
                     async {
                         while let Some(_bytes) = rx_session_file_flush.recv().await {
                             self.update(&mut session_grabber, operation_api, state)?;
@@ -145,35 +173,36 @@ impl Session {
                         Ok::<(), ComputationError>(())
                     },
                     async {
-                        for item in producer.by_ref() {
-                            if let (_, item) = item {
-                                match item {
-                                    MessageStreamItem::Item(item) => {
-                                        // TODO: Try to get rid of channels
-                                        session_writer
-                                            .send(format!("{}\n", item).as_bytes())
-                                            .map_err(|e| {
-                                                ComputationError::IoOperation(e.to_string())
-                                            })?;
-                                        binary_writer.send(item.as_stored_bytes()).map_err(
-                                            |e| ComputationError::IoOperation(e.to_string()),
-                                        )?;
-                                    }
-                                    MessageStreamItem::Done => {
-                                        break;
-                                    }
-                                    _ => {}
+                        for (_, item) in producer_stream.next().await {
+                            match item {
+                                MessageStreamItem::Item(item) => {
+                                    session_writer
+                                        .send(format!("{}\n", item).as_bytes().iter())
+                                        .map_err(|e| {
+                                            ComputationError::IoOperation(e.to_string())
+                                        })?;
+                                    binary_writer.send(item.as_stored_bytes().iter()).map_err(
+                                        |e| ComputationError::IoOperation(e.to_string()),
+                                    )?;
                                 }
+                                MessageStreamItem::Done => {
+                                    break;
+                                }
+                                _ => {}
                             }
                         }
                         Ok::<(), ComputationError>(())
                     }
                 );
-                if let Err(err) = session_writer {
+                if let Err(err) = session_result {
                     Err(err)
-                } else if let Err(err) = binary_writer {
+                } else if let Err(err) = binary_result {
                     Err(err)
-                } else if let Err(err) = producer {
+                } else if let Err(err) = session_flashing {
+                    Err(err)
+                } else if let Err(err) = binary_flashing {
+                    Err(err)
+                } else if let Err(err) = producer_res {
                     Err(err)
                 } else {
                     Ok(())
