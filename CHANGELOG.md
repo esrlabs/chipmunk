@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.26.2] - 01/14/2022
+
+### Fixes
+
+-   Fix chart's view
+
 ## [2.26.1] - 01/07/2022
 
 ### Changes
