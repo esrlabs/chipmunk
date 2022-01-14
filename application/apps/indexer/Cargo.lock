@@ -1900,6 +1900,7 @@ name = "session"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "futures",
  "indexer_base",
  "log",
  "merging",
@@ -1910,6 +1911,7 @@ dependencies = [
  "sources",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "uuid",
 ]
