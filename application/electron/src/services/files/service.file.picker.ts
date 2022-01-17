@@ -1,13 +1,6 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import ServiceStreams, { IStreamInfo } from '../service.streams';
-import ServiceStorage, { IStorageScheme } from '../service.storage';
-import ServiceStreamSource from '../service.stream.sources';
-import ServiceHotkeys from '../service.hotkeys';
-import { getDefaultFileParser, AFileParser, getParserForFile } from '../../controllers/files.parsers/index';
-import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue, FileFilter } from 'electron';
 import Logger from '../../tools/env.logger';
-import * as Tools from '../../tools/index';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Subscription } from '../../tools/index';
@@ -19,7 +12,6 @@ import { IService } from '../../interfaces/interface.service';
  */
 
 class ServiceFilePicker implements IService {
-
     private _logger: Logger = new Logger('ServiceFilePicker');
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
@@ -30,13 +22,18 @@ class ServiceFilePicker implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectron.IPC.subscribe(IPCMessages.FilePickerRequest, this._ipc_FilePickerRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscription.FilePickerRequest = subscription;
-                resolve();
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to init module due error: ${error.message}`);
-                reject(error);
-            });
+            ServiceElectron.IPC.subscribe(
+                IPCMessages.FilePickerRequest,
+                this._ipc_FilePickerRequest.bind(this),
+            )
+                .then((subscription: Subscription) => {
+                    this._subscription.FilePickerRequest = subscription;
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail to init module due error: ${error.message}`);
+                    reject(error);
+                });
         });
     }
 
@@ -53,39 +50,60 @@ class ServiceFilePicker implements IService {
         return 'ServiceFilePicker';
     }
 
-    private _ipc_FilePickerRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+    private _ipc_FilePickerRequest(
+        request: IPCMessages.TMessage,
+        response: (instance: IPCMessages.TMessage) => any,
+    ) {
         const req: IPCMessages.FilePickerRequest = request as IPCMessages.FilePickerRequest;
         this._open(
             req.filter instanceof Array ? req.filter : [],
             typeof req.multiple === 'boolean' ? req.multiple : false,
             typeof req.defaultPath === 'string' ? path.dirname(req.defaultPath) : '',
-        ).then((files: string[]) => {
-            if (files.length === 0) {
-                return response(new IPCMessages.FilePickerResponse({
-                    files: [],
-                }));
-            }
-            Promise.all(files.map((file: string) => {
-                return this._getInfo(file);
-            })).then((data: IPCMessages.IFilePickerFileInfo[]) => {
-                response(new IPCMessages.FilePickerResponse({
-                    files: data,
-                }));
-            }).catch((gettingInfoError: Error) => {
-                response(new IPCMessages.FilePickerResponse({
-                    files: [],
-                    error: gettingInfoError.message,
-                }));
+        )
+            .then((files: string[]) => {
+                if (files.length === 0) {
+                    return response(
+                        new IPCMessages.FilePickerResponse({
+                            files: [],
+                        }),
+                    );
+                }
+                Promise.all(
+                    files.map((file: string) => {
+                        return this._getInfo(file);
+                    }),
+                )
+                    .then((data: IPCMessages.IFilePickerFileInfo[]) => {
+                        response(
+                            new IPCMessages.FilePickerResponse({
+                                files: data,
+                            }),
+                        );
+                    })
+                    .catch((gettingInfoError: Error) => {
+                        response(
+                            new IPCMessages.FilePickerResponse({
+                                files: [],
+                                error: gettingInfoError.message,
+                            }),
+                        );
+                    });
+            })
+            .catch((error: Error) => {
+                response(
+                    new IPCMessages.FilePickerResponse({
+                        files: [],
+                        error: error.message,
+                    }),
+                );
             });
-        }).catch((error: Error) => {
-            response(new IPCMessages.FilePickerResponse({
-                files: [],
-                error: error.message,
-            }));
-        });
     }
 
-    private _open(filters: FileFilter[] = [], multiple: boolean = false, defaultPath: string): Promise<string[]> {
+    private _open(
+        filters: FileFilter[] = [],
+        multiple: boolean = false,
+        defaultPath: string,
+    ): Promise<string[]> {
         return new Promise((resolve, reject) => {
             const win = ServiceElectron.getBrowserWindow();
             if (win === undefined) {
@@ -95,15 +113,18 @@ class ServiceFilePicker implements IService {
             if (multiple) {
                 options.push('multiSelections');
             }
-            dialog.showOpenDialog(win, {
-                properties: options as any[],
-                filters: filters,
-                defaultPath: defaultPath,
-            }).then((returnValue: OpenDialogReturnValue) => {
-                resolve(returnValue.filePaths);
-            }).catch((error: Error) => {
-                this._logger.error(`Fail open file due error: ${error.message}`);
-            });
+            dialog
+                .showOpenDialog(win, {
+                    properties: options as any[],
+                    filters: filters,
+                    defaultPath: defaultPath,
+                })
+                .then((returnValue: OpenDialogReturnValue) => {
+                    resolve(returnValue.filePaths);
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail open file due error: ${error.message}`);
+                });
         });
     }
 
@@ -123,7 +144,6 @@ class ServiceFilePicker implements IService {
             });
         });
     }
-
 }
 
-export default (new ServiceFilePicker());
+export default new ServiceFilePicker();

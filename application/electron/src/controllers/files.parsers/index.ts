@@ -1,9 +1,14 @@
 import FileParserText from './file.parser.text';
 import FileParserDlt from './file.parser.dlt';
 import FileParserPcapDlt from './file.parser.pcap.dlt';
-import { AFileParser } from './interface';
 
+import { AFileParser } from './interface';
 export { FileParserText, FileParserDlt, FileParserPcapDlt };
+
+export interface IFileParserInfo {
+    parser: AFileParser;
+    supported: boolean;
+}
 
 export interface IFileParser {
     name: string;
@@ -12,6 +17,7 @@ export interface IFileParser {
     class: any;
     defaults?: boolean;
 }
+
 const FileParsers: IFileParser[] = [
     {
         name: 'Text',
@@ -34,28 +40,17 @@ const FileParsers: IFileParser[] = [
     },
 ];
 
-export function getDefaultFileParser(): AFileParser | undefined {
-    let parser: AFileParser | undefined;
-    FileParsers.forEach((desc) => {
-        if (parser !== undefined) {
-            return;
-        }
-        if (desc.defaults !== true) {
-            return;
-        }
-        parser = new desc.class();
-    });
-    return parser;
+export function getDefaultFileParser(): AFileParser {
+    return new FileParserText();
 }
 
-export function getParserForFile(
-    file: string,
-    predefined?: AFileParser,
-    defaults?: boolean,
-): Promise<AFileParser | undefined> {
+export function getParserForFile(file: string, predefined?: AFileParser): Promise<IFileParserInfo> {
     return new Promise((resolve, reject) => {
         if (predefined !== undefined) {
-            return resolve(predefined);
+            return resolve({
+                parser: predefined,
+                supported: true,
+            });
         }
         const parsers: AFileParser[] = FileParsers.map((desc) => {
             return new desc.class();
@@ -68,9 +63,9 @@ export function getParserForFile(
             .then((results: boolean[]) => {
                 const index: number = results.indexOf(true);
                 if (index === -1) {
-                    resolve(getDefaultFileParser());
+                    return resolve({ parser: getDefaultFileParser(), supported: false });
                 }
-                resolve(parsers[index]);
+                resolve({ parser: parsers[index], supported: true });
             })
             .catch((error: Error) => {
                 reject(

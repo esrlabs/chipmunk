@@ -8,6 +8,7 @@ import { DialogsMultipleFilesActionComponent } from '../components/dialogs/multi
 import { CGuids } from '../states/state.default.sidebar.apps';
 import { Storage } from '../controller/helpers/virtualstorage';
 import { ENotificationType } from '../services.injectable/injectable.service.notifications';
+import { DialogsUnsupportedFileActionComponent } from '../components/dialogs/unsupportedfile/component';
 
 import LayoutStateService from './standalone/service.layout.state';
 import ServiceElectronIpc from './service.electron.ipc';
@@ -63,6 +64,10 @@ export class FileOpenerService implements IService, IFileOpenerService {
             this._subscriptions.FilesOpenEvent = ServiceElectronIpc.subscribe(
                 IPC.FilesOpenEvent,
                 this._onFilesOpenEvent.bind(this),
+            );
+            this._subscriptions.FileUnsupportedRequest = ServiceElectronIpc.subscribe(
+                IPC.FileUnsupportedRequest,
+                this._onFileUnsupportedRequest.bind(this),
             );
             resolve();
         });
@@ -628,6 +633,45 @@ export class FileOpenerService implements IService, IFileOpenerService {
 
     private _onFilesOpenEvent(msg: IPC.FilesOpenEvent) {
         this.open(msg.files);
+    }
+
+    private _onFileUnsupportedRequest(
+        request: IPC.FileUnsupportedRequest,
+        response: (message: IPC.TMessage) => Promise<void>,
+    ) {
+        const popupId: string | undefined = PopupsService.add({
+            id: 'opening-unsupported-file-dialog',
+            caption: `Opening unsupported file: ${request.file}`,
+            component: {
+                factory: DialogsUnsupportedFileActionComponent,
+                inputs: {
+                    file: request.file,
+                },
+            },
+            buttons: [
+                {
+                    caption: 'Open',
+                    handler: () => {
+                        response(
+                            new IPC.FileUnsupportedResponse({
+                                open: true,
+                            }),
+                        );
+                    },
+                },
+                {
+                    caption: 'Cancel',
+                    handler: () => {
+                        response(
+                            new IPC.FileUnsupportedResponse({
+                                open: false,
+                            }),
+                        );
+                        popupId !== undefined && PopupsService.remove(popupId);
+                    },
+                },
+            ],
+        });
     }
 }
 

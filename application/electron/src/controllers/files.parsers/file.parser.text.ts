@@ -1,7 +1,8 @@
 import { AFileParser, IMapItem } from './interface';
+import { detectEncodingFromBuffer } from '../../thirdparty/encoder';
+import { readExactlyByFile, ReadResult } from '../../thirdparty/file.reader';
 
 import * as path from 'path';
-import ft from 'file-type';
 import * as fs from 'fs';
 import * as Tools from '../../tools/index';
 
@@ -57,34 +58,13 @@ export default class FileParser extends AFileParser {
 
     public isSupported(file: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            fs.open(file, 'r', (openError: NodeJS.ErrnoException | null, fd: number) => {
-                if (openError) {
-                    return reject(openError);
-                }
-                const buffer: Buffer = Buffer.alloc(ft.minimumBytes);
-                fs.read(
-                    fd,
-                    buffer,
-                    0,
-                    ft.minimumBytes,
-                    0,
-                    (readError: NodeJS.ErrnoException | null, read: number, buf: Buffer) => {
-                        if (readError) {
-                            return reject(readError);
-                        }
-                        const type: ft.FileTypeResult | undefined = ft(buf);
-                        if (type === undefined) {
-                            resolve(false);
-                        } else if (
-                            type.mime.indexOf('text') !== -1 ||
-                            type.mime.indexOf('application') !== -1
-                        ) {
-                            resolve(true);
-                        }
-                        resolve(false);
-                    },
-                );
-            });
+            readExactlyByFile(file, fs.statSync(file).size)
+                .then((value: ReadResult) => {
+                    resolve(!detectEncodingFromBuffer(value).seemsBinary);
+                })
+                .catch((error: Error) => {
+                    reject(error);
+                });
         });
     }
 

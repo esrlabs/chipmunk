@@ -8,13 +8,11 @@ export interface IFileInfoResponse {
     size: number;
     created: number;
     changed: number;
-    parser?: string;
-    defaults?: string;
-    parsers?: IParser[];
+    supported: boolean;
+    parser: string;
 }
 
 export class FileInfoResponse {
-
     public static signature: string = 'FileInfoResponse';
     public signature: string = FileInfoResponse.signature;
     public path: string = '';
@@ -22,9 +20,8 @@ export class FileInfoResponse {
     public size: number = -1;
     public created: number = -1;
     public changed: number = -1;
-    public parser: string | undefined;
-    public defaults: string | undefined;
-    public parsers: IParser[] | undefined;
+    public supported: boolean = true;
+    public parser: string = '';
 
     constructor(params: IFileInfoResponse) {
         if (typeof params !== 'object' || params === null) {
@@ -36,31 +33,35 @@ export class FileInfoResponse {
         if (typeof params.name !== 'string' || params.name.trim() === '') {
             throw new Error(`name should be defined.`);
         }
-        if (params.parser !== undefined && typeof params.parser !== 'string') {
-            throw new Error(`parser should be defined as string.`);
+        if (typeof params.supported !== 'boolean') {
+            throw new Error(`supported should be defined as boolean.`);
         }
-        if (params.parsers !== undefined && !(params.parsers instanceof Array)) {
-            throw new Error(`parsers should be defined as Array<IParser>.`);
+        if (typeof params.parser !== 'string') {
+            throw new Error(`parser should be defined as string.`);
         }
         if (typeof params.size !== 'number' || isNaN(params.size) || !isFinite(params.size)) {
             throw new Error(`size should be defined.`);
         }
-        if (typeof params.created !== 'number' || isNaN(params.created) || !isFinite(params.created)) {
+        if (
+            typeof params.created !== 'number' ||
+            isNaN(params.created) ||
+            !isFinite(params.created)
+        ) {
             throw new Error(`created should be defined.`);
         }
-        if (typeof params.changed !== 'number' || isNaN(params.changed) || !isFinite(params.changed)) {
+        if (
+            typeof params.changed !== 'number' ||
+            isNaN(params.changed) ||
+            !isFinite(params.changed)
+        ) {
             throw new Error(`changed should be defined.`);
-        }
-        if (params.defaults !== undefined && typeof params.defaults !== 'string') {
-            throw new Error(`defaults should be defined as string.`);
         }
         this.path = params.path;
         this.name = params.name;
         this.size = params.size;
         this.created = params.created;
         this.changed = params.changed;
+        this.supported = params.supported;
         this.parser = params.parser;
-        this.parsers = params.parsers;
-        this.defaults = params.defaults;
     }
 }

@@ -268,6 +268,12 @@ export { IFileOpenInprogressEvent, FileOpenInprogressEvent };
 import { IFileReadRequest, FileReadRequest } from './file.read.request';
 export { IFileReadRequest, FileReadRequest };
 
+import { IFileUnsupportedRequest, FileUnsupportedRequest } from './file.unsupported.request';
+export { IFileUnsupportedRequest, FileUnsupportedRequest };
+
+import { IFileUnsupportedResponse, FileUnsupportedResponse } from './file.unsupported.response';
+export { IFileUnsupportedResponse, FileUnsupportedResponse };
+
 import { IFileReadResponse, FileReadResponse } from './file.read.response';
 export { IFileReadResponse, FileReadResponse };
 
@@ -1149,6 +1155,8 @@ export type TMessage =
     | FileOpenInprogressEvent
     | FileReadRequest
     | FileReadResponse
+    | FileUnsupportedRequest
+    | FileUnsupportedResponse
     | FileOpenRequest
     | FileOpenResponse
     | FilesSearchRequest
@@ -1418,6 +1426,8 @@ export const Map = {
     [FileGetOptionsResponse.signature]: FileGetOptionsResponse,
     [FileReadRequest.signature]: FileReadRequest,
     [FileReadResponse.signature]: FileReadResponse,
+    [FileUnsupportedRequest.signature]: FileUnsupportedRequest,
+    [FileUnsupportedResponse.signature]: FileUnsupportedResponse,
     [FileOpenRequest.signature]: FileOpenRequest,
     [FileOpenResponse.signature]: FileOpenResponse,
     [FilesSearchRequest.signature]: FilesSearchRequest,

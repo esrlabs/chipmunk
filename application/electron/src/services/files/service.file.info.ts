@@ -1,5 +1,10 @@
 import ServiceElectron, { IPCMessages } from '../service.electron';
-import { FileParsers, AFileParser, getParserForFile, getDefaultFileParser } from '../../controllers/files.parsers/index';
+import {
+    FileParsers,
+    IFileParserInfo,
+    getParserForFile,
+    getDefaultFileParser,
+} from '../../controllers/files.parsers/index';
 import Logger from '../../tools/env.logger';
 import * as path from 'path';
 import { Subscription } from '../../tools/index';
@@ -12,7 +17,6 @@ import * as fs from 'fs';
  */
 
 class ServiceFileInfo implements IService {
-
     private _logger: Logger = new Logger('ServiceFileInfo');
     // Should detect by executable file
     private _subscription: { [key: string]: Subscription } = {};
@@ -23,13 +27,18 @@ class ServiceFileInfo implements IService {
      */
     public init(): Promise<void> {
         return new Promise((resolve, reject) => {
-            ServiceElectron.IPC.subscribe(IPCMessages.FileInfoRequest, this._onFileInfoRequest.bind(this)).then((subscription: Subscription) => {
-                this._subscription.FileGetParserRequest = subscription;
-                resolve();
-            }).catch((error: Error) => {
-                this._logger.error(`Fail to init module due error: ${error.message}`);
-                reject(error);
-            });
+            ServiceElectron.IPC.subscribe(
+                IPCMessages.FileInfoRequest,
+                this._onFileInfoRequest.bind(this),
+            )
+                .then((subscription: Subscription) => {
+                    this._subscription.FileGetParserRequest = subscription;
+                    resolve();
+                })
+                .catch((error: Error) => {
+                    this._logger.error(`Fail to init module due error: ${error.message}`);
+                    reject(error);
+                });
         });
     }
 
@@ -59,25 +68,15 @@ class ServiceFileInfo implements IService {
         return parserClass;
     }
 
-    private _onFileInfoRequest(request: IPCMessages.TMessage, response: (instance: IPCMessages.TMessage) => any) {
+    private _onFileInfoRequest(
+        request: IPCMessages.TMessage,
+        response: (instance: IPCMessages.TMessage) => any,
+    ) {
         const req: IPCMessages.FileInfoRequest = request as IPCMessages.FileInfoRequest;
-        const info: { size: number, created: number; changed: number } = { size: -1, created: -1, changed: -1 };
-        const defaults: AFileParser | undefined = getDefaultFileParser();
-        const noParserFoundResponce = () => {
-            response(new IPCMessages.FileInfoResponse({
-                path: req.file,
-                name: path.basename(req.file),
-                parsers: FileParsers.map((parser) => {
-                    return {
-                        name: parser.name,
-                        desc: parser.desc,
-                    };
-                }),
-                defaults: defaults !== undefined ? defaults.getName() : undefined,
-                size: info.size,
-                created: info.created,
-                changed: info.changed,
-            }));
+        const info: { size: number; created: number; changed: number } = {
+            size: -1,
+            created: -1,
+            changed: -1,
         };
         if (fs.existsSync(req.file)) {
             const stats: fs.Stats = fs.statSync(req.file);
@@ -85,25 +84,37 @@ class ServiceFileInfo implements IService {
             info.created = stats.birthtimeMs;
             info.changed = stats.mtimeMs;
         }
-        getParserForFile(req.file).then((parser: AFileParser | undefined) => {
-            if (parser === undefined) {
-                return noParserFoundResponce();
-            }
-            response(new IPCMessages.FileInfoResponse({
-                path: req.file,
-                name: path.basename(req.file),
-                parser: parser.getName(),
-                size: info.size,
-                defaults: defaults !== undefined ? defaults.getName() : undefined,
-                created: info.created,
-                changed: info.changed,
-            }));
-        }).catch((gettingParserError: Error) => {
-            this._logger.warn(`Fail to find parser for file "${req.file}" due error: ${gettingParserError.message}`);
-            noParserFoundResponce();
-        });
+        getParserForFile(req.file)
+            .then((parserInfo: IFileParserInfo) => {
+                response(
+                    new IPCMessages.FileInfoResponse({
+                        path: req.file,
+                        name: path.basename(req.file),
+                        parser: parserInfo.parser.getName(),
+                        supported: parserInfo.supported,
+                        size: info.size,
+                        created: info.created,
+                        changed: info.changed,
+                    }),
+                );
+            })
+            .catch((gettingParserError: Error) => {
+                this._logger.warn(
+                    `Fail to find parser for file "${req.file}" due error: ${gettingParserError.message}`,
+                );
+                response(
+                    new IPCMessages.FileInfoResponse({
+                        path: req.file,
+                        name: path.basename(req.file),
+                        parser: getDefaultFileParser().getName(),
+                        supported: false,
+                        size: info.size,
+                        created: info.created,
+                        changed: info.changed,
+                    }),
+                );
+            });
     }
-
 }
 
-export default (new ServiceFileInfo());
+export default new ServiceFileInfo();

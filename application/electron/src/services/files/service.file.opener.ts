@@ -12,7 +12,7 @@ import { ENotificationType } from '../service.notifications';
 import { IMapItem, ITicks } from '../../controllers/files.parsers/interface';
 import { dialog, OpenDialogReturnValue } from 'electron';
 import {
-    getDefaultFileParser,
+    IFileParserInfo,
     AFileParser,
     getParserForFile,
 } from '../../controllers/files.parsers/index';
@@ -130,99 +130,112 @@ class ServiceFileOpener implements IService {
                     return reject(error);
                 }
                 getParserForFile(file, parser)
-                    .then((detectedParser: AFileParser | undefined) => {
-                        if (detectedParser === undefined) {
-                            detectedParser = getDefaultFileParser();
-                        }
-                        if (detectedParser === undefined) {
-                            return reject(
-                                new Error(
-                                    this._logger.warn(`Fail to find parser for file "${file}"`),
-                                ),
-                            );
-                        }
-                        // To resolve TS type checks, we need this here.
-                        const instanceParser: AFileParser = detectedParser;
+                    .then((detected: IFileParserInfo) => {
+                        const instanceParser: AFileParser = detected.parser;
                         // Create file opener
                         const open = (options: any) => {
                             if (typeof options === 'boolean') {
                                 this._logger.debug(`User canceled opening file.`);
                                 return resolve({ sourceId: -1, options: undefined });
                             }
-                            const trackingId: string = Tools.guid();
-                            this._setProgress(instanceParser, trackingId, file);
-                            // Trigger progress
-                            this._incrProgress(instanceParser, trackingId, sessionId, 0);
-                            // Store parser
-                            this._active.set(sessionId, instanceParser);
-                            // Send notification about opening
-                            ServiceElectron.IPC.send(
-                                new IPCMessages.FileOpenInprogressEvent({
-                                    session: sessionId,
-                                    file: file,
-                                }),
-                            ).catch((progressNotificationErr: Error) => {
-                                this._logger.warn(
-                                    `Fail notify render about starting of opening file "${file}" due error: ${progressNotificationErr.message}`,
-                                );
-                            });
-                            // Parser has direct method of reading and writing
-                            this._directReadWrite(
-                                file,
-                                sessionId,
-                                instanceParser,
-                                options,
-                                trackingId,
-                            )
-                                .then((sourceId: number) => {
-                                    instanceParser.destroy().then(() => {
-                                        // Save recent
-                                        ServiceFileRecent.save(file, stats.size);
-                                        // Get meta file info
-                                        const info = ServiceStreamSource.get(sourceId);
-                                        if (info !== undefined) {
-                                            (info as IPCMessages.IStreamSourceNew).id = sourceId;
-                                        }
-                                        // Bound filename with session
-                                        ServiceStreams.addBoundFile(sessionId, file);
-                                        // Send meta info data
-                                        ServiceElectron.IPC.send(
-                                            new IPCMessages.FileOpenDoneEvent({
-                                                session: sessionId,
-                                                file: file,
-                                                stream: info as IPCMessages.IStreamSourceNew,
-                                                options: options,
-                                            }),
-                                        ).catch((confirmNotificationErr: Error) => {
-                                            this._logger.warn(
-                                                `Fail notify render about opening file "${file}" due error: ${confirmNotificationErr.message}`,
+                            if (detected.supported) {
+                                const trackingId: string = Tools.guid();
+                                this._setProgress(instanceParser, trackingId, file);
+                                // Trigger progress
+                                this._incrProgress(instanceParser, trackingId, sessionId, 0);
+                                // Store parser
+                                this._active.set(sessionId, instanceParser);
+                                // Send notification about opening
+                                ServiceElectron.IPC.send(
+                                    new IPCMessages.FileOpenInprogressEvent({
+                                        session: sessionId,
+                                        file: file,
+                                    }),
+                                ).catch((progressNotificationErr: Error) => {
+                                    this._logger.warn(
+                                        `Fail notify render about starting of opening file "${file}" due error: ${progressNotificationErr.message}`,
+                                    );
+                                });
+                                // Parser has direct method of reading and writing
+                                this._directReadWrite(
+                                    file,
+                                    sessionId,
+                                    instanceParser,
+                                    options,
+                                    trackingId,
+                                )
+                                    .then((sourceId: number) => {
+                                        instanceParser.destroy().then(() => {
+                                            // Save recent
+                                            ServiceFileRecent.save(file, stats.size);
+                                            // Get meta file info
+                                            const info = ServiceStreamSource.get(sourceId);
+                                            if (info !== undefined) {
+                                                (info as IPCMessages.IStreamSourceNew).id =
+                                                    sourceId;
+                                            }
+                                            // Bound filename with session
+                                            ServiceStreams.addBoundFile(sessionId, file);
+                                            // Send meta info data
+                                            ServiceElectron.IPC.send(
+                                                new IPCMessages.FileOpenDoneEvent({
+                                                    session: sessionId,
+                                                    file: file,
+                                                    stream: info as IPCMessages.IStreamSourceNew,
+                                                    options: options,
+                                                }),
+                                            ).catch((confirmNotificationErr: Error) => {
+                                                this._logger.warn(
+                                                    `Fail notify render about opening file "${file}" due error: ${confirmNotificationErr.message}`,
+                                                );
+                                            });
+                                            // Resolve
+                                            resolve({ sourceId: sourceId, options: options });
+                                        });
+                                    })
+                                    .catch((pipeError: Error) => {
+                                        instanceParser.destroy().then(() => {
+                                            reject(
+                                                new Error(
+                                                    this._logger.error(
+                                                        `Fail to directly read file "${file}" due error: ${pipeError.message}`,
+                                                    ),
+                                                ),
                                             );
                                         });
-                                        // Resolve
-                                        resolve({ sourceId: sourceId, options: options });
+                                    })
+                                    .cancel(() => {
+                                        this._logger.debug(
+                                            `Reading operation with "${instanceParser.getAlias()}" was canceled`,
+                                        );
+                                    })
+                                    .finally(() => {
+                                        this._unsetProgress(instanceParser, trackingId, sessionId);
+                                        ServiceStreams.reattachSessionFileHandle(sessionId);
+                                        this._active.delete(sessionId);
                                     });
-                                })
-                                .catch((pipeError: Error) => {
-                                    instanceParser.destroy().then(() => {
-                                        reject(
-                                            new Error(
-                                                this._logger.error(
-                                                    `Fail to directly read file "${file}" due error: ${pipeError.message}`,
-                                                ),
-                                            ),
+                            } else {
+                                ServiceElectron.IPC.request(
+                                    new IPCMessages.FileUnsupportedRequest({
+                                        file: path.basename(file),
+                                    }),
+                                    IPCMessages.FileUnsupportedResponse,
+                                )
+                                    .then((response: IPCMessages.FileUnsupportedResponse) => {
+                                        if (response.open) {
+                                            detected.supported = true;
+                                            open(options);
+                                        } else {
+                                            this._logger.debug(`User canceled opening file.`);
+                                            return resolve({ sourceId: -1, options: undefined });
+                                        }
+                                    })
+                                    .catch((unsupportedFileError: Error) => {
+                                        this._logger.warn(
+                                            `Fail to notify render about opening unsupported file "${file}" due error: ${unsupportedFileError.message}`,
                                         );
                                     });
-                                })
-                                .cancel(() => {
-                                    this._logger.debug(
-                                        `Reading operation with "${instanceParser.getAlias()}" was canceled`,
-                                    );
-                                })
-                                .finally(() => {
-                                    this._unsetProgress(instanceParser, trackingId, sessionId);
-                                    ServiceStreams.reattachSessionFileHandle(sessionId);
-                                    this._active.delete(sessionId);
-                                });
+                            }
                         };
                         if (opts !== undefined) {
                             // Options are delivered already
@@ -450,12 +463,13 @@ class ServiceFileOpener implements IService {
                                 );
                             }
                             Promise.all([getParserForFile(file), isHidden(file)])
-                                .then((values: [AFileParser | undefined, boolean | undefined]) => {
-                                    const parser = values[0];
+                                .then((values: [IFileParserInfo, boolean | undefined]) => {
+                                    const parser: AFileParser = values[0].parser;
+                                    const supported: boolean = values[0].supported;
                                     const hideStatus = values[1] === undefined ? false : values[1];
                                     return resolved(
                                         allFiles.push({
-                                            hasParser: parser === undefined ? false : true,
+                                            hasParser: true,
                                             isHidden: hideStatus,
                                             lastModified: stats.mtimeMs,
                                             lastModifiedDate: stats.mtime,
@@ -463,20 +477,17 @@ class ServiceFileOpener implements IService {
                                             path: file,
                                             size: stats.size,
                                             type: 'file',
-                                            checked:
-                                                parser === undefined || hideStatus ? false : true,
+                                            checked: !supported || hideStatus ? false : true,
                                             disabled: false,
                                             features: {
-                                                merge:
-                                                    parser === undefined
-                                                        ? false
-                                                        : parser.getAlias() ===
-                                                          Parsers.FileParserText.getAlias(),
-                                                concat:
-                                                    parser === undefined
-                                                        ? false
-                                                        : parser.getAlias() ===
-                                                          Parsers.FileParserText.getAlias(),
+                                                merge: !supported
+                                                    ? false
+                                                    : parser.getAlias() ===
+                                                      Parsers.FileParserText.getAlias(),
+                                                concat: !supported
+                                                    ? false
+                                                    : parser.getAlias() ===
+                                                      Parsers.FileParserText.getAlias(),
                                             },
                                         }),
                                     );
@@ -668,13 +679,7 @@ class ServiceFileOpener implements IService {
                     }
                     const filename: string = returnValue.filePaths[0];
                     getParserForFile(filename)
-                        .then((_parser: AFileParser | undefined) => {
-                            if (_parser === undefined) {
-                                this._logger.error(`Fail to find a parser for file: ${filename}`);
-                                return reject(
-                                    new Error(`Fail to find a parser for file: ${filename}`),
-                                );
-                            }
+                        .then((parserInfo: IFileParserInfo) => {
                             ServiceElectron.IPC.request(
                                 new IPCMessages.RenderSessionAddRequest(),
                                 IPCMessages.RenderSessionAddResponse,
@@ -690,7 +695,7 @@ class ServiceFileOpener implements IService {
                                             ),
                                         );
                                     }
-                                    this.open(filename, response.session, _parser)
+                                    this.open(filename, response.session, parserInfo.parser)
                                         .then(() => {
                                             resolve(filename);
                                         })
