@@ -1,16 +1,15 @@
 extern crate notify;
-use log::{debug, warn};
+use log::error;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use std::path::PathBuf;
-use std::sync::mpsc::channel;
 use std::time::Duration;
-use std::time::SystemTime;
 use thiserror::Error as ThisError;
 use tokio::{
-    fs::File,
-    io::AsyncWriteExt,
     select,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        oneshot,
+    },
     task,
 };
 use tokio_util::sync::CancellationToken;
@@ -20,7 +19,7 @@ const TRACKING_INTERVAL_MS: u64 = 2000;
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("IO error: {0}")]
-    IO(String),
+    Io(notify::Error),
     #[error("System time error: {0}")]
     SysTime(String),
     #[error("Channel error: {0}")]
@@ -30,46 +29,48 @@ pub enum Error {
 pub struct Tracker {}
 
 impl Tracker {
-    pub async fn new(
+    pub async fn create(
         file: PathBuf,
-        tx_update: UnboundedSender<()>,
         shutdown: CancellationToken,
-    ) -> Self {
-        Tracker::listen(file, tx_update, shutdown).await;
-        Self {}
+    ) -> Result<UnboundedReceiver<Result<(), Error>>, Error> {
+        let (tx_update, rx_update): (
+            UnboundedSender<Result<(), Error>>,
+            UnboundedReceiver<Result<(), Error>>,
+        ) = unbounded_channel();
+        Tracker::listen(file, tx_update, shutdown).await?;
+        Ok(rx_update)
     }
 
     pub async fn listen(
         file: PathBuf,
-        tx_update: UnboundedSender<()>,
+        tx_update: UnboundedSender<Result<(), Error>>,
         shutdown: CancellationToken,
-    ) {
+    ) -> Result<(), Error> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut watcher =
+            watcher(tx, Duration::from_millis(TRACKING_INTERVAL_MS)).map_err(Error::Io)?;
+        watcher
+            .watch(file, RecursiveMode::Recursive)
+            .map_err(Error::Io)?;
         task::spawn(async move {
-            let (tx, rx) = channel();
-            let mut watcher = match watcher(tx, Duration::from_millis(TRACKING_INTERVAL_MS)) {
-                Ok(watcher) => watcher,
-                Err(err) => {
-                    //TODO: report error
-                    return;
-                }
-            };
-            if let Err(err) = watcher.watch(file, RecursiveMode::Recursive) {
-                //TODO: report error
-                return;
-            }
-            select! {
-                _ = async move {
+            let tx_update_result = tx_update.clone();
+            let res = select! {
+                res = async move {
                     while let Ok(event) = rx.recv() {
                         if let DebouncedEvent::NoticeWrite(_) = event {
-                            if let Err(err) = tx_update.send(()) {
-                                //TODO: report error
-                                break;
+                            if let Err(err) = tx_update.send(Ok(())) {
+                                return Err(Error::Channel(format!("Fail to send update signal: {}", err)));
                             }
                         }
                     }
-                } => (),
-                _ = shutdown.cancelled() => (),
+                    Ok(())
+                } => res,
+                _ = shutdown.cancelled() => Ok(()),
             };
+            if tx_update_result.send(res).is_err() {
+                error!("Fail to send finish signal from tracker.");
+            }
         });
+        Ok(())
     }
 }

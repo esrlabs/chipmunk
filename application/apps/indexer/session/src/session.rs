@@ -67,8 +67,6 @@ impl Session {
     ) -> Result<(), ComputationError> {
         match target {
             Target::TextFile(path) => {
-                let (tx_update, mut rx_update): (UnboundedSender<()>, UnboundedReceiver<()>) =
-                    unbounded_channel();
                 let mut session_grabber =
                     match Grabber::new(TextFileSource::new(&path, &path.to_string_lossy())) {
                         Ok(grabber) => grabber,
@@ -78,11 +76,17 @@ impl Session {
                             return Err(ComputationError::Protocol(msg));
                         }
                     };
-                let tracker =
-                    tail::Tracker::new(path, tx_update, operation_api.get_cancellation_token());
+                let mut rx_update =
+                    tail::Tracker::create(path, operation_api.get_cancellation_token())
+                        .await
+                        .map_err(|e| ComputationError::IoOperation(e.to_string()))?;
                 self.update(&mut session_grabber, operation_api, state)?;
-                while rx_update.recv().await.is_some() {
-                    self.update(&mut session_grabber, operation_api, state)?;
+                while let Some(upd) = rx_update.recv().await {
+                    if let Err(err) = upd {
+                        return Err(ComputationError::Process(err.to_string()));
+                    } else {
+                        self.update(&mut session_grabber, operation_api, state)?;
+                    }
                 }
                 Ok(())
             }
