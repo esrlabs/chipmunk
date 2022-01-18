@@ -177,7 +177,7 @@ impl Session {
                         Ok::<(), ComputationError>(())
                     },
                     async {
-                        for (_, item) in producer_stream.next().await {
+                        while let Some((_, item)) = producer_stream.next().await {
                             match item {
                                 MessageStreamItem::Item(item) => {
                                     session_writer
