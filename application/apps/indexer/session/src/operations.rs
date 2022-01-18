@@ -102,7 +102,6 @@ impl std::fmt::Display for OperationAlias {
 pub enum Operation {
     Assign {
         file_path: PathBuf,
-        source_id: String,
     },
     Search {
         target_file: PathBuf,
@@ -144,10 +143,7 @@ impl std::fmt::Display for Operation {
             f,
             "{}",
             match self {
-                Operation::Assign {
-                    file_path: _,
-                    source_id: _,
-                } => "Assign",
+                Operation::Assign { file_path: _ } => "Assign",
                 Operation::Search {
                     target_file: _,
                     filters: _,
@@ -295,12 +291,9 @@ impl OperationAPI {
         let state = self.state_api.clone();
         spawn(async move {
             match operation {
-                Operation::Assign {
-                    file_path,
-                    source_id,
-                } => {
+                Operation::Assign { file_path } => {
                     api.finish(
-                        handlers::assign::handle(&api, &file_path, source_id, state).await,
+                        handlers::assign::handle(api.clone(), state, &file_path).await,
                         OperationAlias::Assign,
                     )
                     .await;

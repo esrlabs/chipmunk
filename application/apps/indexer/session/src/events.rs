@@ -20,6 +20,8 @@ pub enum NativeErrorKind {
     OperationSearch,
     NotYetImplemented,
     ChannelError,
+    Io,
+    Grabber,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -218,10 +218,7 @@ impl RustSession {
         self.0.content_grabber = Some(boxed_grabber);
         match self.0.tx_operations.send((
             operations::uuid_from_str(&operation_id)?,
-            operations::Operation::Assign {
-                file_path: input_p,
-                source_id,
-            },
+            operations::Operation::Assign { file_path: input_p },
         )) {
             Ok(_) => Ok(()),
             Err(e) => Err(ComputationError::Process(format!(
