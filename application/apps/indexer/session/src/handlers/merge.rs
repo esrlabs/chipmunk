@@ -57,5 +57,6 @@ pub async fn handle(
             },
         });
     }
-    assign::handle(operation_api, out_path, source_id, state).await
+    Ok(None)
+    // assign::handle(operation_api, out_path, source_id, state).await
 }
