@@ -6,10 +6,7 @@ use std::time::Duration;
 use thiserror::Error as ThisError;
 use tokio::{
     select,
-    sync::{
-        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-        oneshot,
-    },
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task,
 };
 use tokio_util::sync::CancellationToken;
@@ -67,8 +64,11 @@ impl Tracker {
                 } => res,
                 _ = shutdown.cancelled() => Ok(()),
             };
-            if tx_update_result.send(res).is_err() {
-                error!("Fail to send finish signal from tracker.");
+            if let Err(err) = res {
+                error!("Tail returns an error: {}", err);
+                if tx_update_result.send(Err(err)).is_err() {
+                    error!("Fail to send finish signal from tracker.");
+                }
             }
         });
         Ok(())

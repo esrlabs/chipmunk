@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum NativeErrorKind {
     /// The file in question does not exist
     FileNotFound,
@@ -24,7 +24,7 @@ pub enum NativeErrorKind {
     Grabber,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NativeError {
     pub severity: Severity,
     pub kind: NativeErrorKind,

@@ -1,4 +1,4 @@
-import UUID from './uuid';
+import { v4 as uuid } from 'uuid';
 
 export type TResolver<T> = (value: T) => void;
 export type TRejector = (error: Error) => void;
@@ -19,7 +19,7 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
     private readonly _cancelers: Array<TCanceler<C>> = [];
     private readonly _finishes: TFinally[] = [];
     private readonly _handlers: Map<EN, EH[]> = new Map();
-    private readonly _uuid: string = UUID();
+    private readonly _uuid: string = uuid();
     private _cancellation: TCanceler<C> | undefined;
     private _canceled: boolean = false;
     private _canceling: boolean = false;

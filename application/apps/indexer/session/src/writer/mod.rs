@@ -1,4 +1,4 @@
-use log::{debug, error, warn};
+use log::error;
 use std::path::PathBuf;
 use std::time::SystemTime;
 use thiserror::Error as ThisError;

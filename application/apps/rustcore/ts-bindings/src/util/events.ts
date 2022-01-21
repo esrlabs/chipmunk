@@ -1,6 +1,6 @@
 import { Subject } from './events.subject';
 import { Subscription } from './events.subscription';
-import uuid from './uuid';
+import { v4 as uuid } from 'uuid';
 
 import { IEventDesc } from './events.subject';
 

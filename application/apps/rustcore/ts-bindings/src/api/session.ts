@@ -1,9 +1,9 @@
 import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
-import uuid from '../util/uuid';
+import { v4 as uuid } from 'uuid';
 
-import { RustSession, RustSessionConstructor } from '../native/index';
+import { RustSession, RustSessionConstructor, rustSessionFactory } from '../native/index';
 import { EventProvider, ISessionEvents, IError } from './session.provider';
 import { SessionStream } from './session.stream';
 import { SessionSearch } from './session.search';
@@ -31,8 +31,8 @@ enum ESessionState {
 export class Session {
     private readonly _session: RustSession;
     private readonly _provider: EventProvider;
-    private readonly _stream: SessionStream | undefined;
-    private readonly _search: SessionSearch | undefined;
+    private _stream: SessionStream | undefined;
+    private _search: SessionSearch | undefined;
     private readonly _uuid: string = uuid();
     private readonly _logger: Logs.Logger;
     private readonly _subs: { [key: string]: Events.Subscription } = {};
@@ -43,25 +43,49 @@ export class Session {
         native: [],
     };
 
-    constructor() {
+    public static create(): Promise<Session> {
+        return new Promise((resolve, reject) => {
+            new Session((session: Error | Session) => {
+                if (session instanceof Error) {
+                    reject(session);
+                } else {
+                    resolve(session);
+                }
+            });
+        });
+    }
+
+    constructor(cb: (err: Error | Session) => void) {
         this._logger = Logs.getLogger(`Session: ${this._uuid}`);
         this._provider = new EventProvider(this._uuid);
-        this._session = new RustSessionConstructor(this._uuid, this._provider);
-        this._stream = new SessionStream(this._provider, this._session, this._uuid);
-        this._search = new SessionSearch(this._provider, this._session, this._uuid);
-        this._subs.SessionError = this._provider
-            .getEvents()
-            .SessionError.subscribe((err: IError) => {
-                this._logger.error(
-                    `Session "${this._uuid}" would be destroyed because of error: [${err.kind}/${err.severity}]:: ${err.message}`,
-                );
-            });
-        this._subs.SessionDestroyed = this._provider.getEvents().SessionDestroyed.subscribe(() => {
-            this._logger.warn(
-                `Destroy event has been gotten unexpectedly. Force destroy of session.`,
-            );
-            this.destroy(true);
-        });
+        this._session = new RustSessionConstructor(
+            this._uuid,
+            this._provider,
+            (err: Error | undefined) => {
+                if (err instanceof Error) {
+                    cb(err);
+                } else {
+                    this._stream = new SessionStream(this._provider, this._session, this._uuid);
+                    this._search = new SessionSearch(this._provider, this._session, this._uuid);
+                    this._subs.SessionError = this._provider
+                        .getEvents()
+                        .SessionError.subscribe((err: IError) => {
+                            this._logger.error(
+                                `Session "${this._uuid}" would be destroyed because of error: [${err.kind}/${err.severity}]:: ${err.message}`,
+                            );
+                        });
+                    this._subs.SessionDestroyed = this._provider
+                        .getEvents()
+                        .SessionDestroyed.subscribe(() => {
+                            this._logger.warn(
+                                `Destroy event has been gotten unexpectedly. Force destroy of session.`,
+                            );
+                            this.destroy(true);
+                        });
+                    cb(this);
+                }
+            },
+        );
     }
 
     public destroy(unexpectedly: boolean = false): Promise<void> {

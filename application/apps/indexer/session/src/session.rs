@@ -1,25 +1,23 @@
 use crate::{
-    events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, SyncChannel},
-    operations::{Operation, OperationAPI},
-    state::{Api, SessionStateAPI},
-    tail, writer,
+    events::{CallbackEvent, ComputationError},
+    operations,
+    operations::Operation,
+    state,
+    state::SessionStateAPI,
 };
-use indexer_base::progress::{ComputationResult, Progress, Severity};
-use log::{debug, warn};
+use indexer_base::progress::Severity;
+use log::debug;
 use processor::{
-    grabber::{AsyncGrabTrait, GrabMetadata, GrabTrait, MetadataSource},
-    text_source::TextFileSource,
+    grabber::{GrabbedContent, LineRange},
+    search::SearchFilter,
 };
 use serde::Serialize;
-use sources::{producer::MessageProducer, ByteSource, LogMessage, MessageStreamItem, Parser};
 use std::path::PathBuf;
-use std::pin::Pin;
 use tokio::{
     join,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    task,
 };
-use tokio_stream::{Stream, StreamExt};
-use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub type OperationsChannel = (
@@ -27,104 +25,142 @@ pub type OperationsChannel = (
     UnboundedReceiver<(Uuid, Operation)>,
 );
 
-type Grabber = processor::grabber::Grabber<TextFileSource>;
-
 pub struct Session {
-    pub id: String,
-    pub running: bool,
-    pub content_grabber: Option<Grabber>,
-    pub search_grabber: Option<Grabber>,
-    pub tx_operations: UnboundedSender<(Uuid, Operation)>,
-    pub rx_operations: Option<UnboundedReceiver<(Uuid, Operation)>>,
-    pub rx_state_api: Option<UnboundedReceiver<Api>>,
-    pub state_api: Option<SessionStateAPI>,
-    // channel to store the metadata of the search results once available
-    pub search_metadata_channel: SyncChannel<Option<(PathBuf, GrabMetadata)>>,
+    uuid: Uuid,
+    tx_operations: UnboundedSender<(Uuid, Operation)>,
+    pub state: SessionStateAPI,
 }
 
 impl Session {
-    /// will result in a grabber that has it's metadata generated
-    /// this function will first check if there has been some new metadata that was previously
-    /// written to the metadata-channel. If so, this metadata is used in the grabber.
-    /// If there was no new metadata, we make sure that the metadata has been set.
-    /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    pub async fn get_updated_content_grabber(&mut self) -> Result<&mut Grabber, ComputationError> {
-        let current_grabber = match &mut self.content_grabber {
-            Some(c) => Ok(c),
-            None => {
-                let msg = "Need a grabber first to work with metadata".to_owned();
-                warn!("{}", msg);
-                Err(ComputationError::Protocol(msg))
-            }
-        }?;
-        if let Some(state) = self.state_api.as_ref() {
-            let metadata = state
-                .extract_metadata()
-                .await
-                .map_err(ComputationError::NativeError)?;
-            if let Some(metadata) = metadata {
-                current_grabber
-                    .merge_metadata(metadata)
-                    .map_err(|e| ComputationError::Process(format!("{:?}", e)))?;
-            }
-            Ok(current_grabber)
-        } else {
-            Err(ComputationError::SessionUnavailable)
-        }
-    }
-
-    pub fn get_search_grabber(&mut self) -> Result<Option<&mut Grabber>, ComputationError> {
-        if self.search_grabber.is_none() && !self.search_metadata_channel.1.is_empty() {
-            // We are intrested only in last message in queue, all others messages can be just dropped.
-            let latest = self.search_metadata_channel.1.try_iter().last().flatten();
-            if let Some((file_path, metadata)) = latest {
-                let source = TextFileSource::new(&file_path, "search_results");
-                let mut grabber = match Grabber::new(source) {
-                    Ok(grabber) => grabber,
-                    Err(err) => {
-                        let msg = format!("Failed to create search grabber. Error: {}", err);
-                        warn!("{}", msg);
-                        return Err(ComputationError::Protocol(msg));
-                    }
-                };
-                if let Err(err) = grabber.inject_metadata(metadata) {
-                    let msg = format!(
-                        "Failed to inject metadata into search grabber. Error: {}",
-                        err
-                    );
-                    warn!("{}", msg);
-                    return Err(ComputationError::Protocol(msg));
-                }
-                self.search_grabber = Some(grabber);
-            } else {
-                self.search_grabber = None;
-            }
-        }
-        let grabber = match &mut self.search_grabber {
-            Some(c) => c,
-            None => return Ok(None),
+    pub async fn new(uuid: Uuid) -> (Self, UnboundedReceiver<CallbackEvent>) {
+        let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
+        let (state_api, rx_state_api) = SessionStateAPI::new();
+        let (tx_callback_events, rx_callback_events): (
+            UnboundedSender<CallbackEvent>,
+            UnboundedReceiver<CallbackEvent>,
+        ) = unbounded_channel();
+        let session = Self {
+            uuid,
+            tx_operations,
+            state: state_api.clone(),
         };
-        match grabber.get_metadata() {
-            Some(_) => {
-                debug!("reusing cached metadata");
-                Ok(Some(grabber))
-            }
-            None => {
-                let msg = "No metadata available for search grabber".to_owned();
-                warn!("{}", msg);
-                Err(ComputationError::Protocol(msg))
-            }
-        }
+        task::spawn(async move {
+            debug!("Session is started");
+            let shutdown = state_api.get_shutdown_token();
+            let (_, _) = join!(
+                operations::task(rx_operations, state_api, tx_callback_events.clone()),
+                state::task(rx_state_api, tx_callback_events, shutdown),
+            );
+            debug!("Session is finished");
+        });
+        (session, rx_callback_events)
     }
 
-    pub fn is_opened(&self) -> bool {
-        if self.rx_state_api.is_some() {
-            false
-        } else if let Some(state_api) = self.state_api.as_ref() {
-            !state_api.is_shutdown()
-        } else {
-            false
-        }
+    pub fn get_uuid(&self) -> Uuid {
+        self.uuid
+    }
+    pub fn get_state(&self) -> SessionStateAPI {
+        self.state.clone()
+    }
+
+    pub async fn grab(&self, range: LineRange) -> Result<GrabbedContent, ComputationError> {
+        self.state
+            .grab(range)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn grab_search(&self, range: LineRange) -> Result<GrabbedContent, ComputationError> {
+        self.state
+            .grab_search(range)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((operation_id, operations::Operation::Cancel { target }))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((operation_id, operations::Operation::End))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub async fn get_stream_len(&self) -> Result<usize, ComputationError> {
+        self.state
+            .get_stream_len()
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn get_search_result_len(&self) -> Result<usize, ComputationError> {
+        self.state
+            .get_search_result_len()
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub fn assign(&self, operation_id: Uuid, file_path: PathBuf) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((operation_id, operations::Operation::Assign { file_path }))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub fn apply_search_filters(
+        &self,
+        operation_id: Uuid,
+        filters: Vec<SearchFilter>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((operation_id, operations::Operation::Search { filters }))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub fn extract_matches(
+        &self,
+        operation_id: Uuid,
+        filters: Vec<SearchFilter>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((operation_id, operations::Operation::Extract { filters }))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub fn get_map(
+        &self,
+        operation_id: Uuid,
+        dataset_len: u16,
+        range: Option<(u64, u64)>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((
+                operation_id,
+                operations::Operation::Map { dataset_len, range },
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub fn get_nearest_to(
+        &self,
+        operation_id: Uuid,
+        position_in_stream: u64,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((
+                operation_id,
+                operations::Operation::GetNearestPosition(position_in_stream),
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    /// Used for debug goals
+    pub fn sleep(&self, operation_id: Uuid, ms: u64) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((operation_id, operations::Operation::Sleep(ms)))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 }
 

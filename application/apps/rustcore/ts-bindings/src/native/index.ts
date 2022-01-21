@@ -1,1 +1,1 @@
-export { RustSession, RustSessionConstructor } from './native.session';
+export { RustSession, RustSessionConstructor, rustSessionFactory } from './native.session';

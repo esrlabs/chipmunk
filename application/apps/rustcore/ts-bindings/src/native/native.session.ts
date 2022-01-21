@@ -25,6 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
     provider: Computation<any, any, any>,
+    cb: (err: Error | undefined) => void,
 ) => T;
 export type TCanceler = () => void;
 
@@ -60,7 +61,7 @@ export abstract class RustSession extends RustSessionRequiered {
      */
     public abstract grabMatchesChunk(start: number, len: number): string[] | NativeError;
 
-    public abstract id(): string;
+    public abstract getUuid(): string;
 
     /**
      * Bind filters with current session. Rust core should break (stop) search (if it wasn't
@@ -215,7 +216,9 @@ export abstract class RustSession extends RustSessionRequiered {
 export abstract class RustSessionNative {
     public abstract stop(operationUuid: string): undefined;
 
-    public abstract start(callback: TEventEmitter): undefined;
+    public abstract init(callback: TEventEmitter): Promise<void>;
+
+    public abstract getUuid(): string;
 
     public abstract assign(
         filename: string,
@@ -288,21 +291,50 @@ export abstract class RustSessionNative {
 
     // public abstract sleepUnblock(duration: number): Promise<void>;
 }
-export class RustSessionDebug extends RustSession {
-    private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionDebug`);
+
+export function rustSessionFactory(
+    uuid: string,
+    provider: Computation<any, any, any>,
+): Promise<RustSession> {
+    return new Promise((resolve, reject) => {
+        const session = new RustSessionConstructor(uuid, provider, (err: Error | undefined) => {
+            if (err instanceof Error) {
+                reject(err);
+            } else {
+                resolve(session);
+            }
+        });
+    });
+}
+
+export class RustSessionWrapper extends RustSession {
+    private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionWrapper`);
     private readonly _uuid: string;
     private readonly _native: RustSessionNative;
     private _assigned: boolean = false;
     private _provider: Computation<any, any, any>;
 
-    constructor(uuid: string, provider: Computation<any, any, any>) {
+    constructor(
+        uuid: string,
+        provider: Computation<any, any, any>,
+        cb: (err: Error | undefined) => void,
+    ) {
         super(uuid, provider);
         this._native = new (getNativeModule().RustSession)(uuid) as RustSessionNative;
         this._logger.debug(`Rust native session is created`);
         this._uuid = uuid;
         this._provider = provider;
-        this._provider.debug().emit.operation('start');
-        this._native.start(provider.getEmitter());
+        this._provider.debug().emit.operation('init');
+        this._native
+            .init(provider.getEmitter())
+            .then(() => {
+                this._logger.debug(`Rust native session is inited`);
+                cb(undefined);
+            })
+            .catch((err: Error) => {
+                this._logger.error(`Fail to init session: ${err.message}`);
+                cb(err);
+            });
     }
 
     public destroy(): void {
@@ -312,8 +344,8 @@ export class RustSessionDebug extends RustSession {
         this._logger.debug(`Destroy request has been sent to rust-core`);
     }
 
-    public id(): string {
-        return this._uuid;
+    public getUuid(): string {
+        return this._native.getUuid();
     }
 
     public grabStreamChunk(start: number, len: number): Promise<IGrabbedElement[]> {
@@ -708,14 +740,11 @@ export class RustSessionDebug extends RustSession {
     // }
 }
 
-let RustSessionDebugConstructor: RustSessionConstructorImpl<RustSessionDebug> = RustSessionDebug;
+let RustSessionWrapperConstructor: RustSessionConstructorImpl<RustSessionWrapper> =
+    RustSessionWrapper;
 
 let RustSessionConstructor: RustSessionConstructorImpl<RustSession>;
 
-if (ServiceProduction.isProd()) {
-    RustSessionConstructor = RustSessionNoType;
-} else {
-    RustSessionConstructor = RustSessionDebugConstructor;
-}
+RustSessionConstructor = RustSessionWrapperConstructor;
 
 export { RustSessionConstructor };

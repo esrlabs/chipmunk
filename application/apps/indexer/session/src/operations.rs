@@ -7,7 +7,7 @@ use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
-use processor::{grabber::GrabMetadata, search::SearchFilter};
+use processor::search::SearchFilter;
 use serde::Serialize;
 use std::{
     path::PathBuf,
@@ -104,11 +104,9 @@ pub enum Operation {
         file_path: PathBuf,
     },
     Search {
-        target_file: PathBuf,
         filters: Vec<SearchFilter>,
     },
     Extract {
-        target_file: PathBuf,
         filters: Vec<SearchFilter>,
     },
     Map {
@@ -144,14 +142,8 @@ impl std::fmt::Display for Operation {
             "{}",
             match self {
                 Operation::Assign { file_path: _ } => "Assign",
-                Operation::Search {
-                    target_file: _,
-                    filters: _,
-                } => "Search",
-                Operation::Extract {
-                    target_file: _,
-                    filters: _,
-                } => "Extract",
+                Operation::Search { filters: _ } => "Search",
+                Operation::Extract { filters: _ } => "Extract",
                 Operation::Map {
                     dataset_len: _,
                     range: _,
@@ -267,11 +259,7 @@ impl OperationAPI {
         self.cancellation_token.child_token()
     }
 
-    pub async fn process(
-        &self,
-        operation: Operation,
-        search_metadata_tx: cc::Sender<Option<(PathBuf, GrabMetadata)>>,
-    ) -> Result<(), NativeError> {
+    pub async fn process(&self, operation: Operation) -> Result<(), NativeError> {
         let added = self
             .state_api
             .add_operation(
@@ -298,29 +286,30 @@ impl OperationAPI {
                     )
                     .await;
                 }
-                Operation::Search {
-                    target_file,
-                    filters,
-                } => {
+                Operation::Search { filters } => {
+                    let session_file = match state.get_session_file().await {
+                        Ok(session_file) => session_file,
+                        Err(err) => {
+                            warn!("Fail to call Operation::Search; error: {:?}", err);
+                            return;
+                        }
+                    };
                     api.finish(
-                        handlers::search::handle(
-                            &api,
-                            target_file,
-                            filters,
-                            &search_metadata_tx,
-                            state,
-                        )
-                        .await,
+                        handlers::search::handle(&api, session_file, filters, state).await,
                         OperationAlias::Search,
                     )
                     .await;
                 }
-                Operation::Extract {
-                    target_file,
-                    filters,
-                } => {
+                Operation::Extract { filters } => {
+                    let session_file = match state.get_session_file().await {
+                        Ok(session_file) => session_file,
+                        Err(err) => {
+                            warn!("Fail to call Operation::Extract; error: {:?}", err);
+                            return;
+                        }
+                    };
                     api.finish(
-                        handlers::extract::handle(&target_file, filters.iter()),
+                        handlers::extract::handle(&session_file, filters.iter()),
                         OperationAlias::Extract,
                     )
                     .await;
@@ -458,7 +447,6 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
 pub async fn task(
     mut rx_operations: UnboundedReceiver<(Uuid, Operation)>,
     state: SessionStateAPI,
-    search_metadata_tx: cc::Sender<Option<(PathBuf, GrabMetadata)>>,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
     debug!("task is started");
@@ -472,10 +460,7 @@ pub async fn task(
         if matches!(operation, Operation::End) {
             state.close_session().await?;
             break;
-        } else if let Err(err) = operation_api
-            .process(operation, search_metadata_tx.clone())
-            .await
-        {
+        } else if let Err(err) = operation_api.process(operation).await {
             operation_api.emit(CallbackEvent::OperationError {
                 uuid: operation_api.id(),
                 error: err,

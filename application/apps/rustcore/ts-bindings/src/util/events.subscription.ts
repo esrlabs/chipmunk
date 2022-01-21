@@ -1,10 +1,9 @@
 // tslint:disable:variable-name
-import uuid from './uuid';
+import { v4 as uuid } from 'uuid';
 
 export type THandler = (...args: any[]) => any;
 
 export class Subscription {
-
     private _unsubsribe: THandler | undefined;
     private _event: string;
     private _subscriptionId: string;
@@ -40,5 +39,4 @@ export class Subscription {
         this.unsubscribe();
         this._unsubsribe = undefined;
     }
-
 }
