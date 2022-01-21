@@ -12,7 +12,7 @@ use tokio_util::sync::CancellationToken;
 
 pub mod factory;
 
-pub trait GrabTrait {
+pub trait GrabTrait: std::fmt::Debug {
     fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
     fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
     fn merge_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;

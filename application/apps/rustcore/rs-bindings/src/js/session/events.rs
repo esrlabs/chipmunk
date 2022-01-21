@@ -1,10 +1,8 @@
-use log::debug;
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
-use session::events::{CallbackEvent, ComputationError, NativeError};
-use tokio::sync::mpsc::UnboundedReceiver;
+use session::events::{CallbackEvent, ComputationError};
 
 #[derive(Debug)]
 pub(crate) struct CallbackEventWrapper(pub CallbackEvent);
@@ -41,18 +39,4 @@ impl From<ComputationError> for ComputationErrorWrapper {
     fn from(err: ComputationError) -> ComputationErrorWrapper {
         ComputationErrorWrapper(err)
     }
-}
-
-pub(crate) async fn callback_event_loop<F: Fn(CallbackEventWrapper) + Send + 'static>(
-    callback: F,
-    mut rx_callback_events: UnboundedReceiver<CallbackEvent>,
-) -> Result<(), NativeError> {
-    debug!("task is started");
-    while let Some(event) = rx_callback_events.recv().await {
-        callback(event.into())
-    }
-    debug!("sending SessionDestroyed event");
-    callback(CallbackEvent::SessionDestroyed.into());
-    debug!("task is finished");
-    Ok(())
 }

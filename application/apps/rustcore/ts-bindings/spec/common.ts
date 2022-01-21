@@ -12,16 +12,17 @@ import * as fs from 'fs';
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 
-export function finish(session: Session, done: () => void, err?: Error): void {
+export function finish(session: Session | undefined, done: () => void, err?: Error): void {
     err !== undefined && fail(err);
-    session
-        .destroy()
-        .catch((error: Error) => {
-            fail(error);
-        })
-        .finally(() => {
-            checkSessionDebugger(session, done);
-        });
+    session !== undefined &&
+        session
+            .destroy()
+            .catch((error: Error) => {
+                fail(error);
+            })
+            .finally(() => {
+                checkSessionDebugger(session, done);
+            });
 }
 
 export function checkSessionDebugger(session: Session, done: () => void) {

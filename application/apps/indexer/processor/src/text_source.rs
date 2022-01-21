@@ -6,7 +6,7 @@ use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::progress::ComputationResult;
 use std::{
     fs,
-    io::{BufRead, Read, SeekFrom},
+    io::{Read, SeekFrom},
     path::{Path, PathBuf},
 };
 use tokio_util::sync::CancellationToken;
@@ -221,9 +221,7 @@ impl TextFileSource {
         read_from.read_exact(&mut read_buf).map_err(|_| {
             GrabError::IoOperation(format!("Could not read from file {:?}", &self.path))
         })?;
-
         let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
-
         let all_lines = s.split(|c| c == '\n');
         let lines_minus_end = all_lines.take(file_part.total_lines - file_part.lines_to_drop);
         let pure_lines = lines_minus_end.skip(file_part.lines_to_skip);
@@ -235,7 +233,6 @@ impl TextFileSource {
                 pos: None,
             })
             .collect::<Vec<GrabbedElement>>();
-
         Ok(GrabbedContent { grabbed_elements })
     }
 }

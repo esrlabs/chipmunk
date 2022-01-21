@@ -105,7 +105,7 @@ namespace :build do
   end
 
   desc 'build all'
-  task :all => ['build:rs', 'build:ts', 'build:ts_cli', 'build:delivery']
+  task :all => ['build:rs', 'build:ts', 'build:delivery']
 end
 
 test_runner = './ts-bindings/node_modules/.bin/electron ./ts-bindings/node_modules/jasmine-ts/lib/index.js'

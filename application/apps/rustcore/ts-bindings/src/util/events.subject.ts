@@ -1,5 +1,5 @@
 import { Subscription } from './events.subscription';
-import uuid from './uuid';
+import { v4 as uuid } from 'uuid';
 
 export interface IEventDesc {
     self: any;
