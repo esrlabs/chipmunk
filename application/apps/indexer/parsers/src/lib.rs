@@ -18,7 +18,7 @@ pub enum Error {
 
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
-pub trait Parser<T: LogMessage> {
+pub trait Parser<T> {
     /// take a slice of bytes and try to apply a parser. If the parse was
     /// successfull, this will yield  the rest of the slice along with `Some(log_message)`
     ///
@@ -42,12 +42,11 @@ pub enum ByteRepresentation {
 }
 
 pub trait LogMessage: Display {
-    // fn as_bytes(&self) -> ByteRepresentation;
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
 }
 
 #[derive(Debug)]
-pub enum MessageStreamItem<T: LogMessage> {
+pub enum MessageStreamItem<T> {
     Item(T),
     Skipped,
     Incomplete,

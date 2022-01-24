@@ -378,20 +378,21 @@ pub async fn convert_from_pcapng<
 ) -> Result<(), Error> {
     let total = pcap_path.metadata()?.len();
     debug!("Starting convert_from_pcapng with {} bytes", total);
+    todo!("nyi")
 
     // let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
     //     .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
 
-    let output = DltFileOutput::new(out_path, update_channel)?;
+    // let output = DltFileOutput::new(out_path, update_channel)?;
 
-    let pcap_file = File::open(&pcap_path)?;
-    let buf_reader = IoBufReader::new(&pcap_file);
-    let pcapng_byte_src =
-        PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
-    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
-    let msg_stream = pcap_msg_producer.as_stream();
-    futures::pin_mut!(msg_stream);
-    index_from_message_stream(total, cancel, msg_stream, output).await
+    // let pcap_file = File::open(&pcap_path)?;
+    // let buf_reader = IoBufReader::new(&pcap_file);
+    // let pcapng_byte_src =
+    //     PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+    // let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
+    // let msg_stream = pcap_msg_producer.as_stream();
+    // futures::pin_mut!(msg_stream);
+    // index_from_message_stream(total, cancel, msg_stream, output).await
 
     // let mut processed_bytes = 0usize;
     // let incomplete_parses = 0usize;
@@ -611,59 +612,60 @@ pub async fn create_index_and_mapping_from_pcapng<
     parser: P,
     source: S,
 ) -> Result<(), Error> {
-    trace!("create_index_and_mapping_from_pcapng");
-    match utils::next_line_nr(&config.out_path) {
-        Ok(initial_line_nr) => {
-            let mut pcap_msg_producer = MessageProducer::new(parser, source);
-            let msg_stream = pcap_msg_producer.as_stream();
-            futures::pin_mut!(msg_stream);
-            let output = ChunkOutput::new(
-                &config.tag,
-                config.append,
-                &config.out_path,
-                config.chunk_size,
-                initial_line_nr,
-                update_channel.clone(),
-            )?;
+    todo!("nyi")
+    // trace!("create_index_and_mapping_from_pcapng");
+    // match utils::next_line_nr(&config.out_path) {
+    //     Ok(initial_line_nr) => {
+    //         let mut pcap_msg_producer = MessageProducer::new(parser, source);
+    //         let msg_stream = pcap_msg_producer.as_stream();
+    //         futures::pin_mut!(msg_stream);
+    //         let output = ChunkOutput::new(
+    //             &config.tag,
+    //             config.append,
+    //             &config.out_path,
+    //             config.chunk_size,
+    //             initial_line_nr,
+    //             update_channel.clone(),
+    //         )?;
 
-            let total = config.in_file.metadata().map(|md| md.len())?;
-            match index_from_message_stream(
-                // config,
-                total, // initial_line_nr,
-                // update_channel.clone(),
-                cancel, msg_stream, output,
-            )
-            .await
-            {
-                Ok(()) => Ok(()),
-                Err(e) => {
-                    let content = format!("{}", e);
-                    update_channel
-                        .send(Err(Notification {
-                            severity: Severity::ERROR,
-                            content,
-                            line: None,
-                        }))
-                        .await
-                        .expect("UpdateChannel closed");
-                    Err(e)
-                }
-            }
-        }
-        Err(e) => {
-            let content = format!(
-                "could not determine last line number of {:?} ({})",
-                config.out_path, e
-            );
-            update_channel
-                .send(Err(Notification {
-                    severity: Severity::ERROR,
-                    content,
-                    line: None,
-                }))
-                .await
-                .expect("UpdateChannel closed");
-            Err(Error::Unrecoverable(format!("{}", e)))
-        }
-    }
+    //         let total = config.in_file.metadata().map(|md| md.len())?;
+    //         match index_from_message_stream(
+    //             // config,
+    //             total, // initial_line_nr,
+    //             // update_channel.clone(),
+    //             cancel, msg_stream, output,
+    //         )
+    //         .await
+    //         {
+    //             Ok(()) => Ok(()),
+    //             Err(e) => {
+    //                 let content = format!("{}", e);
+    //                 update_channel
+    //                     .send(Err(Notification {
+    //                         severity: Severity::ERROR,
+    //                         content,
+    //                         line: None,
+    //                     }))
+    //                     .await
+    //                     .expect("UpdateChannel closed");
+    //                 Err(e)
+    //             }
+    //         }
+    //     }
+    //     Err(e) => {
+    //         let content = format!(
+    //             "could not determine last line number of {:?} ({})",
+    //             config.out_path, e
+    //         );
+    //         update_channel
+    //             .send(Err(Notification {
+    //                 severity: Severity::ERROR,
+    //                 content,
+    //                 line: None,
+    //             }))
+    //             .await
+    //             .expect("UpdateChannel closed");
+    //         Err(Error::Unrecoverable(format!("{}", e)))
+    //     }
+    // }
 }

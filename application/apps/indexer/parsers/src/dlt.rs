@@ -19,23 +19,24 @@ impl LogMessage for FormattableMessage<'_> {
 }
 
 pub struct RangeMessage {
-    pub content: Vec<u8>,
+    // pub content: Vec<u8>,
     pub range: Range<usize>,
 }
 
 impl fmt::Display for RangeMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({:?})[{} bytes]", self.range, self.content.len())
+        // write!(f, "({:?})[{} bytes]", self.range, self.content.len())
+        write!(f, "({:?})", self.range)
     }
 }
 
-impl LogMessage for RangeMessage {
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
-        let len = self.content.len();
-        writer.write_all(&self.content)?;
-        Ok(len)
-    }
-}
+// impl LogMessage for RangeMessage {
+//     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
+//         let len = self.content.len();
+//         writer.write_all(&self.content)?;
+//         Ok(len)
+//     }
+// }
 
 #[derive(Default)]
 pub struct DltParser<'m> {
@@ -115,7 +116,7 @@ impl Parser<RangeMessage> for DltRangeParser {
         let (rest, consumed) =
             dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{}", e)))?;
         let msg = RangeMessage {
-            content: Vec::from(&input[0..consumed as usize]),
+            // content: Vec::from(&input[0..consumed as usize]),
             range: Range {
                 start: self.offset,
                 end: self.offset + consumed as usize,

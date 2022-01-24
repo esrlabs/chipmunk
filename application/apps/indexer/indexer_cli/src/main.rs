@@ -1000,24 +1000,24 @@ pub async fn main() -> Result<()> {
                     export_as_dlt_file(file_path, out_path, SectionConfig { sections }, tx)
                         .expect("export did not work");
                 } else if !sections.is_empty() {
-                    debug!("try new way of exporting");
-                    let dlt_parser = DltRangeParser::new(true);
-                    let source = BinaryByteSource::new(reader);
+                    // debug!("try new way of exporting");
+                    // let dlt_parser = DltRangeParser::new(true);
+                    // let source = BinaryByteSource::new(reader);
 
-                    let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
-                    let msg_stream = dlt_msg_producer.as_stream();
-                    futures::pin_mut!(msg_stream);
-                    let out_file = File::create(out_path).expect("could not create file");
-                    let mut out_writer = BufWriter::new(out_file);
+                    // let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+                    // let msg_stream = dlt_msg_producer.as_stream();
+                    // futures::pin_mut!(msg_stream);
+                    // let out_file = File::create(out_path).expect("could not create file");
+                    // let mut out_writer = BufWriter::new(out_file);
 
-                    let section_stream = produce_section_stream(msg_stream, sections).await;
-                    futures::pin_mut!(section_stream);
-                    while let Some((_, item)) = section_stream.next().await {
-                        if let MessageStreamItem::Item(msg) = item {
-                            msg.to_writer(&mut out_writer).unwrap();
-                        }
-                    }
-                    out_writer.flush().unwrap();
+                    // let section_stream = produce_section_stream(msg_stream, sections).await;
+                    // futures::pin_mut!(section_stream);
+                    // while let Some((_, item)) = section_stream.next().await {
+                    //     if let MessageStreamItem::Item(msg) = item {
+                    //         msg.to_writer(&mut out_writer).unwrap();
+                    //     }
+                    // }
+                    // out_writer.flush().unwrap();
                 }
             } else {
                 trace!("was regular file");

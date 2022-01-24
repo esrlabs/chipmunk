@@ -1,12 +1,8 @@
-use crate::ByteSource;
-use crate::Error as SourceError;
-use crate::ReloadInfo;
-use crate::SourceFilter;
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use log::trace;
-use tokio::net::ToSocketAddrs;
-use tokio::net::UdpSocket;
+use tokio::net::{ToSocketAddrs, UdpSocket};
 
 pub struct UdpSource {
     buffer: Buffer,
