@@ -6,10 +6,9 @@ use dlt_core::{
         dlt_statistic_row_info, IdMap, LevelDistribution, StatisticInfo, StatisticRowInfo,
     },
 };
-use futures::StreamExt;
 use parsers::dlt::DltRangeParser;
 use rustc_hash::FxHashMap;
-use sources::producer::MessageProducer;
+use sources::producer::StaticProducer;
 use std::{
     fs,
     io::{BufRead, BufReader, Read},
@@ -33,7 +32,7 @@ pub fn count_dlt_messages_old(input: &Path) -> Result<u64, DltParseError> {
                     if content.is_empty() {
                         break;
                     }
-                    if let Ok((_rest, consumed)) = dlt_consume_msg(content) {
+                    if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
                         reader.consume(consumed as usize);
                         msg_cnt += 1;
                     } else {
@@ -67,9 +66,8 @@ pub async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
 
         let source = BinaryByteSource::new(second_reader);
 
-        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
-        let msg_stream = dlt_msg_producer.as_stream();
-        Ok(msg_stream.count().await as u64)
+        let dlt_msg_producer = StaticProducer::new(dlt_parser, source);
+        Ok(dlt_msg_producer.count() as u64)
     } else {
         Err(DltParseError::Unrecoverable(format!(
             "Couldn't find dlt file: {:?}",
@@ -78,21 +76,15 @@ pub async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
     }
 }
 
-pub fn get_dlt_file_info(
-    in_file: &Path,
-    shutdown_receiver: Option<cc::Receiver<()>>,
-) -> Result<StatisticInfo, DltParseError> {
+pub fn get_dlt_file_info(in_file: &Path) -> Result<StatisticInfo, DltParseError> {
     let f = fs::File::open(in_file)?;
 
-    let source_file_size = fs::metadata(&in_file)?.len();
     let mut reader = ReduxReader::with_capacity(BIN_READER_CAPACITY, f)
         .set_policy(MinBuffered(BIN_MIN_BUFFER_SPACE));
 
     let mut app_ids: IdMap = FxHashMap::default();
     let mut context_ids: IdMap = FxHashMap::default();
     let mut ecu_ids: IdMap = FxHashMap::default();
-    let mut index = 0usize;
-    let mut processed_bytes = 0u64;
     let mut contained_non_verbose = false;
     loop {
         match read_one_dlt_message_info(&mut reader, true) {
@@ -113,7 +105,6 @@ pub fn get_dlt_file_info(
                     Some(id) => add_for_level(level, &mut ecu_ids, id),
                     None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
                 };
-                processed_bytes += consumed;
             }
             Ok(Some((
                 consumed,
@@ -132,7 +123,6 @@ pub fn get_dlt_file_info(
                     Some(id) => add_for_level(level, &mut ecu_ids, id),
                     None => add_for_level(level, &mut ecu_ids, "NONE".to_string()),
                 };
-                processed_bytes += consumed;
             }
             Ok(None) => {
                 break;
@@ -153,7 +143,6 @@ pub fn get_dlt_file_info(
                 }
             }
         }
-        index += 1;
     }
     let res = StatisticInfo {
         app_ids: app_ids

@@ -1,4 +1,4 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{ByteSource, DynamicByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use log::trace;
@@ -23,11 +23,7 @@ impl UdpSource {
 }
 
 #[async_trait]
-impl ByteSource for UdpSource {
-    fn current_slice(&self) -> &[u8] {
-        self.buffer.buf()
-    }
-
+impl DynamicByteSource for UdpSource {
     async fn reload(
         &mut self,
         filter: Option<&SourceFilter>,
@@ -48,6 +44,12 @@ impl ByteSource for UdpSource {
         }
 
         Ok(Some(ReloadInfo::new(len, 0, None)))
+    }
+}
+
+impl ByteSource for UdpSource {
+    fn current_slice(&self) -> &[u8] {
+        self.buffer.buf()
     }
 
     fn consume(&mut self, offset: usize) {

@@ -42,11 +42,13 @@ pub enum ByteRepresentation {
 }
 
 pub trait LogMessage: Display {
+    /// Serializes a message directly into a Writer
+    /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
 }
 
 #[derive(Debug)]
-pub enum MessageStreamItem<T> {
+pub enum MessageStreamItem<T: LogMessage> {
     Item(T),
     Skipped,
     Incomplete,

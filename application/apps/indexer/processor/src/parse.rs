@@ -581,7 +581,9 @@ pub fn timespan_in_files(
         }
         progress_reporter.make_progress(1);
     }
-    update_channel.send(Ok(IndexingProgress::Finished));
+    update_channel
+        .send(Ok(IndexingProgress::Finished))
+        .expect("Could not use update channel");
     Ok(())
 }
 /// find out how often a format string matches a timestamp in a file

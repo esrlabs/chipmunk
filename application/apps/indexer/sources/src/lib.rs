@@ -1,5 +1,3 @@
-#![feature(inherent_associated_types)]
-
 use async_trait::async_trait;
 use thiserror::Error;
 
@@ -62,18 +60,7 @@ pub enum Error {
     Unrecoverable(String),
 }
 
-#[async_trait]
 pub trait ByteSource {
-    /// will load more bytes from the underlying source
-    /// when the source has reached it's end, this function
-    /// will return Ok((None, _))
-    ///
-    /// A successfull reload operation will return the number
-    /// of bytes that were loaded
-    /// If the source has access to some timestamp (e.g. timestamp of network package),
-    /// this timestamp is passed on additionally
-    async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
-
     fn consume(&mut self, offset: usize);
 
     fn current_slice(&self) -> &[u8];
@@ -84,4 +71,21 @@ pub trait ByteSource {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
+}
+
+pub trait StaticByteSource: ByteSource {
+    fn load(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
+}
+
+#[async_trait]
+pub trait DynamicByteSource: ByteSource {
+    /// will load more bytes from the underlying source
+    /// when the source has reached it's end, this function
+    /// will return Ok((None, _))
+    ///
+    /// A successfull reload operation will return the number
+    /// of bytes that were loaded
+    /// If the source has access to some timestamp (e.g. timestamp of network package),
+    /// this timestamp is passed on additionally
+    async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 }
