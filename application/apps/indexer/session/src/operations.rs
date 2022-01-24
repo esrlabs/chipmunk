@@ -179,8 +179,11 @@ pub type OperationResult<T> = Result<Option<T>, NativeError>;
 pub struct OperationAPI {
     tx_callback_events: UnboundedSender<CallbackEvent>,
     operation_id: Uuid,
-    cancellation_token: CancellationToken,
     state_api: SessionStateAPI,
+    // Used to force cancalation
+    cancellation_token: CancellationToken,
+    // Uses to confirm cancaltion / done state of operation
+    done_token: CancellationToken,
 }
 
 impl OperationAPI {
@@ -194,12 +197,17 @@ impl OperationAPI {
             tx_callback_events,
             operation_id,
             cancellation_token,
+            done_token: CancellationToken::new(),
             state_api,
         }
     }
 
     pub fn id(&self) -> Uuid {
         self.operation_id
+    }
+
+    pub fn get_done_token(&self) -> CancellationToken {
+        self.done_token.clone()
     }
 
     pub fn emit(&self, event: CallbackEvent) {
@@ -248,14 +256,22 @@ impl OperationAPI {
                 }
             }
         };
-        if let Err(err) = self.state_api.remove_operation(self.id()).await {
-            error!("Fail to remove operation; error: {:?}", err);
+        if !self.state_api.is_closing() {
+            if let Err(err) = self.state_api.remove_operation(self.id()).await {
+                error!("Fail to remove operation; error: {:?}", err);
+            }
         }
         debug!("Operation \"{}\" ({}) finished", alias, self.id());
         self.emit(event);
+        // Confirm finishing of operation
+        self.done_token.cancel();
     }
 
     pub fn get_cancellation_token(&self) -> CancellationToken {
+        self.cancellation_token.clone()
+    }
+
+    pub fn get_cancellation_token_listener(&self) -> CancellationToken {
         self.cancellation_token.child_token()
     }
 
@@ -266,6 +282,7 @@ impl OperationAPI {
                 self.id(),
                 operation.to_string(),
                 self.get_cancellation_token(),
+                self.get_done_token(),
             )
             .await?;
         if !added {
@@ -277,6 +294,7 @@ impl OperationAPI {
         }
         let api = self.clone();
         let state = self.state_api.clone();
+        let id = self.id();
         spawn(async move {
             match operation {
                 Operation::Assign { file_path } => {
@@ -423,10 +441,8 @@ impl OperationAPI {
                         .await;
                     }
                 },
-                Operation::End => {
-                    debug!("session closing is requested");
-                    api.finish::<OperationResult<()>>(Ok(None), OperationAlias::End)
-                        .await;
+                _ => {
+                    // Operation::End is processing in the loop directly
                 }
             };
         });
@@ -451,20 +467,23 @@ pub async fn task(
 ) -> Result<(), NativeError> {
     debug!("task is started");
     while let Some((id, operation)) = rx_operations.recv().await {
-        let operation_api = OperationAPI::new(
-            state.clone(),
-            tx_callback_events.clone(),
-            id,
-            CancellationToken::new(),
-        );
-        if matches!(operation, Operation::End) {
+        if !matches!(operation, Operation::End) {
+            let operation_api = OperationAPI::new(
+                state.clone(),
+                tx_callback_events.clone(),
+                id,
+                CancellationToken::new(),
+            );
+            if let Err(err) = operation_api.process(operation).await {
+                operation_api.emit(CallbackEvent::OperationError {
+                    uuid: operation_api.id(),
+                    error: err,
+                });
+            }
+        } else {
+            debug!("session closing is requested");
             state.close_session().await?;
             break;
-        } else if let Err(err) = operation_api.process(operation).await {
-            operation_api.emit(CallbackEvent::OperationError {
-                uuid: operation_api.id(),
-                error: err,
-            });
         }
     }
     debug!("task is finished");

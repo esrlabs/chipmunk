@@ -6,7 +6,7 @@ use crate::{
     state::SessionStateAPI,
 };
 use indexer_base::progress::Severity;
-use log::debug;
+use log::{debug, error};
 use processor::{
     grabber::{GrabbedContent, LineRange},
     search::SearchFilter,
@@ -18,6 +18,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task,
 };
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub type OperationsChannel = (
@@ -28,6 +29,7 @@ pub type OperationsChannel = (
 pub struct Session {
     uuid: Uuid,
     tx_operations: UnboundedSender<(Uuid, Operation)>,
+    destroyed: CancellationToken,
     pub state: SessionStateAPI,
 }
 
@@ -42,15 +44,29 @@ impl Session {
         let session = Self {
             uuid,
             tx_operations,
+            destroyed: CancellationToken::new(),
             state: state_api.clone(),
         };
+        let destroyed = session.destroyed.clone();
         task::spawn(async move {
             debug!("Session is started");
-            let shutdown = state_api.get_shutdown_token();
+            let tx_callback_events_state = tx_callback_events.clone();
             let (_, _) = join!(
-                operations::task(rx_operations, state_api, tx_callback_events.clone()),
-                state::task(rx_state_api, tx_callback_events, shutdown),
+                async {
+                    let result = operations::task(
+                        rx_operations,
+                        state_api.clone(),
+                        tx_callback_events.clone(),
+                    )
+                    .await;
+                    if let Err(err) = state_api.shutdown() {
+                        error!("Fail to shutdown state; error: {:?}", err);
+                    }
+                    result
+                },
+                state::task(rx_state_api, tx_callback_events_state),
             );
+            destroyed.cancel();
             debug!("Session is finished");
         });
         (session, rx_callback_events)
@@ -83,10 +99,12 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
-    pub fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
+    pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
         self.tx_operations
             .send((operation_id, operations::Operation::End))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| ComputationError::Communication(e.to_string()))?;
+        self.destroyed.cancelled().await;
+        Ok(())
     }
 
     pub async fn get_stream_len(&self) -> Result<usize, ComputationError> {

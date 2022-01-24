@@ -49,7 +49,15 @@ pub enum Api {
     ),
     GetSearchMap(oneshot::Sender<SearchMap>),
     SetMatches((Option<Vec<FilterMatch>>, oneshot::Sender<()>)),
-    AddOperation((Uuid, String, CancellationToken, oneshot::Sender<bool>)),
+    AddOperation(
+        (
+            Uuid,
+            String,
+            CancellationToken,
+            CancellationToken,
+            oneshot::Sender<bool>,
+        ),
+    ),
     RemoveOperation((Uuid, oneshot::Sender<bool>)),
     CancelOperation((Uuid, oneshot::Sender<bool>)),
     CloseSession(oneshot::Sender<()>),
@@ -70,7 +78,8 @@ pub struct SessionState {
     pub search_map: SearchMap,
     pub content_grabber: Option<Box<Grabber>>,
     pub search_grabber: Option<Box<Grabber>>,
-    pub operations: HashMap<Uuid, CancellationToken>,
+    //HashMap<OperationUUID, (cancellation_token, operation_done_token)>
+    pub operations: HashMap<Uuid, (CancellationToken, CancellationToken)>,
     pub status: Status,
     // stat is used only in debug = true tp collect some stat-info
     pub stat: Vec<OperationStat>,
@@ -80,7 +89,7 @@ pub struct SessionState {
 #[derive(Clone, Debug)]
 pub struct SessionStateAPI {
     tx_api: UnboundedSender<Api>,
-    shutdown: CancellationToken,
+    closing_token: CancellationToken,
 }
 
 impl SessionStateAPI {
@@ -89,7 +98,7 @@ impl SessionStateAPI {
         (
             SessionStateAPI {
                 tx_api,
-                shutdown: CancellationToken::new(),
+                closing_token: CancellationToken::new(),
             },
             rx_api,
         )
@@ -374,11 +383,12 @@ impl SessionStateAPI {
         uuid: Uuid,
         name: String,
         canceler: CancellationToken,
+        done: CancellationToken,
     ) -> Result<bool, NativeError> {
         let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
             oneshot::channel();
         self.tx_api
-            .send(Api::AddOperation((uuid, name, canceler, tx_response)))
+            .send(Api::AddOperation((uuid, name, canceler, done, tx_response)))
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ChannelError,
@@ -436,6 +446,7 @@ impl SessionStateAPI {
     }
 
     pub async fn close_session(&self) -> Result<(), NativeError> {
+        self.closing_token.cancel();
         let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
             oneshot::channel();
         self.tx_api
@@ -502,19 +513,14 @@ impl SessionStateAPI {
         })
     }
 
-    pub fn is_shutdown(&self) -> bool {
-        self.shutdown.is_cancelled()
-    }
-
-    pub fn get_shutdown_token(&self) -> CancellationToken {
-        self.shutdown.clone()
+    pub fn is_closing(&self) -> bool {
+        self.closing_token.is_cancelled()
     }
 }
 
 pub async fn task(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<CallbackEvent>,
-    shutdown: CancellationToken,
 ) -> Result<(), NativeError> {
     let mut state = SessionState {
         session_file: None,
@@ -526,12 +532,9 @@ pub async fn task(
         stat: vec![],
         debug: false,
     };
-    let shutdown_caller = shutdown.clone();
+    let cancellation_token = CancellationToken::new();
     debug!("task is started");
-    while let Some(msg) = select! {
-        msg = rx_api.recv() => msg,
-        _ = shutdown.cancelled() => None,
-    } {
+    while let Some(msg) = rx_api.recv().await {
         match msg {
             Api::SetSessionFile((session_file, tx_response)) => {
                 if state.content_grabber.is_some() {
@@ -660,7 +663,7 @@ pub async fn task(
             }
             Api::UpdateSession(tx_response) => {
                 let result = if let Some(ref mut grabber) = state.content_grabber {
-                    let metadata = grabber.source().from_file(Some(shutdown_caller.clone()));
+                    let metadata = grabber.source().from_file(Some(cancellation_token.clone()));
                     match metadata {
                         Ok(ComputationResult::Item(metadata)) => {
                             if let Err(err) = grabber.merge_metadata(metadata) {
@@ -779,6 +782,7 @@ pub async fn task(
                 )) {
                     Ok(grabber) => {
                         state.search_grabber = Some(Box::new(grabber));
+                        println!(">>>>>>>>>>>>>>>>>>> SEARCH GRABBER is created");
                         Ok(())
                     }
                     Err(err) => Err(NativeError {
@@ -806,7 +810,7 @@ pub async fn task(
                 // To check: probably we need spetial canceler for search to prevent possible issues
                 // on dropping search between searches
                 let result = if let Some(ref mut grabber) = state.search_grabber {
-                    let metadata = grabber.source().from_file(Some(shutdown_caller.clone()));
+                    let metadata = grabber.source().from_file(Some(cancellation_token.clone()));
                     match metadata {
                         Ok(ComputationResult::Item(metadata)) => {
                             if let Err(err) = grabber.merge_metadata(metadata) {
@@ -819,6 +823,7 @@ pub async fn task(
                                     )),
                                 });
                             }
+                            println!(">>>>>>>>>>>>>>>>>>> SEARCH GRABBER meta is updated");
                             Ok(())
                         }
                         Ok(ComputationResult::Stopped) => {
@@ -866,14 +871,14 @@ pub async fn task(
                     });
                 }
             }
-            Api::AddOperation((uuid, name, token, tx_response)) => {
+            Api::AddOperation((uuid, name, cancalation_token, done_token, tx_response)) => {
                 if state.debug {
                     state.stat.push(OperationStat::new(uuid.to_string(), name));
                 }
                 if tx_response
                     .send(match state.operations.entry(uuid) {
                         Entry::Vacant(entry) => {
-                            entry.insert(token);
+                            entry.insert((cancalation_token, done_token));
                             true
                         }
                         _ => false,
@@ -909,12 +914,20 @@ pub async fn task(
             }
             Api::CancelOperation((uuid, tx_response)) => {
                 if tx_response
-                    .send(if let Some(token) = state.operations.remove(&uuid) {
-                        token.cancel();
-                        true
-                    } else {
-                        false
-                    })
+                    .send(
+                        if let Some((cancalation_token, done_token)) =
+                            state.operations.remove(&uuid)
+                        {
+                            if !done_token.is_cancelled() {
+                                cancalation_token.cancel();
+                                debug!("waiting for operation {} would confirm done-state", uuid);
+                                done_token.cancelled().await;
+                            }
+                            true
+                        } else {
+                            false
+                        },
+                    )
                     .is_err()
                 {
                     return Err(NativeError {
@@ -925,9 +938,14 @@ pub async fn task(
                 }
             }
             Api::CloseSession(tx_response) => {
+                cancellation_token.cancel();
                 state.status = Status::Closed;
-                for token in state.operations.values() {
-                    token.cancel();
+                for (uuid, (cancalation_token, done_token)) in &state.operations {
+                    if !done_token.is_cancelled() {
+                        cancalation_token.cancel();
+                        debug!("waiting for operation {} would confirm done-state", uuid);
+                        done_token.cancelled().await;
+                    }
                 }
                 state.operations.clear();
                 if tx_response.send(()).is_err() {
@@ -937,7 +955,6 @@ pub async fn task(
                         message: Some(String::from("fail to response to Api::CloseSession")),
                     });
                 }
-                break;
             }
             Api::SetDebugMode((debug, tx_response)) => {
                 state.debug = debug;
@@ -969,8 +986,9 @@ pub async fn task(
                 }
             }
             Api::Shutdown => {
+                cancellation_token.cancel();
                 debug!("shutdown has been requested");
-                shutdown_caller.cancel();
+                break;
             }
         }
     }
