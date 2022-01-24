@@ -6,7 +6,10 @@ use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use dlt_core::{dlt::Message, parse::dlt_consume_msg};
 use indexer_base::progress::ComputationResult;
 use parsers::dlt::DltParser;
-use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
+use sources::{
+    producer::{DynamicProducer, MessageProducer, StaticProducer},
+    raw::binary::BinaryByteSource,
+};
 use std::{
     fs,
     io::{BufRead, Cursor, SeekFrom},
@@ -99,7 +102,7 @@ impl MetadataSource for DltSource {
                         break;
                     }
                     debug!("content content is not empty");
-                    if let Ok((_rest, consumed)) = dlt_consume_msg(content) {
+                    if let Ok((_rest, Some(consumed))) = dlt_consume_msg(content) {
                         debug!("dlt_consume_msg consumed {} bytes", consumed);
                         reader.consume(consumed as usize);
                         log_msg_cnt += 1;
@@ -178,7 +181,7 @@ impl MetadataSource for DltSource {
             with_storage_header: self.with_storage_header,
         };
         let byte_source = BinaryByteSource::new(Cursor::new(read_buf));
-        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, byte_source);
+        let mut dlt_msg_producer = StaticProducer::new(dlt_parser, byte_source);
 
         let mut messages: Vec<Message> = Vec::new();
 
