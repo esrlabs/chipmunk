@@ -20,29 +20,25 @@ extern crate processor;
 extern crate lazy_static;
 
 use anyhow::{anyhow, Result};
-use async_stream::stream;
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::dlt_file::{export_as_dlt_file, StatisticsResults};
 use dlt_core::{
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering::{process_filter_config, read_filter_options, DltFilterConfig},
-    statistics::StatisticInfo,
 };
 use env_logger::Env;
-use futures::{stream::Skip, Stream, StreamExt};
 use indexer_base::{
     chunks::{serialize_chunks, Chunk, ChunkResults, VoidResults},
     config::*,
     error_reporter::*,
-    export::export_file_line_based,
+    export::{export_file_line_based, produce_section_iterator},
     progress::IndexingResults,
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
 use parsers::{
-    dlt::{DltParser, DltRangeParser},
-    ByteRepresentation, LogMessage, MessageStreamItem,
+    dlt::{DltParser, DltRawParser},
+    LogMessage, MessageStreamItem,
 };
 use processor::{
     dlt_source::DltSource,
@@ -52,7 +48,7 @@ use processor::{
 };
 use sources::{
     pcap::file::{convert_from_pcapng, create_index_and_mapping_from_pcapng, PcapngByteSource},
-    producer::MessageProducer,
+    producer::StaticProducer,
     raw::binary::BinaryByteSource,
 };
 use std::{
@@ -720,11 +716,8 @@ pub async fn main() -> Result<()> {
             let progress_bar = initialize_progress_bar(total);
             let tag_string = tag.to_string();
             let fallback_out = file.to_string() + ".out";
-            let out_path = path::PathBuf::from(
-                matches
-                    .value_of("output")
-                    .unwrap_or_else(|| fallback_out.as_str()),
-            );
+            let out_path =
+                path::PathBuf::from(matches.value_of("output").unwrap_or(fallback_out.as_str()));
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file.to_string() + ".map.json");
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
@@ -995,40 +988,52 @@ pub async fn main() -> Result<()> {
             let reader = BufReader::new(&in_file);
             if ending.to_str() == Some("dlt") {
                 trace!("was dlt file");
-                if old_way {
-                    debug!("export dlt file the old way");
-                    export_as_dlt_file(file_path, out_path, SectionConfig { sections }, tx)
-                        .expect("export did not work");
-                } else if !sections.is_empty() {
-                    // debug!("try new way of exporting");
-                    // let dlt_parser = DltRangeParser::new(true);
-                    // let source = BinaryByteSource::new(reader);
+                if !sections.is_empty() {
+                    debug!("try new way of exporting");
+                    let dlt_parser = DltRawParser::new(true);
+                    let source = BinaryByteSource::new(reader);
 
-                    // let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
-                    // let msg_stream = dlt_msg_producer.as_stream();
-                    // futures::pin_mut!(msg_stream);
-                    // let out_file = File::create(out_path).expect("could not create file");
-                    // let mut out_writer = BufWriter::new(out_file);
+                    let dlt_msg_producer = StaticProducer::new(dlt_parser, source);
+                    let out_file = File::create(out_path).expect("could not create file");
+                    let mut out_writer = BufWriter::new(out_file);
 
-                    // let section_stream = produce_section_stream(msg_stream, sections).await;
-                    // futures::pin_mut!(section_stream);
-                    // while let Some((_, item)) = section_stream.next().await {
-                    //     if let MessageStreamItem::Item(msg) = item {
-                    //         msg.to_writer(&mut out_writer).unwrap();
-                    //     }
-                    // }
-                    // out_writer.flush().unwrap();
+                    let mut section_iter = produce_section_iterator(dlt_msg_producer, sections);
+                    for (_, item) in section_iter.by_ref() {
+                        if let MessageStreamItem::Item(msg) = item {
+                            msg.to_writer(&mut out_writer).unwrap();
+                        }
+                    }
+                    out_writer.flush().unwrap();
                 }
             } else {
                 trace!("was regular file");
-                export_file_line_based(
-                    file_path,
-                    out_path,
-                    SectionConfig { sections },
-                    was_session_file,
-                    tx,
-                )
-                .expect("export did not work");
+                if old_way {
+                    println!("was regular file (legacy way)");
+                    export_file_line_based(
+                        file_path,
+                        out_path,
+                        SectionConfig { sections },
+                        was_session_file,
+                        tx,
+                    )
+                    .expect("export did not work");
+                } else {
+                    println!("regular file, new way");
+                    let dlt_parser = DltRawParser::new(true);
+                    let source = BinaryByteSource::new(reader);
+
+                    let dlt_msg_producer = StaticProducer::new(dlt_parser, source);
+                    let out_file = File::create(out_path).expect("could not create file");
+                    let mut out_writer = BufWriter::new(out_file);
+
+                    let mut section_iter = produce_section_iterator(dlt_msg_producer, sections);
+                    for (_, item) in section_iter.by_ref() {
+                        if let MessageStreamItem::Item(msg) = item {
+                            msg.to_writer(&mut out_writer).unwrap();
+                        }
+                    }
+                    out_writer.flush().unwrap();
+                }
             };
 
             println!("done with handle_export_subcommand");
@@ -1061,11 +1066,8 @@ pub async fn main() -> Result<()> {
                 }
             };
             let fallback_out = file_name.to_string() + ".out";
-            let out_path = path::PathBuf::from(
-                matches
-                    .value_of("output")
-                    .unwrap_or_else(|| fallback_out.as_str()),
-            );
+            let out_path =
+                path::PathBuf::from(matches.value_of("output").unwrap_or(fallback_out.as_str()));
             let file_path = path::PathBuf::from(file_name);
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file_name.to_string() + ".map.json");
@@ -1073,11 +1075,6 @@ pub async fn main() -> Result<()> {
             let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
             let tag_string = tag.to_string();
-
-            // let filter_config: Option<dlt::filtering::ProcessedDltFilterConfig> =
-            //     filter_conf.map(dlt::filtering::process_filter_config);
-            // let dlt_file_future = parse_dlt_file(file_path, filter_config, None);
-            // let res = task::block_on(dlt_file_future);
 
             let progress_bar = initialize_progress_bar(source_file_size as u64);
             thread::spawn(move || {
@@ -1094,10 +1091,6 @@ pub async fn main() -> Result<()> {
                     filter_conf,
                     &tx,
                     None,
-                    // dlt::filtering::DltFilterConfig {
-                    //     min_log_level: verbosity_log_level,
-                    //     components: None,
-                    // },
                     Some(load_test_fibex()),
                 ) {
                     report_error(format!("couldn't process: {}", why));
@@ -1218,11 +1211,8 @@ pub async fn main() -> Result<()> {
             };
             let append: bool = matches.is_present("append");
             let fallback_out = file_name.to_string() + ".out";
-            let out_path = path::PathBuf::from(
-                matches
-                    .value_of("output")
-                    .unwrap_or_else(|| fallback_out.as_str()),
-            );
+            let out_path =
+                path::PathBuf::from(matches.value_of("output").unwrap_or(fallback_out.as_str()));
             let file_path = path::PathBuf::from(file_name);
             let mapping_out_path = path::PathBuf::from(file_name.to_string() + ".map.json");
             let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
@@ -1606,9 +1596,8 @@ pub async fn main() -> Result<()> {
                     std::process::exit(2);
                 }
             };
-            let progress_bar = initialize_progress_bar(source_file_size as u64);
 
-            let res = get_dlt_file_info(&file_path, None);
+            let res = get_dlt_file_info(&file_path);
             match res {
                 Ok(res) => {
                     trace!("got item...");
@@ -1686,32 +1675,4 @@ fn initialize_progress_bar(len: u64) -> ProgressBar {
                 .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
                 .progress_chars("#>-"));
     progress_bar
-}
-
-pub async fn produce_section_stream<S, T>(
-    input_stream: S,
-    sections: Vec<IndexSection>,
-) -> impl Stream<Item = T>
-where
-    S: Stream<Item = T> + Unpin,
-{
-    let mut stream = input_stream.skip(0);
-    let mut index = 0usize;
-    stream! {
-        // for (start, len, a) in sections {
-        for section in sections {
-            let to_skip = section.first_line - index;
-            debug!("start: {}, len: {}, need to skip: {}", section.first_line, section.len(), to_skip);
-            stream = stream.into_inner().skip(to_skip);
-            for _ in 0..section.len() {
-                if let Some(elem) = stream.next().await {
-                    yield elem;
-                } else {
-                    println!("end of stream reached");
-                    break;
-                }
-            }
-            index = section.first_line + section.len();
-        }
-    }
 }

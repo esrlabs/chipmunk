@@ -466,6 +466,7 @@ dependencies = [
  "humantime",
  "lazy_static",
  "log",
+ "memchr",
  "nom",
  "quick-xml",
  "rustc-hash",
@@ -1098,9 +1099,11 @@ name = "parsers"
 version = "0.1.0"
 dependencies = [
  "buf_redux",
+ "byteorder",
  "crossbeam-channel",
  "dlt-core",
  "log",
+ "memchr",
  "rustc-hash",
  "thiserror",
 ]

@@ -1,6 +1,6 @@
 use crate::{
     chunks::ChunkResults,
-    config::SectionConfig,
+    config::{IndexSection, SectionConfig},
     progress::{IndexingProgress, Notification, Severity},
     utils::restore_line,
 };
@@ -91,4 +91,26 @@ pub fn export_file_line_based(
             .expect("UpdateChannel closed");
         Err(Error::Export(reason))
     }
+}
+
+/// take an iterator over some items
+/// and a list of sections and produce an iterator
+/// that will iterate the items within the specified sections
+pub fn produce_section_iterator<I, T>(
+    input: I,
+    sections: Vec<IndexSection>,
+) -> impl Iterator<Item = T>
+where
+    I: Iterator<Item = T>,
+{
+    input
+        .enumerate()
+        .filter(move |&(i, _)| in_sections(&sections, i))
+        .map(|(_, v)| v)
+}
+
+fn in_sections(sections: &[IndexSection], i: usize) -> bool {
+    sections
+        .iter()
+        .any(|sec| (sec.first_line..=sec.last_line).contains(&i))
 }
