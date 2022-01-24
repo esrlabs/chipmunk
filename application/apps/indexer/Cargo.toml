@@ -12,5 +12,5 @@ members = [
 ]
 
 # only uncomment when profiling
-# [profile.release]
-# debug = true
+[profile.release]
+debug = true
