@@ -2,7 +2,7 @@ use crate::{
     events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
-    tail, writer,
+    writer,
 };
 use indexer_base::progress::Severity;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
@@ -61,33 +61,52 @@ pub async fn handle(
     match target {
         Target::TextFile(path) => {
             state.set_session_file(path.clone()).await?;
-            let mut rx_update =
-                tail::Tracker::create(path, operation_api.get_cancellation_token_listener())
-                    .await
-                    .map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
-                        message: Some(e.to_string()),
-                    })?;
+            let (tx_watcher, rx_watcher) = std::sync::mpsc::channel();
+            let mut watcher = watcher(tx_watcher, Duration::from_millis(TRACKING_INTERVAL_MS))
+                .map_err(|e| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(e.to_string()),
+                })?;
+            watcher
+                .watch(path, RecursiveMode::Recursive)
+                .map_err(|e| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(e.to_string()),
+                })?;
             state.update_session().await?;
-            let cancel = operation_api.get_cancellation_token_listener();
+            let cancel = operation_api.get_cancellation_token();
+            // We cannot use tokio::sync::mpsc::channel as soon as tokio::sync::mpsc::Sender is async, but it
+            // cannot work with sync std::sync::mpsc::channel in the scope of one async { ... } block
+            let (tx_sync_wrapper, mut rx_sync_wrapper): (
+                UnboundedSender<()>,
+                UnboundedReceiver<()>,
+            ) = unbounded_channel();
             let result = select! {
                 res = async move {
-                    while let Some(upd) = rx_update.recv().await {
-                        if let Err(err) = upd {
-                            return Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Interrupted,
-                                message: Some(err.to_string()),
-                            });
-                        } else {
-                            state.update_session().await?;
+                    while let Ok(event) = rx_watcher.recv() {
+                        if let DebouncedEvent::NoticeWrite(_) = event {
+                            if let Err(err) = tx_sync_wrapper.send(()) {
+                                return Err(NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::ChannelError,
+                                    message: Some(err.to_string()),
+                                });
+                            }
                         }
+                    }
+                    Ok(None)
+                } => res,
+                res = async {
+                    while rx_sync_wrapper.recv().await.is_some() {
+                        state.update_session().await?;
                     }
                     Ok(None)
                 } => res,
                 _ = cancel.cancelled() => Ok(None)
             };
+            operation_api.get_done_token().cancel();
             result
         }
         Target::Producer(mut producer) => {
@@ -114,7 +133,7 @@ pub async fn handle(
             let (session_writer, rx_session_done) = writer::Writer::new(
                 &session_file_path,
                 tx_session_file_flush,
-                operation_api.get_cancellation_token_listener(),
+                operation_api.get_cancellation_token(),
             )
             .await
             .map_err(|e| NativeError {
@@ -125,7 +144,7 @@ pub async fn handle(
             let (binary_writer, rx_binary_done) = writer::Writer::new(
                 &binary_file_path,
                 tx_binary_file_flush,
-                operation_api.get_cancellation_token_listener(),
+                operation_api.get_cancellation_token(),
             )
             .await
             .map_err(|e| NativeError {
@@ -141,7 +160,7 @@ pub async fn handle(
             // or
             // TextFileSource::new(&session_file_path, producer.source_id());
             state.set_session_file(session_file_path.clone()).await?;
-            let cancel = operation_api.get_cancellation_token_listener();
+            let cancel = operation_api.get_cancellation_token();
             let producer_stream = producer.as_stream();
             futures::pin_mut!(producer_stream);
             let (session_result, binary_result, session_flashing, binary_flashing, producer_res) = join!(
@@ -173,9 +192,7 @@ pub async fn handle(
                 },
                 async {
                     while let Some(_bytes) = rx_session_file_flush.recv().await {
-                        if !state.is_closing() {
-                            state.update_session().await?;
-                        }
+                        state.update_session().await?;
                     }
                     Ok::<(), NativeError>(())
                 },
@@ -220,6 +237,7 @@ pub async fn handle(
                     Ok::<(), NativeError>(())
                 }
             );
+            operation_api.get_done_token().cancel();
             if let Err(err) = session_result {
                 Err(err)
             } else if let Err(err) = binary_result {

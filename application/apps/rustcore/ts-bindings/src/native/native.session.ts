@@ -35,7 +35,7 @@ export abstract class RustSession extends RustSessionRequiered {
         super();
     }
 
-    public abstract destroy(): void;
+    public abstract destroy(): Promise<void>;
 
     /**
      * Returns chunk of stream/session file.
@@ -214,7 +214,7 @@ export abstract class RustSession extends RustSessionRequiered {
 }
 
 export abstract class RustSessionNative {
-    public abstract stop(operationUuid: string): undefined;
+    public abstract stop(operationUuid: string): Promise<void>;
 
     public abstract init(callback: TEventEmitter): Promise<void>;
 
@@ -337,11 +337,12 @@ export class RustSessionWrapper extends RustSession {
             });
     }
 
-    public destroy(): void {
+    public destroy(): Promise<void> {
         const destroyOperationId = uuidv4();
         this._provider.debug().emit.operation('stop', destroyOperationId);
-        this._native.stop(destroyOperationId);
-        this._logger.debug(`Destroy request has been sent to rust-core`);
+        return this._native.stop(destroyOperationId).then(() => {
+            this._logger.debug(`Session has been destroyed`);
+        });
     }
 
     public getUuid(): string {

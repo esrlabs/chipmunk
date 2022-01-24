@@ -125,9 +125,8 @@ export class Session {
                                     this._logger.debug(
                                         `Confirmation of session destroying has been received`,
                                     );
-                                    this._provider.destroy().then(resolve).catch(reject);
                                 });
-                                this._session.destroy();
+                                this._session.destroy().then(resolve).catch(reject);
                             } else {
                                 this._provider.destroy().then(resolve).catch(reject);
                             }

@@ -48,15 +48,7 @@ impl Writer {
             oneshot::Sender<Result<(), Error>>,
             oneshot::Receiver<Result<(), Error>>,
         ) = oneshot::channel();
-        Writer::task(
-            file,
-            rx_task,
-            tx_task.clone(),
-            tx_flush,
-            shutdown.clone(),
-            tx_done,
-        )
-        .await?;
+        Writer::task(file, rx_task, tx_task.clone(), tx_flush, shutdown, tx_done).await?;
         Ok((Self { tx_task }, rx_done))
     }
 

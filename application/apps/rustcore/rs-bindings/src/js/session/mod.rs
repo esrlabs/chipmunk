@@ -112,11 +112,13 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn stop(&self, operation_id: String) -> Result<(), ComputationErrorWrapper> {
+    async fn stop(&self, operation_id: String) -> Result<(), ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session
                 .stop(operations::uuid_from_str(&operation_id)?)
-                .map_err(ComputationErrorWrapper)
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
