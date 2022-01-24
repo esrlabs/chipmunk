@@ -182,7 +182,7 @@ impl MetadataSource for DltSource {
 
         let mut messages: Vec<Message> = Vec::new();
 
-        let message_stream = dlt_msg_producer.as_stream();
+        // let message_stream = dlt_msg_producer.as_stream();
         todo!("maybe we need to make this async")
         // for msg_result in message_stream {
         //     trace!("got message from stream: {:?}", msg_result);

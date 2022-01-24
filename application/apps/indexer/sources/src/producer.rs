@@ -1,12 +1,12 @@
 use crate::{ByteSource, ReloadInfo, SourceFilter};
 use async_stream::stream;
-use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
+use parsers::{Error as ParserError, MessageStreamItem, Parser};
 use std::marker::PhantomData;
 use tokio_stream::Stream;
 
 pub struct MessageProducer<T, P, S>
 where
-    T: LogMessage + Send,
+    T: Send,
     P: Parser<T>,
     S: ByteSource,
 {
@@ -19,10 +19,16 @@ where
     total_loaded: usize,
     total_skipped: usize,
 }
+// impl<T: std::marker::Unpin + Send, P: Parser<T>, S: ByteSource> Iterator
+//     for MessageProducer<T, P, S>
+// {
+//     type Item = (usize, MessageStreamItem<T>);
+//     fn next(&mut self) -> std::option::Option<(usize, parsers::MessageStreamItem<T>)> {
+//         self.read_next_segment()
+//     }
+// }
 
-impl<T: LogMessage + std::marker::Unpin + Send, P: Parser<T>, S: ByteSource>
-    MessageProducer<T, P, S>
-{
+impl<T: std::marker::Unpin + Send, P: Parser<T>, S: ByteSource> MessageProducer<T, P, S> {
     /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: S) -> Self {
         MessageProducer {
@@ -36,7 +42,6 @@ impl<T: LogMessage + std::marker::Unpin + Send, P: Parser<T>, S: ByteSource>
             total_skipped: 0,
         }
     }
-
     /// create a stream of pairs that contain the count of all consumed bytes and the
     /// MessageStreamItem
     pub fn as_stream(&mut self) -> impl Stream<Item = (usize, MessageStreamItem<T>)> + '_ {
