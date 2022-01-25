@@ -17,6 +17,5 @@ tokio = { version = "1.5", features = ["full"] }
 tokio-stream = "0.1.5"
 tokio-util = "0.6.9"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
-notify = "4.0.17"
 futures = "0.3"
 

@@ -15,9 +15,12 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use tokio::{
     join, select,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::mpsc::{
+        channel, unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender,
+    },
 };
 use tokio_stream::StreamExt;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub enum Target<T, P, S>
@@ -58,34 +61,52 @@ pub async fn handle(
     let (paths, result) = match target {
         Target::TextFile(path) => {
             state.set_session_file(path.clone()).await?;
-            let mut rx_update =
-                tail::Tracker::create(&path, operation_api.get_cancellation_token_listener())
-                    .await
-                    .map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
-                        message: Some(e.to_string()),
-                    })?;
+            let (tx_tail_update, mut rx_tail_update): (
+                Sender<Result<(), tail::Error>>,
+                Receiver<Result<(), tail::Error>>,
+            ) = channel(1);
             state.update_session().await?;
             let cancel = operation_api.get_cancellation_token_listener();
-            let result = select! {
-                res = async move {
-                    while let Some(upd) = rx_update.recv().await {
-                        if let Err(err) = upd {
-                            return Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Interrupted,
-                                message: Some(err.to_string()),
-                            });
-                        } else {
-                            state.update_session().await?;
-                        }
-                    }
+            let tail_shutdown = CancellationToken::new();
+            let tail_shutdown_caller = tail_shutdown.clone();
+            let (result, tracker) = join!(
+                async {
+                    let result = select! {
+                        res = async move {
+                            while let Some(upd) = rx_tail_update.recv().await {
+                                if let Err(err) = upd {
+                                    return Err(NativeError {
+                                        severity: Severity::ERROR,
+                                        kind: NativeErrorKind::Interrupted,
+                                        message: Some(err.to_string()),
+                                    });
+                                } else {
+                                    state.update_session().await?;
+                                }
+                            }
+                            Ok(())
+                        } => res,
+                        _ = cancel.cancelled() => Ok(())
+                    };
+                    tail_shutdown_caller.cancel();
+                    result
+                },
+                tail::track(path.clone(), tx_tail_update, tail_shutdown),
+            );
+            (
+                vec![path],
+                if let Err(err) = result {
+                    Err(err)
+                } else if let Err(err) = tracker.map_err(|e| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Interrupted,
+                    message: Some(format!("Tailing error: {}", e)),
+                }) {
+                    Err(err)
+                } else {
                     Ok(None)
-                } => res,
-                _ = cancel.cancelled() => Ok(None)
-            };
-            (vec![path], result)
+                },
+            )
         }
         Target::Producer(mut producer) => {
             let dest_path = if let Some(dest_path) = dest_path {
