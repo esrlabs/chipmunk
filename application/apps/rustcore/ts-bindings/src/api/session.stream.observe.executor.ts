@@ -27,9 +27,13 @@ export const executor: TExecutor<void, IExecuteAssignOptions> = (
         provider,
         logger,
         options,
-        function(session: RustSession, options: IExecuteAssignOptions, operationUuid: string): Promise<void> {
-            return session.assign(options.filename, options.options, operationUuid);
+        function (
+            session: RustSession,
+            options: IExecuteAssignOptions,
+            operationUuid: string,
+        ): Promise<void> {
+            return session.observe(options.filename, options.options, operationUuid);
         },
-        "assign",
+        'observe',
     );
 };

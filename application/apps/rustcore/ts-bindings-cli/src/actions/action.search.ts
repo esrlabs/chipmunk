@@ -84,7 +84,7 @@ export class SearchInFile extends Action {
                 return reject(search);
             }
             stream
-                .assign(params.filename, {})
+                .observe(params.filename, {})
                 .then(() => {
                     search
                         .search(

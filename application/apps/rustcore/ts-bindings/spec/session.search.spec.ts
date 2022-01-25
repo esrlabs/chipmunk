@@ -37,7 +37,7 @@ describe('Search', function () {
                             i % 100 === 0 || i <= 5 ? `some match line data\n` : `some line data\n`
                         }`,
                 );
-                stream.assign(tmpobj.name, {}).catch(finish.bind(null, session, done));
+                stream.observe(tmpobj.name, {}).catch(finish.bind(null, session, done));
                 let searchStreamUpdated = false;
                 events.SearchUpdated.subscribe((found: number) => {
                     searchStreamUpdated = true;
@@ -181,7 +181,7 @@ describe('Search', function () {
                         }`,
                 );
                 stream
-                    .assign(tmpobj.name, {})
+                    .observe(tmpobj.name, {})
                     .then(() => {
                         search
                             .search([
@@ -315,7 +315,7 @@ describe('Search', function () {
                     (i: number) => `[${i}]:: some line data\n`,
                 );
                 stream
-                    .assign(tmpobj.name, {})
+                    .observe(tmpobj.name, {})
                     .then(() => {
                         search
                             .search([
@@ -367,7 +367,7 @@ describe('Search', function () {
                         }`,
                 );
                 stream
-                    .assign(tmpobj.name, {})
+                    .observe(tmpobj.name, {})
                     .then(() => {
                         // metadata was created
                         search
@@ -507,7 +507,7 @@ describe('Search', function () {
                         }`,
                 );
                 stream
-                    .assign(tmpobj.name, {})
+                    .observe(tmpobj.name, {})
                     .then(() => {
                         // metadata was created
                         search
