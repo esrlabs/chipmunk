@@ -5,8 +5,7 @@ use crate::{
     tail, writer,
 };
 use indexer_base::progress::Severity;
-use log::warn;
-use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
+use log::debug;
 use sources::{
     pcap::{file::PcapngByteSource, format::dlt::DltParser},
     producer::MessageProducer,
@@ -14,15 +13,12 @@ use sources::{
 };
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 use tokio::{
     join, select,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
 };
 use tokio_stream::StreamExt;
 use uuid::Uuid;
-
-const TRACKING_INTERVAL_MS: u64 = 2000;
 
 pub enum Target<T, P, S>
 where
@@ -59,11 +55,11 @@ pub async fn handle(
     } else {
         Target::TextFile(file_path.to_path_buf())
     };
-    match target {
+    let (paths, result) = match target {
         Target::TextFile(path) => {
             state.set_session_file(path.clone()).await?;
             let mut rx_update =
-                tail::Tracker::create(path, operation_api.get_cancellation_token_listener())
+                tail::Tracker::create(&path, operation_api.get_cancellation_token_listener())
                     .await
                     .map_err(|e| NativeError {
                         severity: Severity::ERROR,
@@ -89,7 +85,7 @@ pub async fn handle(
                 } => res,
                 _ = cancel.cancelled() => Ok(None)
             };
-            result
+            (vec![path], result)
         }
         Target::Producer(mut producer) => {
             let dest_path = if let Some(dest_path) = dest_path {
@@ -173,10 +169,9 @@ pub async fn handle(
                     })
                 },
                 async {
-                    while let Some(_bytes) = rx_session_file_flush.recv().await {
-                        if rx_binary_file_flush.recv().await.is_none() {
-                            warn!("Binary file isn't fluched");
-                        }
+                    while let (Some(_bytes_session), Some(_bytes_binary)) =
+                        join!(rx_session_file_flush.recv(), rx_binary_file_flush.recv())
+                    {
                         if !state.is_closing() {
                             state.update_session().await?;
                         }
@@ -218,17 +213,30 @@ pub async fn handle(
                     Ok::<(), NativeError>(())
                 }
             );
-            if let Err(err) = session_result {
-                Err(err)
-            } else if let Err(err) = binary_result {
-                Err(err)
-            } else if let Err(err) = flashing {
-                Err(err)
-            } else if let Err(err) = producer_res {
-                Err(err)
-            } else {
-                Ok(None)
-            }
+            (
+                vec![session_file_path, binary_file_path],
+                if let Err(err) = session_result {
+                    Err(err)
+                } else if let Err(err) = binary_result {
+                    Err(err)
+                } else if let Err(err) = flashing {
+                    Err(err)
+                } else if let Err(err) = producer_res {
+                    Err(err)
+                } else {
+                    Ok(None)
+                },
+            )
+        }
+    };
+    for path in paths {
+        if path.exists() {
+            std::fs::remove_file(path).map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Io,
+                message: Some(e.to_string()),
+            })?;
         }
     }
+    result
 }

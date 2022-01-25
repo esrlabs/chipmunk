@@ -27,14 +27,14 @@ pub struct Tracker {}
 
 impl Tracker {
     pub async fn create(
-        file: PathBuf,
+        file: &PathBuf,
         shutdown: CancellationToken,
     ) -> Result<UnboundedReceiver<Result<(), Error>>, Error> {
         let (tx_update, rx_update): (
             UnboundedSender<Result<(), Error>>,
             UnboundedReceiver<Result<(), Error>>,
         ) = unbounded_channel();
-        Tracker::listen(file, tx_update, shutdown).await?;
+        Tracker::listen(file.clone(), tx_update, shutdown).await?;
         Ok(rx_update)
     }
 
