@@ -627,13 +627,167 @@ pub async fn task(
                     return Err(err);
                 }
             }
+            /*
+                #[node_bindgen]
+                async fn grab_search(
+                    &mut self,
+                    start_line_index: i64,
+                    number_of_lines: i64,
+                ) -> Result<String, ComputationErrorWrapper> {
+                    if !self.0.is_opened() {
+                        return Err(ComputationError::SessionUnavailable.into());
+                    }
+                    info!(
+                        target: targets::SESSION,
+                        "grab search results from {} ({} lines)", start_line_index, number_of_lines
+                    );
+                    let grabber = if let Some(grabber) = self.0.get_search_grabber()? {
+                        grabber
+                    } else {
+                        let serialized = serde_json::to_string(&GrabbedContent {
+                            grabbed_elements: vec![],
+                        })
+                        .map_err(|_| ComputationError::InvalidData)?;
+                        return Ok(serialized);
+                    };
+                    let grabbed_content: GrabbedContent = grabber
+                        .grab_content(&LineRange::from(
+                            (start_line_index as u64)..=((start_line_index + number_of_lines) as u64),
+                        ))
+                        .map_err(|e| {
+                            warn!(
+                                target: targets::SESSION,
+                                "Grab search content failed: {}", e
+                            );
+                            ComputationError::SearchError(SearchError::Grab(e))
+                        })?;
+                    let mut results: GrabbedContent = GrabbedContent {
+                        grabbed_elements: vec![],
+                    };
+                    let mut ranges = vec![];
+                    let mut from_pos: u64 = 0;
+                    let mut to_pos: u64 = 0;
+                    for (i, el) in grabbed_content.grabbed_elements.iter().enumerate() {
+                        match el.content.parse::<u64>() {
+                            Ok(pos) => {
+                                if i == 0 {
+                                    from_pos = pos;
+                                } else if to_pos + 1 != pos {
+                                    ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                                    from_pos = pos;
+                                }
+                                to_pos = pos;
+                            }
+                            Err(e) => {
+                                return Err(ComputationError::Process(format!("{}", e)).into());
+                            }
+                        }
+                    }
+                    if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+                        || (ranges.is_empty() && !grabbed_content.grabbed_elements.is_empty())
+                    {
+                        ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                    }
+                    let mut row: usize = start_line_index as usize;
+                    for range in ranges.iter() {
+                        let mut original_content = self
+                            .0
+                            .get_updated_content_grabber()
+                            .await?
+                            .grab_content(&LineRange::from(range.clone()))
+                            .map_err(|e| {
+                                ComputationError::Communication(format!("grab matched content failed: {}", e))
+                            })?;
+                        let start = *range.start() as usize;
+                        for (j, element) in original_content.grabbed_elements.iter_mut().enumerate() {
+                            element.pos = Some(start + j);
+                            element.row = Some(row);
+                            row += 1;
+                        }
+                        results
+                            .grabbed_elements
+                            .append(&mut original_content.grabbed_elements);
+                    }
+                    debug!(
+                        target: targets::SESSION,
+                        "grabbing search result from original content {} rows",
+                        results.grabbed_elements.len()
+                    );
+                    let serialized =
+                        serde_json::to_string(&results).map_err(|_| ComputationError::InvalidData)?;
+                    Ok(serialized)
+                }
+
+            */
             Api::GrabSearch((range, tx_response)) => {
                 let result = if let Some(ref mut grabber) = state.search_grabber {
-                    grabber.grab_content(&range).map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(format!("Failed to grab search data. Error: {}", e)),
-                    })
+                    let line_numbers: GrabbedContent =
+                        grabber.grab_content(&range).map_err(|e| NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Grabber,
+                            message: Some(format!("Failed to grab search data. Error: {}", e)),
+                        })?;
+                    let mut search_grabbed: GrabbedContent = GrabbedContent {
+                        grabbed_elements: vec![],
+                    };
+                    let mut ranges = vec![];
+                    let mut from_pos: u64 = 0;
+                    let mut to_pos: u64 = 0;
+                    for (i, el) in line_numbers.grabbed_elements.iter().enumerate() {
+                        match el.content.parse::<u64>() {
+                            Ok(pos) => {
+                                if i == 0 {
+                                    from_pos = pos;
+                                } else if to_pos + 1 != pos {
+                                    ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                                    from_pos = pos;
+                                }
+                                to_pos = pos;
+                            }
+                            Err(err) => {
+                                return Err(NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::OperationSearch,
+                                    message: Some(format!("Cannot parse line number: {}", err)),
+                                });
+                            }
+                        }
+                    }
+                    if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+                        || (ranges.is_empty() && !line_numbers.grabbed_elements.is_empty())
+                    {
+                        ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                    }
+                    let mut row: usize = range.start() as usize;
+                    for range in ranges.iter() {
+                        if let Some(ref mut grabber) = state.content_grabber {
+                            let mut session_grabbed = grabber
+                                .grab_content(&LineRange::from(range.clone()))
+                                .map_err(|e| NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::Grabber,
+                                    message: Some(format!("Failed to grab data. Error: {}", e)),
+                                })?;
+                            let start = *range.start() as usize;
+                            for (j, element) in
+                                session_grabbed.grabbed_elements.iter_mut().enumerate()
+                            {
+                                element.pos = Some(start + j);
+                                element.row = Some(row);
+                                row += 1;
+                            }
+                            search_grabbed
+                                .grabbed_elements
+                                .append(&mut session_grabbed.grabbed_elements);
+                        } else {
+                            return Err(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::Grabber,
+                                message: Some(String::from("Grabber isn't inited")),
+                            });
+                        }
+                    }
+                    Ok(search_grabbed)
                 } else {
                     Err(NativeError {
                         severity: Severity::ERROR,
@@ -782,7 +936,6 @@ pub async fn task(
                 )) {
                     Ok(grabber) => {
                         state.search_grabber = Some(Box::new(grabber));
-                        println!(">>>>>>>>>>>>>>>>>>> SEARCH GRABBER is created");
                         Ok(())
                     }
                     Err(err) => Err(NativeError {
@@ -823,7 +976,6 @@ pub async fn task(
                                     )),
                                 });
                             }
-                            println!(">>>>>>>>>>>>>>>>>>> SEARCH GRABBER meta is updated");
                             Ok(())
                         }
                         Ok(ComputationResult::Stopped) => {
