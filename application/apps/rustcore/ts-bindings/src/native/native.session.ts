@@ -695,7 +695,7 @@ export class RustSessionWrapper extends RustSession {
                 .setDebug(debug)
                 .then(resolve)
                 .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.Sleep));
+                    reject(new NativeError(NativeError.from(err), Type.Other, Source.SetDebug));
                 });
         });
     }
@@ -706,7 +706,13 @@ export class RustSessionWrapper extends RustSession {
                 .getOperationsStat()
                 .then(resolve)
                 .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.Sleep));
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.Other,
+                            Source.GetOperationsStat,
+                        ),
+                    );
                 });
         });
     }

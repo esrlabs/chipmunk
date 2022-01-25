@@ -24,6 +24,8 @@ export enum Source {
     GetStreamLen = 'GetStreamLen',
     GetSearchLen = 'GetSearchLen',
     GetFilters = 'GetFilters',
+    GetOperationsStat = 'GetOperationsStat',
+    SetDebug = 'SetDebug',
     Concat = 'Concat',
     Merge = 'Merge',
     Extract = 'Extract',
