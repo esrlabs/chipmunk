@@ -199,7 +199,7 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    async fn assign(
+    async fn observe(
         &self,
         file_path: String,
         _source_id: String,
@@ -207,7 +207,7 @@ impl RustSession {
     ) -> Result<(), ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session
-                .assign(
+                .observe(
                     operations::uuid_from_str(&operation_id)?,
                     PathBuf::from(file_path),
                 )

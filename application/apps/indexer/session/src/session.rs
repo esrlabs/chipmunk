@@ -121,9 +121,9 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
-    pub fn assign(&self, operation_id: Uuid, file_path: PathBuf) -> Result<(), ComputationError> {
+    pub fn observe(&self, operation_id: Uuid, file_path: PathBuf) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Assign { file_path }))
+            .send((operation_id, operations::Operation::Observe { file_path }))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 

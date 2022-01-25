@@ -35,7 +35,7 @@ describe('Extract search matches', function () {
                 }`,
         );
         stream
-            .assign(tmpobj.name, {})
+            .observe(tmpobj.name, {})
             .then(() => {
                 const filterA: string = 'cpu=(\\d{1,})';
                 search
@@ -100,7 +100,7 @@ describe('Extract search matches', function () {
                 }`,
         );
         stream
-            .assign(tmpobj.name, {})
+            .observe(tmpobj.name, {})
             .then(() => {
                 const filterA: string = 'cpu=(\\d{1,})';
                 const filterB: string = 'disk=(\\d{1,})';
@@ -171,7 +171,7 @@ describe('Extract search matches', function () {
                 }`,
         );
         stream
-            .assign(tmpobj.name, {})
+            .observe(tmpobj.name, {})
             .then(() => {
                 const filterA: string = 'cpu=(\\d{1,})';
                 const filterB: string = 'x:(\\d{1,}),y:(\\d{1,})';

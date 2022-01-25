@@ -62,7 +62,7 @@ impl OperationStat {
 
 #[derive(Debug, Clone)]
 pub enum OperationAlias {
-    Assign,
+    Observe,
     Search,
     Extract,
     Map,
@@ -82,7 +82,7 @@ impl std::fmt::Display for OperationAlias {
             f,
             "{}",
             match self {
-                OperationAlias::Assign => "Assign",
+                OperationAlias::Observe => "Observe",
                 OperationAlias::Search => "Search",
                 OperationAlias::Extract => "Extract",
                 OperationAlias::Map => "Map",
@@ -100,7 +100,7 @@ impl std::fmt::Display for OperationAlias {
 
 #[derive(Debug, Clone)]
 pub enum Operation {
-    Assign {
+    Observe {
         file_path: PathBuf,
     },
     Search {
@@ -141,7 +141,7 @@ impl std::fmt::Display for Operation {
             f,
             "{}",
             match self {
-                Operation::Assign { file_path: _ } => "Assign",
+                Operation::Observe { file_path: _ } => "Observe",
                 Operation::Search { filters: _ } => "Search",
                 Operation::Extract { filters: _ } => "Extract",
                 Operation::Map {
@@ -297,10 +297,10 @@ impl OperationAPI {
         let id = self.id();
         spawn(async move {
             match operation {
-                Operation::Assign { file_path } => {
+                Operation::Observe { file_path } => {
                     api.finish(
-                        handlers::assign::handle(api.clone(), state, &file_path).await,
-                        OperationAlias::Assign,
+                        handlers::observe::handle(api.clone(), state, &file_path).await,
+                        OperationAlias::Observe,
                     )
                     .await;
                 }

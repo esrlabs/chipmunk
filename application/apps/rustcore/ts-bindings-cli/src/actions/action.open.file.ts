@@ -103,7 +103,7 @@ export class OpenFile extends Action {
                             );
                         }
                         stream
-                            .assign(file.filename, {})
+                            .observe(file.filename, {})
                             .then(() => {
                                 stream
                                     .grab(file.from, file.count)

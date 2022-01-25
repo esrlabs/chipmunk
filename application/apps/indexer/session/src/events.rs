@@ -141,8 +141,6 @@ pub enum CallbackEvent {
 pub enum ComputationError {
     #[error("Destination path should be defined to stream from MassageProducer")]
     DestinationPath,
-    #[error("Attemp to call operation before assign a session")]
-    NoAssignedContent,
     #[error("Native communication error ({0})")]
     Communication(String),
     #[error("Operation not supported ({0})")]

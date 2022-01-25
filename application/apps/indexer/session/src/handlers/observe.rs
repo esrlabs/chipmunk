@@ -5,6 +5,7 @@ use crate::{
     tail, writer,
 };
 use indexer_base::progress::Severity;
+use log::warn;
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use sources::{
     pcap::{file::PcapngByteSource, format::dlt::DltParser},
@@ -33,7 +34,7 @@ where
     Producer(MessageProducer<T, P, S>),
 }
 
-/// assign a file initially by creating the meta for it and sending it as metadata update
+/// observe a file initially by creating the meta for it and sending it as metadata update
 /// for the content grabber (current_grabber)
 /// if the metadata was successfully created, we return the line count of it
 /// if the operation was stopped, we return None
@@ -144,7 +145,7 @@ pub async fn handle(
             let cancel = operation_api.get_cancellation_token_listener();
             let producer_stream = producer.as_stream();
             futures::pin_mut!(producer_stream);
-            let (session_result, binary_result, session_flashing, binary_flashing, producer_res) = join!(
+            let (session_result, binary_result, flashing, producer_res) = join!(
                 async {
                     match rx_session_done.await {
                         Ok(res) => res,
@@ -173,15 +174,12 @@ pub async fn handle(
                 },
                 async {
                     while let Some(_bytes) = rx_session_file_flush.recv().await {
+                        if rx_binary_file_flush.recv().await.is_none() {
+                            warn!("Binary file isn't fluched");
+                        }
                         if !state.is_closing() {
                             state.update_session().await?;
                         }
-                    }
-                    Ok::<(), NativeError>(())
-                },
-                async {
-                    while let Some(_bytes) = rx_binary_file_flush.recv().await {
-                        // In future: update state of export
                     }
                     Ok::<(), NativeError>(())
                 },
@@ -224,9 +222,7 @@ pub async fn handle(
                 Err(err)
             } else if let Err(err) = binary_result {
                 Err(err)
-            } else if let Err(err) = session_flashing {
-                Err(err)
-            } else if let Err(err) = binary_flashing {
+            } else if let Err(err) = flashing {
                 Err(err)
             } else if let Err(err) = producer_res {
                 Err(err)

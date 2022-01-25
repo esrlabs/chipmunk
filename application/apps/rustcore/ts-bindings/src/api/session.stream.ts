@@ -7,7 +7,7 @@ import { EventProvider } from './session.provider';
 import { IExportOptions } from './session.stream.export.executor';
 import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
 import { Executors } from './session.stream.executors';
-import { TFileOptions, EFileOptionsRequirements } from './session.stream.assign.executor';
+import { TFileOptions, EFileOptionsRequirements } from './session.stream.observe.executor';
 import {
     IGrabbedElement,
     IExtractDTFormatOptions,
@@ -72,9 +72,9 @@ export class SessionStream {
         return this._session.getFileOptionsRequirements(filename);
     }
 
-    public assign(filename: string, options: TFileOptions): CancelablePromise<void> {
+    public observe(filename: string, options: TFileOptions): CancelablePromise<void> {
         // TODO create grabber
-        return Executors.assign(this._session, this._provider, this._logger, {
+        return Executors.observe(this._session, this._provider, this._logger, {
             filename: filename,
             options: options,
         });

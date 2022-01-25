@@ -8,7 +8,7 @@ export {
     TFileOptions,
     IFileOptionsDLT,
     EFileOptionsRequirements,
-} from './api/session.stream.assign.executor';
+} from './api/session.stream.observe.executor';
 export {
     Session,
     SessionSearch,

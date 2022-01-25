@@ -16,7 +16,7 @@ import {
     IFileMergeOptions,
 } from '../interfaces/index';
 import { getNativeModule } from './native';
-import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.assign.executor';
+import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.observe.executor';
 import { IDetectOptions } from '../api/session.stream.timeformat.detect.executor';
 import { IExportOptions } from '../api/session.stream.export.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
@@ -138,14 +138,14 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract assign(
+    public abstract observe(
         filename: string,
         options: TFileOptions,
         operationUuid: string,
     ): Promise<void>;
 
     /**
-     * Concat files and assigns it with session. After this operation, @method assign, @method merge cannot be used
+     * Concat files and assigns it with session. After this operation, @method observe, @method merge cannot be used
      * and should return @error NativeError.
      * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
      * @param files { string[] } file to be concat
@@ -160,7 +160,7 @@ export abstract class RustSession extends RustSessionRequiered {
     ): Promise<void>;
 
     /**
-     * Merge files and assigns it with session. After this operation, @method assign, @method concat cannot be used
+     * Merge files and assigns it with session. After this operation, @method observe, @method concat cannot be used
      * and should return @error NativeError.
      * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
      * @param files { IFileToBeMerged[] } file to be merge
@@ -220,7 +220,7 @@ export abstract class RustSessionNative {
 
     public abstract getUuid(): string;
 
-    public abstract assign(
+    public abstract observe(
         filename: string,
         options: TFileOptions,
         operationUuid: string,
@@ -503,12 +503,12 @@ export class RustSessionWrapper extends RustSession {
         return '';
     }
 
-    public assign(filename: string, options: TFileOptions, operationUuid: string): Promise<void> {
+    public observe(filename: string, options: TFileOptions, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._provider.debug().emit.operation('assign', operationUuid);
+                this._provider.debug().emit.operation('observe', operationUuid);
                 this._native
-                    .assign(filename, filename, operationUuid)
+                    .observe(filename, filename, operationUuid)
                     .then(resolve)
                     .catch((err: Error) => {
                         reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));

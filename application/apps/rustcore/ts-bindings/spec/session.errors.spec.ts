@@ -10,11 +10,11 @@ import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 
 describe('Errors', function () {
-    it('Test 1. Error: Stream len before assign', function (done) {
+    it('Test 1. Error: Stream len before observe', function (done) {
         const logger = getLogger('Errors. Test 1');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true, 'Test 1. Error: Stream len before assign');
+        session.debug(true, 'Test 1. Error: Stream len before observe');
         const stream = session.getStream();
         if (stream instanceof Error) {
             finish(session, done, stream);
@@ -30,11 +30,11 @@ describe('Errors', function () {
             });
     });
 
-    it('Test 2. Error: Search len before assign', function (done) {
+    it('Test 2. Error: Search len before observe', function (done) {
         const logger = getLogger('Errors. Test 2');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true, 'Test 2. Error: Search len before assign');
+        session.debug(true, 'Test 2. Error: Search len before observe');
         const search = session.getSearch();
         if (search instanceof Error) {
             finish(session, done, search);
@@ -60,11 +60,11 @@ describe('Errors', function () {
             });
     });
 
-    it('Test 3. Error: search before assign', function (done) {
+    it('Test 3. Error: search before observe', function (done) {
         const logger = getLogger('Errors. Test 3');
         const session = new Session();
         // Set provider into debug mode
-        session.debug(true, 'Test 3. Error: search before assign');
+        session.debug(true, 'Test 3. Error: search before observe');
         const search = session.getSearch();
         if (search instanceof Error) {
             finish(session, done, search);
@@ -96,7 +96,7 @@ describe('Errors', function () {
             return;
         }
         stream
-            .assign('/fake/path/to/fake/file', {})
+            .observe('/fake/path/to/fake/file', {})
             .then(() => {
                 finish(session, done, new Error(`Not exist file cannot be opened`));
             })
@@ -119,7 +119,7 @@ describe('Errors', function () {
         }
         const tmpobj = createSampleFile(5000, logger, (i: number) => `some line data: ${i}\n`);
         stream
-            .assign(tmpobj.name, {})
+            .observe(tmpobj.name, {})
             .then(() => {
                 // While we do not have operation id
                 stream
@@ -159,7 +159,7 @@ describe('Errors', function () {
                 }`,
         );
         stream
-            .assign(tmpobj.name, {})
+            .observe(tmpobj.name, {})
             .then(() => {
                 // metadata was created
                 search
