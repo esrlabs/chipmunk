@@ -1,76 +1,61 @@
-extern crate notify;
 use log::error;
-use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use std::path::PathBuf;
-use std::time::Duration;
 use thiserror::Error as ThisError;
 use tokio::{
-    select,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    task,
+    fs::File,
+    sync::mpsc::Sender,
+    time::{timeout, Duration},
 };
 use tokio_util::sync::CancellationToken;
 
-const TRACKING_INTERVAL_MS: u64 = 2000;
+const TRACKING_INTERVAL_MS: u64 = 1000;
 
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("IO error: {0}")]
-    Io(notify::Error),
-    #[error("System time error: {0}")]
-    SysTime(String),
+    Io(String),
     #[error("Channel error: {0}")]
     Channel(String),
 }
 
-pub struct Tracker {}
-
-impl Tracker {
-    pub async fn create(
-        file: &PathBuf,
-        shutdown: CancellationToken,
-    ) -> Result<UnboundedReceiver<Result<(), Error>>, Error> {
-        let (tx_update, rx_update): (
-            UnboundedSender<Result<(), Error>>,
-            UnboundedReceiver<Result<(), Error>>,
-        ) = unbounded_channel();
-        Tracker::listen(file.clone(), tx_update, shutdown).await?;
-        Ok(rx_update)
-    }
-
-    pub async fn listen(
-        file: PathBuf,
-        tx_update: UnboundedSender<Result<(), Error>>,
-        shutdown: CancellationToken,
-    ) -> Result<(), Error> {
-        let (tx, rx) = std::sync::mpsc::channel();
-        let mut watcher =
-            watcher(tx, Duration::from_millis(TRACKING_INTERVAL_MS)).map_err(Error::Io)?;
-        watcher
-            .watch(file, RecursiveMode::Recursive)
-            .map_err(Error::Io)?;
-        task::spawn(async move {
-            let tx_update_result = tx_update.clone();
-            let res = select! {
-                res = async move {
-                    while let Ok(event) = rx.recv() {
-                        if let DebouncedEvent::NoticeWrite(_) = event {
-                            if let Err(err) = tx_update.send(Ok(())) {
-                                return Err(Error::Channel(format!("Fail to send update signal: {}", err)));
-                            }
-                        }
+pub async fn track(
+    path: PathBuf,
+    tx_update: Sender<Result<(), Error>>,
+    shutdown: CancellationToken,
+) -> Result<(), Error> {
+    let file = File::open(path)
+        .await
+        .map_err(|e| Error::Io(e.to_string()))?;
+    let metadata = file
+        .metadata()
+        .await
+        .map_err(|e| Error::Io(e.to_string()))?;
+    let mut size = metadata.len();
+    loop {
+        match timeout(
+            Duration::from_millis(TRACKING_INTERVAL_MS as u64),
+            shutdown.cancelled(),
+        )
+        .await
+        {
+            Ok(_) => break,
+            Err(_) => {
+                let metadata = file
+                    .metadata()
+                    .await
+                    .map_err(|e| Error::Io(e.to_string()))?;
+                let updated = metadata.len();
+                if updated != size {
+                    size = updated;
+                    if let Err(err) = tx_update.send(Ok(())).await {
+                        return Err(Error::Channel(format!(
+                            "Fail to send update signal: {}",
+                            err
+                        )));
                     }
-                    Ok(())
-                } => res,
-                _ = shutdown.cancelled() => Ok(()),
-            };
-            if let Err(err) = res {
-                error!("Tail returns an error: {}", err);
-                if tx_update_result.send(Err(err)).is_err() {
-                    error!("Fail to send finish signal from tracker.");
                 }
             }
-        });
-        Ok(())
+        };
     }
+    Ok(())
 }

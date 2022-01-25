@@ -242,8 +242,11 @@ impl SearchHolder {
                     Ok(true)
                 }),
             )
-            .map_err(|_| {
-                SearchError::IoOperation(format!("Could not search in file {:?}", &self.file_path))
+            .map_err(|e| {
+                SearchError::IoOperation(format!(
+                    "Could not search in file {:?}; error: {}",
+                    &self.file_path, e
+                ))
             })?;
 
         Ok((
@@ -307,8 +310,11 @@ impl MatchesExtractor {
                     Ok(true)
                 }),
             )
-            .map_err(|_| {
-                SearchError::IoOperation(format!("Could not search in file {:?}", &self.file_path))
+            .map_err(|e| {
+                SearchError::IoOperation(format!(
+                    "Could not search in file {:?}; error: {}",
+                    &self.file_path, e
+                ))
             })?;
 
         Ok(values)
