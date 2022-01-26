@@ -8,11 +8,12 @@ edition = "2021"
 anyhow = "1.0"
 async-stream = "0.3.2"
 chrono = "0.4"
-clap = "2.33.3"
+clap = { version = "3.0", features = ["cargo"] }
+# clap = "2.33.3"
 crossbeam-channel = "0.5.1"
 dirs = "4.0"
 dlt = { path = "../dlt" }
-# dlt-core = "0.11"
+# dlt-core = "0.12"
 # dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
 dlt-core = { path = "../../../../../dlt-core.git" }
 env_logger = "0.9"
