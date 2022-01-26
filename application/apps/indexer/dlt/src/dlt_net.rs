@@ -14,11 +14,10 @@ use indexer_base::{
     progress::*,
     utils,
 };
-use std::path::PathBuf;
 use std::{
     io::{BufWriter, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    path::Path,
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
@@ -85,7 +84,7 @@ pub async fn index_from_socket(
         }
     };
     debug!("Binding socket within: {}", bind_addr_and_port);
-    let fibex_metadata: Option<FibexMetadata> = fibex.map(gather_fibex_data).flatten();
+    let fibex_metadata: Option<FibexMetadata> = fibex.and_then(gather_fibex_data);
     match socket_config.udp_connection_info {
         None => {
             index_from_socket_tcp(

@@ -20,8 +20,6 @@ use thiserror::Error;
 pub enum Error {
     #[error("Problem with configuration found: {0}")]
     Configuration(String),
-    // #[error("Data not valid: {0}")]
-    // InvalidData(String),
     #[error("IO error: {0:?}")]
     Io(#[from] std::io::Error),
 }
@@ -43,6 +41,10 @@ pub struct SectionConfig {
 impl IndexSection {
     pub fn len(&self) -> usize {
         self.last_line - self.first_line + 1
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
