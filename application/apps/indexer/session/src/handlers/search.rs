@@ -7,7 +7,7 @@ use crossbeam_channel as cc;
 use indexer_base::progress::{ComputationResult, Progress, Severity};
 use log::debug;
 use processor::{
-    grabber::{GrabMetadata, MetadataSource},
+    grabber::GrabMetadata,
     search::{FilterStats, SearchFilter, SearchHolder},
     text_source::TextFileSource,
 };

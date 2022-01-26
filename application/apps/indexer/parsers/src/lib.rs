@@ -1,9 +1,9 @@
 pub mod dlt;
+pub mod text;
 use std::{fmt::Display, io::Write};
 
 use thiserror::Error;
 
-#[macro_use]
 extern crate log;
 
 #[derive(Error, Debug)]

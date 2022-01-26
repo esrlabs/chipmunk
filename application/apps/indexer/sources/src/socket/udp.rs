@@ -26,8 +26,9 @@ impl UdpSource {
 impl DynamicByteSource for UdpSource {
     async fn reload(
         &mut self,
-        filter: Option<&SourceFilter>,
+        _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
+        // TODO use filter
         let (len, remote_addr) = self
             .socket
             .recv_from(&mut self.tmp_buffer)
