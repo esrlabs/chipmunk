@@ -72,7 +72,7 @@ extern crate clap;
 
 #[macro_use]
 extern crate log;
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 use indexer_base::progress::{IndexingProgress, Notification, Severity};
 use processor::{
     grabber::LineRange,
@@ -100,46 +100,46 @@ pub async fn main() -> Result<()> {
         .author(crate_authors!())
         .about("Create index file and mapping file for chipmunk")
         .arg(
-            Arg::with_name("v")
-                .short("v")
-                .multiple(true)
+            Arg::new("v")
+                .short('v')
+                .multiple_values(true)
                 .help("Sets the level of verbosity"),
         )
         .subcommand(
-            SubCommand::with_name("grab")
+            App::new("grab")
                 .about("command for grabbing part of a file")
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .help("Sets the input file path")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("export")
-                        .short("e")
+                    Arg::new("export")
+                        .short('e')
                         .long("export")
                         .help("export metadata to file"),
                 )
                 .arg(
-                    Arg::with_name("metadata")
-                        .short("m")
+                    Arg::new("metadata")
+                        .short('m')
                         .long("meta")
                         .value_name("META")
                         .help("slot metadata"),
                 )
                 .arg(
-                    Arg::with_name("start")
-                        .short("s")
+                    Arg::new("start")
+                        .short('s')
                         .long("start")
                         .value_name("START")
                         .help("start index")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("length")
-                        .short("x")
+                    Arg::new("length")
+                        .short('x')
                         .long("length")
                         .value_name("END")
                         .help("end index")
@@ -147,111 +147,111 @@ pub async fn main() -> Result<()> {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("index")
+            App::new("index")
                 .about("command for creating an index file")
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .help("Sets the input file to be indexed")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("tag")
-                        .short("t")
+                    Arg::new("tag")
+                        .short('t')
                         .long("tag")
                         .value_name("TAG")
                         .help("tag for each log entry")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("out")
                         .value_name("OUT")
                         .help("Output file, \"<file_to_index>.out\" if not present"),
                 )
                 .arg(
-                    Arg::with_name("chunk_size")
-                        .short("c")
+                    Arg::new("chunk_size")
+                        .short('c')
                         .long("chunk_siz")
                         .help("How many lines should be in a chunk (used for access later)")
                         .required(false)
                         .default_value("500"),
                 )
                 .arg(
-                    Arg::with_name("timestamp")
-                        .short("w")
+                    Arg::new("timestamp")
+                        .short('w')
                         .help("add timestamp info if available"),
                 )
                 .arg(
-                    Arg::with_name("append")
-                        .short("a")
+                    Arg::new("append")
+                        .short('a')
                         .long("append")
                         .help("append to file if exists"),
                 )
                 .arg(
-                    Arg::with_name("watch")
-                        .short("u")
+                    Arg::new("watch")
+                        .short('u')
                         .long("watch")
                         .help("tail the file (keep watching for updates)"),
                 )
                 .arg(
-                    Arg::with_name("stdout")
-                        .short("s")
+                    Arg::new("stdout")
+                        .short('s')
                         .long("stdout")
                         .help("put out chunk information on stdout"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("merge")
+            App::new("merge")
                 .about("command for merging/concatenating multiple log files")
                 .arg(
-                    Arg::with_name("merge_config")
-                        .short("m")
+                    Arg::new("merge_config")
+                        .short('m')
                         .long("merge")
                         .help("json file that defines all files to be merged")
                         .value_name("MERGE_CONFIG")
-                        .required_unless("concat_config"),
+                        .required_unless_present("concat_config"),
                 )
                 .arg(
-                    Arg::with_name("concat_config")
-                        .short("j")
+                    Arg::new("concat_config")
+                        .short('j')
                         .long("concat")
                         .help("json file that defines all files to be concatenated")
                         .value_name("CONCAT_CONFIG")
-                        .required_unless("merge_config"),
+                        .required_unless_present("merge_config"),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("out")
                         .value_name("OUT")
                         .required(true)
                         .help("Output file"),
                 )
                 .arg(
-                    Arg::with_name("chunk_size")
-                        .short("c")
+                    Arg::new("chunk_size")
+                        .short('c')
                         .long("chunk_siz")
                         .help("How many lines should be in a chunk (used for access later)")
                         .required(false)
                         .default_value("500"),
                 )
                 .arg(
-                    Arg::with_name("append")
-                        .short("a")
+                    Arg::new("append")
+                        .short('a')
                         .long("append")
                         .help("append to file if exists"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("format")
+            App::new("format")
                 .about("test format string")
                 .arg(
-                    Arg::with_name("format-string")
-                        .short("f")
+                    Arg::new("format-string")
+                        .short('f')
                         .help("format string to use")
                         .long("format")
                         .requires("test-string")
@@ -259,8 +259,8 @@ pub async fn main() -> Result<()> {
                         .required(false),
                 )
                 .arg(
-                    Arg::with_name("test-string")
-                        .short("t")
+                    Arg::new("test-string")
+                        .short('t')
                         .long("test")
                         .requires("format-string")
                         .help("test string to use")
@@ -268,8 +268,8 @@ pub async fn main() -> Result<()> {
                         .required(false),
                 )
                 .arg(
-                    Arg::with_name("test-config")
-                        .short("c")
+                    Arg::new("test-config")
+                        .short('c')
                         .long("config")
                         .help("test a file using this configuration")
                         .value_name("CONFIG")
@@ -277,25 +277,25 @@ pub async fn main() -> Result<()> {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("export")
+            App::new("export")
                 .about("test exporting files")
                 .arg(
-                    Arg::with_name("file")
-                        .short("f")
+                    Arg::new("file")
+                        .short('f')
                         .long("file")
                         .help("the file to export")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("legacy")
-                        .short("l")
+                    Arg::new("legacy")
+                        .short('l')
                         .long("legacy")
                         .help("use legacy parsing"),
                 )
                 .arg(
-                    Arg::with_name("sections")
-                        .short("s")
+                    Arg::new("sections")
+                        .short('s')
                         .long("sections")
                         .value_name("SECTIONS")
                         .help("what sections to export, e.g. \"0,3|6,100\"")
@@ -303,228 +303,228 @@ pub async fn main() -> Result<()> {
                         .default_value(""),
                 )
                 .arg(
-                    Arg::with_name("is_session_file")
-                        .short("x")
+                    Arg::new("is_session_file")
+                        .short('x')
                         .long("sessionfile")
                         .help("eliminiate session file quirks"),
                 )
                 .arg(
-                    Arg::with_name("target")
-                        .short("t")
+                    Arg::new("target")
+                        .short('t')
                         .long("out")
                         .value_name("OUT")
                         .help("Output file, \"<file_to_export>.out\" if not present"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("discover")
+            App::new("discover")
                 .about("test date discovery, either from a string or from a file")
                 .arg(
-                    Arg::with_name("input-string")
-                        .short("i")
+                    Arg::new("input-string")
+                        .short('i')
                         .help("string to extract date from")
                         .long("input")
                         .value_name("INPUT")
-                        .required_unless_one(&["config-file", "input-file"])
+                        .required_unless_present_any(&["config-file", "input-file"])
                         .conflicts_with_all(&["config-file", "input-file"]),
                 )
                 .arg(
-                    Arg::with_name("config-file")
-                        .short("c")
+                    Arg::new("config-file")
+                        .short('c')
                         .help("file that contains a list of files to analyze")
                         .long("config")
                         .value_name("CONFIG")
-                        .required_unless_one(&["input-file", "input-string"])
+                        .required_unless_present_any(&["input-file", "input-string"])
                         .conflicts_with_all(&["input-file", "input-string"]),
                 )
                 .arg(
-                    Arg::with_name("input-file")
+                    Arg::new("input-file")
                         .takes_value(true)
                         .conflicts_with_all(&["config-file", "input-string"])
-                        .required_unless_one(&["config-file", "input-string"])
-                        .short("f")
+                        .required_unless_present_any(&["config-file", "input-string"])
+                        .short('f')
                         .help("file where the timeformat should be detected")
                         .long("file"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("dlt")
+            App::new("dlt")
                 .about("handling dlt input")
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .help("the DLT file to parse")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("tag")
-                        .short("t")
+                    Arg::new("tag")
+                        .short('t')
                         .long("tag")
                         .value_name("TAG")
                         .help("tag for each log entry")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("chunk_size")
-                        .short("c")
+                    Arg::new("chunk_size")
+                        .short('c')
                         .long("chunk_size")
                         .help("How many lines should be in a chunk (used for access later)")
                         .required(false)
                         .default_value("500"),
                 )
                 .arg(
-                    Arg::with_name("append")
-                        .short("a")
+                    Arg::new("append")
+                        .short('a')
                         .long("append")
                         .help("append to file if exists"),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("out")
                         .value_name("OUT")
                         .help("Output file, \"<file_to_index>.out\" if not present"),
                 )
                 .arg(
-                    Arg::with_name("filter_config")
-                        .short("f")
+                    Arg::new("filter_config")
+                        .short('f')
                         .long("filter")
                         .value_name("FILTER_CONFIG")
                         .help("json file that defines dlt filter settings"),
                 )
                 .arg(
-                    Arg::with_name("stdout")
-                        .short("s")
+                    Arg::new("stdout")
+                        .short('s')
                         .long("stdout")
                         .help("put out chunk information on stdout"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("dlt-pcap")
+            App::new("dlt-pcap")
                 .about("dlt from pcap files")
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .help("the pcap file to parse")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("tag")
-                        .short("t")
+                    Arg::new("tag")
+                        .short('t')
                         .long("tag")
                         .value_name("TAG")
                         .help("tag for each log entry")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("chunk_size")
-                        .short("c")
+                    Arg::new("chunk_size")
+                        .short('c')
                         .long("chunk_size")
                         .help("How many lines should be in a chunk (used for access later)")
                         .required(false)
                         .default_value("500"),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("out")
                         .value_name("OUT")
                         .required(true)
                         .help("Output file"),
                 )
                 .arg(
-                    Arg::with_name("filter_config")
-                        .short("f")
+                    Arg::new("filter_config")
+                        .short('f')
                         .long("filter")
                         .value_name("FILTER_CONFIG")
                         .help("json file that defines dlt filter settings"),
                 )
                 .arg(
-                    Arg::with_name("convert")
-                        .short("n")
+                    Arg::new("convert")
+                        .short('n')
                         .long("convert")
                         .help("convert file to dlt format"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("dlt-udp")
+            App::new("dlt-udp")
                 .about("handling dlt udp input")
                 .arg(
-                    Arg::with_name("ip")
-                        .short("i")
+                    Arg::new("ip")
+                        .short('i')
                         .long("ip")
                         .help("the ip address + port")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("tag")
-                        .short("t")
+                    Arg::new("tag")
+                        .short('t')
                         .long("tag")
                         .value_name("TAG")
                         .help("tag for each log entry")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("chunk_size")
-                        .short("c")
+                    Arg::new("chunk_size")
+                        .short('c')
                         .long("chunk_size")
                         .help("How many lines should be in a chunk (used for access later)")
                         .required(false)
                         .default_value("500"),
                 )
                 .arg(
-                    Arg::with_name("output")
-                        .short("o")
+                    Arg::new("output")
+                        .short('o')
                         .long("out")
                         .value_name("OUT")
                         .required(true)
                         .help("Output file"),
                 )
                 .arg(
-                    Arg::with_name("filter_config")
-                        .short("f")
+                    Arg::new("filter_config")
+                        .short('f')
                         .long("filter")
                         .value_name("FILTER_CONFIG")
                         .help("json file that defines dlt filter settings"),
                 )
                 .arg(
-                    Arg::with_name("stdout")
-                        .short("s")
+                    Arg::new("stdout")
+                        .short('s')
                         .long("stdout")
                         .help("put out chunk information on stdout"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("dlt-stats")
+            App::new("dlt-stats")
                 .about("dlt statistics")
                 .arg(
-                    Arg::with_name("input")
-                        .short("i")
+                    Arg::new("input")
+                        .short('i')
                         .long("input")
                         .help("the DLT file to parse")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("legacy")
-                        .short("l")
+                    Arg::new("legacy")
+                        .short('l')
                         .long("legacy")
                         .help("use legacy parsing"),
                 )
                 .arg(
-                    Arg::with_name("count")
-                        .short("c")
+                    Arg::new("count")
+                        .short('c')
                         .long("count")
                         .help("count dlt messages"),
                 )
                 .arg(
-                    Arg::with_name("stdout")
-                        .short("s")
+                    Arg::new("stdout")
+                        .short('s')
                         .long("stdout")
                         .help("put out chunk information on stdout"),
                 ),
@@ -560,99 +560,87 @@ pub async fn main() -> Result<()> {
     }
 
     async fn handle_grab_subcommand(
-        matches: &clap::ArgMatches<'_>,
+        matches: &clap::ArgMatches,
         _start_time: std::time::Instant,
         _status_updates: bool,
     ) -> Result<()> {
-        let input_path_string_res = value_t!(matches.value_of("input"), String);
-        let start_res = value_t!(matches.value_of("start"), u64);
-        let length_res = value_t!(matches.value_of("length"), u64);
+        let input_path: String = matches.value_of_t("input").unwrap_or_else(|e| e.exit());
+        let start: u64 = matches.value_of_t("start").unwrap_or_else(|e| e.exit());
+        let length: u64 = matches.value_of_t("length").unwrap_or_else(|e| e.exit());
         let export: bool = matches.is_present("export");
-        match (input_path_string_res, start_res, length_res) {
-            (Ok(input_path), Ok(start), Ok(length)) => {
-                println!(
-                    "read file: {} from {} -> {}",
-                    input_path,
-                    start,
-                    start + length
-                );
-                // let rt = Runtime::new()?;
-                // rt.block_on(async {
-                let input_p = path::PathBuf::from(&input_path);
+        println!(
+            "read file: {} from {} -> {}",
+            input_path,
+            start,
+            start + length
+        );
+        let input_p = path::PathBuf::from(&input_path);
 
-                let is_dlt = input_p
-                    .extension()
-                    .expect("Could not get extension of file")
-                    == "dlt";
-                let start_index = if start > 0 { start - 1 } else { start };
-                if is_dlt {
-                    println!("dlt grabbing not supported anymore");
-                    std::process::exit(0);
-                }
-                let res: Result<(GrabbedContent, Instant), GrabError> = {
-                    type GrabberType = processor::grabber::Grabber;
-                    let source = TextFileSource::new(&input_p, "sourceA");
-                    let start_op = Instant::now();
-                    let grabber = if matches.is_present("metadata") {
-                        let metadata_path =
-                            matches.value_of("metadata").expect("input must be present");
-                        println!("grabber with metadata");
-                        GrabberType::lazy(source)
-                            .expect("Grabber could not be initialized lazily")
-                            .load_metadata(path::PathBuf::from(metadata_path))
-                            .expect("")
-                    } else {
-                        println!("Grabber sync text API");
-                        GrabberType::new(source).expect("Grabber could not be initialized lazily")
-                    };
-                    duration_report(
-                        start_op,
-                        format!(
-                            "initializing Grabber for {:?} lines",
-                            grabber.log_entry_count()
-                        ),
-                    );
+        let is_dlt = input_p
+            .extension()
+            .expect("Could not get extension of file")
+            == "dlt";
+        let start_index = if start > 0 { start - 1 } else { start };
+        if is_dlt {
+            println!("dlt grabbing not supported anymore");
+            std::process::exit(0);
+        }
+        let res: Result<(GrabbedContent, Instant), GrabError> = {
+            type GrabberType = processor::grabber::Grabber;
+            let source = TextFileSource::new(&input_p, "sourceA");
+            let start_op = Instant::now();
+            let grabber = if matches.is_present("metadata") {
+                let metadata_path = matches.value_of("metadata").expect("input must be present");
+                println!("grabber with metadata");
+                GrabberType::lazy(source)
+                    .expect("Grabber could not be initialized lazily")
+                    .load_metadata(path::PathBuf::from(metadata_path))
+                    .expect("")
+            } else {
+                println!("Grabber sync text API");
+                GrabberType::new(source).expect("Grabber could not be initialized lazily")
+            };
+            duration_report(
+                start_op,
+                format!(
+                    "initializing Grabber for {:?} lines",
+                    grabber.log_entry_count()
+                ),
+            );
 
-                    if export {
-                        cache_metadata_to_file(&input_p, &grabber);
-                    }
-
-                    let r = LineRange::from(start_index..=(start_index + length - 1));
-                    let start_op = Instant::now();
-                    Ok((grabber.get_entries(&r)?, start_op))
-                };
-
-                match res {
-                    Ok((v, start_op)) => {
-                        duration_report(start_op, format!("grabbing {} lines", length));
-                        let mut i = start_index;
-                        let cap_after = 150;
-                        for (cnt, s) in v.grabbed_elements.iter().enumerate() {
-                            if s.content.len() > cap_after {
-                                println!("[{}]--> {}", i + 1, &s.content[..cap_after]);
-                            } else {
-                                println!("[{}]--> {}", i + 1, &s.content);
-                            }
-                            i += 1;
-                            if cnt > 15 {
-                                println!("...{} more lines", v.grabbed_elements.len() - 15);
-                                break;
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        report_error(format!("Error during line grabbing: {}", e));
-                        std::process::exit(2);
-                    }
-                }
-                //});
-                Ok(())
+            if export {
+                cache_metadata_to_file(&input_p, &grabber);
             }
-            _ => {
-                report_error("could not find out size of source file");
+
+            let r = LineRange::from(start_index..=(start_index + length - 1));
+            let start_op = Instant::now();
+            Ok((grabber.get_entries(&r)?, start_op))
+        };
+
+        match res {
+            Ok((v, start_op)) => {
+                duration_report(start_op, format!("grabbing {} lines", length));
+                let mut i = start_index;
+                let cap_after = 150;
+                for (cnt, s) in v.grabbed_elements.iter().enumerate() {
+                    if s.content.len() > cap_after {
+                        println!("[{}]--> {}", i + 1, &s.content[..cap_after]);
+                    } else {
+                        println!("[{}]--> {}", i + 1, &s.content);
+                    }
+                    i += 1;
+                    if cnt > 15 {
+                        println!("...{} more lines", v.grabbed_elements.len() - 15);
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                report_error(format!("Error during line grabbing: {}", e));
                 std::process::exit(2);
             }
         }
+        Ok(())
     }
 
     fn cache_metadata_to_file(input_p: &Path, grabber: &processor::grabber::Grabber) {
@@ -674,7 +662,7 @@ pub async fn main() -> Result<()> {
     }
 
     async fn handle_index_subcommand(
-        matches: &clap::ArgMatches<'_>,
+        matches: &clap::ArgMatches,
         start: std::time::Instant,
         status_updates: bool,
     ) {
@@ -690,7 +678,7 @@ pub async fn main() -> Result<()> {
                 path::PathBuf::from(matches.value_of("output").unwrap_or(fallback_out.as_str()));
             let mapping_out_path: path::PathBuf =
                 path::PathBuf::from(file.to_string() + ".map.json");
-            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+            let chunk_size: usize = matches.value_of_t_or_exit("chunk_size");
 
             let source_file_size = match fs::metadata(file) {
                 Ok(file_meta) => file_meta.len(),
@@ -781,65 +769,65 @@ pub async fn main() -> Result<()> {
         }
     }
 
-    async fn handle_merge_subcommand(matches: &clap::ArgMatches<'_>, _start: std::time::Instant) {
+    async fn handle_merge_subcommand(matches: &clap::ArgMatches, _start: std::time::Instant) {
         debug!("handle_merge_subcommand");
-        let merge_conf_path_string_res = value_t!(matches.value_of("merge_config"), String);
-        let concat_conf_path_string_res = value_t!(matches.value_of("concat_config"), String);
-        if let Ok(merge_conf_path_string) = merge_conf_path_string_res {
-            let merge_conf_path = path::PathBuf::from(merge_conf_path_string);
-            let append: bool = matches.is_present("append");
-            let output_path_string = value_t_or_exit!(matches.value_of("output"), String);
-            let out_path = path::PathBuf::from(output_path_string);
-            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+        let merge_conf_path_string: String = matches
+            .value_of_t("merge_config")
+            .unwrap_or_else(|e| e.exit());
+        let concat_conf_path_string_res: clap::Result<String> = matches.value_of_t("concat_config");
+        let merge_conf_path = path::PathBuf::from(merge_conf_path_string);
+        let append: bool = matches.is_present("append");
+        let output_path_string: String = matches.value_of_t_or_exit("output");
+        let out_path = path::PathBuf::from(output_path_string);
+        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+        let chunk_size: usize = matches.value_of_t_or_exit("chunk_size");
 
-            let progress_bar = initialize_progress_bar(100_u64);
-            thread::spawn(move || {
-                if let Err(why) = merge_files_use_config_file(
-                    &merge_conf_path,
-                    &out_path,
-                    append,
-                    chunk_size,
-                    tx,
-                    None,
-                ) {
+        let progress_bar = initialize_progress_bar(100_u64);
+        thread::spawn(move || {
+            if let Err(why) = merge_files_use_config_file(
+                &merge_conf_path,
+                &out_path,
+                append,
+                chunk_size,
+                tx,
+                None,
+            ) {
+                report_error(format!("couldn't process: {}", why));
+                std::process::exit(2)
+            }
+        });
+        let mut chunks: Vec<Chunk> = vec![];
+        loop {
+            match rx.recv() {
+                Err(why) => {
                     report_error(format!("couldn't process: {}", why));
                     std::process::exit(2)
                 }
-            });
-            let mut chunks: Vec<Chunk> = vec![];
-            loop {
-                match rx.recv() {
-                    Err(why) => {
-                        report_error(format!("couldn't process: {}", why));
-                        std::process::exit(2)
-                    }
-                    Ok(Ok(IndexingProgress::Finished { .. })) => {
-                        println!("received finish event");
-                        progress_bar.finish_and_clear();
-                        break;
-                    }
-                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                        let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                        let pos = (progress_fraction * 100f64) as u64;
-                        progress_bar.set_position(pos);
-                    }
-                    Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                        chunks.push(chunk);
-                    }
-                    Ok(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    Ok(_) => report_warning("process finished without result"),
+                Ok(Ok(IndexingProgress::Finished { .. })) => {
+                    println!("received finish event");
+                    progress_bar.finish_and_clear();
+                    break;
                 }
+                Ok(Ok(IndexingProgress::Progress { ticks })) => {
+                    let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+                    let pos = (progress_fraction * 100f64) as u64;
+                    progress_bar.set_position(pos);
+                }
+                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+                    chunks.push(chunk);
+                }
+                Ok(Err(Notification {
+                    severity,
+                    content,
+                    line,
+                })) => {
+                    if severity == Severity::WARNING {
+                        report_warning_ln(content, line);
+                    } else {
+                        report_error_ln(content, line);
+                    }
+                }
+                Ok(_) => report_warning("process finished without result"),
             }
         }
         if let Ok(concat_conf_path_string) = concat_conf_path_string_res {
@@ -854,7 +842,7 @@ pub async fn main() -> Result<()> {
     }
 
     async fn handle_format_subcommand(
-        matches: &clap::ArgMatches<'_>,
+        matches: &clap::ArgMatches,
         start: std::time::Instant,
         status_updates: bool,
     ) {
@@ -936,7 +924,7 @@ pub async fn main() -> Result<()> {
             last_line: elems[1].parse()?,
         })
     }
-    async fn handle_export_subcommand(matches: &clap::ArgMatches<'_>, _start: std::time::Instant) {
+    async fn handle_export_subcommand(matches: &clap::ArgMatches, _start: std::time::Instant) {
         debug!("handle_export_subcommand");
 
         if let Some(file_name) = matches.value_of("file") {
@@ -946,7 +934,7 @@ pub async fn main() -> Result<()> {
             let file_path = path::PathBuf::from(file_name);
             let was_session_file: bool = matches.is_present("is_session_file");
             let old_way: bool = matches.is_present("legacy");
-            let sections_string = value_t_or_exit!(matches.value_of("sections"), String);
+            let sections_string: String = matches.value_of_t_or_exit("sections");
             let sections: Vec<IndexSection> = sections_string
                 .split('|')
                 .map(|s| to_pair(s).expect("could not parse section pair"))
@@ -1010,7 +998,7 @@ pub async fn main() -> Result<()> {
             std::process::exit(0)
         }
     }
-    async fn handle_dlt_subcommand(matches: &clap::ArgMatches<'_>, start: std::time::Instant) {
+    async fn handle_dlt_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
         debug!("handle_dlt_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<DltFilterConfig> = match matches.value_of("filter_config") {
@@ -1114,7 +1102,7 @@ pub async fn main() -> Result<()> {
         })
     }
 
-    async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches<'_>, start: std::time::Instant) {
+    async fn handle_dlt_pcap_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
         debug!("handle_dlt_pcap_subcommand");
         if let (Some(file_name), Some(tag)) = (matches.value_of("input"), matches.value_of("tag")) {
             let filter_conf: Option<DltFilterConfig> = match matches.value_of("filter_config") {
@@ -1137,7 +1125,7 @@ pub async fn main() -> Result<()> {
                 path::PathBuf::from(matches.value_of("output").unwrap_or(fallback_out.as_str()));
             let file_path = path::PathBuf::from(file_name);
             let mapping_out_path = path::PathBuf::from(file_name.to_string() + ".map.json");
-            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+            let chunk_size: usize = matches.value_of_t_or_exit("chunk_size");
             let tag_string = tag.to_string();
             let source_file_size = fs::metadata(&file_path).expect("file size error").len();
             // let progress_bar = initialize_progress_bar(total);
@@ -1229,7 +1217,7 @@ pub async fn main() -> Result<()> {
         }
     }
 
-    async fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches<'_>) {
+    async fn handle_dlt_udp_subcommand(matches: &clap::ArgMatches) {
         debug!("handle_dlt_udp_subcommand");
         if let (Some(ip_address), Some(tag), Some(output)) = (
             matches.value_of("ip"),
@@ -1328,7 +1316,7 @@ pub async fn main() -> Result<()> {
         }
     }
 
-    async fn handle_discover_subcommand(matches: &clap::ArgMatches<'_>) {
+    async fn handle_discover_subcommand(matches: &clap::ArgMatches) {
         if let Some(test_string) = matches.value_of("input-string") {
             match detect_timestamp_in_string(test_string, None) {
                 Ok((timestamp, _, _)) => println!(
@@ -1483,7 +1471,7 @@ pub async fn main() -> Result<()> {
     }
 
     async fn handle_dlt_stats_subcommand(
-        matches: &clap::ArgMatches<'_>,
+        matches: &clap::ArgMatches,
         start: std::time::Instant,
         status_updates: bool,
     ) {
