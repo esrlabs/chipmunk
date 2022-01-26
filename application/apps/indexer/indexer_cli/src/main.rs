@@ -1242,7 +1242,7 @@ pub async fn main() -> Result<()> {
                 loop {
                     match rx.recv().await {
                         None => {
-                            report_error(format!("couldn't receive from channel"));
+                            report_error("couldn't receive from channel".to_string());
                             std::process::exit(2)
                         }
                         Some(Ok(IndexingProgress::Finished { .. })) => {
