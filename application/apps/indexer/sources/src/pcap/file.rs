@@ -13,7 +13,6 @@ use indexer_base::{
 };
 use log::{debug, error, trace, warn};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
-use std::pin::Pin;
 use std::{
     fs::*,
     io::{BufReader as IoBufReader, BufWriter, Read, Write},
@@ -21,7 +20,6 @@ use std::{
 use thiserror::Error;
 use tokio::sync::mpsc::Sender;
 use tokio_stream::Stream;
-use tokio_stream::{self as stream};
 use tokio_util::sync::CancellationToken;
 
 const PROGRESS_PARTS: u64 = 20;

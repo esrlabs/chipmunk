@@ -4,6 +4,7 @@ use crate::ReloadInfo;
 use crate::SourceFilter;
 use async_trait::async_trait;
 use buf_redux::Buffer;
+use log::trace;
 use tokio::net::ToSocketAddrs;
 use tokio::net::UdpSocket;
 
@@ -13,12 +14,14 @@ pub struct UdpSource {
     tmp_buffer: Vec<u8>,
 }
 
+const MAX_DATAGRAM_SIZE: usize = 65_507;
+
 impl UdpSource {
     pub async fn new<A: ToSocketAddrs>(addr: A) -> Result<Self, std::io::Error> {
         Ok(Self {
             buffer: Buffer::new(),
             socket: UdpSocket::bind(addr).await?,
-            tmp_buffer: Vec::with_capacity(64 * 1024),
+            tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
         })
     }
 }
@@ -38,12 +41,17 @@ impl ByteSource for UdpSource {
             .recv_from(&mut self.tmp_buffer)
             .await
             .map_err(|e| SourceError::Setup(format!("{}", e)))?;
-        println!("reloaded {} bytes from {}", len, remote_addr);
+        trace!(
+            "---> Received {} bytes from {:?}: {}",
+            len,
+            remote_addr,
+            String::from_utf8_lossy(&self.tmp_buffer[..len])
+        );
         if len > 0 {
-            self.buffer.copy_from_slice(&self.tmp_buffer[..len - 1]);
+            self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
         }
+
         Ok(Some(ReloadInfo::new(len, 0, None)))
-        // todo!()
     }
 
     fn consume(&mut self, offset: usize) {
@@ -56,25 +64,31 @@ impl ByteSource for UdpSource {
 }
 
 #[tokio::test]
-async fn test_udp_reload() {
-    let send_socket = UdpSocket::bind("127.0.0.1:8888")
-        .await
-        .expect("could not bind socket");
-    let content = "hello".as_bytes();
+async fn test_udp_reload() -> Result<(), std::io::Error> {
+    static SENDER: &str = "127.0.0.1:4000";
+    static RECEIVER: &str = "127.0.0.1:5000";
+    static MESSAGES: &[&str] = &["one", "two", "three"];
+    let send_socket = UdpSocket::bind(SENDER).await?;
     let send_handle = tokio::spawn(async move {
-        let len = send_socket
-            .send_to(content, "127.0.0.1:8889")
-            .await
-            .expect("could not send on socket");
-        println!("SENDER: sent {} bytes", len);
+        for msg in MESSAGES {
+            send_socket
+                .send_to(msg.as_bytes(), RECEIVER)
+                .await
+                .expect("could not send on socket");
+        }
     });
-    let mut udp_source = UdpSource::new("127.0.0.1:8889")
-        .await
-        .expect("could not create source");
-    tokio::join!(send_handle, udp_source.reload(None));
-    let content = udp_source.current_slice();
-    println!(
-        "test done: {}",
-        std::str::from_utf8(content).expect("could not convert content to string")
-    );
+    let mut udp_source = UdpSource::new(RECEIVER).await?;
+    let receive_handle = tokio::spawn(async move {
+        for msg in MESSAGES {
+            udp_source.reload(None).await.unwrap();
+            assert_eq!(udp_source.current_slice(), msg.as_bytes());
+            udp_source.consume(msg.len());
+        }
+    });
+
+    println!("starting send and receive");
+    let (_, rec_res) = tokio::join!(send_handle, receive_handle,);
+
+    assert!(rec_res.is_ok());
+    Ok(())
 }
