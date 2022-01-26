@@ -10,9 +10,9 @@ bytes = "1.0"
 chrono = "0.4"
 crossbeam-channel = "0.5"
 dirs = "4.0"
-# dlt-core = "0.12"
+dlt-core = "0.12"
 # dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
-dlt-core = { path = "../../../../../dlt-core.git" }
+# dlt-core = { path = "../../../../../dlt-core.git" }
 etherparse = "0.10"
 humantime = "2.1"
 indexer_base = { path = "../indexer_base" }

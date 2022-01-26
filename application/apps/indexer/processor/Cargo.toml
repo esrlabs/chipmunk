@@ -12,9 +12,9 @@ bytecount = "0.6"
 chrono = "0.4"
 crossbeam-channel = "0.5"
 dlt = { path = "../dlt" }
-# dlt-core = "0.12"
+dlt-core = "0.12"
 # dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
-dlt-core = { path = "../../../../../dlt-core.git" }
+# dlt-core = { path = "../../../../../dlt-core.git" }
 encoding_rs_io = "0.1.7"
 futures = "0.3"
 grep-matcher = "0.1.4"

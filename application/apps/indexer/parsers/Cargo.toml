@@ -7,8 +7,8 @@ edition = "2021"
 buf_redux = "0.8"
 byteorder = "1.4"
 crossbeam-channel = "0.5"
-# dlt-core = "0.12"
-dlt-core = { path = "../../../../../dlt-core.git" }
+dlt-core = "0.12"
+# dlt-core = { path = "../../../../../dlt-core.git" }
 log = "0.4"
 memchr = "2.4"
 thiserror = "1.0"
