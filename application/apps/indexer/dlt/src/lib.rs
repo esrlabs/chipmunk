@@ -15,9 +15,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-pub mod dlt_file;
 pub mod dlt_net;
-// pub mod dlt_pcap;
 
 #[cfg(test)]
 mod tests;

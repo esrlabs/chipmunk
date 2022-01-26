@@ -33,6 +33,7 @@ use indexer_base::{
     error_reporter::*,
     export::{export_file_line_based, produce_section_iterator},
     progress::IndexingResults,
+    utils::{create_tagged_line_d, next_line_nr},
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
@@ -41,7 +42,6 @@ use parsers::{
     LogMessage, MessageStreamItem,
 };
 use processor::{
-    dlt_source::DltSource,
     dlt_utils::{count_dlt_messages, count_dlt_messages_old, get_dlt_file_info},
     grabber::{GrabError, GrabbedContent},
     text_source::TextFileSource,
@@ -585,39 +585,12 @@ pub async fn main() -> Result<()> {
                     .expect("Could not get extension of file")
                     == "dlt";
                 let start_index = if start > 0 { start - 1 } else { start };
-                let res: Result<(GrabbedContent, Instant), GrabError> = if is_dlt {
-                    type GrabberType = processor::grabber::Grabber<DltSource>;
-                    let start_op = Instant::now();
-                    let source = DltSource::new(&input_p, "sourceA", true);
-                    let grabber = if matches.is_present("metadata") {
-                        let metadata_path =
-                            matches.value_of("metadata").expect("input must be present");
-                        println!("grabber with metadata");
-                        GrabberType::lazy(source)
-                            .expect("Grabber could not be initialized lazily")
-                            .load_metadata(path::PathBuf::from(metadata_path))
-                            .expect("")
-                    } else {
-                        println!("Grabber sync DLT API");
-                        GrabberType::new(source).expect("Grabber could not be initialized lazily")
-                    };
-                    duration_report(
-                        start_op,
-                        format!(
-                            "initializing Grabber for {:?} lines",
-                            grabber.log_entry_count()
-                        ),
-                    );
-
-                    if export {
-                        cache_metadata_to_file(&input_p, &grabber);
-                    }
-
-                    let r = LineRange::from(start_index..=(start_index + length - 1));
-                    let start_op = Instant::now();
-                    Ok((grabber.get_entries(&r)?, start_op))
-                } else {
-                    type GrabberType = processor::grabber::Grabber<TextFileSource>;
+                if is_dlt {
+                    println!("dlt grabbing not supported anymore");
+                    std::process::exit(0);
+                }
+                let res: Result<(GrabbedContent, Instant), GrabError> = {
+                    type GrabberType = processor::grabber::Grabber;
                     let source = TextFileSource::new(&input_p, "sourceA");
                     let start_op = Instant::now();
                     let grabber = if matches.is_present("metadata") {
@@ -682,10 +655,7 @@ pub async fn main() -> Result<()> {
         }
     }
 
-    fn cache_metadata_to_file<T: processor::grabber::MetadataSource>(
-        input_p: &Path,
-        grabber: &processor::grabber::Grabber<T>,
-    ) {
+    fn cache_metadata_to_file(input_p: &Path, grabber: &processor::grabber::Grabber) {
         let start_op = Instant::now();
         if let Some(export_folder_path) = input_p.parent() {
             let mut export_path = std::path::PathBuf::from(export_folder_path);
@@ -1058,91 +1028,43 @@ pub async fn main() -> Result<()> {
                 None => None,
             };
             let append: bool = matches.is_present("append");
-            let source_file_size = match fs::metadata(file_name) {
-                Ok(file_meta) => file_meta.len(),
-                Err(_) => {
-                    report_error("could not find out size of source file");
-                    std::process::exit(2);
-                }
-            };
             let fallback_out = file_name.to_string() + ".out";
             let out_path =
                 path::PathBuf::from(matches.value_of("output").unwrap_or(fallback_out.as_str()));
-            let file_path = path::PathBuf::from(file_name);
-            let mapping_out_path: path::PathBuf =
-                path::PathBuf::from(file_name.to_string() + ".map.json");
 
-            let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-            let chunk_size = value_t_or_exit!(matches.value_of("chunk_size"), usize);
+            let mut line_nr = if append {
+                next_line_nr(&out_path).unwrap()
+            } else {
+                0
+            };
+            let file_path = path::PathBuf::from(file_name);
             let tag_string = tag.to_string();
 
-            let progress_bar = initialize_progress_bar(source_file_size as u64);
-            thread::spawn(move || {
-                if let Err(why) = dlt::dlt_file::create_index_and_mapping_dlt(
-                    IndexingConfig {
-                        tag: tag_string,
-                        chunk_size,
-                        in_file: file_path,
-                        out_path,
-                        append,
-                        watch: false,
-                    },
-                    source_file_size,
-                    filter_conf,
-                    &tx,
-                    None,
-                    Some(load_test_fibex()),
-                ) {
-                    report_error(format!("couldn't process: {}", why));
-                    std::process::exit(2)
-                }
-            });
-            let mut chunks: Vec<Chunk> = vec![];
-            loop {
-                match rx.recv() {
-                    Err(why) => {
-                        report_error(format!("couldn't process: {}", why));
-                        std::process::exit(2)
-                    }
-                    Ok(Ok(IndexingProgress::Finished { .. })) => {
-                        serialize_chunks(&chunks, &mapping_out_path).unwrap();
-                        let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                        duration_report_throughput(
-                            start,
-                            format!("processing ~{} MB", file_size_in_mb.round()),
-                            file_size_in_mb,
-                            "MB".to_string(),
-                        );
-                        println!("received finish event");
-                        progress_bar.finish_and_clear();
-                        break;
-                    }
-                    Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                        let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                        let pos = (progress_fraction * (source_file_size as f64)) as u64;
-                        progress_bar.set_position(pos);
-                    }
-                    Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                        chunks.push(chunk);
-                    }
-                    Ok(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    Ok(_) => report_warning("process finished without result"),
+            let dlt_parser = DltParser::new(filter_conf.map(process_filter_config), None, true);
+            let in_file = File::open(&file_path).unwrap();
+            let reader = BufReader::new(&in_file);
+            let source = BinaryByteSource::new(reader);
+
+            let mut dlt_msg_producer = StaticProducer::new(dlt_parser, source);
+            let out_file = File::create(out_path).expect("could not create file");
+            let mut out_writer = BufWriter::new(out_file);
+
+            for (_, item) in dlt_msg_producer.by_ref() {
+                if let MessageStreamItem::Item(msg) = item {
+                    create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
+                        .unwrap();
+                    line_nr += 1;
                 }
             }
-
-            println!("done with handle_dlt_subcommand");
-            std::process::exit(0)
+            out_writer.flush().unwrap();
+            duration_report(
+                start,
+                format!("Writing {} lines from dlt file to text", line_nr),
+            );
         }
+
+        println!("done with handle_dlt_subcommand");
+        std::process::exit(0)
     }
 
     async fn progress_listener(

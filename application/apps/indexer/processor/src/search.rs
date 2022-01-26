@@ -118,16 +118,19 @@ impl SearchFilter {
         }
     }
 
+    #[must_use]
     pub fn ignore_case(mut self, ignore: bool) -> Self {
         self.ignore_case = ignore;
         self
     }
 
+    #[must_use]
     pub fn regex(mut self, regex: bool) -> Self {
         self.is_regex = regex;
         self
     }
 
+    #[must_use]
     pub fn word(mut self, word: bool) -> Self {
         self.is_word = word;
         self

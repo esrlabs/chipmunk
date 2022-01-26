@@ -1,3 +1,4 @@
+use crate::text_source::TextFileSource;
 use indexer_base::progress::ComputationResult;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -10,16 +11,6 @@ use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
 pub mod factory;
-
-pub trait GrabTrait {
-    fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError>;
-    fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError>;
-    fn get_metadata(&self) -> Option<&GrabMetadata>;
-    fn drop_metadata(&mut self);
-    fn associated_file(&self) -> PathBuf;
-}
-
-pub trait AsyncGrabTrait: GrabTrait + Sync + Send + std::fmt::Debug {}
 
 #[derive(Error, Debug, Serialize)]
 pub enum GrabError {
@@ -125,48 +116,6 @@ pub struct GrabMetadata {
     pub line_count: usize,
 }
 
-/// A trait that defines how indexed content can be retrieved from a certain file type.
-///
-/// When any content should be displayed in chipmunk, it needs to be visualized
-/// as a sequence of lines of text that represent the content. This trait needs to be
-/// implemented for each file type that we support. It defines everything that is needed to
-/// calculate cached metadata that will subsequently be used for extracting parts of the
-/// file in question
-pub trait MetadataSource {
-    fn source_id(&self) -> String;
-
-    /// This will initialize the cached metadata from a file
-    fn from_file(
-        &self,
-        shutdown_token: Option<CancellationToken>,
-    ) -> Result<ComputationResult<GrabMetadata>, GrabError>;
-
-    /// Calling this function is only possible when the metadata already has been
-    /// created.
-    /// It will deliever the content of the file that is requested by line_range.
-    fn get_entries(
-        &self,
-        metadata: &GrabMetadata,
-        line_range: &LineRange,
-    ) -> Result<GrabbedContent, GrabError>;
-
-    /// will return the number of log entries in a file.
-    fn count_lines(&self) -> Result<usize, GrabError>;
-
-    /// the size of the input content
-    fn input_size(&self) -> Result<u64, GrabError> {
-        let input_file_size = std::fs::metadata(&self.path())
-            .map_err(|e| {
-                GrabError::Config(format!("Could not determine size of input file: {}", e))
-            })?
-            .len();
-        Ok(input_file_size)
-    }
-
-    /// the path of the file that is the source for the content
-    fn path(&self) -> &Path;
-}
-
 impl std::fmt::Debug for Slot {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -197,44 +146,39 @@ impl LogItem for String {
 }
 
 #[derive(Debug)]
-pub struct Grabber<T: MetadataSource> {
-    source: T,
+pub struct Grabber {
+    source: TextFileSource,
     pub metadata: Option<GrabMetadata>,
     pub input_file_size: u64,
 }
 
-impl<T> AsyncGrabTrait for Grabber<T> where T: MetadataSource + Sync + Send + std::fmt::Debug {}
-
-impl<T> GrabTrait for Grabber<T>
-where
-    T: MetadataSource + Sync + Send + std::fmt::Debug,
-{
-    fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
+impl Grabber {
+    pub fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
         self.get_entries(line_range)
     }
 
-    fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
+    pub fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
         self.metadata = Some(metadata);
         Ok(())
     }
 
-    fn get_metadata(&self) -> Option<&GrabMetadata> {
+    pub fn get_metadata(&self) -> Option<&GrabMetadata> {
         self.metadata.as_ref()
     }
 
-    fn drop_metadata(&mut self) {
+    pub fn drop_metadata(&mut self) {
         self.metadata = None;
     }
 
-    fn associated_file(&self) -> PathBuf {
+    pub fn associated_file(&self) -> PathBuf {
         self.source.path().to_path_buf()
     }
 }
 
-impl<T: MetadataSource> Grabber<T> {
+impl Grabber {
     /// Create a new Grabber without creating the metadata
     /// ...
-    pub fn lazy(source: T) -> Result<Self, GrabError> {
+    pub fn lazy(source: TextFileSource) -> Result<Self, GrabError> {
         let input_file_size = source.input_size()?;
         Ok(Self {
             source,
@@ -263,7 +207,7 @@ impl<T: MetadataSource> Grabber<T> {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn new(source: T) -> Result<Self, GrabError> {
+    pub fn new(source: TextFileSource) -> Result<Self, GrabError> {
         let input_file_size = source.input_size()?;
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
@@ -314,17 +258,6 @@ impl<T: MetadataSource> Grabber<T> {
     pub fn log_entry_count(&self) -> Option<usize> {
         self.metadata.as_ref().map(|md| md.line_count)
     }
-
-    // pub async fn create_metadata_async(
-    //     path: &Path,
-    // ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-    //     log::trace!("create_metadata_async");
-    //     let p = PathBuf::from(path);
-    //     let res = tokio::task::spawn_blocking(move || T::from_file(None).unwrap()).await;
-    //     let g: ComputationResult<GrabMetadata> =
-    //         res.map_err(|e| GrabError::Config(format!("Error executing async grab: {}", e)))?;
-    //     Ok(g)
-    // }
 
     pub fn export_slots(
         &self,

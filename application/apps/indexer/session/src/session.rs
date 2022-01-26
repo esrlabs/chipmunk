@@ -6,7 +6,7 @@ use crate::{
 use indexer_base::progress::Severity;
 use log::{debug, warn};
 use processor::{
-    grabber::{AsyncGrabTrait, GrabMetadata, GrabTrait},
+    grabber::{GrabMetadata, Grabber},
     text_source::TextFileSource,
 };
 use serde::Serialize;
@@ -23,8 +23,8 @@ pub type OperationsChannel = (
 pub struct Session {
     pub id: String,
     pub running: bool,
-    pub content_grabber: Option<Box<dyn AsyncGrabTrait>>,
-    pub search_grabber: Option<Box<dyn AsyncGrabTrait>>,
+    pub content_grabber: Option<Grabber>,
+    pub search_grabber: Option<Grabber>,
     pub tx_operations: UnboundedSender<(Uuid, Operation)>,
     pub rx_operations: Option<UnboundedReceiver<(Uuid, Operation)>>,
     pub rx_state_api: Option<UnboundedReceiver<Api>>,
@@ -39,9 +39,7 @@ impl Session {
     /// written to the metadata-channel. If so, this metadata is used in the grabber.
     /// If there was no new metadata, we make sure that the metadata has been set.
     /// If no metadata is available, an error is returned. That means that assign was not completed before.
-    pub async fn get_updated_content_grabber(
-        &mut self,
-    ) -> Result<&mut Box<dyn AsyncGrabTrait>, ComputationError> {
+    pub async fn get_updated_content_grabber(&mut self) -> Result<&mut Grabber, ComputationError> {
         let current_grabber = match &mut self.content_grabber {
             Some(c) => Ok(c),
             None => {
@@ -66,16 +64,13 @@ impl Session {
         }
     }
 
-    pub fn get_search_grabber(
-        &mut self,
-    ) -> Result<Option<&mut Box<dyn AsyncGrabTrait>>, ComputationError> {
+    pub fn get_search_grabber(&mut self) -> Result<Option<&mut Grabber>, ComputationError> {
         if self.search_grabber.is_none() && !self.search_metadata_channel.1.is_empty() {
             // We are intrested only in last message in queue, all others messages can be just dropped.
             let latest = self.search_metadata_channel.1.try_iter().last().flatten();
             if let Some((file_path, metadata)) = latest {
-                type GrabberType = processor::grabber::Grabber<TextFileSource>;
                 let source = TextFileSource::new(&file_path, "search_results");
-                let mut grabber = match GrabberType::new(source) {
+                let mut grabber = match Grabber::new(source) {
                     Ok(grabber) => grabber,
                     Err(err) => {
                         let msg = format!("Failed to create search grabber. Error: {}", err);
@@ -91,7 +86,7 @@ impl Session {
                     warn!("{}", msg);
                     return Err(ComputationError::Protocol(msg));
                 }
-                self.search_grabber = Some(Box::new(grabber));
+                self.search_grabber = Some(grabber);
             } else {
                 self.search_grabber = None;
             }

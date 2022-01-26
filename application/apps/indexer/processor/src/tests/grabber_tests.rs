@@ -5,7 +5,7 @@ mod tests {
         grabber::{
             identify_byte_range, identify_end_slot_simple, identify_start_slot,
             identify_start_slot_simple, ByteRange, FilePart, GrabError, GrabMetadata, Grabber,
-            LineRange, MetadataSource, Slot,
+            LineRange, Slot,
         },
         text_source::TextFileSource,
     };
@@ -49,7 +49,7 @@ mod tests {
         fn produced_metadata_is_consistent(v in prop::collection::vec(LINE_REGEX, 0..500)) {
             let p = write_content_to_tmp_file(&v);
             let source = TextFileSource::new(&p, "sourceA");
-            if let Ok(grabber) = Grabber::<TextFileSource>::new(source) {
+            if let Ok(grabber) = Grabber::new(source) {
                 let metadata = grabber.metadata.expect("metadata was not created");
                 assert!(is_consistent(&v, &metadata));
             }
@@ -317,7 +317,7 @@ mod tests {
         let source = TextFileSource::new(&p, "sourceA");
         let grabber = Grabber::new(source)?;
 
-        fn grabbed_lines<T: MetadataSource>(grabber: &Grabber<T>, r: &LineRange) -> Vec<String> {
+        fn grabbed_lines(grabber: &Grabber, r: &LineRange) -> Vec<String> {
             grabber
                 .get_entries(r)
                 .expect("Could not get entries")

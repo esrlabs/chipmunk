@@ -1,6 +1,6 @@
 use crate::grabber::{
     identify_byte_range, ByteRange, GrabError, GrabMetadata, GrabbedContent, GrabbedElement,
-    LineRange, MetadataSource, Slot,
+    LineRange, Slot,
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::progress::ComputationResult;
@@ -48,16 +48,18 @@ impl TextFileSource {
     }
 }
 
-impl MetadataSource for TextFileSource {
-    fn source_id(&self) -> String {
+impl TextFileSource {
+    pub fn source_id(&self) -> String {
         self.source_id.clone()
     }
 
-    fn path(&self) -> &Path {
+    /// the path of the file that is the source for the content
+    pub fn path(&self) -> &Path {
         &self.path
     }
 
-    fn count_lines(&self) -> Result<usize, GrabError> {
+    /// will return the number of log entries in a file.
+    pub fn count_lines(&self) -> Result<usize, GrabError> {
         let chunk_size = 100 * 1024usize;
         let mut f = fs::File::open(&self.path)
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
@@ -82,7 +84,17 @@ impl MetadataSource for TextFileSource {
         Ok(count)
     }
 
-    fn from_file(
+    /// the size of the input content
+    pub fn input_size(&self) -> Result<u64, GrabError> {
+        let input_file_size = std::fs::metadata(&self.path())
+            .map_err(|e| {
+                GrabError::Config(format!("Could not determine size of input file: {}", e))
+            })?
+            .len();
+        Ok(input_file_size)
+    }
+
+    pub fn from_file(
         &self,
         shutdown_token: Option<CancellationToken>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
@@ -157,10 +169,14 @@ impl MetadataSource for TextFileSource {
         }))
     }
 
+    /// Calling this function is only possible when the metadata already has been
+    /// created.
+    /// It will deliever the content of the file that is requested by line_range.
+    ///
     /// Get all lines in a file within the supplied line-range
     /// naive implementation that just reads all slots that are involved and drops
     /// everything that is not needed
-    fn get_entries(
+    pub fn get_entries(
         &self,
         metadata: &GrabMetadata,
         line_range: &LineRange,
