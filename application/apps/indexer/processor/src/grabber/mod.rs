@@ -177,7 +177,7 @@ impl Grabber {
         self.metadata.as_ref()
     }
 
-    fn merge_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
+    pub fn merge_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
         self.metadata = if let Some(md) = self.metadata.take() {
             Some(GrabMetadata {
                 slots: [md.slots, metadata.slots].concat(),
@@ -189,12 +189,19 @@ impl Grabber {
         Ok(())
     }
 
-    fn drop_metadata(&mut self) {
+    pub fn drop_metadata(&mut self) {
         self.metadata = None;
     }
 
     pub fn associated_file(&self) -> PathBuf {
         self.source.path().to_path_buf()
+    }
+
+    pub fn update_from_file(
+        &mut self,
+        shutdown_token: Option<CancellationToken>,
+    ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
+        self.source.from_file(shutdown_token)
     }
 }
 
@@ -230,7 +237,7 @@ impl Grabber {
     /// ...
     /// A new Grabber instance can only be created if the file is non-empty,
     /// otherwise this function will return an error
-    pub fn new(source: TextFileSource) -> Result<Self, GrabError> {
+    pub fn new(mut source: TextFileSource) -> Result<Self, GrabError> {
         let input_file_size = source.input_size()?;
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
@@ -275,10 +282,6 @@ impl Grabber {
                 self.source.get_entries(md, line_range)
             }
         }
-    }
-
-    pub fn source(&mut self) -> &mut T {
-        &mut self.source
     }
 
     /// if the metadata was already created, we know the number of log entries in a file
