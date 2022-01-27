@@ -7,11 +7,13 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
+use parsers::{LogMessage, MessageStreamItem, Parser};
 use processor::{
     grabber::{GrabbedContent, LineRange},
     search::SearchFilter,
 };
 use serde::Serialize;
+use sources::{producer::MessageProducer, DynamicByteSource, StaticByteSource};
 use std::path::PathBuf;
 use tokio::{
     join,
@@ -21,21 +23,33 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub type OperationsChannel = (
-    UnboundedSender<(Uuid, Operation)>,
-    UnboundedReceiver<(Uuid, Operation)>,
+pub type OperationsChannel<T, P, S, D> = (
+    UnboundedSender<(Uuid, Operation<T, P, S, D>)>,
+    UnboundedReceiver<(Uuid, Operation<T, P, S, D>)>,
 );
 
-pub struct Session {
+pub struct Session<T, P, S, D>
+where
+    T: LogMessage + 'static,
+    P: Parser<T> + 'static,
+    S: StaticByteSource + 'static,
+    D: DynamicByteSource + 'static,
+{
     uuid: Uuid,
-    tx_operations: UnboundedSender<(Uuid, Operation)>,
+    tx_operations: UnboundedSender<(Uuid, Operation<T, P, S, D>)>,
     destroyed: CancellationToken,
     pub state: SessionStateAPI,
 }
 
-impl Session {
+impl<T, P, S, D> Session<T, P, S, D>
+where
+    T: LogMessage + 'static,
+    P: Parser<T> + 'static,
+    S: StaticByteSource + 'static,
+    D: DynamicByteSource + 'static,
+{
     pub async fn new(uuid: Uuid) -> (Self, UnboundedReceiver<CallbackEvent>) {
-        let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
+        let (tx_operations, rx_operations): OperationsChannel<T, P, S, D> = unbounded_channel();
         let (state_api, rx_state_api) = SessionStateAPI::new();
         let (tx_callback_events, rx_callback_events): (
             UnboundedSender<CallbackEvent>,
@@ -122,9 +136,10 @@ impl Session {
     }
 
     pub fn observe(&self, operation_id: Uuid, file_path: PathBuf) -> Result<(), ComputationError> {
-        self.tx_operations
-            .send((operation_id, operations::Operation::Observe { file_path }))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+        Ok(())
+        // self.tx_operations
+        //     .send((operation_id, operations::Operation::Observe { file_path }))
+        //     .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
     pub fn apply_search_filters(

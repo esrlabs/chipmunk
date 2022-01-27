@@ -7,8 +7,10 @@ use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
+use parsers::{LogMessage, MessageStreamItem, Parser};
 use processor::search::SearchFilter;
 use serde::Serialize;
+use sources::{producer::MessageProducer, DynamicByteSource, StaticByteSource};
 use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -98,10 +100,27 @@ impl std::fmt::Display for OperationAlias {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Operation {
+#[derive(Debug)]
+pub enum Source<T, P, S, D>
+where
+    T: LogMessage + 'static,
+    P: Parser<T> + 'static,
+    S: StaticByteSource + 'static,
+    D: DynamicByteSource + 'static,
+{
+    TextFile(PathBuf),
+    Producer(MessageProducer<T, P, S, D>),
+}
+#[derive(Debug)]
+pub enum Operation<T, P, S, D>
+where
+    T: LogMessage + 'static,
+    P: Parser<T> + 'static,
+    S: StaticByteSource + 'static,
+    D: DynamicByteSource + 'static,
+{
     Observe {
-        file_path: PathBuf,
+        source: Source<T, P, S, D>,
     },
     Search {
         filters: Vec<SearchFilter>,
@@ -134,14 +153,20 @@ pub enum Operation {
     End,
 }
 
-impl std::fmt::Display for Operation {
+impl<T, P, S, D> std::fmt::Display for Operation<T, P, S, D>
+where
+    T: LogMessage + 'static,
+    P: Parser<T> + 'static,
+    S: StaticByteSource + 'static,
+    D: DynamicByteSource + 'static,
+{
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Operation::Observe { file_path: _ } => "Observe",
+                Operation::Observe { source: _ } => "Observe",
                 Operation::Search { filters: _ } => "Search",
                 Operation::Extract { filters: _ } => "Extract",
                 Operation::Map {
@@ -275,7 +300,15 @@ impl OperationAPI {
         self.cancellation_token.child_token()
     }
 
-    pub async fn process(&self, operation: Operation) -> Result<(), NativeError> {
+    pub async fn process<
+        T: LogMessage + 'static,
+        P: Parser<T> + 'static,
+        S: StaticByteSource + 'static,
+        D: DynamicByteSource + 'static,
+    >(
+        &self,
+        operation: Operation<T, P, S, D>,
+    ) -> Result<(), NativeError> {
         let added = self
             .state_api
             .add_operation(
@@ -297,12 +330,12 @@ impl OperationAPI {
         let id = self.id();
         spawn(async move {
             match operation {
-                Operation::Observe { file_path } => {
-                    api.finish(
-                        handlers::observe::handle(api.clone(), state, &file_path).await,
-                        OperationAlias::Observe,
-                    )
-                    .await;
+                Operation::Observe { source } => {
+                    // api.finish(
+                    //     handlers::observe::handle(api.clone(), state, &file_path).await,
+                    //     OperationAlias::Observe,
+                    // )
+                    // .await;
                 }
                 Operation::Search { filters } => {
                     let session_file = match state.get_session_file().await {
@@ -460,8 +493,13 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
     }
 }
 
-pub async fn task(
-    mut rx_operations: UnboundedReceiver<(Uuid, Operation)>,
+pub async fn task<
+    T: LogMessage + 'static,
+    P: Parser<T> + 'static,
+    S: StaticByteSource + 'static,
+    D: DynamicByteSource + 'static,
+>(
+    mut rx_operations: UnboundedReceiver<(Uuid, Operation<T, P, S, D>)>,
     state: SessionStateAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
