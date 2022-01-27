@@ -18,7 +18,7 @@ pub enum Error {
 
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
-pub trait Parser<T> {
+pub trait Parser<T>: Send + Sync {
     /// take a slice of bytes and try to apply a parser. If the parse was
     /// successfull, this will yield  the rest of the slice along with `Some(log_message)`
     ///
@@ -41,7 +41,7 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
-pub trait LogMessage: Send + Display {
+pub trait LogMessage: Send + Sync + Display {
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
