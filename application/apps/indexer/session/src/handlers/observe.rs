@@ -6,10 +6,9 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::debug;
+use parsers::{dlt::DltParser, LogMessage, MessageStreamItem, Parser};
 use sources::{
-    pcap::{file::PcapngByteSource, format::dlt::DltParser},
-    producer::MessageProducer,
-    ByteSource, LogMessage, MessageStreamItem, Parser,
+    pcap::file::PcapngByteSource, producer::MessageProducer, DynamicByteSource, StaticByteSource,
 };
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -23,14 +22,15 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub enum Target<T, P, S>
+pub enum Target<T, P, S, D>
 where
     T: LogMessage + 'static,
     P: Parser<T> + 'static,
-    S: ByteSource + 'static,
+    S: StaticByteSource + 'static,
+    D: DynamicByteSource + 'static,
 {
     TextFile(PathBuf),
-    Producer(MessageProducer<T, P, S>),
+    Producer(MessageProducer<T, P, S, D>),
 }
 
 /// observe a file initially by creating the meta for it and sending it as metadata update
@@ -48,6 +48,7 @@ pub async fn handle(
             let dlt_parser = DltParser {
                 filter_config: None,
                 fibex_metadata: None,
+                with_storage_header: true,
             };
             let in_file = File::open(&file_path).expect("cannot open file");
             let source = PcapngByteSource::new(in_file).expect("cannot create source");

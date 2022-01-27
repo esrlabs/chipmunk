@@ -97,7 +97,7 @@ impl TextFileSource {
     }
 
     pub fn from_file(
-        &self,
+        &mut self,
         shutdown_token: Option<CancellationToken>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         use std::io::prelude::*;

@@ -1734,6 +1734,7 @@ dependencies = [
  "indexer_base",
  "log",
  "merging",
+ "parsers",
  "processor",
  "serde",
  "serde_json",

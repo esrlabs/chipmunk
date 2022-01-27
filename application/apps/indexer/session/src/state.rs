@@ -5,7 +5,7 @@ use crate::{
 use indexer_base::progress::{ComputationResult, Severity};
 use log::{debug, error};
 use processor::{
-    grabber::{GrabTrait, GrabbedContent, LineRange, MetadataSource},
+    grabber::{GrabTrait, GrabbedContent, Grabber, LineRange},
     map::{FilterMatch, SearchMap},
     text_source::TextFileSource,
 };
@@ -22,8 +22,6 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
-
-type Grabber = processor::grabber::Grabber<TextFileSource>;
 
 pub enum Api {
     SetSessionFile((PathBuf, oneshot::Sender<Result<(), NativeError>>)),
@@ -817,7 +815,7 @@ pub async fn task(
             }
             Api::UpdateSession(tx_response) => {
                 let result = if let Some(ref mut grabber) = state.content_grabber {
-                    let metadata = grabber.source().from_file(Some(cancellation_token.clone()));
+                    let metadata = grabber.update_from_file(Some(cancellation_token.clone()));
                     match metadata {
                         Ok(ComputationResult::Item(metadata)) => {
                             if let Err(err) = grabber.merge_metadata(metadata) {
@@ -963,7 +961,7 @@ pub async fn task(
                 // To check: probably we need spetial canceler for search to prevent possible issues
                 // on dropping search between searches
                 let result = if let Some(ref mut grabber) = state.search_grabber {
-                    let metadata = grabber.source().from_file(Some(cancellation_token.clone()));
+                    let metadata = grabber.update_from_file(Some(cancellation_token.clone()));
                     match metadata {
                         Ok(ComputationResult::Item(metadata)) => {
                             if let Err(err) = grabber.merge_metadata(metadata) {
