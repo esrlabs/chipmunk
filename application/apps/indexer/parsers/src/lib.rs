@@ -41,10 +41,11 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
-pub trait LogMessage: Send + Sync + Display {
+pub trait LogMessage: Send + Sync + Display + Unpin {
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
+    fn as_bytes(&self) -> Vec<u8>;
 }
 
 #[derive(Debug)]

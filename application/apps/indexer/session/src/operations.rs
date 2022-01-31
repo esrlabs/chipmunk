@@ -1,3 +1,4 @@
+pub use crate::handlers::observe::Source;
 use crate::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
     handlers,
@@ -10,7 +11,10 @@ use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use parsers::{LogMessage, MessageStreamItem, Parser};
 use processor::search::SearchFilter;
 use serde::Serialize;
-use sources::{producer::MessageProducer, DynamicByteSource, StaticByteSource};
+use sources::{
+    producer::{DynamicProducer, StaticProducer},
+    DynamicByteSource, StaticByteSource,
+};
 use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -101,17 +105,6 @@ impl std::fmt::Display for OperationAlias {
 }
 
 #[derive(Debug)]
-pub enum Source<T, P, S, D>
-where
-    T: LogMessage + 'static,
-    P: Parser<T> + 'static,
-    S: StaticByteSource + 'static,
-    D: DynamicByteSource + 'static,
-{
-    TextFile(PathBuf),
-    Producer(MessageProducer<T, P, S, D>),
-}
-#[derive(Debug)]
 pub enum Operation<T, P, S, D>
 where
     T: LogMessage + 'static,
@@ -119,9 +112,7 @@ where
     S: StaticByteSource + 'static,
     D: DynamicByteSource + 'static,
 {
-    Observe {
-        source: Source<T, P, S, D>,
-    },
+    Observe(Source<T, P, S, D>),
     Search {
         filters: Vec<SearchFilter>,
     },
@@ -166,7 +157,7 @@ where
             f,
             "{}",
             match self {
-                Operation::Observe { source: _ } => "Observe",
+                Operation::Observe(_) => "Observe",
                 Operation::Search { filters: _ } => "Search",
                 Operation::Extract { filters: _ } => "Extract",
                 Operation::Map {
@@ -330,12 +321,12 @@ impl OperationAPI {
         let id = self.id();
         spawn(async move {
             match operation {
-                Operation::Observe { source } => {
-                    // api.finish(
-                    //     handlers::observe::handle(api.clone(), state, &file_path).await,
-                    //     OperationAlias::Observe,
-                    // )
-                    // .await;
+                Operation::Observe(source) => {
+                    api.finish(
+                        handlers::observe::handle(api.clone(), state, source).await,
+                        OperationAlias::Observe,
+                    )
+                    .await;
                 }
                 Operation::Search { filters } => {
                     let session_file = match state.get_session_file().await {

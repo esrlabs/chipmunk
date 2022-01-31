@@ -1,7 +1,7 @@
 use crate::{
     events::{CallbackEvent, ComputationError},
     operations,
-    operations::Operation,
+    operations::{Operation, Source},
     state,
     state::SessionStateAPI,
 };
@@ -13,7 +13,7 @@ use processor::{
     search::SearchFilter,
 };
 use serde::Serialize;
-use sources::{producer::MessageProducer, DynamicByteSource, StaticByteSource};
+use sources::{DynamicByteSource, StaticByteSource};
 use std::path::PathBuf;
 use tokio::{
     join,
@@ -135,11 +135,14 @@ where
             .map_err(ComputationError::NativeError)
     }
 
-    pub fn observe(&self, operation_id: Uuid, file_path: PathBuf) -> Result<(), ComputationError> {
-        Ok(())
-        // self.tx_operations
-        //     .send((operation_id, operations::Operation::Observe { file_path }))
-        //     .map_err(|e| ComputationError::Communication(e.to_string()))
+    pub fn observe(
+        &self,
+        operation_id: Uuid,
+        source: Source<T, P, S, D>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send((operation_id, operations::Operation::Observe(source)))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
     pub fn apply_search_filters(

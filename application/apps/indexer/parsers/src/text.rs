@@ -20,6 +20,9 @@ impl LogMessage for StringMessage {
         writer.write_all(self.content.as_bytes())?;
         Ok(len)
     }
+    fn as_bytes(&self) -> Vec<u8> {
+        self.content.as_bytes().to_vec()
+    }
 }
 
 impl Parser<StringMessage> for StringTokenizer {
