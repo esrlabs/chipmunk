@@ -103,7 +103,7 @@ pub async fn handle<
                 },
             )
         }
-        Source::Producer(static_producer, dynamic_producer) => {
+        Source::Producer(mut static_producer, mut dynamic_producer) => {
             let dest_path = PathBuf::from("/tmp/");
             let file_name = Uuid::new_v4();
             let session_file_path = dest_path.join(format!("{}.session", file_name));
@@ -147,98 +147,181 @@ pub async fn handle<
             // TextFileSource::new(&session_file_path, producer.source_id());
             state.set_session_file(session_file_path.clone()).await?;
             let cancel = operation_api.get_cancellation_token_listener();
-            if let Some(mut producer) = dynamic_producer {
-                let producer_stream = producer.as_stream();
-                futures::pin_mut!(producer_stream);
-                let (session_result, binary_result, flashing, producer_res) = join!(
-                    async {
-                        match rx_session_done.await {
-                            Ok(res) => res,
-                            Err(_) => Err(writer::Error::Channel(String::from(
-                                "Fail to get done signal from session writer",
-                            ))),
-                        }
-                        .map_err(|e| NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Io,
-                            message: Some(e.to_string()),
-                        })
-                    },
-                    async {
-                        match rx_binary_done.await {
-                            Ok(res) => res,
-                            Err(_) => Err(writer::Error::Channel(String::from(
-                                "Fail to get done signal from binary writer",
-                            ))),
-                        }
-                        .map_err(|e| NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Io,
-                            message: Some(e.to_string()),
-                        })
-                    },
-                    async {
-                        while let (Some(_bytes_session), Some(_bytes_binary)) =
-                            join!(rx_session_file_flush.recv(), rx_binary_file_flush.recv())
-                        {
-                            if !state.is_closing() {
-                                state.update_session().await?;
-                            }
-                        }
-                        Ok::<(), NativeError>(())
-                    },
-                    async {
-                        while let Some((_, item)) = select! {
-                            msg = producer_stream.next() => msg,
-                            _ = cancel.cancelled() => None,
-                        } {
-                            match item {
-                                MessageStreamItem::Item(item) => {
-                                    let item_str = format!("{}", item)
-                                        .replace('\u{0004}', "<#C#>")
-                                        .replace('\u{0005}', "<#A#>")
-                                        .to_owned();
-                                    session_writer
-                                        .send(format!("{}\n", item_str).as_bytes().iter())
-                                        .map_err(|e| NativeError {
-                                            severity: Severity::ERROR,
-                                            kind: NativeErrorKind::Io,
-                                            message: Some(e.to_string()),
-                                        })?;
-                                    binary_writer.send(item.as_bytes().iter()).map_err(|e| {
-                                        NativeError {
-                                            severity: Severity::ERROR,
-                                            kind: NativeErrorKind::Io,
-                                            message: Some(e.to_string()),
-                                        }
-                                    })?;
-                                }
-                                MessageStreamItem::Done => {
-                                    break;
-                                }
-                                _ => {}
-                            }
-                        }
-                        Ok::<(), NativeError>(())
+            // if let Some(mut producer) = static_producer {
+            //     let (session_result, binary_result, flashing, producer_res) = join!(
+            //         async {
+            //             match rx_session_done.await {
+            //                 Ok(res) => res,
+            //                 Err(_) => Err(writer::Error::Channel(String::from(
+            //                     "Fail to get done signal from session writer",
+            //                 ))),
+            //             }
+            //             .map_err(|e| NativeError {
+            //                 severity: Severity::ERROR,
+            //                 kind: NativeErrorKind::Io,
+            //                 message: Some(e.to_string()),
+            //             })
+            //         },
+            //         async {
+            //             match rx_binary_done.await {
+            //                 Ok(res) => res,
+            //                 Err(_) => Err(writer::Error::Channel(String::from(
+            //                     "Fail to get done signal from binary writer",
+            //                 ))),
+            //             }
+            //             .map_err(|e| NativeError {
+            //                 severity: Severity::ERROR,
+            //                 kind: NativeErrorKind::Io,
+            //                 message: Some(e.to_string()),
+            //             })
+            //         },
+            //         async {
+            //             while let (Some(_bytes_session), Some(_bytes_binary)) =
+            //                 join!(rx_session_file_flush.recv(), rx_binary_file_flush.recv())
+            //             {
+            //                 if !state.is_closing() {
+            //                     state.update_session().await?;
+            //                 }
+            //             }
+            //             Ok::<(), NativeError>(())
+            //         },
+            //         async {
+            //             while let Some((_, item)) = select! {
+            //                 msg = async { producer.next() } => msg,
+            //                 _ = cancel.cancelled() => None,
+            //             } {
+            //                 match item {
+            //                     MessageStreamItem::Item(item) => {
+            //                         let item_str = format!("{}", item)
+            //                             .replace('\u{0004}', "<#C#>")
+            //                             .replace('\u{0005}', "<#A#>")
+            //                             .to_owned();
+            //                         session_writer
+            //                             .send(format!("{}\n", item_str).as_bytes().iter())
+            //                             .map_err(|e| NativeError {
+            //                                 severity: Severity::ERROR,
+            //                                 kind: NativeErrorKind::Io,
+            //                                 message: Some(e.to_string()),
+            //                             })?;
+            //                         binary_writer.send(item.as_bytes().iter()).map_err(|e| {
+            //                             NativeError {
+            //                                 severity: Severity::ERROR,
+            //                                 kind: NativeErrorKind::Io,
+            //                                 message: Some(e.to_string()),
+            //                             }
+            //                         })?;
+            //                     }
+            //                     MessageStreamItem::Done => {
+            //                         break;
+            //                     }
+            //                     _ => {}
+            //                 }
+            //             }
+            //             Ok::<(), NativeError>(())
+            //         }
+            //     );
+            // }
+            let (session_result, binary_result, flashing, producer_res) = join!(
+                async {
+                    match rx_session_done.await {
+                        Ok(res) => res,
+                        Err(_) => Err(writer::Error::Channel(String::from(
+                            "Fail to get done signal from session writer",
+                        ))),
                     }
-                );
-                (
-                    vec![session_file_path, binary_file_path],
-                    if let Err(err) = session_result {
-                        Err(err)
-                    } else if let Err(err) = binary_result {
-                        Err(err)
-                    } else if let Err(err) = flashing {
-                        Err(err)
-                    } else if let Err(err) = producer_res {
-                        Err(err)
-                    } else {
-                        Ok(None)
-                    },
-                )
-            } else {
-                (vec![session_file_path, binary_file_path], Ok(None))
-            }
+                    .map_err(|e| NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Io,
+                        message: Some(e.to_string()),
+                    })
+                },
+                async {
+                    match rx_binary_done.await {
+                        Ok(res) => res,
+                        Err(_) => Err(writer::Error::Channel(String::from(
+                            "Fail to get done signal from binary writer",
+                        ))),
+                    }
+                    .map_err(|e| NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Io,
+                        message: Some(e.to_string()),
+                    })
+                },
+                async {
+                    while let (Some(_bytes_session), Some(_bytes_binary)) =
+                        join!(rx_session_file_flush.recv(), rx_binary_file_flush.recv())
+                    {
+                        if !state.is_closing() {
+                            state.update_session().await?;
+                        }
+                    }
+                    Ok::<(), NativeError>(())
+                },
+                async move {
+                    while let Some((_, item)) = select! {
+                        msg = async {
+                            if let Some(ref mut producer) = static_producer {
+                                if let Some(msg) = producer.next() {
+                                    Some(msg)
+                                } else {
+                                    static_producer = None;
+                                    None
+                                }
+                            } else if let Some(ref mut producer) = dynamic_producer {
+                                let stream = producer.as_stream();
+                                futures::pin_mut!(stream);
+                                stream.next().await
+                            } else {
+                                None
+                            }
+                        } => msg,
+                        _ = cancel.cancelled() => None,
+                    } {
+                        match item {
+                            MessageStreamItem::Item(item) => {
+                                let item_str = format!("{}", item)
+                                    .replace('\u{0004}', "<#C#>")
+                                    .replace('\u{0005}', "<#A#>")
+                                    .to_owned();
+                                session_writer
+                                    .send(format!("{}\n", item_str).as_bytes().iter())
+                                    .map_err(|e| NativeError {
+                                        severity: Severity::ERROR,
+                                        kind: NativeErrorKind::Io,
+                                        message: Some(e.to_string()),
+                                    })?;
+                                binary_writer.send(item.as_bytes().iter()).map_err(|e| {
+                                    NativeError {
+                                        severity: Severity::ERROR,
+                                        kind: NativeErrorKind::Io,
+                                        message: Some(e.to_string()),
+                                    }
+                                })?;
+                            }
+                            MessageStreamItem::Done => {
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                    Ok::<(), NativeError>(())
+                }
+            );
+            (
+                vec![session_file_path, binary_file_path],
+                if let Err(err) = session_result {
+                    Err(err)
+                } else if let Err(err) = binary_result {
+                    Err(err)
+                } else if let Err(err) = flashing {
+                    Err(err)
+                } else if let Err(err) = producer_res {
+                    Err(err)
+                } else {
+                    Ok(None)
+                },
+            )
         }
     };
     for path in paths {
