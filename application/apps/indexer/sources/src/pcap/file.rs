@@ -1,10 +1,10 @@
 use crate::{
-    producer::StaticProducer, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-    StaticByteSource, TransportProtocol,
+    producer::MessageProducer, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+    TransportProtocol,
 };
 use async_trait::async_trait;
 use buf_redux::Buffer;
-use futures::stream;
+use futures::pin_mut;
 use indexer_base::{
     chunks::{ChunkFactory, ChunkResults, VoidResults},
     config::IndexingConfig,
@@ -53,8 +53,12 @@ impl<R: Read> PcapngByteSource<R> {
     }
 }
 
-impl<R: Read + Send> StaticByteSource for PcapngByteSource<R> {
-    fn load(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
+#[async_trait]
+impl<R: Read + Send> ByteSource for PcapngByteSource<R> {
+    async fn reload(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
         let raw_data;
         let mut consumed;
         let mut skipped = 0usize;
@@ -153,9 +157,7 @@ impl<R: Read + Send> StaticByteSource for PcapngByteSource<R> {
         self.pcapng_reader.consume(consumed);
         res
     }
-}
 
-impl<R: Read + Send> ByteSource for PcapngByteSource<R> {
     fn current_slice(&self) -> &[u8] {
         self.buffer.buf()
     }
@@ -378,8 +380,9 @@ pub async fn convert_from_pcapng<
     let buf_reader = std::io::BufReader::new(&pcap_file);
     let pcapng_byte_src =
         PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
-    let pcap_msg_producer = StaticProducer::new(parser, pcapng_byte_src);
-    let msg_stream = stream::iter(pcap_msg_producer);
+    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
+    let msg_stream = pcap_msg_producer.as_stream();
+    pin_mut!(msg_stream);
     index_from_message_stream(total, cancel, msg_stream, output).await
 }
 
@@ -485,7 +488,7 @@ where
 pub async fn create_index_and_mapping_from_pcapng<
     T: LogMessage + Unpin + Send,
     P: Parser<T> + Unpin,
-    S: StaticByteSource,
+    S: ByteSource,
 >(
     config: IndexingConfig,
     update_channel: &Sender<ChunkResults>,
@@ -496,7 +499,7 @@ pub async fn create_index_and_mapping_from_pcapng<
     trace!("create_index_and_mapping_from_pcapng");
     match utils::next_line_nr(&config.out_path) {
         Ok(initial_line_nr) => {
-            let pcap_msg_producer = StaticProducer::new(parser, source);
+            let mut pcap_msg_producer = MessageProducer::new(parser, source);
             let output = ChunkOutput::new(
                 &config.tag,
                 config.append,
@@ -505,15 +508,15 @@ pub async fn create_index_and_mapping_from_pcapng<
                 initial_line_nr,
                 update_channel.clone(),
             )?;
+            let msg_stream = pcap_msg_producer.as_stream();
+            pin_mut!(msg_stream);
 
             let total = config.in_file.metadata().map(|md| md.len())?;
             match index_from_message_stream(
                 // config,
                 total, // initial_line_nr,
                 // update_channel.clone(),
-                cancel,
-                stream::iter(pcap_msg_producer),
-                output,
+                cancel, msg_stream, output,
             )
             .await
             {

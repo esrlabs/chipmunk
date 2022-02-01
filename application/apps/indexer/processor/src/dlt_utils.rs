@@ -6,9 +6,10 @@ use dlt_core::{
         dlt_statistic_row_info, IdMap, LevelDistribution, StatisticInfo, StatisticRowInfo,
     },
 };
+use futures::stream::StreamExt;
 use parsers::dlt::DltRangeParser;
 use rustc_hash::FxHashMap;
-use sources::producer::StaticProducer;
+use sources::producer::MessageProducer;
 use std::{
     fs,
     io::{BufRead, BufReader, Read},
@@ -66,8 +67,9 @@ pub async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
 
         let source = BinaryByteSource::new(second_reader);
 
-        let dlt_msg_producer = StaticProducer::new(dlt_parser, source);
-        Ok(dlt_msg_producer.count() as u64)
+        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+        let msg_stream = dlt_msg_producer.as_stream();
+        Ok(msg_stream.count().await as u64)
     } else {
         Err(DltParseError::Unrecoverable(format!(
             "Couldn't find dlt file: {:?}",
