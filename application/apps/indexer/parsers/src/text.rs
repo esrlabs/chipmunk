@@ -1,9 +1,10 @@
 use crate::{Error, LogMessage, Parser};
+use serde::Serialize;
 use std::{fmt, io::Write};
 
 pub struct StringTokenizer;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct StringMessage {
     content: String,
 }

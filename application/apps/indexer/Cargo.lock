@@ -444,8 +444,9 @@ dependencies = [
  "indexer_base",
  "lazy_static",
  "log",
+ "parsers",
  "pcap-parser",
- "pretty_assertions 1.1.0",
+ "pretty_assertions",
  "rand 0.8.4",
  "rustc-hash",
  "serde",
@@ -458,17 +459,13 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.12.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9419b52cf3a989943489faa3aa5c9543ecf4810779f51012c0215e194f8a4540"
+checksum = "519645e1a0fdbcf5d1607c8735254e82d25e1f69c346a2141a4f4ff93028562c"
 dependencies = [
  "byteorder",
  "bytes",
- "chrono",
- "chrono-tz",
- "crossbeam-channel",
  "derive_more",
- "humantime",
  "lazy_static",
  "log",
  "memchr",
@@ -744,7 +741,7 @@ dependencies = [
  "buf_redux",
  "crossbeam-channel",
  "log",
- "pretty_assertions 0.7.2",
+ "pretty_assertions",
  "regex",
  "rustc-hash",
  "serde",
@@ -956,7 +953,7 @@ dependencies = [
  "indexer_base",
  "log",
  "log4rs",
- "pretty_assertions 1.1.0",
+ "pretty_assertions",
  "processor",
  "regex",
  "serde",
@@ -1130,11 +1127,16 @@ version = "0.1.0"
 dependencies = [
  "buf_redux",
  "byteorder",
+ "chrono",
+ "chrono-tz",
  "crossbeam-channel",
  "dlt-core",
+ "humantime",
+ "lazy_static",
  "log",
  "memchr",
  "rustc-hash",
+ "serde",
  "thiserror",
 ]
 
@@ -1236,18 +1238,6 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 
 [[package]]
 name = "pretty_assertions"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cab0e7c02cf376875e9335e0ba1da535775beb5450d21e1dffca068818ed98b"
-dependencies = [
- "ansi_term",
- "ctor",
- "diff",
- "output_vt100",
-]
-
-[[package]]
-name = "pretty_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76d5b548b725018ab5496482b45cb8bef21e9fed1858a6d674e3a8a0f0bb5d50"
@@ -1302,7 +1292,7 @@ dependencies = [
  "log",
  "nom",
  "parsers",
- "pretty_assertions 1.1.0",
+ "pretty_assertions",
  "proptest",
  "proptest-derive",
  "rand 0.8.4",

@@ -1,5 +1,6 @@
 pub mod dlt;
 pub mod text;
+use serde::Serialize;
 use std::{fmt::Display, io::Write};
 
 use thiserror::Error;
@@ -41,7 +42,7 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
-pub trait LogMessage: Display {
+pub trait LogMessage: Display + Serialize {
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
