@@ -13,8 +13,7 @@ clap = { version = "3.0", features = ["cargo"] }
 crossbeam-channel = "0.5.1"
 dirs = "4.0"
 dlt = { path = "../dlt" }
-dlt-core = "0.12"
-# dlt-core = { git = "https://github.com/esrlabs/dlt-core" }
+dlt-core = "0.13"
 # dlt-core = { path = "../../../../../dlt-core.git" }
 env_logger = "0.9"
 futures = "0.3"

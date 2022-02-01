@@ -1,16 +1,18 @@
-use crate::{Error, LogMessage, Parser};
+pub mod fmt;
+
+use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, Parser};
 use byteorder::{BigEndian, WriteBytesExt};
 pub use dlt_core::{
     dlt::LogLevel,
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering::{process_filter_config, DltFilterConfig, ProcessedDltFilterConfig},
-    fmt::FormattableMessage,
 };
 use dlt_core::{
     dlt::{self},
     parse::{dlt_consume_msg, dlt_message},
 };
-use std::{fmt, io::Write, ops::Range};
+use serde::Serialize;
+use std::{io::Write, ops::Range};
 
 impl LogMessage for FormattableMessage<'_> {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
@@ -21,23 +23,23 @@ impl LogMessage for FormattableMessage<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct RawMessage {
     pub content: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct RangeMessage {
     pub range: Range<usize>,
 }
 
-impl fmt::Display for RangeMessage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for RangeMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({:?})", self.range)
     }
 }
-impl fmt::Display for RawMessage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for RawMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[{:02X?}]", &self.content)
     }
 }

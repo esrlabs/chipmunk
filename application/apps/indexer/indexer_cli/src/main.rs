@@ -23,6 +23,7 @@ use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
 use dlt_core::{
+    dlt::MessageType,
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering::{process_filter_config, read_filter_options, DltFilterConfig},
 };
@@ -355,6 +356,13 @@ pub async fn main() -> Result<()> {
                         .help("the DLT file to parse")
                         .required(true)
                         .index(1),
+                )
+                .arg(
+                    Arg::new("fibex")
+                        .short('m')
+                        .long("fibex-model")
+                        .value_name("FIBEX")
+                        .help("Fibex file to use"),
                 )
                 .arg(
                     Arg::new("tag")
@@ -835,7 +843,7 @@ pub async fn main() -> Result<()> {
             );
         }
 
-        println!("done with handle_dlt_subcommand");
+        println!("done with handle_merge_subcommand");
         std::process::exit(0)
     }
 
@@ -997,10 +1005,22 @@ pub async fn main() -> Result<()> {
             let file_path = path::PathBuf::from(file_name);
             let tag_string = tag.to_string();
 
-            let dlt_parser = DltParser::new(filter_conf.map(process_filter_config), None, true);
+            let fibex_metadata: Option<FibexMetadata> =
+                if let Some(fibex_path) = matches.value_of("fibex") {
+                    gather_fibex_data(FibexConfig {
+                        fibex_file_paths: vec![fibex_path.to_owned()],
+                    })
+                } else {
+                    None
+                };
+            let dlt_parser = DltParser::new(
+                filter_conf.map(process_filter_config),
+                fibex_metadata.as_ref(),
+                true,
+            );
             let in_file = File::open(&file_path).unwrap();
             let reader = BufReader::new(&in_file);
-            let out_file = File::create(out_path).expect("could not create file");
+            let out_file = File::create(&out_path).expect("could not create file");
             let mut out_writer = BufWriter::new(out_file);
             // let mut wtr = csv::Writer::from_path(&out_path).unwrap();
             // DATETIME,
@@ -1032,6 +1052,7 @@ pub async fn main() -> Result<()> {
                     MessageStreamItem::Skipped => println!("--- skipped"),
                 }
             }
+            // wtr.flush().unwrap();
             out_writer.flush().unwrap();
 
             let source_file_size = fs::metadata(&file_path).expect("file size error").len();

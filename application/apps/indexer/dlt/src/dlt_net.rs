@@ -5,7 +5,6 @@ use dlt_core::{
     dlt::*,
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering,
-    fmt::FormattableMessage,
     parse::{dlt_message, *},
 };
 use indexer_base::{
@@ -14,6 +13,7 @@ use indexer_base::{
     progress::*,
     utils,
 };
+use parsers::dlt::fmt::FormattableMessage;
 use std::{
     io::{BufWriter, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr},
