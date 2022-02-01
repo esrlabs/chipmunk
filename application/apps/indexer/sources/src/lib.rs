@@ -60,6 +60,7 @@ pub enum Error {
     Unrecoverable(String),
 }
 
+#[async_trait]
 pub trait ByteSource {
     fn consume(&mut self, offset: usize);
 
@@ -71,14 +72,7 @@ pub trait ByteSource {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-}
 
-pub trait StaticByteSource: ByteSource {
-    fn load(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
-}
-
-#[async_trait]
-pub trait DynamicByteSource: ByteSource {
     /// will load more bytes from the underlying source
     /// when the source has reached it's end, this function
     /// will return Ok((None, _))

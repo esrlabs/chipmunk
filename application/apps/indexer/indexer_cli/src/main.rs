@@ -27,20 +27,18 @@ use dlt_core::{
     filtering::{process_filter_config, read_filter_options, DltFilterConfig},
 };
 use env_logger::Env;
+use futures::{pin_mut, stream::StreamExt};
 use indexer_base::{
     chunks::{serialize_chunks, Chunk, ChunkResults, VoidResults},
     config::*,
     error_reporter::*,
-    export::{export_file_line_based, produce_section_iterator},
+    export::export_file_line_based,
     progress::IndexingResults,
     utils::{create_tagged_line_d, next_line_nr},
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
-use parsers::{
-    dlt::{DltParser, DltRawParser},
-    LogMessage, MessageStreamItem,
-};
+use parsers::{dlt::DltParser, MessageStreamItem};
 use processor::{
     dlt_utils::{count_dlt_messages, count_dlt_messages_old, get_dlt_file_info},
     grabber::{GrabError, GrabbedContent},
@@ -48,7 +46,7 @@ use processor::{
 };
 use sources::{
     pcap::file::{convert_from_pcapng, create_index_and_mapping_from_pcapng, PcapngByteSource},
-    producer::StaticProducer,
+    producer::MessageProducer,
     raw::binary::BinaryByteSource,
 };
 use std::{
@@ -940,32 +938,16 @@ pub async fn main() -> Result<()> {
                 .map(|s| to_pair(s).expect("could not parse section pair"))
                 .collect();
 
-            let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
             let ending = &file_path.extension().expect("could not get extension");
             let in_file = File::open(&file_path).unwrap();
-            let reader = BufReader::new(&in_file);
+            let _reader = BufReader::new(&in_file);
             if ending.to_str() == Some("dlt") {
-                trace!("was dlt file");
-                if !sections.is_empty() {
-                    debug!("try new way of exporting");
-                    let dlt_parser = DltRawParser::new(true);
-                    let source = BinaryByteSource::new(reader);
-
-                    let dlt_msg_producer = StaticProducer::new(dlt_parser, source);
-                    let out_file = File::create(out_path).expect("could not create file");
-                    let mut out_writer = BufWriter::new(out_file);
-
-                    let mut section_iter = produce_section_iterator(dlt_msg_producer, sections);
-                    for (_, item) in section_iter.by_ref() {
-                        if let MessageStreamItem::Item(msg) = item {
-                            msg.to_writer(&mut out_writer).unwrap();
-                        }
-                    }
-                    out_writer.flush().unwrap();
-                }
+                todo!("use grabber for export");
             } else {
                 trace!("was regular file");
                 if old_way {
+                    let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) =
+                        unbounded();
                     println!("was regular file (legacy way)");
                     export_file_line_based(
                         file_path,
@@ -977,20 +959,7 @@ pub async fn main() -> Result<()> {
                     .expect("export did not work");
                 } else {
                     println!("regular file, new way");
-                    let dlt_parser = DltRawParser::new(true);
-                    let source = BinaryByteSource::new(reader);
-
-                    let dlt_msg_producer = StaticProducer::new(dlt_parser, source);
-                    let out_file = File::create(out_path).expect("could not create file");
-                    let mut out_writer = BufWriter::new(out_file);
-
-                    let mut section_iter = produce_section_iterator(dlt_msg_producer, sections);
-                    for (_, item) in section_iter.by_ref() {
-                        if let MessageStreamItem::Item(msg) = item {
-                            msg.to_writer(&mut out_writer).unwrap();
-                        }
-                    }
-                    out_writer.flush().unwrap();
+                    todo!("use grabber for export");
                 }
             };
 
@@ -1031,13 +1000,14 @@ pub async fn main() -> Result<()> {
             let dlt_parser = DltParser::new(filter_conf.map(process_filter_config), None, true);
             let in_file = File::open(&file_path).unwrap();
             let reader = BufReader::new(&in_file);
-            let source = BinaryByteSource::new(reader);
-
-            let mut dlt_msg_producer = StaticProducer::new(dlt_parser, source);
             let out_file = File::create(out_path).expect("could not create file");
             let mut out_writer = BufWriter::new(out_file);
 
-            for (_, item) in dlt_msg_producer.by_ref() {
+            let source = BinaryByteSource::new(reader);
+            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+            let dlt_stream = dlt_msg_producer.as_stream();
+            pin_mut!(dlt_stream);
+            while let Some((_, item)) = dlt_stream.next().await {
                 if let MessageStreamItem::Item(msg) = item {
                     create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
                         .unwrap();
@@ -1045,6 +1015,7 @@ pub async fn main() -> Result<()> {
                 }
             }
             out_writer.flush().unwrap();
+
             duration_report(
                 start,
                 format!("Writing {} lines from dlt file to text", line_nr),

@@ -1,4 +1,5 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter, StaticByteSource};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use async_trait::async_trait;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use std::io::{BufRead, Read, Seek};
 
@@ -23,8 +24,27 @@ where
     }
 }
 
-impl<R: Read + Send + Seek> StaticByteSource for BinaryByteSource<R> {
-    fn load(&mut self, _filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
+// impl<R: Read + Send + Seek> StaticByteSource for BinaryByteSource<R> {
+//     fn load(&mut self, _filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
+//         let content = self
+//             .reader
+//             .fill_buf()
+//             .map_err(|e| SourceError::Unrecoverable(format!("Could not fill buffer: {}", e)))?;
+//         if content.is_empty() {
+//             trace!("0, Ok(None)");
+//             return Ok(None);
+//         }
+//         let available = content.len();
+//         Ok(Some(ReloadInfo::new(available, 0, None)))
+//     }
+// }
+
+#[async_trait]
+impl<R: Read + Send + Seek> ByteSource for BinaryByteSource<R> {
+    async fn reload(
+        &mut self,
+        _: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
         let content = self
             .reader
             .fill_buf()
@@ -36,9 +56,7 @@ impl<R: Read + Send + Seek> StaticByteSource for BinaryByteSource<R> {
         let available = content.len();
         Ok(Some(ReloadInfo::new(available, 0, None)))
     }
-}
 
-impl<R: Read + Send + Seek> ByteSource for BinaryByteSource<R> {
     fn current_slice(&self) -> &[u8] {
         self.reader.buffer()
     }
