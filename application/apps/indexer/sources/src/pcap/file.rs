@@ -54,7 +54,7 @@ impl<R: Read> PcapngByteSource<R> {
 }
 
 #[async_trait]
-impl<R: Read + Send> ByteSource for PcapngByteSource<R> {
+impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
     async fn reload(
         &mut self,
         filter: Option<&SourceFilter>,

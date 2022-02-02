@@ -8,13 +8,10 @@ use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
-use parsers::{LogMessage, MessageStreamItem, Parser};
+use parsers::{LogMessage, Parser};
 use processor::search::SearchFilter;
 use serde::Serialize;
-use sources::{
-    producer::{DynamicProducer, StaticProducer},
-    DynamicByteSource, StaticByteSource,
-};
+use sources::ByteSource;
 use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -105,14 +102,13 @@ impl std::fmt::Display for OperationAlias {
 }
 
 #[derive(Debug)]
-pub enum Operation<T, P, S, D>
+pub enum Operation<T, P, S>
 where
     T: LogMessage + 'static,
     P: Parser<T> + 'static,
-    S: StaticByteSource + 'static,
-    D: DynamicByteSource + 'static,
+    S: ByteSource + 'static,
 {
-    Observe(Source<T, P, S, D>),
+    Observe(Source<T, P, S>),
     Search {
         filters: Vec<SearchFilter>,
     },
@@ -144,12 +140,11 @@ where
     End,
 }
 
-impl<T, P, S, D> std::fmt::Display for Operation<T, P, S, D>
+impl<T, P, S> std::fmt::Display for Operation<T, P, S>
 where
     T: LogMessage + 'static,
     P: Parser<T> + 'static,
-    S: StaticByteSource + 'static,
-    D: DynamicByteSource + 'static,
+    S: ByteSource + 'static,
 {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -294,11 +289,10 @@ impl OperationAPI {
     pub async fn process<
         T: LogMessage + 'static,
         P: Parser<T> + 'static,
-        S: StaticByteSource + 'static,
-        D: DynamicByteSource + 'static,
+        S: ByteSource + 'static,
     >(
         &self,
-        operation: Operation<T, P, S, D>,
+        operation: Operation<T, P, S>,
     ) -> Result<(), NativeError> {
         let added = self
             .state_api
@@ -484,13 +478,8 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
     }
 }
 
-pub async fn task<
-    T: LogMessage + 'static,
-    P: Parser<T> + 'static,
-    S: StaticByteSource + 'static,
-    D: DynamicByteSource + 'static,
->(
-    mut rx_operations: UnboundedReceiver<(Uuid, Operation<T, P, S, D>)>,
+pub async fn task<T: LogMessage + 'static, P: Parser<T> + 'static, S: ByteSource + 'static>(
+    mut rx_operations: UnboundedReceiver<(Uuid, Operation<T, P, S>)>,
     state: SessionStateAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {

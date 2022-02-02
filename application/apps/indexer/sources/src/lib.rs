@@ -61,7 +61,7 @@ pub enum Error {
 }
 
 #[async_trait]
-pub trait ByteSource {
+pub trait ByteSource: Send + Sync {
     fn consume(&mut self, offset: usize);
 
     fn current_slice(&self) -> &[u8];
