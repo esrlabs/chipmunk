@@ -4,7 +4,7 @@ use crate::{
     js::{
         converting::{
             concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
-            merge::WrappedFileMergeOptions,
+            merge::WrappedFileMergeOptions, source::WrappedSource,
         },
         session::events::ComputationErrorWrapper,
     },
@@ -19,7 +19,7 @@ use session::{
     operations,
     session::Session,
 };
-use std::{path::PathBuf, thread};
+use std::thread;
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
@@ -201,15 +201,14 @@ impl RustSession {
     #[node_bindgen]
     async fn observe(
         &self,
-        file_path: String,
-        _source_id: String,
+        source: WrappedSource,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session
                 .observe(
                     operations::uuid_from_str(&operation_id)?,
-                    PathBuf::from(file_path),
+                    source.get_source(),
                 )
                 .map_err(ComputationErrorWrapper)
         } else {

@@ -8,6 +8,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+pub mod factory;
 pub mod pcap;
 pub mod producer;
 pub mod raw;
@@ -61,7 +62,7 @@ pub enum Error {
 }
 
 #[async_trait]
-pub trait ByteSource: Send + Sync {
+pub trait ByteSource {
     fn consume(&mut self, offset: usize);
 
     fn current_slice(&self) -> &[u8];

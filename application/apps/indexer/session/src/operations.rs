@@ -1,4 +1,3 @@
-pub use crate::handlers::observe::Source;
 use crate::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
     handlers,
@@ -8,10 +7,9 @@ use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
-use parsers::{LogMessage, Parser};
 use processor::search::SearchFilter;
 use serde::Serialize;
-use sources::ByteSource;
+use sources::factory::Source;
 use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -102,13 +100,8 @@ impl std::fmt::Display for OperationAlias {
 }
 
 #[derive(Debug)]
-pub enum Operation<T, P, S>
-where
-    T: LogMessage + 'static,
-    P: Parser<T> + 'static,
-    S: ByteSource + 'static,
-{
-    Observe(Source<T, P, S>),
+pub enum Operation {
+    Observe(Source),
     Search {
         filters: Vec<SearchFilter>,
     },
@@ -140,12 +133,7 @@ where
     End,
 }
 
-impl<T, P, S> std::fmt::Display for Operation<T, P, S>
-where
-    T: LogMessage + 'static,
-    P: Parser<T> + 'static,
-    S: ByteSource + 'static,
-{
+impl std::fmt::Display for Operation {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -286,14 +274,7 @@ impl OperationAPI {
         self.cancellation_token.child_token()
     }
 
-    pub async fn process<
-        T: LogMessage + 'static,
-        P: Parser<T> + 'static,
-        S: ByteSource + 'static,
-    >(
-        &self,
-        operation: Operation<T, P, S>,
-    ) -> Result<(), NativeError> {
+    pub async fn process(&self, operation: Operation) -> Result<(), NativeError> {
         let added = self
             .state_api
             .add_operation(
@@ -478,8 +459,8 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
     }
 }
 
-pub async fn task<T: LogMessage + 'static, P: Parser<T> + 'static, S: ByteSource + 'static>(
-    mut rx_operations: UnboundedReceiver<(Uuid, Operation<T, P, S>)>,
+pub async fn task(
+    mut rx_operations: UnboundedReceiver<(Uuid, Operation)>,
     state: SessionStateAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {

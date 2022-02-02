@@ -1,20 +1,18 @@
 use crate::{
     events::{CallbackEvent, ComputationError},
     operations,
-    operations::{Operation, Source},
+    operations::Operation,
     state,
     state::SessionStateAPI,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
-use parsers::{LogMessage, MessageStreamItem, Parser};
 use processor::{
     grabber::{GrabbedContent, LineRange},
     search::SearchFilter,
 };
 use serde::Serialize;
-use sources::{producer::MessageProducer, ByteSource};
-use std::path::PathBuf;
+use sources::factory::Source;
 use tokio::{
     join,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -23,31 +21,21 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub type OperationsChannel<T, P, S> = (
-    UnboundedSender<(Uuid, Operation<T, P, S>)>,
-    UnboundedReceiver<(Uuid, Operation<T, P, S>)>,
+pub type OperationsChannel = (
+    UnboundedSender<(Uuid, Operation)>,
+    UnboundedReceiver<(Uuid, Operation)>,
 );
 
-pub struct Session<T, P, S>
-where
-    T: LogMessage + 'static,
-    P: Parser<T> + 'static,
-    S: ByteSource + 'static,
-{
+pub struct Session {
     uuid: Uuid,
-    tx_operations: UnboundedSender<(Uuid, Operation<T, P, S>)>,
+    tx_operations: UnboundedSender<(Uuid, Operation)>,
     destroyed: CancellationToken,
     pub state: SessionStateAPI,
 }
 
-impl<T, P, S> Session<T, P, S>
-where
-    T: LogMessage + 'static,
-    P: Parser<T> + 'static,
-    S: ByteSource + 'static,
-{
+impl Session {
     pub async fn new(uuid: Uuid) -> (Self, UnboundedReceiver<CallbackEvent>) {
-        let (tx_operations, rx_operations): OperationsChannel<T, P, S> = unbounded_channel();
+        let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (state_api, rx_state_api) = SessionStateAPI::new();
         let (tx_callback_events, rx_callback_events): (
             UnboundedSender<CallbackEvent>,
@@ -133,11 +121,7 @@ where
             .map_err(ComputationError::NativeError)
     }
 
-    pub fn observe(
-        &self,
-        operation_id: Uuid,
-        source: Source<T, P, S>,
-    ) -> Result<(), ComputationError> {
+    pub fn observe(&self, operation_id: Uuid, source: Source) -> Result<(), ComputationError> {
         self.tx_operations
             .send((operation_id, operations::Operation::Observe(source)))
             .map_err(|e| ComputationError::Communication(e.to_string()))

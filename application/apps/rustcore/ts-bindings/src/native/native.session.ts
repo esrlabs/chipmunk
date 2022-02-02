@@ -5,7 +5,6 @@ import ServiceProduction from '../services/service.production';
 import { RustSessionRequiered } from './native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
-import { RustSessionNoType } from './native';
 import {
     IFilter,
     IGrabbedContent,
@@ -14,6 +13,7 @@ import {
     IExtractDTFormatOptions,
     IConcatFile,
     IFileMergeOptions,
+    DataSource,
 } from '../interfaces/index';
 import { getNativeModule } from './native';
 import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.observe.executor';
@@ -138,11 +138,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract observe(
-        filename: string,
-        options: TFileOptions,
-        operationUuid: string,
-    ): Promise<void>;
+    public abstract observe(source: DataSource, operationUuid: string): Promise<void>;
 
     /**
      * Concat files and assigns it with session. After this operation, @method observe, @method merge cannot be used
@@ -220,11 +216,7 @@ export abstract class RustSessionNative {
 
     public abstract getUuid(): string;
 
-    public abstract observe(
-        filename: string,
-        options: TFileOptions,
-        operationUuid: string,
-    ): Promise<void>;
+    public abstract observe(source: DataSource, operationUuid: string): Promise<void>;
 
     public abstract concat(
         files: IConcatFile[],
@@ -503,12 +495,12 @@ export class RustSessionWrapper extends RustSession {
         return '';
     }
 
-    public observe(filename: string, options: TFileOptions, operationUuid: string): Promise<void> {
+    public observe(source: DataSource, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this._provider.debug().emit.operation('observe', operationUuid);
                 this._native
-                    .observe(filename, filename, operationUuid)
+                    .observe(source, operationUuid)
                     .then(resolve)
                     .catch((err: Error) => {
                         reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));

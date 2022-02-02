@@ -17,6 +17,7 @@ import {
 } from '../interfaces';
 import { IConcatResults } from './session.stream.concat.executor';
 import { IMergeResults } from './session.stream.merge.executor';
+import { DataSource } from '../interfaces/index';
 
 export {
     IFileMergeOptions,
@@ -72,12 +73,9 @@ export class SessionStream {
         return this._session.getFileOptionsRequirements(filename);
     }
 
-    public observe(filename: string, options: TFileOptions): CancelablePromise<void> {
+    public observe(source: DataSource): CancelablePromise<void> {
         // TODO create grabber
-        return Executors.observe(this._session, this._provider, this._logger, {
-            filename: filename,
-            options: options,
-        });
+        return Executors.observe(this._session, this._provider, this._logger, source);
     }
 
     public concat(files: IConcatFile[], append: boolean): CancelablePromise<IConcatResults> {
