@@ -236,6 +236,53 @@ pub trait Output {
     async fn progress(&mut self, progress: Result<OutputProgress, Notification>);
 }
 
+struct TextFileOutput {
+    buf_writer: BufWriter<File>,
+    update_channel: Sender<VoidResults>,
+}
+
+impl TextFileOutput {
+    pub fn new(out_path: &Path, update_channel: Sender<VoidResults>) -> Result<Self, Error> {
+        let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
+            .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+        let buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
+        Ok(Self {
+            buf_writer,
+            update_channel,
+        })
+    }
+}
+
+#[async_trait]
+impl Output for TextFileOutput {
+    async fn consume_msg<T>(&mut self, msg: T) -> Result<(), Error>
+    where
+        T: LogMessage + Send,
+    {
+        let text = format!("{}\n", msg);
+        self.buf_writer.write_all(text.as_bytes())?;
+
+        Ok(())
+    }
+
+    async fn done(&mut self) -> Result<(), Error> {
+        self.buf_writer.flush()?;
+        Ok(())
+    }
+
+    async fn progress(&mut self, progress: Result<OutputProgress, Notification>) {
+        self.update_channel
+            .send(match progress {
+                Ok(OutputProgress::Progress { ticks }) => Ok(IndexingProgress::Progress { ticks }),
+                Ok(OutputProgress::Stopped) => (Ok(IndexingProgress::Stopped)),
+                Ok(OutputProgress::Finished) => (Ok(IndexingProgress::Finished)),
+                Err(notification) => (Err(notification)),
+            })
+            .await
+            .expect("Could not use update channel");
+    }
+}
+
 struct DltFileOutput {
     buf_writer: BufWriter<File>,
     update_channel: Sender<VoidResults>,
@@ -363,6 +410,28 @@ impl Output for ChunkOutput {
             .await
             .expect("Could not use update channel");
     }
+}
+
+/// print log messages from a PCAPNG file
+pub async fn print_from_pcapng<T: LogMessage + std::marker::Unpin + Send, P: Parser<T> + Unpin>(
+    pcap_path: &std::path::Path,
+    out_path: &std::path::Path,
+    update_channel: Sender<VoidResults>,
+    cancel: CancellationToken,
+    parser: P,
+) -> Result<(), Error> {
+    let total = pcap_path.metadata()?.len();
+    debug!("Starting convert_from_pcapng with {} bytes", total);
+    let output = TextFileOutput::new(out_path, update_channel)?;
+
+    let pcap_file = File::open(&pcap_path)?;
+    let buf_reader = std::io::BufReader::new(&pcap_file);
+    let pcapng_byte_src =
+        PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
+    let msg_stream = pcap_msg_producer.as_stream();
+    pin_mut!(msg_stream);
+    index_from_message_stream(total, cancel, msg_stream, output).await
 }
 
 /// extract log messages from a PCAPNG file
