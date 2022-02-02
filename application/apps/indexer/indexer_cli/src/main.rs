@@ -46,6 +46,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
 use parsers::{
     dlt::{DltParser, DltRangeParser},
+    someip::SomeipParser,
     MessageStreamItem,
 };
 use processor::{
@@ -53,7 +54,10 @@ use processor::{
     text_source::TextFileSource,
 };
 use sources::{
-    pcap::file::{convert_from_pcapng, create_index_and_mapping_from_pcapng, PcapngByteSource},
+    pcap::file::{
+        convert_from_pcapng, create_index_and_mapping_from_pcapng, print_from_pcapng,
+        PcapngByteSource,
+    },
     producer::MessageProducer,
     raw::binary::BinaryByteSource,
 };
@@ -109,6 +113,7 @@ pub async fn main() -> Result<()> {
             Arg::new("v")
                 .short('v')
                 .multiple_values(true)
+                .takes_value(true) // https://github.com/clap-rs/clap/discussions/2404
                 .help("Sets the level of verbosity"),
         )
         .subcommand(
@@ -552,6 +557,34 @@ pub async fn main() -> Result<()> {
                     .index(1),
             ),
         )
+        .subcommand(
+            App::new("someip-pcap")
+                .about("someip from pcap files")
+                .arg(
+                    Arg::new("model")
+                        .short('m')
+                        .long("model")
+                        .value_name("FILE")
+                        .help("the model file (FIBEX))")
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("input")
+                        .short('i')
+                        .long("input")
+                        .value_name("FILE")
+                        .help("the pcap file to parse")
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("output")
+                        .short('o')
+                        .long("out")
+                        .value_name("OUT")
+                        .required(false)
+                        .help("Output file"),
+                ),
+        )
         .get_matches();
 
     // Vary the output based on how many times the user used the "verbose" flag
@@ -582,6 +615,8 @@ pub async fn main() -> Result<()> {
         handle_discover_subcommand(matches).await
     } else if let Some(matches) = matches.subcommand_matches("session") {
         handle_interactive_session(matches).await;
+    } else if let Some(matches) = matches.subcommand_matches("someip-pcap") {
+        handle_someip_pcap_subcommand(matches, start).await
     }
 
     async fn handle_grab_subcommand(
@@ -1575,6 +1610,42 @@ pub async fn main() -> Result<()> {
             }
         }
     }
+
+    async fn handle_someip_pcap_subcommand(matches: &clap::ArgMatches, start: std::time::Instant) {
+        use someip_payload::fibex::{FibexParser, FibexReader};
+        debug!("handle_someip_pcap_subcommand");
+        if let (Some(model_name), Some(input_name)) =
+            (matches.value_of("model"), matches.value_of("input"))
+        {
+            let model_path = path::PathBuf::from(model_name);
+            let input_path = path::PathBuf::from(input_name);
+            let output_path = path::PathBuf::from(
+                matches
+                    .value_of("output")
+                    .unwrap_or(&format!("{}.out", input_name)),
+            );
+
+            println!("read fibex file {}", model_path.to_str().unwrap());
+            let fibex_reader = FibexReader::from_file(model_path).unwrap();
+            let fibex_model = FibexParser::try_parse(fibex_reader).expect("cannot parse fibex");
+            let somip_parser = SomeipParser::new(&fibex_model);
+
+            println!("parse input file {}", input_path.to_str().unwrap());
+            let input_file_size = fs::metadata(&input_path).expect("file size error").len();
+            let cancel = CancellationToken::new();
+            let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
+                mpsc::channel(100);
+            let (_, res) = tokio::join! {
+                progress_listener(input_file_size, rx, start),
+                print_from_pcapng(&input_path, &output_path, tx, cancel, somip_parser),
+            };
+            println!("result: {:?}", res);
+
+            println!("done with handle_someip_pcap_subcommand");
+            std::process::exit(0)
+        }
+    }
+
     Ok(())
 }
 

@@ -1,4 +1,5 @@
 pub mod dlt;
+pub mod someip;
 pub mod text;
 use serde::Serialize;
 use std::{fmt::Display, io::Write};
