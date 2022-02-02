@@ -5,15 +5,9 @@ use crate::{
     tail, writer,
 };
 use indexer_base::progress::Severity;
-use log::debug;
-use parsers::{dlt::DltParser, LogMessage, MessageStreamItem, Parser};
-use sources::{
-    pcap::file::PcapngByteSource,
-    producer::{DynamicProducer, MessageProducer, StaticProducer},
-    DynamicByteSource, StaticByteSource,
-};
-use std::fs::File;
-use std::path::{Path, PathBuf};
+use parsers::{LogMessage, MessageStreamItem, Parser};
+use sources::{producer::MessageProducer, ByteSource};
+use std::path::PathBuf;
 use tokio::{
     join, select,
     sync::mpsc::{
@@ -25,33 +19,24 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub enum Source<T, P, S, D>
+pub enum Source<T, P, S>
 where
     T: LogMessage + 'static,
     P: Parser<T> + 'static,
-    S: StaticByteSource + 'static,
-    D: DynamicByteSource + 'static,
+    S: ByteSource + 'static,
 {
     TextFile(PathBuf),
-    Producer(
-        Option<StaticProducer<T, P, S>>,
-        Option<DynamicProducer<T, P, D>>,
-    ),
+    Producer(MessageProducer<T, P, S>),
 }
 
 /// observe a file initially by creating the meta for it and sending it as metadata update
 /// for the content grabber (current_grabber)
 /// if the metadata was successfully created, we return the line count of it
 /// if the operation was stopped, we return None
-pub async fn handle<
-    T: LogMessage + 'static,
-    P: Parser<T> + 'static,
-    S: StaticByteSource + 'static,
-    D: DynamicByteSource + 'static,
->(
+pub async fn handle<T: LogMessage + 'static, P: Parser<T> + 'static, S: ByteSource + 'static>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    source: Source<T, P, S, D>,
+    source: Source<T, P, S>,
 ) -> OperationResult<()> {
     let (paths, result) = match source {
         Source::TextFile(filename) => {
@@ -103,7 +88,7 @@ pub async fn handle<
                 },
             )
         }
-        Source::Producer(mut static_producer, mut dynamic_producer) => {
+        Source::Producer(mut producer) => {
             let dest_path = PathBuf::from("/tmp/");
             let file_name = Uuid::new_v4();
             let session_file_path = dest_path.join(format!("{}.session", file_name));
@@ -147,80 +132,8 @@ pub async fn handle<
             // TextFileSource::new(&session_file_path, producer.source_id());
             state.set_session_file(session_file_path.clone()).await?;
             let cancel = operation_api.get_cancellation_token_listener();
-            // if let Some(mut producer) = static_producer {
-            //     let (session_result, binary_result, flashing, producer_res) = join!(
-            //         async {
-            //             match rx_session_done.await {
-            //                 Ok(res) => res,
-            //                 Err(_) => Err(writer::Error::Channel(String::from(
-            //                     "Fail to get done signal from session writer",
-            //                 ))),
-            //             }
-            //             .map_err(|e| NativeError {
-            //                 severity: Severity::ERROR,
-            //                 kind: NativeErrorKind::Io,
-            //                 message: Some(e.to_string()),
-            //             })
-            //         },
-            //         async {
-            //             match rx_binary_done.await {
-            //                 Ok(res) => res,
-            //                 Err(_) => Err(writer::Error::Channel(String::from(
-            //                     "Fail to get done signal from binary writer",
-            //                 ))),
-            //             }
-            //             .map_err(|e| NativeError {
-            //                 severity: Severity::ERROR,
-            //                 kind: NativeErrorKind::Io,
-            //                 message: Some(e.to_string()),
-            //             })
-            //         },
-            //         async {
-            //             while let (Some(_bytes_session), Some(_bytes_binary)) =
-            //                 join!(rx_session_file_flush.recv(), rx_binary_file_flush.recv())
-            //             {
-            //                 if !state.is_closing() {
-            //                     state.update_session().await?;
-            //                 }
-            //             }
-            //             Ok::<(), NativeError>(())
-            //         },
-            //         async {
-            //             while let Some((_, item)) = select! {
-            //                 msg = async { producer.next() } => msg,
-            //                 _ = cancel.cancelled() => None,
-            //             } {
-            //                 match item {
-            //                     MessageStreamItem::Item(item) => {
-            //                         let item_str = format!("{}", item)
-            //                             .replace('\u{0004}', "<#C#>")
-            //                             .replace('\u{0005}', "<#A#>")
-            //                             .to_owned();
-            //                         session_writer
-            //                             .send(format!("{}\n", item_str).as_bytes().iter())
-            //                             .map_err(|e| NativeError {
-            //                                 severity: Severity::ERROR,
-            //                                 kind: NativeErrorKind::Io,
-            //                                 message: Some(e.to_string()),
-            //                             })?;
-            //                         binary_writer.send(item.as_bytes().iter()).map_err(|e| {
-            //                             NativeError {
-            //                                 severity: Severity::ERROR,
-            //                                 kind: NativeErrorKind::Io,
-            //                                 message: Some(e.to_string()),
-            //                             }
-            //                         })?;
-            //                     }
-            //                     MessageStreamItem::Done => {
-            //                         break;
-            //                     }
-            //                     _ => {}
-            //                 }
-            //             }
-            //             Ok::<(), NativeError>(())
-            //         }
-            //     );
-            // }
+            let stream = producer.as_stream();
+            futures::pin_mut!(stream);
             let (session_result, binary_result, flashing, producer_res) = join!(
                 async {
                     match rx_session_done.await {
@@ -258,24 +171,9 @@ pub async fn handle<
                     }
                     Ok::<(), NativeError>(())
                 },
-                async move {
+                async {
                     while let Some((_, item)) = select! {
-                        msg = async {
-                            if let Some(ref mut producer) = static_producer {
-                                if let Some(msg) = producer.next() {
-                                    Some(msg)
-                                } else {
-                                    static_producer = None;
-                                    None
-                                }
-                            } else if let Some(ref mut producer) = dynamic_producer {
-                                let stream = producer.as_stream();
-                                futures::pin_mut!(stream);
-                                stream.next().await
-                            } else {
-                                None
-                            }
-                        } => msg,
+                        msg = stream.next() => msg,
                         _ = cancel.cancelled() => None,
                     } {
                         match item {

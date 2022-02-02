@@ -4,9 +4,10 @@ use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
 use std::marker::PhantomData;
 use tokio_stream::Stream;
 
+#[derive(Debug)]
 pub struct MessageProducer<T, P, D>
 where
-    T: LogMessage + Send,
+    T: LogMessage,
     P: Parser<T>,
     D: ByteSource,
 {
@@ -20,9 +21,7 @@ where
     total_skipped: usize,
 }
 
-impl<T: LogMessage + std::marker::Unpin + Send, P: Parser<T>, D: ByteSource>
-    MessageProducer<T, P, D>
-{
+impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: D) -> Self {
         MessageProducer {

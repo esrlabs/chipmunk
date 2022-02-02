@@ -40,7 +40,7 @@ where
 // }
 
 #[async_trait]
-impl<R: Read + Send + Seek> ByteSource for BinaryByteSource<R> {
+impl<R: Read + Send + Sync + Seek> ByteSource for BinaryByteSource<R> {
     async fn reload(
         &mut self,
         _: Option<&SourceFilter>,
