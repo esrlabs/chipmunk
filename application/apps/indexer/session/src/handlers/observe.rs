@@ -5,11 +5,12 @@ use crate::{
     tail, writer,
 };
 use indexer_base::progress::Severity;
-use parsers::{dlt::DltParser, LogMessage, MessageStreamItem};
+use parsers::{dlt, LogMessage, MessageStreamItem, Parser};
 use sources::{
     factory::{ParserType, Source},
     pcap::file::PcapngByteSource,
     producer::MessageProducer,
+    ByteSource,
 };
 use std::fs::File;
 use std::path::PathBuf;
@@ -19,7 +20,7 @@ use tokio::{
         channel, unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender,
     },
 };
-use tokio_stream::StreamExt;
+use tokio_stream::{Stream, StreamExt};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -38,6 +39,47 @@ use uuid::Uuid;
 /// for the content grabber (current_grabber)
 /// if the metadata was successfully created, we return the line count of it
 /// if the operation was stopped, we return None
+///
+
+pub enum Producer<'a> {
+    PcapFile(
+        MessageProducer<
+            dlt::FormattableMessage<'a>,
+            dlt::DltParser<'a>,
+            PcapngByteSource<std::fs::File>,
+        >,
+    ),
+}
+pub fn factory<'a, T: LogMessage, P: Parser<T>, D: ByteSource>(
+    source: Source,
+) -> Result<Option<Producer<'a>>, NativeError> {
+    match source {
+        Source::File(filename, parser_type) => match parser_type {
+            ParserType::Text => Ok(None),
+            _ => match parser_type {
+                ParserType::Pcap => {
+                    let dlt_parser = dlt::DltParser {
+                        filter_config: None,
+                        fibex_metadata: None,
+                        with_storage_header: true,
+                    };
+                    let in_file = File::open(&filename).expect("cannot open file");
+                    let source = PcapngByteSource::new(in_file).expect("cannot create source");
+                    Ok(Some(Producer::PcapFile(MessageProducer::new(
+                        dlt_parser, source,
+                    ))))
+                }
+                _ => Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::FileNotFound,
+                    message: Some(String::from("Not supported type of file")),
+                }),
+            },
+        },
+        Source::Stream(transport, parser_type) => Ok(None),
+    }
+}
+
 pub async fn handle(
     operation_api: OperationAPI,
     state: SessionStateAPI,
@@ -98,10 +140,10 @@ pub async fn handle(
                 let mut producer = match parser_type {
                     // ParserType::Pcap(_settings) => {
                     ParserType::Pcap => {
-                        let dlt_parser = DltParser {
+                        let dlt_parser = dlt::DltParser {
                             filter_config: None,
                             fibex_metadata: None,
-                            with_storage_header: true,
+                            with_storage_header: false,
                         };
                         let in_file = File::open(&filename).expect("cannot open file");
                         let source = PcapngByteSource::new(in_file).expect("cannot create source");
@@ -165,10 +207,10 @@ pub async fn handle(
                 // or
                 // TextFileSource::new(&session_file_path, producer.source_id());
                 state.set_session_file(session_file_path.clone()).await?;
-                let cancel = operation_api.get_cancellation_token_listener();
+                let cancel = operation_api.get_cancellation_token();
                 let stream = producer.as_stream();
                 futures::pin_mut!(stream);
-                let (session_result, binary_result, flashing, producer_res) = join!(
+                let (session_result, binary_result, flushing, producer_res) = join!(
                     async {
                         match rx_session_done.await {
                             Ok(res) => res,
@@ -196,9 +238,10 @@ pub async fn handle(
                         })
                     },
                     async {
-                        while let (Some(_bytes_session), Some(_bytes_binary)) =
-                            join!(rx_session_file_flush.recv(), rx_binary_file_flush.recv())
-                        {
+                        while let Some((Some(_bytes_session), Some(_bytes_binary))) = select! {
+                            event = async { join!(rx_session_file_flush.recv(), rx_binary_file_flush.recv()) } => Some(event),
+                            _ = cancel.cancelled() => None,
+                        } {
                             if !state.is_closing() {
                                 state.update_session().await?;
                             }
@@ -232,8 +275,11 @@ pub async fn handle(
                                     })?;
                                 }
                                 MessageStreamItem::Done => {
+                                    cancel.cancel();
                                     break;
                                 }
+                                MessageStreamItem::Skipped => {}
+                                MessageStreamItem::Incomplete => {}
                                 _ => {}
                             }
                         }
@@ -246,7 +292,7 @@ pub async fn handle(
                         Err(err)
                     } else if let Err(err) = binary_result {
                         Err(err)
-                    } else if let Err(err) = flashing {
+                    } else if let Err(err) = flushing {
                         Err(err)
                     } else if let Err(err) = producer_res {
                         Err(err)

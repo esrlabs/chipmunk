@@ -21,11 +21,11 @@ impl WrappedSource {
 impl JSValue<'_> for WrappedSource {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
-            let filepath: String = match js_obj.get_property("filepath") {
+            let filename: String = match js_obj.get_property("filename") {
                 Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
                     return Err(NjError::Other(
-                        "[filepath] property is not found".to_owned(),
+                        "[filename] property is not found".to_owned(),
                     ));
                 }
                 Err(e) => {
@@ -42,7 +42,7 @@ impl JSValue<'_> for WrappedSource {
                 }
             };
             Ok(WrappedSource(Source::File(
-                PathBuf::from(filepath),
+                PathBuf::from(filename),
                 match parser.as_str() {
                     "text" => ParserType::Text,
                     "pcap" => ParserType::Pcap,

@@ -1,10 +1,10 @@
 use crate::{Error, LogMessage, Parser};
 use byteorder::{BigEndian, WriteBytesExt};
+pub use dlt_core::fmt::FormattableMessage;
 use dlt_core::{
     dlt::{self},
     fibex::FibexMetadata,
     filtering::ProcessedDltFilterConfig,
-    fmt::FormattableMessage,
     parse::{dlt_consume_msg, dlt_message},
 };
 use std::{fmt, io::Write, ops::Range};
