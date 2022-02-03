@@ -14,10 +14,10 @@ import {
     IExtractDTFormatResult,
     IConcatFile,
     IFileMergeOptions,
+    DataSource,
 } from '../interfaces';
 import { IConcatResults } from './session.stream.concat.executor';
 import { IMergeResults } from './session.stream.merge.executor';
-import { DataSource } from '../interfaces/index';
 
 export {
     IFileMergeOptions,
@@ -26,6 +26,7 @@ export {
     IDetectOptions,
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
+    DataSource,
 };
 
 abstract class Connector<T> {
