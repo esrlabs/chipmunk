@@ -3,7 +3,7 @@ use byteorder::{BigEndian, WriteBytesExt};
 pub use dlt_core::{
     dlt::LogLevel,
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
-    filtering::ProcessedDltFilterConfig,
+    filtering::{process_filter_config, DltFilterConfig, ProcessedDltFilterConfig},
     fmt::FormattableMessage,
 };
 use dlt_core::{
