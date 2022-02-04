@@ -1,4 +1,3 @@
-use super::observe;
 use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
@@ -15,8 +14,8 @@ pub async fn handle(
     files: Vec<ConcatenatorInput>,
     out_path: &Path,
     append: bool,
-    source_id: String,
-    state: SessionStateAPI,
+    _source_id: String,
+    _state: SessionStateAPI,
 ) -> OperationResult<()> {
     let (tx_progress, rx_progress) = cc::unbounded();
     concat_files_use_config_file(

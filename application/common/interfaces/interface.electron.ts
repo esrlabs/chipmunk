@@ -1,3 +1,6 @@
+declare interface MessagePort {}
+declare interface Event {}
+
 export interface IpcRenderer {
     invoke(channel: string, ...args: any[]): Promise<any>;
     on(channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): this;
@@ -27,7 +30,17 @@ export interface OpenDialogOptions {
     defaultPath?: string;
     buttonLabel?: string;
     filters?: FileFilter[];
-    properties?: Array<'openFile' | 'openDirectory' | 'multiSelections' | 'showHiddenFiles' | 'createDirectory' | 'promptToCreate' | 'noResolveAliases' | 'treatPackageAsDirectory' | 'dontAddToRecent'>;
+    properties?: Array<
+        | 'openFile'
+        | 'openDirectory'
+        | 'multiSelections'
+        | 'showHiddenFiles'
+        | 'createDirectory'
+        | 'promptToCreate'
+        | 'noResolveAliases'
+        | 'treatPackageAsDirectory'
+        | 'dontAddToRecent'
+    >;
     message?: string;
     securityScopedBookmarks?: boolean;
 }

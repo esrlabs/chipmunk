@@ -4,8 +4,8 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import { Session, DataSource } from '../src/api/session';
-import { IGrabbedElement } from '../src/interfaces/index';
+import { Session, Observe } from '../src/api/session';
+import { IGrabbedElement, Dlt } from '../src/interfaces/index';
 import { createSampleFile, finish } from './common';
 import { getLogger } from '../src/util/logging';
 
@@ -34,7 +34,7 @@ describe('Assign', function () {
                     (i: number) => `some line data: ${i}\n`,
                 );
                 stream
-                    .observe(DataSource.asTextFile(tmpobj.name))
+                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
                     .catch(finish.bind(null, session, done));
                 let grabbing: boolean = false;
                 events.StreamUpdated.subscribe((rows: number) => {
@@ -92,7 +92,15 @@ describe('Assign', function () {
                     return;
                 }
                 stream
-                    .observe(DataSource.asPcapFile(PCAPNG_EXAMPLE_FILE))
+                    .observe(
+                        Observe.DataSource.asPcapFile(PCAPNG_EXAMPLE_FILE, {
+                            dlt: {
+                                filter_config: undefined,
+                                fibex_file_paths: undefined,
+                                with_storage_header: false,
+                            },
+                        }),
+                    )
                     .catch(finish.bind(null, session, done));
                 let grabbing: boolean = false;
                 events.StreamUpdated.subscribe((rows: number) => {

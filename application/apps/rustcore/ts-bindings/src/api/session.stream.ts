@@ -14,7 +14,7 @@ import {
     IExtractDTFormatResult,
     IConcatFile,
     IFileMergeOptions,
-    DataSource,
+    Observe,
 } from '../interfaces';
 import { IConcatResults } from './session.stream.concat.executor';
 import { IMergeResults } from './session.stream.merge.executor';
@@ -26,7 +26,7 @@ export {
     IDetectOptions,
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
-    DataSource,
+    Observe,
 };
 
 abstract class Connector<T> {
@@ -74,7 +74,7 @@ export class SessionStream {
         return this._session.getFileOptionsRequirements(filename);
     }
 
-    public observe(source: DataSource): CancelablePromise<void> {
+    public observe(source: Observe.DataSource): CancelablePromise<void> {
         // TODO create grabber
         return Executors.observe(this._session, this._provider, this._logger, source);
     }

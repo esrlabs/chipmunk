@@ -18,6 +18,6 @@ export {
     IConcatFile,
     IFileMergeOptions,
     INearest,
-    DataSource,
 } from '../../../../../common/interfaces/interface.rust.api.general';
+export { Dlt, Pcap, Someip, Observe } from '../../../../../common/interfaces/index';
 export { OperationStat } from './debug';
