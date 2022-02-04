@@ -98,7 +98,10 @@ pub async fn handle(
                         None
                     };
                     let dlt_parser = dlt::DltParser {
-                        filter_config: settings.dlt.filter_config.map(|settings| settings.get()),
+                        filter_config: settings
+                            .dlt
+                            .filter_config
+                            .map(|settings| dlt::process_filter_config(settings)),
                         fibex_metadata: fibex_metadata.as_ref(),
                         with_storage_header: settings.dlt.with_storage_header,
                     };
