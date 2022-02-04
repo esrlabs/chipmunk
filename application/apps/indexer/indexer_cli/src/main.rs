@@ -1016,9 +1016,20 @@ pub async fn main() -> Result<()> {
             }
             out_writer.flush().unwrap();
 
-            duration_report(
+            let source_file_size = fs::metadata(&file_path).expect("file size error").len();
+            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+            let out_file_size = fs::metadata(&out_path).expect("file size error").len();
+            let out_file_size_in_mb = out_file_size as f64 / 1024.0 / 1024.0;
+            duration_report_throughput(
                 start,
-                format!("Writing {} lines from dlt file to text", line_nr),
+                format!(
+                    "processing ~{} MB ({} dlt messages) (wrote ~{} MB text file)",
+                    file_size_in_mb.round(),
+                    line_nr,
+                    out_file_size_in_mb.round(),
+                ),
+                file_size_in_mb,
+                "MB".to_string(),
             );
         }
 
