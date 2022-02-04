@@ -5,7 +5,7 @@ use crate::{
 use indexer_base::progress::{ComputationResult, Severity};
 use log::{debug, error};
 use processor::{
-    grabber::{GrabTrait, GrabbedContent, Grabber, LineRange},
+    grabber::{GrabbedContent, Grabber, LineRange},
     map::{FilterMatch, SearchMap},
     text_source::TextFileSource,
 };
@@ -13,12 +13,9 @@ use std::{
     collections::{hash_map::Entry, HashMap},
     path::PathBuf,
 };
-use tokio::{
-    select,
-    sync::{
-        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-        oneshot,
-    },
+use tokio::sync::{
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -90,6 +87,7 @@ pub struct SessionStateAPI {
     closing_token: CancellationToken,
 }
 
+#[allow(clippy::type_complexity)]
 impl SessionStateAPI {
     pub fn new() -> (Self, UnboundedReceiver<Api>) {
         let (tx_api, rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) = unbounded_channel();

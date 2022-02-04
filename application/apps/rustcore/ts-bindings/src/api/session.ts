@@ -20,7 +20,7 @@ export {
     IEventMapUpdated,
     IEventMatchesUpdated,
 } from './session.provider';
-export { DataSource } from '../interfaces';
+export { Observe } from '../interfaces';
 export { EventProvider, SessionStream, SessionSearch };
 
 enum ESessionState {

@@ -13,10 +13,10 @@ import {
     IExtractDTFormatOptions,
     IConcatFile,
     IFileMergeOptions,
-    DataSource,
+    Observe,
 } from '../interfaces/index';
 import { getNativeModule } from './native';
-import { EFileOptionsRequirements, TFileOptions } from '../api/session.stream.observe.executor';
+import { EFileOptionsRequirements } from '../api/session.stream.observe.executor';
 import { IDetectOptions } from '../api/session.stream.timeformat.detect.executor';
 import { IExportOptions } from '../api/session.stream.export.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
@@ -138,7 +138,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract observe(source: DataSource, operationUuid: string): Promise<void>;
+    public abstract observe(source: Observe.DataSource, operationUuid: string): Promise<void>;
 
     /**
      * Concat files and assigns it with session. After this operation, @method observe, @method merge cannot be used
@@ -216,7 +216,7 @@ export abstract class RustSessionNative {
 
     public abstract getUuid(): string;
 
-    public abstract observe(source: DataSource, operationUuid: string): Promise<void>;
+    public abstract observe(source: string, operationUuid: string): Promise<void>;
 
     public abstract concat(
         files: IConcatFile[],
@@ -495,12 +495,12 @@ export class RustSessionWrapper extends RustSession {
         return '';
     }
 
-    public observe(source: DataSource, operationUuid: string): Promise<void> {
+    public observe(source: Observe.DataSource, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this._provider.debug().emit.operation('observe', operationUuid);
                 this._native
-                    .observe(source, operationUuid)
+                    .observe(source.toJSON(), operationUuid)
                     .then(resolve)
                     .catch((err: Error) => {
                         reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));

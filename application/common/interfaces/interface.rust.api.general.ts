@@ -125,26 +125,3 @@ export interface INearest {
     index: number;
     position: number;
 }
-
-export interface ISource {
-    filename?: string;
-    parser: 'text' | 'dlt' | 'pcap';
-}
-
-export class DataSource {
-    public filename: string | undefined;
-    public parser!: 'text' | 'dlt' | 'pcap';
-
-    constructor(opt: ISource) {
-        this.filename = opt.filename;
-        this.parser = opt.parser;
-    }
-
-    public static asTextFile(filename: string): DataSource {
-        return new DataSource({ filename, parser: 'text' });
-    }
-
-    public static asPcapFile(filename: string): DataSource {
-        return new DataSource({ filename, parser: 'pcap' });
-    }
-}

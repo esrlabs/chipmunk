@@ -293,7 +293,6 @@ impl OperationAPI {
         }
         let api = self.clone();
         let state = self.state_api.clone();
-        let id = self.id();
         spawn(async move {
             match operation {
                 Operation::Observe(source) => {

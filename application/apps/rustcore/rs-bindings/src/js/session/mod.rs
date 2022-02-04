@@ -4,7 +4,7 @@ use crate::{
     js::{
         converting::{
             concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
-            merge::WrappedFileMergeOptions, source::WrappedSource,
+            merge::WrappedFileMergeOptions,
         },
         session::events::ComputationErrorWrapper,
     },
@@ -16,6 +16,7 @@ use node_bindgen::derive::node_bindgen;
 use processor::grabber::LineRange;
 use session::{
     events::{CallbackEvent, ComputationError, NativeError},
+    factory::Source,
     operations,
     session::Session,
 };
@@ -201,15 +202,15 @@ impl RustSession {
     #[node_bindgen]
     async fn observe(
         &self,
-        source: WrappedSource,
+        source: String,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
+        let source: Source = serde_json::from_str(&source).map_err(|e| {
+            ComputationError::Process(format!("Cannot parse source settings: {}", e))
+        })?;
         if let Some(ref session) = self.session {
             session
-                .observe(
-                    operations::uuid_from_str(&operation_id)?,
-                    source.get_source(),
-                )
+                .observe(operations::uuid_from_str(&operation_id)?, source)
                 .map_err(ComputationErrorWrapper)
         } else {
             Err(ComputationErrorWrapper(
