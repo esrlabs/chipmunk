@@ -4,7 +4,7 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import { Session } from '../src/api/session';
+import { Session, Observe } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
@@ -37,7 +37,9 @@ describe('Search', function () {
                             i % 100 === 0 || i <= 5 ? `some match line data\n` : `some line data\n`
                         }`,
                 );
-                stream.observe(tmpobj.name, {}).catch(finish.bind(null, session, done));
+                stream
+                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .catch(finish.bind(null, session, done));
                 let searchStreamUpdated = false;
                 events.SearchUpdated.subscribe((found: number) => {
                     searchStreamUpdated = true;
@@ -178,7 +180,9 @@ describe('Search', function () {
                                 : `some line data\n`
                         }`,
                 );
-                stream.observe(tmpobj.name, {}).catch(finish.bind(null, session, done));
+                stream
+                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .catch(finish.bind(null, session, done));
                 search
                     .search([
                         {
@@ -302,7 +306,9 @@ describe('Search', function () {
                     logger,
                     (i: number) => `[${i}]:: some line data\n`,
                 );
-                stream.observe(tmpobj.name, {}).catch(finish.bind(null, session, done));
+                stream
+                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .catch(finish.bind(null, session, done));
                 search
                     .search([
                         {
@@ -350,7 +356,9 @@ describe('Search', function () {
                             i % 100 === 0 || i <= 5 ? `some mAtCh line data\n` : `some line data\n`
                         }`,
                 );
-                stream.observe(tmpobj.name, {}).catch(finish.bind(null, session, done));
+                stream
+                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .catch(finish.bind(null, session, done));
                 search
                     .search([
                         {
@@ -483,7 +491,9 @@ describe('Search', function () {
                                 : `some line matchmatchmatch data\n`
                         }`,
                 );
-                stream.observe(tmpobj.name, {}).catch(finish.bind(null, session, done));
+                stream
+                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .catch(finish.bind(null, session, done));
                 search
                     .search([
                         {
