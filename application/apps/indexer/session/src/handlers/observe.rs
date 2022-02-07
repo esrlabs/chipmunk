@@ -263,12 +263,18 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             } {
                 match item {
                     MessageStreamItem::Item(item) => {
-                        let item_str = format!("{}", item)
-                            .replace('\u{0004}', "<#C#>")
-                            .replace('\u{0005}', "<#A#>")
-                            .to_owned();
+                        // TODO: should be removed as soon as dlt-core will be updated
+                        // let item_str = format!("{}", item)
+                        //     .replace('\u{0004}', "<#C#>")
+                        //     .replace('\u{0005}', "<#A#>")
+                        //     .to_owned();
                         session_writer
-                            .write(format!("{}\n", item_str).as_bytes())
+                            .write_fmt(format_args!(
+                                "{}",
+                                format!("{}", item)
+                                    .replace('\u{0004}', "<#C#>")
+                                    .replace('\u{0005}', "<#A#>")
+                            ))
                             .map_err(|e| NativeError {
                                 severity: Severity::ERROR,
                                 kind: NativeErrorKind::Io,
