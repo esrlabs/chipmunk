@@ -19,9 +19,6 @@ impl LogMessage for FormattableMessage<'_> {
         writer.write_all(&bytes)?;
         Ok(len)
     }
-    fn as_bytes(&self) -> Vec<u8> {
-        self.message.as_bytes()
-    }
 }
 
 #[derive(Debug)]
@@ -52,9 +49,6 @@ impl LogMessage for RangeMessage {
         writer.write_u64::<BigEndian>(self.range.end as u64)?;
         Ok(8 + 8)
     }
-    fn as_bytes(&self) -> Vec<u8> {
-        vec![]
-    }
 }
 
 impl LogMessage for RawMessage {
@@ -62,9 +56,6 @@ impl LogMessage for RawMessage {
         let len = self.content.len();
         writer.write_all(&self.content)?;
         Ok(len)
-    }
-    fn as_bytes(&self) -> Vec<u8> {
-        self.content.to_vec()
     }
 }
 

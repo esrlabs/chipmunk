@@ -45,7 +45,6 @@ pub trait LogMessage: Display {
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
-    fn as_bytes(&self) -> Vec<u8>;
 }
 
 #[derive(Debug)]
