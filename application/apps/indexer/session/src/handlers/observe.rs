@@ -270,7 +270,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         //     .to_owned();
                         session_writer
                             .write_fmt(format_args!(
-                                "{}",
+                                "{}\n",
                                 format!("{}", item)
                                     .replace('\u{0004}', "<#C#>")
                                     .replace('\u{0005}', "<#A#>")
