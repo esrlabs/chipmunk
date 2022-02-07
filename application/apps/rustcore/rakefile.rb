@@ -116,9 +116,9 @@ namespace :test do
     sh "#{test_runner} ts-bindings/spec/session.search.spec.ts"
   end
 
-  desc 'run assign tests'
-  task :assign do
-    sh "#{test_runner} ts-bindings/spec/session.assign.spec.ts"
+  desc 'run observe tests'
+  task :observe do
+    sh "#{test_runner} ts-bindings/spec/session.observe.spec.ts"
   end
 
   desc 'run errors tests'

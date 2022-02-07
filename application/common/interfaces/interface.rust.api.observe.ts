@@ -43,6 +43,10 @@ export class DataSource {
         return new DataSource({ File: [filename, { Pcap: settings }] });
     }
 
+    public static asDltFile(filename: string, settings: DltParserSettings): DataSource {
+        return new DataSource({ File: [filename, { Dlt: settings }] });
+    }
+
     public toJSON(): string {
         return JSON.stringify({
             File: this.File,

@@ -10,7 +10,7 @@ use sources::{
     factory::{ParserType, Source},
     pcap,
     producer::MessageProducer,
-    ByteSource,
+    raw, ByteSource,
 };
 use std::{
     fs::File,
@@ -37,77 +37,81 @@ pub async fn handle(
     state: SessionStateAPI,
     source: Source,
 ) -> OperationResult<()> {
-    let (paths, result): (Vec<PathBuf>, OperationResult<()>) = match source {
-        Source::File(filename, parser_type) => match parser_type {
-            ParserType::Text => {
-                state.set_session_file(filename.clone()).await?;
-                let (tx_tail_update, mut rx_tail_update): (
-                    Sender<Result<(), tail::Error>>,
-                    Receiver<Result<(), tail::Error>>,
-                ) = channel(1);
-                state.update_session().await?;
-                let cancel = operation_api.get_cancellation_token_listener();
-                let tail_shutdown = CancellationToken::new();
-                let tail_shutdown_caller = tail_shutdown.clone();
-                let (result, tracker) = join!(
-                    async {
-                        let result = select! {
-                            res = async move {
-                                while let Some(upd) = rx_tail_update.recv().await {
-                                    if let Err(err) = upd {
-                                        return Err(NativeError {
-                                            severity: Severity::ERROR,
-                                            kind: NativeErrorKind::Interrupted,
-                                            message: Some(err.to_string()),
-                                        });
-                                    } else {
-                                        state.update_session().await?;
+    let (paths, result): (Vec<PathBuf>, OperationResult<()>) =
+        match source {
+            Source::File(filename, parser_type) => match parser_type {
+                ParserType::Text => {
+                    state.set_session_file(filename.clone()).await?;
+                    let (tx_tail_update, mut rx_tail_update): (
+                        Sender<Result<(), tail::Error>>,
+                        Receiver<Result<(), tail::Error>>,
+                    ) = channel(1);
+                    // Grab main file content
+                    state.update_session().await?;
+                    // Confirm: main file content has been read
+                    state.file_read().await?;
+                    // Switching to tail
+                    let cancel = operation_api.get_cancellation_token_listener();
+                    let tail_shutdown = CancellationToken::new();
+                    let tail_shutdown_caller = tail_shutdown.clone();
+                    let (result, tracker) = join!(
+                        async {
+                            let result = select! {
+                                res = async move {
+                                    while let Some(upd) = rx_tail_update.recv().await {
+                                        if let Err(err) = upd {
+                                            return Err(NativeError {
+                                                severity: Severity::ERROR,
+                                                kind: NativeErrorKind::Interrupted,
+                                                message: Some(err.to_string()),
+                                            });
+                                        } else {
+                                            state.update_session().await?;
+                                        }
                                     }
-                                }
-                                Ok(())
-                            } => res,
-                            _ = cancel.cancelled() => Ok(())
+                                    Ok(())
+                                } => res,
+                                _ = cancel.cancelled() => Ok(())
+                            };
+                            tail_shutdown_caller.cancel();
+                            result
+                        },
+                        tail::track(filename.clone(), tx_tail_update, tail_shutdown),
+                    );
+                    (
+                        vec![],
+                        if let Err(err) = result {
+                            Err(err)
+                        } else if let Err(err) = tracker.map_err(|e| NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Interrupted,
+                            message: Some(format!("Tailing error: {}", e)),
+                        }) {
+                            Err(err)
+                        } else {
+                            Ok(None)
+                        },
+                    )
+                }
+                _ => match parser_type {
+                    ParserType::Pcap(settings) => {
+                        let fibex_metadata = if let Some(paths) = settings.dlt.fibex_file_paths {
+                            dlt::gather_fibex_data(dlt::FibexConfig {
+                                fibex_file_paths: paths,
+                            })
+                        } else {
+                            None
                         };
-                        tail_shutdown_caller.cancel();
-                        result
-                    },
-                    tail::track(filename.clone(), tx_tail_update, tail_shutdown),
-                );
-                (
-                    vec![],
-                    if let Err(err) = result {
-                        Err(err)
-                    } else if let Err(err) = tracker.map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Interrupted,
-                        message: Some(format!("Tailing error: {}", e)),
-                    }) {
-                        Err(err)
-                    } else {
-                        Ok(None)
-                    },
-                )
-            }
-            _ => match parser_type {
-                ParserType::Pcap(settings) => {
-                    let fibex_metadata = if let Some(paths) = settings.dlt.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
-                    } else {
-                        None
-                    };
-                    let dlt_parser = dlt::DltParser {
-                        filter_config: settings
-                            .dlt
-                            .filter_config
-                            .map(|settings| dlt::process_filter_config(settings)),
-                        fibex_metadata: fibex_metadata.as_ref(),
-                        with_storage_header: settings.dlt.with_storage_header,
-                    };
-                    let source =
-                        pcap::file::PcapngByteSource::new(File::open(&filename).map_err(|e| {
-                            NativeError {
+                        let dlt_parser = dlt::DltParser::new(
+                            settings
+                                .dlt
+                                .filter_config
+                                .map(|settings| dlt::process_filter_config(settings)),
+                            fibex_metadata.as_ref(),
+                            settings.dlt.with_storage_header,
+                        );
+                        let source = pcap::file::PcapngByteSource::new(
+                            File::open(&filename).map_err(|e| NativeError {
                                 severity: Severity::ERROR,
                                 kind: NativeErrorKind::Io,
                                 message: Some(format!(
@@ -115,8 +119,8 @@ pub async fn handle(
                                     filename.to_string_lossy(),
                                     e
                                 )),
-                            }
-                        })?)
+                            })?,
+                        )
                         .map_err(|e| NativeError {
                             severity: Severity::ERROR,
                             kind: NativeErrorKind::ComputationFailed,
@@ -126,25 +130,59 @@ pub async fn handle(
                                 e
                             )),
                         })?;
-                    listen(
-                        filename,
-                        operation_api,
-                        state,
-                        MessageProducer::new(dlt_parser, source),
-                    )
-                    .await?
-                }
-                _ => {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::FileNotFound,
-                        message: Some(String::from("Not supported type of file")),
-                    });
-                }
+                        listen(
+                            filename,
+                            operation_api,
+                            state,
+                            MessageProducer::new(dlt_parser, source),
+                        )
+                        .await?
+                    }
+                    ParserType::Dlt(settings) => {
+                        let fibex_metadata = if let Some(paths) = settings.fibex_file_paths {
+                            dlt::gather_fibex_data(dlt::FibexConfig {
+                                fibex_file_paths: paths,
+                            })
+                        } else {
+                            None
+                        };
+                        let dlt_parser = dlt::DltParser::new(
+                            settings
+                                .filter_config
+                                .map(|settings| dlt::process_filter_config(settings)),
+                            fibex_metadata.as_ref(),
+                            settings.with_storage_header,
+                        );
+                        let source = raw::binary::BinaryByteSource::new(
+                            File::open(&filename).map_err(|e| NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::Io,
+                                message: Some(format!(
+                                    "Fail open file {}: {}",
+                                    filename.to_string_lossy(),
+                                    e
+                                )),
+                            })?,
+                        );
+                        listen(
+                            filename,
+                            operation_api,
+                            state,
+                            MessageProducer::new(dlt_parser, source),
+                        )
+                        .await?
+                    }
+                    _ => {
+                        return Err(NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::FileNotFound,
+                            message: Some(String::from("Not supported type of file")),
+                        });
+                    }
+                },
             },
-        },
-        Source::Stream(_transport, _parser_type) => (vec![], Ok(None)),
-    };
+            Source::Stream(_transport, _parser_type) => (vec![], Ok(None)),
+        };
     for path in paths {
         if path.exists() {
             std::fs::remove_file(path).map_err(|e| NativeError {
@@ -283,9 +321,13 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         })?;
                     }
                     MessageStreamItem::Done => {
+                        state.file_read().await?;
                         cancel.cancel();
                         break;
                     }
+                    // MessageStreamItem::FileRead => {
+                    //     state.file_read().await?;
+                    // }
                     MessageStreamItem::Skipped => {}
                     MessageStreamItem::Incomplete => {}
                     _ => {}
