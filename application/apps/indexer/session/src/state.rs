@@ -24,6 +24,7 @@ pub enum Api {
     SetSessionFile((PathBuf, oneshot::Sender<Result<(), NativeError>>)),
     GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
     UpdateSession(oneshot::Sender<Result<(), NativeError>>),
+    FileRead(oneshot::Sender<()>),
     Grab(
         (
             LineRange,
@@ -267,6 +268,24 @@ impl SessionStateAPI {
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::UpdateSession")),
         })?
+    }
+
+    pub async fn file_read(&self) -> Result<(), NativeError> {
+        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
+            oneshot::channel();
+        self.tx_api
+            .send(Api::FileRead(tx_response))
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(format!("fail to send to Api::FileRead; error: {}", e,)),
+            })?;
+        rx_response.await.map_err(|_| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ChannelError,
+            message: Some(String::from("fail to get response from Api::FileRead")),
+        })?;
+        Ok(())
     }
 
     pub async fn set_stream_len(&self, len: u64) -> Result<(), NativeError> {
@@ -776,6 +795,22 @@ pub async fn task(
                     return Err(err);
                 }
             }
+            Api::FileRead(tx_response) => {
+                if let Err(err) = tx_callback_events.send(CallbackEvent::FileRead) {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(format!("callback channel is broken: {}", err)),
+                    });
+                }
+                if tx_response.send(()).is_err() {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(String::from("fail to response to Api::UpdateSession")),
+                    });
+                }
+            }
             Api::SetStreamLen((len, tx_response)) => {
                 state.search_map.set_stream_len(len);
                 if tx_response.send(()).is_err() {
@@ -971,11 +1006,11 @@ pub async fn task(
             Api::CancelOperation((uuid, tx_response)) => {
                 if tx_response
                     .send(
-                        if let Some((cancalation_token, done_token)) =
+                        if let Some((operation_cancalation_token, done_token)) =
                             state.operations.remove(&uuid)
                         {
                             if !done_token.is_cancelled() {
-                                cancalation_token.cancel();
+                                operation_cancalation_token.cancel();
                                 debug!("waiting for operation {} would confirm done-state", uuid);
                                 done_token.cancelled().await;
                             }
@@ -996,10 +1031,11 @@ pub async fn task(
             Api::CloseSession(tx_response) => {
                 cancellation_token.cancel();
                 state.status = Status::Closed;
-                for (uuid, (cancalation_token, done_token)) in &state.operations {
+                for (uuid, (operation_cancalation_token, done_token)) in &state.operations {
                     if !done_token.is_cancelled() {
-                        cancalation_token.cancel();
+                        operation_cancalation_token.cancel();
                         debug!("waiting for operation {} would confirm done-state", uuid);
+                        // TODO: add timeout to preven situation with waiting forever. 2-3 sec.
                         done_token.cancelled().await;
                     }
                 }

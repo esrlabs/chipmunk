@@ -96,6 +96,13 @@ pub enum CallbackEvent {
      */
     StreamUpdated(u64),
     /**
+     * Triggered on file has been read complitely. After this event session starts tail
+     * @event FileRead
+     * >> Scope: session
+     * >> Kind: once
+     */
+    FileRead,
+    /**
      * Triggered on update of search result data
      * @event SearchUpdated { rows: usize }
      * rows - count of rows, which can be requested with method [grabSearchResult]

@@ -40,6 +40,7 @@ export interface IEventMatchesUpdated {
 
 export interface ISessionEvents {
     StreamUpdated: Events.Subject<number>;
+    FileRead: Events.Subject<void>;
     SearchUpdated: Events.Subject<number>;
     MapUpdated: Events.Subject<IEventMapUpdated>;
     MatchesUpdated: Events.Subject<IEventMatchesUpdated>;
@@ -52,6 +53,7 @@ export interface ISessionEvents {
 
 interface ISessionEventsSignatures {
     StreamUpdated: 'StreamUpdated';
+    FileRead: 'FileRead';
     SearchUpdated: 'SearchUpdated';
     MapUpdated: 'MapUpdated';
     MatchesUpdated: 'MatchesUpdated';
@@ -64,6 +66,7 @@ interface ISessionEventsSignatures {
 
 const SessionEventsSignatures: ISessionEventsSignatures = {
     StreamUpdated: 'StreamUpdated',
+    FileRead: 'FileRead',
     SearchUpdated: 'SearchUpdated',
     MapUpdated: 'MapUpdated',
     MatchesUpdated: 'MatchesUpdated',
@@ -76,6 +79,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
 
 interface ISessionEventsInterfaces {
     StreamUpdated: { self: 'number' };
+    FileRead: { self: null };
     SearchUpdated: { self: 'number' };
     MapUpdated: { self: 'object'; map: typeof Array };
     MatchesUpdated: { self: 'object'; matches: typeof Array };
@@ -99,6 +103,7 @@ interface ISessionEventsInterfaces {
 
 const SessionEventsInterfaces: ISessionEventsInterfaces = {
     StreamUpdated: { self: 'number' },
+    FileRead: { self: null },
     SearchUpdated: { self: 'number' },
     MapUpdated: { self: 'object', map: Array },
     MatchesUpdated: { self: 'object', matches: Array },
@@ -127,6 +132,7 @@ export class EventProvider extends Computation<
 > {
     private readonly _events: ISessionEvents = {
         StreamUpdated: new Events.Subject<number>(),
+        FileRead: new Events.Subject<void>(),
         SearchUpdated: new Events.Subject<number>(),
         MapUpdated: new Events.Subject<IEventMapUpdated>(), // dummy
         MatchesUpdated: new Events.Subject<IEventMatchesUpdated>(), // dummy

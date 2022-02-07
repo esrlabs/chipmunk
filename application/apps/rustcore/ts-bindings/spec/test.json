@@ -1,0 +1,41 @@
+/* NOTE: in this JSON can be used comments placed between stars */
+{
+    "log_level": 1,
+    "tests": {
+        "observe": {
+            "regular_test": {
+                "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
+                "dlt": "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"
+            },
+            "performance_test": {
+                "run": false,
+                "tests": {
+                    "text": {
+                        "open_as": "text",
+                        "ignore": false,
+                        /* Expectation time in ms */
+                        "expectation_ms": 1000,
+                        "alias": "Text file", 
+                        "file": "/storage/projects/esrlabs/logs-examples/biggest.log"
+                    },
+                    "dlt": {
+                        "open_as": "dlt",
+                        "ignore": true,
+                        /* Expectation time in ms */
+                        "expectation_ms": 1000,
+                        "alias": "DLT file", 
+                        "file": "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"
+                    },
+                    "pcapng": {
+                        "open_as": "pcap",
+                        "ignore": true,
+                        /* Expectation time in ms */
+                        "expectation_ms": 1000,
+                        "alias": "PCAPNG file", 
+                        "file": "/storage/projects/esrlabs/logs-examples/test.pcapng"
+                    }
+                }
+            }
+        }
+    }
+}
