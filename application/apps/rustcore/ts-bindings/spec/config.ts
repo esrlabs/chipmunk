@@ -6,21 +6,28 @@ export interface IPerformanceTest {
     expectation_ms: number;
     file: string;
 }
+export interface IRegularTests {
+    execute_only: number[];
+    list: { [key: string]: string };
+    files: { [key: string]: string };
+}
 export interface IConfiguration {
     log_level: number;
     tests: {
         observe: {
-            execute_only: number[];
-            regular_test: { [key: string]: string };
-            performance_test: {
+            regular: IRegularTests;
+            performance: {
                 run: boolean;
                 tests: { [key: string]: IPerformanceTest };
             };
         };
+        search: {
+            regular: IRegularTests;
+        };
     };
 }
 
-export function readConfigurationFile(warn: boolean = true): Config | Error {
+export function readConfigurationFile(): Config {
     const config = (() => {
         const filename = (process.env as any)['JASMIN_TEST_CONFIGURATION'];
         if (typeof filename !== 'string' || filename.trim() === '') {
@@ -45,7 +52,7 @@ export function readConfigurationFile(warn: boolean = true): Config | Error {
     if (config instanceof Error) {
         console.warn(`\n`);
         console.warn(`=`.repeat(81));
-        console.warn(`**** WARNING ${'*'.repeat(68)}`);
+        console.warn(`**** ERROR ${'*'.repeat(68)}`);
         console.warn(`=`.repeat(81));
         console.warn(`Fail to read configuration file due error: ${config.message}`);
         console.warn(
@@ -53,8 +60,10 @@ export function readConfigurationFile(warn: boolean = true): Config | Error {
         );
         console.warn(`=`.repeat(81));
         console.warn(`\n`);
+        process.exit(1);
+    } else {
+        return config;
     }
-    return config;
 }
 export class Config {
     private readonly _config: IConfiguration;

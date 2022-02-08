@@ -8,23 +8,33 @@ import { Session, Observe } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { createSampleFile, finish, performanceReport, setMeasurement } from './common';
 import { getLogger } from '../src/util/logging';
-import { Config, readConfigurationFile } from './config';
+import { readConfigurationFile } from './config';
 
-const config: Config | Error = readConfigurationFile(true);
+const config = readConfigurationFile().get().tests.observe;
+
+function ingore(id: string | number, done: () => void) {
+    if (
+        config.regular.execute_only.length > 0 &&
+        config.regular.execute_only.indexOf(typeof id === 'number' ? id : parseInt(id, 10)) === -1
+    ) {
+        console.log(`"${config.regular.list[id]}" is ignored`);
+        done();
+        return true;
+    } else {
+        return false;
+    }
+}
 
 describe('Observe', function () {
-    it('Test 1. Observe and grab content (text)', function (done) {
-        if (config instanceof Config && config.get().tests.observe.execute_only.length !== 0) {
-            if (config.get().tests.observe.execute_only.indexOf(1) === -1) {
-                console.log(`Test 1. Observe and grab content (text) is ignored`);
-                return done();
-            }
+    it(config.regular.list[1], function (done) {
+        if (ingore(1, done)) {
+            return;
         }
-        const logger = getLogger('Observe. Test 1');
+        const logger = getLogger(config.regular.list[1]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, 'Observe. Test 1');
+                session.debug(true, config.regular.list[1]);
                 const stream = session.getStream();
                 if (stream instanceof Error) {
                     finish(session, done, stream);
@@ -82,220 +92,205 @@ describe('Observe', function () {
             });
     });
 
-    config instanceof Config &&
-        it('Test 2. Observe and grab content (pcapng)', function (done) {
-            if (config.get().tests.observe.execute_only.length !== 0) {
-                if (config.get().tests.observe.execute_only.indexOf(2) === -1) {
-                    console.log(`Test 1. Observe and grab content (pcapng) is ignored`);
-                    return done();
-                }
-            }
-            const logger = getLogger('Observe. Test 2');
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, 'Observe. Test 2');
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    stream
-                        .observe(
-                            Observe.DataSource.asPcapFile(
-                                config.get().tests.observe.regular_test.pcapng,
-                                {
-                                    dlt: {
-                                        filter_config: undefined,
-                                        fibex_file_paths: undefined,
-                                        with_storage_header: false,
-                                    },
-                                },
-                            ),
-                        )
-                        .catch(finish.bind(null, session, done));
-                    let grabbing: boolean = false;
-                    events.StreamUpdated.subscribe((rows: number) => {
-                        if (rows < 100 || grabbing) {
-                            return;
-                        }
-                        grabbing = true;
-                        stream
-                            .grab(1, 10)
-                            .then((result: IGrabbedElement[]) => {
-                                expect(result.length).toEqual(10);
-                                logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
-                            })
-                            .catch((err: Error) => {
-                                finish(
-                                    session,
-                                    done,
-                                    new Error(`Fail to grab data due error: ${err.message}`),
-                                );
-                            });
-                    });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(`Fail to create session due error: ${err.message}`),
-                    );
-                });
-        });
-
-    config instanceof Config &&
-        it('Test 3. Observe and grab content (dlt)', function (done) {
-            if (config.get().tests.observe.execute_only.length !== 0) {
-                if (config.get().tests.observe.execute_only.indexOf(3) === -1) {
-                    console.log(`Test 1. Observe and grab content (dlt) is ignored`);
-                    return done();
-                }
-            }
-            const logger = getLogger('Observe. Test 2');
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, 'Observe. Test 3');
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    stream
-                        .observe(
-                            Observe.DataSource.asDltFile(
-                                config.get().tests.observe.regular_test.dlt,
-                                {
-                                    filter_config: undefined,
-                                    fibex_file_paths: undefined,
-                                    with_storage_header: false,
-                                },
-                            ),
-                        )
-                        .catch(finish.bind(null, session, done));
-                    let grabbing: boolean = false;
-                    events.StreamUpdated.subscribe((rows: number) => {
-                        if (rows < 100 || grabbing) {
-                            return;
-                        }
-                        grabbing = true;
-                        stream
-                            .grab(1, 10)
-                            .then((result: IGrabbedElement[]) => {
-                                expect(result.length).toEqual(10);
-                                logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
-                            })
-                            .catch((err: Error) => {
-                                finish(
-                                    session,
-                                    done,
-                                    new Error(`Fail to grab data due error: ${err.message}`),
-                                );
-                            });
-                    });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(`Fail to create session due error: ${err.message}`),
-                    );
-                });
-        });
-
-    config instanceof Config &&
-        config.get().tests.observe.performance_test.run &&
-        Object.keys(config.get().tests.observe.performance_test.tests).forEach(
-            (alias: string, index: number) => {
-                const test = (config.get().tests.observe.performance_test.tests as any)[alias];
-                const testName = `Performance test #${index + 1} (${test.alias})`;
-                if (test.ignore) {
-                    console.log(`Test "${testName}" has been ignored`);
+    it(config.regular.list[2], function (done) {
+        if (ingore(2, done)) {
+            console.log('>>>>>>>>>>>>>>>>>> ??????????');
+            return;
+        }
+        const logger = getLogger(config.regular.list[2]);
+        Session.create()
+            .then((session: Session) => {
+                // Set provider into debug mode
+                session.debug(true, config.regular.list[2]);
+                const stream = session.getStream();
+                if (stream instanceof Error) {
+                    finish(session, done, stream);
                     return;
                 }
-                it(testName, function (done) {
-                    const logger = getLogger(testName);
-                    const measurement = setMeasurement();
-                    Session.create()
-                        .then((session: Session) => {
-                            // Set provider into debug mode
-                            session.debug(true, testName);
-                            const stream = session.getStream();
-                            if (stream instanceof Error) {
-                                finish(session, done, stream);
-                                return;
-                            }
-                            const events = session.getEvents();
-                            if (events instanceof Error) {
-                                finish(session, done, events);
-                                return;
-                            }
-                            switch (test.open_as) {
-                                case 'text':
-                                    stream
-                                        .observe(Observe.DataSource.asTextFile(test.file))
-                                        .catch(finish.bind(null, session, done));
-                                    break;
-                                case 'dlt':
-                                    break;
-                                case 'pcap':
-                                    stream
-                                        .observe(
-                                            Observe.DataSource.asPcapFile(test.file, {
-                                                dlt: {
-                                                    filter_config: undefined,
-                                                    fibex_file_paths: undefined,
-                                                    with_storage_header: false,
-                                                },
-                                            }),
-                                        )
-                                        .catch(finish.bind(null, session, done));
-                                    break;
-                                default:
-                                    finish(
-                                        undefined,
-                                        done,
-                                        new Error(`Unsupported format: ${test.open_as}`),
-                                    );
-                                    return;
-                            }
-                            events.FileRead.subscribe(() => {
-                                const results = measurement();
-                                finish(
-                                    session,
-                                    done,
-                                    performanceReport(
-                                        testName,
-                                        results.ms,
-                                        test.expectation_ms,
-                                        test.file,
-                                    )
-                                        ? undefined
-                                        : new Error(`${testName} is fail`),
-                                );
-                            });
+                const events = session.getEvents();
+                if (events instanceof Error) {
+                    finish(session, done, events);
+                    return;
+                }
+                stream
+                    .observe(
+                        Observe.DataSource.asPcapFile(config.regular.files.pcapng, {
+                            dlt: {
+                                filter_config: undefined,
+                                fibex_file_paths: undefined,
+                                with_storage_header: false,
+                            },
+                        }),
+                    )
+                    .catch(finish.bind(null, session, done));
+                let grabbing: boolean = false;
+                events.StreamUpdated.subscribe((rows: number) => {
+                    if (rows < 100 || grabbing) {
+                        return;
+                    }
+                    grabbing = true;
+                    stream
+                        .grab(1, 10)
+                        .then((result: IGrabbedElement[]) => {
+                            expect(result.length).toEqual(10);
+                            logger.debug('result of grab was: ' + JSON.stringify(result));
+                            finish(session, done);
                         })
                         .catch((err: Error) => {
                             finish(
-                                undefined,
+                                session,
                                 done,
-                                new Error(`Fail to create session due error: ${err.message}`),
+                                new Error(`Fail to grab data due error: ${err.message}`),
                             );
                         });
                 });
-            },
-        );
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(`Fail to create session due error: ${err.message}`),
+                );
+            });
+    });
+
+    it(config.regular.list[3], function (done) {
+        if (ingore(3, done)) {
+            return;
+        }
+        const logger = getLogger(config.regular.list[3]);
+        Session.create()
+            .then((session: Session) => {
+                // Set provider into debug mode
+                session.debug(true, config.regular.list[3]);
+                const stream = session.getStream();
+                if (stream instanceof Error) {
+                    finish(session, done, stream);
+                    return;
+                }
+                const events = session.getEvents();
+                if (events instanceof Error) {
+                    finish(session, done, events);
+                    return;
+                }
+                stream
+                    .observe(
+                        Observe.DataSource.asDltFile(config.regular.files.dlt, {
+                            filter_config: undefined,
+                            fibex_file_paths: undefined,
+                            with_storage_header: false,
+                        }),
+                    )
+                    .catch(finish.bind(null, session, done));
+                let grabbing: boolean = false;
+                events.StreamUpdated.subscribe((rows: number) => {
+                    if (rows < 100 || grabbing) {
+                        return;
+                    }
+                    grabbing = true;
+                    stream
+                        .grab(1, 10)
+                        .then((result: IGrabbedElement[]) => {
+                            expect(result.length).toEqual(10);
+                            logger.debug('result of grab was: ' + JSON.stringify(result));
+                            finish(session, done);
+                        })
+                        .catch((err: Error) => {
+                            finish(
+                                session,
+                                done,
+                                new Error(`Fail to grab data due error: ${err.message}`),
+                            );
+                        });
+                });
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(`Fail to create session due error: ${err.message}`),
+                );
+            });
+    });
+
+    config.performance.run &&
+        Object.keys(config.regular.execute_only).length === 0 &&
+        Object.keys(config.performance.tests).forEach((alias: string, index: number) => {
+            const test = (config.performance.tests as any)[alias];
+            const testName = `Performance test #${index + 1} (${test.alias})`;
+            if (test.ignore) {
+                console.log(`Test "${testName}" has been ignored`);
+                return;
+            }
+            it(testName, function (done) {
+                const logger = getLogger(testName);
+                const measurement = setMeasurement();
+                Session.create()
+                    .then((session: Session) => {
+                        // Set provider into debug mode
+                        session.debug(true, testName);
+                        const stream = session.getStream();
+                        if (stream instanceof Error) {
+                            finish(session, done, stream);
+                            return;
+                        }
+                        const events = session.getEvents();
+                        if (events instanceof Error) {
+                            finish(session, done, events);
+                            return;
+                        }
+                        switch (test.open_as) {
+                            case 'text':
+                                stream
+                                    .observe(Observe.DataSource.asTextFile(test.file))
+                                    .catch(finish.bind(null, session, done));
+                                break;
+                            case 'dlt':
+                                break;
+                            case 'pcap':
+                                stream
+                                    .observe(
+                                        Observe.DataSource.asPcapFile(test.file, {
+                                            dlt: {
+                                                filter_config: undefined,
+                                                fibex_file_paths: undefined,
+                                                with_storage_header: false,
+                                            },
+                                        }),
+                                    )
+                                    .catch(finish.bind(null, session, done));
+                                break;
+                            default:
+                                finish(
+                                    undefined,
+                                    done,
+                                    new Error(`Unsupported format: ${test.open_as}`),
+                                );
+                                return;
+                        }
+                        events.FileRead.subscribe(() => {
+                            const results = measurement();
+                            finish(
+                                session,
+                                done,
+                                performanceReport(
+                                    testName,
+                                    results.ms,
+                                    test.expectation_ms,
+                                    test.file,
+                                )
+                                    ? undefined
+                                    : new Error(`${testName} is fail`),
+                            );
+                        });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(`Fail to create session due error: ${err.message}`),
+                        );
+                    });
+            });
+        });
 });

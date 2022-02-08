@@ -8,14 +8,33 @@ import { Session, Observe } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
+import { Config, readConfigurationFile } from './config';
+
+const config = readConfigurationFile().get().tests.search;
+
+function ingore(id: string | number, done: () => void) {
+    if (
+        config.regular.execute_only.length > 0 &&
+        config.regular.execute_only.indexOf(typeof id === 'number' ? id : parseInt(id, 10)) === -1
+    ) {
+        console.log(`"${config.regular.list[id]}" is ignored`);
+        done();
+        return true;
+    } else {
+        return false;
+    }
+}
 
 describe('Search', function () {
-    it('Test 1. Assign & single search', function (done) {
-        const logger = getLogger('Search. Test 1');
+    it(config.regular.list[1], function (done) {
+        if (ingore(1, done)) {
+            return;
+        }
+        const logger = getLogger(config.regular.list[1]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, 'Test 1. Assign & single search');
+                session.debug(true, config.regular.list[1]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 const events = session.getEvents();
@@ -150,12 +169,15 @@ describe('Search', function () {
             });
     });
 
-    it('Test 2. Assign & multiple search', function (done) {
-        const logger = getLogger('Search. Test 2');
+    it(config.regular.list[2], function (done) {
+        if (ingore(2, done)) {
+            return;
+        }
+        const logger = getLogger(config.regular.list[2]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, 'Test 2. Assign & multiple search');
+                session.debug(true, config.regular.list[2]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 if (stream instanceof Error) {
@@ -284,12 +306,15 @@ describe('Search', function () {
             });
     });
 
-    it('Test 3. Assign & zero search', function (done) {
-        const logger = getLogger('Search. Test 3');
+    it(config.regular.list[3], function (done) {
+        if (ingore(3, done)) {
+            return;
+        }
+        const logger = getLogger(config.regular.list[3]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, 'Test 3. Assign & zero search');
+                session.debug(true, config.regular.list[3]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 if (stream instanceof Error) {
@@ -331,12 +356,15 @@ describe('Search', function () {
             });
     });
 
-    it('Test 4. Assign & single not case sensitive search', function (done) {
-        const logger = getLogger('Search. Test 4');
+    it(config.regular.list[4], function (done) {
+        if (ingore(4, done)) {
+            return;
+        }
+        const logger = getLogger(config.regular.list[4]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, 'Test 4. Assign & single not case sensitive search');
+                session.debug(true, config.regular.list[4]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 if (stream instanceof Error) {
@@ -464,12 +492,15 @@ describe('Search', function () {
             });
     });
 
-    it('Test 5. Assign & single word search', function (done) {
-        const logger = getLogger('Search. Test 5');
+    it(config.regular.list[5], function (done) {
+        if (ingore(5, done)) {
+            return;
+        }
+        const logger = getLogger(config.regular.list[5]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, 'Test 5. Assign & single word search');
+                session.debug(true, config.regular.list[5]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 if (stream instanceof Error) {

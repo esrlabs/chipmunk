@@ -3,26 +3,39 @@
     "log_level": 1,
     "tests": {
         "observe": {
-            "execute_only": [],
-            "regular_test": {
-                "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
-                "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt"
+            "regular": {
+                /* With numbers you can define, which tests should be executed. "execute_only": [1, 3] will run ONLY tests 1 and 3*/
+                /* If "execute_only" isn't empty, all performance tests will be ignored*/
+                "execute_only": [1, 2],
+                "list": {
+                    "1": "Test 1. Observe and grab content (text)",
+                    "2": "Test 2. Observe and grab content (pcapng)",
+                    "3": "Test 3. Observe and grab content (dlt)"
+                },
+                "files": {
+                    "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
+                    "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt"    
+                }
             },
-            "performance_test": {
+            "performance": {
+                /* In false will prevent running performance tests */
                 "run": false,
                 "tests": {
                     "text": {
+                        /* Supported formats: text, dlt, pcap*/
                         "open_as": "text",
+                        /* In true will ignore current test*/
                         "ignore": false,
                         /* Expectation time in ms */
                         "expectation_ms": 1000,
-                        "alias": "Text file", 
+                        /* Name of test for logs*/
+                        "alias": "Text file",
+                        /* Target file for testing */
                         "file": "/storage/projects/esrlabs/logs-examples/biggest.log"
                     },
                     "dlt": {
                         "open_as": "dlt",
                         "ignore": true,
-                        /* Expectation time in ms */
                         "expectation_ms": 1000,
                         "alias": "DLT file", 
                         "file": "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"
@@ -30,11 +43,22 @@
                     "pcapng": {
                         "open_as": "pcap",
                         "ignore": true,
-                        /* Expectation time in ms */
                         "expectation_ms": 1000,
                         "alias": "PCAPNG file", 
                         "file": "/storage/projects/esrlabs/logs-examples/test.pcapng"
                     }
+                }
+            }
+        },
+        "search": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Assign & single search",
+                    "2": "Test 2. Assign & multiple search",
+                    "3": "Test 3. Assign & zero search",
+                    "4": "Test 4. Assign & single not case sensitive search",
+                    "5": "Test 5. Assign & single word search"
                 }
             }
         }
