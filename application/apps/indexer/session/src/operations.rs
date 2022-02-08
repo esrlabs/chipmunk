@@ -255,7 +255,7 @@ impl OperationAPI {
                 }
             }
         };
-        if !self.state_api.is_closing() {
+        if !self.state_api.is_closing() && !self.get_cancellation_token().is_cancelled() {
             if let Err(err) = self.state_api.remove_operation(self.id()).await {
                 error!("Fail to remove operation; error: {:?}", err);
             }

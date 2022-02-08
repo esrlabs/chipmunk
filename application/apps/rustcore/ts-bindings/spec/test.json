@@ -61,6 +61,15 @@
                     "5": "Test 5. Assign & single word search"
                 }
             }
+        },
+        "cancel": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Cancel operation before done",
+                    "2": "Test 2. Cancel operation after done"
+                }
+            }
         }
     }
 }

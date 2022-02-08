@@ -24,6 +24,9 @@ export interface IConfiguration {
         search: {
             regular: IRegularTests;
         };
+        cancel: {
+            regular: IRegularTests;
+        };
     };
 }
 

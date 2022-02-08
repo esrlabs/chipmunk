@@ -27,14 +27,16 @@ function ingore(id: string | number, done: () => void) {
 
 describe('Observe', function () {
     it(config.regular.list[1], function (done) {
+        const testName = config.regular.list[1];
         if (ingore(1, done)) {
             return;
         }
-        const logger = getLogger(config.regular.list[1]);
+        console.log(`\nStarting: ${testName}`);
+        const logger = getLogger(testName);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, config.regular.list[1]);
+                session.debug(true, testName);
                 const stream = session.getStream();
                 if (stream instanceof Error) {
                     finish(session, done, stream);
@@ -93,15 +95,16 @@ describe('Observe', function () {
     });
 
     it(config.regular.list[2], function (done) {
+        const testName = config.regular.list[2];
         if (ingore(2, done)) {
-            console.log('>>>>>>>>>>>>>>>>>> ??????????');
             return;
         }
-        const logger = getLogger(config.regular.list[2]);
+        console.log(`\nStarting: ${testName}`);
+        const logger = getLogger(testName);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, config.regular.list[2]);
+                session.debug(true, testName);
                 const stream = session.getStream();
                 if (stream instanceof Error) {
                     finish(session, done, stream);
@@ -124,10 +127,22 @@ describe('Observe', function () {
                     )
                     .catch(finish.bind(null, session, done));
                 let grabbing: boolean = false;
+                let received: number = 0;
+                const timeout = setTimeout(() => {
+                    finish(
+                        session,
+                        done,
+                        new Error(
+                            `Failed because timeout. Waited for at least 100 rows. Has been gotten: ${received}`,
+                        ),
+                    );
+                }, 4000);
                 events.StreamUpdated.subscribe((rows: number) => {
+                    received = rows;
                     if (rows < 100 || grabbing) {
                         return;
                     }
+                    clearTimeout(timeout);
                     grabbing = true;
                     stream
                         .grab(1, 10)
@@ -155,14 +170,16 @@ describe('Observe', function () {
     });
 
     it(config.regular.list[3], function (done) {
+        const testName = config.regular.list[3];
         if (ingore(3, done)) {
             return;
         }
-        const logger = getLogger(config.regular.list[3]);
+        console.log(`\nStarting: ${testName}`);
+        const logger = getLogger(testName);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, config.regular.list[3]);
+                session.debug(true, testName);
                 const stream = session.getStream();
                 if (stream instanceof Error) {
                     finish(session, done, stream);
@@ -183,10 +200,22 @@ describe('Observe', function () {
                     )
                     .catch(finish.bind(null, session, done));
                 let grabbing: boolean = false;
+                let received: number = 0;
+                const timeout = setTimeout(() => {
+                    finish(
+                        session,
+                        done,
+                        new Error(
+                            `Failed because timeout. Waited for at least 100 rows. Has been gotten: ${received}`,
+                        ),
+                    );
+                }, 4000);
                 events.StreamUpdated.subscribe((rows: number) => {
+                    received = rows;
                     if (rows < 100 || grabbing) {
                         return;
                     }
+                    clearTimeout(timeout);
                     grabbing = true;
                     stream
                         .grab(1, 10)

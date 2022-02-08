@@ -6,42 +6,82 @@
 
 import { Session } from '../src/api/session';
 import { finish } from './common';
+import { readConfigurationFile } from './config';
+
+const config = readConfigurationFile().get().tests.cancel;
+
+function ingore(id: string | number, done: () => void) {
+    if (
+        config.regular.execute_only.length > 0 &&
+        config.regular.execute_only.indexOf(typeof id === 'number' ? id : parseInt(id, 10)) === -1
+    ) {
+        console.log(`"${config.regular.list[id]}" is ignored`);
+        done();
+        return true;
+    } else {
+        return false;
+    }
+}
 
 describe('Cancel', function () {
-    it('Test 1. Cancel operation before done', function (done) {
-        const session = new Session();
-        session.debug(true, 'Test 1. Cancel operation before done');
-        let sleep = session
-            .sleep(2000)
-            .then((results) => {
-                finish(session, done, new Error(`Operation isn't canceled`));
+    it(config.regular.list[1], function (done) {
+        if (ingore(1, done)) {
+            return;
+        }
+        Session.create()
+            .then((session: Session) => {
+                session.debug(true, config.regular.list[1]);
+                let sleep = session
+                    .sleep(2000)
+                    .then((results) => {
+                        finish(session, done, new Error(`Operation isn't canceled`));
+                    })
+                    .catch((err: Error) => {
+                        finish(session, done, err);
+                    })
+                    .canceled((reason) => {
+                        finish(session, done);
+                    });
+                setTimeout(() => {
+                    sleep.abort();
+                }, 250);
             })
             .catch((err: Error) => {
-                finish(session, done, err);
-            })
-            .canceled((reason) => {
-                finish(session, done);
+                finish(
+                    undefined,
+                    done,
+                    new Error(`Fail to create session due error: ${err.message}`),
+                );
             });
-        setTimeout(() => {
-            sleep.abort();
-        }, 250);
     });
-    it('Test 2. Cancel operation after done', function (done) {
-        const session = new Session();
-        session.debug(true, 'Test 2. Cancel operation after done');
-        let sleep = session
-            .sleep(250)
-            .then((results) => {
-                finish(session, done);
+    it(config.regular.list[2], function (done) {
+        if (ingore(2, done)) {
+            return;
+        }
+        Session.create()
+            .then((session: Session) => {
+                session.debug(true, config.regular.list[2]);
+                let sleep = session
+                    .sleep(250)
+                    .then((results) => {
+                        finish(session, done);
+                    })
+                    .catch((err: Error) => {
+                        finish(session, done, err);
+                    })
+                    .canceled((reason) => {
+                        finish(session, done, new Error(`Operation cannot be canceled`));
+                    });
+                setTimeout(() => {
+                    sleep.abort();
+                }, 1000);
             })
             .catch((err: Error) => {
-                finish(session, done, err);
-            })
-            .canceled((reason) => {
-                finish(session, done, new Error(`Operation cannot be canceled`));
+                finish(
+                    undefined,
+                    done,
+                    new Error(`Fail to create session due error: ${err.message}`),
+                );
             });
-        setTimeout(() => {
-            sleep.abort();
-        }, 1000);
     });
 });
