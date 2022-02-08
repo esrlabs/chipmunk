@@ -10,6 +10,7 @@ export interface IConfiguration {
     log_level: number;
     tests: {
         observe: {
+            execute_only: number[];
             regular_test: { [key: string]: string };
             performance_test: {
                 run: boolean;
