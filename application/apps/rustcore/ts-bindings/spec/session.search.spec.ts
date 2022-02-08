@@ -8,7 +8,7 @@ import { Session, Observe } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
-import { Config, readConfigurationFile } from './config';
+import { readConfigurationFile } from './config';
 
 const config = readConfigurationFile().get().tests.search;
 

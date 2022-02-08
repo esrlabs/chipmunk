@@ -51,7 +51,7 @@ pub async fn handle(
                     // Confirm: main file content has been read
                     state.file_read().await?;
                     // Switching to tail
-                    let cancel = operation_api.get_cancellation_token_listener();
+                    let cancel = operation_api.get_cancellation_token();
                     let tail_shutdown = CancellationToken::new();
                     let tail_shutdown_caller = tail_shutdown.clone();
                     let (result, tracker) = join!(
@@ -251,6 +251,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     // TextFileSource::new(&session_file_path, producer.source_id());
     state.set_session_file(session_file_path.clone()).await?;
     let cancel = operation_api.get_cancellation_token();
+    let stop_timer = CancellationToken::new();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
     let mut last_update = SystemTime::now();
@@ -263,7 +264,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         Err(_) => Some(Event::Notify),
                     }
                 } => task,
-                _ = cancel.cancelled() => None,
+                _ = stop_timer.cancelled() => None,
             } {
                 match task {
                     Event::Check => match last_update.elapsed() {
@@ -322,7 +323,6 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     }
                     MessageStreamItem::Done => {
                         state.file_read().await?;
-                        cancel.cancel();
                         break;
                     }
                     // MessageStreamItem::FileRead => {
@@ -331,6 +331,10 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     MessageStreamItem::Skipped => {}
                     MessageStreamItem::Incomplete => {}
                     _ => {}
+                }
+                stop_timer.cancel();
+                if !cancel.is_cancelled() {
+                    state.update_session().await?;
                 }
             }
             Ok::<(), NativeError>(())
