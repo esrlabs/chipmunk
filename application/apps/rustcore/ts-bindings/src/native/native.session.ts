@@ -332,8 +332,24 @@ export class RustSessionWrapper extends RustSession {
     public destroy(): Promise<void> {
         const destroyOperationId = uuidv4();
         this._provider.debug().emit.operation('stop', destroyOperationId);
-        return this._native.stop(destroyOperationId).then(() => {
-            this._logger.debug(`Session has been destroyed`);
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                this._logger.error(`Timeout error. Session wasn't closed in 5 sec.`);
+                reject(new Error(`Timeout error. Session wasn't closed in 5 sec.`));
+            }, 5000);
+            this._native
+                .stop(destroyOperationId)
+                .then(() => {
+                    this._logger.debug(`Session has been destroyed`);
+                    resolve();
+                })
+                .catch((err: Error) => {
+                    this._logger.error(`Fail to close session due error: ${err.message}`);
+                    reject(err);
+                })
+                .finally(() => {
+                    clearTimeout(timeout);
+                });
         });
     }
 
