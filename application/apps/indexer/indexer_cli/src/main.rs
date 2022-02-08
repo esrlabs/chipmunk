@@ -1002,16 +1002,34 @@ pub async fn main() -> Result<()> {
             let reader = BufReader::new(&in_file);
             let out_file = File::create(out_path).expect("could not create file");
             let mut out_writer = BufWriter::new(out_file);
-
+            // let mut wtr = csv::Writer::from_path(&out_path).unwrap();
+            // DATETIME,
+            // ECUID,
+            // Version
+            // SessionId
+            // message-count
+            // timestamp
+            // EID,
+            // APID,
+            // CTID,
+            // MSTP,
+            // PAYLOAD,
+            println!("dynamic producer");
             let source = BinaryByteSource::new(reader);
             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
             let dlt_stream = dlt_msg_producer.as_stream();
             pin_mut!(dlt_stream);
             while let Some((_, item)) = dlt_stream.next().await {
-                if let MessageStreamItem::Item(msg) = item {
-                    create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
-                        .unwrap();
-                    line_nr += 1;
+                match item {
+                    MessageStreamItem::Item(msg) => {
+                        create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
+                            .unwrap();
+                        line_nr += 1;
+                    }
+                    MessageStreamItem::Empty => println!("--- empty"),
+                    MessageStreamItem::Done => println!("--- done"),
+                    MessageStreamItem::Incomplete => println!("--- incomplete"),
+                    MessageStreamItem::Skipped => println!("--- skipped"),
                 }
             }
             out_writer.flush().unwrap();

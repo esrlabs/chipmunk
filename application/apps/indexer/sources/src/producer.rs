@@ -19,6 +19,7 @@ where
     _phantom_data: Option<PhantomData<T>>,
     total_loaded: usize,
     total_skipped: usize,
+    done: bool,
 }
 
 impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
@@ -33,6 +34,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             _phantom_data: None,
             total_loaded: 0,
             total_skipped: 0,
+            done: false,
         }
     }
     /// create a stream of pairs that contain the count of all consumed bytes and the
@@ -46,15 +48,20 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     }
 
     async fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem<T>)> {
+        if self.done {
+            trace!("done...no next segment");
+            return None;
+        }
         self.index += 1;
         // 1. buffer loaded? if not, fill buffer with frame data
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
-        let (mut available, mut skipped_bytes) = self.do_reload().await?;
+        let (mut available, mut skipped_bytes) = self.do_reload().await.unwrap_or((0, 0));
         loop {
             if available == 0 {
                 trace!("No more bytes available from source");
+                self.done = true;
                 return Some((0, MessageStreamItem::Done));
             }
             match self
@@ -106,6 +113,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         skipped_bytes += skipped;
                     } else {
                         let unused = skipped_bytes + available;
+                        self.done = true;
                         return Some((unused, MessageStreamItem::Done));
                     }
                 }
@@ -131,7 +139,10 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 );
                 Some((loaded_bytes, skipped_bytes))
             }
-            Ok(None) => None,
+            Ok(None) => {
+                trace!("byte_source.reload result was None");
+                None
+            }
             Err(e) => {
                 warn!("Error reloading content: {}", e);
                 None
