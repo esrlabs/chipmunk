@@ -3,9 +3,10 @@
     "log_level": 1,
     "tests": {
         "observe": {
+            "execute_only": [],
             "regular_test": {
                 "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
-                "dlt": "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"
+                "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt"
             },
             "performance_test": {
                 "run": false,

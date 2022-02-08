@@ -14,6 +14,12 @@ const config: Config | Error = readConfigurationFile(true);
 
 describe('Observe', function () {
     it('Test 1. Observe and grab content (text)', function (done) {
+        if (config instanceof Config && config.get().tests.observe.execute_only.length !== 0) {
+            if (config.get().tests.observe.execute_only.indexOf(1) === -1) {
+                console.log(`Test 1. Observe and grab content (text) is ignored`);
+                return done();
+            }
+        }
         const logger = getLogger('Observe. Test 1');
         Session.create()
             .then((session: Session) => {
@@ -78,6 +84,12 @@ describe('Observe', function () {
 
     config instanceof Config &&
         it('Test 2. Observe and grab content (pcapng)', function (done) {
+            if (config.get().tests.observe.execute_only.length !== 0) {
+                if (config.get().tests.observe.execute_only.indexOf(2) === -1) {
+                    console.log(`Test 1. Observe and grab content (pcapng) is ignored`);
+                    return done();
+                }
+            }
             const logger = getLogger('Observe. Test 2');
             Session.create()
                 .then((session: Session) => {
@@ -140,6 +152,12 @@ describe('Observe', function () {
 
     config instanceof Config &&
         it('Test 3. Observe and grab content (dlt)', function (done) {
+            if (config.get().tests.observe.execute_only.length !== 0) {
+                if (config.get().tests.observe.execute_only.indexOf(3) === -1) {
+                    console.log(`Test 1. Observe and grab content (dlt) is ignored`);
+                    return done();
+                }
+            }
             const logger = getLogger('Observe. Test 2');
             Session.create()
                 .then((session: Session) => {
