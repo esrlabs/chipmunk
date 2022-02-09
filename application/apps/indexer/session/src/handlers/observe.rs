@@ -5,6 +5,7 @@ use crate::{
     tail,
 };
 use indexer_base::progress::Severity;
+use log::trace;
 use parsers::{dlt, LogMessage, MessageStreamItem, Parser};
 use sources::{
     factory::{ParserType, Source},
@@ -322,15 +323,22 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         })?;
                     }
                     MessageStreamItem::Done => {
+                        trace!("observe, message stream is done");
                         state.file_read().await?;
                         break;
                     }
                     // MessageStreamItem::FileRead => {
                     //     state.file_read().await?;
                     // }
-                    MessageStreamItem::Skipped => {}
-                    MessageStreamItem::Incomplete => {}
-                    _ => {}
+                    MessageStreamItem::Skipped => {
+                        trace!("observe: skipped a message");
+                    }
+                    MessageStreamItem::Incomplete => {
+                        trace!("observe: incomplete message");
+                    }
+                    MessageStreamItem::Empty => {
+                        trace!("observe: empty message");
+                    }
                 }
                 stop_timer.cancel();
                 if !cancel.is_cancelled() {

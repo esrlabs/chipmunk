@@ -49,7 +49,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
 
     async fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem<T>)> {
         if self.done {
-            trace!("done...no next segment");
+            debug!("done...no next segment");
             return None;
         }
         self.index += 1;
@@ -57,8 +57,15 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
-        let (mut available, mut skipped_bytes) = self.do_reload().await.unwrap_or((0, 0));
+        let (newly_loaded, mut available, mut skipped_bytes) =
+            self.do_reload().await.unwrap_or((0, 0, 0));
         loop {
+            let current_slice = self.byte_source.current_slice();
+            debug!(
+                "current slice: (len: {}) (total {})",
+                current_slice.len(),
+                self.total_loaded
+            );
             if available == 0 {
                 trace!("No more bytes available from source");
                 self.done = true;
@@ -71,10 +78,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 Ok((rest, Some(m))) => {
                     let consumed = available - rest.len();
                     let total_used_bytes = consumed + skipped_bytes;
-                    trace!(
+                    debug!(
                         "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                        consumed,
-                        total_used_bytes
+                        consumed, total_used_bytes
                     );
                     self.byte_source.consume(consumed);
                     return Some((total_used_bytes, MessageStreamItem::Item(m)));
@@ -88,7 +94,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 }
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
-                    let (reloaded, skipped) = self.do_reload().await?;
+                    let (reloaded, available_bytes, skipped) = self.do_reload().await?;
                     available += reloaded;
                     skipped_bytes += skipped;
                     continue;
@@ -101,14 +107,14 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
-                    warn!(
+                    trace!(
                         "No parse possible, try next batch of data ({}), skipped {} more bytes ({} already)",
                         s, available, skipped_bytes
                     );
                     self.byte_source.consume(available);
                     skipped_bytes += available;
                     available = self.byte_source.len();
-                    if let Some((reloaded, skipped)) = self.do_reload().await {
+                    if let Some((reloaded, available_bytes, skipped)) = self.do_reload().await {
                         available += reloaded;
                         skipped_bytes += skipped;
                     } else {
@@ -121,23 +127,24 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
-    async fn do_reload(&mut self) -> Option<(usize, usize)> {
+    async fn do_reload(&mut self) -> Option<(usize, usize, usize)> {
         match self.byte_source.reload(self.filter.as_ref()).await {
             Ok(Some(ReloadInfo {
-                loaded_bytes,
+                newly_loaded_bytes,
+                available_bytes,
                 skipped_bytes,
                 last_known_ts,
             })) => {
-                self.total_loaded += loaded_bytes;
+                self.total_loaded += newly_loaded_bytes;
                 self.total_skipped += skipped_bytes;
                 if let Some(ts) = last_known_ts {
                     self.last_seen_ts = Some(ts);
                 }
                 trace!(
-                    "did a do_reload, skipped {} bytes, loaded {} bytes (total loaded and skipped: {})",
-                    skipped_bytes, loaded_bytes, self.total_loaded + self.total_skipped
+                    "did a do_reload, skipped {} bytes, loaded {} more bytes (total loaded and skipped: {})",
+                    skipped_bytes, newly_loaded_bytes, self.total_loaded + self.total_skipped
                 );
-                Some((loaded_bytes, skipped_bytes))
+                Some((newly_loaded_bytes, available_bytes, skipped_bytes))
             }
             Ok(None) => {
                 trace!("byte_source.reload result was None");

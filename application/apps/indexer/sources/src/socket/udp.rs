@@ -44,7 +44,7 @@ impl ByteSource for UdpSource {
             self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
         }
 
-        Ok(Some(ReloadInfo::new(len, 0, None)))
+        Ok(Some(ReloadInfo::new(len, len, 0, None)))
     }
 
     fn current_slice(&self) -> &[u8] {
