@@ -123,14 +123,17 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                         }),
                     ) => {
                         let actual_tp: TransportProtocol = actual.into();
+                        let received_bytes = self.buffer.copy_from_slice(value.payload);
                         if actual_tp == *wanted {
                             Ok(Some(ReloadInfo::new(
-                                self.buffer.copy_from_slice(value.payload),
+                                received_bytes,
+                                received_bytes,
                                 skipped,
                                 self.last_know_timestamp,
                             )))
                         } else {
                             Ok(Some(ReloadInfo::new(
+                                0,
                                 0,
                                 value.payload.len() + skipped,
                                 self.last_know_timestamp,
@@ -140,6 +143,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     _ => {
                         let copied = self.buffer.copy_from_slice(value.payload);
                         Ok(Some(ReloadInfo::new(
+                            copied,
                             copied,
                             skipped,
                             self.last_know_timestamp,
