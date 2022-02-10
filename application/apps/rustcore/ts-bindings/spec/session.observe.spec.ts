@@ -195,7 +195,7 @@ describe('Observe', function () {
                         Observe.DataSource.asDltFile(config.regular.files.dlt, {
                             filter_config: undefined,
                             fibex_file_paths: undefined,
-                            with_storage_header: false,
+                            with_storage_header: true,
                         }),
                     )
                     .catch(finish.bind(null, session, done));
