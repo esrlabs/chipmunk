@@ -5,7 +5,7 @@ use byteorder::{BigEndian, WriteBytesExt};
 pub use dlt_core::{
     dlt::LogLevel,
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
-    filtering::{process_filter_config, DltFilterConfig, ProcessedDltFilterConfig},
+    filtering::{DltFilterConfig, ProcessedDltFilterConfig},
 };
 use dlt_core::{
     dlt::{self},

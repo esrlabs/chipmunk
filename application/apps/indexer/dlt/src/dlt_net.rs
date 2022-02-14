@@ -319,7 +319,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
     let res = match utils::next_line_nr(out_path) {
         Ok(initial_line_nr) => {
             let filter_config: Option<filtering::ProcessedDltFilterConfig> =
-                dlt_filter.map(filtering::process_filter_config);
+                dlt_filter.map(|f| f.into());
             match index_from_socket(
                 session_id,
                 socket_config,

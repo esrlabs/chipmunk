@@ -459,10 +459,9 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "519645e1a0fdbcf5d1607c8735254e82d25e1f69c346a2141a4f4ff93028562c"
+version = "0.14.0"
 dependencies = [
+ "buf_redux",
  "byteorder",
  "bytes",
  "derive_more",
@@ -1268,7 +1267,7 @@ dependencies = [
 
 [[package]]
 name = "processor"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bincode",
  "buf_redux",
@@ -1277,8 +1276,6 @@ dependencies = [
  "criterion",
  "crossbeam-channel",
  "dirs",
- "dlt",
- "dlt-core",
  "encoding_rs_io",
  "env_logger",
  "futures",
@@ -1297,7 +1294,6 @@ dependencies = [
  "proptest-derive",
  "rand 0.8.4",
  "regex",
- "rustc-hash",
  "serde",
  "serde_json",
  "sources",
