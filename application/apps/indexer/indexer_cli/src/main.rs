@@ -23,9 +23,10 @@ use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
 use dlt_core::{
-    dlt::MessageType,
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
-    filtering::{process_filter_config, read_filter_options, DltFilterConfig},
+    filtering::{read_filter_options, DltFilterConfig},
+    parse::DltParseError,
+    statistics::{collect_dlt_stats, count_dlt_messages as count_dlt_messages_old},
 };
 use env_logger::Env;
 use futures::{pin_mut, stream::StreamExt};
@@ -39,9 +40,11 @@ use indexer_base::{
 };
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
-use parsers::{dlt::DltParser, MessageStreamItem};
+use parsers::{
+    dlt::{DltParser, DltRangeParser},
+    MessageStreamItem,
+};
 use processor::{
-    dlt_utils::{count_dlt_messages, count_dlt_messages_old, get_dlt_file_info},
     grabber::{GrabError, GrabbedContent},
     text_source::TextFileSource,
 };
@@ -1013,11 +1016,8 @@ pub async fn main() -> Result<()> {
                 } else {
                     None
                 };
-            let dlt_parser = DltParser::new(
-                filter_conf.map(process_filter_config),
-                fibex_metadata.as_ref(),
-                true,
-            );
+            let dlt_parser =
+                DltParser::new(filter_conf.map(|f| f.into()), fibex_metadata.as_ref(), true);
             let in_file = File::open(&file_path).unwrap();
             let reader = BufReader::new(&in_file);
             let out_file = File::create(&out_path).expect("could not create file");
@@ -1156,7 +1156,7 @@ pub async fn main() -> Result<()> {
             let fibex_config = load_test_fibex();
             let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
             let dlt_parser = DltParser {
-                filter_config: filter_conf.map(process_filter_config),
+                filter_config: filter_conf.map(|f| f.into()),
                 fibex_metadata: fibex_metadata.as_ref(),
                 with_storage_header: false,
             };
@@ -1528,7 +1528,7 @@ pub async fn main() -> Result<()> {
                 }
             };
 
-            let res = get_dlt_file_info(&file_path);
+            let res = collect_dlt_stats(&file_path);
             match res {
                 Ok(res) => {
                     trace!("got item...");
@@ -1606,4 +1606,24 @@ fn initialize_progress_bar(len: u64) -> ProgressBar {
                 .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
                 .progress_chars("#>-"));
     progress_bar
+}
+
+/// count how many recognizable DLT messages are stored in a file
+/// each message needs to be equiped with a storage header
+async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
+    if input.exists() {
+        let second_reader = BufReader::new(fs::File::open(&input)?);
+        let dlt_parser = DltRangeParser::new(true);
+
+        let source = BinaryByteSource::new(second_reader);
+
+        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+        let msg_stream = dlt_msg_producer.as_stream();
+        Ok(msg_stream.count().await as u64)
+    } else {
+        Err(DltParseError::Unrecoverable(format!(
+            "Couldn't find dlt file: {:?}",
+            input
+        )))
+    }
 }

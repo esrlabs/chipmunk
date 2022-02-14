@@ -110,7 +110,7 @@ pub async fn handle(
                     None
                 };
                 let dlt_parser = dlt::DltParser::new(
-                    settings.dlt.filter_config.map(dlt::process_filter_config),
+                    settings.dlt.filter_config.map(|f| f.into()),
                     fibex_metadata.as_ref(),
                     settings.dlt.with_storage_header,
                 );
@@ -152,7 +152,7 @@ pub async fn handle(
                     None
                 };
                 let dlt_parser = dlt::DltParser::new(
-                    settings.filter_config.map(dlt::process_filter_config),
+                    settings.filter_config.map(|f| f.into()),
                     fibex_metadata.as_ref(),
                     settings.with_storage_header,
                 );

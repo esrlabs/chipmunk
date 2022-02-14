@@ -57,7 +57,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliever
         // 3b. else reload into buffer and goto 2
-        let (newly_loaded, mut available, mut skipped_bytes) =
+        let (_newly_loaded, mut available, mut skipped_bytes) =
             self.do_reload().await.unwrap_or((0, 0, 0));
         loop {
             let current_slice = self.byte_source.current_slice();
@@ -94,7 +94,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 }
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
-                    let (reloaded, available_bytes, skipped) = self.do_reload().await?;
+                    let (reloaded, _available_bytes, skipped) = self.do_reload().await?;
                     available += reloaded;
                     skipped_bytes += skipped;
                     continue;
@@ -114,7 +114,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     self.byte_source.consume(available);
                     skipped_bytes += available;
                     available = self.byte_source.len();
-                    if let Some((reloaded, available_bytes, skipped)) = self.do_reload().await {
+                    if let Some((reloaded, _available_bytes, skipped)) = self.do_reload().await {
                         available += reloaded;
                         skipped_bytes += skipped;
                     } else {

@@ -22,9 +22,9 @@ use dlt_core::{
         NetworkTraceType, PayloadContent, StandardHeader, StorageHeader, StringCoding, TypeInfo,
         TypeInfoKind, Value,
     },
-    fibex::{ApplicationId, ContextId, FibexMetadata, FrameId, FrameMetadata},
+    fibex::{extract_metadata, FibexMetadata},
     parse::construct_arguments,
-    service_id::SERVICE_ID_MAPPING,
+    service_id::service_id_lookup,
 };
 use log::trace;
 
@@ -202,34 +202,11 @@ impl<'a> Serialize for FormattableMessage<'a> {
         let mut state = serializer.serialize_struct("Message", 10)?;
         let header = &self.message.header;
         let storage_header = &self.message.storage_header;
-        // let sh_timestamp: &str = &storage_header
-        //     .as_ref()
-        //     .map(|h| utc_string(&h.timestamp))
-        //     .unwrap_or_else(|| "".to_string());
-        // let empty = "".to_string();
         let ext_header = &self.message.extended_header;
         let ext_header_app_id = ext_header.as_ref().map(|eh| &eh.application_id);
         let ext_header_context_id = ext_header.as_ref().map(|eh| &eh.context_id);
         let ext_header_msg_type: Option<MessageType> =
             ext_header.as_ref().map(|eh| eh.message_type.clone());
-        // let header_version: &str = &header.version.to_string();
-        // let header_msg_cnt: &str = &header.message_counter.to_string();
-        // let session_id: &str = &header
-        //     .session_id
-        //     .map(|id| id.to_string())
-        //     .unwrap_or_else(|| "".to_string());
-        // let timestamp: &str = &header
-        //     .timestamp
-        //     .map(|id| id.to_string())
-        //     .unwrap_or_else(|| "".to_string());
-        // let printable_message = self
-        //     .printable_parts(
-        //         ext_header_app_id.unwrap_or(&empty),
-        //         ext_header_context_id,
-        //         ext_header_msg_type.clone(),
-        //         &empty,
-        //     )
-        //     .unwrap();
         // let record = ByteRecord::from(vec![
         //     sh_timestamp,
         //     header_version,
@@ -260,13 +237,12 @@ impl<'a> Serialize for FormattableMessage<'a> {
                 state.serialize_field("payload", &arg_string)?;
             }
             PayloadContent::NonVerbose(id, data) => {
-                if let Some((app_id, context_id, msg_type, arguments)) =
-                    self.info_from_metadata(*id, data)
-                {
-                    state.serialize_field("app-id", &app_id)?;
-                    state.serialize_field("context-id", &context_id)?;
-                    state.serialize_field("message-type", &msg_type)?;
-                    let arg_string = arguments
+                if let Some(non_verbose_info) = self.info_from_metadata(*id, data) {
+                    state.serialize_field("app-id", &non_verbose_info.app_id)?;
+                    state.serialize_field("context-id", &non_verbose_info.context_id)?;
+                    state.serialize_field("message-type", &non_verbose_info.msg_type)?;
+                    let arg_string = non_verbose_info
+                        .arguments
                         .iter()
                         .map(|a| DltArgument(a).to_string())
                         .collect::<Vec<String>>()
@@ -298,7 +274,7 @@ impl<'a> Serialize for FormattableMessage<'a> {
                 state.serialize_field("app-id", &ext_header_app_id)?;
                 state.serialize_field("context-id", &ext_header_context_id)?;
                 state.serialize_field("message-type", &ext_header_msg_type)?;
-                match SERVICE_ID_MAPPING.get(&ctrl_id.value()) {
+                match service_id_lookup(ctrl_id.value()) {
                     Some((name, _desc)) => state.serialize_field("payload", name)?,
                     None => state.serialize_field("payload", "[Unknown CtrlCommand]")?,
                 }
@@ -345,11 +321,11 @@ impl<'a> FormattableMessage<'a> {
     pub fn printable_parts<'b>(
         &'b self,
         ext_h_app_id: &'b str,
-        ext_h_ctx_id: Option<&'b String>,
+        ext_h_ctx_id: Option<&'b str>,
         ext_h_msg_type: Option<MessageType>,
-        empty: &'b String,
+        empty: &'b str,
     ) -> Result<PrintableMessage, fmt::Error> {
-        let eh_ctx_id: &String = ext_h_ctx_id.unwrap_or(empty);
+        let eh_ctx_id: &str = ext_h_ctx_id.unwrap_or(empty);
         match &self.message.payload {
             PayloadContent::Verbose(arguments) => {
                 let arg_string = arguments
@@ -365,18 +341,17 @@ impl<'a> FormattableMessage<'a> {
                 ))
             }
             PayloadContent::NonVerbose(id, data) => {
-                if let Some((app_id, context_id, msg_type, arguments)) =
-                    self.info_from_metadata(*id, data)
-                {
-                    let arg_string = arguments
+                if let Some(non_verbose_info) = self.info_from_metadata(*id, data) {
+                    let arg_string = non_verbose_info
+                        .arguments
                         .iter()
                         .map(|a| DltArgument(a).to_string())
                         .collect::<Vec<String>>()
                         .join("|");
                     Ok(PrintableMessage::new(
-                        app_id.unwrap_or(ext_h_app_id),
-                        context_id.unwrap_or(eh_ctx_id),
-                        msg_type,
+                        non_verbose_info.app_id.unwrap_or(ext_h_app_id),
+                        non_verbose_info.context_id.unwrap_or(eh_ctx_id),
+                        non_verbose_info.msg_type,
                         arg_string,
                     ))
                 } else {
@@ -400,8 +375,8 @@ impl<'a> FormattableMessage<'a> {
                 }
             }
             PayloadContent::ControlMsg(ctrl_id, _data) => {
-                let payload_string: String = match SERVICE_ID_MAPPING.get(&ctrl_id.value()) {
-                    Some((name, _desc)) => String::from(*name),
+                let payload_string: String = match service_id_lookup(ctrl_id.value()) {
+                    Some((name, _desc)) => String::from(name),
                     None => "[Unknown CtrlCommand]".to_owned(),
                 };
                 Ok(PrintableMessage::new(
@@ -449,23 +424,23 @@ impl<'a> FormattableMessage<'a> {
     ) -> fmt::Result {
         trace!("format_nonverbose_data");
         let mut fibex_info_added = false;
-        if let Some((app_id, context_id, msg_type, arguments)) = self.info_from_metadata(id, data) {
+        if let Some(non_verbose_info) = self.info_from_metadata(id, data) {
             write!(
                 f,
                 "{}{}{}{}",
-                app_id.unwrap_or("-"),
+                non_verbose_info.app_id.unwrap_or("-"),
                 DLT_COLUMN_SENTINAL,
-                context_id.unwrap_or("-"),
+                non_verbose_info.context_id.unwrap_or("-"),
                 DLT_COLUMN_SENTINAL,
             )?;
-            if let Some(v) = msg_type {
+            if let Some(v) = non_verbose_info.msg_type {
                 write!(f, "{}", DltMessageType(&v))?;
             } else {
                 write!(f, "-")?;
             }
             write!(f, "{}", DLT_COLUMN_SENTINAL)?;
-            fibex_info_added = !arguments.is_empty();
-            for arg in arguments {
+            fibex_info_added = !non_verbose_info.arguments.is_empty();
+            for arg in non_verbose_info.arguments {
                 write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, DltArgument(&arg))?;
             }
         } else {
@@ -490,83 +465,53 @@ impl<'a> FormattableMessage<'a> {
         Ok(())
     }
 
-    fn extract_metadata(
-        &self,
-        id: u32,
-        extended_header: Option<&ExtendedHeader>,
-    ) -> Option<&'a FrameMetadata> {
-        let id_text = format!("ID_{}", id);
-        match (self.fibex_metadata, extended_header) {
-            (Some(fibex), Some(extended_header)) => {
-                fibex.frame_map_with_key.get(&(
-                    ContextId(extended_header.context_id.clone()),
-                    ApplicationId(extended_header.application_id.clone()),
-                    FrameId(id_text),
-                )) // TODO: avoid cloning here (Cow or Borrow)
-            }
-            (Some(fibex), None) => fibex.frame_map.get(&FrameId(id_text)),
-            _ => None,
-        }
-    }
-
-    fn info_from_metadata<'b>(
-        &'b self,
-        id: u32,
-        data: &[u8],
-    ) -> Option<(
-        Option<&'b str>,
-        Option<&'b str>,
-        Option<MessageType>,
-        Vec<Argument>,
-    )> {
-        if let Some(md) = self.extract_metadata(id, self.message.extended_header.as_ref()) {
-            let msg_type: Option<MessageType> =
-                message_type(&self.message, md.message_info.as_deref());
-            let app_id = md
-                .application_id
+    fn info_from_metadata<'b>(&'b self, id: u32, data: &[u8]) -> Option<NonVerboseInfo<'b>> {
+        let fibex = self.fibex_metadata?;
+        let md = extract_metadata(fibex, id, self.message.extended_header.as_ref())?;
+        let msg_type: Option<MessageType> = message_type(&self.message, md.message_info.as_deref());
+        let app_id = md.application_id.as_deref().or_else(|| {
+            self.message
+                .extended_header
                 .as_ref()
-                .map(|id| id.as_str())
-                .or_else(|| {
-                    self.message
-                        .extended_header
-                        .as_ref()
-                        .map(|h| h.application_id.as_str())
-                });
-            let context_id = md.context_id.as_ref().map(|id| id.as_str()).or_else(|| {
-                self.message
-                    .extended_header
-                    .as_ref()
-                    .map(|h| h.context_id.as_ref())
-            });
-            let mut arguments = vec![];
-            for pdu in &md.pdus {
-                if let Some(description) = &pdu.description {
-                    let arg = Argument {
-                        type_info: TypeInfo {
-                            kind: TypeInfoKind::StringType,
-                            coding: StringCoding::UTF8,
-                            has_trace_info: false,
-                            has_variable_info: false,
-                        },
-                        name: None,
-                        unit: None,
-                        fixed_point: None,
-                        value: Value::StringVal(description.to_string()),
-                    };
-                    arguments.push(arg);
-                } else {
-                    if let Ok(mut new_args) =
-                        construct_arguments(self.message.header.endianness, &pdu.signal_types, data)
-                    {
-                        arguments.append(&mut new_args);
-                    }
-                    trace!("Constructed {} arguments", arguments.len());
+                .map(|h| h.application_id.as_str())
+        });
+        let context_id = md.context_id.as_deref().or_else(|| {
+            self.message
+                .extended_header
+                .as_ref()
+                .map(|h| h.context_id.as_ref())
+        });
+        let mut arguments = vec![];
+        for pdu in &md.pdus {
+            if let Some(description) = &pdu.description {
+                let arg = Argument {
+                    type_info: TypeInfo {
+                        kind: TypeInfoKind::StringType,
+                        coding: StringCoding::UTF8,
+                        has_trace_info: false,
+                        has_variable_info: false,
+                    },
+                    name: None,
+                    unit: None,
+                    fixed_point: None,
+                    value: Value::StringVal(description.to_string()),
                 };
-            }
-            Some((app_id, context_id, msg_type, arguments))
-        } else {
-            None
+                arguments.push(arg);
+            } else {
+                if let Ok(mut new_args) =
+                    construct_arguments(self.message.header.endianness, &pdu.signal_types, data)
+                {
+                    arguments.append(&mut new_args);
+                }
+                trace!("Constructed {} arguments", arguments.len());
+            };
         }
+        Some(NonVerboseInfo {
+            app_id,
+            context_id,
+            msg_type,
+            arguments,
+        })
     }
 }
 
@@ -610,7 +555,7 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
             PayloadContent::NonVerbose(id, data) => self.format_nonverbose_data(*id, data, f),
             PayloadContent::ControlMsg(ctrl_id, _data) => {
                 self.write_app_id_context_id_and_message_type(f)?;
-                match SERVICE_ID_MAPPING.get(&ctrl_id.value()) {
+                match service_id_lookup(ctrl_id.value()) {
                     Some((name, _desc)) => write!(f, "[{}]", name),
                     None => write!(f, "[Unknown CtrlCommand]"),
                 }
@@ -690,4 +635,11 @@ fn get_message_type_string(extended_header: &Option<ExtendedHeader>) -> Option<&
     } else {
         None
     }
+}
+
+struct NonVerboseInfo<'a> {
+    app_id: Option<&'a str>,
+    context_id: Option<&'a str>,
+    msg_type: Option<MessageType>,
+    arguments: Vec<Argument>,
 }
