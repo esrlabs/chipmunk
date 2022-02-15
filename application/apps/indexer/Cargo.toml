@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-    "dlt",
     "indexer_base",
     "indexer_cli",
     "merging",

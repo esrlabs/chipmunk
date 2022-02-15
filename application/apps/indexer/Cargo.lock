@@ -429,37 +429,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "dlt"
-version = "0.2.0"
-dependencies = [
- "buf_redux",
- "bytes",
- "chrono",
- "crossbeam-channel",
- "dirs",
- "dlt-core",
- "env_logger",
- "etherparse",
- "humantime",
- "indexer_base",
- "lazy_static",
- "log",
- "parsers",
- "pcap-parser",
- "pretty_assertions",
- "rand 0.8.4",
- "rustc-hash",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tokio-util",
-]
-
-[[package]]
 name = "dlt-core"
 version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57b970e8827f8935a66397cf99263448a7a37fd606ac16a6616d699978b0c646"
 dependencies = [
  "buf_redux",
  "byteorder",
@@ -757,11 +730,11 @@ version = "0.35.2"
 dependencies = [
  "anyhow",
  "async-stream",
+ "bytes",
  "chrono",
  "clap 3.0.14",
  "crossbeam-channel",
  "dirs",
- "dlt",
  "dlt-core",
  "env_logger",
  "futures",
@@ -775,7 +748,9 @@ dependencies = [
  "serde",
  "serde_json",
  "sources",
+ "thiserror",
  "tokio",
+ "tokio-stream",
  "tokio-util",
 ]
 
@@ -948,7 +923,6 @@ name = "merging"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
- "dlt",
  "indexer_base",
  "log",
  "log4rs",
@@ -1960,9 +1934,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.6.9"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e99e1983e5d376cd8eb4b66604d2e99e79f5bd988c3055891dcd8c9e2604cc0"
+checksum = "64910e1b9c1901aaf5375561e35b9c057d95ff41a44ede043a03e09279eabaf1"
 dependencies = [
  "bytes",
  "futures-core",

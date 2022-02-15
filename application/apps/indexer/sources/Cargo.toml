@@ -1,9 +1,8 @@
 [package]
 name = "sources"
 version = "0.1.0"
+authors = ["esrlabs.com"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 async-stream = "0.3"
@@ -20,7 +19,7 @@ pin-project-lite = "0.2"
 thiserror = "1.0"
 tokio = { version = "1.5", features = ["full"] }
 tokio-stream = "0.1.5"
-tokio-util = "0.6.9"
+tokio-util = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
