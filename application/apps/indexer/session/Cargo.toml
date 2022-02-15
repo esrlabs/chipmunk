@@ -1,6 +1,7 @@
 [package]
 name = "session"
 version = "0.1.0"
+authors = ["esrlabs.com"]
 edition = "2021"
 
 [dependencies]
@@ -16,7 +17,7 @@ serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "1.5", features = ["full"] }
 tokio-stream = "0.1.5"
-tokio-util = "0.6.9"
+tokio-util = "0.7"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 futures = "0.3"
 

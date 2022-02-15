@@ -491,6 +491,7 @@ impl DltMessageDecoder {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum DltEvent {
     Messages(Vec<Message>),
     Progress(Progress),

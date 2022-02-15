@@ -11,7 +11,6 @@
 // from E.S.R.Labs.
 extern crate chrono;
 extern crate dirs;
-extern crate dlt;
 extern crate indexer_base;
 extern crate merging;
 extern crate processor;
@@ -19,9 +18,12 @@ extern crate processor;
 #[macro_use]
 extern crate lazy_static;
 
+mod dlt;
+
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
+use dlt::dlt_net::*;
 use dlt_core::{
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering::{read_filter_options, DltFilterConfig},
@@ -1281,7 +1283,7 @@ pub async fn main() -> Result<()> {
             let now = Local::now();
             let session_id = format!("dlt_session_id_{}.dlt", now.format("%Y%b%d_%H-%M-%S"));
             tokio::spawn(async move {
-                let res = dlt::dlt_net::create_index_and_mapping_dlt_from_socket(
+                let res = create_index_and_mapping_dlt_from_socket(
                     session_id,
                     socket_conf,
                     tag_string.as_str(),

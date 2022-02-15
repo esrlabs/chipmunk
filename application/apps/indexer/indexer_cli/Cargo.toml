@@ -1,20 +1,20 @@
 [package]
 name = "indexer_cli"
 version = "0.35.2"
-authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
+authors = ["esrlabs.com"]
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
 async-stream = "0.3.2"
+bytes = "1.0"
 chrono = "0.4"
 clap = { version = "3.0", features = ["cargo"] }
 # clap = "2.33.3"
 crossbeam-channel = "0.5.1"
 dirs = "4.0"
-dlt = { path = "../dlt" }
-# dlt-core = "0.13"
-dlt-core = { path = "../../../../../dlt-core.git" }
+dlt-core = "0.14"
+# dlt-core = { path = "../../../../../dlt-core.git" }
 env_logger = "0.9"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
@@ -27,5 +27,7 @@ processor = { path = "../processor" }
 sources = { path = "../sources" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+thiserror = "1.0"
 tokio = { version = "1.5", features = ["full"] }
-tokio-util = "0.6.9"
+tokio-util = {version = "0.7", features = ["codec", "net"] }
+tokio-stream = "0.1.5"

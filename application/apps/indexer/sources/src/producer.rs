@@ -111,6 +111,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         "No parse possible, try next batch of data ({}), skipped {} more bytes ({} already)",
                         s, available, skipped_bytes
                     );
+                    // skip all currently available bytes
                     self.byte_source.consume(available);
                     skipped_bytes += available;
                     available = self.byte_source.len();

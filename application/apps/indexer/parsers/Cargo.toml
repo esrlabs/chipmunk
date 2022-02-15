@@ -9,8 +9,8 @@ byteorder = "1.4"
 crossbeam-channel = "0.5"
 chrono = "0.4"
 chrono-tz = "0.6"
-# dlt-core = "0.13"
-dlt-core = { path = "../../../../../dlt-core.git" }
+dlt-core = "0.14"
+# dlt-core = { path = "../../../../../dlt-core.git" }
 humantime = "2.1"
 lazy_static = "1.4"
 log = "0.4"

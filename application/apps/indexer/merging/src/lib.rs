@@ -9,7 +9,6 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-extern crate dlt;
 
 #[macro_use]
 extern crate log;
