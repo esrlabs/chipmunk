@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.26.3] - 02/16/2022
+
+### Fixes
+
+-   Fix row's details view
+
 ## [2.26.2] - 01/14/2022
 
 ### Fixes
