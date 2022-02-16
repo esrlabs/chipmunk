@@ -198,7 +198,7 @@ export class OutputParsersService {
         return this._getTypedRowRenderBySource(sourceName, sourceMeta);
     }
 
-    public row(row: IRow, target: EParent, sessionId?: string): string {
+    public row(row: IRow, target: EParent, sessionId?: string, ignorePosition?: boolean): string {
         sessionId =
             sessionId !== undefined
                 ? sessionId
@@ -218,13 +218,14 @@ export class OutputParsersService {
             this._logger.warn(`Fail to find controller.`);
             return '';
         }
-        if (row.position === undefined) {
+        if (row.position === undefined && ignorePosition !== true) {
             this._logger.warn(`Unknown possition of row`);
             return '';
         }
-        const modifiers: Modifier[] = [
-            ...this._controller.getSessionComments().getModifiers(row.position, row.str),
-        ];
+        const modifiers: Modifier[] =
+            ignorePosition !== true && row.position !== undefined
+                ? [...this._controller.getSessionComments().getModifiers(row.position, row.str)]
+                : [];
         // Apply bound parsers
         const bound: Toolkit.ARowBoundParser | undefined =
             row.pluginId === undefined ? undefined : this._parsers.bound.get(row.pluginId);

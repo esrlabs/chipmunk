@@ -105,7 +105,7 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
         // Serialize
         str = OutputParsersService.serialize(str);
         // Apply plugin parser
-        str = OutputParsersService.row({ str: str }, EParent.parsing);
+        str = OutputParsersService.row({ str: str }, EParent.parsing, undefined, true);
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }
 
@@ -116,6 +116,8 @@ export class SidebarAppParsingComponent implements OnDestroy, AfterContentInit, 
         str = OutputParsersService.row(
             { str: str, source: 'details', hasOwnStyles: false },
             EParent.parsing,
+            undefined,
+            true,
         );
         return this._sanitizer.bypassSecurityTrustHtml(str);
     }

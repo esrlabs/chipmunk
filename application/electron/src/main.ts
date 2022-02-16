@@ -67,56 +67,63 @@ enum EAppState {
 }
 
 export class CloseProcessRunning extends Error {
-
     constructor() {
         super();
     }
-
 }
 
 const InitializeStages = [
     // Apply patches ("before")
-    [   ServicePatchesBefore ],
+    [ServicePatchesBefore],
     // Stage #1. Detect OS env
-    [   ServiceEnv ],
+    [ServiceEnv],
     // Stage #2
-    [   ServiceProduction ],
+    [ServiceProduction],
     // Stage #3
-    [   ServicePaths ],
+    [ServicePaths],
     // Stage #4
-    [   ServicePackage ],
+    [ServicePackage],
     // Stage #5
-    [   ServiceSettings, ServiceWindowState, ServiceStorage ],
-    [   ServiceConfigDefault ],
+    [ServiceSettings, ServiceWindowState, ServiceStorage],
+    [ServiceConfigDefault],
     // Stage #6. Init custom user paths and  electron. Prepare browser window
-    [   ServiceUserPaths, ServiceNetwork, ServiceElectron ],
+    [ServiceUserPaths, ServiceNetwork, ServiceElectron],
     // Stage #7. Render logs service
-    [   ServiceLogs ],
+    [ServiceLogs],
     // Stage #8. Init services and helpers
-    [   ServiceElectronState, ServiceNotifications, ServiceRenderState ],
+    [ServiceElectronState, ServiceNotifications, ServiceRenderState],
     // Stage #9. Stream service
-    [   ServiceStreamSources, ServiceStreams ],
+    [ServiceStreamSources, ServiceStreams],
     // Stage #10. Common functionality
-    [   ServiceFileInfo, ServiceMergeFiles,
-        ServiceConcatFiles, ServiceFileSearch,
-        ServiceFilters, ServiceFileReader,
-        ServiceFileOpener, ServiceAppState,
-        ServiceDLTFiles, ServiceHotkeys,
-        ServiceFilePicker, ServiceDLTDeamonConnector,
-        ServiceOutputExport, ServiceLogsExtractor,
-        ServiceFileRecent, ServiceTimestamp,
-        ServiceFileWriter, ServiceTimestampFormatRecent,
+    [
+        ServiceFileInfo,
+        ServiceMergeFiles,
+        ServiceConcatFiles,
+        ServiceFileSearch,
+        ServiceFilters,
+        ServiceFileReader,
+        ServiceFileOpener,
+        ServiceAppState,
+        ServiceDLTFiles,
+        ServiceHotkeys,
+        ServiceFilePicker,
+        ServiceDLTDeamonConnector,
+        ServiceOutputExport,
+        ServiceLogsExtractor,
+        ServiceFileRecent,
+        ServiceTimestamp,
+        ServiceFileWriter,
+        ServiceTimestampFormatRecent,
         ServiceImporter,
     ],
     // Stage #10. Init plugins and current release data
-    [   ServicePlugins, ServiceReleaseNotes, ServiceCLI ],
+    [ServicePlugins, ServiceReleaseNotes, ServiceCLI],
     // (last service should startup service and should be single always)
-    [   ServiceUpdate ],
+    [ServiceUpdate],
 ];
 
 // tslint:disable-next-line: max-classes-per-file
 class Application implements IApplication {
-
     private _logger: Logger = new Logger('Application');
     private _state: EAppState = EAppState.initing;
     private _code: EExitCodes = EExitCodes.normal;
@@ -126,6 +133,7 @@ class Application implements IApplication {
      * @returns void
      */
     public init(): Promise<Application> {
+        app.commandLine.appendSwitch('no-sandbox');
         return new Promise((resolve, reject) => {
             this._initGlobalNamespace();
             this._bindProcessEvents();
@@ -142,12 +150,16 @@ class Application implements IApplication {
                         this._logger.debug(`Selected option: ${response}`);
                         switch (response.response) {
                             case 0:
-                                FS.rmdir(getHomeFolder()).then(() => {
-                                    app.quit();
-                                }).catch((errorRmdir: Error) => {
-                                    this._logger.error(`Fail to drop settings due error: ${errorRmdir.message}`);
-                                    app.quit();
-                                });
+                                FS.rmdir(getHomeFolder())
+                                    .then(() => {
+                                        app.quit();
+                                    })
+                                    .catch((errorRmdir: Error) => {
+                                        this._logger.error(
+                                            `Fail to drop settings due error: ${errorRmdir.message}`,
+                                        );
+                                        app.quit();
+                                    });
                                 break;
                             case 1:
                                 app.quit();
@@ -161,17 +173,23 @@ class Application implements IApplication {
                 InitializeStages.forEach((services: IService[]) => {
                     services.forEach((service: IService) => {
                         if (typeof service.afterAppInit === 'function') {
-                            hooks.push({ name: service.getName(), fn: service.afterAppInit});
+                            hooks.push({ name: service.getName(), fn: service.afterAppInit });
                         }
                     });
                 });
-                Promise.all(hooks.map((info: IHook) => {
-                    return info.fn.bind(this);
-                })).then(() => {
-                    resolve(this);
-                }).catch((err: Error) => {
-                    this._logger.error(`Services failed to be initialized on afterAppInit due to error: ${err.message}`);
-                });
+                Promise.all(
+                    hooks.map((info: IHook) => {
+                        return info.fn.bind(this);
+                    }),
+                )
+                    .then(() => {
+                        resolve(this);
+                    })
+                    .catch((err: Error) => {
+                        this._logger.error(
+                            `Services failed to be initialized on afterAppInit due to error: ${err.message}`,
+                        );
+                    });
                 resolve(this);
             });
         });
@@ -190,39 +208,63 @@ class Application implements IApplication {
             // Lock IPC
             ServiceElectron.lock();
             // Close window
-            ServiceElectron.closeWindow().then(() => {
-                this._logger.debug(`Browser window is closed`);
-            }).catch((closeWinErr: Error) => {
-                this._logger.warn(`Fail to close browser window before close due error: ${closeWinErr.message}`);
-            }).finally(() => {
-                // Close all active sessions
-                ServiceStreams.closeAll().then(() => {
-                    this._logger.debug(`All streams are closed`);
-                }).catch((closeErr: Error) => {
-                    this._logger.warn(`Fail to close all session before close due error: ${closeErr.message}`);
-                }).finally(() => {
-                    // Shutdown all plugins
-                    ServicePlugins.accomplish().then(() => {
-                        this._logger.debug(`All plugins actions are accomplish`);
-                    }).catch((shutdownErr: Error) => {
-                        this._logger.warn(`Fail to accomplish plugins actions due error: ${shutdownErr.message}`);
-                    }).finally(() => {
-                        // Shutdown application
-                        this._destroy(InitializeStages.length - 1, (destroyErr?: Error) => {
-                            if (destroyErr instanceof Error) {
-                                // tslint:disable-next-line: no-console
-                                console.log(`Fail destroy due error: ${destroyErr.message}`);
-                            }
-                            this._quit().catch((quitErr: Error) => {
-                                // tslint:disable-next-line: no-console
-                                console.log(`Fail quit due error: ${quitErr.message}`);
-                            }).finally(() => {
-                                resolve();
-                            });
+            ServiceElectron.closeWindow()
+                .then(() => {
+                    this._logger.debug(`Browser window is closed`);
+                })
+                .catch((closeWinErr: Error) => {
+                    this._logger.warn(
+                        `Fail to close browser window before close due error: ${closeWinErr.message}`,
+                    );
+                })
+                .finally(() => {
+                    // Close all active sessions
+                    ServiceStreams.closeAll()
+                        .then(() => {
+                            this._logger.debug(`All streams are closed`);
+                        })
+                        .catch((closeErr: Error) => {
+                            this._logger.warn(
+                                `Fail to close all session before close due error: ${closeErr.message}`,
+                            );
+                        })
+                        .finally(() => {
+                            // Shutdown all plugins
+                            ServicePlugins.accomplish()
+                                .then(() => {
+                                    this._logger.debug(`All plugins actions are accomplish`);
+                                })
+                                .catch((shutdownErr: Error) => {
+                                    this._logger.warn(
+                                        `Fail to accomplish plugins actions due error: ${shutdownErr.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    // Shutdown application
+                                    this._destroy(
+                                        InitializeStages.length - 1,
+                                        (destroyErr?: Error) => {
+                                            if (destroyErr instanceof Error) {
+                                                // tslint:disable-next-line: no-console
+                                                console.log(
+                                                    `Fail destroy due error: ${destroyErr.message}`,
+                                                );
+                                            }
+                                            this._quit()
+                                                .catch((quitErr: Error) => {
+                                                    // tslint:disable-next-line: no-console
+                                                    console.log(
+                                                        `Fail quit due error: ${quitErr.message}`,
+                                                    );
+                                                })
+                                                .finally(() => {
+                                                    resolve();
+                                                });
+                                        },
+                                    );
+                                });
                         });
-                    });
                 });
-            });
         });
     }
 
@@ -251,13 +293,15 @@ class Application implements IApplication {
         if (tasks.length === 0) {
             return this._init(stage + 1, callback);
         }
-        Promise.all(tasks).then(() => {
-            this._logger.debug(`Application initialization: stage #${stage + 1}: OK`);
-            this._init(stage + 1, callback);
-        }).catch((error: Error) => {
-            this._logger.debug(`Fail to initialize application dure error: ${error.message}`);
-            callback(error);
-        });
+        Promise.all(tasks)
+            .then(() => {
+                this._logger.debug(`Application initialization: stage #${stage + 1}: OK`);
+                this._init(stage + 1, callback);
+            })
+            .catch((error: Error) => {
+                this._logger.debug(`Fail to initialize application dure error: ${error.message}`);
+                callback(error);
+            });
     }
 
     private _destroy(stage: number = 0, callback: (error?: Error) => any): void {
@@ -272,22 +316,27 @@ class Application implements IApplication {
         const services: any[] = InitializeStages[stage];
         const tasks: Array<Promise<any>> = services.map((ref: any) => {
             this._logger.debug(`Destroy: ${ref.getName()}: started...`);
-            return ref.destroy().then(() => {
-                this._logger.debug(`Destroy: ${ref.getName()}: DONE`);
-            }).catch((err: Error) => {
-                this._logger.error(`Destroy: ${ref.getName()}: FAILED due: ${err.message}`);
-            });
+            return ref
+                .destroy()
+                .then(() => {
+                    this._logger.debug(`Destroy: ${ref.getName()}: DONE`);
+                })
+                .catch((err: Error) => {
+                    this._logger.error(`Destroy: ${ref.getName()}: FAILED due: ${err.message}`);
+                });
         });
         if (tasks.length === 0) {
             return this._destroy(stage - 1, callback);
         }
-        Promise.all(tasks).then(() => {
-            this._logger.debug(`Application destroyed: stage #${stage + 1}: OK`);
-            this._destroy(stage - 1, callback);
-        }).catch((error: Error) => {
-            this._logger.debug(`Fail to destroy application dure error: ${error.message}`);
-            callback(error);
-        });
+        Promise.all(tasks)
+            .then(() => {
+                this._logger.debug(`Application destroyed: stage #${stage + 1}: OK`);
+                this._destroy(stage - 1, callback);
+            })
+            .catch((error: Error) => {
+                this._logger.debug(`Fail to destroy application dure error: ${error.message}`);
+                callback(error);
+            });
     }
 
     private _bindProcessEvents() {
@@ -306,7 +355,9 @@ class Application implements IApplication {
         if (reason instanceof Error) {
             this._logger.error(`[BAD] UnhandledRejection: ${reason.message}`);
         } else {
-            this._logger.error(`[BAD] UnhandledRejection happened. No reason as error was provided.`);
+            this._logger.error(
+                `[BAD] UnhandledRejection happened. No reason as error was provided.`,
+            );
         }
     }
 
@@ -330,15 +381,17 @@ class Application implements IApplication {
         return new Promise((resolve, reject) => {
             this._logger.debug(`Application are ready to be closed with code "${this._code}".`);
             this._logger.debug(`LogsService will be shutdown.`);
-            LogsService.shutdown().then(() => {
-                resolve();
-                process.exit(this._code);
-            }).catch((error: Error) => {
-                // tslint:disable-next-line: no-console
-                console.log(`Fail shutdown logservice due error: ${error.message}`);
-                reject(error);
-                app.exit(this._code);
-            });
+            LogsService.shutdown()
+                .then(() => {
+                    resolve();
+                    process.exit(this._code);
+                })
+                .catch((error: Error) => {
+                    // tslint:disable-next-line: no-console
+                    console.log(`Fail shutdown logservice due error: ${error.message}`);
+                    reject(error);
+                    app.exit(this._code);
+                });
         });
     }
 
@@ -357,18 +410,24 @@ class Application implements IApplication {
         };
         (global as any).chipmunk = cGlobal;
     }
-
 }
 
-(new Application()).init().then((application: Application) => {
-    application.getLogger().debug(`Application is ready.`);
-    ServiceSettings.subscribe().then(() => {
-        ServiceElectronState.setStateAsReady();
-        ServicePlugins.revision();
-    }).catch((settingsErr: Error) => {
-        application.getLogger().error(`Fail to subscribe settings service due error: ${settingsErr.message}`);
+new Application()
+    .init()
+    .then((application: Application) => {
+        application.getLogger().debug(`Application is ready.`);
+        ServiceSettings.subscribe()
+            .then(() => {
+                ServiceElectronState.setStateAsReady();
+                ServicePlugins.revision();
+            })
+            .catch((settingsErr: Error) => {
+                application
+                    .getLogger()
+                    .error(`Fail to subscribe settings service due error: ${settingsErr.message}`);
+            });
+    })
+    .catch((error: Error) => {
+        // tslint:disable-next-line:no-console
+        console.log(error);
     });
-}).catch((error: Error) => {
-    // tslint:disable-next-line:no-console
-    console.log(error);
-});
