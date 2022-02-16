@@ -68,6 +68,9 @@ pub enum Error {
     Unrecoverable(String),
 }
 
+pub(crate) const DEFAULT_READER_CAPACITY: usize = 10 * 1024 * 1024;
+pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
+
 #[async_trait]
 pub trait ByteSource {
     fn consume(&mut self, offset: usize);
