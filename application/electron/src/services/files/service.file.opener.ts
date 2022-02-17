@@ -215,26 +215,15 @@ class ServiceFileOpener implements IService {
                                         this._active.delete(sessionId);
                                     });
                             } else {
-                                ServiceElectron.IPC.request(
-                                    new IPCMessages.FileUnsupportedRequest({
+                                ServiceElectron.IPC.send(
+                                    new IPCMessages.FileUnsupported({
                                         file: path.basename(file),
                                     }),
-                                    IPCMessages.FileUnsupportedResponse,
-                                )
-                                    .then((response: IPCMessages.FileUnsupportedResponse) => {
-                                        if (response.open) {
-                                            detected.supported = true;
-                                            open(options);
-                                        } else {
-                                            this._logger.debug(`User canceled opening file.`);
-                                            return resolve({ sourceId: -1, options: undefined });
-                                        }
-                                    })
-                                    .catch((unsupportedFileError: Error) => {
-                                        this._logger.warn(
-                                            `Fail to notify render about opening unsupported file "${file}" due error: ${unsupportedFileError.message}`,
-                                        );
-                                    });
+                                ).catch((unsupportedFileError: Error) => {
+                                    this._logger.warn(
+                                        `Fail to notify render about opening unsupported file "${file}" due error: ${unsupportedFileError.message}`,
+                                    );
+                                });
                             }
                         };
                         if (opts !== undefined) {

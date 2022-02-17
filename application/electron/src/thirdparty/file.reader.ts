@@ -13,56 +13,24 @@ export interface ReadResult {
 
 export function readExactlyByFile(file: string, totalBytes: number): Promise<ReadResult> {
     return new Promise<ReadResult>((resolve, reject) => {
-        fs.open(file, 'r', null, (err, fd) => {
-            if (err) {
-                return reject(err);
-            }
-
-            function end(
-                endErr: Error | null,
-                resultBuffer: Buffer | null,
-                bytesRead: number,
-            ): void {
-                fs.close(fd, (closeError) => {
-                    if (closeError) {
-                        return reject(closeError);
-                    }
-
-                    if (endErr && (endErr as any).code === 'EISDIR') {
-                        return reject(endErr); // we want to bubble this error up (file is actually a folder)
-                    }
-
-                    return resolve({
-                        buffer: resultBuffer ? VSBuffer.wrap(resultBuffer) : null,
-                        bytesRead,
-                    });
-                });
-            }
-
-            const buffer = Buffer.allocUnsafe(totalBytes);
-            let offset = 0;
-
-            function readChunk(): void {
-                fs.read(fd, buffer, offset, totalBytes - offset, null, (readErr, bytesRead) => {
-                    if (readErr) {
-                        return end(readErr, null, 0);
-                    }
-
-                    if (bytesRead === 0) {
-                        return end(null, buffer, offset);
-                    }
-
-                    offset += bytesRead;
-
-                    if (offset === totalBytes) {
-                        return end(null, buffer, offset);
-                    }
-
-                    return readChunk();
-                });
-            }
-
-            readChunk();
+        const stream: fs.ReadStream = fs.createReadStream(file, {
+            start: 0,
+            end: totalBytes <= 50 ? totalBytes : 50,
+        });
+        stream.on('data', (chunk: string | Buffer) => {
+            resolve({
+                buffer: VSBuffer.wrap(
+                    typeof chunk === 'string' ? Buffer.from(chunk, 'utf-8') : chunk,
+                ),
+                bytesRead: Buffer.byteLength(chunk),
+            });
+        });
+        stream.on('error', () => {
+            reject("Failed to read file to detect if it's binary");
+            stream.close();
+        });
+        stream.on('close', () => {
+            stream.close();
         });
     });
 }

@@ -65,9 +65,9 @@ export class FileOpenerService implements IService, IFileOpenerService {
                 IPC.FilesOpenEvent,
                 this._onFilesOpenEvent.bind(this),
             );
-            this._subscriptions.FileUnsupportedRequest = ServiceElectronIpc.subscribe(
-                IPC.FileUnsupportedRequest,
-                this._onFileUnsupportedRequest.bind(this),
+            this._subscriptions.FileUnsupported = ServiceElectronIpc.subscribe(
+                IPC.FileUnsupported,
+                this._onFileUnsupported.bind(this),
             );
             resolve();
         });
@@ -635,10 +635,7 @@ export class FileOpenerService implements IService, IFileOpenerService {
         this.open(msg.files);
     }
 
-    private _onFileUnsupportedRequest(
-        request: IPC.FileUnsupportedRequest,
-        response: (message: IPC.TMessage) => Promise<void>,
-    ) {
+    private _onFileUnsupported(request: IPC.FileUnsupported) {
         const popupId: string | undefined = PopupsService.add({
             id: 'opening-unsupported-file-dialog',
             caption: `Opening unsupported file: ${request.file}`,
@@ -650,23 +647,8 @@ export class FileOpenerService implements IService, IFileOpenerService {
             },
             buttons: [
                 {
-                    caption: 'Open',
-                    handler: () => {
-                        response(
-                            new IPC.FileUnsupportedResponse({
-                                open: true,
-                            }),
-                        );
-                    },
-                },
-                {
                     caption: 'Cancel',
                     handler: () => {
-                        response(
-                            new IPC.FileUnsupportedResponse({
-                                open: false,
-                            }),
-                        );
                         popupId !== undefined && PopupsService.remove(popupId);
                     },
                 },
