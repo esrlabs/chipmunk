@@ -10,7 +10,6 @@ async-stream = "0.3.2"
 bytes = "1.0"
 chrono = "0.4"
 clap = { version = "3.0", features = ["cargo"] }
-# clap = "2.33.3"
 crossbeam-channel = "0.5.1"
 dirs = "4.0"
 dlt-core = "0.14"
@@ -24,10 +23,13 @@ log = "0.4"
 merging = { path = "../merging" }
 parsers = { path = "../parsers" }
 processor = { path = "../processor" }
+session = { path = "../session" }
+rustyline = "9.1"
 sources = { path = "../sources" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
-tokio = { version = "1.5", features = ["full"] }
+tokio = { version = "1.17", features = ["full"] }
 tokio-util = {version = "0.7", features = ["codec", "net"] }
 tokio-stream = "0.1.5"
+uuid = "0.8"
