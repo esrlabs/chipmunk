@@ -19,7 +19,9 @@ extern crate processor;
 extern crate lazy_static;
 
 mod dlt;
+mod interactive;
 
+use crate::interactive::handle_interactive_session;
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
@@ -540,6 +542,16 @@ pub async fn main() -> Result<()> {
                         .help("put out chunk information on stdout"),
                 ),
         )
+        .subcommand(
+            App::new("session").about("enter interactive session").arg(
+                Arg::new("input")
+                    .short('i')
+                    .long("input")
+                    .help("Sets the input file path")
+                    .required(true)
+                    .index(1),
+            ),
+        )
         .get_matches();
 
     // Vary the output based on how many times the user used the "verbose" flag
@@ -568,6 +580,8 @@ pub async fn main() -> Result<()> {
         handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates).await
     } else if let Some(matches) = matches.subcommand_matches("discover") {
         handle_discover_subcommand(matches).await
+    } else if let Some(matches) = matches.subcommand_matches("session") {
+        handle_interactive_session(matches).await;
     }
 
     async fn handle_grab_subcommand(
