@@ -99,7 +99,7 @@ mod tests {
     /// Setup function that is only run once, even if called multiple times.
     fn setup() {
         INIT.call_once(|| {
-            env_logger::init();
+            _ = env_logger::try_init();
         });
     }
     #[tokio::test]

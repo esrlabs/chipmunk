@@ -10,7 +10,7 @@ lazy_static! {
 
 #[tokio::test]
 async fn test_read_messages_from_pcapng() {
-    env_logger::init();
+    let _ = env_logger::try_init();
     let dlt_parser = DltParser::default();
     let in_file = File::open(&*EXAMPLE_PCAPNG).expect("cannot open file");
     let source = PcapngByteSource::new(in_file).expect("cannot create source");
