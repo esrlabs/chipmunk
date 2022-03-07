@@ -105,7 +105,10 @@ namespace :build do
   end
 
   desc 'build all'
-  task :all => ['build:rs', 'build:ts', 'build:delivery']
+  task :all do
+    puts "do nothing in grabber branch"
+  end
+  # task :all => ['build:rs', 'build:ts', 'build:delivery']
 end
 
 test_runner = './ts-bindings/node_modules/.bin/electron ./ts-bindings/node_modules/jasmine-ts/lib/index.js'
@@ -152,9 +155,12 @@ namespace :test do
   end
 
   desc 'run all test'
-  task :all => %i[build:all] do
-    ENV['ELECTRON_RUN_AS_NODE'] = '1'
-    sh "#{test_runner} ts-bindings/spec/utils.spec.ts ts-bindings/spec/*.ts"
+  task :all do
+    puts 'No integration tests on grabber branch'
   end
+  # task :all => %i[build:all] do
+  #   ENV['ELECTRON_RUN_AS_NODE'] = '1'
+  #   sh "#{test_runner} ts-bindings/spec/utils.spec.ts ts-bindings/spec/*.ts"
+  # end
 end
 
