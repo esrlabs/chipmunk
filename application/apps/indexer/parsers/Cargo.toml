@@ -22,3 +22,6 @@ rustc-hash = "1.1"
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 # someip-payload = { path = "../../../../../someip-payload"}
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+
+[dev-dependencies]
+stringreader = "0.1.1"

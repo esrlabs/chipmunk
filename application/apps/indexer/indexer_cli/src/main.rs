@@ -1628,7 +1628,7 @@ pub async fn main() -> Result<()> {
             println!("read fibex file {}", model_path.to_str().unwrap());
             let fibex_reader = FibexReader::from_file(model_path).unwrap();
             let fibex_model = FibexParser::try_parse(fibex_reader).expect("cannot parse fibex");
-            let somip_parser = SomeipParser::new(&fibex_model);
+            let someip_parser = SomeipParser::from_fibex(&fibex_model);
 
             println!("parse input file {}", input_path.to_str().unwrap());
             let input_file_size = fs::metadata(&input_path).expect("file size error").len();
@@ -1637,7 +1637,7 @@ pub async fn main() -> Result<()> {
                 mpsc::channel(100);
             let (_, res) = tokio::join! {
                 progress_listener(input_file_size, rx, start),
-                print_from_pcapng(&input_path, &output_path, tx, cancel, somip_parser),
+                print_from_pcapng(&input_path, &output_path, tx, cancel, someip_parser),
             };
             println!("result: {:?}", res);
 
