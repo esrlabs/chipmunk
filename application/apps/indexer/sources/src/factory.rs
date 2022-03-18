@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ParserType {
     Dlt(DltParserSettings),
-    Pcap(PcapParserSettings),
+    PcapDlt(PcapDltParserSettings),
     SomeIP(SomeIPParserSettings),
     Text,
 }
@@ -19,9 +19,7 @@ pub struct DltParserSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PcapParserSettings {
-    pub dlt: DltParserSettings,
-}
+pub struct PcapDltParserSettings(pub DltParserSettings);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SomeIPParserSettings {}

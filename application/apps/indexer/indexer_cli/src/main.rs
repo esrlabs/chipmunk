@@ -47,7 +47,8 @@ use merging::merger::merge_files_use_config_file;
 use parsers::{
     dlt::{DltParser, DltRangeParser},
     someip::SomeipParser,
-    MessageStreamItem,
+    text::StringTokenizer,
+    LogMessage, MessageStreamItem,
 };
 use processor::{
     grabber::{GrabError, GrabbedContent, Grabber},
@@ -518,6 +519,16 @@ pub async fn main() -> Result<()> {
                 ),
         )
         .subcommand(
+            App::new("detect").about("detect file type").arg(
+                Arg::new("input")
+                    .short('i')
+                    .long("input")
+                    .help("the file to detect")
+                    .required(true)
+                    .index(1),
+            ),
+        )
+        .subcommand(
             App::new("dlt-stats")
                 .about("dlt statistics")
                 .arg(
@@ -611,6 +622,8 @@ pub async fn main() -> Result<()> {
         handle_dlt_udp_subcommand(matches).await
     } else if let Some(matches) = matches.subcommand_matches("dlt-stats") {
         handle_dlt_stats_subcommand(matches, start, use_stderr_for_status_updates).await
+    } else if let Some(matches) = matches.subcommand_matches("detect") {
+        handle_detect_file_type_subcommand(matches).await
     } else if let Some(matches) = matches.subcommand_matches("discover") {
         handle_discover_subcommand(matches).await
     } else if let Some(matches) = matches.subcommand_matches("session") {
@@ -1562,6 +1575,16 @@ pub async fn main() -> Result<()> {
         }
     }
 
+    async fn handle_detect_file_type_subcommand(matches: &clap::ArgMatches) {
+        let file_name = matches.value_of("input").expect("input must be present");
+        let file_path = path::PathBuf::from(file_name);
+        let res = detect_messages_type(&file_path).await;
+
+        let start_op = Instant::now();
+        duration_report(start_op, "detection of file type".to_string());
+        println!("res = {:?}", res);
+    }
+
     async fn handle_dlt_stats_subcommand(
         matches: &clap::ArgMatches,
         start: std::time::Instant,
@@ -1720,13 +1743,197 @@ fn initialize_progress_bar(len: u64) -> ProgressBar {
 async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
     if input.exists() {
         let second_reader = BufReader::new(fs::File::open(&input)?);
-        let dlt_parser = DltRangeParser::new(true);
+        let dlt_parser = DltRangeParser::new();
 
         let source = BinaryByteSource::new(second_reader);
 
         let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
         let msg_stream = dlt_msg_producer.as_stream();
         Ok(msg_stream.count().await as u64)
+    } else {
+        Err(DltParseError::Unrecoverable(format!(
+            "Couldn't find dlt file: {:?}",
+            input
+        )))
+    }
+}
+
+async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
+    use session::factory::{
+        DltParserSettings, ParserType, PcapDltParserSettings, SomeIPParserSettings,
+    };
+    if input.exists() {
+        // let dlt_parser_setting = DltParserSettings {
+        //     filter_config: None,
+        //     fibex_file_paths: None,
+        //     with_storage_header: true,
+        // };
+        // let pcap_dlt_parser_setting = PcapDltParserSettings(DltParserSettings {
+        //     filter_config: None,
+        //     fibex_file_paths: None,
+        //     with_storage_header: true,
+        // });
+        // let someip_parser_setting = SomeIPParserSettings {};
+        // let parser_types = vec![
+        //     ParserType::Dlt(dlt_parser_setting),
+        //     ParserType::PcapDlt(pcap_dlt_parser_setting),
+        //     ParserType::SomeIP(someip_parser_setting),
+        //     ParserType::Text,
+        // ];
+        {
+            println!("try dlt parser");
+            let buf_reader = BufReader::new(fs::File::open(&input)?);
+            let source = BinaryByteSource::new(buf_reader);
+            let dlt_parser = DltRangeParser::new();
+            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+            let msg_stream = dlt_msg_producer.as_stream();
+            pin_mut!(msg_stream);
+            let mut item_count = 0usize;
+            let mut err_count = 0usize;
+            let mut consumed = 0usize;
+            loop {
+                match msg_stream.next().await {
+                    Some((_, MessageStreamItem::Item(item))) => {
+                        item_count += 1;
+                        consumed += item.range.len();
+                    }
+                    Some((_, MessageStreamItem::Skipped)) => item_count += 1,
+                    Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
+                    Some((_, MessageStreamItem::Empty)) => err_count += 1,
+                    Some((_, MessageStreamItem::Done)) => break,
+                    None => break,
+                }
+                if item_count > 10 || err_count > 10 {
+                    println!(
+                        "DLT parser, item_count: {}, err_count: {}, consumed: {}",
+                        item_count, err_count, consumed
+                    );
+                    break;
+                }
+            }
+        }
+        {
+            println!("try pcap someip parser");
+            let some_parser = SomeipParser::new();
+            // let buf_reader = BufReader::new(fs::File::open(&input)?);
+            match PcapngByteSource::new(fs::File::open(&input)?) {
+                Ok(source) => {
+                    let mut some_msg_producer = MessageProducer::new(some_parser, source);
+                    let msg_stream = some_msg_producer.as_stream();
+                    pin_mut!(msg_stream);
+                    let mut item_count = 0usize;
+                    let mut skipped_count = 0usize;
+                    let mut err_count = 0usize;
+                    let mut consumed = 0usize;
+                    loop {
+                        let x = msg_stream.next().await;
+                        match x {
+                            Some((used, MessageStreamItem::Item(_))) => {
+                                item_count += 1;
+                                consumed += used;
+                            }
+                            Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
+                            Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
+                            Some((_, MessageStreamItem::Empty)) => err_count += 1,
+                            Some((_, MessageStreamItem::Done)) => break,
+                            None => break,
+                        }
+                        if item_count > 10 || err_count > 10 {
+                            println!(
+                                "Someip pcap parser, item_count: {}, err_count: {}, consumed: {}",
+                                item_count, err_count, consumed
+                            );
+                            break;
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("was not a pcap file: {}", e);
+                }
+            }
+        }
+        {
+            println!("try pcap dlt parser");
+            let dlt_parser = DltParser::new(None, None, false);
+            // let buf_reader = BufReader::new(fs::File::open(&input)?);
+            match PcapngByteSource::new(fs::File::open(&input)?) {
+                Ok(source) => {
+                    let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+                    let msg_stream = dlt_msg_producer.as_stream();
+                    pin_mut!(msg_stream);
+                    let mut item_count = 0usize;
+                    let mut skipped_count = 0usize;
+                    let mut err_count = 0usize;
+                    let mut consumed = 0usize;
+                    loop {
+                        let x = msg_stream.next().await;
+                        match x {
+                            Some((_, MessageStreamItem::Item(item))) => {
+                                item_count += 1;
+                                consumed += item.message.byte_len() as usize;
+                            }
+                            Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
+                            Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
+                            Some((_, MessageStreamItem::Empty)) => err_count += 1,
+                            Some((_, MessageStreamItem::Done)) => break,
+                            None => break,
+                        }
+                        if item_count > 10 || err_count > 10 {
+                            println!(
+                                "DLT pcap parser, item_count: {}, err_count: {}, consumed: {}",
+                                item_count, err_count, consumed
+                            );
+                            break;
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("was not a pcap file: {}", e);
+                }
+            }
+        }
+        {
+            println!("try text parser");
+            let txt_parser = StringTokenizer {};
+            let buf_reader = BufReader::new(fs::File::open(&input)?);
+            let source = BinaryByteSource::new(buf_reader);
+            let mut txt_msg_producer = MessageProducer::new(txt_parser, source);
+            let msg_stream = txt_msg_producer.as_stream();
+            pin_mut!(msg_stream);
+            let mut item_count = 0usize;
+            let mut err_count = 0usize;
+            let mut skipped_count = 0usize;
+            let mut consumed = 0usize;
+            use std::io::Cursor;
+            loop {
+                match msg_stream.next().await {
+                    Some((rest, MessageStreamItem::Item(item))) => {
+                        let mut buff = Cursor::new(vec![0; 100 * 1024]);
+                        let cnt = item.to_writer(&mut buff);
+                        consumed += cnt.unwrap_or(0);
+                        match std::str::from_utf8(buff.get_ref()) {
+                            Ok(_) => println!("valid utf8-text"),
+                            Err(_) => println!("INVALID utf8-text"),
+                        }
+
+                        item_count += 1
+                    }
+                    Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
+                    Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
+                    Some((_, MessageStreamItem::Empty)) => err_count += 1,
+                    Some((_, MessageStreamItem::Done)) => break,
+                    None => break,
+                }
+                if item_count > 10 || err_count > 10 {
+                    println!(
+                        "TEXT parser, item_count: {}, err_count: {}, skipped count: {}, consumed: {}",
+                        item_count, err_count, skipped_count, consumed
+                    );
+                    break;
+                }
+            }
+        }
+        Ok(true)
     } else {
         Err(DltParseError::Unrecoverable(format!(
             "Couldn't find dlt file: {:?}",

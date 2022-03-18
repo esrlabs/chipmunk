@@ -30,7 +30,12 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                         println!("grab command received");
                         let start_op = Instant::now();
                         let content = session.grab(LineRange::from(0u64..=1000)).await.expect("grab failed");
-                        duration_report(start_op, format!("grabbing {} lines", content.grabbed_elements.len()));
+                        let len = content.grabbed_elements.len();
+                        println!("content has {} elemenst", len);
+                        for elem in content.grabbed_elements {
+                            println!("{:?}", elem);
+                        }
+                        duration_report(start_op, format!("grabbing {} lines", len));
                     }
                     Some(Command::Stop) => {
                         println!("stop command received");

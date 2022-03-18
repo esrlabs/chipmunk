@@ -42,7 +42,7 @@ impl Parser<StringMessage> for StringTokenizer {
             Ok((&input[msg_size + 1..], Some(string_msg)))
         } else {
             Ok((
-                input,
+                &[],
                 Some(StringMessage {
                     content: String::new(),
                 }),
