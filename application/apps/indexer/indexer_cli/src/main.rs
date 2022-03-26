@@ -1801,7 +1801,6 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                     let msg_stream = some_msg_producer.as_stream();
                     pin_mut!(msg_stream);
                     let mut item_count = 0usize;
-                    let mut skipped_count = 0usize;
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
                     loop {
@@ -1811,7 +1810,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                                 item_count += 1;
                                 consumed += used;
                             }
-                            Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
+                            Some((_, MessageStreamItem::Skipped)) => {}
                             Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
                             Some((_, MessageStreamItem::Empty)) => err_count += 1,
                             Some((_, MessageStreamItem::Done)) => break,
@@ -1841,7 +1840,6 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                     let msg_stream = dlt_msg_producer.as_stream();
                     pin_mut!(msg_stream);
                     let mut item_count = 0usize;
-                    let mut skipped_count = 0usize;
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
                     loop {
@@ -1851,7 +1849,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                                 item_count += 1;
                                 consumed += item.message.byte_len() as usize;
                             }
-                            Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
+                            Some((_, MessageStreamItem::Skipped)) => {}
                             Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
                             Some((_, MessageStreamItem::Empty)) => err_count += 1,
                             Some((_, MessageStreamItem::Done)) => break,
