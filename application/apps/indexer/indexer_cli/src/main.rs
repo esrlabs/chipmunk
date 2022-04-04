@@ -564,7 +564,7 @@ pub async fn main() -> Result<()> {
                     .short('i')
                     .long("input")
                     .help("Sets the input file path")
-                    .required(true)
+                    .required(false)
                     .index(1),
             ),
         )

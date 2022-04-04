@@ -40,10 +40,10 @@ pub struct SourceFilter {
 
 #[derive(Debug)]
 pub struct ReloadInfo {
-    newly_loaded_bytes: usize,
-    available_bytes: usize,
-    skipped_bytes: usize,
-    last_known_ts: Option<u64>,
+    pub newly_loaded_bytes: usize,
+    pub available_bytes: usize,
+    pub skipped_bytes: usize,
+    pub last_known_ts: Option<u64>,
 }
 
 impl ReloadInfo {
