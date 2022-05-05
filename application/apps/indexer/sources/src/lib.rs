@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use futures::future::ready;
 use thiserror::Error;
 
 #[cfg(test)]
@@ -100,4 +101,11 @@ pub trait ByteSource {
     /// If the source has access to some timestamp (e.g. timestamp of network package),
     /// this timestamp is passed on additionally (`last_known_ts`)
     async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
+
+    /// In case the ByteSource is some kind of connection that does not end,
+    /// cancel can be implemented that will give the ByteSource the chance to perform some
+    /// cleanup before the ByteSource is discarded
+    async fn cancel(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 }
