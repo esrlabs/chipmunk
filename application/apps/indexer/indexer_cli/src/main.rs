@@ -50,7 +50,7 @@ use parsers::{
     MessageStreamItem,
 };
 use processor::{
-    grabber::{GrabError, GrabbedContent},
+    grabber::{GrabError, GrabbedContent, Grabber},
     text_source::TextFileSource,
 };
 use sources::{
@@ -1058,7 +1058,14 @@ pub async fn main() -> Result<()> {
             };
             let file_path = path::PathBuf::from(file_name);
             let tag_string = tag.to_string();
-
+            let mut grabber =
+                match Grabber::lazy(TextFileSource::new(&out_path, &out_path.to_string_lossy())) {
+                    Ok(grabber) => Some(grabber),
+                    Err(err) => {
+                        report_error(format!("could not create grabber {:?}", err));
+                        std::process::exit(2)
+                    }
+                };
             let fibex_metadata: Option<FibexMetadata> =
                 if let Some(fibex_path) = matches.value_of("fibex") {
                     gather_fibex_data(FibexConfig {
@@ -1090,12 +1097,25 @@ pub async fn main() -> Result<()> {
             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
             let dlt_stream = dlt_msg_producer.as_stream();
             pin_mut!(dlt_stream);
+            let mut last_grab_call = Instant::now();
             while let Some((_, item)) = dlt_stream.next().await {
                 match item {
                     MessageStreamItem::Item(msg) => {
                         create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
                             .unwrap();
                         line_nr += 1;
+                        if let Some(grabber) = grabber.as_mut() {
+                            if last_grab_call.elapsed().as_millis() > 500 {
+                                last_grab_call = Instant::now();
+                                if let Err(err) = grabber.update_from_file(None) {
+                                    report_error(format!(
+                                        "fail to update grabber metadata {:?}",
+                                        err
+                                    ));
+                                    std::process::exit(2)
+                                }
+                            }
+                        }
                     }
                     MessageStreamItem::Empty => println!("--- empty"),
                     MessageStreamItem::Done => println!("--- done"),

@@ -17,13 +17,11 @@ use std::{
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
-    time::SystemTime,
+    time::Instant,
 };
 use tokio::{
     join, select,
-    sync::mpsc::{
-        channel, unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender,
-    },
+    sync::mpsc::{channel, Receiver, Sender},
     time::{timeout, Duration},
 };
 use tokio_stream::StreamExt;
@@ -50,7 +48,7 @@ pub async fn handle(
             }
             ParserType::Text => {
                 state.set_session_file(filename.clone()).await?;
-                let (tx_tail_update, mut rx_tail_update): (
+                let (tx_tail, mut rx_tail): (
                     Sender<Result<(), tail::Error>>,
                     Receiver<Result<(), tail::Error>>,
                 ) = channel(1);
@@ -66,7 +64,7 @@ pub async fn handle(
                     async {
                         let result = select! {
                             res = async move {
-                                while let Some(upd) = rx_tail_update.recv().await {
+                                while let Some(upd) = rx_tail.recv().await {
                                     if let Err(err) = upd {
                                         return Err(NativeError {
                                             severity: Severity::ERROR,
@@ -84,7 +82,7 @@ pub async fn handle(
                         tail_shutdown_caller.cancel();
                         result
                     },
-                    tail::track(filename.clone(), tx_tail_update, tail_shutdown),
+                    tail::track(filename.clone(), tx_tail, tail_shutdown),
                 );
                 (
                     vec![],
@@ -135,13 +133,22 @@ pub async fn handle(
                             e
                         )),
                     })?;
-                listen(
-                    filename,
-                    operation_api,
-                    state,
-                    MessageProducer::new(dlt_parser, source),
-                )
-                .await?
+                let (tx_tail, rx_tail): (
+                    Sender<Result<(), tail::Error>>,
+                    Receiver<Result<(), tail::Error>>,
+                ) = channel(1);
+                let tail_shutdown = CancellationToken::new();
+                let (_, listening) = join!(
+                    tail::track(filename.clone(), tx_tail, tail_shutdown.clone()),
+                    listen(
+                        filename,
+                        operation_api,
+                        state,
+                        MessageProducer::new(dlt_parser, source),
+                        rx_tail,
+                    )
+                );
+                listening?
             }
             ParserType::Dlt(settings) => {
                 let fibex_metadata = if let Some(paths) = settings.fibex_file_paths {
@@ -168,19 +175,30 @@ pub async fn handle(
                             )),
                         }
                     })?);
-                listen(
-                    filename,
-                    operation_api,
-                    state,
-                    MessageProducer::new(dlt_parser, source),
-                )
-                .await?
+                let (tx_tail, rx_tail): (
+                    Sender<Result<(), tail::Error>>,
+                    Receiver<Result<(), tail::Error>>,
+                ) = channel(1);
+                let tail_shutdown = CancellationToken::new();
+                let (_, listening) = join!(
+                    tail::track(filename.clone(), tx_tail, tail_shutdown.clone()),
+                    listen(
+                        filename,
+                        operation_api,
+                        state,
+                        MessageProducer::new(dlt_parser, source),
+                        rx_tail,
+                    )
+                );
+                listening?
             }
         },
     };
     trace!("done observing...cleaning up files: {:?}", paths);
+    println!(">>>>>>>>>>>>>>>>>> TO REMOVE: {:?}", paths);
     for path in paths {
         if path.exists() {
+            println!(">>>>>>>>>>>>>>>>>> WOULD BE REMOVE: {:?}", path);
             std::fs::remove_file(path).map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Io,
@@ -191,9 +209,10 @@ pub async fn handle(
     result
 }
 
-enum Event {
-    Check,
+enum Next<T: LogMessage> {
+    Item(MessageStreamItem<T>),
     Notify,
+    Waiting,
 }
 
 async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
@@ -201,6 +220,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     mut producer: MessageProducer<T, P, S>,
+    mut rx_tail: Receiver<Result<(), tail::Error>>,
 ) -> Result<(Vec<PathBuf>, OperationResult<()>), NativeError> {
     let dest_path = if let Some(dest_path) = filename.parent() {
         dest_path
@@ -236,8 +256,8 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             )),
         },
     )?);
-    let (tx_event, mut rx_event): (UnboundedSender<Event>, UnboundedReceiver<Event>) =
-        unbounded_channel();
+    // let (tx_event, mut rx_event): (UnboundedSender<Event>, UnboundedReceiver<Event>) =
+    //     unbounded_channel();
     // TODO: producer should return relevate source_id. It should be used
     // instead an internal file alias (file_name.to_string())
     //
@@ -247,55 +267,28 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     // TextFileSource::new(&session_file_path, producer.source_id());
     state.set_session_file(session_file_path.clone()).await?;
     let cancel = operation_api.get_cancellation_token();
-    let stop_timer = CancellationToken::new();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
-    let mut last_update = SystemTime::now();
-    let (notifications, producing) = join!(
-        async {
-            while let Some(task) = select! {
-                task = async {
-                    match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), rx_event.recv()).await {
-                        Ok(task) => task,
-                        Err(_) => Some(Event::Notify),
+    let mut last_message = Instant::now();
+    let mut has_updated_content = false;
+    let cancel_on_tail = cancel.clone();
+    while let Some(next) = select! {
+        msg = async {
+            match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
+                Ok(item) => {
+                    if let Some((_, item)) = item {
+                        Some(Next::Item(item))
+                    } else {
+                        Some(Next::Waiting)
                     }
-                } => task,
-                _ = stop_timer.cancelled() => None,
-            } {
-                match task {
-                    Event::Check => match last_update.elapsed() {
-                        Ok(elapsed) => {
-                            if elapsed.as_millis() < NOTIFY_IN_MS {
-                                tx_event.send(Event::Notify).map_err(|_| NativeError {
-                                    severity: Severity::ERROR,
-                                    kind: NativeErrorKind::ChannelError,
-                                    message: Some(String::from("Fail to update session state")),
-                                })?;
-                            }
-                        }
-                        Err(err) => {
-                            return Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::ChannelError,
-                                message: Some(format!("Fail to update session state: {}", err)),
-                            });
-                        }
-                    },
-                    Event::Notify => {
-                        if !state.is_closing() {
-                            state.update_session().await?;
-                        }
-                        last_update = SystemTime::now();
-                    }
-                }
+                },
+                Err(_) => Some(Next::Notify),
             }
-            Ok::<(), NativeError>(())
-        },
-        async {
-            while let Some((_, item)) = select! {
-                msg = stream.next() => msg,
-                _ = cancel.cancelled() => None,
-            } {
+        } => msg,
+        _ = cancel.cancelled() => None,
+    } {
+        match next {
+            Next::Item(item) => {
                 match item {
                     MessageStreamItem::Item(item) => {
                         session_writer
@@ -311,16 +304,24 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 kind: NativeErrorKind::Io,
                                 message: Some(e.to_string()),
                             })?;
-                        tx_event.send(Event::Check).map_err(|_| NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::ChannelError,
-                            message: Some(String::from("Fail to trigger update session state")),
-                        })?;
+                        if !state.is_closing() && last_message.elapsed().as_millis() > NOTIFY_IN_MS
+                        {
+                            state.update_session().await?;
+                            last_message = Instant::now();
+                            has_updated_content = false;
+                        } else {
+                            has_updated_content = true;
+                        }
                     }
                     MessageStreamItem::Done => {
                         trace!("observe, message stream is done");
+                        session_writer.flush().map_err(|e| NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Io,
+                            message: Some(e.to_string()),
+                        })?;
+                        state.update_session().await?;
                         state.file_read().await?;
-                        break;
                     }
                     // MessageStreamItem::FileRead => {
                     //     state.file_read().await?;
@@ -335,22 +336,28 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         trace!("observe: empty message");
                     }
                 }
-                stop_timer.cancel();
-                if !cancel.is_cancelled() {
+            }
+            Next::Notify => {
+                if !state.is_closing() && has_updated_content {
                     state.update_session().await?;
+                    has_updated_content = false;
                 }
             }
-            Ok::<(), NativeError>(())
+            Next::Waiting => {
+                if select! {
+                    msg = rx_tail.recv() => {
+                        if let Some(result) = msg {
+                            result.is_err()
+                        } else {
+                            true
+                        }
+                    },
+                    _ = cancel_on_tail.cancelled() => true,
+                } {
+                    break;
+                }
+            }
         }
-    );
-    Ok((
-        vec![session_file_path, binary_file_path],
-        if let Err(err) = notifications {
-            Err(err)
-        } else if let Err(err) = producing {
-            Err(err)
-        } else {
-            Ok(None)
-        },
-    ))
+    }
+    Ok((vec![session_file_path, binary_file_path], Ok(None)))
 }

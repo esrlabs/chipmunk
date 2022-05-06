@@ -1,17 +1,25 @@
 use crate::{grabber::GrabError, map::FilterMatch};
+use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher, Sink, SinkMatch};
 use itertools::Itertools;
+use log::error;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fs::File,
-    io::{BufWriter, Write},
+    fs,
+    fs::{File, OpenOptions},
+    io::{BufRead, BufWriter, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     str::FromStr,
 };
 use thiserror::Error;
+
+const REDUX_READER_CAPACITY: usize = 1024 * 1024;
+const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
+
+pub type SearchResults = Result<(PathBuf, Vec<FilterMatch>, FilterStats), SearchError>;
 
 #[derive(Error, Debug, Serialize)]
 pub enum SearchError {
@@ -76,10 +84,13 @@ impl FilterStats {
     }
 }
 
+#[derive(Debug)]
 pub struct SearchHolder {
     pub file_path: PathBuf,
     pub out_file_path: PathBuf,
     search_filters: Vec<SearchFilter>,
+    bytes_read: u64,
+    lines_read: u64,
     // pub handler: Option<EventHandler>,
     // pub shutdown_channel: Channel<()>,
     // pub event_channel: Channel<IndexingResults<()>>
@@ -166,6 +177,20 @@ fn filter_as_regex(filter: &SearchFilter) -> String {
     )
 }
 
+impl Drop for SearchHolder {
+    fn drop(&mut self) {
+        if self.out_file_path.exists() {
+            if let Err(err) = fs::remove_file(&self.out_file_path) {
+                error!(
+                    "Fail to remove file {}: {}",
+                    self.out_file_path.to_string_lossy(),
+                    err
+                );
+            }
+        }
+    }
+}
+
 impl SearchHolder {
     pub fn new<'a, I>(path: &Path, filters: I) -> Self
     where
@@ -179,7 +204,24 @@ impl SearchHolder {
             file_path: PathBuf::from(path),
             out_file_path: PathBuf::from(format!("{}.out", path.to_string_lossy())),
             search_filters,
+            bytes_read: 0,
+            lines_read: 0,
         }
+    }
+
+    pub fn set_filters<'a, I>(&mut self, filters: I)
+    where
+        I: Iterator<Item = &'a SearchFilter>,
+    {
+        let mut search_filters = vec![];
+        for filter in filters {
+            search_filters.push(filter.clone());
+        }
+        self.search_filters = search_filters;
+    }
+
+    pub fn set_lines_read(&mut self, lines_read: u64) {
+        self.lines_read = lines_read;
     }
 
     /// execute a search for the given input path and filters
@@ -193,7 +235,7 @@ impl SearchHolder {
     ///
     /// stat information shows how many times a filter matched:
     /// [(index_of_filter, count_of_matches), ...]
-    pub fn execute_search(&self) -> Result<(PathBuf, Vec<FilterMatch>, FilterStats), SearchError> {
+    pub fn execute_search(&mut self) -> SearchResults {
         if self.search_filters.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
@@ -214,22 +256,54 @@ impl SearchHolder {
                     .map_err(|err| SearchError::Regex(format!("{}", err)))?,
             );
         }
-        let out_file = File::create(&self.out_file_path).map_err(|_| {
-            GrabError::IoOperation(format!("Could not open file {:?}", &self.out_file_path))
+        let in_file = File::open(&self.file_path).map_err(|_| {
+            GrabError::IoOperation(format!("Could not open file {:?}", &self.file_path))
         })?;
-        let mut matched_lines = 0u64;
+        let out_file = if self.out_file_path.exists() {
+            OpenOptions::new()
+                .append(true)
+                .open(&self.out_file_path)
+                .map_err(|_| {
+                    GrabError::IoOperation(format!("Could not open file {:?}", &self.file_path))
+                })?
+        } else {
+            File::create(&self.out_file_path).map_err(|_| {
+                GrabError::IoOperation(format!("Could create file {:?}", &self.out_file_path))
+            })?
+        };
+        let mut in_file_reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, in_file)
+            .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
+        in_file_reader
+            .seek(SeekFrom::Start(self.bytes_read + 1))
+            .map_err(|_| {
+                GrabError::IoOperation(format!(
+                    "Could not seek file {:?} to {}",
+                    &self.file_path, self.bytes_read
+                ))
+            })?;
         let mut writer = BufWriter::new(out_file);
         let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats: HashMap<u8, u64> = HashMap::new();
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
+        let lines_read = self.lines_read;
+        let extra = in_file_reader.by_ref().lines().count() as u64;
+        self.lines_read += extra;
+        in_file_reader
+            .seek(SeekFrom::Start(self.bytes_read + 1))
+            .map_err(|_| {
+                GrabError::IoOperation(format!(
+                    "Could not seek file {:?} to {}",
+                    &self.file_path, self.bytes_read
+                ))
+            })?;
         Searcher::new()
-            .search_path(
+            .search_reader(
                 &matcher,
-                &self.file_path,
+                &mut in_file_reader,
                 UTF8(|lnum, line| {
-                    matched_lines += 1;
+                    let lnum = lnum + lines_read;
                     let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
                     for (index, re) in matchers.iter().enumerate() {
                         if re.is_match(line) {
@@ -248,7 +322,12 @@ impl SearchHolder {
                     &self.file_path, e
                 ))
             })?;
-
+        self.bytes_read = in_file_reader.seek(SeekFrom::Current(0)).map_err(|e| {
+            SearchError::IoOperation(format!(
+                "Cannot detect position in file {:?}; error: {}",
+                &self.file_path, e
+            ))
+        })?;
         Ok((
             self.out_file_path.clone(),
             indexes,

@@ -11,14 +11,13 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
-const REDUX_READER_CAPACITY: usize = 1024 * 1024;
+const REDUX_READER_CAPACITY: usize = 1024 * 32;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
 #[derive(Debug)]
 pub struct TextFileSource {
     source_id: String,
     path: PathBuf,
-    read_bytes: u64,
 }
 
 impl TextFileSource {
@@ -26,7 +25,6 @@ impl TextFileSource {
         Self {
             source_id: id.to_string(),
             path: PathBuf::from(p),
-            read_bytes: 0,
         }
     }
 }
@@ -98,6 +96,7 @@ impl TextFileSource {
 
     pub fn from_file(
         &mut self,
+        mut base: Option<GrabMetadata>,
         shutdown_token: Option<CancellationToken>,
     ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
         use std::io::prelude::*;
@@ -110,17 +109,36 @@ impl TextFileSource {
                 self.path.to_string_lossy()
             )));
         }
+        let (mut slots, last) = if let Some(mut base) = base.take() {
+            let last = if let Some(last) = base.slots.pop() {
+                last
+            } else {
+                Slot {
+                    bytes: ByteRange::from(0..=0),
+                    lines: LineRange::from(0..=0),
+                }
+            };
+            (base.slots, last)
+        } else {
+            (
+                Vec::<Slot>::new(),
+                Slot {
+                    bytes: ByteRange::from(0..=0),
+                    lines: LineRange::from(0..=0),
+                },
+            )
+        };
         let mut f = fs::File::open(&self.path)
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
-        f.seek(SeekFrom::Start(self.read_bytes)).map_err(|_| {
+        f.seek(SeekFrom::Start(last.bytes.start())).map_err(|_| {
             GrabError::IoOperation(format!(
                 "Could not seek file {:?} to {}",
-                &self.path, self.read_bytes
+                &self.path,
+                last.bytes.start()
             ))
         })?;
-        let mut slots = Vec::<Slot>::new();
-        let mut byte_offset = 0u64;
-        let mut log_msg_cnt = 0u64;
+        let mut byte_offset = last.bytes.start();
+        let mut log_msg_cnt = last.lines.start();
 
         let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
             .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
@@ -135,7 +153,6 @@ impl TextFileSource {
                 Ok(content) => {
                     if content.is_empty() {
                         // everything was processed
-                        self.read_bytes = byte_offset;
                         break;
                     }
 
@@ -171,7 +188,6 @@ impl TextFileSource {
                 }
             }
         }
-
         Ok(ComputationResult::Item(GrabMetadata {
             slots,
             line_count: log_msg_cnt as usize,
@@ -208,7 +224,6 @@ impl TextFileSource {
         //     file_part.offset_in_file,
         //     file_part.total_lines - file_part.lines_to_skip - file_part.lines_to_drop
         // );
-
         let mut read_buf = vec![0; file_part.length];
         let mut read_from = fs::File::open(&self.path())
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
