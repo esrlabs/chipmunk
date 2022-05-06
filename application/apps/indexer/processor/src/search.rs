@@ -443,7 +443,7 @@ mod tests {
         let mut tmp_file = tempfile::NamedTempFile::new()?;
         let input_file = tmp_file.as_file_mut();
         input_file.write_all(content.as_bytes())?;
-        let search_holder = SearchHolder::new(tmp_file.path(), filters.iter());
+        let mut search_holder = SearchHolder::new(tmp_file.path(), filters.iter());
         let (out_path, _indexes, _stats) = search_holder
             .execute_search()
             .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
