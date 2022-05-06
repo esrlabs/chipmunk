@@ -19,7 +19,7 @@ export const handler = Requests.InjectLogger<
             }
             stored.session
                 .getSearch()
-                .grab(request.from, request.to - request.from)
+                .grab(request.from, request.to - request.from + 1)
                 .then((rows) => {
                     resolve(
                         new Requests.Search.Chunk.Response({

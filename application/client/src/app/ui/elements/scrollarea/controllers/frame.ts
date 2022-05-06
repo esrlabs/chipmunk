@@ -79,11 +79,11 @@ export class Frame {
     }
 
     public init() {
+        const cursor = this._service.getCursor();
         this._frame.setLength(
             Math.floor(this._holder.getHeight() / this._service.getItemHeight()),
             ChangesInitiator.HolderHeight,
         );
-        const cursor = this._service.getCursor();
         this._frame.setTotal(this._service.getLen(), ChangesInitiator.Scrolling);
         this._frame.moveTo(cursor, ChangesInitiator.Scrolling);
         this._service.setFrame(this._frame.get());
