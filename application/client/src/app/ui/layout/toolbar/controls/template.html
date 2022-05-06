@@ -1,0 +1,9 @@
+<div class="left-area">
+    <span [attr.class]="'small-icon-button fas fa-plus add-new'" (click)="_ng_onAdd($event)"></span>
+</div>
+<div class="injection-area" *ngIf="_ng_injection !== undefined">
+    <lib-containers-dynamic [component]="_ng_injection"></lib-containers-dynamic>
+</div>
+<div [attr.class]="'right-area ' + (_ng_injection !== undefined ? 'injection-exist' : '')">
+    <span [attr.class]="'small-icon-button fas fa-arrow-down state-trigger ' + (state.minimized ? 'minimized' : '')" (click)="_ng_onStateToggle($event)"></span>
+</div>

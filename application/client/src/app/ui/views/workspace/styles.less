@@ -1,0 +1,18 @@
+@import '../../styles/variables.less';
+
+:host {
+    display: flex;
+    position: absolute;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: @scheme-color-5;
+    overflow: hidden;
+    & div {
+        position: relative;
+        overflow: hidden;
+    }
+    & div.content {
+        flex: auto;
+    }
+}

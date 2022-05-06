@@ -1,0 +1,23 @@
+@import '../../../../styles/variables.less';
+
+
+app-tabs-source-dltfile-structure {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    & .mat-table {
+        width: 100%;
+        & tr.mat-row {
+            height: 32px;
+            &:hover {
+                background: @scheme-color-4;
+            }
+        }
+    }
+    & span.id{
+        & > span {
+            background-color: @scheme-color-3;
+        }
+    }
+}

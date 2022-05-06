@@ -1,0 +1,50 @@
+@import '../../styles/variables.less';
+@import '../../styles/support.less';
+@import '../../styles/borders.less';
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
+    .border-based-5;
+    & ul.apps {
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        top: 0;
+        width: 50%;
+        height: 100%;
+        overflow: hidden;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        white-space: nowrap;
+        & li.app {
+            position: relative;
+            display: flex;
+            height: 100%;
+            width: auto;
+            margin: 0;
+            align-items: center;
+            padding: 0;
+        }
+        &.left {
+            left: 0;
+            flex-direction: row;
+            & li.app {
+                flex-direction: row;
+            }
+        }
+        &.right {
+            left: 50%;
+            flex-direction: row-reverse;
+            & li.app {
+                flex-direction: row-reverse;
+            }
+        }
+
+    }
+}

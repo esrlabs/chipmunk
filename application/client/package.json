@@ -1,0 +1,65 @@
+{
+  "name": "chipmunk",
+  "version": "1.0.0",
+  "description": "Logs analyzer tool",
+  "author": "Dmitry Astafyev",
+  "scripts": {
+    "ng": "./node_modules/.bin/ng",
+    "start": "./node_modules/.bin/ng serve",
+    "build": "./node_modules/.bin/ng build --configuration development",
+    "test": "./node_modules/.bin/ng test",
+    "e2e": "./node_modules/.bin/ng e2e",
+    "prod": "./node_modules/.bin/ng build --configuration production"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "~13.3.0",
+    "@angular/cdk": "^13.3.3",
+    "@angular/common": "~13.3.0",
+    "@angular/compiler": "~13.3.0",
+    "@angular/core": "~13.3.0",
+    "@angular/forms": "~13.3.0",
+    "@angular/material": "^13.3.3",
+    "@angular/platform-browser": "~13.3.0",
+    "@angular/platform-browser-dynamic": "~13.3.0",
+    "@angular/router": "~13.3.0",
+    "chart.js": "^3.7.1",
+    "moment": "^2.29.1",
+    "moment-timezone": "^0.5.34",
+    "rxjs": "~7.5.0",
+    "tslib": "^2.3.0",
+    "uuid": "^8.3.2",
+    "zone.js": "~0.11.4"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "~13.3.0",
+    "@angular-eslint/builder": "^13.2.1",
+    "@angular-eslint/eslint-plugin": "^13.2.1",
+    "@angular-eslint/eslint-plugin-template": "^13.2.1",
+    "@angular-eslint/schematics": "^13.2.1",
+    "@angular-eslint/template-parser": "^13.2.1",
+    "@angular/cli": "~13.3.0",
+    "@angular/compiler-cli": "~13.3.0",
+    "@types/jasmine": "^4.0.3",
+    "@types/node": "^17.0.24",
+    "@types/uuid": "^8.3.4",
+    "@typescript-eslint/eslint-plugin": "^5.19.0",
+    "@typescript-eslint/parser": "^5.19.0",
+    "eslint": "^8.2.0",
+    "jasmine-core": "^4.1.0",
+    "karma": "~6.3.0",
+    "karma-chrome-launcher": "~3.1.0",
+    "karma-coverage": "^2.2.0",
+    "karma-jasmine": "^5.0.0",
+    "karma-jasmine-html-reporter": "~1.7.0",
+    "typescript": "~4.6.2"
+  },
+  "browserslist": [
+    "last 2 Chrome versions"
+  ],
+  "browser": {
+    "fs": false,
+    "os": false,
+    "path": false
+  }
+}

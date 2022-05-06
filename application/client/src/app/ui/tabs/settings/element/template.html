@@ -1,0 +1,19 @@
+<mat-form-field *ngIf="field.getElementType() === 'checkbox'" class="outline-settings" appearance="outline">
+    <input matInput style="display: none">
+    <mat-checkbox [(ngModel)]="_ng_value" (ngModelChange)="_ng_onValueChange($event)"><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(name)"></span></mat-checkbox>
+    <mat-hint><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(description)"></span></mat-hint>
+</mat-form-field>
+
+<mat-form-field *ngIf="field.getElementType() === 'string'" class="outline-settings" appearance="outline">
+    <mat-label><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(name)"></span></mat-label>
+    <input matInput [(ngModel)]="_ng_value" (ngModelChange)="_ng_onValueChange($event)" type="text" [errorStateMatcher]="_ng_value_error">
+    <mat-hint><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(description)"></span></mat-hint>
+    <mat-error *ngIf="!_ng_value_error.isValid()">{{_ng_value_error.getError()}}</mat-error>
+</mat-form-field>
+
+<mat-form-field *ngIf="field.getElementType() === 'number'" class="outline-settings" appearance="outline">
+    <mat-label><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(name)"></span></mat-label>
+    <input matInput [(ngModel)]="_ng_value" (ngModelChange)="_ng_onValueChange($event)" type="number" [errorStateMatcher]="_ng_value_error" [attr.min]="_ng_min()" [attr.max]="_ng_max()">
+    <mat-hint><span class="span-wrapper" [innerHTML]="_ng_getSafeHTML(description)"></span></mat-hint>
+    <mat-error *ngIf="!_ng_value_error.isValid()">{{_ng_value_error.getError()}}</mat-error>
+</mat-form-field>

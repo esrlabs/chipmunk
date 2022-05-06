@@ -1,0 +1,16 @@
+<p class="t-normal color-scheme-0">{{entry.getName()}}</p>
+<p class="t-small color-scheme-2">{{entry.getDesc()}}</p>
+<app-tabs-settings-element *ngFor="let field of _ng_getFields()"
+    [field]="field"
+    [name]="_ng_getName(field)"
+    [description]="_ng_getDescription(field)"
+    [change]="_ng_getChangeCallback(field)"></app-tabs-settings-element>
+<div class="controlls">
+    <button mat-stroked-button color="primary" *ngIf="_ng_hasAdvanced()" (click)="_ng_onAdvanced()" [disabled]="_ng_isWorking()">
+        {{_ng_getAdvancedLabel()}}
+    </button>
+    <button mat-stroked-button color="primary" *ngIf="_ng_hasChanges()" (click)="_ng_onApply()" [disabled]="_ng_isWorking()">
+        <mat-spinner *ngIf="_ng_isWorking()" [diameter]="32" mode="indeterminate"></mat-spinner>
+        Apply / Save
+    </button>
+</div>

@@ -1,0 +1,40 @@
+<div class="wrapper">
+    <div class="main" appResizeObserver (changesize)="ngLayoutResize($event)">
+        <div class="workspace" [ngStyle]="ngWorkspaceStyle()">
+            <app-layout-workspace></app-layout-workspace>
+        </div>
+        <div class="toolbar" *ngIf="session !== undefined" [ngStyle]="ngToolbarStyle()">
+            <app-layout-toolbar [session]="session"></app-layout-toolbar>
+        </div>
+        <div class="toolbar-resizer"
+            *ngIf="session !== undefined"
+            appResizer
+            [min]="toolbar.min"
+            [max]="toolbar.max"
+            [size]="toolbar.value"
+            [direction]="Direction.Vertical"
+            [corrector]="1"
+            [ngStyle]="ngToolbarResizeStyle()"
+            (changesize)="ngToolbarResize($event)"></div>
+        <div class="sidebar" *ngIf="session !== undefined" [ngStyle]="ngSidebarStyle()">
+            <div class="sidebar-caption">
+                <div class="injections">
+                    <app-layout-sidebar-caption></app-layout-sidebar-caption>
+                </div>
+            </div>
+            <app-layout-sidebar></app-layout-sidebar>
+            <div class="sidebar-resizer"
+                appResizer
+                [min]="sidebar.min"
+                [max]="sidebar.max"
+                [size]="sidebar.value"
+                [direction]="Direction.Horizontal"
+                [corrector]="1"
+                (changesize)="ngSidebarResize($event)"></div>
+        </div>
+    </div>
+    <app-layout-statusbar></app-layout-statusbar>
+    <!-- <app-notifications></app-notifications>
+    <app-popups></app-popups> -->
+    <app-layout-contextmenu></app-layout-contextmenu>
+</div>

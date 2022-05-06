@@ -1,0 +1,10 @@
+<mat-selection-list [multiple]="false">
+  <mat-list-option *ngFor="let timezone of timezones()" (click)="ngOnSelect(timezone)">
+    <div class="timezone">
+      <span class="name" [innerHTML]="safeHtml(timezone.getNameAsHtml())"></span>
+      <span class="spacer"></span>
+      <span class="utc t-medium color-scheme-3" [innerHTML]="safeHtml(timezone.getUtcAsHtml())"></span>  
+    </div>
+  </mat-list-option>
+</mat-selection-list>
+<div class="filter t-medium" *ngIf="!data.state.filters.timezone.isEmpty()">{{data.state.filters.timezone.value()}}</div>

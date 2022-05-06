@@ -1,0 +1,11 @@
+<div #menu [attr.id]="_ng_guid" class="wrapper" [ngStyle]="{'top': _ng_top, 'left': _ng_left}">
+    <ul *ngIf="_ng_items !== undefined" class="menu">
+        <li [attr.class]="'item ' + (item.caption === undefined ? 'delimiter' : '') + ' ' + (item.disabled ? 'disabled' : '')" 
+            *ngFor="let item of _ng_items"
+            (mousedown)="_ng_onMouseDown(item)">
+            <span class="caption">{{item.caption}}</span>
+            <span class="shortcut" *ngIf="item.shortcut !== undefined">{{item.shortcut}}</span>
+        </li>
+    </ul>
+    <lib-containers-dynamic *ngIf="_ng_component !== undefined" [component]="_ng_component"></lib-containers-dynamic>
+</div>

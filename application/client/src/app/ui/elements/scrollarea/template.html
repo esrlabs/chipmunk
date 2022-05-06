@@ -1,0 +1,16 @@
+<ul class="holder" #content_holder (wheel)="onWheel($event)">
+	<li *ngFor="let row of rows; let i = index;" [attr.data-row-index]="i + getFrameStart()">
+		<app-scrollarea-row [row]="row"></app-scrollarea-row>
+	</li>
+</ul>
+<app-scrollarea-vertical
+	[service]="service"
+	[holder]="holder"
+	[frame]="frame"
+	(scrolling)="onScrolling($event)"></app-scrollarea-vertical>
+<div class="selection-detector top" *ngIf="showSelectionDetectors()">
+	<div class="selection-detector-filler" (mousemove)="onMouseMoveSelectionDetector(selectionDirection.Top)"></div>
+</div>
+<div class="selection-detector bottom" *ngIf="showSelectionDetectors()">
+	<div class="selection-detector-filler" (mousemove)="onMouseMoveSelectionDetector(selectionDirection.Bottom)"></div>
+</div>

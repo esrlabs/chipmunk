@@ -1,0 +1,50 @@
+@import './variables.less';
+
+div.comstyle-input-holder {
+    &.small {
+        & div.mat-select-trigger {
+            margin-top: 3px;
+        }
+        &
+            .mat-form-field-appearance-outline.mat-form-field-can-float.mat-form-field-should-float
+            .mat-form-field-label {
+            margin: -13px 0 0 -16px;
+        }
+        & label.mat-form-field-label.mat-empty {
+            margin: -16px 0 0 -9px;
+        }
+        & input {
+            padding: 3px 0 0 0;
+        }
+    }
+    & div.comstyle-input {
+        position: absolute;
+        display: block;
+        top: 0.25rem;
+        left: 0.5rem;
+        bottom: 0.25rem;
+        right: 0.5rem;
+        border: thin solid @scheme-color-4;
+        & input.comstyle-input {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'console', monospace;
+            border: none;
+            outline: none;
+            font-size: 0.75rem;
+            padding: 0;
+            margin: 0;
+            color: @scheme-color-1;
+            overflow: hidden;
+            background: @scheme-color-6;
+            font-weight: 500;
+            &:focus {
+                color: @scheme-color-0;
+            }
+        }
+    }
+}
