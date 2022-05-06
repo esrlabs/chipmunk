@@ -1,0 +1,1 @@
+export { RustNativeError } from './native';

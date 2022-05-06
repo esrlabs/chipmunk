@@ -1,20 +1,23 @@
 export interface IFileGetOptionsResponse {
-    options: string;
+    allowed: boolean;
+    options?: any;
 }
 
 export class FileGetOptionsResponse {
 
     public static signature: string = 'FileGetOptionsResponse';
     public signature: string = FileGetOptionsResponse.signature;
-    public options: string = '';
+    public allowed: boolean = true;
+    public options: any = undefined;
 
     constructor(params: IFileGetOptionsResponse) {
         if (typeof params !== 'object' || params === null) {
             throw new Error(`Incorrect parameters for FileGetOptionsResponse message`);
         }
-        if (typeof params.options !== 'string' || params.options.trim() === '') {
-            throw new Error(`options should be defined as not empty string.`);
+        if (typeof params.allowed !== 'boolean') {
+            throw new Error(`allowed should be defined.`);
         }
+        this.allowed = params.allowed;
         this.options = params.options;
     }
 }

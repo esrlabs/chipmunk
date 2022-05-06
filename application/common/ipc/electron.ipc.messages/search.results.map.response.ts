@@ -1,17 +1,19 @@
-import { API } from '../../interfaces/index';
+export interface ISearchResultMapData {
+    stats: { [key: string]: number };
+    map: { [key: number]: { [key: string ]: number } };
+}
 
 export interface ISearchResultMapResponse {
     streamId: string;
-    map: API.ISearchMap;
-    error?: string;
+    scaled: ISearchResultMapData;
+    data?: string;
 }
 
 export class SearchResultMapResponse {
-    public static readonly signature: string = 'SearchResultMapResponse';
-    public readonly signature: string = SearchResultMapResponse.signature;
-    public readonly streamId: string;
-    public readonly map: API.ISearchMap;
-    public readonly error?: string;
+    public static signature: string = 'SearchResultMapResponse';
+    public signature: string = SearchResultMapResponse.signature;
+    public streamId: string;
+    public data: string;
 
     constructor(params: ISearchResultMapResponse) {
         if (typeof params !== 'object' || params === null) {
@@ -20,12 +22,17 @@ export class SearchResultMapResponse {
         if (typeof params.streamId !== 'string' || params.streamId.trim() === '') {
             throw new Error(`Field "streamId" should be defined`);
         }
-        if (!(params.map instanceof Array)) {
-            throw new Error(`Field "map" should be defined`);
+        if (typeof params.scaled === 'object' && params.scaled !== null) {
+            this.data = JSON.stringify(params.scaled);
+        } else if (typeof params.data === 'string' ) {
+            this.data = params.data;
+        } else {
+            this.data = '';
         }
         this.streamId = params.streamId;
-        this.map = params.map;
-        this.error = params.error;
     }
 
+    public getData(): ISearchResultMapData {
+        return JSON.parse(this.data);
+    }
 }
