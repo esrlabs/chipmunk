@@ -246,6 +246,17 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn drop_search(&self) -> Result<bool, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session.drop_search().await.map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn extract_matches(
         &self,
         filters: Vec<WrappedSearchFilter>,
