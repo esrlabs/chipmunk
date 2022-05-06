@@ -1,5 +1,6 @@
 import moduleAlias from 'module-alias';
 import * as path from 'path';
+import * as os from 'os';
 
 // Local root: application/holder/dist
 const MODULES: { [key: string]: string } = {
@@ -21,7 +22,11 @@ const MODULES: { [key: string]: string } = {
 };
 
 const ROOT_PATH = (function () {
-    return __dirname.replace('/holder/src/loaders', '');
+    if (os.platform() == 'win32') {
+        return __dirname.replace(`\\holder\\src\\loaders`, '');
+    } else {
+        return __dirname.replace(`/holder/src/loaders`, '');
+    }
 })();
 
 function getModulePath(str: string): string {
